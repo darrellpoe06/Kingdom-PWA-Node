@@ -60,7 +60,7 @@ export const WORLD_ISSUES_META = {
   tagline: 'Don’t be told what to think. Learn how to think it through.',
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 1, // one published issue today; the track grows as issues are added
+  weeks: 3, // three published issues (Musk critique · beauty-supply boycott · The Game Changers); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -234,8 +234,13 @@ const MUSK_ISSUE = {
   ],
   interpretation: [
     {
+      id: 'n-harm-is-real',
+      statement: 'FIRST, name the wound plainly — "we cannot judge his heart" must NEVER become "so nothing here is real." The HARM is documented and serious, and much of it lands on Black people: a federal jury FOUND racial harassment of a Black worker (a verdict, not an allegation); xAI’s Grok produced antisemitic and "white genocide" content; a polluting facility was sited beside a historically Black neighborhood. You do not need to prove a motive to name a fruit — "by their fruits ye shall know them" (Matthew 7:16,20). Refusing to call an obvious, documented harm a harm — "Peace, peace; when there is no peace" (Jeremiah 6:14) — is itself a failure of truth, the very thing this track exists to stop. Discernment weighs BOTH sides fairly; it never launders documented damage into "who can say."',
+      restsOn: ['f-diaz', 'f-grok', 'f-boxtown'],
+    },
+    {
       id: 'n-pattern',
-      statement: 'Concluding "Elon Musk is a racist" is an interpretation about a person’s heart and intent — not a documented fact. Documented harms, allegations, and a person’s inner motive are three different things.',
+      statement: 'AND keep the categories: concluding "Elon Musk is a racist in his heart" is an interpretation about a person’s inner intent — which no headline can prove, and which Scripture reserves to God. Naming documented harm (the fruit) and pronouncing a verdict on a soul (the heart) are two different acts; we do the first plainly and leave the second to God. Documented harms, unproven allegations, and a person’s inner motive are three different things.',
       restsOn: ['f-diaz', 'f-pending-suits', 'f-grok'],
     },
     {
@@ -291,10 +296,10 @@ const MUSK_ISSUE = {
   // ---- STAGE 4 — THE BELIEVER'S LENS (4D framework + truth-and-grace) ----
   lens: {
     fourD: {
-      deepSource: 'Scripture refuses to let us pick only one half of God’s heart. He hates injustice and partiality, defends the poor, the oppressed, and the foreigner, and commands honest scales and a true witness — "do justice, love kindness, walk humbly" (Micah 6:8); "open your mouth for the mute... defend the rights of the poor and needy" (Proverbs 31:8-9). And in the SAME breath He forbids false witness, crowd-following, and partiality even toward the poor in a dispute — "you shall not fall in with the many to do evil... nor be partial to a poor man in his lawsuit" (Exodus 23:2-3); "in righteousness shall you judge your neighbor" (Leviticus 19:15). He warns the one who judges to first take the log out of his own eye (Matthew 7:1-5), and to speak "the truth in love" (Ephesians 4:15). So the believer engages injustice head-on AND refuses to dehumanize — because every person, including the powerful and including the ones we are angry at, bears the image of God.',
-      scripture: 'Micah 6:8; Proverbs 18:17; Proverbs 31:8-9; Leviticus 19:15-16; Exodus 23:2-3; Isaiah 1:17; James 2:1-9; Matthew 7:1-5; Ephesians 4:15',
+      deepSource: 'Scripture refuses to let us pick only one half of God’s heart. He hates injustice and partiality, defends the poor, the oppressed, and the foreigner, and commands honest scales and a true witness — "do justice, love kindness, walk humbly" (Micah 6:8); "Open thy mouth for the dumb... judge righteously, and plead the cause of the poor and needy" (Proverbs 31:8-9). And He tells us plainly that we CAN read the fruit even when we cannot read the heart: "by their fruits ye shall know them" (Matthew 7:16,20), and "have no fellowship with the unfruitful works of darkness, but rather reprove them" (Ephesians 5:11). So naming a documented wrong is obedience, not judgment — and He pronounces WOE on those who blur it: "Woe unto them that call evil good, and good evil; that put darkness for light" (Isaiah 5:20), who heal the hurt of the people slightly, "saying, Peace, peace; when there is no peace" (Jeremiah 6:14). YET in the SAME Scripture He forbids false witness, crowd-following, and partiality even toward the poor in a dispute — "you shall not fall in with the many to do evil... nor be partial to a poor man in his lawsuit" (Exodus 23:2-3; Leviticus 19:15) — and reserves the verdict on a soul to Himself, warning the judge to take the log from his own eye first (Matthew 7:1-5) and to speak "the truth in love" (Ephesians 4:15). So the believer names the documented harm head-on (the fruit) AND refuses to pronounce on a person’s heart (which is God’s) — both, without letting either cancel the other.',
+      scripture: 'Micah 6:8; Matthew 7:16-20; Matthew 7:1-5; Isaiah 5:20; Jeremiah 6:14; Ephesians 5:11; Proverbs 31:8-9; Leviticus 19:15-16; Exodus 23:2-3; Isaiah 1:17; James 2:1-9; Ephesians 4:15; Proverbs 18:17',
     },
-    threeD: 'Practically: care about the real people in the story — the Boxtown neighbors breathing the air, the workers in the lawsuits — without letting a creator’s outrage (or a defender’s dismissal) do your thinking for you. You can name a documented wrong AND refuse to declare a verdict on a person’s soul. Check before you believe or share. Hold the categories straight. And remember that being stirred up is not the same as being informed, and is not the same as doing good.',
+    threeD: 'Practically: care about the real people in the story — the Boxtown neighbors breathing the air, the Black worker a jury said was harassed — without letting a creator’s outrage (or a defender’s dismissal) do your thinking for you. Name the documented wrong plainly — that is the fruit (Matthew 7:16,20), and going silent about a real, documented harm is not "fairness," it is calling a wound peace (Jeremiah 6:14). AND refuse to declare a verdict on a person’s soul — that belongs to God. Both, not one. Check before you believe or share, keep the categories straight (a jury verdict is not an unproven allegation), and remember that being stirred up is not the same as being informed — but neither is being so "balanced" that you suppress an obvious truth.',
     benefits: [
       'Freedom from being manipulated by outrage media — in either direction (the attack OR the dismissal).',
       'Peace in a divisive world: you can engage hard things without your heart being eaten by anger.',
@@ -316,6 +321,7 @@ const MUSK_ISSUE = {
     practice: 'Take ONE claim from any video or post that made you angry this week. Find the primary source yourself. Write one sentence on what is documented vs. what is interpretation — then one sentence on a righteous, non-outrage response you could actually take (something that builds, protects, or blesses).',
     prompts: [
       'Which of the creator’s points were documented facts, and which were his interpretation? How could you check each one?',
+      'Where is the line between "I won’t judge his heart" (right — that is God’s) and "so I won’t name the documented harm either" (wrong — that is calling a wound peace, Jeremiah 6:14)? Practice saying the fruit plainly without pronouncing on the soul.',
       'Can you state Musk’s (or his defenders’) strongest case fairly, even though it is not the popular thing to do? Why is that a discipline worth practicing?',
       'A jury FOUND Tesla liable in one case; other suits are unproven ALLEGATIONS. Why does keeping that distinction matter for telling the truth?',
       'How do you hold both at once: caring about the Boxtown neighbors’ clean air AND refusing to condemn a person’s heart?',
@@ -475,7 +481,121 @@ const BEAUTY_SUPPLY_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE];
+// =============================================================================
+// THIRD WORKED EXAMPLE — a persuasive plant-based health documentary.
+// The DR-0100 discipline in a lesson: SPEAK the established fact + documented
+// damage plainly (heart disease the #1 killer; the ultra-processed Western diet's
+// real harm) — never hedged into "no one knows"; FLAG the genuinely-contested
+// claims narrowly, INCLUDING the film's OWN cherry-picked ones (saturated-fat-as-
+// simple-cause, the evolution/anatomy argument, the "vegetarian gladiators"); and
+// let the Word correct only the IDEOLOGY (plant-only-as-doctrine), never the data.
+// Sources verified by live web search 2026-07-04 (DR-0076), cited with as-of dates.
+// =============================================================================
+const GAME_CHANGERS_ISSUE = {
+  id: 'wi-game-changers-diet',
+  title: 'The Game Changers — A Plant-Based Documentary: How To Think It Through (Speak the Truth Both Ways)',
+  subject: { name: 'The Game Changers (2019 documentary) and the plant-based-vs-omnivore diet debate', kind: 'documentary / health claim', isNamedRealPerson: false },
+  skill: 'Take a persuasive health documentary and practice the hardest discernment move: SPEAK the established fact and real, documented damage plainly (it is not "one side"), FLAG the genuinely-contested claims narrowly — including the film\'s OWN cherry-picked ones — and let the Word correct only the ideological over-reach. Never hedge real facts into "no one knows"; never launder a film\'s weak claims as proof.',
+  source: {
+    creator: 'The Game Changers (2019), dir. James Wilks; exec. producers incl. James Cameron',
+    medium: 'documentary film',
+    title: 'The Game Changers',
+    url: 'https://www.healthline.com/nutrition/game-changers-review',
+    asOf: '2026-07-04',
+    note: 'We examine the film\'s argument AND the real data underneath it — established fact stated AS fact, contested claims flagged narrowly, the Word correcting the ideology not the data. (Darrell 2026-07-04 / DR-0100: we do not debate statistically-true data, and we do not launder a film\'s cherry-picked claims either.)',
+  },
+  claims: [
+    { id: 'c-plant-optimal', text: 'A plant-based diet is optimal — even superior — for strength, athletic performance, and recovery.', label: 'claim', attribution: 'the film / James Wilks', note: 'That elite athletes CAN thrive plant-based is real; "optimal/superior for all" is the contested leap, and the film leans on small or weak studies to make it.' },
+    { id: 'c-meat-myth', text: 'The idea that you need meat for strength and protein is a myth.', label: 'claim', attribution: 'the film', note: 'You CAN meet protein needs on plants — true. "Myth" overstates it: meat is a complete, efficient protein source; the honest point is that plants can suffice, not that meat is useless.' },
+    { id: 'c-blood-flow', text: 'Animal-based meals impair blood flow while plant meals improve it; saturated fat drives heart disease.', label: 'claim', attribution: 'the film', note: 'A single high-saturated-fat meal can acutely blunt blood-flow measures — real. But the strong "saturated fat simply causes heart disease" framing is more contested in the literature than the film presents.' },
+    { id: 'c-evolution', text: 'Humans evolved to eat mostly plants (long intestines; ancestral and gladiator diets).', label: 'claim', attribution: 'the film', note: 'Contested / cherry-picked: humans are omnivores, not herbivores; the gut-length argument and the "vegetarian Roman gladiators" claim are criticized as misread (the gladiators ate a mixed, plant-heavy but not meatless diet).' },
+    { id: 'c-go-plant', text: 'Switch to a plant-based diet.', label: 'call-to-action', attribution: 'the film', note: 'The film\'s position. We present it beside the whole-food-omnivore and the biblical-freedom views; the lesson itself issues no diet mandate.' },
+  ],
+  verifiable: [
+    {
+      id: 'f-heart-disease',
+      statement: 'Heart disease is the leading cause of death in the United States — about 1 in 5 deaths, and the #1 killer since 1950 (CDC; ~919,000 U.S. cardiovascular deaths in 2023). This is real, documented damage, not "one side of a debate."',
+      status: 'documented',
+      sources: [
+        { title: 'Heart Disease Facts', publisher: 'CDC', url: 'https://www.cdc.gov/heart-disease/data-research/facts-stats/index.html', asOf: '2026-07-04' },
+      ],
+      note: 'Diet, blood pressure, cholesterol, smoking, inactivity, obesity, and alcohol are named risk factors — diet is a lever people can move.',
+    },
+    {
+      id: 'f-upf-harm',
+      statement: 'Across large cohort studies, higher ULTRA-PROCESSED-food consumption tracks with higher cardiovascular disease and death — BMJ 2019 found a 10-percentage-point rise in the ultra-processed share of the diet associated with roughly 12% higher cardiovascular disease. The junk-food pattern does real, measured harm.',
+      status: 'documented',
+      sources: [
+        { title: 'New evidence links ultra-processed foods with a range of health risks', publisher: 'BMJ Group', url: 'https://bmjgroup.com/new-evidence-links-ultra-processed-foods-with-a-range-of-health-risks/', asOf: '2026-07-04' },
+      ],
+      note: 'Ultra-processed = packaged baked goods, sodas, sugary cereals, reconstituted meats, ready meals — high added sugar/fat/salt, low fibre. This harm stands regardless of the vegan-vs-omnivore question.',
+    },
+    {
+      id: 'f-ornish-reversal',
+      statement: 'In the Ornish Lifestyle Heart Trial (The Lancet, 1990; a small randomized trial, 28 vs 20 patients), a comprehensive lifestyle program that INCLUDED a low-fat plant-based diet was associated with REGRESSION of coronary atherosclerosis after one year, with more regression and fewer cardiac events at five years — heart disease is one of the few conditions with trial evidence of dietary/lifestyle reversal.',
+      status: 'documented',
+      sources: [
+        { title: 'Can lifestyle changes reverse coronary heart disease? (Lifestyle Heart Trial)', publisher: 'The Lancet (Ornish et al., 1990)', url: 'https://www.thelancet.com/journals/lancet/article/PII0140-6736(90)91656-U/fulltext', asOf: '2026-07-04' },
+      ],
+      note: 'Honest limits (DR-0076): small sample, and the program was MULTI-component (plant-based diet PLUS no smoking, stress management, exercise) — the reversal is credited to the whole package, not diet alone.',
+    },
+    {
+      id: 'f-shared-core',
+      statement: 'Even the documentary\'s scientific critics agree on the core: a diet high in whole plants and fibre and low in ultra-processed food is beneficial. The dispute is over the film\'s STRONGER, one-sided claims — not over eating more real plants.',
+      status: 'documented',
+      sources: [
+        { title: 'Fact Checking "The Game Changers"', publisher: 'Healthline', url: 'https://www.healthline.com/nutrition/game-changers-review', asOf: '2026-07-04' },
+      ],
+      note: 'The critics fault the film for cherry-picking small/weak studies and omitting large contrary ones — while still affirming the whole-food, less-processed core. Both the real benefit AND the over-reach are true at once.',
+    },
+  ],
+  interpretation: [
+    { id: 'n-can-not-must', statement: 'That elite athletes thrive plant-based shows a plant-based diet CAN be excellent — not that it is universally OPTIMAL or that meat is harmful. "Can" is documented; "must / superior-for-everyone" is the interpretive leap the film makes.', restsOn: ['f-shared-core'] },
+    { id: 'n-real-damage-stands', statement: 'The real, documented damage is the ultra-processed, heart-disease-driving Western pattern — and that stands no matter how the vegan-vs-omnivore debate resolves. Calling THAT "contested" would be ignoring real harm (DR-0100).', restsOn: ['f-heart-disease', 'f-upf-harm'] },
+    { id: 'n-film-over-reach', statement: 'The film\'s specific mechanistic and evolutionary claims (saturated-fat-as-simple-cause, the long-gut "not meant for meat" argument, the "vegetarian gladiators") are an over-reach on top of a real core — flag them narrowly; do not adopt them as fact, and do not let them discredit the real core either.', restsOn: ['f-shared-core'] },
+  ],
+  perspectives: [
+    { id: 'p-plant', label: 'The plant-forward advocates\' view', heldBy: 'the film and many nutrition researchers', steelman: 'At its strongest: heart disease is the #1 killer and diet is a lever we control; more whole plants and fibre and less red/processed and ultra-processed food genuinely lower cardiovascular risk; many people — including elite athletes — thrive plant-based; and a comprehensive plant-centered lifestyle has actual trial evidence of reversing coronary disease. Moving the plate toward plants is one of the most evidence-backed health changes a person can make.' },
+    { id: 'p-omnivore', label: 'The whole-food omnivore / freedom view', heldBy: 'many clinicians and everyday eaters', steelman: 'At its strongest: humans are omnivores; meat is a complete, nutrient-dense protein (B12, heme iron, creatine) that has fed thriving peoples for millennia. The real villain is ultra-processed junk and excess, not meat itself; a well-built omnivore diet — real food, mostly plants, some quality meat, little processed — is excellent, and no single diet is morally or medically mandatory for everyone.' },
+    { id: 'p-critic', label: 'The careful-science / anti-cherry-pick view', heldBy: 'the film\'s scientific fact-checkers', steelman: 'At its strongest: the film OVERSTATED — it leaned on small or weak studies, misread the gladiator evidence, oversimplified saturated fat, and omitted large studies that disagree. The honest, defensible position is the SHARED core (more whole food, far less ultra-processed) WITHOUT the vegan-superiority ideology bolted on top. Truth is served by neither swallowing the film nor dismissing the real harm it points at.' },
+    { id: 'p-word', label: 'The believer\'s freedom-and-stewardship view', heldBy: 'Scripture', steelman: 'At its strongest: the Word gives BOTH the herb and every moving thing for food (Genesis 1:29; 9:3) and explicitly forbids making meat-abstinence a doctrine or judging one another over food (1 Timothy 4:3-4; Romans 14) — AND it commands stewardship of the body as God\'s temple and warns against gluttony (1 Corinthians 6:19-20; Proverbs 23:20-21). So: real freedom in WHAT you eat, real responsibility in HOW you steward the temple. Freedom and wisdom together — never a diet law.' },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'Scripture will not let this become a diet religion. Yahweh gave the green herb for food (Genesis 1:29) AND, after the flood, "Every moving thing that liveth shall be meat for you; even as the green herb have I given you all things" (Genesis 9:3) — plants and meat, both from His hand. He names making meat-abstinence a doctrine as a danger: men "commanding to abstain from meats, which God hath created to be received with thanksgiving... For every creature of God is good, and nothing to be refused, if it be received with thanksgiving" (1 Timothy 4:3-4). Food is not where righteousness lives — "the kingdom of God is not meat and drink" (Romans 14:17) — and we are not to judge one another over it (Romans 14:2-3). YET the body is His temple to steward well (1 Corinthians 6:19-20; 1 Corinthians 10:31), gluttony is warned against (Proverbs 23:20-21), and Daniel\'s humble ten-day pulse test was honored (Daniel 1:12-15). So the Word corrects the film\'s IDEOLOGY — plant-only as THE moral way, meat as evil — while fully affirming the real call to tend the temple and flee the junk that harms it. It never disputes the documented damage; it disputes the doctrine.',
+      scripture: 'Genesis 1:29; Genesis 9:3; 1 Timothy 4:1-5; Romans 14:2-3,17; 1 Corinthians 6:19-20; 1 Corinthians 10:31; Daniel 1:12-15; Proverbs 23:20-21',
+    },
+    threeD: 'Practically: SPEAK the truth plainly — the ultra-processed, heart-disease-driving Western diet is doing real, measured harm; eating far more whole plants and fibre and far less processed junk is one of the best-supported things you can do for your body. That is not "one side." AND enjoy your freedom — meat or no meat is not your righteousness, and no one gets to judge your plate (Romans 14). Do not let a slick film shame you into an ideology; do not let "it\'s just one side" talk you out of the real, documented harm of the junk diet. Steward the temple; hold the freedom.',
+    benefits: [
+      'Freedom from food-guilt and diet-tribe legalism — Romans 14 forbids exactly that judgment.',
+      'The ability to hold BOTH: real, documented dietary damage is real AND no single diet is mandated.',
+      'A repeatable skill: state established fact plainly, flag the film\'s cherry-picks narrowly, measure the ideology by the Word.',
+      'A healthier temple without a new law — more whole food, less ultra-processed, gratitude and portion.',
+      'Truth and grace on the plate: see the real harm clearly without condemning anyone\'s dinner.',
+    ],
+    graceNote: 'This lesson condemns no one — not for eating meat, not for eating plants. Romans 14 forbids that judgment by name. It calls no one a glutton and calls no one to veganism; it honors the freedom God gave and the body He entrusted. Truth about real harm and grace toward real people meet at the same table.',
+    stewardship: 'The durable move is not joining a diet tribe; it is stewardship: more whole food, far less ultra-processed, honest portions, and gratitude — with full freedom of conscience about meat. Daniel\'s ten-day pulse test (Daniel 1:12-15) is the model: humble, evidence-checking care of the body, offered to God — not a vegan mandate, not a shrug at real harm.',
+    anchor: { ref: '1 Timothy 4:4', theme: 'Every creature of God is good, and nothing to be refused, if it be received with thanksgiving — freedom and gratitude over food-law, while the temple is still stewarded.' },
+  },
+  reflection: {
+    skill: 'When a documentary makes you feel you MUST change or be wrong: run three tiers. (1) What here is established fact / real damage? State it plainly — do not hedge it. (2) What is genuinely contested — including the film\'s OWN cherry-picked claims? Flag it narrowly. (3) Where is the ideological jump? Measure THAT by the Word, and let the real data stand. Commit to the truth; do not hide in "both sides," do not launder weak claims.',
+    practice: 'Take one claim from the film. Sort it: established fact, genuinely contested, or ideological over-reach? Find one real source (the lesson cites four you can open). Then write one sentence stating what IS documented plainly, and one sentence on the freedom the Word gives about the rest.',
+    prompts: [
+      'Which of the film\'s points are documented facts (heart disease, ultra-processed harm) and which are contested or cherry-picked (gladiators, "optimal for all")? How would you check each?',
+      'Where did you feel pulled to either swallow the whole film OR dismiss all of it? Why are both of those a failure to see the truth?',
+      'What does the Word actually correct here — the health data, or the "you must be vegan / meat is evil" ideology? Cite the verse.',
+      'Romans 14 forbids judging each other over food. How do you speak plainly about real dietary harm WITHOUT judging someone\'s dinner?',
+      'What is one stewardship change (more whole food, less ultra-processed) you could make in freedom — not as a law, but as care for the temple?',
+    ],
+  },
+  levels: {
+    child: 'Some movies really want you to eat only one way. Here\'s the true part: too much junk food (soda, chips, candy, fast food) really does hurt your heart — doctors know that for sure, it\'s not just an opinion. So eat lots of real food, especially fruits and vegetables! But the Bible says God gave us BOTH plants AND meat to eat and to say thank You for (Genesis 9:3), and it is not kind or fair to judge someone for what\'s on their plate. Eat healthy, say thank You to God, and be kind about other people\'s food.',
+    teen: 'Real talk: a documentary like this mixes true things with overstated things, and it wants you to pick a team. Run the moves. (1) What\'s actually TRUE and documented? Heart disease is the #1 killer, and the ultra-processed junk-food diet does real, measured damage — that\'s not "one side," that\'s facts, own it. Eating way more whole plants and less junk is genuinely one of the best things you can do. (2) What did the film OVERSTATE? The "vegetarian gladiators" claim is misread, the evolution/gut-length argument is cherry-picked, and "plants are optimal for everyone" leans on weak studies — humans are omnivores. (3) Where\'s the ideology? "You MUST go vegan / meat is evil." The Bible gives you both plants and meat (Genesis 9:3), says food isn\'t where your righteousness lives (Romans 14:17), and tells people not to judge each other over diet — while still saying take care of your body, it\'s God\'s temple (1 Corinthians 6:19-20). So: speak the truth about junk food plainly, enjoy your freedom about meat, and don\'t let anyone shame you into a food religion.',
+    senior: 'For the seasoned believer, this is discernment in an age of persuasive, agenda-driven media — and the discipline is to see the truth in BOTH directions. Speak the established fact plainly: heart disease is the nation\'s leading killer, the ultra-processed Western diet does real and documented harm, and a whole-food, plant-rich, less-processed pattern is among the best-evidenced changes a person can make (the Ornish trial even showed a comprehensive plant-centered lifestyle regressing coronary disease). Refusing to say so — hiding real harm behind "well, it\'s contested" — would be a failure to see the truth (DR-0100). AND refuse the over-reach: the film cherry-picks (the gladiators, the gut-length argument, saturated fat oversimplified, "optimal for all"), and its deeper claim — that plant-only is THE way and meat is wrong — is an ideology the Word will not bless. Scripture gives both the herb and every moving thing (Genesis 1:29; 9:3), forbids making abstinence from meats a doctrine (1 Timothy 4:3-4), and forbids judging a brother over his plate (Romans 14) — while commanding real stewardship of the temple and warning against gluttony (1 Corinthians 6:19-20; Proverbs 23:20-21). Hold both: name the real harm without flinching, honor the freedom without judging, and steward the body as Daniel did (Daniel 1:12-15) — evidence in hand, offered to God, no diet religion.',
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine

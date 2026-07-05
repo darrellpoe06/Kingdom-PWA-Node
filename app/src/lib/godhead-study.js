@@ -1140,6 +1140,44 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'Integrity is the mind\'s load-bearing wall: when the spoken word and the lived record match, there is nothing to defend and no second story to maintain — the alignment itself is the freedom, and giving credit where it is due keeps the self honest about what was received versus achieved.',
     tags: ['testimony', 'overcoming', 'eat-the-word', 'honour', 'alignment'],
   },
+
+  // ── THE SUPPRESSION-OF-TRUTH CLUSTER (Darrell 2026-07-04) ──────────────────
+  // "Find the algorithms in the biblical scriptures about letting false
+  // both-sides skepticism suppress established fact and real, documented damage —
+  // the same ratings-style hedge, aimed at data instead of Scripture. Same thing
+  // we do to Yahweh!!!!" These three name that exact move: hold down the evident
+  // truth (Rom 1), blur a plain line to seem balanced (Isa 5:20), call a real
+  // wound peace (Jer 6:14). The ground of DR-0100 in the Word itself.
+  {
+    id: 'gh-suppress-the-truth', section: 'epistles', name: 'Holding Down the Truth That Is Plainly Seen (the same thing we do to Yahweh)',
+    refs: ['Romans 1:18-22'],
+    condition: 'The truth is MANIFEST — "that which may be known of God is manifest in them; for God hath shewed it unto them"; the invisible things "are clearly seen... so that they are without excuse." The evidence is in front of every eye.',
+    consequence: 'They HOLD (hold down, suppress) "the truth in unrighteousness" — knew God yet "glorified him not as God," "became vain in their imaginations," the "foolish heart was darkened," and "professing themselves to be wise, they became fools." Suppressing the evident does not erase it; it darkens the one who suppresses and leaves him without excuse.',
+    threeD: 'This is the oldest algorithm of the deceived mind: not denying a HIDDEN thing, but holding DOWN a thing plainly seen. Men do it to Yahweh — the design screams a Designer, so they manufacture a "who can really say?" And we do it to plain data — the harm is measured and documented, so we hedge it into "well, both sides." SAME MOVE. Refuse it: name what is clearly seen. Calling the obvious "contested" is not humility; it is suppression, and it darkens the mind that practices it. (This is the ground of DR-0100 — we speak established truth plainly.)',
+    outcome: 'A sound, un-darkened mind that honors what is evident — of God and of the world He made — instead of the self-blinding that follows suppressing the truth.',
+    psyche: 'Motivated reasoning: when a truth indicts or costs us, the mind reaches for a manufactured doubt to dodge the demand. Naming the truth plainly — even against our own interest — is the discipline that keeps the mind sound and honest.',
+    tags: ['truth', 'suppression', 'evidence', 'sound-mind', 'without-excuse', 'dr-0100'],
+  },
+  {
+    id: 'gh-call-evil-good', section: 'prophets', name: 'Woe to Those Who Call Evil Good (blurring a plain line is not neutrality)',
+    refs: ['Isaiah 5:20'],
+    condition: 'A clear line exists — evil is evil and good is good, light is light and darkness is darkness, bitter is bitter and sweet is sweet.',
+    consequence: 'WOE is pronounced on those who INVERT them — "that call evil good, and good evil; that put darkness for light, and light for darkness; that put bitter for sweet, and sweet for bitter." The fog that blurs a plain line to seem even-handed is not neutrality; it is under a woe.',
+    threeD: 'The ratings-media trick — "here are both sides, who can really say?" — laid over a thing that is plainly evil or plainly true is exactly Isaiah 5:20. Blurring a clear line to look balanced is not wisdom; the Word calls it a WOE. Keep the line the Word keeps; do not launder darkness into a shade of light.',
+    outcome: 'Moral clarity that refuses the fashionable fog — calling good good and evil evil, as He does.',
+    psyche: 'False balance is a status move — appearing fair-minded by never landing — but treating a settled matter as open corrodes the very trust it courts. Clarity, not perpetual "both sides," is what a sound mind and a trusted voice require.',
+    tags: ['discernment', 'clarity', 'woe', 'no-both-sides', 'dr-0100'],
+  },
+  {
+    id: 'gh-peace-peace', section: 'prophets', name: 'Peace, Peace, When There Is No Peace (minimizing a real wound is a lie)',
+    refs: ['Jeremiah 6:14'],
+    condition: 'There is a real WOUND — an actual, visible hurt among the people that needs real healing.',
+    consequence: 'The false healer treats it "slightly, saying, Peace, peace; when there is no peace." Declaring a real wound healed — or declaring it no-wound — does not heal it; it abandons the wounded, and the Word names it a slight, false healing.',
+    threeD: 'Minimizing an obvious, documented harm to keep things comfortable — "it\'s fine, it\'s contested, let\'s not overstate it" — is Jeremiah\'s slight healing. Real love names the wound truly so it can actually be bound up. Do not say "peace" where there is a real, visible hurt; see it, name it, and bring the real cure.',
+    outcome: 'Honest care that names the real wound and brings the real cure — instead of a comfortable lie that leaves the hurt festering.',
+    psyche: 'Comfort-motivated denial soothes the observer, not the wounded; naming a hard truth plainly is the harder, kinder act, and it is the only path that actually leads to healing.',
+    tags: ['truth', 'healing', 'honesty', 'no-minimizing', 'dr-0100'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
