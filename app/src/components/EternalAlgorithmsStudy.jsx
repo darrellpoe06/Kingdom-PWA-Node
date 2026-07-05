@@ -23,6 +23,8 @@ import HelpButton from './HelpButton.jsx';
 import UiIcon from './UiIcon.jsx';
 import { kjvText, readOnline } from '../lib/scriptures.js';
 import { verseText as fullKjvVerse } from '../lib/bible-kjv.js';
+import { useTextToSpeech } from '../lib/tts.js';
+import { buildTutorScript, toSpeech } from '../lib/voice-tutor.js';
 import {
   SERIES, listStudies, getStudy, AXES,
   studyToGameCards, algorithmsToGameCards, scoreRound,
@@ -105,6 +107,46 @@ function Section({ section }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// TeachAloud — HEAR the whole study taught, section by section, for members who
+// do better listening than reading (COMMUNITY-FIRST accessibility; the
+// PhysicsWallah voice-tutor pattern applied to the Word). Reuses the ONE app
+// read-aloud engine (tts.js) and the pure, tested study->script transform
+// (voice-tutor.js). The verse resolver is the SYNCHRONOUS curated KJV
+// (kjvText) — the same text the on-screen Verse shows instantly; an
+// un-curated ref speaks "open your Bible", never a fabricated verse (DR-0076).
+// Hidden entirely on devices without speech support (unbreakable, honest).
+// -----------------------------------------------------------------------------
+function TeachAloud({ study }) {
+  const tts = useTextToSpeech();
+  const speech = useMemo(
+    () => toSpeech(buildTutorScript(study, { resolveVerse: kjvText })),
+    [study],
+  );
+  if (!tts.supported) return null;
+  const reading = tts.isReading;
+  return (
+    <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mt-2 flex flex-wrap items-center gap-2">
+      <button type="button"
+        onClick={() => (reading ? tts.stop() : tts.speak(speech))}
+        aria-pressed={reading}
+        className={`${BTN} bg-[#1A1815] text-white hover:bg-[#3A3630]`}>
+        {reading ? '■ Stop' : '▶ Teach me aloud'}
+      </button>
+      <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>
+        Hear this study taught — the teaching and the Word, read to you.
+      </span>
+      <span role="status" aria-live="polite" className="text-[0.625rem] text-[#5A6E3D] w-full">
+        {tts.failed
+          ? 'Tap "Teach me aloud" again — your device paused the sound.'
+          : reading && tts.segmentCount
+            ? `Reading ${tts.segmentIndex + 1} of ${tts.segmentCount}…`
+            : ''}
+      </span>
     </div>
   );
 }
@@ -641,6 +683,7 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Study {study.number} · {study.title}</h3>
         <p className="text-sm text-[#5A5751]" style={serif}>{study.subtitle}</p>
         <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{study.intro}</p>
+        <TeachAloud study={study} />
       </div>
 
       <div className="space-y-2 mb-4">
