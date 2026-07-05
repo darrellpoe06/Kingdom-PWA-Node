@@ -79,7 +79,7 @@ const TIMELINE = [
   { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
   { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports planned. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
   { when: 'Jul 3, 2026', title: 'FIRST LIGHT — commissioned', body: 'The wall runs as one 2560x1440 screen: cabinet pixel map measured (320x240 via NovaLCT), as-built data map confirmed (8 ports, one per column, top-entry chained down), screen saved to receiving cards, Preset 1 = service state, and live sermon video played full-wall the same night. Lesson recorded: every symptom was the input/layer side — the map and cables were right all along.', tone: 'good' },
-  { when: 'Jul 5, 2026', title: 'FIRST FULL LIVE SERVICE', body: 'The wall carried a complete Sunday service — "Celebrate" service graphic + live IMAG, both side screens magnifying the speaker, cameras cutting, streaming to YouTube + Facebook. Same session: ATEM Software Control 8.1.1 installed on the booth box (after wrong Camera/SDK packages were ruled out) and a Claude Code resident put on the box. Lower thirds scoped and deferred to after-service (two open questions gate the path).', tone: 'good' },
+  { when: 'Jul 5, 2026', title: 'Service live online; wall held on Freeze', body: 'Sunday service ran with the online broadcast live (YouTube + Facebook). The LED wall was held FROZEN on a holding graphic (NovaStar Freeze) for the service — NOT yet driven live — while the install continues toward running the wall from the control room over the network (IMAG was on the side screens, not the wall). CUDA roles: Proclaim on the left tower feeds the right tower for the online broadcast only. ATEM software was moved to the right tower and stopped working (troubleshoot). Claude resident installed on the booth box. Lower thirds deferred to after-service.', tone: 'attention' },
   { when: 'Punch list', title: 'Warranty + niceties', body: 'A few dark LED modules (vendor warranty swap, positions photographed); input EDID set to native 2560x1440 for 1:1 pixels; identify the Tactical RMM agent found on the control-room tower.', tone: 'attention' },
 ];
 
@@ -273,19 +273,20 @@ export default function ChurchVideoWall() {
         </p>
       </div>
 
-      {/* ===== FIRST FULL LIVE SERVICE (2026-07-05) — observed on site ===== */}
+      {/* ===== 2026-07-05 ON-SITE — service online, wall held on Freeze ===== */}
       <div className={card}>
         <div className="flex items-center justify-between">
-          <div className={labelCls}>First full live service &middot; {LIVE_SERVICE.observedOn}</div>
-          <StatusBadge status="live" />
+          <div className={labelCls}>On-site &middot; {LIVE_SERVICE.observedOn} &middot; service online, wall on Freeze</div>
+          <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status="attention" /> Wall held (install in progress)</span>
         </div>
         <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{LIVE_SERVICE.milestone}</p>
         <div className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{LIVE_SERVICE.service}</div>
         <ul className="mt-2 space-y-1">
           {LIVE_SERVICE.confirmed.map((c, i) => (
-            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&#10003;</span><span>{c}</span></li>
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
           ))}
         </ul>
+        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">Correction: {LIVE_SERVICE.corrected}</p>
 
         {/* Booth as-built — the device layout observed today */}
         <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Booth as-built &middot; observed</div>
