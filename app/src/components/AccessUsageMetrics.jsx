@@ -169,9 +169,13 @@ function PlatformSignups() {
                       {/* Two different clocks, named plainly (DR-0100): "account
                           created" is when the account was provisioned — family
                           accounts are allowlisted ahead of first use, so this is
-                          NOT days of active use; "last sign-in" is the auth stamp. */}
+                          NOT days of active use. "last active" is the EFFECTIVE
+                          recency (0079): the later of the auth stamp and the real
+                          member_presence heartbeat, so a silently-refreshed
+                          session that is signed in right now reads "active now" —
+                          not a stale weeks-old sign-in stamp. */}
                       <div className="text-[0.625rem] text-[#5A5751]">
-                        account created {r.joined} · {r.returned ? `active, last sign-in ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last sign-in ${r.lastSeen}`)}
+                        account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
                     </div>
                     <CategoryPill label={r.categoryLabel} />
@@ -186,7 +190,7 @@ function PlatformSignups() {
           <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
             Each public signup lands in their OWN private space — they cannot see family, business, or
             church data, and this view shows only their account (email, when the account was created,
-            when they last signed in), never anything inside their space.
+            when they were last active), never anything inside their space.
           </p>
         </>
       )}
