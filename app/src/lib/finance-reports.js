@@ -13,7 +13,7 @@
 // report's numbers always tie out to the view.
 // =============================================================================
 
-import { groupByMonth, groupByField, sortByDate, totals } from './imported-view.js';
+import { groupByMonth, groupByField, sortByDate, totals, isTransferTxn } from './imported-view.js';
 
 export const REPORT_COLUMNS = [
   { key: 'date', label: 'Date', type: 'date' },
@@ -78,13 +78,22 @@ export function byAccountModel(rows, meta) {
 }
 
 export function incomeVsExpenseModel(rows, meta) {
-  const income = rows.filter((r) => (Number(r.amount) || 0) > 0);
-  const expense = rows.filter((r) => (Number(r.amount) || 0) < 0);
+  // Internal transfers are neither income nor expense — a pure sign split
+  // reported a transfer credit as Income and its debit as Expense, inflating
+  // both sides (2026-07-05 audit defect). Exclude them here (they still appear
+  // in the register and the monthly/category views) and say so in the note.
+  const movements = rows.filter((r) => !isTransferTxn(r));
+  const transferCount = rows.length - movements.length;
+  const income = movements.filter((r) => (Number(r.amount) || 0) > 0);
+  const expense = movements.filter((r) => (Number(r.amount) || 0) < 0);
   const groups = [
     { label: 'Income', rows: sortByDate(income, 'desc'), totals: totals(income) },
     { label: 'Expenses', rows: sortByDate(expense, 'desc'), totals: totals(expense) },
   ].filter((g) => g.rows.length);
-  return modelFromGroups('Income vs expense', meta, groups);
+  return modelFromGroups('Income vs expense', meta, groups,
+    transferCount
+      ? `${transferCount} internal transfer${transferCount === 1 ? '' : 's'} excluded — money moved between your own accounts is neither income nor expense.`
+      : undefined);
 }
 
 export function tax1099Model(rows, meta) {

@@ -133,6 +133,54 @@ returns 7 rows.)
 - Gates run this session: eslint 0-warnings, full vitest, interconnect-guard,
   production build (results in the PR).
 
+## Addendum — financial-math accuracy audit (same session, Darrell's question)
+
+Darrell: "is the numbers in the financial system processing at the highest accuracy
+levels in each of their sequences and sound wholeisticly?" Adversarial audit of the
+money engines answered with evidence; four confirmed defects, ALL FIXED this session
+with proven-to-catch tests (each new test was verified failing against the old code):
+
+1. **Transfers inflated gross IN/OUT and mislabeled income/expense reports** —
+   `imported-view.totals`, `Imported recentIn/Out`, and `finance-reports
+   incomeVsExpenseModel` summed internal transfers (a transfer credit reported as
+   Income). Fixed via shared `isTransferTxn` (keys off the real `isTransfer` /
+   `category==='transfer'` markers rows already carry); cents rounding added to the
+   one unrounded rollup. NET was and stays correct; the gross presentation now is too.
+2. **The headline debt-free date disagreed with the Debt Snowball tab for the same
+   debts** — `projectDebt` netted minimum payments out of the extra pool, but the
+   pool (computePressure.extraAvailable) starts from netCashFlow whose outflows
+   ALREADY include debtService — minimums were double-counted and no freed-minimum
+   cascade ran. Aligned to the snowball engine's semantics (minimums always paid,
+   full extra on the highest-rate debt, freed minimums cascade same-month); a pin
+   now asserts both engines return the same debt-free month.
+3. **The 7-year target could silently return the $50k/mo search ceiling as if
+   achievable** — `findExtraForTarget` now returns `{ extra, achievable, cap }` and
+   the Rentals feasibility card says "not reachable" plainly (DR-0100).
+4. **`traceCashOnHand` sources were static `a.balance` while the headline is
+   ledger-derived** — the trace's own line items could fail to sum to the number
+   they explain. Sources now use the same `deriveAccountBalances` derivation.
+
+**Verified sound (no change needed):** integer-cent reconciliation equality
+(`reconciliation.js`), FITID + content-key dedupe (the 2026-07-02 double-count fix
+holds), avalanche/snowball orderings, projection month-stepping, per-step `round2`
+discipline, Big Picture inflow/outflow (transfer-clean by construction). **Known,
+documented approximation:** interest accrues nominal-monthly, not daily (FLAG-1) —
+bounded, re-review with the CALC-INVENTORY pass. **Low-priority residuals for the
+timeline:** `txn-dedupe` UUID-id convention reliance.
+
+## Money tie-in map (Darrell: "when a dollar moves, does everything move?")
+
+What genuinely moves together today (one ledger, derived views): transactions →
+`deriveAccountBalances` → account balances, cash on hand, Big Picture KPIs,
+Forecast projection, Debts (deriveDebts live view), reconciliation — a cleared
+transaction moves ALL of these in lockstep. What is DECLARED state that does NOT
+auto-move when a ledger dollar moves: rentals `actual` (hand-kept vs rent
+transactions), `outflows` buckets (declared monthly figures), contractor YTD
+(hand-entered), subscriptions amounts. Those are honest declared inputs, not
+painted numbers — but auto-reconciling them against the ledger (e.g. rent income
+transactions updating rental `actual`) is the next interdependence build:
+**re-review 2026-07-26** alongside the Books ingest decision (timeline row 5).
+
 ## Standards check (the "mistakes of the past" review requested mid-session)
 
 - **P13** — no new sync code maps hand-picked columns; the doc rail makes column

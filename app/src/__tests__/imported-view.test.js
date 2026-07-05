@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
-  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances,
+  monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -101,6 +101,60 @@ describe('totals — per-window numbers are summed from the rows, never painted'
   });
   it('an empty set is an honest zero', () => {
     expect(totals([])).toEqual({ in: 0, out: 0, net: 0, count: 0 });
+  });
+  it('rounds in/out/net to cents (float drift never leaks into a displayed total)', () => {
+    // 0.1 + 0.2 = 0.30000000000000004 unrounded — the audit flagged totals()
+    // as the only unrounded rollup.
+    const t = totals([{ id: 'p', amount: 0.1 }, { id: 'q', amount: 0.2 }]);
+    expect(t.in).toBe(0.3);
+    expect(t.net).toBe(0.3);
+  });
+});
+
+// The confirmed defect: internal transfers (moving money between the family's
+// own accounts) were summed into gross In and gross Out, inflating both and
+// mislabeling them in reports. Rows mark transfers two real ways — the seed /
+// BooksTransactions / categorize.js rows via category 'transfer', the synced
+// verified ledger via isTransfer (transactions-sync.js maps is_transfer).
+const TRANSFER_PAIR = [
+  { id: 'xf-out', posted: '2026-06-12', amount: -500, name: 'Online Transfer to Savings', category: 'transfer' },
+  { id: 'xf-in', posted: '2026-06-12', amount: 500, name: 'Online Transfer from Checking', isTransfer: true },
+];
+
+describe('isTransferTxn — recognizes both real transfer markers', () => {
+  it('true for category transfer, true for the isTransfer flag, false otherwise', () => {
+    expect(isTransferTxn({ category: 'transfer', amount: -500 })).toBe(true);
+    expect(isTransferTxn({ isTransfer: true, amount: 500 })).toBe(true);
+    expect(isTransferTxn({ category: 'groceries', amount: -50 })).toBe(false);
+    expect(isTransferTxn({ amount: 100 })).toBe(false);
+    expect(isTransferTxn(null)).toBe(false);
+  });
+});
+
+describe('totals — internal transfers do NOT inflate gross In / Out', () => {
+  it('a balanced +500/-500 transfer pair is excluded from In, Out, and Net', () => {
+    const t = totals([...ROWS, ...TRANSFER_PAIR]);
+    expect(t.in).toBe(1700);   // NOT 2200 — the transfer credit is not money in
+    expect(t.out).toBe(115);   // NOT 615 — the transfer debit is not money out
+    expect(t.net).toBe(1585);  // unchanged: the pair cancels, and both legs are excluded
+    expect(t.count).toBe(7);   // the rows are still real rows in the set
+  });
+  it('a one-sided transfer (other leg outside the window) still stays out of In/Out/Net', () => {
+    const t = totals([...ROWS, TRANSFER_PAIR[0]]);
+    expect(t.in).toBe(1700);
+    expect(t.out).toBe(115);
+    expect(t.net).toBe(1585); // net over MOVEMENTS, not over transfer legs
+  });
+});
+
+describe('groupByMonth — month subtotals exclude internal transfers too', () => {
+  it('the June group In/Out ignore the transfer pair while its rows still render', () => {
+    const groups = groupByMonth(sortByDate([...ROWS, ...TRANSFER_PAIR], 'desc'));
+    const june = groups.find((g) => g.key === '2026-06');
+    expect(june.rows).toHaveLength(5); // 3 June movements + the 2 transfer legs, all visible
+    expect(june.totals.in).toBe(1200);  // NOT 1700
+    expect(june.totals.out).toBe(95);   // NOT 595
+    expect(june.totals.net).toBe(1105);
   });
 });
 
