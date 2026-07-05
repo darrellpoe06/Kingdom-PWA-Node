@@ -140,8 +140,13 @@ export const INTERCONNECT_REGISTRY = [
     from: 'trivia_questions (table + review pipeline)', to: 'Engagement trivia card',
     proves: 'When connected: each Wednesday message’s end-of-video questions flow to the live trivia card.',
     source: { file: 'app/src/lib/engagement-sync.js', token: 'trivia_questions' },
-    links: [],
-    awaiting: 'Read + producer not wired: Engagement renders the fixed anchor set; getActiveQuestion/getRecentQuestions exist but nothing writes trivia_questions yet (blocked on the church-inbox / Whisper extraction of Bishop Gwin’s Wednesday questions). Surfaced as building, never as a live loop.',
+    // READ side wired 2026-07-05 (live-data-tabs audit): the surface now asks
+    // the live table first and falls back to the authored anchor set honestly.
+    links: [
+      { file: 'app/src/components/Engagement.jsx', token: 'getActiveQuestion' },
+      { file: 'app/src/components/Engagement.jsx', token: 'getRecentQuestions' },
+    ],
+    awaiting: 'Producer not wired: Engagement now READS trivia_questions live (falls back to the anchor set when empty), but nothing writes questions yet (blocked on the church-inbox / Whisper extraction of Bishop Gwin’s Wednesday questions). Flips live when the producer lands its first row.',
   },
   {
     id: 'purchasing-forecast', name: 'Purchasing draft → forecast', status: 'building',
@@ -174,6 +179,64 @@ export const INTERCONNECT_REGISTRY = [
       { file: 'app/src/components/QualityThroughput.jsx', token: 'fetchLedger' },
       { file: 'app/src/components/CommandServeCenter.jsx', token: 'QualityThroughput' },
     ],
+  },
+
+  // ---- 2026-07-05 live-data-tabs audit — re-wired loops + the 0077 rails ----
+  {
+    id: 'library-sermon-recipes', name: 'Service recordings → Library book recipes', status: 'live',
+    from: 'choir_sermons (ingested service corpus)', to: 'Library sermon-based book recipes',
+    proves: 'The Library self-subscribes the live sermon stream (the shell mounted it with sermons={[]}, starving sermon-based recipes forever — the same starvation ScriptureLibrary had before 2026-06-29).',
+    source: { file: 'app/src/lib/choir-sync.js', token: 'choir_sermons' },
+    links: [{ file: 'app/src/components/Library.jsx', token: 'subscribeSermons' }],
+  },
+  {
+    id: 'device-register-writer', name: 'Steward editor → church device register', status: 'live',
+    from: 'DeviceInventory steward editor', to: 'church_devices (synced register)',
+    proves: 'The device register has a producer: stewards add/edit devices in-surface via saveDevice, so the live-subscribed table can hold real state instead of only the bundled seed.',
+    source: { file: 'app/src/lib/church-devices-sync.js', token: 'church_devices' },
+    links: [{ file: 'app/src/components/DeviceInventory.jsx', token: 'saveDevice' }],
+  },
+  // The 0077 rails are declared BUILDING, not live, until Darrell applies
+  // infra/supabase/migrations-auto/0077-live-data-rails.sql and rows are seen
+  // landing on a signed-in device (P22: green means the target state MOVED;
+  // a pending migration is runner-state, not a data-fact). The wiring tokens
+  // are already declared so the flip to 'live' enforces them from day one.
+  {
+    id: 'doc-rails-0077', name: 'Device-local lists → family instance (doc rail)', status: 'building',
+    from: 'game saves · subscriptions · skill profiles · prayer requests · One Voice', to: 'game_saves / family_subscriptions / skill_profiles / prayer_requests / church_voice (0077)',
+    proves: 'When applied: the five audited device-local lists pool to the family instance on the jsonb-doc rail (the doc IS the record — no column drift), realtime both ways.',
+    source: { file: 'app/src/lib/doc-sync.js', token: 'createDocTableSync' },
+    links: [
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'gameSavesSync' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'subscriptionsSync' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'skillProfilesSync' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'prayerRequestsSync' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'churchVoiceSync' },
+    ],
+    awaiting: 'Migration 0077 pending apply (Darrell’s hand, Supabase Studio — see docs/99-session-notes/2026-07-05-live-data-tabs-audit-and-timeline.md step 1). Code ships fail-soft and self-heals the moment the tables exist; flips live after rows are verified landing cross-device.',
+  },
+  {
+    id: 'watchlist-rail-0077', name: 'Markets watchlist → family instance', status: 'building',
+    from: 'data.watchlist (Stooq symbols)', to: 'market_watchlist (0077)',
+    proves: 'When applied: a ticker added on one device quotes on every family device (the quotes were always live; the LIST was the device-local half).',
+    source: { file: 'app/src/lib/watchlist-sync.js', token: 'market_watchlist' },
+    links: [
+      { file: 'app/src/lib/live-rails.js', token: 'subscribeWatchlist' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'wireLiveRails' },
+    ],
+    awaiting: 'Migration 0077 pending apply — same step as doc-rails-0077.',
+  },
+  {
+    id: 'module-interest-rail-0077', name: 'Module priority votes → real family aggregate', status: 'building',
+    from: 'About module votes (per member)', to: 'module_interest (0077) → Family Priority Votes',
+    proves: 'When applied: About’s "family priority votes" is a REAL cross-member count (it was one device’s localStorage rendered as an aggregate — the painted claim this audit retired).',
+    source: { file: 'app/src/lib/module-interest-sync.js', token: 'module_interest' },
+    links: [
+      { file: 'app/src/lib/live-rails.js', token: 'subscribeModuleInterest' },
+      { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'wireLiveRails' },
+      { file: 'app/src/components/shared.jsx', token: 'familyModuleInterest' },
+    ],
+    awaiting: 'Migration 0077 pending apply — same step as doc-rails-0077.',
   },
 ];
 

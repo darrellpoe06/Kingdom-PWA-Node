@@ -22,8 +22,9 @@
 // loop. Autonomous execution stays behind the Cage (budget · concurrency lock ·
 // kill-switch, owned by WakeOrchestrator's engine, shipped INERT). "Go" is the
 // steward's; the center never goes off-leash. NO FAKE GREEN (DR-0076): each
-// faculty reports its real readiness from centerReadiness() — a partial faculty
-// says so.
+// faculty reports its real readiness from declaredReadiness() — a partial
+// faculty says so, and the chip names its provenance ("declared"): these are
+// wiring statuses asserted at build and pinned by tests, not a runtime probe.
 //
 // Governor-gated (isFamilyEmail), no-leak: nothing here renders for a non-steward.
 // WCAG AA, BOTH light and dark: every accent is a THEMEABLE class (text-[#…]),
@@ -45,7 +46,8 @@ import { FreshnessDot } from './FreshnessDot.jsx';
 import {
   FACULTIES,
   seatOf,
-  centerReadiness,
+  declaredReadiness,
+  READINESS_PROVENANCE,
   SELF_HOSTING_LOOP,
   brakeStatusLine,
 } from '../lib/command-serve-center.js';
@@ -54,12 +56,16 @@ const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev'
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
 
 // Honest per-faculty readiness chip. Color follows real state, never decorative.
+// PROVENANCE ON THE CHIP (DR-0076 rule 8): these are DECLARED wiring statuses —
+// asserted at build, pinned by tests — not a runtime measurement, and the chip
+// says so ("· declared" + the READINESS_PROVENANCE tooltip) so "Wired" is never
+// read as a live health probe.
 // `cls` is the THEMEABLE text class (not an inline color) so the per-[data-theme]
 // remap applies — an inline color stays dark on the midnight surface (the
 // dark-mode-contrast bug this PR closes). The contrast guard's inline-color
 // scanner now fails the build if any of these regress to inline `style` colors.
 const READY_META = {
-  live:    { cls: 'text-[#5A6E3D]', symbol: '●', label: 'Live' },
+  live:    { cls: 'text-[#5A6E3D]', symbol: '●', label: 'Wired' },
   partial: { cls: 'text-[#B85838]', symbol: '◐', label: 'Partial — wiring' },
   wiring:  { cls: 'text-[#5A5751]', symbol: '○', label: 'Wiring up' },
 };
@@ -67,17 +73,18 @@ function ReadinessChip({ status }) {
   const m = READY_META[status] || READY_META.wiring;
   return (
     <span
+      title={READINESS_PROVENANCE}
       className={`inline-flex items-center gap-1 text-[0.5625rem] uppercase tracking-wider font-semibold ${m.cls}`}
       style={{ fontFamily: '"JetBrains Mono", monospace' }}
     >
-      <span aria-hidden="true">{m.symbol}</span>{m.label}
+      <span aria-hidden="true">{m.symbol}</span>{m.label} · declared
     </span>
   );
 }
 
 export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null, projects = [], discussions = [], currentUserId = null }) {
   const seat = seatOf({ email, persona, isFamily: !!isGovernor });
-  const ready = centerReadiness();
+  const ready = declaredReadiness();
   const [tab, setTab] = useState('see');
 
   // No-leak: the seat is not theirs to command. Visible-but-locked is handled by
@@ -171,7 +178,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
               className={`text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] inline-flex items-center gap-1.5 focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] ${active ? 'bg-[#1A1815] text-white' : 'text-[#1A1815]'}`}
             >
               <span aria-hidden="true">{f.glyph}</span>{f.label}
-              <span aria-hidden="true" className={active ? 'text-white' : rMeta.cls}>
+              <span aria-hidden="true" title={READINESS_PROVENANCE} className={active ? 'text-white' : rMeta.cls}>
                 {rMeta.symbol}
               </span>
             </button>
@@ -260,7 +267,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       )}
 
       <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-        Every surface here is a live view of real system state — composed into one seat, not scattered. Status chips show real readiness; a partial faculty says so.
+        Every surface here is a live view of real system state — composed into one seat, not scattered. Readiness chips are declared wiring status (asserted at build, pinned by tests — not a runtime measurement); a partial faculty says so.
       </p>
     </div>
   );

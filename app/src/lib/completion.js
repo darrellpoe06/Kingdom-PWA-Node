@@ -73,6 +73,10 @@ export function trendOf(current, previous) {
 
 // persistentShare — the committed, script-measured persistent-layer metric with
 // its baseline, target, and since-last-run trend. Pure read of the JSON.
+// measuredAt: the JSON's own generation stamp, carried alongside the % so the
+// surface can date the snapshot — a real number that is only as fresh as the
+// last `python3 scripts/persistent-share.py` run must SAY when it was measured,
+// not read as a live gauge (DR-0076 rule 8; same fix as moduleLedger below).
 export function persistentShare() {
   const current = SHARE.persistentPct;
   const t = trendOf(current, SHARE.previousPct);
@@ -88,6 +92,7 @@ export function persistentShare() {
     configDocsPct: SHARE.configDocsPct,
     totalLines: SHARE.totalLines,
     totalFiles: SHARE.totalFiles,
+    measuredAt: SHARE.generatedAt ?? null,
   };
 }
 

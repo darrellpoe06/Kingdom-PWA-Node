@@ -15,7 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
-  STATUSES, REACTIONS, SEED_CIRCLE,
+  STATUSES, REACTIONS,
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
@@ -82,14 +82,16 @@ function Stars({ value, onRate }) {
 
 // What's getting watched — a real-data activity ranking (Darrell 2026-07-04:
 // "update the shows list dynamically based on what people are watching"). Reads
-// the live list; honestly scoped to your device until circle sync lands.
+// the live list. Honestly scoped: circle sharing IS live (TVCircle below), but
+// this strip deliberately ranks YOUR OWN list's activity — shows others shared
+// have their own feed in the circle section; no cross-person data mixes in here.
 function TrendingStrip({ items }) {
   if (!items.length) return null;
   return (
     <section className="bg-[#1A1815] text-white p-3 mb-3" aria-labelledby="tv-trending">
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 id="tv-trending" className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#E8B84B] font-semibold">What’s getting watched</h3>
-        <span className="text-[0.5625rem] text-[#C9BFA8]">Ranked by activity in your list · circle-wide when live sync lands</span>
+        <span className="text-[0.5625rem] text-[#C9BFA8]">Ranked by activity in your own list · your circle’s picks live in “Your circle” below</span>
       </div>
       <ol className="space-y-1.5">
         {items.map((r, i) => (
@@ -578,7 +580,7 @@ export default function TVTime({ email = null }) {
         Keep up with your shows and movies and talk about them with your people. Look one up — a show’s seasons come in and you check off each episode; a movie is a single tap to mark watched. It lives in the PoeTech App (a website you install on any phone or computer), so it’s not going anywhere.
       </p>
       <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={serif}>
-        Your circle: {SEED_CIRCLE.join(' · ')}. {email ? <span className="text-[#5A6E3D]">Your list follows your sign-in across your devices</span> : <span>Your list is saved on this device</span>}; <span className="text-[#B85838]">live group sync is coming next</span>. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
+        {email ? <span className="text-[#5A6E3D]">Your list follows your sign-in across your devices</span> : <span>Your list is saved on this device</span>}; <span className="text-[#5A6E3D]">circle sharing is live — start or join a circle in “Your circle” below to share your tagged shows</span>. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
       </p>
 
       {/* Look up a show — live search. */}
@@ -641,9 +643,11 @@ export default function TVTime({ email = null }) {
       {/* What's getting watched — dynamic, from real activity. */}
       <TrendingStrip items={trending} />
 
-      {/* Family/circle sharing — GATED (TV_SHARING_ENABLED, off until the live NAS
-          isolation smoke test passes). Renders null while off, so production is
-          unchanged. state + a light catalog let it publish only your tagged shows. */}
+      {/* Family/circle sharing — LIVE. TV_SHARING_ENABLED opened 2026-07-04 after
+          the data-isolation smoke test passed against the real database
+          (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
+          this renders null. state + a light catalog let it publish only your
+          tagged shows. */}
       <TVCircle state={state} email={me}
         catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
 

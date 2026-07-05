@@ -1,6 +1,6 @@
 {
   "file": "app/src/poe-financial-mvp-v28.jsx",
-  "budget": 5869,
-  "frozen": "2026-07-04 — ratcheted 5886 -> 5869 (-17) merging Access into Admin",
-  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Ratcheted 2026-07-04 from 5886 -> 5869 when the Access tab was merged into Admin (one users report): the shell dropped the Access nav entry + its view-mount block (net -17), keeping only a one-line ?view=access -> admin alias. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
+  "budget": 5907,
+  "frozen": "2026-07-05 — hand-raised 5869 -> 5907 (+38) for the 0077 live-data rails",
+  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. HAND-RAISED 2026-07-05 (+38, the deliberate reviewed act this guard prescribes — reason stated in the PR): the live-data-tabs audit promoted seven device-local collections to family sync (0077), and the shell's OWN sync loop (tables[] entries + fail-soft reducer bindings + the auth-effect rail wiring) is core state plumbing that cannot leave the shell until the DR-0078 Stage-2 extraction. All heavy machinery shipped as modules (lib/doc-sync.js, lib/watchlist-sync.js, lib/module-interest-sync.js, lib/live-rails.js — the first draft inside the shell was +187 lines, extracted down to +38). Re-freeze DOWNWARD with `node scripts/monolith-budget-guard.mjs --generate` at the next extraction. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
 }

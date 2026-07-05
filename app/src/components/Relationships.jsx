@@ -126,7 +126,7 @@ function MatrixPanel() {
 // ---------------------------------------------------------------------------
 // Landlord panel — the rent roll + the four landlord<->tenant workflows.
 // ---------------------------------------------------------------------------
-function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, busy }) {
+function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, busy, onRefresh, refreshing }) {
   const lv = useMemo(() => landlordView({
     tenancies,
     maintenance: workflows.maintenance,
@@ -143,6 +143,12 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
   return (
     <>
       <Panel title="Rent roll" icon="pin" note={rentSafetyNote()}>
+        <div className="flex justify-end mb-2">
+          <button disabled={refreshing} aria-busy={refreshing} onClick={onRefresh}
+            className="px-3 py-1 border border-[#1A1815] bg-white text-[#1A1815] text-xs font-semibold">
+            {refreshing ? 'Refreshing…' : '↻ Refresh'}
+          </button>
+        </div>
         <div className="grid sm:grid-cols-3 gap-3 mb-4">
           <MetricCell label="Doors" value={lv.doorCount} />
           <MetricCell label="Open requests" value={lv.openRequests.length} />
@@ -261,6 +267,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
   const [selectedTenancy, setSelectedTenancy] = useState(null);
   const [workflows, setWorkflows] = useState({ maintenance: [], rent: [], notices: [], messages: [] });
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [flash, setFlash] = useState('');
 
   // Load tenancies on mount (fail-soft). The guardian↔child INPUT surface
@@ -287,6 +294,33 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
     })();
     return () => { live = false; };
   }, [selectedTenancy]);
+
+  // Staleness is user-recoverable: a tenant-side insert on another device
+  // showed up here only on a remount. Refresh re-runs the SAME fail-soft
+  // loaders on demand (button) and on window focus — load-based like the rest
+  // of this surface, no realtime channel.
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const tn = await loadTenancies();
+      if (tn.ok) setTenancies(tn.data);
+      if (selectedTenancy) {
+        const wf = await loadTenancyWorkflows(selectedTenancy.id);
+        if (wf.ok) setWorkflows(wf.data);
+      }
+    } catch (e) { /* fail-soft, same as the loaders */ }
+    setRefreshing(false);
+  }, [selectedTenancy]);
+
+  useEffect(() => {
+    const onFocus = () => { if (document.visibilityState === 'visible') refresh(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [refresh]);
 
   const flashMsg = useCallback((m) => { setFlash(m); setTimeout(() => setFlash(''), 2500); }, []);
 
@@ -369,7 +403,8 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
       )}
       {tab === 'landlord' && (
         <LandlordPanel tenancies={tenancies} selected={selectedTenancy} onSelect={setSelectedTenancy}
-          workflows={workflows} onAction={onLandlordAction} busy={saving} />
+          workflows={workflows} onAction={onLandlordAction} busy={saving}
+          onRefresh={refresh} refreshing={refreshing} />
       )}
     </div>
   );

@@ -13,7 +13,8 @@ import {
   FACULTIES,
   FACULTY_KEYS,
   seatOf,
-  centerReadiness,
+  declaredReadiness,
+  READINESS_PROVENANCE,
   SELF_HOSTING_LOOP,
   autonomousExecutionEnabled,
   brakeStatusLine,
@@ -72,14 +73,24 @@ describe('seatOf — who is seated', () => {
   });
 });
 
-describe('centerReadiness — honest per-faculty status (NO FAKE GREEN)', () => {
-  const r = centerReadiness();
+describe('declaredReadiness — honest per-faculty status (NO FAKE GREEN)', () => {
+  const r = declaredReadiness();
   it('reports all four faculties with a status + a real note', () => {
     for (const key of FACULTY_KEYS) {
       expect(r[key]).toBeTruthy();
       expect(['live', 'partial', 'wiring']).toContain(r[key].status);
       expect(r[key].note.length).toBeGreaterThan(20);
     }
+  });
+  it('every status names its provenance as DECLARED — never dressed as a runtime probe', () => {
+    // DR-0076 rule 8: these are wiring statuses asserted at build and pinned
+    // here, not measurements. The shape itself carries that truth, and the UI
+    // tooltip (READINESS_PROVENANCE) states it in words.
+    for (const key of FACULTY_KEYS) {
+      expect(r[key].provenance).toBe('declared');
+    }
+    expect(READINESS_PROVENANCE).toMatch(/declared/i);
+    expect(READINESS_PROVENANCE).toMatch(/not a runtime measurement/i);
   });
   it('does NOT paint Command green — its engine ships inert, so it is partial', () => {
     expect(r.command.status).toBe('partial');

@@ -68,10 +68,6 @@ export const SEED_SHOWS = [
   { id: 'faith-testimony', title: 'Testimony Stories', genre: 'Faith', network: 'Faith & Family' },
 ];
 
-// A seed circle so the surface shows a thriving conversation on first open (the
-// friends' voices are examples until live sync lands; clearly the aspiration).
-export const SEED_CIRCLE = ['Tiffany', 'Sister K', 'Lady D', 'You'];
-
 export function styleForStatus(key) {
   return STATUSES.find((s) => s.key === key) || null;
 }
@@ -489,8 +485,9 @@ export function bucketShows(state, catalog) {
 // are watching".) Pure + deterministic + explainable — the concern-signals.js
 // precedent. Ranks the TRACKED items by an activity signal built from REAL local
 // state: how it's being watched (status), momentum (episodes checked), rating,
-// and discussion (comments). Circle-wide once live sync lands; today it reflects
-// this device's list — no fabricated other-people activity (DR-0076).
+// and discussion (comments). Deliberately YOUR-list-only: circle sharing is live
+// (tv-circle-sync.js), but what others watch has its own feed in the circle
+// surface — no cross-person data mixes in here, and none is fabricated (DR-0076).
 
 const WATCH_WEIGHT = { watching: 40, watched: 20, stale: 10, want: 0 };
 

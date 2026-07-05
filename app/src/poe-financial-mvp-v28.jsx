@@ -114,6 +114,12 @@ import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/
 import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
+// 2026-07-05 live-data rails (0077): the audited device-local collections gain
+// the same fail-soft sync everything else rides. See lib/doc-sync.js + live-rails.js.
+import { gameSavesSync, subscriptionsSync, skillProfilesSync, prayerRequestsSync, churchVoiceSync } from './lib/doc-sync.js';
+import { uploadSymbol as uploadWatchlistSymbol, removeSymbol as removeWatchlistSymbolRemote } from './lib/watchlist-sync.js';
+import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-sync.js';
+import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 // Overview dashboard — statically imported (NOT registry/lazy): overview is the
@@ -1280,9 +1286,10 @@ export const remainderIsSeed = (d) => {
   // Only NON-table-synced lists belong here: rentals/incidents/etc. fill
   // with real cloud rows via table sync, which must not flip a device whose
   // snapshot-remainder is still scaffolding into a publisher.
+  // 0077 promoted skillProfiles/prayerRequests/churchVoice to table sync — per
+  // the rule above they must no longer drive the snapshot-publish decision.
   const lists = [
     d.recurringObligations, d.taxCalendar, d.events, d.capexItems,
-    d.skillProfiles, d.prayerRequests, d.churchVoice,
   ];
   for (const list of lists) {
     if (!Array.isArray(list)) continue;
@@ -1590,6 +1597,8 @@ export default function PoeFinancialSystem() {
   // data.feedback because the storage save effect would then persist
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
+  // 0077 — family-wide module-interest aggregate ({ [moduleKey]: { votes, points, latestAt } }).
+  const [familyModuleInterest, setFamilyModuleInterest] = useState(null);
   const [authSession, setAuthSession] = useState(null);
   // True once the first auth check resolves (signed in OR out) — gates the
   // "no profile, no access" screen so it never flashes at a signed-in user.
@@ -2580,6 +2589,13 @@ export default function PoeFinancialSystem() {
         // header + line snapshots pool to the family instance the same proven way.
         { sync: purchaseOrdersSync,     key: 'purchaseOrders',     localList: (latest.purchaseOrders || []).filter(notDemoRow).filter(notSeedRow),     merge: mergeRemotePurchaseOrders },
         { sync: purchaseOrderLinesSync, key: 'purchaseOrderLines', localList: (latest.purchaseOrderLines || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemotePurchaseOrderLines },
+        // Live-data rails (0077) — the audited device-local lists on the
+        // jsonb-doc rail (lib/doc-sync.js); fail-soft until 0077 is applied.
+        { sync: gameSavesSync,      key: 'gameSaves',      localList: (latest.gameSaves || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: subscriptionsSync,  key: 'subscriptions',  localList: (latest.subscriptions || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: skillProfilesSync,  key: 'skillProfiles',  localList: (latest.skillProfiles || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: prayerRequestsSync, key: 'prayerRequests', localList: (latest.prayerRequests || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: churchVoiceSync,    key: 'churchVoice',    localList: (latest.churchVoice || []).filter(notDemoRow).filter(notSeedRow) },
       ];
       for (const t of tables) {
         if (cancelled) return;
@@ -2656,6 +2672,13 @@ export default function PoeFinancialSystem() {
           return { ...d, inflows: { ...d.inflows, rentals: mergeRemoteRentals(incoming.length ? current.filter(notSeedRow) : current, incoming) } };
         });
       }));
+
+      // Live-data rails (0077) — watchlist (string set) + module interest
+      // (keyed votes) don't fit the tables loop; lib/live-rails.js wires them.
+      if (cancelled) return;
+      const railCleanups = await wireLiveRails({ localWatchlist: latest.watchlist || [], localVotes: latest.moduleInterest || {}, setData, setFamilyModuleInterest, warn: syncWarn });
+      if (cancelled) railCleanups.forEach(fn => { try { fn(); } catch (_) { /* already down */ } });
+      else cleanups.push(...railCleanups);
     }
     start();
 
@@ -3283,17 +3306,18 @@ export default function PoeFinancialSystem() {
   // ---- Games hub saves — local-first (the app data store is localStorage-backed
   // and instance-scoped). A game survives a reload and a not-signed-in child can
   // still play. addGameSave RETURNS the new local id so the hub can open it.
-  const addGameSave = (item) => {
-    const localId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const seeded = { ...item, id: localId };
-    setData(d => ({ ...d, gameSaves: [...(d.gameSaves || []), seeded] }));
-    return localId;
-  };
-  const updateGameSave = (id, updates) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).map(g => (g.id === id ? { ...g, ...updates } : g)) }));
-  const deleteGameSave = (id) => setData(d => ({ ...d, gameSaves: (d.gameSaves || []).filter(g => g.id !== id) }));
+  // 0077 doc-rail CRUD (lib/live-rails.js) — add/update/remove with fail-soft
+  // sync, factored once so the frozen shell stays thin (monolith-budget-guard).
+  const railCrud = (sync, key, label) => makeSyncedListCrud({ sync, key, label, setData, getData: () => data, canSync: (d) => !!(authSession && (d || data).numericSyncVerifiedAt && !isAnyDemoMode), warn: syncWarn });
+  const gameSavesCrud = railCrud(gameSavesSync, 'gameSaves', 'game-saves-sync');
+  const addGameSave = (item) => gameSavesCrud.add({ ...item, id: `game-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` });
+  const updateGameSave = gameSavesCrud.update;
+  const deleteGameSave = gameSavesCrud.remove;
 
-  const addSubscription = (item) => setData(d => ({ ...d, subscriptions: [...(d.subscriptions || []), { ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }] }));
-  const updateSubscription = (id, updates) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).map(s => s.id === id ? { ...s, ...updates } : s) }));
+  // 0077 — the subscriptions audit is family money state (doc rail).
+  const subscriptionsCrud = railCrud(subscriptionsSync, 'subscriptions', 'subscriptions-sync');
+  const addSubscription = (item) => { subscriptionsCrud.add({ ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }); };
+  const updateSubscription = subscriptionsCrud.update;
   // r25 — 1099 contractor CRUD per EDITABLE-EVERYWHERE.md.
   // v2.13 — contractors sync to contractors_1099 so the worker roster (and
   // the phones one-tap dispatch depends on) is shared across the family.
@@ -3345,7 +3369,7 @@ export default function PoeFinancialSystem() {
       entitiesSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[entities-sync] update failed', e));
     }
   };
-  const deleteSubscription = (id) => setData(d => ({ ...d, subscriptions: (d.subscriptions || []).filter(s => s.id !== id) }));
+  const deleteSubscription = subscriptionsCrud.remove;
   // Feedback — seeded with lifecycle so the new → reviewed → planned → shipped flow has an audit trail.
   // Layer 2: after the local setData, fire-and-forget uploadFeedback so
   // other signed-in family/church devices see it. Upload no-ops when
@@ -3687,7 +3711,11 @@ export default function PoeFinancialSystem() {
     }
     setData(d => ({ ...d, practiceLeads: (d.practiceLeads || []).filter(l => l.id !== id) }));
   };
-  const toggleModuleInterest = (moduleKey, priority) => setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
+  const toggleModuleInterest = (moduleKey, priority) => {
+    setData(d => { const current = d.moduleInterest || {}; if (priority === null || priority === undefined) { const next = {...current}; delete next[moduleKey]; return { ...d, moduleInterest: next }; } return { ...d, moduleInterest: { ...current, [moduleKey]: { signedAt: new Date().toISOString(), priority } } }; });
+    // 0077 — the vote pools to module_interest so About's family aggregate is real.
+    if (authSession && !isAnyDemoMode) ((priority === null || priority === undefined) ? clearModuleInterest(moduleKey) : pushModuleInterest(moduleKey, { priority })).catch(e => syncWarn('[module-interest-sync] push failed', e));
+  };
   // v28+ MVP v1.5: Capex / Tools list CRUD (data lives in About > Capital Spend)
   const addCapexItem = (item) => setData(d => ({ ...d, capexItems: [...(d.capexItems || []), { ...item, id: `cx-${Date.now()}`, cost: parseFloat(item.cost) || 0, priority: parseInt(item.priority) || 3 }] }));
   const updateCapexItem = (id, updates) => setData(d => ({ ...d, capexItems: (d.capexItems || []).map(x => x.id === id ? { ...x, ...updates, cost: updates.cost !== undefined ? parseFloat(updates.cost) || 0 : x.cost, priority: updates.priority !== undefined ? parseInt(updates.priority) || 3 : x.priority } : x) }));
@@ -3710,14 +3738,19 @@ export default function PoeFinancialSystem() {
   // Round 14 — Voice Ops config setter (Phase 1 Cloudflare Worker integration)
   const setVoiceOpsConfig = (patch) => setData(d => ({ ...d, voiceOps: { ...d.voiceOps, ...patch } }));
   // v28+ MVP v1.5 round 6: skill profile CRUD for Dev/Ops opportunity matcher
-  const addSkillProfile = (item) => setData(d => ({ ...d, skillProfiles: [...(d.skillProfiles || []), { ...item, id: `sp-${Date.now()}` }] }));
-  const updateSkillProfile = (id, updates) => setData(d => ({ ...d, skillProfiles: (d.skillProfiles || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
-  const deleteSkillProfile = (id) => setData(d => ({ ...d, skillProfiles: (d.skillProfiles || []).filter(p => p.id !== id) }));
+  // 0077 — skill profiles feed the opportunity matcher (doc rail).
+  const skillProfilesCrud = railCrud(skillProfilesSync, 'skillProfiles', 'skill-profiles-sync');
+  const addSkillProfile = (item) => { skillProfilesCrud.add({ ...item, id: `sp-${Date.now()}` }); };
+  const updateSkillProfile = skillProfilesCrud.update;
+  const deleteSkillProfile = skillProfilesCrud.remove;
   // v28+ MVP v1.5: Markets watchlist CRUD. Symbols are Stooq format ('spy.us', 'btcusd', '^spx').
   // v28+ MVP v1.5: Church tab CRUD — local prayer-request log
-  const addPrayerRequest = (item) => setData(d => ({ ...d, prayerRequests: [...(d.prayerRequests || []), { ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString(), sentAt: null }] }));
-  const markPrayerRequestSent = (id) => setData(d => ({ ...d, prayerRequests: (d.prayerRequests || []).map(p => p.id === id ? { ...p, sentAt: new Date().toISOString() } : p) }));
-  const deletePrayerRequest = (id) => setData(d => ({ ...d, prayerRequests: (d.prayerRequests || []).filter(p => p.id !== id) }));
+  // 0077 — prayer requests pool to the family instance so a request logged on
+  // one phone is visible to the household (doc rail).
+  const prayerRequestsCrud = railCrud(prayerRequestsSync, 'prayerRequests', 'prayer-requests-sync');
+  const addPrayerRequest = (item) => { prayerRequestsCrud.add({ ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString(), sentAt: null }); };
+  const markPrayerRequestSent = (id) => prayerRequestsCrud.update(id, { sentAt: new Date().toISOString() });
+  const deletePrayerRequest = prayerRequestsCrud.remove;
   const addWatchlistSymbol = (sym) => {
     const s = (sym || '').trim().toLowerCase();
     if (!s) return;
@@ -3726,8 +3759,10 @@ export default function PoeFinancialSystem() {
       if (list.includes(s)) return d;
       return { ...d, watchlist: [...list, s] };
     });
+    // 0077 — the ticker follows the family sign-in (fail-soft; idempotent add).
+    if (authSession && !isAnyDemoMode) uploadWatchlistSymbol(s).catch(e => syncWarn('[watchlist-sync] upload failed', e));
   };
-  const removeWatchlistSymbol = (sym) => setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) }));
+  const removeWatchlistSymbol = (sym) => { setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) })); if (authSession && !isAnyDemoMode) removeWatchlistSymbolRemote(sym).catch(e => syncWarn('[watchlist-sync] remove failed', e)); };
   // Life Gallery — the curated hero photos on the Big Picture page. Device-
   // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
   // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
@@ -3746,7 +3781,9 @@ export default function PoeFinancialSystem() {
   const updateChurchObservation = (updates) => setData(d => ({ ...d, churchObservation: { ...(d.churchObservation || {}), ...updates } }));
   // One Voice (Church tab) — serve notes + ideas/testimony land here,
   // persisted with the rest of the data record.
-  const addChurchVoice = (entry) => setData(d => ({ ...d, churchVoice: [...(d.churchVoice || []), entry] }));
+  // 0077 — One Voice notes ride the doc rail to the family instance.
+  const churchVoiceCrud = railCrud(churchVoiceSync, 'churchVoice', 'church-voice-sync');
+  const addChurchVoice = (entry) => { churchVoiceCrud.add(entry && entry.id ? entry : { ...entry, id: `vo-${Date.now()}` }); };
   // Church > Learn (Darrell 2026-06-15): the youth A.I. class. Progress is the
   // student's REAL record (per-module completedAt); cohort start + confirmed flag
   // are Governor-set real values that drive the computed timeline (no painted dates).
@@ -5504,7 +5541,8 @@ html{scroll-padding-bottom:280px}
         )}
         {/* TV Time — the friend-group show tracker + discussion (Darrell 2026-07-04).
             Own SectionBoundary so a thrown error degrades just this surface.
-            Device-local, per-identity; live cross-device circle sync is the follow-up. */}
+            Owner list syncs cross-device (tv_watch, 0072); circle sharing is
+            LIVE (tv_circle/tv_share, 0074 — flag opened 2026-07-04). */}
         {view === 'tvtime' && (
           <SectionBoundary name="TV Time">
             <TVTime email={authSession?.user?.email || null} />
@@ -5589,7 +5627,7 @@ html{scroll-padding-bottom:280px}
             />
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
         )}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'center' && (
           <CommandServeCenter
             isGovernor={isFamilyMember}
