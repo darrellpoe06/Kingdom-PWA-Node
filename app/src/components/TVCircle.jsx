@@ -83,10 +83,17 @@ export default function TVCircle({ state, catalog = {}, email = null }) {
     setBusy(true); setMsg('');
     const res = await joinByInvite(joinCode);
     setBusy(false);
-    if (!res) { setMsg('That code didn’t match a circle.'); return; }
+    if (!res || !res.ok) {
+      setMsg(res && res.reason === 'not_found'
+        ? 'That code didn’t match a circle.'
+        : 'Couldn’t join right now — try again.');
+      return;
+    }
     setJoinCode('');
     await loadCircles();
-    setMsg('You’re in.');
+    // A circle is between two DIFFERENT sign-ins; if this account already owns it
+    // (the profile switcher is one login), say so instead of a misleading error.
+    setMsg(res.already ? 'You’re already in this circle — it’s your account’s.' : 'You’re in.');
   };
 
   const doPublish = async () => {

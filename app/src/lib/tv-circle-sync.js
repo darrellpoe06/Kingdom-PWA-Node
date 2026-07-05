@@ -85,19 +85,36 @@ export async function createCircle(name, kind = 'friends') {
 }
 
 // Join a circle by its invite code (seats you as 'adult'; a parent can adjust a
-// child's role afterward). Returns { circleId } | null.
+// child's role afterward). Returns a STRUCTURED result so the UI can message
+// honestly instead of collapsing every outcome to "code didn't match":
+//   { ok: true,  circleId, already }  — joined (already=false) or already a member (true)
+//   { ok: false, reason: 'not_found' } — no circle has that code
+//   { ok: false, reason: 'error' }     — no session / lookup or join failed
+// IDEMPOTENT: a circle you already belong to (e.g. the one you created — same
+// auth user, or a re-tap) is a SUCCESS, not a failure. The member insert upserts
+// with ignoreDuplicates so the PRIMARY KEY(circle_id, member) can't fail-soft into
+// a misleading "code didn't match". NOTE: a circle is between two DIFFERENT
+// PoeTech sign-ins; the device-profile switcher is one auth user, so a person can
+// never "join" a circle their own account already owns (already=true, correctly).
 export async function joinByInvite(code) {
   const session = await ownedSession();
-  if (!session || !code) return null;
+  if (!session || !code) return { ok: false, reason: 'error' };
   try {
     const { data: circle, error } = await supabase.from('tv_circle')
       .select('id').eq('invite_code', String(code).trim().toUpperCase()).maybeSingle();
-    if (error || !circle) { console.warn('[tv-circle] invite not found:', error); return null; }
+    if (error) { console.warn('[tv-circle] invite lookup failed:', error); return { ok: false, reason: 'error' }; }
+    if (!circle) return { ok: false, reason: 'not_found' };
+    // Already a member? (You created it, or joined before.) Report it as such,
+    // not as a join and not as an error.
+    const { data: existing } = await supabase.from('tv_circle_member')
+      .select('member').eq('circle_id', circle.id).eq('member', session.user.id).maybeSingle();
+    if (existing) return { ok: true, circleId: circle.id, already: true };
     const { error: mErr } = await supabase.from('tv_circle_member')
-      .insert({ circle_id: circle.id, member: session.user.id, role: 'adult', display: '' });
-    if (mErr) { console.warn('[tv-circle] join failed:', mErr); return null; }
-    return { circleId: circle.id };
-  } catch (err) { console.warn('[tv-circle] join failed:', err); return null; }
+      .upsert({ circle_id: circle.id, member: session.user.id, role: 'adult', display: '' },
+        { onConflict: 'circle_id,member', ignoreDuplicates: true });
+    if (mErr) { console.warn('[tv-circle] join failed:', mErr); return { ok: false, reason: 'error' }; }
+    return { ok: true, circleId: circle.id, already: false };
+  } catch (err) { console.warn('[tv-circle] join failed:', err); return { ok: false, reason: 'error' }; }
 }
 
 // The circles I belong to, with my role. [] on any failure.
