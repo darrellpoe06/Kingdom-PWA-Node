@@ -48,37 +48,55 @@ const baseProps = {
 const mount = (props = {}) =>
   act(() => root.render(createElement(ChurchHome, { ...baseProps, ...props })));
 
+// The Church home now flows as SectionTabs ("sliding tabs instead of a long
+// scroll", Darrell 2026-07-04): only the ACTIVE panel is mounted, so a section
+// that lives on another tab is reached by clicking its tab first. This helper
+// clicks a tab in the strip by its visible label.
+const clickTab = (label) => {
+  const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
+  if (!tab) throw new Error(`tab not found: ${label}`);
+  act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+
 describe('ChurchHome — every inline section survived the extraction', () => {
   it('renders the full section inventory of the pre-extraction Church home', () => {
     mount();
-    const text = container.textContent;
-    // Live Worship — channel-embedded player section
+    // The sliding-tabs strip is present, and the default-home note is pinned
+    // ABOVE it (always mounted, not inside a tab).
+    expect(container.querySelector('[role="tablist"]')).toBeTruthy();
+    expect(container.textContent).toMatch(/default church home/i);
+
+    // WORSHIP tab (default active): Live Worship + Pastoral Content + Media.
     expect(container.querySelector('#live-worship-h')).toBeTruthy();
     expect(container.querySelector('iframe')).toBeTruthy();
-    // Default church home note (COLG is the platform default)
-    expect(text).toMatch(/default church home/i);
-    // Pastoral Content
     expect(container.querySelector('#sermons-h')).toBeTruthy();
-    // Testimony Diary door
-    expect(container.querySelector('#diary-h')).toBeTruthy();
-    // Yahweh Hears You (typographic theology: Yahweh capitalized)
-    expect(text).toMatch(/Yahweh Hears You/);
-    // Service Times
-    expect(container.querySelector('#svc-h')).toBeTruthy();
-    expect(text).toMatch(/Sunday Worship/);
-    // Media
     expect(container.querySelector('#media-h')).toBeTruthy();
-    // Give + Parish Life
-    expect(container.querySelector('#give-h')).toBeTruthy();
-    expect(text).toMatch(/Parish Life/);
-    // Prayer Requests
+
+    // SPEAK tab: One Voice front door + Yahweh Hears You + Testimony Diary door.
+    clickTab('Speak');
+    expect(container.textContent).toMatch(/Yahweh Hears You/);
+    expect(container.querySelector('#diary-h')).toBeTruthy();
+
+    // PRAYER tab: Prayer Requests.
+    clickTab('Prayer');
     expect(container.querySelector('#pr-h')).toBeTruthy();
-    // Home Church header (the identity "ad", at the bottom per Darrell 2026-05-25)
-    expect(text).toMatch(/Home Church/);
-    expect(text).toMatch(/The Church of the Living God/);
-    // Church Directory + invite entry point
+
+    // GIVE & SERVE tab: Give + Parish Life + Ministry Opportunities.
+    clickTab('Give & Serve');
+    expect(container.querySelector('#give-h')).toBeTruthy();
+    expect(container.textContent).toMatch(/Parish Life/);
+
+    // TIMES tab: Service Times.
+    clickTab('Times');
+    expect(container.querySelector('#svc-h')).toBeTruthy();
+    expect(container.textContent).toMatch(/Sunday Worship/);
+
+    // ABOUT tab: Home Church header + Church Directory (+ invite).
+    clickTab('About');
+    expect(container.textContent).toMatch(/Home Church/);
+    expect(container.textContent).toMatch(/The Church of the Living God/);
     expect(container.querySelector('#dir-h')).toBeTruthy();
-    expect(text).toMatch(/Invite them/i);
+    expect(container.textContent).toMatch(/Invite them/i);
   });
 
   it('embeds worship by CHANNEL and shows the latest message outside a service window', () => {
@@ -93,6 +111,7 @@ describe('ChurchHome — every inline section survived the extraction', () => {
   it('prayer request form validates empty input and submits a real request', () => {
     const added = [];
     mount({ addPrayerRequest: (pr) => added.push(pr) });
+    clickTab('Prayer');
     const toggle = [...container.querySelectorAll('button')].find((b) => /Add request/i.test(b.textContent));
     act(() => toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const save = [...container.querySelectorAll('button')].find((b) => /Save Prayer Request/i.test(b.textContent));
@@ -121,6 +140,7 @@ describe('ChurchHome — every inline section survived the extraction', () => {
       { id: 'pr2', requester: 'B', request: 'newer', createdAt: '2026-07-01T00:00:00.000Z', shareWithChurch: true, sentAt: null },
     ];
     mount({ prayerRequests: prs });
+    clickTab('Prayer');
     const text = container.textContent;
     expect(text.indexOf('newer')).toBeLessThan(text.indexOf('older'));
     expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(true);
@@ -131,6 +151,7 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     const events = [];
     vi.stubGlobal('alert', noop);
     mount({ addEvent: (e) => events.push(e) });
+    clickTab('Times');
     const save = [...container.querySelectorAll('button')].find((b) => /Save next one/i.test(b.textContent));
     act(() => save.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     vi.unstubAllGlobals();
@@ -148,10 +169,12 @@ describe('ChurchHome — every inline section survived the extraction', () => {
         services: [{ id: 's1', day: 'Sunday', time: '9:00 AM', label: 'Worship', online: false }],
       },
     });
-    const text = container.textContent;
-    expect(text).toMatch(/Grace Fellowship/);
-    // No default-home note, no COLG live channel on someone else's page
-    expect(text).not.toMatch(/This is your default church home/i);
+    // Worship tab is active by default: a custom church with no channel shows no
+    // live-worship player, and the pinned default-home note is absent.
     expect(container.querySelector('#live-worship-h')).toBeFalsy();
+    expect(container.textContent).not.toMatch(/This is your default church home/i);
+    // The church identity lives on the About tab.
+    clickTab('About');
+    expect(container.textContent).toMatch(/Grace Fellowship/);
   });
 });

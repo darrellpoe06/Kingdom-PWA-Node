@@ -72,6 +72,11 @@ const mount = (props = {}) =>
 describe('BigPictureDashboard — the overview survived the extraction', () => {
   it('renders the hero strip from real prop values', () => {
     mount();
+    // The overview is now a set of sliding SectionTabs; the hero strip lives in
+    // the "Money" tab. Slide to it before asserting (only the active panel mounts).
+    const moneyTab = [...container.querySelectorAll('[role="tab"]')].find((b) => /Money/i.test(b.textContent));
+    expect(moneyTab).toBeTruthy();
+    act(() => moneyTab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const text = container.textContent;
     expect(text).toMatch(/Net cash flow/i);
     expect(text).toMatch(/Consumer debt free/i);

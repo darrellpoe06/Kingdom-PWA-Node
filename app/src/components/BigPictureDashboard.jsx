@@ -14,6 +14,7 @@
 import React, { useState } from 'react';
 import { MetricCell } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import TraceableNumber from './TraceableNumber.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { LifeGallery } from './LifeGallery.jsx';
@@ -229,6 +230,17 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
         </section>
       )}
 
+      <SectionTabs
+        ariaLabel="Overview"
+        idBase="overview"
+        defaultId="now"
+        sections={[
+          {
+            id: 'now',
+            label: 'Now',
+            icon: 'check',
+            render: () => (
+              <>
       {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
           One-glance triage panel: Changes (broken now), Incidents (3-day fix),
           Projects (planned work). Anything across the app that needs attention
@@ -492,7 +504,15 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           )}
         </section>
       )}
-
+              </>
+            ),
+          },
+          {
+            id: 'money',
+            label: 'Money',
+            icon: 'coins',
+            render: () => (
+              <>
       {/* HERO ROW — FORCED HORIZONTAL ON MOBILE */}
       <section className="grid grid-cols-3 gap-2 sm:gap-4">
         <CompactHero label="Net cash flow" value={`${totals.netCashFlow >= 0 ? '+' : ''}${fmtCompact(totals.netCashFlow)}`} sub="per mo · all entities" accent={totals.netCashFlow >= 0 ? 'green' : 'rust'} trace={traceNetCashFlow(data, totals)} />
@@ -609,7 +629,15 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           ))}
         </div>
       </section>
-
+              </>
+            ),
+          },
+          {
+            id: 'ahead',
+            label: 'Ahead',
+            icon: 'calendar',
+            render: () => (
+              <>
       {/* PRESSURE + WHAT CHANGES side-by-side on tablet+, stacked on mobile */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
@@ -690,12 +718,25 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           )}
         </div>
       </section>
-
+              </>
+            ),
+          },
+          {
+            id: 'bigpicture',
+            label: 'Big Picture',
+            icon: 'home',
+            render: () => (
+              <>
       {/* THE BIGGEST PICTURE — family / business / project hero photos. Moved to
           the BOTTOM (2026-06-24, Darrell): the Action Queue ("what needs you")
           leads the tab; the photo wall closes it as the "this is what it's all
           for" coda. */}
       <LifeGallery photos={lifePhotos} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} rentals={rentals} />
+              </>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

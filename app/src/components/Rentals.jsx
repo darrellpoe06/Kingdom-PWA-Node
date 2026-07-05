@@ -16,6 +16,7 @@ import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits } from '../lib/building-group.js';
+import SectionTabs from './SectionTabs.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -1308,59 +1309,19 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const { portfolioRentals, doorCount, portfolioLabel, rentGap, collectionRate, portfolioCount } = portfolio;
   const rollup = portfolio;
 
-  return (
-    <div className="space-y-8">
-      <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
-        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Six years to build. The seventh year to rest.</h2>
-        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
-      </section>
-      <section>
-        <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
-          <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
-          <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
-          <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
-          <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
-        </div>
-        {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
-          <p className="text-[11px] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
-            {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
-            {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
-            {' '}— excluded from the totals above, not zeroed in.
-          </p>
-        )}
-        {/* Portfolio room-income opportunity — sums the per-room occupancy
-            model across every property so the total money-on-the-table from
-            vacant rooms is one glance away. Only shows when rooms are tracked. */}
-        {(() => {
-          const port = (rentals || []).reduce((acc, r) => {
-            const o = occupancyRollup(r.rooms || []);
-            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
-            return acc;
-          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
-          if (port.potential <= 0) return null;
-          return (
-            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
-                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
-                </div>
-              </div>
-              {port.opportunity > 0 ? (
-                <div className="text-right">
-                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
-                </div>
-              ) : (
-                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
-              )}
-            </div>
-          );
-        })()}
-      </section>
+  // Sliding SectionTabs (Darrell 2026-07-04: "sliding tabs instead of a long
+  // scroll on any tab"). PURE structural regroup of the existing sections — no
+  // logic/state/handler changes. All hooks + edit state stay at this component's
+  // top level (above), so tab switches preserve them; only the inactive panel's
+  // DOM unmounts. The Leaflet map is deliberately NOT tabbed (see the pinned map
+  // below the tabs and its comment) — its init effect can't survive lazy re-mount.
+  const sections = [
+    {
+      id: 'properties',
+      label: 'Properties',
+      icon: 'home',
+      render: () => (
+        <>
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
           <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
@@ -2133,6 +2094,61 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           );
         })()}
       </section>
+        </>
+      ),
+    },
+    {
+      id: 'portfolio',
+      label: 'Portfolio & payoff',
+      icon: 'coins',
+      render: () => (
+        <>
+      <section>
+        <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
+          <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
+          <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
+          <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
+          <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
+        </div>
+        {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
+          <p className="text-[11px] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+            {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
+            {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
+            {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
+            {' '}— excluded from the totals above, not zeroed in.
+          </p>
+        )}
+        {/* Portfolio room-income opportunity — sums the per-room occupancy
+            model across every property so the total money-on-the-table from
+            vacant rooms is one glance away. Only shows when rooms are tracked. */}
+        {(() => {
+          const port = (rentals || []).reduce((acc, r) => {
+            const o = occupancyRollup(r.rooms || []);
+            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
+            return acc;
+          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
+          if (port.potential <= 0) return null;
+          return (
+            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+                </div>
+              </div>
+              {port.opportunity > 0 ? (
+                <div className="text-right">
+                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
+                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                </div>
+              ) : (
+                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
+              )}
+            </div>
+          );
+        })()}
+      </section>
 
       <section>
         <SectionTitle>Snowball Strategy</SectionTitle>
@@ -2239,7 +2255,35 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           })}
         </div>
       </section>
+        </>
+      ),
+    },
+    {
+      id: 'pattern',
+      label: '7-year pattern',
+      icon: 'chart',
+      render: () => (
+        <>
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
+        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Six years to build. The seventh year to rest.</h2>
+        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
+      </section>
+        </>
+      ),
+    },
+  ];
 
+  return (
+    <div className="space-y-8">
+      <SectionTabs sections={sections} ariaLabel="Property" idBase="rentals" defaultId="properties" />
+
+      {/* Property Map — PINNED below the tabs, deliberately NOT a lazy tab. The
+          Leaflet init effect above is keyed on [rentals, leafletReady], not on
+          the map div mounting, so it would NOT re-fire when a lazily-mounted Map
+          tab opened — the map would render blank. Keeping the map always-mounted
+          preserves its exact existing behavior (the effect fires on this
+          component's mount, exactly as before this regroup). */}
       <section>
         <SectionTitle>{mapAreaLabel ? `Property Map · ${mapAreaLabel}` : 'Property Map'}</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
