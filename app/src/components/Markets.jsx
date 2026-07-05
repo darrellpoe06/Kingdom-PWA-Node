@@ -93,9 +93,14 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
 
   const handleAdd = (e) => {
     e && e.preventDefault && e.preventDefault();
-    const s = (input || '').trim().toLowerCase();
+    let s = (input || '').trim().toLowerCase();
     if (!s) { setInputError('Enter a symbol — e.g., aapl.us, spy.us, btcusd.'); return; }
     if (!/^[a-z0-9.\-^]+$/.test(s)) { setInputError('Symbol can only contain letters, digits, dot, dash, or ^.'); return; }
+    // Stooq needs `.us` on US stocks (the 2026-07-05 live test: a bare "nvda"
+    // quotes as dashes forever). A short plain-alpha symbol with no suffix and
+    // no ^ gets .us appended; crypto/FX pairs (btcusd, eurusd — 6+ chars) and
+    // indices (^spx) pass through untouched.
+    if (/^[a-z]{1,5}$/.test(s)) s = `${s}.us`;
     if (watchlist.includes(s)) { setInputError(`${s} is already on your watchlist.`); return; }
     if (atCap) { setInputError(`Foundation tier holds ${capLabel} tickers. Upgrade to PoeTech+ for unlimited.`); return; }
     setInputError('');
@@ -189,7 +194,10 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
                 </tr>
               </thead>
               <tbody>
-                {watchlist.map((sym, i) => {
+                {/* Defensive unique: a transient sync race must never render a
+                    symbol twice (observed once during the 2026-07-05 live
+                    cross-device test before the merge pass settled). */}
+                {watchlist.filter((sym, i) => watchlist.indexOf(sym) === i).map((sym, i) => {
                   const q = quotes[sym] || {};
                   const isErr = !!q.error;
                   const hasData = !isErr && q.close !== undefined;

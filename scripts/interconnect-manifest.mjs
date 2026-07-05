@@ -213,18 +213,17 @@ export const INTERCONNECT_REGISTRY = [
       { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'prayerRequestsSync' },
       { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'churchVoiceSync' },
     ],
-    awaiting: 'Migration 0077 pending apply (Darrell’s hand, Supabase Studio — see docs/99-session-notes/2026-07-05-live-data-tabs-audit-and-timeline.md step 1). Code ships fail-soft and self-heals the moment the tables exist; flips live after rows are verified landing cross-device.',
+    awaiting: '0077 APPLIED 2026-07-05 (db-migrate run 196, applied=1 failed=0) — the tables exist and the wiring is armed. Flips live per-rail as first real rows are verified landing cross-device (the watchlist rail already did; these five await their first real save).',
   },
   {
-    id: 'watchlist-rail-0077', name: 'Markets watchlist → family instance', status: 'building',
+    id: 'watchlist-rail-0077', name: 'Markets watchlist → family instance', status: 'live',
     from: 'data.watchlist (Stooq symbols)', to: 'market_watchlist (0077)',
-    proves: 'When applied: a ticker added on one device quotes on every family device (the quotes were always live; the LIST was the device-local half).',
+    proves: 'A ticker added on one device quotes on every family device. VERIFIED LIVE 2026-07-05: 0077 applied by db-migrate run 196 (applied=1 failed=0) and Darrell’s cross-device receipt — the same watchlist incl. a freshly-added symbol on his phone (3:06 AM) and desktop (3:08 AM), both on build 7F2A60D.',
     source: { file: 'app/src/lib/watchlist-sync.js', token: 'market_watchlist' },
     links: [
       { file: 'app/src/lib/live-rails.js', token: 'subscribeWatchlist' },
       { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'wireLiveRails' },
     ],
-    awaiting: 'Migration 0077 pending apply — same step as doc-rails-0077.',
   },
   {
     id: 'module-interest-rail-0077', name: 'Module priority votes → real family aggregate', status: 'building',
@@ -236,7 +235,7 @@ export const INTERCONNECT_REGISTRY = [
       { file: 'app/src/poe-financial-mvp-v28.jsx', token: 'wireLiveRails' },
       { file: 'app/src/components/shared.jsx', token: 'familyModuleInterest' },
     ],
-    awaiting: 'Migration 0077 pending apply — same step as doc-rails-0077.',
+    awaiting: '0077 APPLIED 2026-07-05 — table exists, wiring armed; flips live when the first cross-member vote is verified in the Family Priority Votes aggregate.',
   },
 ];
 
