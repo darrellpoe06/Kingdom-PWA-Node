@@ -53,17 +53,13 @@ const MIDNIGHT_CARD = '#141414';
 // Documented, dated exceptions (DR-0075 perpetual-improvement: a justified
 // non-improvement is a recorded decision WITH a re-review date). Each is
 // filtered OUT of the hard violations and surfaced as a WARNING instead.
-const CONTRAST_ALLOWLIST = [
-  {
-    // Rust #B85838 on the light CREAM base bg is ~4.2-4.4:1 (sub-AA) in every
-    // light theme + the default; it passes on the white CARD (4.68:1). #B85838
-    // is a shared brand token used across the whole app, so darkening it is a
-    // cross-cutting visual change, out of scope for the dark-mode fix.
-    fgKey: 'accentRust', bgKey: 'baseBg', onlyLightThemes: true,
-    why: 'brand rust on cream base ~4.2-4.4:1; brand-token change is cross-cutting',
-    reReview: '2026-08-01',
-  },
-];
+// 2026-07-05: the rust-on-light-base entry (4.19-4.3:1, re-review 2026-08-01)
+// was RESOLVED ahead of its date — each light theme now remaps .text-[#B85838]
+// to #A85030 (measured 4.88-5.01:1 on base, 5.45:1 on card), text-only, so the
+// brand token itself (buttons, borders, backgrounds) never moved. The list is
+// empty on purpose: any future sub-AA pair is a HARD FAIL unless a new dated
+// entry is recorded here.
+const CONTRAST_ALLOWLIST = [];
 
 // --- contrast math (WCAG 2.1) ---------------------------------------------
 function hexToRgb(h) {
@@ -120,8 +116,8 @@ export function parseThemes(src) {
 // Returns the ENTRY (not a boolean) so the warning record can carry the why +
 // re-review date into the manifest and the in-app panel (DR-0075: a deferred
 // non-improvement is a recorded decision WITH a date — never a silent drop).
-function findAllowlistEntry(themeName, theme, fgKey, bgKey) {
-  return CONTRAST_ALLOWLIST.find((a) => {
+function findAllowlistEntry(themeName, theme, fgKey, bgKey, allowlist) {
+  return allowlist.find((a) => {
     if (a.fgKey !== fgKey || a.bgKey !== bgKey) return false;
     if (a.onlyLightThemes) {
       const L = relLum(theme.baseBg);
@@ -142,7 +138,9 @@ export function checkContrast(themes) {
 // `warnings` (documented + dated exceptions — surfaced, never hidden). Accents
 // are now checked per-theme on both surfaces, INCLUDING midnight — this is the
 // coverage that was missing when black-on-dark passed green.
-export function checkContrastDetailed(themes) {
+// `allowlist` is injectable so a vitest can PROVE the exception lane still
+// works (dated warning, not silent pass) even while the live list is empty.
+export function checkContrastDetailed(themes, allowlist = CONTRAST_ALLOWLIST) {
   const violations = [];
   const warnings = [];
   const CHECKS = [
@@ -160,7 +158,7 @@ export function checkContrastDetailed(themes) {
         if (r == null) { violations.push({ theme: name, what: label, error: 'unparseable color', fg: t[fgKey], bg: t[bgKey] }); continue; }
         if (r >= AA_NORMAL) continue;
         const rec = { theme: name, what: label, fg: t[fgKey], bg: t[bgKey], ratio: +r.toFixed(2), need: AA_NORMAL };
-        const entry = findAllowlistEntry(name, t, fgKey, bgKey);
+        const entry = findAllowlistEntry(name, t, fgKey, bgKey, allowlist);
         if (entry) warnings.push({ ...rec, why: entry.why, reReview: entry.reReview });
         else violations.push(rec);
       }
