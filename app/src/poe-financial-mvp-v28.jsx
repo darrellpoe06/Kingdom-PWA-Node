@@ -6,6 +6,7 @@ import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/s
 // rides the initial bundle rather than a lazy chunk.
 import HelpButton from './components/HelpButton.jsx';
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
+import { useReviewGate, ReviewAsUserBanner } from './components/ReviewAsUser.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
@@ -1657,14 +1658,12 @@ export default function PoeFinancialSystem() {
   const [pendingPersona, setPendingPersona] = useState(null); // persona awaiting its PIN
   const [changePinOpen, setChangePinOpen] = useState(false);   // Security → Change PIN
 
-  // 2026-06-12 fix ("why Adam, not Darrell?"): the sanitized display names
-  // (Adam/Naomi) exist so PUBLIC visitors never see the family's real names.
-  // 2026-06-14 hardening: a signed-in session alone is NOT enough — a NON-family
-  // user who signs up also has an authSession, and must never see "Darrell"/
-  // "Christina" as selectable buttons. Real names show only to a VERIFIED family
-  // email; every other state (anonymous, demo, picker, outside signed-in user)
-  // keeps the sanitized pair.
-  const isFamilyMember = isFamilyEmail(authSession?.user?.email);
+  // 2026-06-12 fix: sanitized names (Adam/Naomi) so PUBLIC visitors never see the
+  // family's real names. 2026-06-14 hardening: a session alone is NOT enough — a
+  // non-family signup also has an authSession; real names show only to a VERIFIED
+  // family email. 2026-07-05: the flag runs through the review lens — while an
+  // admin is "reviewing as a user" the EFFECTIVE flag is false everywhere below.
+  const [isFamilyMember, reviewingAsUser] = useReviewGate(isFamilyEmail(authSession?.user?.email));
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
   const isChurchStaff = isFamilyMember || isChurchStaffEmail(authSession?.user?.email);
@@ -4718,7 +4717,7 @@ html{scroll-padding-bottom:280px}
           this app" walkthrough, dismissible and remembered per device. Self-
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
-
+      <ReviewAsUserBanner active={reviewingAsUser} />
       <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
