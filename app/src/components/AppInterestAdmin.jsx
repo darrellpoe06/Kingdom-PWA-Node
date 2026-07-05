@@ -11,13 +11,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import supabase from '../lib/supabase.js';
 import { fetchInterest, setInterestStatus, isAdminEmail } from '../lib/interest-sync.js';
+import { inviteMessage, appJoinUrlDisplay } from '../lib/app-share.js';
+import AppShareQR from './AppShareQR.jsx';
 
 const fmt = (iso) => {
   try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
   catch (e) { return iso || ''; }
 };
 
-const inviteBody = (r) => `Hi ${r.name || 'there'},\n\nThanks for your interest in PoeTech! Here's how to get the app on your device:\n\nhttps://poetech.us/poetech-app/?join=1\n\nIf you hit any trouble, just reply and we'll help you get set up.\n\n— Darrell & Christina, PoeTech`;
+const inviteBody = (r) => inviteMessage(r.name);
 
 export default function AppInterestAdmin() {
   const [phase, setPhase] = useState('checking'); // checking | denied | loading | ready | error
@@ -71,8 +73,12 @@ export default function AppInterestAdmin() {
       </div>
       {note && <p className="text-[11px] text-[#5A6E3D] mb-2" aria-live="polite">{note}</p>}
 
+      <div className="mb-4">
+        <AppShareQR />
+      </div>
+
       {rows.length === 0 ? (
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No one’s asked for an invite yet. Share <span className="font-mono text-xs">poetech.us/poetech-app/?join=1</span> and they’ll show up here.</p>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No one’s asked for an invite yet. Share <span className="font-mono text-xs">{appJoinUrlDisplay()}</span> and they’ll show up here.</p>
       ) : (
         <ul className="space-y-3">
           {rows.map((r) => (
