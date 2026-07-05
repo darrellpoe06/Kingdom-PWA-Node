@@ -14,8 +14,17 @@
 # uses. Auto-merge then has real required checks to wait on. (auto-merge.yml's
 # check_suite sweep is the belt-and-suspenders that also picks it up.)
 #
-# Pairs with auto-merge.yml (the merge half) and RELEASE-TIERS.md (the `hold`
-# label keeps Tier C work out of the lane).
+# Pairs with auto-merge.yml (the merge half), scripts/release-tier-gate.mjs (the
+# tier PARAMETER), and RELEASE-TIERS.md.
+#
+# TIER GATE (2026-07-05, Darrell "Yes tighten that"): the lane no longer arms
+# auto-merge on EVERY green PR. scripts/release-tier-gate.mjs classifies the PR's
+# changed files; auto-merge is armed ONLY for Tier A (provably low-risk: docs /
+# memory / tests / copy). Tier B/C (product code, and especially schema, CI,
+# money, front-door, onboarding, automation) is HELD for the family's soak/
+# review and merges only once a human applies the `ship` label. `hold` remains
+# the independent hard human brake. "No waiting" was about not waiting on the
+# human for LOW-RISK work — the tiers still gate the rest.
 
 name: Auto-open PR
 
@@ -72,13 +81,40 @@ jobs:
                   | grep -oE '[0-9]+$' | tail -1)
             echo "Opened PR #$num for $BRANCH."
           fi
-          # Respect the hold gate (Tier C soak). Otherwise enable native
-          # auto-merge (squash) — it still defers to branch protection and the
-          # merge queue, so a red or queued PR never jumps the line.
+          # `hold` = the human hard-brake: never arm.
           has_hold=$(gh pr view "$num" --repo "$REPO" --json labels --jq 'any(.labels[].name; .=="hold")')
           if [ "$has_hold" = "true" ]; then
             echo "PR #$num is labeled 'hold'; leaving auto-merge OFF."
+            exit 0
+          fi
+          # `ship` = a human's explicit release of a reviewed Tier B/C PR: arm.
+          has_ship=$(gh pr view "$num" --repo "$REPO" --json labels --jq 'any(.labels[].name; .=="ship")')
+          # Otherwise consult the tier PARAMETER on the PR's changed files.
+          auto_merge="$has_ship"
+          if [ "$has_ship" = "true" ]; then
+            echo "PR #$num is labeled 'ship'; arming auto-merge (human release)."
           else
+            # Changed paths on this branch vs main (three-dot = since divergence).
+            mapfile -t changed < <(git diff --name-only "origin/main...HEAD" || true)
+            gate=$(printf '%s\n' "${changed[@]}" | node scripts/release-tier-gate.mjs)
+            echo "tier-gate: $gate"
+            auto_merge=$(printf '%s' "$gate" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).autoMerge?"true":"false")}catch{process.stdout.write("false")}})')
+            tier=$(printf '%s' "$gate" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).tier||"B")}catch{process.stdout.write("B")}})')
+          fi
+          if [ "$auto_merge" = "true" ]; then
             gh pr merge --repo "$REPO" --auto --squash "$num" \
               || echo "::warning::could not enable auto-merge on #$num (may merge immediately or be ineligible)"
+          else
+            echo "PR #$num is Tier ${tier:-B}; NOT arming auto-merge — held for soak/review."
+            # Post the tier explanation ONCE (idempotent: skip if the marker is present).
+            marker="<!-- tier-gate -->"
+            already=$(gh pr view "$num" --repo "$REPO" --json comments --jq "any(.comments[].body; contains(\"$marker\"))")
+            if [ "$already" != "true" ]; then
+              body=$(printf '%s\n%s\n\n%s' \
+                "$marker" \
+                "🚦 **Tier ${tier:-B} — held for review, not auto-merged.** The delivery lane auto-merges only provably low-risk (Tier A) changes; this one touches product code or a higher-risk surface (RELEASE-TIERS.md / DR-0105)." \
+                "CI still runs and must be green. When you've reviewed/soaked it, add the \`ship\` label to release it (it will then auto-merge on green). Use \`hold\` to keep it parked regardless.")
+              gh pr comment "$num" --repo "$REPO" --body "$body" \
+                || echo "::warning::could not post tier comment on #$num"
+            fi
           fi
