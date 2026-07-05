@@ -21,6 +21,15 @@
 //
 // Reusable by design: pass a `sections` array of { id, label, icon?, render }. The
 // Admin report is the first surface to adopt it; other long tabs follow the same call.
+//
+// THE THIRD ROW (Darrell 2026-07-05: "we need a 3rd row of sliding tabs if that
+// tab scrolls really long — users will never read down that low; we want fully
+// viable systems that seem intuitive"). When a SECOND-row section's panel is still
+// a multi-screen scroll, nest another SectionTabs inside it with variant="sub".
+// The sub variant renders as a compact chip row (active = ink pill) instead of a
+// third identical underline strip, so the eye reads the hierarchy: nav slides,
+// section slides, sub-section slides — and no panel is ever a long read-down.
+// Same TabScroll primitive, same tablist a11y, same lazy panel mount.
 // =============================================================================
 import React, { useState, useRef, useCallback } from 'react';
 import UiIcon from './UiIcon.jsx';
@@ -31,6 +40,7 @@ export default function SectionTabs({
   ariaLabel = 'Sections',
   defaultId = null,
   idBase = 'sect',
+  variant = 'section', // 'section' (2nd row, underline) | 'sub' (3rd row, chips)
 }) {
   const valid = sections.filter(Boolean);
   const [active, setActive] = useState(() => {
@@ -59,12 +69,18 @@ export default function SectionTabs({
 
   if (!valid.length) return null;
   const current = valid.find((s) => s.id === active) || valid[0];
+  const sub = variant === 'sub';
 
   return (
-    <div className="space-y-4">
-      <TabScroll label={ariaLabel} rowClassName="items-stretch" className="border-b border-[#E8E4DC]">
+    <div className={sub ? 'space-y-3' : 'space-y-4'}>
+      <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub ? '' : 'border-b border-[#E8E4DC]'}>
         {valid.map((s) => {
           const on = s.id === current.id;
+          // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
+          // strip never reads as a duplicate of the underline row above it.
+          const cls = sub
+            ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
+            : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
           return (
             <button
               key={s.id}
@@ -77,7 +93,7 @@ export default function SectionTabs({
               tabIndex={on ? 0 : -1}
               onClick={() => setActive(s.id)}
               onKeyDown={onKeyDown}
-              className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}
+              className={cls}
             >
               {s.icon ? <UiIcon name={s.icon} /> : null}
               {s.label}
