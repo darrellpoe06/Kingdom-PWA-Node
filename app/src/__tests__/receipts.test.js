@@ -99,4 +99,12 @@ describe('the receipt rides the row to every device (wiring guards)', () => {
     expect(surfaceSrc).toMatch(/ReceiptModal/);
     expect(surfaceSrc).toMatch(/compressImageFile/);
   });
+  it('the file input resets its value on change so re-picking the SAME receipt re-fires', () => {
+    // The stranding bug Darrell hit 2026-07-05: filename shown, Save stuck on
+    // "Add the photo first". The browser fires `change` only when the file value
+    // differs, so after a save cleared `src`, re-selecting the same photo fired
+    // nothing and the button never unlocked. Clearing the value on every change
+    // is the fix; without it the same-file re-pick is dead.
+    expect(surfaceSrc).toMatch(/onChange=\{\(e\) => \{ const f = e\.target\.files && e\.target\.files\[0\]; e\.target\.value = ''; onPhoto\(f\); \}\}/);
+  });
 });

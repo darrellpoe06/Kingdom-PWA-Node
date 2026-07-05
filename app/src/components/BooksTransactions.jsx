@@ -75,10 +75,22 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
 
   const onPhoto = async (file) => {
     if (!file) return;
-    if (!(file.type || '').startsWith('image/')) { setBusy(`"${file.name}" is not a photo.`); return; }
-    setBusy('Compressing…');
-    try { setSrc(await compressImageFile(file, 1280, 0.6)); setBusy(''); }
-    catch (e) { setBusy(`Could not read the photo: ${e.message || 'unknown error'}`); }
+    if (!(file.type || '').startsWith('image/')) { setSrc(''); setBusy(`"${file.name}" is not a photo — pick a JPG, PNG, or HEIC image.`); return; }
+    // Clear any prior photo so a failed read can never leave a stale preview
+    // standing in for the file the user actually picked.
+    setSrc('');
+    setBusy('Reading the photo…');
+    try {
+      const out = await compressImageFile(file, 1280, 0.6);
+      // A decode that silently yields an empty/degenerate data URL would enable
+      // the button with no real photo behind it — treat it as a failure.
+      if (!out || out.length < 100) throw new Error('the image could not be decoded on this device');
+      setSrc(out);
+      setBusy('');
+    } catch (e) {
+      setSrc('');
+      setBusy(`Could not read that photo (${(e && e.message) || 'unknown error'}). Try again, or pick a different image.`);
+    }
   };
 
   const buildReceipt = () => receiptShape({ src, amount, merchant, capturedAt });
@@ -98,8 +110,16 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
 
           <div>
             <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo — take one now, or pick from your photos / files</div>
-            <input type="file" accept="image/*" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
-            {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
+            {/* Reset value on EVERY change: the browser fires `change` only when
+                the file value differs, so without this, re-picking the SAME
+                receipt (the common case after a save, or after a failed read)
+                fires nothing and the Save button stays stuck on step 1. Clearing
+                the value first makes the compressed preview below the single
+                source of truth for "a photo is loaded." */}
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; onPhoto(f); }} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            {src
+              ? <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />
+              : <p className="mt-1 text-[0.625rem] text-[#5A5751]">Pick a photo above — its preview appears here once it loads, then the button unlocks.</p>}
           </div>
 
           <div className="grid grid-cols-3 gap-2">
