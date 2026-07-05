@@ -23,13 +23,21 @@
 # one in the triggering event's payload. Enabling auto-merge is idempotent, so
 # a PR that already has it stays untouched.
 #
-# HOLD OPT-OUT: a PR labeled `hold` is skipped. Auto-merge is the default;
-# holding is the explicit, human-governed exception — the gate for Tier C work
-# that is intentionally soaking (RELEASE-TIERS.md) or awaiting family/Governor
-# review. Remove the label when the soak/review is done and the next sweep (or
-# any pull_request event) enables auto-merge.
+# TIER GATE (2026-07-05, Darrell "Yes tighten that"): auto-merge is NOT the
+# blanket default anymore. For every candidate PR the sweep consults
+# scripts/release-tier-gate.mjs on the PR's changed files and arms native
+# auto-merge ONLY for Tier A (provably low-risk: docs / memory / tests / copy)
+# or a PR a human has explicitly released with the `ship` label. Tier B/C
+# (product code, and especially schema / CI / money / front-door / onboarding /
+# automation) is left un-armed — held for the family's soak/review until `ship`.
+# The sweep NEVER mutates labels (so it can't fight a human), it only decides
+# whether to arm.
 #
-# Pairs with ci.yml (the required checks this defers to) and RELEASE-TIERS.md.
+# HOLD OPT-OUT: a PR labeled `hold` is always skipped — the human hard-brake.
+# `ship` is the human release of a reviewed Tier B/C PR.
+#
+# Pairs with ci.yml (the required checks this defers to), auto-open-pr.yml (the
+# same gate at open time), scripts/release-tier-gate.mjs, and RELEASE-TIERS.md.
 
 name: Auto-merge
 
@@ -56,7 +64,9 @@ jobs:
     name: enable auto-merge (squash) on eligible PRs
     runs-on: ubuntu-latest
     steps:
-      - name: Enable native auto-merge on every eligible open PR
+      # Checkout so the tier gate (scripts/release-tier-gate.mjs) is available.
+      - uses: actions/checkout@v4
+      - name: Enable native auto-merge on eligible, Tier-A (or shipped) open PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -81,9 +91,24 @@ jobs:
             echo "No eligible PRs awaiting auto-merge."
             exit 0
           fi
-          echo "Eligible PRs: ${prs[*]}"
+          echo "Candidate PRs: ${prs[*]}"
           for n in "${prs[@]}"; do
-            echo "Enabling auto-merge (squash) on #$n"
+            # `ship` label = a human's explicit release of a reviewed Tier B/C PR.
+            has_ship=$(gh pr view "$n" --repo "$REPO" --json labels --jq 'any(.labels[].name; .=="ship")')
+            if [ "$has_ship" = "true" ]; then
+              echo "#$n has 'ship' — human release; arming."
+            else
+              # Consult the tier PARAMETER on the PR's changed files (via API,
+              # no per-branch checkout). Arm ONLY for Tier A.
+              am=$(gh api "repos/$REPO/pulls/$n/files" --paginate --jq '.[].filename' 2>/dev/null \
+                   | node scripts/release-tier-gate.mjs \
+                   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).autoMerge?"true":"false")}catch{process.stdout.write("false")}})')
+              if [ "$am" != "true" ]; then
+                echo "#$n is Tier B/C by the gate — leaving un-armed (held for review; add 'ship' to release)."
+                continue
+              fi
+              echo "#$n is Tier A — arming."
+            fi
             # Never fail the sweep on one PR: it may have merged or become
             # ineligible (e.g. a required check already failed) between the
             # list and the enable. Auto-merge still respects branch protection.

@@ -5757,7 +5757,7 @@ html{scroll-padding-bottom:280px}
           💬 Feedback
         </button>
       )}
-      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} submitterName={authSession?.user?.email ? authSession.user.email.split('@')[0] : ''} />}
       {/* Give floater — Church surfaces only (bottom-right; Feedback owns
           bottom-left). Links out to the congregation's own giving page + the
           blessing of giving according to the Word. See components/ChurchGiving. */}
