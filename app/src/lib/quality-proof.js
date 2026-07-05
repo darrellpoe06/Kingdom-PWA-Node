@@ -34,6 +34,17 @@ export function normalizeManifest(raw) {
       themes: arr(contrast.themes),
       themeCount: contrast.themeCount != null ? contrast.themeCount : arr(contrast.themes).length,
       violations: arr(contrast.violations),
+      // Documented sub-AA deferrals (dated, DR-0075) + tracked inline-color
+      // debt + the measurement's honest scope — carried so the panel can never
+      // again read flat-green while known gaps sit invisible (2026-07-05).
+      exceptions: arr(contrast.exceptions),
+      inlineDebt: contrast.inlineDebt && typeof contrast.inlineDebt === 'object'
+        ? { files: contrast.inlineDebt.files || 0, colors: contrast.inlineDebt.colors || 0 }
+        : { files: 0, colors: 0 },
+      tokenCoverage: contrast.tokenCoverage && typeof contrast.tokenCoverage === 'object'
+        ? { bgClasses: contrast.tokenCoverage.bgClasses || 0, textClasses: contrast.tokenCoverage.textClasses || 0 }
+        : { bgClasses: 0, textClasses: 0 },
+      scope: contrast.scope || '',
       standard: contrast.standard || 'WCAG 2.1 AA',
     },
     ci: m.ci && typeof m.ci === 'object' ? m.ci : { exists: false, steps: [] },
@@ -110,13 +121,25 @@ export function rowStatus(row, verdict) {
   return { status: 'idle', label: 'wired — CI status pending' };
 }
 
-// Contrast row carries its own measured verdict (numbers, not CI).
+// Contrast row carries its own measured verdict (numbers, not CI). A pass with
+// documented deferrals or tracked inline debt reads AMBER, not green — the flat
+// "AA met" over 4 dated exceptions + 40+ tracked inline colors is exactly the
+// under-claiming state Darrell called out from the phone on 2026-07-05
+// (DR-0100: hiding a known gap is as much a lie as inventing a pass).
 export function contrastStatus(contrast) {
   const c = contrast || {};
   if (c.ok !== true) return { status: 'idle', label: 'not measured' };
-  if (c.pass === true) return { status: 'good', label: `AA met · ${c.themeCount} theme${c.themeCount === 1 ? '' : 's'}` };
-  const n = Array.isArray(c.violations) ? c.violations.length : 0;
-  return { status: 'problem', label: `${n} contrast violation${n === 1 ? '' : 's'}` };
+  if (c.pass !== true) {
+    const n = Array.isArray(c.violations) ? c.violations.length : 0;
+    return { status: 'problem', label: `${n} contrast violation${n === 1 ? '' : 's'}` };
+  }
+  const deferred = Array.isArray(c.exceptions) ? c.exceptions.length : 0;
+  const debt = c.inlineDebt && c.inlineDebt.colors ? c.inlineDebt.colors : 0;
+  const tracked = deferred + debt;
+  if (tracked > 0) {
+    return { status: 'attention', label: `AA on gated pairs · ${tracked} tracked issue${tracked === 1 ? '' : 's'}` };
+  }
+  return { status: 'good', label: `AA met · ${c.themeCount} theme${c.themeCount === 1 ? '' : 's'}` };
 }
 
 // Map a review record's status word to a KPI state. 'addressed' is the only

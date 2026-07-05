@@ -49,6 +49,24 @@ describe('quality manifest — real, non-empty, file-verified', () => {
     }
   });
 
+  // 2026-07-05 (REV-0006): the manifest must carry the WHOLE measured state —
+  // dated exceptions, inline-color debt, coverage width, and an explicit scope —
+  // so the in-app tab can never again read flat-green over known gaps.
+  it('carries the dated exceptions, inline debt, token coverage, and scope', () => {
+    expect(Array.isArray(m.contrast.exceptions)).toBe(true);
+    for (const w of m.contrast.exceptions) {
+      expect(w.ratio, 'exception without a measured ratio').not.toBeNull();
+      expect(w.reReview, `exception [${w.theme}] ${w.what} has no re-review date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+    expect(m.contrast.inlineDebt.files).toBeTypeOf('number');
+    expect(m.contrast.inlineDebt.colors).toBeTypeOf('number');
+    expect(m.contrast.tokenCoverage.bgClasses).toBeGreaterThan(0);
+    expect(m.contrast.tokenCoverage.textClasses).toBeGreaterThan(0);
+    // The honest boundary: contrast is measured; a full WCAG audit is not.
+    expect(m.contrast.scope).toMatch(/contrast only/i);
+    expect(m.contrast.scope).toMatch(/NOT machine-measured/);
+  });
+
   it('reads the real CI floor from ci.yml', () => {
     expect(m.ci.exists).toBe(true);
     expect(m.ci.steps.length).toBeGreaterThanOrEqual(2);

@@ -172,19 +172,45 @@ export default function QualityProof({ defaultSection = 'gates' }) {
                   <KpiDot status={cStat.status} label={cStat.label} className="text-[0.5625rem] uppercase tracking-wider" />
                 </div>
                 {contrast.ok ? (
-                  contrast.pass ? (
-                    <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                      Every theme ({contrast.themes.join(', ')}) meets AA for body text on its surfaces — measured from the real theme CSS, not claimed.
-                    </p>
-                  ) : (
-                    <ul className="mt-1 space-y-0.5">
-                      {contrast.violations.map((v, i) => (
-                        <li key={i} className="text-[0.6875rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                          [{v.theme}] {v.what}: {v.fg} on {v.bg} = {v.ratio || v.error}
-                        </li>
-                      ))}
-                    </ul>
-                  )
+                  <>
+                    {contrast.pass ? (
+                      <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                        Body + accent text meets AA on every gated theme pair ({contrast.themes.join(', ')}), and every color class used renders AA under midnight ({contrast.tokenCoverage.bgClasses} bg + {contrast.tokenCoverage.textClasses} text classes, both directions) — measured from the real theme CSS, not claimed.
+                      </p>
+                    ) : (
+                      <ul className="mt-1 space-y-0.5">
+                        {contrast.violations.map((v, i) => (
+                          <li key={i} className="text-[0.6875rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                            [{v.theme}] {v.what}: {v.fg} on {v.bg} = {v.ratio || v.error}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {contrast.exceptions.length > 0 && (
+                      <div className="mt-2 border-t border-[#E8E4DC] pt-1.5">
+                        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+                          Documented exceptions ({contrast.exceptions.length}) — deferred with a date, never hidden
+                        </div>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {contrast.exceptions.map((w, i) => (
+                            <li key={i} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                              [{w.theme}] {w.what}: {w.fg} on {w.bg} = {w.ratio} (need 4.5) · re-review {w.reReview}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {contrast.inlineDebt.colors > 0 && (
+                      <p className="text-[0.6875rem] text-[#5A5751] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                        Tracked debt: {contrast.inlineDebt.colors} un-themeable inline color{contrast.inlineDebt.colors === 1 ? '' : 's'} across {contrast.inlineDebt.files} component file{contrast.inlineDebt.files === 1 ? '' : 's'} would fail AA under midnight — warn-only until each file is promoted to the guarded list.
+                      </p>
+                    )}
+                    {contrast.scope && (
+                      <p className="text-[0.625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                        Scope: {contrast.scope}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic">Contrast not measured in this build.</p>
                 )}

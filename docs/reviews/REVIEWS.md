@@ -51,3 +51,19 @@
 - **Status:** addressed
 - **Findings:** Reviewed whether one family could see another's records after the "Darrell at top" parishioner incident. Confirmed cosmetic-only (RLS held under a service-vs-anon test); encoded the judgment as the tenancy guard + conference no-leak gate so a cross-instance read fails the build.
 - **Source:** scripts/tenancy-guard.mjs
+
+### REV-0006 · Accessibility tab under-reported known contrast gaps
+- **Date:** 2026-07-05
+- **Surface:** Admin › Quality / Proof › Accessibility tab
+- **Type:** accessibility
+- **Status:** addressed
+- **Findings:** Darrell (from the served build): "I don't believe this state." Verified correct — the tab read a flat green "AA met · 5 themes" while the same scanner carried 4 documented sub-AA exceptions (brand rust #B85838 on the light base backgrounds, measured 4.19–4.3:1 vs 4.5:1 required, deferred to re-review 2026-08-01) and ~49 tracked un-themeable inline colors across 10 unguarded component files; the contrast-only scope was unstated, so "Accessibility" read as a full audit. The manifest now carries exceptions (with re-review dates), inline-color debt, midnight token coverage, and an explicit scope statement; the panel renders all of them; a pass with tracked issues shows amber "AA on gated pairs · N tracked issues," never flat green. Under-claiming known gaps is treated the same as over-claiming a pass (DR-0100 / DR-0076).
+- **Source:** scripts/quality-manifest.mjs
+
+### REV-0007 · Rust-on-light-base sub-AA resolved early (light-theme text remap)
+- **Date:** 2026-07-05
+- **Surface:** All light themes (white, slate, sapphire, rose) — rust accent text
+- **Type:** accessibility
+- **Status:** addressed
+- **Findings:** The 4 deferred exceptions from REV-0006 (rust #B85838 text on light base backgrounds, 4.19–4.3:1, re-review 2026-08-01) are resolved ahead of their date. Fix is the surgical lane, not the cross-cutting one the deferral feared: each light theme remaps `.text-[#B85838]` to #A85030 (measured 4.88–5.01:1 on base, 5.45:1 on the white card) — the exact per-theme pattern midnight already uses (#B85838 → #FB923C). Text-only: the brand token is untouched for buttons, borders, backgrounds, and focus outlines (non-text 3:1 bar still met at 4.19+). The contrast-guard allowlist entry was removed, so any future sub-AA rust pair is a hard build failure; a test proves the dated-exception lane itself still catches. The slate theme's false "All combinations exceed WCAG 2.1 AA" comment was replaced with a pointer to the gate.
+- **Source:** app/src/poe-financial-mvp-v28.jsx

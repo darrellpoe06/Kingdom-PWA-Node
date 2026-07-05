@@ -4043,6 +4043,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="white"] .border-2{border-radius:14px}
 [data-theme="white"] .text-\\[\\#1A1815\\]{color:#1D1D1F!important}
 [data-theme="white"] .text-\\[\\#5A5751\\]{color:#636366!important}
+[data-theme="white"] .text-\\[\\#B85838\\]{color:#A85030!important}
 [data-theme="white"] .bg-\\[\\#1A1815\\]{background-color:#1D1D1F!important;border-radius:10px}
 /* iOS-style breathing room on body prose */
 [data-theme="white"] p,[data-theme="white"] li{line-height:1.55}
@@ -4059,7 +4060,9 @@ html{scroll-padding-bottom:280px}
      · Cool blue accent (#1F6FEB) where the brand accent would normally land
      · More generous padding via inset adjustments
      · Default body line-height for One UI's roomier feel
-   All combinations exceed WCAG 2.1 AA.
+   Contrast is MEASURED by scripts/contrast-guard.mjs (a comment is a claim;
+   the gate is the check — DR-0076). Rust text remaps to #A85030 here because
+   raw #B85838 measured 4.21:1 on this base, below the 4.5:1 AA bar.
    =================================================================== */
 [data-theme="slate"]{background-color:#F1F3F8;letter-spacing:0}
 [data-theme="slate"] .bg-\\[\\#FAF8F4\\]{background-color:#F1F3F8!important}
@@ -4068,6 +4071,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="slate"] .border-\\[\\#E8E4DC\\]{border-color:#DDE3EC!important}
 [data-theme="slate"] .text-\\[\\#1A1815\\]{color:#1B1D1F!important}
 [data-theme="slate"] .text-\\[\\#5A5751\\]{color:#4A5260!important}
+[data-theme="slate"] .text-\\[\\#B85838\\]{color:#A85030!important}
 [data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#1B1D1F!important;border-radius:22px}
 [data-theme="slate"] .border-2{border-radius:24px}
 [data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1B5FCC!important;border-radius:18px}
@@ -4086,6 +4090,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="sapphire"] .bg-\\[\\#E8E4DC\\]{background-color:#BFDBFE!important}
 [data-theme="sapphire"] .text-\\[\\#1A1815\\]{color:#1E3A8A!important}
 [data-theme="sapphire"] .text-\\[\\#5A5751\\]{color:#1D4ED8!important}
+[data-theme="sapphire"] .text-\\[\\#B85838\\]{color:#A85030!important}
 [data-theme="sapphire"] .border-\\[\\#1A1815\\]{border-color:#1E3A8A!important}
 [data-theme="sapphire"] .bg-\\[\\#1A1815\\]{background-color:#1E3A8A!important}
 
@@ -4097,6 +4102,7 @@ html{scroll-padding-bottom:280px}
 [data-theme="rose"] .bg-\\[\\#E8E4DC\\]{background-color:#FBCFE8!important}
 [data-theme="rose"] .text-\\[\\#1A1815\\]{color:#831843!important}
 [data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
+[data-theme="rose"] .text-\\[\\#B85838\\]{color:#A85030!important}
 [data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
 [data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
 

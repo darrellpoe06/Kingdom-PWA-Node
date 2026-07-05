@@ -52,6 +52,7 @@ describe('contrast guard — every theme meets AA', () => {
 [data-theme="white"] .bg-\\[\\#FAF8F4\\]{background-color:#F2F2F7!important}
 [data-theme="white"] .text-\\[\\#1A1815\\]{color:#1D1D1F!important}
 [data-theme="white"] .text-\\[\\#5A5751\\]{color:#636366!important}
+[data-theme="white"] .text-\\[\\#B85838\\]{color:#A85030!important}
 `;
     expect(checkContrast(parseThemes(good))).toEqual([]);
   });
@@ -87,11 +88,34 @@ describe('contrast guard — accents per-theme, including midnight', () => {
     expect(violations.filter(v => v.what.includes('accent'))).toEqual([]);
   });
 
-  it('the rust-on-light-base sub-AA is allowlisted as a dated warning, not a hard fail', () => {
-    const { warnings } = checkContrastDetailed(scanContrast().themes);
-    // It is surfaced (documented), but never blocks the build.
-    expect(warnings.some(w => w.what === 'rust accent text')).toBe(true);
-    expect(scanContrast().violations.some(v => v.what === 'rust accent text')).toBe(false);
+  it('rust text meets AA in every theme — the 2026-07-05 remap resolved the deferral early', () => {
+    // Each light theme remaps .text-[#B85838] -> #A85030 (text-only; the brand
+    // token stays for buttons/borders/bgs). The former allowlist entry is GONE,
+    // so this is a hard assertion: no rust violation AND no rust warning.
+    const { themes, violations, warnings } = scanContrast();
+    expect(violations.filter(v => v.what === 'rust accent text')).toEqual([]);
+    expect(warnings.filter(w => w.what === 'rust accent text')).toEqual([]);
+    // Belt-and-braces: the remap actually landed in the parsed light themes.
+    for (const t of ['white', 'slate', 'sapphire', 'rose']) {
+      expect(themes[t].accentRust.toUpperCase(), `${t} rust not remapped`).toBe('#A85030');
+    }
+  });
+
+  it('the exception lane still CATCHES: an allowlisted sub-AA pair becomes a dated warning, never silent', () => {
+    // The live allowlist is empty on purpose (any sub-AA is a hard fail). Prove
+    // the mechanism itself still works by injecting a synthetic allowlist over
+    // a theme that fails: it must move to warnings AND carry why + re-review.
+    const failing = { light: { baseBg: '#FAF8F4', cardBg: '#FFFFFF', darkBtnBg: '#1A1815', textPrimary: '#1A1815', textSecondary: '#5A5751', textLight: '#FAF8F4', accentGreen: '#5A6E3D', accentRust: '#B85838', accentBlue: '#2A5A8E' } };
+    const hard = checkContrastDetailed(failing);
+    expect(hard.violations.some(v => v.what === 'rust accent text')).toBe(true);
+    const excused = checkContrastDetailed(failing, [
+      { fgKey: 'accentRust', bgKey: 'baseBg', onlyLightThemes: true, why: 'synthetic test entry', reReview: '2099-01-01' },
+    ]);
+    expect(excused.violations.some(v => v.what === 'rust accent text')).toBe(false);
+    const w = excused.warnings.find(x => x.what === 'rust accent text');
+    expect(w).toBeTruthy();
+    expect(w.why).toBe('synthetic test entry');
+    expect(w.reReview).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 

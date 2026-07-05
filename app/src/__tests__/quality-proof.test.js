@@ -79,8 +79,9 @@ describe('rowStatus — existence is not a pass', () => {
 });
 
 describe('contrastStatus — carries its own measured verdict', () => {
-  it('green when measured + pass', () => {
+  it('green when measured + pass with NO tracked issues', () => {
     expect(contrastStatus({ ok: true, pass: true, themeCount: 5 }).status).toBe('good');
+    expect(contrastStatus({ ok: true, pass: true, themeCount: 5, exceptions: [], inlineDebt: { files: 0, colors: 0 } }).status).toBe('good');
   });
   it('problem when measured + fail', () => {
     expect(contrastStatus({ ok: true, pass: false, violations: [{}, {}] }).status).toBe('problem');
@@ -88,6 +89,18 @@ describe('contrastStatus — carries its own measured verdict', () => {
   it('idle when not measured (not a misleading green)', () => {
     expect(contrastStatus({ ok: false }).status).toBe('idle');
     expect(contrastStatus(null).status).toBe('idle');
+  });
+  // 2026-07-05 ("I don't believe this state"): a pass over documented deferrals
+  // or tracked inline debt must read AMBER — never the flat green that hid them.
+  it('AMBER (attention) when pass but dated exceptions exist — never flat green', () => {
+    const s = contrastStatus({ ok: true, pass: true, themeCount: 5, exceptions: [{ theme: 'white', reReview: '2026-08-01' }], inlineDebt: { files: 0, colors: 0 } });
+    expect(s.status).toBe('attention');
+    expect(s.label).toMatch(/1 tracked issue/);
+  });
+  it('AMBER (attention) when pass but inline-color debt is tracked', () => {
+    const s = contrastStatus({ ok: true, pass: true, themeCount: 5, exceptions: [], inlineDebt: { files: 10, colors: 49 } });
+    expect(s.status).toBe('attention');
+    expect(s.label).toMatch(/49 tracked issues/);
   });
 });
 
@@ -108,6 +121,15 @@ describe('normalizeManifest / normalizeReviews — null-safe degradation', () =>
     expect(m.gates).toEqual([]);
     expect(m.loops).toEqual([]);
     expect(m.contrast.pass).toBe(false);
+    expect(m.contrast.exceptions).toEqual([]);
+    expect(m.contrast.inlineDebt).toEqual({ files: 0, colors: 0 });
+    expect(m.contrast.scope).toBe('');
+  });
+  it('preserves exceptions + inline debt + scope from a real manifest', () => {
+    const m = normalizeManifest({ ok: true, contrast: { ok: true, pass: true, themes: ['white'], exceptions: [{ theme: 'white', reReview: '2026-08-01' }], inlineDebt: { files: 2, colors: 7 }, scope: 'contrast only' } });
+    expect(m.contrast.exceptions).toHaveLength(1);
+    expect(m.contrast.inlineDebt.colors).toBe(7);
+    expect(m.contrast.scope).toBe('contrast only');
   });
   it('preserves a real manifest', () => {
     const m = normalizeManifest({ ok: true, gates: [{ id: 'g' }], loops: [], contrast: { ok: true, pass: true, themes: ['white'] } });

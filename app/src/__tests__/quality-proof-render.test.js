@@ -67,6 +67,28 @@ describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
     expect(h).toMatch(/WCAG 2\.1 AA contrast/);
     expect(h).toContain('sapphire');
   });
+  it('the Accessibility tab states its scope and surfaces every tracked gap (REV-0006)', () => {
+    const h = render('contrast');
+    // The scope boundary always renders — "Accessibility" must never read as a
+    // full WCAG audit when only contrast is machine-measured.
+    expect(h).toMatch(/Scope:/);
+    expect(h).toMatch(/NOT machine-measured/);
+    // Whatever the manifest carries as known gaps must be VISIBLE, dated, and
+    // counted — the flat-green-over-known-gaps state can't come back silently.
+    const c = globalThis.__QUALITY_PROOF__.contrast;
+    if (c.exceptions.length > 0) {
+      expect(h).toContain('Documented exceptions');
+      expect(h).toMatch(/re-review \d{4}-\d{2}-\d{2}/);
+    }
+    if (c.inlineDebt.colors > 0) {
+      expect(h).toContain('Tracked debt');
+      expect(h).toContain(`${c.inlineDebt.colors} un-themeable inline color`);
+    }
+    if (c.pass && (c.exceptions.length > 0 || c.inlineDebt.colors > 0)) {
+      expect(h).toMatch(/tracked issue/i); // the amber label, not flat green
+      expect(h).not.toMatch(/AA met · \d+ themes/i);
+    }
+  });
   it('surfaces real review records from the registry', () => {
     // The panel renders each record's title + source (not the REV- id).
     const h = render('reviews');
