@@ -49,9 +49,12 @@ pipeline deploys **main only**, never per-branch previews).
        `VITE_REVIEW_TOKEN`, `VITE_YOUTUBE_API_KEY`, `VITE_SYNOLOGY_CHAT_BOT_URL`
    - Do **not** set `VITE_N8N_WEBHOOK_BASE` (it must default to the same-origin `/n8n`
      Pages Function; a bare Funnel URL re-opens the cross-origin throttle).
-3. **CF Pages project → Custom domains → add `poetech.us`.** If `poetech.us` DNS is at
-   Cloudflare, one click. If elsewhere, point it per CF's instructions (CNAME /
-   nameservers). *(Open question: where is poetech.us DNS managed?)*
+3. **CF Pages project → Custom domains → add `poetech.us`.** **RESOLVED 2026-07-05
+   (DR-0076, verified via `Resolve-DnsName poetech.us -Type NS`): the domain's
+   nameservers are `adi.ns.cloudflare.com` / `jim.ns.cloudflare.com` — `poetech.us`
+   DNS is ALREADY at Cloudflare.** So this is a **single click**: Custom domains →
+   Set up a domain → `poetech.us` → Cloudflare adds the CNAME automatically (same
+   account). No Weebly, no nameserver move, no manual CNAME.
 4. **Verify green,** then **retire Vercel:** Vercel → Project → Settings → Git → turn
    **off** production deploys (or remove the domain) so the two don't fight over
    `poetech.us`.
