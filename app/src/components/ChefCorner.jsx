@@ -670,7 +670,6 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               disabled={ocrBusy}
               className="hidden"
               onChange={(e) => { handlePhoto(e.target.files && e.target.files[0]); e.target.value = ''; }}

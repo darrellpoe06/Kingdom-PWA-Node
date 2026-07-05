@@ -90,8 +90,12 @@ describe('the receipt rides the row to every device (wiring guards)', () => {
   it('the migration adds the column', () => {
     expect(migrationSrc).toMatch(/ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt jsonb/);
   });
-  it('the surface offers capture on a still-screen overlay (no scroll-jump)', () => {
-    expect(surfaceSrc).toMatch(/accept="image\/\*" capture="environment"/);
+  it('the surface offers camera AND photo-library/files on a still-screen overlay', () => {
+    // capture="environment" forces camera-only on phones and hides the photo
+    // library — the exact defect Darrell hit 2026-07-05. accept="image/*"
+    // WITHOUT capture gives the OS chooser: Take Photo / Photo Library / Files.
+    expect(surfaceSrc).toMatch(/accept="image\/\*"/);
+    expect(surfaceSrc).not.toMatch(/capture=/);
     expect(surfaceSrc).toMatch(/ReceiptModal/);
     expect(surfaceSrc).toMatch(/compressImageFile/);
   });
