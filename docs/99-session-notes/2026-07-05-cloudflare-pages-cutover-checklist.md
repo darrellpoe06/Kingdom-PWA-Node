@@ -35,8 +35,13 @@ pipeline deploys **main only**, never per-branch previews).
 
 ## Activation checklist (Darrell's account actions)
 
-1. **Cloudflare → Workers & Pages → Create → Pages:** create a project named exactly
-   **`poetech-app`** (the workflow deploys `--project-name=poetech-app`).
+1. **Pages project — no manual creation needed (updated 2026-07-05).** The deploy
+   workflow now self-creates the Direct-Upload project `poetech-app` on its first run
+   (`wrangler pages project create poetech-app --production-branch=main || true`, added
+   before the deploy step). Do **NOT** use the dashboard "Connect to Git" flow — a
+   Git-connected project would double-build against this Action (and that flow was
+   throwing "Error connecting to git account" anyway). Just do steps 2-3; the project
+   appears automatically on the first main-push deploy.
 2. **GitHub → Settings → Secrets and variables → Actions:**
    - **Variables tab:** add `CF_PAGES_ENABLED` = `true`  ← the master switch.
    - **Secrets tab** (copy values from the current Vercel project env):
