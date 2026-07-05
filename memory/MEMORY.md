@@ -30,6 +30,14 @@ relying on it; memories reflect what was true when written.
   his desktop, give plain instructions PLUS a ready-to-paste PowerShell
   block. Pairs with the "PowerShell Commands — Self-Contained From Anywhere"
   rule in CLAUDE.md (cd prefix, PS 5.x only, no placeholders, ASCII only).
+- **feedback_console_checklist_complete** — when Darrell is AT a console
+  (Cloudflare, GitHub, Vercel, PowerShell) and asks "anything else?", give
+  EVERY remaining step that console performs, ordered, each tagged
+  REQUIRED-now vs deferrable — and never tag a step deferrable/optional
+  unless the fallback it relies on is VERIFIED (DR-0076). His console trip
+  is the scarcest resource in the loop. (2026-07-05, "I was just in
+  there!!!?" — the poetech.us domain click was called optional while Vercel
+  was silently cap-frozen; LESSONS-LEARNED P24.)
 - **project_n8n_same_origin_rewrite** — the PWA reaches n8n webhooks via the
   same-origin `/n8n` Vercel rewrite, never the absolute Tailscale Funnel URL
   (it throttles cross-origin). Resolver: `app/src/lib/n8n-base.js`.
