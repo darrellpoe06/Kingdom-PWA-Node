@@ -27,6 +27,7 @@
 // =============================================================================
 import React, { useState } from 'react';
 import supabase from '../lib/supabase.js';
+import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
@@ -148,6 +149,10 @@ export default function AdminConsole({
 
   const doReload = () => { try { window.location.reload(); } catch (e) { /* no-op */ } };
   const doResetSeed = () => { if (onResetSeed) onResetSeed(); };
+  // The steward's "see it as a user" review lens (lib/reviewer-mode.jsx). Sets the
+  // per-device flag and reloads into the exact signed-in-user boot; the pinned
+  // banner's Exit brings this steward view back.
+  const doReviewAsUser = () => enterReviewerMode();
 
   const facts = systemFacts({ isPublicHost, buildSha: BUILD_SHA, buildTime: BUILD_TIME, backendReachable });
 
@@ -194,6 +199,7 @@ export default function AdminConsole({
           <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
           <div className="mt-2 space-y-2">
             <GuardedAction actionId="reload-latest" onExecute={doReload} />
+            <GuardedAction actionId="review-as-user" onExecute={doReviewAsUser} />
             {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
           </div>
         </section>
