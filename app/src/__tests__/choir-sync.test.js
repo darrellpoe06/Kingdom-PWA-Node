@@ -414,3 +414,31 @@ describe('team-doc uploads (pictures/documents, not just a link)', () => {
     expect(classifyUpload(null).ok).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// A failed save never discards the typed entry (feedback bf8ad82f: "adding an
+// entry under the Choir schedule discards it"). The song/service forms close
+// ONLY on a confirmed save — on a skip/error the form stays open with the
+// values intact and the error banner saying why.
+// ---------------------------------------------------------------------------
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+describe('choir forms survive a failed save (no data loss)', () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/Choir.jsx'), 'utf8');
+  it('closes the service form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setServiceForm\(null\)/);
+    expect(src).not.toMatch(/reportSkip\(await saveService\(f\)\); setBusy\(false\); setServiceForm\(null\)/);
+  });
+  it('closes the song form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setSongForm\(null\)/);
+  });
+  it('schedule form offers every service type the table allows (incl. Wednesday)', () => {
+    const formStart = src.indexOf('function ServiceForm');
+    const form = src.slice(formStart, src.indexOf('function ', formStart + 10));
+    for (const v of ['sunday', 'wednesday', 'rehearsal']) {
+      expect(form).toContain(`<option value="${v}">`);
+    }
+  });
+});
