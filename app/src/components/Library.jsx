@@ -142,7 +142,7 @@ function Reader({ book, onNavigate, onBack, userKey }) {
   // scroll-anchor land on the right paragraph, not a guessed offset.
   const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'book', itemId: book.id });
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <button type="button" onClick={onBack} className="text-xs underline mb-3" style={{ color: PALETTE.accent }}>← Back to the shelf</button>
       <h2 className="text-2xl" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{book.title}</h2>
       {book.subtitle && <p className="italic mb-1" style={{ color: PALETTE.muted }}>{book.subtitle}</p>}

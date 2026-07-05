@@ -329,7 +329,7 @@ export default function Engagement() {
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
       <TriviaCard signedIn={signedIn} />
       <MessageThread signedIn={signedIn} />

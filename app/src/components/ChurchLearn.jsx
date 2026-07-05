@@ -1358,7 +1358,7 @@ export default function ChurchLearn({
     : null;
 
   return (
-    <section className="max-w-3xl" aria-labelledby="learn-h">
+    <section className="w-full" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>

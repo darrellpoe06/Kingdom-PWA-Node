@@ -246,7 +246,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const showRecorder = !!(personaKey && PERSONA_NAME[personaKey]);
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
       <h1 className="text-2xl font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Listen to anything</h1>
       <p className="text-sm text-[#5A5751] mb-5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>

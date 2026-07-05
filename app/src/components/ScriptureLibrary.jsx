@@ -543,7 +543,7 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   const [readerMode, setReaderMode] = useState('bible');
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
 
       <div className="flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Scripture mode">

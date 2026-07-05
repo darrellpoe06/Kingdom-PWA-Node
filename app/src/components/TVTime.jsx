@@ -28,6 +28,7 @@ import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
 import TVCircle from './TVCircle.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -65,6 +66,18 @@ function Poster({ url, title, kind, resolve = false, className = 'w-12 h-16' }) 
   return (
     <span ref={ref} className={`${className} shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center text-[0.5rem] uppercase tracking-wider text-[#5A5751] text-center p-0.5`}>{title.slice(0, 18)}</span>
   );
+}
+
+// Tapping a wall/squares tile opens its full card BELOW the grid — off-screen on
+// a big list, which read as "squares are not clickable" (Darrell 2026-07-05, the
+// tap registered but nothing visibly happened). This wrapper scrolls the opened
+// card into view the moment it mounts; scroll-mt clears the sticky header.
+function ScrollIntoView({ watch, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    try { if (ref.current && ref.current.scrollIntoView) ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { /* no-op */ }
+  }, [watch]);
+  return <div ref={ref} className="mt-2 scroll-mt-28">{children}</div>;
 }
 
 function Stars({ value, onRate }) {
@@ -570,8 +583,42 @@ export default function TVTime({ email = null }) {
   const anyTracked = STATUSES.some((st) => buckets[st.key].length);
   const genreEmpty = genreFilter && !tracked.some((s) => genreMatches(s.genre, genreFilter));
 
+  // Shared blocks used by more than one section tab (only the active tab mounts,
+  // so nothing renders twice). Genre chips filter BOTH your list AND the popular
+  // picks (Darrell 2026-07-04: never a dead end).
+  const genreChips = (
+    <section className="mb-4" aria-labelledby="tv-genres">
+      <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre <span className="text-[#B85838] normal-case tracking-normal font-normal">· your list + popular picks</span>{genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal ml-1 font-normal">clear “{genreFilter}”</button>}</h3>
+      <div className="flex flex-wrap gap-1">
+        {GENRES.map((g) => {
+          const on = genreFilter === g;
+          return (
+            <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
+              className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  // Popular picks — the curated starter catalog (expanded for an empty list or a
+  // picked genre; collapsible otherwise so ~30 posters don't fetch unasked).
+  const showPopular = popularOpen || !anyTracked || !!genreFilter;
+  const popularSection = (
+    <section className="mb-4" aria-labelledby="tv-popular">
+      <button type="button" onClick={() => setPopularOpen((v) => !v)} aria-expanded={showPopular}
+        className="w-full flex items-center justify-between gap-2 text-left mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <h3 id="tv-popular" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+          {genreFilter ? `Popular ${genreFilter} picks` : 'Popular picks'} <span className="text-[#B85838] normal-case tracking-normal font-normal">· {genreFilter ? 'tap to add' : `${popularCount()} shows to browse & add, by genre`}</span>
+        </h3>
+        {!genreFilter && <span className="text-[0.6875rem] text-[#B85838] shrink-0">{showPopular ? 'Hide' : 'Browse'}</span>}
+      </button>
+      {showPopular && <PopularBrowse trackedKeys={trackedKeys} onAddByTitle={onAddByTitle} busy={busy} genre={genreFilter} />}
+    </section>
+  );
+
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Shows & movies · check off every episode · talk it · watch it through The Way">PoeTech TV Time</SectionTitle>
 
       <p className="text-sm text-[#1A1815] mb-2" style={serif}>
@@ -581,88 +628,18 @@ export default function TVTime({ email = null }) {
         Your circle: {SEED_CIRCLE.join(' · ')}. {email ? <span className="text-[#5A6E3D]">Your list follows your sign-in across your devices</span> : <span>Your list is saved on this device</span>}; <span className="text-[#B85838]">live group sync is coming next</span>. Show info + posters: {TV_SOURCE.name}; movies: {MOVIE_SOURCE.name}.
       </p>
 
-      {/* Look up a show — live search. */}
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3">
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Look up a show</div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={exportList} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>Export my list</button>
-            <button type="button" onClick={() => { setImportOpen((v) => !v); setImportMsg(''); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>{importOpen ? 'Close import' : 'Import my old list'}</button>
-          </div>
-        </div>
-        <label className="sr-only" htmlFor="tv-search">Search for a show</label>
-        <input id="tv-search" value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off"
-          placeholder="Type a show — e.g. Game of Thrones" className="w-full text-sm px-2 py-1.5 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif} />
-        {query.trim().length >= 2 && (
-          <div className="mt-1 border border-[#E8E4DC] bg-white max-h-80 overflow-y-auto divide-y divide-[#F2EFE9]" aria-live="polite">
-            {searching && <p className="text-xs text-[#5A5751] p-2" style={serif}>Searching {TV_SOURCE.name}…</p>}
-            {!searching && results && results.length === 0 && (
-              <div className="p-2">
-                <p className="text-xs text-[#5A5751]" style={serif}>No match. You can still add it as a plain title:</p>
-                <button type="button" onClick={() => { persist(addCustomShow(state, { title: query.trim() })); setQuery(''); }} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mt-1`}>+ Add “{query.trim()}”</button>
-              </div>
-            )}
-            {!searching && results && results.map((r) => (
-              <button key={r.id} type="button" disabled={busy === r.id} onClick={() => addFromResult(r)}
-                className="w-full flex items-center gap-2 p-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
-                <Poster url={r.poster} title={r.title} className="w-9 h-12" />
-                <span className="min-w-0">
-                  <span className="text-sm text-[#1A1815] block truncate" style={{ ...serif, fontWeight: 600 }}>
-                    {r.title}
-                    {r.kind === 'movie' && <span className="text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#C9BFA8] px-1 py-0.5 ml-1.5 align-middle">Movie</span>}
-                  </span>
-                  <span className="text-[0.6875rem] text-[#5A5751]">{[r.year, r.network, r.genre].filter(Boolean).join(' · ')}</span>
-                </span>
-                <span className="ml-auto text-[0.625rem] uppercase tracking-wider text-[#B85838] shrink-0">{busy === r.id ? 'Adding…' : '+ Add'}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        {importOpen && (
-          <div className="mt-2 border-t border-[#E8E4DC] pt-2">
-            <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="tv-import">Paste your shows — one per line</label>
-            <textarea id="tv-import" rows={5} value={importText} onChange={(e) => setImportText(e.target.value)}
-              placeholder={'Game of Thrones\nThe Real Housewives\nBreaking Bad'} className="w-full text-sm px-2 py-1 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] mt-1" style={serif} />
-            <div className="flex items-center gap-2 flex-wrap mt-1">
-              <button type="button" onClick={runImport} disabled={!importText.trim()} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Bring them in</button>
-              <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white cursor-pointer`}>
-                Import from a file (.zip or .json)
-                <input type="file" accept=".zip,.json,application/zip,application/json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
-              </label>
-              {importMsg && <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{importMsg}</span>}
-            </div>
-            <p className="text-[0.6875rem] text-[#5A5751] mt-1.5 leading-relaxed" style={serif}>
-              Coming from TV&nbsp;Time? Download your data from their app (Settings → your export gives a <strong>.zip</strong>), then tap <strong>Import from a file</strong> above and pick that .zip — your shows and watched episodes come right in. It&apos;s your data.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* What's getting watched — dynamic, from real activity. */}
-      <TrendingStrip items={trending} />
-
-      {/* Family/circle sharing — GATED (TV_SHARING_ENABLED, off until the live NAS
-          isolation smoke test passes). Renders null while off, so production is
-          unchanged. state + a light catalog let it publish only your tagged shows. */}
-      <TVCircle state={state} email={me}
-        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
-
-      {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
-          picks below (Darrell 2026-07-04: pick a genre and it shows all in that
-          genre, never a dead end). Always shown, so an empty list still browses. */}
-      <section className="mb-4" aria-labelledby="tv-genres">
-        <h3 id="tv-genres" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Browse by genre <span className="text-[#B85838] normal-case tracking-normal font-normal">· your list + popular picks</span>{genreFilter && <button type="button" onClick={() => setGenreFilter('')} className="text-[#B85838] hover:underline normal-case tracking-normal ml-1 font-normal">clear “{genreFilter}”</button>}</h3>
-        <div className="flex flex-wrap gap-1">
-          {GENRES.map((g) => {
-            const on = genreFilter === g;
-            return (
-              <button key={g} type="button" onClick={() => setGenreFilter(on ? '' : g)} aria-pressed={on}
-                className={`text-[0.625rem] px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>{g}</button>
-            );
-          })}
-        </div>
-      </section>
-
+      {/* Section tabs (Darrell 2026-07-05: "a lot of scrolling to get to the
+          squares" — the wall was buried under search, trending, circle, and the
+          genre grid). MY SHOWS lands first so the posters sit at the top; a fresh
+          list lands on FIND & ADD instead (nothing to wall yet). Same SectionTabs
+          primitive as the top-level surfaces; only the active section mounts. */}
+      <SectionTabs ariaLabel="TV Time sections" idBase="tvtime" defaultId={anyTracked ? 'shows' : 'find'} sections={[
+        {
+          id: 'shows',
+          label: 'My shows',
+          icon: 'check',
+          render: () => (
+            <>
       {/* View toggle — the condensed poster WALL (like the TV Time app's grid;
           Darrell 2026-07-05) vs the full cards. Only shown once there's a list. */}
       {anyTracked && (
@@ -726,12 +703,12 @@ export default function TVTime({ email = null }) {
                   })}
                 </div>
                 {focused && (
-                  <div className="mt-2">
+                  <ScrollIntoView watch={focused.id}>
                     <ShowCard key={focused.id} show={focused} me={me} state={state}
                       onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                       onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
                       onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
-                  </div>
+                  </ScrollIntoView>
                 )}
               </>
             ) : (
@@ -748,32 +725,102 @@ export default function TVTime({ email = null }) {
         );
       })}
 
+      {/* The genre chips filter this list; an empty genre offers popular picks
+          right here so a chip is never a dead end. */}
+      {genreChips}
       {genreEmpty && <p className="text-sm text-[#5A5751] mb-3" style={serif}>Nothing {genreFilter} on your list yet — here are popular {genreFilter} picks to add:</p>}
-
-      {/* Popular picks — a curated starter catalog so the app opens to a FULL,
-          browsable list (Darrell 2026-07-04) instead of empty, and a genre chip
-          shows all picks in that genre "below". Grouped by genre when browsing
-          all; filtered to the chosen genre when one is picked. Expanded by default
-          for an empty list or when a genre is picked; collapsible otherwise (so we
-          don't fetch ~30 posters for someone happily in their own list). Tap to
-          add; already-tracked picks are hidden. */}
-      {(() => {
-        const show = popularOpen || !anyTracked || !!genreFilter;
-        return (
-          <section className="mb-4" aria-labelledby="tv-popular">
-            <button type="button" onClick={() => setPopularOpen((v) => !v)} aria-expanded={show}
-              className="w-full flex items-center justify-between gap-2 text-left mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
-              <h3 id="tv-popular" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
-                {genreFilter ? `Popular ${genreFilter} picks` : 'Popular picks'} <span className="text-[#B85838] normal-case tracking-normal font-normal">· {genreFilter ? 'tap to add' : `${popularCount()} shows to browse & add, by genre`}</span>
-              </h3>
-              {!genreFilter && <span className="text-[0.6875rem] text-[#B85838] shrink-0">{show ? 'Hide' : 'Browse'}</span>}
-            </button>
-            {show && <PopularBrowse trackedKeys={trackedKeys} onAddByTitle={onAddByTitle} busy={busy} genre={genreFilter} />}
-          </section>
-        );
-      })()}
-
-      {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: look up any show above, or import your old list — your own shows land in the sections here.</p>}
+      {(genreFilter || !anyTracked) ? popularSection : null}
+      {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: nothing tracked yet — open <strong>Find &amp; add</strong> to look up a show or import your old list.</p>}
+            </>
+          ),
+        },
+        {
+          id: 'find',
+          label: 'Find & add',
+          icon: 'sparkle',
+          render: () => (
+            <>
+      {/* Look up a show — live search. */}
+      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-3">
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Look up a show</div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={exportList} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>Export my list</button>
+            <button type="button" onClick={() => { setImportOpen((v) => !v); setImportMsg(''); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>{importOpen ? 'Close import' : 'Import my old list'}</button>
+          </div>
+        </div>
+        <label className="sr-only" htmlFor="tv-search">Search for a show</label>
+        <input id="tv-search" value={query} onChange={(e) => setQuery(e.target.value)} autoComplete="off"
+          placeholder="Type a show — e.g. Game of Thrones" className="w-full text-sm px-2 py-1.5 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif} />
+        {query.trim().length >= 2 && (
+          <div className="mt-1 border border-[#E8E4DC] bg-white max-h-80 overflow-y-auto divide-y divide-[#F2EFE9]" aria-live="polite">
+            {searching && <p className="text-xs text-[#5A5751] p-2" style={serif}>Searching {TV_SOURCE.name}…</p>}
+            {!searching && results && results.length === 0 && (
+              <div className="p-2">
+                <p className="text-xs text-[#5A5751]" style={serif}>No match. You can still add it as a plain title:</p>
+                <button type="button" onClick={() => { persist(addCustomShow(state, { title: query.trim() })); setQuery(''); }} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mt-1`}>+ Add “{query.trim()}”</button>
+              </div>
+            )}
+            {!searching && results && results.map((r) => (
+              <button key={r.id} type="button" disabled={busy === r.id} onClick={() => addFromResult(r)}
+                className="w-full flex items-center gap-2 p-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
+                <Poster url={r.poster} title={r.title} className="w-9 h-12" />
+                <span className="min-w-0">
+                  <span className="text-sm text-[#1A1815] block truncate" style={{ ...serif, fontWeight: 600 }}>
+                    {r.title}
+                    {r.kind === 'movie' && <span className="text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#C9BFA8] px-1 py-0.5 ml-1.5 align-middle">Movie</span>}
+                  </span>
+                  <span className="text-[0.6875rem] text-[#5A5751]">{[r.year, r.network, r.genre].filter(Boolean).join(' · ')}</span>
+                </span>
+                <span className="ml-auto text-[0.625rem] uppercase tracking-wider text-[#B85838] shrink-0">{busy === r.id ? 'Adding…' : '+ Add'}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {importOpen && (
+          <div className="mt-2 border-t border-[#E8E4DC] pt-2">
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" htmlFor="tv-import">Paste your shows — one per line</label>
+            <textarea id="tv-import" rows={5} value={importText} onChange={(e) => setImportText(e.target.value)}
+              placeholder={'Game of Thrones\nThe Real Housewives\nBreaking Bad'} className="w-full text-sm px-2 py-1 border border-[#E8E4DC] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] mt-1" style={serif} />
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              <button type="button" onClick={runImport} disabled={!importText.trim()} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Bring them in</button>
+              <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white cursor-pointer`}>
+                Import from a file (.zip or .json)
+                <input type="file" accept=".zip,.json,application/zip,application/json" className="sr-only" onChange={(e) => { restoreFile(e.target.files && e.target.files[0]); e.target.value = ''; }} />
+              </label>
+              {importMsg && <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{importMsg}</span>}
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1.5 leading-relaxed" style={serif}>
+              Coming from TV&nbsp;Time? Download your data from their app (Settings → your export gives a <strong>.zip</strong>), then tap <strong>Import from a file</strong> above and pick that .zip — your shows and watched episodes come right in. It&apos;s your data.
+            </p>
+          </div>
+        )}
+      </div>
+      {genreChips}
+      {popularSection}
+            </>
+          ),
+        },
+        {
+          id: 'hot',
+          label: "What's hot",
+          icon: 'chart',
+          render: () => (
+            trending.length
+              ? <TrendingStrip items={trending} />
+              : <p className="text-sm text-[#5A5751]" style={serif}>Nothing ranking yet — episodes you and your circle check off start showing up here.</p>
+          ),
+        },
+        {
+          id: 'circle',
+          label: 'Your circle',
+          icon: 'users',
+          render: () => (
+            <TVCircle state={state} email={me}
+              catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+          ),
+        },
+      ]} />
     </div>
   );
 }

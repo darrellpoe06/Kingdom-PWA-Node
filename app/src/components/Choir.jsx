@@ -730,7 +730,7 @@ export default function Choir() {
 
   if (!signedIn) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to see the choir's music, schedule, and messages.</p>
       </div>

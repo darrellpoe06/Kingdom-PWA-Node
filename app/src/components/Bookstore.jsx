@@ -187,7 +187,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
   }, [overrides]);
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Books · Store">The Bookstore</SectionTitle>
       <p className="text-sm mb-3" style={{ color: P.muted }}>
         Full books from Darrell's teaching — yours to read, with a conversation space for everyone who has the book.

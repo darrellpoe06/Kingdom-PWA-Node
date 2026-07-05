@@ -342,7 +342,7 @@ export default function ServiceProgram() {
 
   if (!signedIn) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to see Sunday's order of worship and your part in it.</p>
       </div>

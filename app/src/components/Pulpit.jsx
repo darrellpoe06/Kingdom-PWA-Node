@@ -700,7 +700,7 @@ export default function Pulpit() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
       <p className="text-xs text-[#5A5751] -mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {canManage

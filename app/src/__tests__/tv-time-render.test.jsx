@@ -76,6 +76,7 @@ describe('PoeTech TV Time', () => {
     setValue(container.querySelector('#tv-search'), 'game of thrones');
     await wait(450);
     await click(btnByText(/\+ Add/));
+    await click(btnByText(/^My shows$/));   // the card lives on the My shows tab now
     const text = container.textContent || '';
     expect(text).toMatch(/Who sees this/);
     expect(text).toMatch(/Just you/);          // private by default
@@ -104,6 +105,7 @@ describe('PoeTech TV Time', () => {
     // the live result populated (the thing that didn't work before)
     expect(container.textContent).toContain('Game of Thrones');
     await click(btnByText(/\+ Add/));
+    await click(btnByText(/^My shows$/));   // the card lives on the My shows tab now
     // tracked, with episode progress from the brought-in seasons
     expect(container.textContent, 'progress shows after add').toMatch(/0 \/ 2 episodes watched/);
     // open the episode list and check one off
@@ -122,6 +124,7 @@ describe('PoeTech TV Time', () => {
     expect(container.textContent).toContain('Black Panther');   // the movie populated
     // add the movie (it's the only result for this query — shows side returns none)
     await click(btnByText(/\+ Add/));
+    await click(btnByText(/^My shows$/));   // the card lives on the My shows tab now
     // a movie shows a single "Mark watched" control, not an episode list
     const markBtn = btnByText(/Mark watched/);
     expect(markBtn, 'movie shows a Mark watched control').toBeTruthy();
@@ -137,6 +140,7 @@ describe('PoeTech TV Time', () => {
     setValue(container.querySelector('#tv-search'), 'game of thrones');
     await wait(450);
     await click(btnByText(/\+ Add/));
+    await click(btnByText(/^What's hot$/)); // the ranking lives on its own tab now
     // adding a watching show makes it show up in the ranking with an honest reason
     expect(container.textContent).toMatch(/getting watched/);
     expect(container.textContent).toMatch(/Watching now|Watching ·/);
@@ -147,6 +151,7 @@ describe('PoeTech TV Time', () => {
     setValue(container.querySelector('#tv-search'), 'game of thrones');
     await wait(450);
     await click(btnByText(/\+ Add/));
+    await click(btnByText(/^My shows$/));   // the card lives on the My shows tab now
     await click(btnByText(/^Talk($| \()/)); // exact "Talk"/"Talk (N)" — not the "Talk show" genre chip
     setValue(container.querySelector('input[id^="cm-"]'), 'That finale!!');
     await click(btnByText(/^Post$/));

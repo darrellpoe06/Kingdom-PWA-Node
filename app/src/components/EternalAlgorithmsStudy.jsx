@@ -512,7 +512,7 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
   const helpNav = { view, churchView, setView, setChurchView };
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Word-first · for honest self-examination">
         <span className="inline-flex items-center gap-2">
           <UiIcon name="sparkle" /> {SERIES.title}

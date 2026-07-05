@@ -346,7 +346,7 @@ function CommunityFrontDoor() {
 
 export default function EventManagement({ isChurchStaff = false }) {
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <div className="mb-4">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Venues</div>
         <h2 className="text-xl sm:text-2xl text-[#1A1815] mt-0.5" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Community Event Management</h2>

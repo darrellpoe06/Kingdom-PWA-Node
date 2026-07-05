@@ -105,7 +105,7 @@ export default function Inventory({
   if (!addItem) {
     // Defensive: never white-screen if wiring is incomplete.
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow="System of record">Inventory</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
           Inventory is not wired to persistence in this view.
