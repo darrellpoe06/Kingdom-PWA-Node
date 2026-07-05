@@ -181,6 +181,71 @@ painted numbers — but auto-reconciling them against the ledger (e.g. rent inco
 transactions updating rental `actual`) is the next interdependence build:
 **re-review 2026-07-26** alongside the Books ingest decision (timeline row 5).
 
+## Money tie-in map (Darrell: "anything that has financing on the page must tie into the financial process")
+
+Full sweep of every dollar on every surface, classified against the spine
+(transactions → deriveAccountBalances → totals/forecast; accounts/entities/debts;
+inflows/outflows):
+
+**TIED-IN (verified):** Books (all four tabs), Big Picture totals, Rentals
+(rent/actual/mortgage → flows + debts), Forecast, Budget Planner.
+
+**ORPHANED — money on screen that never reaches the ledger/forecast (6):**
+1. Venue "booked revenue" (EventManagement/venue-rental — quoted prices sum,
+   UI says "counts as income" but lands nowhere). Tie-in needs a DECISION:
+   church-venue money is church-instance data — does it post to a family entity
+   or await a church-books spine? (decision: Darrell)
+2. Subscriptions monthly bleed (Cart) — never folds into outflows/forecast.
+   ⚠ double-count risk: the declared `outflows.household` bucket may already
+   cover it — reconcile the bucket before wiring (same class as rentals-actual).
+3. Inventory value $ — real on-hand asset value, invisible to net worth.
+4. Practice projected revenue — converted leads never become e-tlc inflow lines.
+5. Incident amounts — a resolved $850 incident never posts the expense.
+6. Capex "purchased" — the buy never posts to the ledger.
+
+**The tie-in architecture (one pattern for all):** each money event offers a
+one-tap "record in Books" that posts a REAL prefilled transaction via
+addTransaction (never auto-posted — money stays the owner's hand), with the
+source record linking the tx id. Items 4/5/6 are unambiguous; 2/3 need the
+double-count reconcile; 1 needs the church-books decision. This is the next
+named build (Tier B, own PR — it passes props through the frozen shell and
+deserves its own soak): **re-review 2026-07-12.**
+
+**BY-DESIGN-SEPARATE (verified documented):** Video Wall capital (server-side,
+RLS owner/admin), Church Giving (links to the church's own secure page — no
+payment data in-app), recipe costing + purchasing (display-only; owner's hand),
+Bookstore/checkout (processor off), opportunity pipeline $ (aspirational,
+deliberately NEVER summed into real cash flow — folding it in would overstate).
+
+## Declared next church project — campus security blind-spot visibility (Darrell, 2026-07-05)
+
+> "for church security the men want access to see security blind spots all over
+> this 33000 square foot campus. next project after the infrastructure project
+> for the church."
+
+Sequenced AFTER the church infrastructure project. Scope sketch (captured now so
+the word is not lost; design begins when infrastructure closes):
+- **The ask:** the men's security team sees, on one surface, where the campus
+  IS and IS NOT covered — a blind-spot map over the 33,000 sq ft campus.
+- **Foundation already landing this session:** the Observation tab's camera
+  registry (spaces + registered Wyze/IP cameras + location + "what to watch"
+  notes) is the coverage dataset a blind-spot view derives from: a space with
+  no camera, or a noted watch-area no camera points at, IS a blind spot.
+- **Build shape (v1):** per-space coverage status derived from the real camera
+  register (covered / partial / uncovered — derived, never painted); a campus
+  checklist by zone (sanctuary, foyer, halls, exterior corners, parking,
+  entrances) the security team walks and marks; blind-spot list with notes and
+  photos (the walk IS the observation flow that tab already does).
+- **Access:** a security-team gate (the men) — likely a role alongside
+  isChurchStaff; identity gated on verified membership per P20, never
+  presence-of-session.
+- **Live view dependency:** in-app live streams for RTSP/Wyze cams require the
+  NAS restream bridge (go2rtc-class, LAN-side per P18) — shared dependency with
+  the camera registry; VISION-FAIRNESS-STANDARD applies before any recognition
+  model ever rides on these cameras.
+- **Re-review:** 2026-07-26 (or at infrastructure-project close, whichever
+  comes first).
+
 ## Standards check (the "mistakes of the past" review requested mid-session)
 
 - **P13** — no new sync code maps hand-picked columns; the doc rail makes column
