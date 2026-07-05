@@ -87,6 +87,14 @@ relying on it; memories reflect what was true when written.
   that must ride migrations (0078); auth users, storage objects, and Supabase
   dashboard auth config (Site URL, OAuth callbacks, confirm-email OFF) do NOT
   move with a database — check them first when "onboarding broke after a move."
+- **2026-07-05 — orchestration reviews ride the review registry (DR-0102)** —
+  a working day that merges to `main` ends by appending a `Type: orchestration`
+  record to `docs/reviews/REVIEWS.md` (kept + frictions→actions with re-review
+  dates; full narrative in a Layer 4 session note). The app's Quality / Proof
+  Reviews panel MEASURES the registry's freshness (`reviewFreshness`,
+  lib/quality-proof.js) and goes attention past 7 days — do not let the chip
+  be the one to say the review was skipped. Batch discipline from REV-0006:
+  discovery may batch, but fixes integrate as separate small lanes (DR-0077).
 
 - **2026-07-04 — DB changes ride the lane; stop guessing manual applies** —
   cost Darrell real time when I offered docker `psql` and Supabase Studio

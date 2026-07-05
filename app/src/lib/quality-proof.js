@@ -129,6 +129,33 @@ export function reviewStatus(status) {
   return { status: 'idle', label: s || 'logged' };
 }
 
+// The registry polices its own freshness (DR-0102): reviews are only
+// "consistent and perpetual" if new records keep landing. Compares the newest
+// record date to now; past staleDays the verdict is attention -- the panel
+// says "stale" about its own registry instead of letting it age silently
+// (REV-0005 sat 20 days across ~200 merges before this existed). Never green
+// without a real date AND a real clock.
+export function reviewFreshness(reviews, nowMs, staleDays = 7) {
+  const items = reviews && Array.isArray(reviews.items) ? reviews.items : [];
+  let latest = null;
+  for (const it of items) {
+    const t = Date.parse(String((it && it.date) || ''));
+    if (Number.isFinite(t) && (latest == null || t > latest)) latest = t;
+  }
+  if (latest == null) return { ok: false, lastDate: '', daysSince: null, stale: false, status: 'idle', label: 'no dated reviews' };
+  if (!Number.isFinite(nowMs)) return { ok: false, lastDate: new Date(latest).toISOString().slice(0, 10), daysSince: null, stale: false, status: 'idle', label: 'clock unavailable' };
+  const daysSince = Math.max(0, Math.floor((nowMs - latest) / 86400000));
+  const stale = daysSince > staleDays;
+  return {
+    ok: true,
+    lastDate: new Date(latest).toISOString().slice(0, 10),
+    daysSince,
+    stale,
+    status: stale ? 'attention' : 'good',
+    label: stale ? `stale — ${daysSince}d since last review` : `fresh — ${daysSince}d ago`,
+  };
+}
+
 // Normalize the reviews registry (__UIUX_REVIEWS__) into a safe shape.
 export function normalizeReviews(raw) {
   const r = raw && typeof raw === 'object' ? raw : {};
