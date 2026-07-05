@@ -404,6 +404,15 @@ export default function TVTime({ email = null }) {
   const [focusId, setFocusId] = useState(null); // wall tile tapped → its card opens
   const wallMode = (viewMode || (tracked.length > 9 ? 'wall' : 'cards')) === 'wall';
   const pickView = (v) => { setViewMode(v); setFocusId(null); try { localStorage.setItem('poe-tv-view', v); } catch { /* device-local nicety */ } };
+  // Poster-size slider (Darrell 2026-07-05: "adjust image sizes with a slider so
+  // it's smaller or bigger based on the position"). The value is the tile's MIN
+  // width in rem; the grid auto-fills, so sliding smaller packs more posters per
+  // row and sliding bigger shows fewer, larger ones. Sticky per device.
+  const [wallSize, setWallSize] = useState(() => {
+    try { const n = parseFloat(localStorage.getItem('poe-tv-wall-size')); if (Number.isFinite(n) && n >= 3.5 && n <= 14) return n; } catch { /* fresh */ }
+    return 6; // rem — lands ~3 columns on a phone, ~6 on a laptop
+  });
+  const pickWallSize = (n) => { setWallSize(n); try { localStorage.setItem('poe-tv-wall-size', String(n)); } catch { /* device-local nicety */ } };
 
   // Cross-device sync (owner-only; fail-soft — offline degrades to device-local).
   const stateRef = useRef(state);
@@ -652,7 +661,7 @@ export default function TVTime({ email = null }) {
       {/* View toggle — the condensed poster WALL (like the TV Time app's grid;
           Darrell 2026-07-05) vs the full cards. Only shown once there's a list. */}
       {anyTracked && (
-        <div className="flex items-center gap-1.5 mb-2" role="group" aria-label="List view">
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap" role="group" aria-label="List view">
           <span className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mr-1">View</span>
           {[['wall', 'Poster wall'], ['cards', 'Full cards']].map(([v, label]) => {
             const on = wallMode === (v === 'wall');
@@ -661,6 +670,19 @@ export default function TVTime({ email = null }) {
                 className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#C9BFA8] hover:text-[#1A1815]'}`}>{label}</button>
             );
           })}
+          {wallMode && (
+            <label className="inline-flex items-center gap-1.5 ml-2">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Size</span>
+              <input
+                type="range"
+                min="3.5" max="14" step="0.5"
+                value={wallSize}
+                onChange={(e) => pickWallSize(parseFloat(e.target.value))}
+                aria-label="Poster size — slide left for smaller, right for bigger"
+                className="w-28 sm:w-40 accent-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              />
+            </label>
+          )}
         </div>
       )}
 
@@ -677,8 +699,10 @@ export default function TVTime({ email = null }) {
                 {/* Condensed wall: a dense poster grid for quick choosing. Tap a
                     tile → its full card opens right below the grid. Progress rides
                     under each tile so "where am I" reads at a glance. Posters
-                    lazy-resolve (imports included) as tiles scroll into view. */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+                    lazy-resolve (imports included) as tiles scroll into view.
+                    Columns come from the Size slider: auto-fill at the chosen
+                    min-tile-width (rem), so smaller = more per row, bigger = fewer. */}
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${wallSize}rem, 1fr))` }}>
                   {list.map((show) => {
                     const prog = showProgress(state, show.id);
                     const pct = prog.total ? Math.round((prog.watched / prog.total) * 100) : 0;
