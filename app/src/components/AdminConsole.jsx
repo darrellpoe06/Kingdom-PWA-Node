@@ -197,6 +197,15 @@ export default function AdminConsole({
       render: () => (
         <section className="bg-white border border-[#1A1815] p-4">
           <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
+          {/* DR-0102 — the standing post-push review discipline, stated where the
+              action lives (APP-IS-PRIMARY). Not decoration: this is the habit the
+              "Review as a user" action exists to serve. */}
+          <div className="mt-2 border border-[#5A6E3D] bg-[#FAF8F4] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">How we review</div>
+            <p className="text-xs text-[#1A1815] mt-1 leading-relaxed" style={serif}>
+              After every push to production, review it live <strong>as a user</strong> before trusting it — the CI gates prove the build is sound; this proves it’s right on the screen the user actually meets. Use <strong>Review as a user</strong> below any time; it’s always here. A pinned strip carries the one-tap way back.
+            </p>
+          </div>
           <div className="mt-2 space-y-2">
             <GuardedAction actionId="reload-latest" onExecute={doReload} />
             <GuardedAction actionId="review-as-user" onExecute={doReviewAsUser} />

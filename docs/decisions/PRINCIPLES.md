@@ -38,5 +38,6 @@ When a recalled memory or doc named here moves, update the **source** column her
 | **LESSONS-LEARNED** | The distilled incident record (P1..Pn) is read BEFORE designing new surfaces so prior failures don't recur; every incident is mined for a principle + a machine check. | `LESSONS-LEARNED.md` |
 | **ONE-APP-EVERYTHING-COMES-TOGETHER** | Everything in the workflows comes together inside this one app; surfaces are live views of real flow; consolidate inputs into one home, siblings point. | [DR-0061]; [DR-0095]; `CLAUDE.md` app-primary through-line |
 | **DRIVE-DONT-DELEGATE** | The agent does the clicking, navigating, typing, and re-doing; the principal is the decider, not the agent's hands. | `CLAUDE.md` "Drive, Don't Delegate" |
+| **REVIEW-LIVE-PUSH** | Reviewer mode is always available (Admin → Actions); the stewards review every production push as a user actually meets it — on the live build, not the owner's privileged view — before trusting it. Human observation on top of the CI gates, never in place of them. | `CLAUDE.md` "Review the Live Production Push"; [DR-0102] |
 
 *Add an ID here before citing it in a DR. Keep one line per principle; the depth lives in the source. (2026-07-03 audit: nine ids already cited across INDEX rows were registered here retroactively — the registry had drifted behind the tag vocabulary.)*

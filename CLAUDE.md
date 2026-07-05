@@ -387,4 +387,21 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 ---
 
+## Review the Live Production Push (added 2026-07-05, declared by Darrell; DR-0102)
+
+**Binding rule, declared by Darrell 2026-07-05:**
+
+> "we need to be reviewers also so give us a users view that mimics the users identically so we can test like a review after pushing to production" — and, on when it should be usable: **"1. Always. Document that inside PoeTech and claude. Asap. We review the live new production push."**
+
+**Reviewer mode is always available, and the stewards review every production push as a user actually meets it — before trusting it.**
+
+- **Always available.** "Review as a user" is a permanent, preview-then-execute action in **Admin → Actions** (never flag-, season-, or build-gated). Any steward drops into the exact signed-in-user experience and steps back out via the pinned "Reviewer mode" strip's Exit.
+- **The standing review pass.** After a change reaches production (poetech.us), the family does NOT trust it on the developer's/owner's privileged view. They enter reviewer mode and confirm the change on the **live build, as a user sees it** — a fresh user's empty world, the user's real tier, sanitized names, no steward tabs. This is EXECUTION-OUTCOME-OBSERVABILITY made a human habit: *system-up ≠ product-correct*, so the family observes the live product behavior on the surface the user meets, not the one the owner meets.
+- **On top of the gates, never instead of them.** The CI gates "make sure it is a sound build"; this live user-view pass is a second, independent, human observation (DR-0076) — it does not replace the deterministic checks.
+- **The agent's standing job, without being re-asked:** after a merge/deploy to production, surface the live user-review pass as a named step (the way it surfaces tests or the reality-trace), and do not report a production change fully "done" until that pass is available to run. The mechanism (the strictly-narrowing `poe-reviewer-mode` flag, every steward-data write path suppressed while on, source-pinned proven-to-catch) lives in `app/src/lib/reviewer-mode.jsx` + `app/src/__tests__/reviewer-mode.test.js`; RLS remains the real data gate (DR-0060).
+
+Recorded for the ledger as **DR-0102**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
