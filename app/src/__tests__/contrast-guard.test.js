@@ -93,6 +93,15 @@ describe('contrast guard — accents per-theme, including midnight', () => {
     expect(warnings.some(w => w.what === 'rust accent text')).toBe(true);
     expect(scanContrast().violations.some(v => v.what === 'rust accent text')).toBe(false);
   });
+
+  it('every allowlisted warning carries its why + re-review date (DR-0075 — deferred, never undated)', () => {
+    const { warnings } = checkContrastDetailed(scanContrast().themes);
+    expect(warnings.length).toBeGreaterThan(0);
+    for (const w of warnings) {
+      expect(w.why, `warning [${w.theme}] ${w.what} has no why`).toBeTruthy();
+      expect(w.reReview, `warning [${w.theme}] ${w.what} has no re-review date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
 });
 
 // The inline-color scanner: a hardcoded inline color bypasses the per-theme

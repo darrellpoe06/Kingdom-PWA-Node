@@ -51,3 +51,11 @@
 - **Status:** addressed
 - **Findings:** Reviewed whether one family could see another's records after the "Darrell at top" parishioner incident. Confirmed cosmetic-only (RLS held under a service-vs-anon test); encoded the judgment as the tenancy guard + conference no-leak gate so a cross-instance read fails the build.
 - **Source:** scripts/tenancy-guard.mjs
+
+### REV-0006 · Accessibility tab under-reported known contrast gaps
+- **Date:** 2026-07-05
+- **Surface:** Admin › Quality / Proof › Accessibility tab
+- **Type:** accessibility
+- **Status:** addressed
+- **Findings:** Darrell (from the served build): "I don't believe this state." Verified correct — the tab read a flat green "AA met · 5 themes" while the same scanner carried 4 documented sub-AA exceptions (brand rust #B85838 on the light base backgrounds, measured 4.19–4.3:1 vs 4.5:1 required, deferred to re-review 2026-08-01) and ~49 tracked un-themeable inline colors across 10 unguarded component files; the contrast-only scope was unstated, so "Accessibility" read as a full audit. The manifest now carries exceptions (with re-review dates), inline-color debt, midnight token coverage, and an explicit scope statement; the panel renders all of them; a pass with tracked issues shows amber "AA on gated pairs · N tracked issues," never flat green. Under-claiming known gaps is treated the same as over-claiming a pass (DR-0100 / DR-0076).
+- **Source:** scripts/quality-manifest.mjs

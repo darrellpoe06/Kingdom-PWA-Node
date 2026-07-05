@@ -33,7 +33,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanContrast } from './contrast-guard.mjs';
+import { scanContrast, scanInline, scanTokenCoverage } from './contrast-guard.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const APP_TESTS = 'app/src/__tests__';
@@ -101,20 +101,49 @@ function readCiFloor() {
 }
 
 // --- live WCAG contrast measurement (real numbers) ---------------------------
+// 2026-07-05 (Darrell, from the phone: "I don't believe this state"): the panel
+// showed a flat green "AA met" while the SAME scanner was carrying allowlisted
+// sub-AA exceptions and 40+ tracked un-themeable inline colors — true on the
+// measured pairs, silent on the known gaps. Under-claiming the gaps is the same
+// failure as over-claiming the pass (DR-0100). So the manifest now carries the
+// WHOLE measured state: violations (hard fails), exceptions (dated deferrals,
+// DR-0075), inline-color debt (warn-only files), midnight token coverage, and
+// an explicit scope line — contrast is measured; a full WCAG audit is NOT.
 function measureContrast() {
   try {
-    const { themes, violations } = scanContrast();
+    const { themes, violations, warnings } = scanContrast();
+    const inline = scanInline();
+    const tokens = scanTokenCoverage();
     const names = Object.keys(themes);
+    const inlineColorCount = inline.warns.reduce((n, w) => n + (w.count || 0), 0);
+    // `pass` mirrors the REAL gate (contrast-guard CLI): palette violations,
+    // guarded-file inline fails, and midnight token-coverage fails all block.
+    const pass = violations.length === 0 && inline.fails.length === 0 && tokens.violations.length === 0;
     return {
       ok: true,
-      pass: violations.length === 0,
+      pass,
       themes: names,
       themeCount: names.length,
-      violations: violations.map((v) => ({ theme: v.theme, what: v.what, fg: v.fg, bg: v.bg, ratio: v.ratio || null, error: v.error || null })),
+      violations: [
+        ...violations.map((v) => ({ theme: v.theme, what: v.what, fg: v.fg, bg: v.bg, ratio: v.ratio || null, error: v.error || null })),
+        ...inline.fails.map((f) => ({ theme: 'midnight', what: `${f.file}:${f.line} ${f.what}`, fg: f.color, bg: f.surface, ratio: f.ratio || null, error: null })),
+        ...tokens.violations.map((t) => ({ theme: t.theme, what: `${t.dir}: ${t.what}`, fg: t.rendered, bg: 'midnight surface', ratio: t.ratio || null, error: t.lum != null ? `relLum ${t.lum}` : null })),
+      ],
+      // Documented, DATED sub-AA exceptions (CONTRAST_ALLOWLIST) — deferred,
+      // never hidden. Each carries its why + re-review date (DR-0075).
+      exceptions: (warnings || []).map((w) => ({ theme: w.theme, what: w.what, fg: w.fg, bg: w.bg, ratio: w.ratio, why: w.why || '', reReview: w.reReview || '' })),
+      // Un-themeable inline colors in NOT-YET-GUARDED files: real midnight
+      // legibility debt, tracked warn-only until each file is promoted.
+      inlineDebt: { files: inline.warns.length, colors: inlineColorCount },
+      // How wide the measurement actually is (midnight both-direction coverage).
+      tokenCoverage: { bgClasses: tokens.used.bg.size, textClasses: tokens.used.text.size },
       standard: 'WCAG 2.1 AA (4.5:1 normal text)',
+      // The honest boundary of this gate — shown in-app so "Accessibility" is
+      // never read as "full WCAG audit passed."
+      scope: 'Color contrast only, measured from the real theme CSS. Focus visibility, touch-target size, screen-reader labels, and zoom/reflow are NOT machine-measured yet — they are covered by recorded reviews (Reviews tab), not this gate.',
     };
   } catch (e) {
-    return { ok: false, pass: false, themes: [], themeCount: 0, violations: [], error: (e && e.message) || 'contrast scan unavailable' };
+    return { ok: false, pass: false, themes: [], themeCount: 0, violations: [], exceptions: [], inlineDebt: { files: 0, colors: 0 }, tokenCoverage: { bgClasses: 0, textClasses: 0 }, scope: '', error: (e && e.message) || 'contrast scan unavailable' };
   }
 }
 
@@ -150,6 +179,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   console.log(`Loops verified: ${m.summary.loopsVerified}/${m.summary.loopsTotal}`);
   console.log(`Contrast (WCAG 2.1 AA): ${m.contrast.pass ? 'PASS' : 'FAIL'} over themes [${m.contrast.themes.join(', ')}]`);
   if (m.contrast.violations.length) for (const v of m.contrast.violations) console.log(`  - [${v.theme}] ${v.what}: ${v.fg} on ${v.bg} = ${v.ratio || v.error}`);
+  if (m.contrast.exceptions.length) {
+    console.log(`Deferred exceptions (${m.contrast.exceptions.length}, dated — DR-0075):`);
+    for (const w of m.contrast.exceptions) console.log(`  ~ [${w.theme}] ${w.what}: ${w.fg} on ${w.bg} = ${w.ratio} (re-review ${w.reReview})`);
+  }
+  console.log(`Inline-color debt: ${m.contrast.inlineDebt.colors} un-themeable color(s) across ${m.contrast.inlineDebt.files} unguarded file(s)`);
   if (miss.length) {
     console.log(`\nUNVERIFIED (${miss.length}) — a listed check is missing its file:`);
     for (const r of miss) console.log(`  - ${r.id}: ${!r.testExists ? `test ${r.test} MISSING` : ''}${r.scriptExists === false ? ` script ${r.script} MISSING` : ''}`);

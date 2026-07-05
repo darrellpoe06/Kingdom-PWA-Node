@@ -116,16 +116,19 @@ export function parseThemes(src) {
   return themes;
 }
 
-// Allowlist predicate: is this (theme, fgKey, bgKey) a documented exception?
-function isAllowlisted(themeName, theme, fgKey, bgKey) {
-  return CONTRAST_ALLOWLIST.some((a) => {
+// Allowlist lookup: the documented exception for (theme, fgKey, bgKey), or null.
+// Returns the ENTRY (not a boolean) so the warning record can carry the why +
+// re-review date into the manifest and the in-app panel (DR-0075: a deferred
+// non-improvement is a recorded decision WITH a date — never a silent drop).
+function findAllowlistEntry(themeName, theme, fgKey, bgKey) {
+  return CONTRAST_ALLOWLIST.find((a) => {
     if (a.fgKey !== fgKey || a.bgKey !== bgKey) return false;
     if (a.onlyLightThemes) {
       const L = relLum(theme.baseBg);
       if (L == null || L < 0.5) return false; // only excuse it on LIGHT themes
     }
     return true;
-  });
+  }) || null;
 }
 
 // --- the check -------------------------------------------------------------
@@ -157,7 +160,8 @@ export function checkContrastDetailed(themes) {
         if (r == null) { violations.push({ theme: name, what: label, error: 'unparseable color', fg: t[fgKey], bg: t[bgKey] }); continue; }
         if (r >= AA_NORMAL) continue;
         const rec = { theme: name, what: label, fg: t[fgKey], bg: t[bgKey], ratio: +r.toFixed(2), need: AA_NORMAL };
-        if (isAllowlisted(name, t, fgKey, bgKey)) warnings.push(rec);
+        const entry = findAllowlistEntry(name, t, fgKey, bgKey);
+        if (entry) warnings.push({ ...rec, why: entry.why, reReview: entry.reReview });
         else violations.push(rec);
       }
     }
