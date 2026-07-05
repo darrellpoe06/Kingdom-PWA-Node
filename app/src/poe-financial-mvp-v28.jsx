@@ -4730,15 +4730,15 @@ html{scroll-padding-bottom:280px}
         <div className="w-full px-3 sm:px-6 lg:px-8 py-[12px] sm:py-[16px]">
           {/* Round 14 fix — Title row stacks BELOW the controls on small/medium
               screens so the tier-preview dropdown and Subscribe/Feedback buttons
-              can't crowd "Family Operating System." Side-by-side only on large
+              can't crowd "Family Operating Systems and Life Management." Side-by-side only on large
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Family OS <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Financial Control System <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
-              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Family Operating System</h1>
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Family Operating Systems and Life Management</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
