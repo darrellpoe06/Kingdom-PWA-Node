@@ -21,6 +21,10 @@ describe('isFamilyEmail', () => {
     expect(isFamilyEmail('MrsPoe06@gmail.com')).toBe(true);
     expect(isFamilyEmail('christina@tlctherapysolutions.com')).toBe(true);
   });
+  it('recognizes Darrell Jr as family (added 2026-07-05, case-insensitive)', () => {
+    expect(isFamilyEmail('darrellpoejr@gmail.com')).toBe(true);
+    expect(isFamilyEmail('DarrellPoeJr@Gmail.com')).toBe(true);
+  });
   it('rejects an outside parishioner email', () => {
     expect(isFamilyEmail('jaydenbrown95@icloud.com')).toBe(false);
   });
