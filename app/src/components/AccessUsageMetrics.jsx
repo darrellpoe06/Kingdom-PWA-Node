@@ -23,6 +23,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import AppShareQR from './AppShareQR.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -482,6 +483,9 @@ export default function AccessUsageMetrics() {
                     This surface shows the picture; it never changes someone's access on its own. Make access
                     changes yourself so the decision — and the moment — is always a human's.
                   </p>
+                </div>
+                <div className="mt-3">
+                  <AppShareQR />
                 </div>
               </>
             ),
