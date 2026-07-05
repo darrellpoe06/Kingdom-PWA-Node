@@ -181,6 +181,11 @@ export const WHY = {
     principles: ['P3', 'P6'],
     note: 'Every surface is boundary-contained (one crash = one inline card, never a white screen) and every caught error lands here — the failure stays visible, not lost to a console line.',
   },
+  history: {
+    drs: ['DR-0102', 'DR-0091'],
+    principles: ['P4'],
+    note: 'The time dimension: observed user behavior and controlled system behavior on one axis, with the decisions and incidents dated where the numbers moved.',
+  },
 };
 
 // Resolve one metric's why-refs against the real records. Every returned entry

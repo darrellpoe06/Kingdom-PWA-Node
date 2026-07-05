@@ -34,6 +34,19 @@ export async function fetchUsageFlow(days = 30) {
   } catch (err) { console.warn('[usage-events] flow fetch failed:', err); return null; }
 }
 
+// The governor's per-day history (usage_flow_series RPC, migration 0078 — same
+// poe-family gate + aggregate-only trust model as fetchUsageFlow). null when
+// signed out / unreachable / not authorized so the surface degrades honestly.
+export async function fetchUsageSeries(days = 30) {
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (!data || !data.session) return null;
+    const { data: series, error } = await supabase.rpc('usage_flow_series', { days_in: days });
+    if (error) { console.warn('[usage-events] series fetch failed:', error); return null; }
+    return series || null;
+  } catch (err) { console.warn('[usage-events] series fetch failed:', err); return null; }
+}
+
 // The most-used tabs, biggest first, capped. Pure over the RPC's aggregate rows.
 export function topViews(flow, limit = 15) {
   const rows = flow && Array.isArray(flow.views) ? flow.views : [];

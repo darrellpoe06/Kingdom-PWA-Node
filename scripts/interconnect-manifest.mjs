@@ -180,6 +180,18 @@ export const INTERCONNECT_REGISTRY = [
       { file: 'app/src/components/CommandServeCenter.jsx', token: 'QualityThroughput' },
     ],
   },
+  {
+    id: 'eval-history', name: 'Usage series + ops rows + the record → History & Markers', status: 'live',
+    from: 'usage_flow_series (0078, aggregate-only) + ops_commands rows + the DR ledger + LESSONS incidents', to: 'History & Markers evaluation layer (C2S See faculty)',
+    proves: 'The steward reads per-day user behavior (sovereign aggregate) and system behavior (real ops rows) on one timeline, with every dated Decision Record and LESSONS incident pinned to the same axis — the change beside the number it moved.',
+    source: { file: 'app/src/lib/eval-history.js', token: 'buildMarkers' },
+    links: [
+      { file: 'app/src/components/EvalHistory.jsx', token: 'fetchUsageSeries' },
+      { file: 'app/src/components/EvalHistory.jsx', token: 'fetchCommands' },
+      { file: 'app/src/components/EvalHistory.jsx', token: 'buildMarkers' },
+      { file: 'app/src/components/CommandServeCenter.jsx', token: 'EvalHistory' },
+    ],
+  },
 
   // ---- 2026-07-05 live-data-tabs audit — re-wired loops + the 0077 rails ----
   {
