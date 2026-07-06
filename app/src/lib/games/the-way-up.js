@@ -50,11 +50,16 @@ const PATHS = [
   {
     id: 'projects',
     label: 'Out of the Projects',
-    blurb: 'You are born into a place a system forgot — distressed housing, a hollowed-out economy, the odds stacked before you could walk. Yahweh sees the low place, and the low place is where He starts.',
+    blurb: 'You are born into a place a system forgot — distressed housing, a hollowed-out economy, the odds stacked before you could walk. This is a TRUE wilderness: it is the founder’s own. Yahweh sees the low place, and the low place is where He starts.',
     lens: 'He led you into the wilderness to humble you and prove you, to know what was in your heart — not to leave you there.',
     scripture: { ref: 'Deuteronomy 8:2' },
     opening: [
-      { id: 'prj-low', type: 'word', stage: 'The Wilderness', title: 'The Low Place', body: 'The block a map skips over. The odds a report already wrote off. But the God who sees is already here.', lens: 'Yahweh raises the poor from the dust to seat them with princes; the wilderness is a starting line, not a sentence.', scripture: { ref: 'Deuteronomy 8:2' }, effects: { character: 1, faith: 1 } },
+      // Real-data testimony seed (Darrell, 2026-07-06). The founder's documented
+      // starting ground, folded into the opening space (kept to 3 openings so
+      // every wilderness shares one board length — the multiplayer invariant).
+      // Facts are real, named full-real at his direction; the lens is the game's
+      // voice, and Scripture stays verbatim in scripture-kjv.js.
+      { id: 'prj-low', type: 'word', stage: 'The Wilderness', title: 'The Low Place — A True Wilderness', body: 'This one is real. This platform’s founder was born in Valley Homes — the Turnkey public housing at 25th & 11th in Rock Island, later declared "severely distressed" and torn down — and raised on to Horizon Homes in Davenport, inside a Quad Cities that lost 55% of its factory jobs. The block a map skips over, the odds a report already wrote off. But the God who sees was already there — and He still raised him to a table.', lens: 'The wilderness here is not a metaphor — it is a measured place a boy was carried out of. What Yahweh did once, He does again; He raises the poor from the dust to seat them with princes.', scripture: { ref: 'Deuteronomy 8:2' }, effects: { character: 1, faith: 1 } },
       { id: 'prj-word', type: 'word', stage: 'The Wilderness', title: 'A Word Takes Root', body: 'Someone — a grandmother, a church mother, a teacher — plants one Scripture deep enough that it never leaves you.', lens: 'The Word planted in a hard place still finds soil; it is the seed of everything that comes up later.', scripture: { ref: 'Psalm 119:105' }, effects: { word: 2, faith: 1 } },
       { id: 'prj-trial', type: 'card', stage: 'The Wilderness', title: 'The Wilderness Tests', body: 'A card from the wilderness.', deck: 'trial' },
     ],

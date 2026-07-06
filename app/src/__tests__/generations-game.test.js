@@ -87,8 +87,10 @@ describe('Game definition is well-formed', () => {
     expect(w.family).toBeGreaterThan(w.provision);
     expect(w.souls).toBeGreaterThan(w.provision);
   });
-  it('offers four real starting paths, each with a non-empty opening', () => {
-    expect(GENERATIONS.paths).toHaveLength(4);
+  it('offers five real starting paths, each with a non-empty opening', () => {
+    // Four archetype roads + Darrell's Journey (the true-story path, added 2026-07-06).
+    expect(GENERATIONS.paths).toHaveLength(5);
+    expect(GENERATIONS.paths.some((p) => p.id === 'darrell')).toBe(true);
     for (const p of GENERATIONS.paths) {
       expect(p.opening.length).toBeGreaterThan(0);
       expect(p.scripture).toBeTruthy();
