@@ -41,6 +41,9 @@ const REFS = [
   // Restored double; overcomer seated; sound mind; more than conquerors; give
   'Job 42:10', 'Job 42:12', '2 Timothy 1:7', 'Romans 8:37', 'Revelation 3:21',
   'Luke 6:38',
+  // Added 2026-07-06 for Generations "Darrell's Journey" — the Spirit of
+  // adoption (Christina taking K'Shawna as her own; grace made her wholly theirs).
+  'Romans 8:15',
 ];
 
 // Book display-name -> source filename. fetch-full-kjv strips spaces; the only

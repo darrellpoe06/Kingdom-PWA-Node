@@ -241,4 +241,9 @@ export const KJV = {
   "Romans 8:37": "Nay, in all these things we are more than conquerors through him that loved us.",
   "Revelation 3:21": "To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.",
   "Luke 6:38": "Give, and it shall be given unto you; good measure, pressed down, and shaken together, and running over, shall men give into your bosom. For with the same measure that ye mete withal it shall be measured to you again.",
+
+  // --- Appended 2026-07-06 for "The Way Up" game (wilderness -> the table) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
+  // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
+  "Romans 8:15": "For ye have not received the spirit of bondage again to fear; but ye have received the Spirit of adoption, whereby we cry, Abba, Father.",
 };
