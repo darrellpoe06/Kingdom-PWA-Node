@@ -24,6 +24,7 @@ import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import AppShareQR from './AppShareQR.jsx';
+import FamilyInvitePanel from './FamilyInvitePanel.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -459,6 +460,9 @@ export default function AccessUsageMetrics() {
             label: 'Invites & access',
             render: () => (
               <>
+                <div className="mb-3">
+                  <FamilyInvitePanel />
+                </div>
                 {invitesUnavailable ? (
                   <p className={note + ' italic'}>Couldn't load invites right now.</p>
                 ) : (v.invitesPending && v.invitesPending.length > 0) ? (
@@ -479,9 +483,9 @@ export default function AccessUsageMetrics() {
                 )}
                 <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
                   <p className={note}>
-                    <span className="font-semibold text-[#1A1815]">Granting, adjusting, or revoking access is a deliberate steward action.</span>{' '}
-                    This surface shows the picture; it never changes someone's access on its own. Make access
-                    changes yourself so the decision — and the moment — is always a human's.
+                    <span className="font-semibold text-[#1A1815]">Granting access is a deliberate steward action.</span>{' '}
+                    Inviting above creates an invitation — the person becomes a member only when they sign in
+                    and accept. Nothing changes access on its own; the decision, and the moment, are always a human's.
                   </p>
                 </div>
                 <div className="mt-3">
