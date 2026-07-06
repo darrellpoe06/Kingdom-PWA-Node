@@ -19,6 +19,7 @@ import { SectionTitle, TabScroll } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
+import { FamilyPortrait } from './games/GameArt.jsx';
 import { listGames, getGame } from '../lib/games/registry.js';
 import { createGame, computeTotals } from '../lib/games/engine.js';
 import { codeFromSeed, buildBoardUrl } from '../lib/games/room-code.js';
@@ -118,6 +119,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
         <SectionTitle eyebrow="Our games">Games</SectionTitle>
         <TextSizeControl />
       </div>
+      <FamilyPortrait className="mb-3 border border-[#E8E4DC]" />
       <p className={`text-sm leading-relaxed ${T_MUTE} mb-3`}>
         Games that form as they entertain &mdash; built for the whole family, the children most of all
         (train up a child in the way they should go). The first walks an African American life&rsquo;s real
