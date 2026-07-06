@@ -122,6 +122,7 @@ import { uploadSymbol as uploadWatchlistSymbol, removeSymbol as removeWatchlistS
 import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
+import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 // Overview dashboard — statically imported (NOT registry/lazy): overview is the
 // landing view, so it belongs in the main chunk (no loading flash on first paint).
@@ -542,361 +543,12 @@ export const EMPTY_WORLD = {
 };
 
 // =============================================================================
-// DEMO DATA — public-facing showcase loaded via ?demo=family URL param.
-//
-// Posture: this is a stewardship app. The demo speaks for itself by showing
-// what "providing for the people in your care" looks like with the books open.
-// The Big Picture, Books, and Debts tabs render with realistic-but-modest
-// family numbers — paycheck, rent, groceries, a buffer fund growing, a couple
-// of debts being chipped down — so a viewer immediately sees: "I could
-// actually use this for my household."
-//
-// What the demo deliberately shows:
-//   · Joint household (one entity, no business complexity) — accessible to
-//     anyone, not just multi-LLC owners.
-//   · Modest accounts: checking, savings, a single credit card, an auto loan.
-//   · 3 weeks of transactions with realistic descriptions + categories.
-//   · A Buffer Fund 72% funded — the "this is what it means to be ready
-//     before the 1st" story.
-//   · Recurring obligations pre-mapped so projection figures aren't blank.
-//   · Two debts on snowball so the Debts tab tells a payoff story.
-//
-// Demo mode also: disables localStorage saves, suppresses n8n ingest fetches,
-// skips the profile picker, and surfaces a header banner explaining the demo
-// and offering "start your own" CTA.
+// DEMO / SAMPLE persona datasets (the family-unit picker set) + DEMO_PERSONA_META
+// live in ./lib/demo-data.js — extracted from this shell 2026-07-06 to honor the
+// monolith freeze (DR-0078). They are built via buildDemoPersonas(SEED_DATA) just
+// below, where SEED_DATA is in scope (the module takes it as an argument, so there
+// is no back-import and no cycle). SEED_DATA itself is unchanged and stays here.
 // =============================================================================
-const DEMO_DATA_FAMILY_OF_4 = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 2000, bufferCurrent: 1450, releaseLabel: 'Sample · Family of 4' },
-  entities: [
-    { id: 'e-family', name: 'The Reeves Family', type: 'personal', notes: 'Two parents, two kids in school', visibleTo: ['darrell', 'christina', 'family'] }
-  ],
-  accounts: [
-    { id: 'a-checking', entityId: 'e-family', name: 'Main Checking', institution: 'First National', type: 'checking', fragment: '...4521', balance: 3850, isPrimary: true },
-    { id: 'a-savings',  entityId: 'e-family', name: 'Family Savings', institution: 'First National', type: 'savings',  fragment: '...8819', balance: 7200 },
-    { id: 'a-cc-1',     entityId: 'e-family', name: 'Visa Rewards',   institution: 'Capital One',     type: 'credit',   fragment: '...3344', balance: -2150 },
-    { id: 'a-auto',     entityId: 'e-family', name: 'Auto Loan',      institution: 'Credit Union',    type: 'loan',     fragment: '...1290', balance: -8400 },
-  ],
-  transactions: [
-    { id: 'dt-1',  date: '2026-05-01', accountId: 'a-checking', amount: -1800, description: 'May rent',                    category: 'household' },
-    { id: 'dt-2',  date: '2026-05-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-3',  date: '2026-05-03', accountId: 'a-checking', amount: -180,  description: 'Aldi · weekly groceries',     category: 'groceries' },
-    { id: 'dt-4',  date: '2026-05-05', accountId: 'a-cc-1',     amount: -55,   description: 'Shell · gas',                 category: 'fuel' },
-    { id: 'dt-5',  date: '2026-05-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
-    { id: 'dt-6',  date: '2026-05-08', accountId: 'a-checking', amount: -220,  description: 'ComEd + Ameren · utilities',  category: 'utilities' },
-    { id: 'dt-7',  date: '2026-05-10', accountId: 'a-checking', amount: -89,   description: 'Xfinity · internet',          category: 'utilities' },
-    { id: 'dt-8',  date: '2026-05-12', accountId: 'a-cc-1',     amount: -42,   description: 'Date night dinner',           category: 'dining' },
-    { id: 'dt-9',  date: '2026-05-15', accountId: 'a-checking', amount: 1400,  description: 'Spouse · part-time income',   category: 'salary' },
-    { id: 'dt-10', date: '2026-05-15', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-11', date: '2026-05-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
-    { id: 'dt-12', date: '2026-05-16', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
-    { id: 'dt-13', date: '2026-05-17', accountId: 'a-cc-1',     amount: -85,   description: 'Aldi · weekly groceries',     category: 'groceries' },
-    { id: 'dt-14', date: '2026-05-20', accountId: 'a-checking', amount: -500,  description: 'Visa payment',                category: 'debt-payment' },
-    { id: 'dt-15', date: '2026-05-22', accountId: 'a-cc-1',     amount: -130,  description: 'Kids · clothes + supplies',   category: 'household' },
-    { id: 'dt-16', date: '2026-05-25', accountId: 'a-checking', amount: -65,   description: 'Phone bill',                  category: 'utilities' },
-    { id: 'dt-17', date: '2026-05-27', accountId: 'a-savings',  amount: 250,   description: 'Buffer fund · monthly add',   category: 'transfer' },
-    // Upcoming projections (future-dated rows surface in Big Picture / Tx upcoming view)
-    { id: 'dt-18', date: '2026-06-01', accountId: 'a-checking', amount: -1800, description: 'June rent',                   category: 'household' },
-    { id: 'dt-19', date: '2026-06-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-20', date: '2026-06-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
-    { id: 'dt-21', date: '2026-06-10', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
-    { id: 'dt-22', date: '2026-06-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
-  ],
-  contractors1099: [],
-  taxCalendar: [],
-  recurringObligations: [
-    { id: 'ro-rent',      name: 'Rent',                       amount: 1800, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-family', category: 'household',  enabled: true },
-    { id: 'ro-utilities', name: 'Electric + gas',             amount: 220,  frequency: 'monthly', nextDue: '2026-06-08', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-internet',  name: 'Internet',                   amount: 89,   frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-phone',     name: 'Phone',                      amount: 65,   frequency: 'monthly', nextDue: '2026-06-25', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-insurance', name: 'Auto insurance',             amount: 150,  frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-family', category: 'insurance',  enabled: true },
-    { id: 'ro-giving',    name: 'Tithe & charitable giving',  amount: 200,  frequency: 'monthly', nextDue: '2026-06-15', entityId: 'e-family', category: 'charitable', enabled: true },
-  ],
-  incidents: [],
-  scopes: [],
-  events: [],
-  projects: [],
-  subscriptions: [],
-  feedback: [],
-  welcomeDismissed: false,
-  checkoutIntents: [],
-  userTier: 'foundation',
-  inquiries: [],
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-1', who: 'You',    source: 'Primary salary',    expected: 3200, actual: 3200, entityId: 'e-family' },
-      { id: 'sal-2', who: 'Spouse', source: 'Part-time income',  expected: 1400, actual: 1400, entityId: 'e-family' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1800, debtService: 1500, charitableGiving: 200 },
-  debts: [
-    { id: 'd-cc-1',  entityId: 'e-family', name: 'Visa',      balance: 2150, rate: 22.99, minPayment: 75,  payoffType: 'snowball' },
-    { id: 'd-auto',  entityId: 'e-family', name: 'Auto Loan', balance: 8400, rate: 6.50,  minPayment: 340, payoffType: 'snowball' },
-  ],
-  opportunities: [],
-  capexItems: [],
-  watchlist: ['spy.us', 'qqq.us'],
-  prayerRequests: [],
-  skillProfiles: [],
-  // Sanitized 2026-05-28 evening — these top-level fields were leaking
-  // through from SEED_DATA because they weren't overridden. The viewer would
-  // see the family's real church name + address visible in the dim background
-  // behind the welcome modal. Per the SEED-DATA-AS-ASPIRATION foundation,
-  // demo data must contain NO real personal information.
-  church: {
-    name: 'Your home church',
-    nickname: '',
-    site: '',
-    address: '',
-    phone: '',
-    officeHours: '',
-    contactEmail: '',
-    services: [],
-    media: {},
-    links: {},
-    tagline: 'Where your family worships and serves',
-    verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' },
-  },
-  voiceOps: {
-    apiUrl: '',
-    apiToken: '',
-    rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 },
-    numbersConfigured: 0,
-    budgetAlertMonthly: 30,
-  },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · SEPARATED CO-PARENTS
-// Two households, one shared child. Coordinating expenses + child support
-// without conflict, while preserving privacy from each other. The deep
-// scenario: "We don't agree on much, but we both love the kid; can this
-// system give us a fair shared truth?" Yes. Per-household entities, the
-// child's costs roll up across both. Anxiety-clarity: every shared expense
-// has an agreed-upon split, a due date, and a paid/unpaid flag.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_SEPARATED = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 1500, bufferCurrent: 850, releaseLabel: 'Sample · Separated co-parents' },
-  entities: [
-    { id: 'e-mom',    name: 'Maya (mom)',         type: 'personal', notes: 'Custodial parent · 60% time',       visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-dad',    name: 'Jordan (dad)',       type: 'personal', notes: 'Non-custodial parent · 40% time',   visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-shared', name: 'Shared · for Avery', type: 'personal', notes: 'Child expenses split per agreement', visibleTo: ['darrell', 'christina', 'family'] },
-  ],
-  accounts: [
-    { id: 'a-mom-chk',   entityId: 'e-mom',    name: 'Mom · Checking',   institution: 'Chase',  type: 'checking', fragment: '...2201', balance: 2150, isPrimary: true },
-    { id: 'a-mom-sav',   entityId: 'e-mom',    name: 'Mom · Savings',    institution: 'Chase',  type: 'savings',  fragment: '...8870', balance: 3400 },
-    { id: 'a-dad-chk',   entityId: 'e-dad',    name: 'Dad · Checking',   institution: 'BofA',   type: 'checking', fragment: '...9912', balance: 1820, isPrimary: true },
-    { id: 'a-dad-cc',    entityId: 'e-dad',    name: 'Dad · Credit',     institution: 'Capital One', type: 'credit', fragment: '...4490', balance: -1100 },
-    { id: 'a-shared',    entityId: 'e-shared', name: 'Shared · Avery',   institution: 'Ally',   type: 'savings',  fragment: '...5031', balance: 480, notes: 'For agreed split expenses' },
-  ],
-  transactions: [
-    { id: 'st-1',  date: '2026-05-01', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
-    { id: 'st-2',  date: '2026-05-01', accountId: 'a-mom-chk', amount: -1450, description: 'Rent (mom\'s household)',                category: 'household' },
-    { id: 'st-3',  date: '2026-05-03', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared',             category: 'transfer' },
-    { id: 'st-4',  date: '2026-05-04', accountId: 'a-shared',  amount: -185, description: 'Avery soccer fees (split agreement)',     category: 'household' },
-    { id: 'st-5',  date: '2026-05-05', accountId: 'a-mom-chk', amount: -135, description: 'Aldi groceries',                          category: 'groceries' },
-    { id: 'st-6',  date: '2026-05-06', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
-    { id: 'st-7',  date: '2026-05-06', accountId: 'a-dad-chk', amount: -1100, description: 'Apt rent (dad\'s household)',            category: 'household' },
-    { id: 'st-8',  date: '2026-05-08', accountId: 'a-shared',  amount: -240, description: 'Avery doctor · co-pay (split 50/50)',     category: 'medical' },
-    { id: 'st-9',  date: '2026-05-10', accountId: 'a-dad-cc',  amount: -45, description: 'Dad · gas',                                category: 'fuel' },
-    { id: 'st-10', date: '2026-05-12', accountId: 'a-mom-chk', amount: -210, description: 'Utilities (mom)',                         category: 'utilities' },
-    { id: 'st-11', date: '2026-05-15', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
-    { id: 'st-12', date: '2026-05-15', accountId: 'a-shared',  amount: -120, description: 'Avery school clothes (split)',            category: 'household' },
-    { id: 'st-13', date: '2026-05-18', accountId: 'a-dad-chk', amount: -150, description: 'Dad · auto insurance',                    category: 'insurance' },
-    { id: 'st-14', date: '2026-05-20', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
-    { id: 'st-15', date: '2026-05-22', accountId: 'a-shared',  amount: 200, description: 'Dad → shared · extra agreed contribution', category: 'transfer' },
-    { id: 'st-16', date: '2026-05-25', accountId: 'a-mom-chk', amount: -190, description: 'Aldi groceries',                          category: 'groceries' },
-    { id: 'st-17', date: '2026-06-01', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared (upcoming)',  category: 'transfer' },
-    { id: 'st-18', date: '2026-06-04', accountId: 'a-shared',  amount: -300, description: 'Avery summer camp deposit',               category: 'household' },
-  ],
-  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-mom-rent',     name: 'Rent (mom)',                   amount: 1450, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-mom',    category: 'household',  enabled: true },
-    { id: 'ro-dad-rent',     name: 'Apt rent (dad)',               amount: 1100, frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-dad',    category: 'household',  enabled: true },
-    { id: 'ro-child-support',name: 'Child support · dad → shared', amount: 450,  frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-shared', category: 'transfer',   enabled: true },
-    { id: 'ro-avery-care',   name: 'Avery · childcare + activities', amount: 380, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-shared', category: 'household',  enabled: true },
-  ],
-  incidents: [],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-mom', who: 'Maya',   source: 'Primary salary',  expected: 2400, actual: 2400, entityId: 'e-mom' },
-      { id: 'sal-dad', who: 'Jordan', source: 'Primary salary',  expected: 1900, actual: 1900, entityId: 'e-dad' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 2925, debtService: 0, charitableGiving: 0 },
-  debts: [
-    { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, rate: 21.99, minPayment: 40, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · SOLO PROFESSIONAL
-// Therapist / lawyer / consultant working alone. Personal income mixed with
-// business revenue, but kept clearly separate. The audience: "I run my own
-// practice. Can this system show me both sides without me drowning in
-// QuickBooks?" Personal household + one professional business entity. The
-// business has a 1099 contractor income flow (representative of a junior
-// associate, a clinical supervisee, a paralegal), recurring CEU/license fees,
-// and clean monthly distributions to the personal household.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_PROFESSIONAL = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 3200, releaseLabel: 'Sample · Solo professional' },
-  entities: [
-    { id: 'e-pers',     name: 'Sam (personal)',     type: 'personal', notes: 'Solo household',                           visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-practice', name: 'Sam · Practice LLC', type: 'business', notes: 'Therapist / lawyer / consultant practice', visibleTo: ['darrell', 'christina'] },
-  ],
-  accounts: [
-    { id: 'a-pers-chk',  entityId: 'e-pers',     name: 'Personal Checking',  institution: 'Chase',         type: 'checking', fragment: '...7711', balance: 4200, isPrimary: true },
-    { id: 'a-pers-sav',  entityId: 'e-pers',     name: 'Personal Savings',   institution: 'Chase',         type: 'savings',  fragment: '...3320', balance: 18500 },
-    { id: 'a-pract-op',  entityId: 'e-practice', name: 'Practice Operating', institution: 'Local CU',      type: 'checking', fragment: '...4490', balance: 9300, isPrimary: true },
-    { id: 'a-pract-tax', entityId: 'e-practice', name: 'Practice · Tax Set-aside', institution: 'Local CU', type: 'savings', fragment: '...4495', balance: 11200 },
-    { id: 'a-pers-cc',   entityId: 'e-pers',     name: 'Personal Visa',      institution: 'Capital One',   type: 'credit',   fragment: '...8821', balance: -1850 },
-  ],
-  transactions: [
-    { id: 'pt-1',  date: '2026-05-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family',           category: 'business' },
-    { id: 'pt-2',  date: '2026-05-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay · junior associate',       category: 'professional' },
-    { id: 'pt-3',  date: '2026-05-03', accountId: 'a-pract-op',  amount: -185, description: 'Office rent · suite share',                category: 'professional' },
-    { id: 'pt-4',  date: '2026-05-05', accountId: 'a-pract-op',  amount: -120, description: 'Malpractice insurance',                    category: 'insurance' },
-    { id: 'pt-5',  date: '2026-05-06', accountId: 'a-pract-tax', amount: 1400, description: 'Quarterly tax set-aside',                  category: 'transfer' },
-    { id: 'pt-6',  date: '2026-05-08', accountId: 'a-pract-op',  amount: 3800, description: 'Client retainer · Lopez',                  category: 'business' },
-    { id: 'pt-7',  date: '2026-05-10', accountId: 'a-pract-op',  amount: -3500, description: 'Owner draw → personal checking',          category: 'transfer' },
-    { id: 'pt-8',  date: '2026-05-10', accountId: 'a-pers-chk',  amount: 3500, description: 'Owner draw from practice',                 category: 'salary' },
-    { id: 'pt-9',  date: '2026-05-12', accountId: 'a-pers-chk',  amount: -1650, description: 'Rent (personal)',                         category: 'household' },
-    { id: 'pt-10', date: '2026-05-13', accountId: 'a-pers-chk',  amount: -190, description: 'Whole Foods groceries',                   category: 'groceries' },
-    { id: 'pt-11', date: '2026-05-15', accountId: 'a-pers-cc',   amount: -55, description: 'Gas + coffee',                              category: 'fuel' },
-    { id: 'pt-12', date: '2026-05-16', accountId: 'a-pract-op',  amount: 2400, description: 'Client retainer · Beth M.',                category: 'business' },
-    { id: 'pt-13', date: '2026-05-18', accountId: 'a-pract-op',  amount: -240, description: 'CEU course · annual',                      category: 'professional' },
-    { id: 'pt-14', date: '2026-05-20', accountId: 'a-pers-chk',  amount: -400, description: 'Visa payment',                             category: 'debt-payment' },
-    { id: 'pt-15', date: '2026-05-22', accountId: 'a-pract-op',  amount: -350, description: 'Software · practice management',          category: 'subscription' },
-    { id: 'pt-16', date: '2026-05-25', accountId: 'a-pers-chk',  amount: -200, description: 'Tithe · home church',                      category: 'charitable' },
-    { id: 'pt-17', date: '2026-05-28', accountId: 'a-pers-sav',  amount: 600, description: 'Personal savings · monthly',                category: 'transfer' },
-    { id: 'pt-18', date: '2026-06-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family (upcoming)', category: 'business' },
-    { id: 'pt-19', date: '2026-06-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay (upcoming)',               category: 'professional' },
-  ],
-  contractors1099: [
-    { id: 'pk1', direction: 'outbound', entityId: 'e-practice', name: 'Jordan (junior associate)', role: 'Contracted hours @ 25/hr', ytdPaid: 11000, monthly: 2200, status: 'active' },
-  ],
-  taxCalendar: [
-    { id: 'tx-q2', month: 6, day: 15, name: 'Q2 estimated tax', desc: 'Self-employment quarterly estimated tax', entityIds: ['e-practice'], applies: true },
-  ],
-  scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-office',     name: 'Office suite share',     amount: 185,  frequency: 'monthly', nextDue: '2026-06-03', entityId: 'e-practice', category: 'professional', enabled: true },
-    { id: 'ro-malpractice',name: 'Malpractice insurance',  amount: 120,  frequency: 'monthly', nextDue: '2026-06-05', entityId: 'e-practice', category: 'insurance',    enabled: true },
-    { id: 'ro-software',   name: 'Practice mgmt software', amount: 350,  frequency: 'monthly', nextDue: '2026-06-22', entityId: 'e-practice', category: 'subscription', enabled: true },
-    { id: 'ro-rent',       name: 'Rent (personal)',        amount: 1650, frequency: 'monthly', nextDue: '2026-06-12', entityId: 'e-pers',     category: 'household',    enabled: true },
-    { id: 'ro-ceu',        name: 'CEUs · annual budget',   amount: 1200, frequency: 'annual',  nextDue: '2026-11-01', entityId: 'e-practice', category: 'professional', enabled: true },
-    { id: 'ro-license',    name: 'License renewal',        amount: 350,  frequency: 'biennial',nextDue: '2027-08-15', entityId: 'e-practice', category: 'professional', enabled: true },
-  ],
-  incidents: [],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-pers', who: 'Sam',      source: 'Owner draw (from practice)', expected: 3500, actual: 3500, entityId: 'e-pers' },
-      { id: 'sal-prac', who: 'Practice', source: 'Client retainers',           expected: 10000, actual: 10400, entityId: 'e-practice' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1650, debtService: 400, charitableGiving: 200 },
-  debts: [
-    { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, rate: 19.99, minPayment: 60, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us', 'vt.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · LANDLORD (3 doors)
-// Small landlord with 3 rental units + a personal household. The deep
-// scenario: "I want to know per-property cash flow without spreadsheets, and
-// I want to see when a tenant goes late without finding out from a missed
-// deposit." Per-property accounts are stubbed; rental income lives in
-// inflows.rentals with a status field so the late one shows up red.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_LANDLORD = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 4000, bufferCurrent: 2300, releaseLabel: 'Sample · Landlord (3 doors)' },
-  entities: [
-    { id: 'e-pers',  name: 'The Reynolds household', type: 'personal', notes: 'Joint household',  visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-props', name: 'Reynolds Properties LLC', type: 'business', notes: '3 rental doors', visibleTo: ['darrell'] },
-  ],
-  accounts: [
-    { id: 'a-pers-chk',  entityId: 'e-pers',  name: 'Personal Checking',     institution: 'Chase',   type: 'checking', fragment: '...4421', balance: 3100, isPrimary: true },
-    { id: 'a-pers-sav',  entityId: 'e-pers',  name: 'Personal Savings',      institution: 'Chase',   type: 'savings',  fragment: '...9990', balance: 6800 },
-    { id: 'a-props-op',  entityId: 'e-props', name: 'Properties Operating',  institution: 'Local CU', type: 'checking', fragment: '...3318', balance: 8400, isPrimary: true },
-    { id: 'a-props-res', entityId: 'e-props', name: 'Properties · Capex Reserve', institution: 'Local CU', type: 'savings', fragment: '...3320', balance: 14200 },
-    { id: 'a-pers-cc',   entityId: 'e-pers',  name: 'Visa',                  institution: 'Capital One', type: 'credit', fragment: '...7711', balance: -2050 },
-  ],
-  transactions: [
-    { id: 'lt-1',  date: '2026-05-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (Hill St)',         category: 'rental-income' },
-    { id: 'lt-2',  date: '2026-05-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (Park Ave)',        category: 'rental-income' },
-    { id: 'lt-3',  date: '2026-05-02', accountId: 'a-props-op', amount: -680, description: 'Mortgage · Hill St',              category: 'debt-payment' },
-    { id: 'lt-4',  date: '2026-05-02', accountId: 'a-props-op', amount: -540, description: 'Mortgage · Park Ave',             category: 'debt-payment' },
-    { id: 'lt-5',  date: '2026-05-05', accountId: 'a-props-op', amount: -185, description: 'Plumber · Unit B sink leak',      category: 'household' },
-    { id: 'lt-6',  date: '2026-05-06', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
-    { id: 'lt-7',  date: '2026-05-07', accountId: 'a-props-op', amount: -120, description: 'Property insurance · Hill St',    category: 'insurance' },
-    { id: 'lt-8',  date: '2026-05-10', accountId: 'a-pers-chk', amount: -1700, description: 'Personal mortgage',              category: 'household' },
-    { id: 'lt-9',  date: '2026-05-12', accountId: 'a-pers-chk', amount: -210, description: 'Aldi groceries',                  category: 'groceries' },
-    { id: 'lt-10', date: '2026-05-15', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
-    { id: 'lt-11', date: '2026-05-15', accountId: 'a-pers-chk', amount: -250, description: 'Tithe',                           category: 'charitable' },
-    { id: 'lt-12', date: '2026-05-16', accountId: 'a-props-op', amount: -380, description: 'Property mgmt software annual',   category: 'subscription' },
-    { id: 'lt-13', date: '2026-05-18', accountId: 'a-props-op', amount: -560, description: 'Mortgage · Cedar (3rd unit)',     category: 'debt-payment' },
-    { id: 'lt-14', date: '2026-05-22', accountId: 'a-props-op', amount: -55, description: 'Tenant background check',          category: 'professional' },
-    { id: 'lt-15', date: '2026-05-25', accountId: 'a-props-res', amount: 500, description: 'Capex reserve monthly contribution', category: 'transfer' },
-    { id: 'lt-16', date: '2026-06-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (upcoming)',        category: 'rental-income' },
-    { id: 'lt-17', date: '2026-06-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (upcoming)',        category: 'rental-income' },
-    { id: 'lt-18', date: '2026-06-01', accountId: 'a-props-op', amount: 0,    description: 'Rent · Unit C (Cedar) — UNPAID',  category: 'rental-income' },
-  ],
-  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-mort-1', name: 'Mortgage · Hill St',    amount: 680,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-2', name: 'Mortgage · Park Ave',   amount: 540,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-3', name: 'Mortgage · Cedar',      amount: 560,  frequency: 'monthly', nextDue: '2026-06-18', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-h', name: 'Personal mortgage',     amount: 1700, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-pers',  category: 'household',    enabled: true },
-    { id: 'ro-ins',    name: 'Property insurance',    amount: 240,  frequency: 'monthly', nextDue: '2026-06-07', entityId: 'e-props', category: 'insurance',    enabled: true },
-  ],
-  incidents: [
-    { id: 'lin-late', date: '2026-06-01', amount: 950, category: 'tenant', entityId: 'e-props', description: 'Unit C (Cedar) tenant has not paid June rent', urgency: 'incident', status: 'open', dueDate: '2026-06-05' },
-  ],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-day', who: 'Owner', source: 'Day-job salary', expected: 5800, actual: 5800, entityId: 'e-pers' },
-    ],
-    rentals: [
-      { id: 'rl-a', name: 'Unit A · Hill St',   address: '210 Hill St',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-props', mortgage: { balance: 95000, rate: 6.5, monthlyPI: 680, escrow: 175, estimated: true } },
-      { id: 'rl-b', name: 'Unit B · Park Ave',  address: '88 Park Ave',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1050, actual: 1050, status: 'paying', entityId: 'e-props', mortgage: { balance: 70000, rate: 6.5, monthlyPI: 540, escrow: 140, estimated: true } },
-      { id: 'rl-c', name: 'Unit C · Cedar',     address: '1402 Cedar',    city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 950,  actual: 0,    status: 'late',   entityId: 'e-props', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 560, escrow: 150, estimated: true } },
-    ],
-  },
-  outflows: { rentalMortgages: 1780, propertyUtilities: 200, household: 1700, debtService: 1780, charitableGiving: 250 },
-  debts: [
-    { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, rate: 21.99, minPayment: 65, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us', 'iyr.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
 
 // SCOPE_TEMPLATES moved to ./components/Projects.jsx (r41).
 // =============================================================================
@@ -1185,20 +837,20 @@ function getDemoPersona() {
     // who wants the audience-cut menu.
     if (!p) return 'family-of-4';
     if (p === 'picker') return 'picker';
-    return ['family-of-4', 'separated', 'professional', 'landlord'].includes(p) ? p
+    return ['family-of-1', 'family-of-2', 'family-of-3', 'family-of-4', 'family-of-5', 'family-of-7', 'separated', 'professional', 'landlord'].includes(p) ? p
       // Shipped-soon personas land on the picker so the URL stays honest.
-      : ['family-of-1', 'family-of-2', 'family-of-3', 'family-of-5', 'family-of-7', 'community', 'church', 'lawyer', 'therapist'].includes(p) ? 'picker'
+      : ['community', 'church', 'lawyer', 'therapist'].includes(p) ? 'picker'
       // Legacy alias for the first-cut family demo.
       : p === 'family' ? 'family-of-4'
       : 'picker';
   } catch (e) { return null; }
 }
-const DEMO_DATA_BY_PERSONA = {
-  'family-of-4': DEMO_DATA_FAMILY_OF_4,
-  'separated':   DEMO_DATA_SEPARATED,
-  'professional':DEMO_DATA_PROFESSIONAL,
-  'landlord':    DEMO_DATA_LANDLORD,
-};
+// Build the demo/sample persona map from the extracted module, passing the
+// in-scope SEED_DATA so the module needs no back-import (no cycle).
+export const DEMO_DATA_BY_PERSONA = buildDemoPersonas(SEED_DATA);
+// Named local kept so the boot fallback + reset paths (and the reviewer-mode
+// source-pin test) read exactly as before the extraction.
+const DEMO_DATA_FAMILY_OF_4 = DEMO_DATA_BY_PERSONA['family-of-4'];
 
 // 2026-06-11 — every record id that exists ONLY in the demo datasets (ids the
 // demo shares with SEED_DATA are excluded so real seeded records are never
@@ -1341,44 +993,6 @@ export const stripSeedScaffolding = (d) => {
 //   audience — who this is exactly
 //   pitch    — what changes in their week when they use it
 //   vision   — honest about what's working today vs in build
-const DEMO_PERSONA_META = {
-  'family-of-4': {
-    free: true,
-    label: 'For your family',
-    headline: 'Know what\'s covered before the 1st — without guessing.',
-    summary: 'Two parents, two kids in school.',
-    audience: 'Married couples with school-age children.',
-    pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt. On every screen the system tells you what to do, when, why, and how. The 1st stops being a scramble.',
-    vision: 'Multi-device per-profile views shipped — Naomi, Adam, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
-  },
-  'separated': {
-    free: true,
-    label: 'For co-parents apart',
-    headline: 'A fair shared truth so money stops being the fight.',
-    summary: 'Two households, one shared child.',
-    audience: 'Co-parents who don\'t live together but co-fund the kids.',
-    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. He didn\'t show up for the exchange? The timestamp is in the log. She says you missed a payment? The receipt\'s right there. You don\'t have to argue about it in front of the kids — the system shows the truth.',
-    vision: 'Today this is two profiles on one device. Cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
-  },
-  'professional': {
-    free: false,
-    label: 'For solo practice owners',
-    headline: 'Practice clean, personal clean, tax set-aside running.',
-    summary: 'Therapist, lawyer, or consultant running their own practice.',
-    audience: 'Solo practitioners juggling personal income with practice revenue.',
-    pitch: 'No more "which money is whose." Owner draw clean. Quarterly tax set aside. CEUs and license renewals on the calendar so they never sneak up. Your books match what the IRS thinks they should be.',
-    vision: 'Today this is the financial backbone. Practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
-  },
-  'landlord': {
-    free: false,
-    label: 'For landlords',
-    headline: 'Know on the 1st — not at month-end when a deposit comes up short.',
-    summary: 'Small landlord juggling rentals + a personal household.',
-    audience: 'Owner-operators with 1-10 rental units.',
-    pitch: 'Per-property cash flow without spreadsheets. Late tenants flagged on the 1st. Mortgage timing protected. Capex reserve auto-funded. The portfolio runs itself; you decide.',
-    vision: 'Today the rental tracking is here. Tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
-  },
-};
 
 // Hostname gate — public domains (poetech.us, *.vercel.app, any host that's
 // not localhost / Tailscale-internal) must NEVER unlock Imported PII surfaces
@@ -4308,12 +3922,7 @@ html{scroll-padding-bottom:280px}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {[
                 { key: 'young-adults-launching',     free: true,  label: 'For young adults launching',        headline: 'First apartment, first paycheck, first 401(k).',          summary: "First apartment, first paycheck, first 401(k). When mom and dad help with first month's rent, the gift-or-loan question gets settled in writing. If support changes, it's logged — not 'I thought you said.'" },
-                { key: 'family-of-1',                free: true,  label: 'For singles starting out',          headline: 'One income, one budget, no guessing.',                    summary: "One household, one income, simple books. Every subscription and 'where did it go' is on the screen, not in your head." },
                 { key: 'engaged-pre-marriage',       free: true,  label: 'For engaged couples · before marriage', headline: 'Build the financial system before the vows.',          summary: "The conversation about money before the vows — clear, not awkward. Joint vs. separate logged in writing. If one stops contributing, the data shows it before resentment does. Two budgets becoming one — data as the prenup-conversation starter." },
-                { key: 'family-of-2',                free: true,  label: 'For couples (no kids yet)',         headline: 'Two incomes pulling in one direction.',                   summary: "Two incomes, shared books, joint goals. Who-paid-what logged, so 'I covered more' is a number, not a feeling." },
-                { key: 'family-of-3',                free: true,  label: 'For new parents',                   headline: 'First child without losing track of the rest.',           summary: 'Childcare costs, salary changes, fresh discipline. The new line items are tracked the day they start.' },
-                { key: 'family-of-5',                free: true,  label: 'For families of 5+',                headline: 'Three kids, busier rhythm — same clarity.',               summary: "More mouths, more dates, same four questions. Every kid's costs visible, nothing slips." },
-                { key: 'family-of-7',                free: true,  label: 'For large households',              headline: 'Big family, big load, lifted by the system.',             summary: 'Five+ kids, complex schedules, scaled views. The load is real; the record keeps it honest.' },
                 { key: 'empty-nesters',              free: true,  label: 'For empty nesters',                 headline: 'Last kid out, attention to retirement.',                  summary: "When grown kids ask for help, you have data, not just generosity. Here's what we gave over the years, here's the picture. Retirement runway, adult-children support logged, legacy planning — all data-driven." },
                 { key: 'widowed-or-divorced-restart',free: true,  label: 'For widowed or divorced restarting',headline: 'Rebuilding the financial picture after a life change.',    summary: "You don't rebuild from memory after a loss. The system already holds the history — every shared expense, every transfer, every receipt. Estate and benefits paperwork starts with data, not 'where did I put that.'" },
                 { key: 'community',   free: false, label: 'For community + school orgs',     headline: 'Kitchen-table discipline at the board table.',                 summary: 'Co-op, ministry, small-org books. Every shared cost agreed and recorded, so the board votes on numbers, not memory.' },
