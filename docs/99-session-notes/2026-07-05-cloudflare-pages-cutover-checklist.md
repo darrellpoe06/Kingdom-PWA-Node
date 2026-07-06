@@ -1,5 +1,22 @@
 # Cloudflare Pages cutover — activation checklist (security-first)
 
+> **STATUS 2026-07-06 — CUTOVER IS LIVE. Cloudflare Pages is now the sole
+> production deploy for poetech.us; VERCEL IS REDUNDANT and should be retired.**
+> Evidence (DR-0076): `deploy-cloudflare-pages.yml` is gated on
+> `CF_PAGES_ENABLED == 'true'` and has run to `success` repeatedly (runs #96–#98+),
+> each publishing `main`'s tip; poetech.us served the freshly-dispatched build
+> after a CF deploy (the app's own update prompt appeared). So **we do NOT need
+> Vercel anymore** — it is the old path, still Git-connected, hitting its
+> 100-builds/day cap and posting scary red "Deployment rate limited" statuses on
+> PRs (non-required — it does not block auto-merge; other PRs merged straight
+> past it). Those red X's are pure noise now. **Retire it (Darrell's account
+> action, step 4 below): Vercel → Project → Settings → Git → turn OFF production
+> deploys (or remove the `poetech.us` domain from the Vercel project) so the two
+> never fight over the domain.** Nothing in the repo forces Vercel; the connection
+> lives only in the Vercel dashboard, so this is a dashboard toggle, not a code
+> change. (The separate GITHUB_TOKEN deploy-gap that froze the site on 2026-07-06
+> is fixed independently — see LESSONS P25/P26 + DR-0107.)
+
 **Date:** 2026-07-05
 **Why now:** Vercel's free tier caps at 100 builds/day. Tonight's merges (through
 `a012148`+) all hit the cap — production froze on build `55baab5`, so "refresh
