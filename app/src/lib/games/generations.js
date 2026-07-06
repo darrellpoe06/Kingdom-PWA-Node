@@ -320,6 +320,18 @@ const LIFE_DECK = [
       { label: 'Let the peak lift your heart — “I built this”', body: 'You believe your own hype. The higher the puffed-up heart, the harder the ground.', effects: { provision: 1, faith: -2, peace: -2 } },
       { label: 'Stay low and grateful; He lifts in due time', body: 'You humble yourself on purpose before life does it for you, and give the height back to God.', lens: 'Those that walk in pride He is able to abase; humble yourself, and He shall lift you up in due time — He makes us win.', scripture: { ref: 'Daniel 4:37' }, effects: { faith: 3, peace: 2, wisdom: 1, family: 1 }, redemption: true },
     ] },
+
+  // --- The Table Set Before You: seated, meek, and honored (games are lessons) --
+  // From "The Table & the Footstool" series (lib/table-lessons-class.js): Yahweh
+  // sets a table in the presence of your enemies and makes them your footstool;
+  // the meek inherit. You don't grab the seat or repay the enemy — He seats you.
+  { title: 'The Table Set Before You', body: 'An enemy is right in front of you — someone who wronged you, a pressure that opposes you. And Yahweh is setting a table for you, right there in their presence. Do you grab your own seat, or let Him seat you?',
+    lens: 'Thou preparest a table before me in the presence of mine enemies. The meek inherit — you don’t have to seize the seat or repay the wrong; He honors you in front of what opposed you, and makes your enemies a footstool.',
+    scripture: { ref: 'Psalm 23:5' },
+    choices: [
+      { label: 'Grab the seat; repay the enemy yourself', body: 'You force your own place and settle the score. It costs your peace and your meekness.', effects: { provision: 1, peace: -2, faith: -1 } },
+      { label: 'Let Yahweh seat you; stay meek', body: 'You receive the table He sets and let Him make the footstool, in His time.', lens: 'Blessed are the meek: for they shall inherit the earth — you sit, He subdues; the honor and the victory are His.', scripture: { ref: 'Matthew 5:5' }, effects: { faith: 2, peace: 2, family: 1, souls: 1 }, redemption: true },
+    ] },
 ];
 
 // ---- the legacy reducer (the finish: faithfulness + what is passed on) -------
