@@ -1,6 +1,7 @@
 // Inbound · 📞 Voice Ops UI — extracted from monolith (r33) per
 // MODULAR-EXTENSIBILITY.md. TLC isolation enforced upstream at the Worker.
 import React, { useState, useEffect } from 'react';
+import { suggestTriage } from '../lib/inbound-triage.js';
 
 // --- Pure helpers (exported for tests) ---
 
@@ -248,6 +249,9 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
               {rows.map((r, i) => {
                 const isOpen = convertOpen === r.id;
                 const created = r.created_at ? new Date(r.created_at).toLocaleString() : '';
+                // Deterministic triage assist (REV-0007): a SUGGESTION a human
+                // still confirms — intent, urgency, a unit hint, likely target.
+                const sug = suggestTriage({ line: r.line, transcript: r.transcript });
                 return (
                   <div key={r.id} className={`p-4 ${i < rows.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
                     <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
@@ -264,6 +268,18 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
                     ) : (
                       <p className="text-xs text-[#5A5751] italic my-2" style={{ fontFamily: '"Fraunces", serif' }}>No transcript available (audio only).</p>
                     )}
+                    {r.transcript && (
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2 text-xs uppercase tracking-wider" aria-label="Suggested triage">
+                        {sug.urgent && (
+                          <span className="px-1.5 py-0.5 bg-[#B85838] text-white font-semibold">Urgent</span>
+                        )}
+                        <span className="px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751]">{sug.intent}</span>
+                        {sug.unitHint && (
+                          <span className="px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751]">{sug.unitHint}? · confirm</span>
+                        )}
+                        <span className="text-[#5A5751] normal-case tracking-normal italic" style={{ fontFamily: '"Fraunces", serif' }}>Suggests: convert to {sug.suggestedConvertAs}</span>
+                      </div>
+                    )}
                     {r.voicemail_url && (
                       <audio controls preload="none" src={r.voicemail_url} className="w-full mt-1" />
                     )}
@@ -273,7 +289,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
                     {r.status !== 'handled' && (
                       <div className="mt-3">
                         {!isOpen ? (
-                          <button type="button" onClick={() => { setConvertOpen(r.id); setConvertAs(r.line === 'poe-properties' ? 'incident' : 'inquiry'); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Convert this voicemail →</button>
+                          <button type="button" onClick={() => { setConvertOpen(r.id); setConvertAs(sug.suggestedConvertAs); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Convert this voicemail →</button>
                         ) : (
                           <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2">
                             <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Convert into what?</div>
