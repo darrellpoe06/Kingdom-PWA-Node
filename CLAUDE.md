@@ -423,4 +423,19 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here). It complements DR-0103 (the streamlined auto-merge loop): the lane lands the build on green; this is the family's human look at the landed build as a user meets it.
 
+## Review Our Ways — Mandatory (added 2026-07-06, declared by Darrell; DR-0108)
+
+**Binding rule, declared by Darrell 2026-07-06:**
+
+> "review our ways I have connectbot... Make that a documented mandatory thing reviewing our ways..."
+
+**We review our WAYS — how we work — as a standing, mandatory, documented practice. Not only the product: the methods, the tools, the access paths, and the assumptions.** This is Layer 0 because it is the discipline that catches the agent scoping the world to its own limits.
+
+- **The trigger (the exact miss to never repeat).** The agent said a NAS action "needs your hand / I have no SSH" and stopped — having scoped the solution to **its own** access. Darrell has **ConnectBot** (SSH from his phone): the path existed the whole time on the principal's side. **The agent must account for the whole team's capabilities — Darrell's tools, the Foundation's, the NAS's — not only what the agent itself can reach.** A stated "we can't / it must be by hand" is an **unverified premise to challenge** (VERIFICATION-DOCTRINE, SURFACE-PREMISE), never a place to stop.
+- **Known capability, now recorded:** Darrell can SSH into the NAS from his phone via **ConnectBot**. So NAS-side runbooks ARE executable by him — the agent hands the exact paste-ready SSH steps (self-contained, ASCII-only, see the PowerShell/commands rule) instead of declaring the NAS unreachable. The agent's own lack of a route (verified: no ssh client, LAN + Funnel blocked from the cloud) bounds the AGENT, not the team.
+- **Mandatory + documented, run without being re-asked.** A **ways-review** is a first-class recurring pass, recorded like any other review: an `orchestration`-type **REV record** in `docs/reviews/REVIEWS.md` (the "how the work itself ran" type, per DR-0102) on the standing cadence, and a **new DR** whenever a way actually changes. The agent surfaces it as a named step (the way it surfaces the reality-trace, the tests, and the live-production review) — silence is not a skip.
+- **What a ways-review asks, every time:** (1) *What tool / access / capability does the TEAM have that I am not using?* (2) *What "can't / must-be-by-hand" am I asserting without verifying?* (3) *What friction repeated — what step keeps landing on Darrell that a method could absorb?* (4) *Where did I scope to my own limits instead of the team's?* (5) *What is the more streamlined way?* Findings become an improvement shipped, or a why + `re-review:` date (DR-0075) — never a silent drop.
+
+Recorded for the ledger as **DR-0108**; grounds **WAYS-REVIEW**. Pairs with GOVERN-EXECUTE-ADVISE (the agent advises with the team's full toolset in view), VERIFICATION-DOCTRINE / SURFACE-PREMISE (an asserted constraint is verified, not assumed), DR-0075 (perpetual improvement — the ways improve too), DR-0102 (the work reviews itself — this is the how-we-work half), and Drive-Don't-Delegate (drive with the principal's tools, ask only for the smallest piece genuinely his).
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
