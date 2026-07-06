@@ -67,6 +67,11 @@ import {
   buildPrideLessonsSchedule, prideLessonsProgressSummary, exportPrideLessonsCurriculumMarkdown,
 } from './lib/pride-lessons-class.js';
 import {
+  TABLE_LESSONS_META, TABLE_LESSONS_SESSION_FLOW,
+  TABLE_LESSONS_INTEREST_TAG, TABLE_LESSONS_HELPER_TAG, TABLE_LESSONS_TUTOR_META,
+  buildTableLessonsSchedule, tableLessonsProgressSummary, exportTableLessonsCurriculumMarkdown,
+} from './lib/table-lessons-class.js';
+import {
   SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
@@ -5123,6 +5128,43 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // The Table & the Footstool — a Word-first, SELF-PACED series of five
+          // short lessons that build on each other (a table before your enemies ->
+          // enemies a footstool -> the meek inherit -> a sound mind not fear ->
+          // programmed by His Word). From Darrell's spoken teaching: "Yahweh sets a
+          // table before your enemies and they will be your footstool. You are meek
+          // and have a sound mind... while you program yourself with His 4th-
+          // dimensional Data." Same shared engine (meta.unit -> "Lesson(s)", no
+          // cohort clock); auto-joins the Learn hub + Presenter. The games are
+          // lessons too: the same teaching is playable in the Generations "The Table
+          // Set Before You" card. Completes the theology the Way Up game seeds.
+          const submitTableLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${TABLE_LESSONS_INTEREST_TAG} ${(name || 'A learner').trim()} wants more Table & the Footstool lessons.` })
+            : null;
+          const tableLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], TABLE_LESSONS_INTEREST_TAG) : null;
+          const tableLessonsCourse = {
+            meta: { ...TABLE_LESSONS_META, key: 'table-lessons' },
+            sessionFlow: TABLE_LESSONS_SESSION_FLOW,
+            schedule: buildTableLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => tableLessonsProgressSummary(p),
+            exportMarkdown: () => exportTableLessonsCurriculumMarkdown(),
+            downloadName: 'the-table-and-the-footstool.md',
+            submitInterest: submitTableLessonsInterest,
+            roster: tableLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Table & the Footstool lessons?',
+              blurb: 'Tell Darrell which lessons on the table, the footstool, meekness, and the sound mind would help you and your family most, and he’ll add them. Read at your own pace, at any age. He sets the table; the honor is His.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what would help most. He sets the table and makes the footstool; the glory is His.',
+            },
+            tutorCourseMeta: TABLE_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5135,7 +5177,8 @@ html{scroll-padding-bottom:280px}
                           : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
                             : courseKey === 'wealth-lessons' ? WEALTH_LESSONS_HELPER_TAG
                               : courseKey === 'pride-lessons' ? PRIDE_LESSONS_HELPER_TAG
-                                : '[Class helper]'
+                                : courseKey === 'table-lessons' ? TABLE_LESSONS_HELPER_TAG
+                                  : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5167,7 +5210,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, prideLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, prideLessonsCourse, tableLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
