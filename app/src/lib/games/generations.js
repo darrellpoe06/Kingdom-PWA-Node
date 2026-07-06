@@ -40,29 +40,30 @@ export const CATEGORIES = [
 // ---- starting paths (the first crossroads: where the journey begins) --------
 const PATHS = [
   // ---------------------------------------------------------------------------
-  // Darrell's Journey — a TRUE story (added 2026-07-06, at Darrell's direction).
-  // The real arc of this platform's founder, offered full-real as a family legacy
-  // his children (and anyone who plays) can see: the whole climb from the Valley
-  // Homes projects to a table Yahweh set. Names/places are real per Darrell's
-  // choice; the one aggregator-sourced detail (the rent-to-own store) is left
-  // unbranded until he confirms, and his children's names are his to add. Every
-  // scripture ref is verbatim in lib/scripture-kjv.js (DR-0076).
+  // Darrell's Journey — a TRUE story (added 2026-07-06, at Darrell's direction;
+  // facts corrected by Darrell). Public information only, and only enough to prove
+  // Yahweh's faithfulness and give Him the glory — a testimony that calls the
+  // player to bow to Him now. Confirmed by Darrell: Rock Island projects (Valley
+  // Homes) -> Horizon Homes (Davenport) -> Champaign (Rent-A-Center, then Parkland),
+  // where he met Bishop Gwin and married his daughter Christina (20 years). His
+  // children's names remain his to add. Every scripture ref is verbatim in
+  // lib/scripture-kjv.js (DR-0076).
   // ---------------------------------------------------------------------------
   {
     id: 'darrell',
     label: "Darrell's Journey — a true story",
-    blurb: "The real road of this platform's founder: born in the Valley Homes projects in Rock Island, raised on to Horizon Homes in Davenport, and lifted by Yahweh — through work, study and faith — to build businesses, a family and a table. A true testimony, so the next generation can see the whole climb.",
-    lens: 'What the wilderness humbled, Yahweh exalted; He led him about, He instructed him, He kept him as the apple of His eye.',
+    blurb: "The real road of this platform's founder — told for one reason: to prove Yahweh's faithfulness and give Him the glory. From the Valley Homes projects to a table Yahweh set, and none of it by his own hand. If He did this, He will do it for whoever turns to Him — so bow to Him now, while it is still called today.",
+    lens: 'Not by might, nor by power, but by His Spirit, says Yahweh. He raises the lowly and gives the increase; the wise bow to Him now, before the end.',
     scripture: { ref: 'Deuteronomy 8:2' },
     // Opening kept to FOUR spaces so every path shares one board length (the
     // multiplayer board-view invariant, games/match.js). His seven-beat arc is
     // told across four stations; the shared trunk (marriage, children, the
     // Father's business, generational wealth) carries the rest.
     opening: [
-      { id: 'dar-valley', type: 'word', stage: 'Young Adult', title: 'Valley Homes & Horizon Homes', body: 'Born in Valley Homes — the Turnkey projects at 25th & 11th in Rock Island — and moved on to Horizon Homes in Davenport when his mother relocated the family. A place the maps skipped, in a region that lost more than half its factory jobs. But the God who sees was already there.', lens: 'Yahweh raises the poor out of the dust and lifts the needy from the ash heap, to seat them with princes — the projects were a starting line, never a sentence.', scripture: { ref: 'Deuteronomy 8:2' }, effects: { faith: 1, family: 1 } },
-      { id: 'dar-work', type: 'word', stage: 'Young Adult', title: 'The Work & the Books', body: 'The first real weight — general-managing a rent-to-own store, a payroll and a team — then the slow disciplined climb of the books: Parkland, an MBA in IT management, the PMP and ITIL, often first in his line to carry them.', lens: 'The one diligent in his work will stand before kings; as Yahweh gave Daniel knowledge and skill, He gives wisdom to the one who seeks it for more than himself.', scripture: { ref: 'Proverbs 22:29' }, effects: { wisdom: 2, service: 1, provision: 1 } },
-      { id: 'dar-build', type: 'word', stage: 'Building Years', title: 'The Builder & the Covenant', body: 'Real estate stewarded; PoeTech founded to build sovereign technology that serves families instead of extracting from them. And he joins his life to Christina in covenant — her practice and his building become one household economy under Yahweh.', lens: 'Commit your works to Yahweh and your plans are established; two are better than one, and a cord of faith and family is not quickly broken.', scripture: { ref: 'Proverbs 16:3' }, effects: { provision: 1, family: 1, faith: 1, service: 1 } },
-      { id: 'dar-legacy', type: 'word', stage: 'Establishing', title: 'Before Kings, Pouring Back', body: 'A software project manager at the University of Illinois by day; landlord, founder and builder by calling. The boy from the projects now stands in rooms he was never counted to reach — and he pours it back: raising his children in the Way and running the technology for The Church of the Living God under Bishop Gwin.', lens: 'See a man diligent in his business — he shall stand before kings; a good man leaves an inheritance to his children’s children, and he who wins souls is wise.', scripture: { ref: '2 Timothy 2:2' }, effects: { provision: 1, souls: 1, family: 1, faith: 1 } },
+      { id: 'dar-valley', type: 'word', stage: 'Young Adult', title: 'Valley Homes & Horizon Homes', body: 'Born in Valley Homes — the Turnkey projects at 25th & 11th in Rock Island — and moved on to Horizon Homes in Davenport when his mother relocated the family. A place the maps skipped, in a region that lost more than half its factory jobs. But the God who sees was already there.', lens: 'Yahweh raises the poor out of the dust and lifts the needy from the ash heap, to seat them with princes — the projects were a starting line, never a sentence. To Him be the glory.', scripture: { ref: 'Deuteronomy 8:2' }, effects: { faith: 1, family: 1 } },
+      { id: 'dar-champaign', type: 'word', stage: 'Young Adult', title: 'Champaign — Work, School & a Wife', body: 'He comes to Champaign: general manager at Rent-A-Center, then community college at Parkland. And there Yahweh sets the cornerstone of the whole house — he meets Bishop Gwin, and marries his daughter Christina. Twenty years now.', lens: 'A cord of faith, family and Yahweh is not quickly broken — He arranged this covenant before either of them knew, and set the whole house upon it.', scripture: { ref: 'Deuteronomy 6:4' }, effects: { family: 2, wisdom: 1, joy: 1 } },
+      { id: 'dar-build', type: 'word', stage: 'Building Years', title: 'The Builder & the Books', body: 'The slow, disciplined climb of the books — an MBA in IT management, the PMP and ITIL — then PoeTech founded to build sovereign technology that serves families instead of extracting from them, and real estate stewarded. He commits the work to Yahweh before the lights come on.', lens: 'Commit your works to Yahweh and your plans are established; the builder who builds with Him does not labor in vain, and the increase is His.', scripture: { ref: 'Proverbs 16:3' }, effects: { provision: 1, wisdom: 1, faith: 1, service: 1 } },
+      { id: 'dar-legacy', type: 'word', stage: 'Establishing', title: 'Before Kings, Pouring Back', body: 'A software project manager at the University of Illinois by day; landlord, founder and builder by calling. The boy from the projects now stands in rooms he was never counted to reach — and he pours it back: raising his children in the Way and running the technology for The Church of the Living God, pastored by Bishop Gwin, his father in the faith and in the family.', lens: 'See a man diligent in his business — he shall stand before kings; a good man leaves an inheritance to his children’s children. None of it by his own hand — to Yahweh be the glory.', scripture: { ref: '2 Timothy 2:2' }, effects: { provision: 1, souls: 1, family: 1, faith: 1 } },
     ],
   },
   {
