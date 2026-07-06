@@ -402,6 +402,8 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 **The streamlined loop:** agent ships → gates run (~3 min) → auto-merge on green → deploy → agent pulls the next item. Darrell's only touch-point is a `hold` label when he wants something to NOT move. Documented in the app on the **OpsBoard** (the live lane state — auto-merge armed / `hold` parked / merged SHAs, read live from the repo) beside this model, and in `ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL.md` §8. Recorded for the ledger as **DR-0103**; pairs with DR-0077 (lanes + one orchestrator), DR-0076 (gates are the brake), DR-0102 (the work reviews itself), DR-0054 (merge = deploy).
 
+**The closing move — DO, don't re-ask (added 2026-07-06, DR-0106).** Before ending ANY turn, name the next step and route it. If it's an **authorized continuation** — finishing the loop, watching a PR you opened, pulling the next dated backlog / re-review / friction item, arming the obvious follow-through — **DO it and report it; do NOT ask.** Standing consent (DR-0089), this loop's move-without-being-pushed (§4 above), and Drive-Don't-Delegate already authorize it; silence from Darrell is room to advance, not a stop signal. **Ask ONLY on a DR-0089 carve-out** — a genuinely NEW decision, a discovered premise conflict, a standing-rule or bright-line conflict, or a Tier-C governance gate — and then as a **recommendation with a default**, never a bare either/or menu on already-authorized work. A trailing "should I watch, or keep going?" after agreed work is a process defect (LESSONS-LEARNED 2026-07-06, P24) — the exact push this loop exists to remove.
+
 ---
 
 ## Review the Live Production Push (added 2026-07-05, declared by Darrell; DR-0104)

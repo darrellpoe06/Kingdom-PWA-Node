@@ -116,3 +116,32 @@ jobs:
           else
             echo "main tip has no migration change; nothing to apply."
           fi
+
+      # SAME GITHUB_TOKEN gap, for PRODUCTION DEPLOY (2026-07-06). deploy-
+      # cloudflare-pages.yml fires on push:main — which GitHub SUPPRESSES for the
+      # GITHUB_TOKEN merge push (anti-recursion), exactly like db-migrate above.
+      # So when auto-merge went live, every auto-merged PR landed on main but
+      # NEVER deployed: poetech.us froze on the last HUMAN-merged build (6bfae29)
+      # while main ran far ahead. workflow_dispatch by the token IS allowed, so
+      # dispatch the deploy here whenever main's tip has not been deployed yet.
+      # Gated on the deploy workflow's own last head_sha so a merge triggers
+      # exactly ONE build (protects the CF Pages free build budget); a run already
+      # queued/running for this same tip is a no-op. Deploy is single-flight
+      # (its own concurrency group), so a redundant dispatch cannot stampede.
+      - name: Deploy main's tip if it isn't the last-deployed commit (closes the GITHUB_TOKEN push gap for CF Pages)
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+          last_deployed=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+          if [ -n "$main_sha" ] && [ "$main_sha" != "$last_deployed" ]; then
+            echo "main tip $main_sha not yet deployed (last deployed $last_deployed) — dispatching CF Pages deploy."
+            gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch deploy (it can be run manually)"
+          else
+            echo "main tip $main_sha already deployed (or unresolved); nothing to dispatch."
+          fi
