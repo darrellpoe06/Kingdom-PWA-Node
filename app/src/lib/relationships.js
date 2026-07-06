@@ -76,8 +76,11 @@ export const RELATIONSHIPS = Object.freeze([
     label: 'Family circle',
     blurb:
       'Family members share family-scoped surfaces by their role. Governors build and ' +
-      'steward; members use the shared family circle; children see only their child-safe slice.',
-    roles: ['governor', 'member', 'child'],
+      'steward; members use the shared family circle and can work the books; a SUCCESSOR ' +
+      '(a steward-in-training being raised to take over) SEES the real books but cannot ' +
+      'change them — read-only, so they learn on the family’s actual numbers without ' +
+      'risk (DR-0111); children see only their child-safe slice.',
+    roles: ['governor', 'member', 'successor', 'child'],
     steward: 'governor',
   },
   {
@@ -115,6 +118,7 @@ export const CAPABILITIES = Object.freeze({
   'content.unrated':   { label: 'Unfiltered content',     desc: 'Reach content not vetted as age-appropriate.',     outbound: true,  sensitive: true  },
   'purchase.any':      { label: 'Buy / spend',            desc: 'Purchase or spend money on their own.',            outbound: true,  sensitive: true  },
   'finance.view':      { label: 'See family finances',    desc: 'View the family books, forecast, or accounts.',    outbound: false, sensitive: true  },
+  'finance.manage':    { label: 'Work the books',          desc: 'Record, edit, or remove financial transactions.',  outbound: false, sensitive: true  },
   'account.security':  { label: 'Change security',        desc: 'Change PINs, sign-in, or account settings.',       outbound: false, sensitive: true  },
 
   // ---- landlord<->tenant capabilities -------------------------------------
@@ -234,6 +238,7 @@ export const MATRIX = Object.freeze({
       'family.manage': ALLOW,
       'child.configure': ALLOW,
       'finance.view': ALLOW,
+      'finance.manage': ALLOW,
     },
     member: {
       'family.shared': ALLOW,
@@ -241,7 +246,26 @@ export const MATRIX = Object.freeze({
       // manage other members unless promoted to governor.
       'family.build': DENY,
       'family.manage': DENY,
+      // A member both SEES and can WORK the books (record/edit transactions).
       'finance.view': ALLOW,
+      'finance.manage': ALLOW,
+    },
+    // SUCCESSOR — the steward-in-training being raised to take over (DR-0111;
+    // Darrell 2026-07-06: "we can't expect our heirs to learn how we did… there
+    // are new issues that older people want young people to take care of"). The
+    // whole point of this role is a STAGED, REVOCABLE middle rung between a
+    // member (sees + works the books) and a child (walled out): the successor
+    // SEES the real books so they learn on the family's actual numbers, but
+    // finance.manage is DENY so a read never becomes an accidental write. Read,
+    // don't wreck. Deepening this to write access is a deliberate promotion to
+    // member/governor, never automatic. (RLS enforcement of the read-only cut
+    // is the next verified slice — see DR-0111 "Not done, with why".)
+    successor: {
+      'family.shared': ALLOW,
+      'finance.view': ALLOW,
+      'finance.manage': DENY,
+      'family.build': DENY,
+      'family.manage': DENY,
     },
     // child: resolved from CHILD_CAPABILITY_POLICY.
   },
