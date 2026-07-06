@@ -57,6 +57,7 @@ export const RELATIONSHIP_TYPES = Object.freeze({
   GUARDIAN_CHILD: 'guardian-child',
   FAMILY: 'family',
   LANDLORD_TENANT: 'landlord-tenant',
+  LANDLORD_MANAGER: 'landlord-manager',
 });
 
 export const RELATIONSHIPS = Object.freeze([
@@ -91,6 +92,42 @@ export const RELATIONSHIPS = Object.freeze([
       'relationship grants: a tenant sees their unit + lease, never the portfolio; the ' +
       'landlord manages the lease + requests for their properties only.',
     roles: ['landlord', 'tenant'],
+    steward: 'landlord',
+  },
+  // LANDLORD ↔ MANAGER — the 1099-delegation relationship (Darrell 2026-07-06:
+  // "a landlord can let 1099 workers manage the business while they watch the
+  // workflows and live separated from the day to day… seeing the nuance to
+  // train their 1099 management… review the historical text exchanges… and even
+  // give that sight to new family to run the business or a 1099 worker").
+  //
+  // The MANAGER (a 1099 contractor OR a family member being raised to run it)
+  // RUNS the day-to-day — the full landlord operating set (rent roll, maintenance,
+  // rent-confirm, notices, lease, tenant contact, messaging). But the manager is
+  // NOT the owner: they cannot WATCH-over the business as an owner, review the
+  // whole message history for training, train another manager, or GRANT access
+  // to anyone else. Those four are the owner's, and they are the ceiling — a 1099
+  // worker runs the business, they do not get to hand it to someone else.
+  //
+  // The LANDLORD (owner) lives separated from the day-to-day yet keeps the whole
+  // operating set PLUS the four oversight powers: watch the workflows, review the
+  // historical exchanges to see the nuance, train for quality, and delegate that
+  // same sight to new family or another 1099 worker. "With or without them" — the
+  // owner can always act, and can always watch. Same staged, revocable pattern as
+  // guardian↔child and the family successor: run within an envelope the steward
+  // sets and can pull back.
+  {
+    type: RELATIONSHIP_TYPES.LANDLORD_MANAGER,
+    label: 'Landlord ↔ Manager (1099)',
+    blurb:
+      'The delegation relationship: a landlord lets a 1099 worker (or a family member ' +
+      'being raised to run it) MANAGE the business day-to-day, while the owner stays ' +
+      'separated from the day-to-day and WATCHES the workflows. The manager runs the ' +
+      'full operating set — rent roll, maintenance, rent, notices, lease, messaging — ' +
+      'but never owns it: watching over the business, reviewing the whole message ' +
+      'history to train, and granting access to others stay the owner’s. The owner ' +
+      'trains from the nuance and can give that same sight to new family or another ' +
+      '1099 worker, so quality holds with or without them.',
+    roles: ['landlord', 'manager'],
     steward: 'landlord',
   },
 ]);
@@ -137,6 +174,14 @@ export const CAPABILITIES = Object.freeze({
   'tenant.contact':    { label: 'See tenant contact',     desc: 'See tenant contact details for their units.',      outbound: false, sensitive: true  },
   'message.tenant':    { label: 'Message tenant',         desc: 'Message a tenant of their property.',              outbound: false, sensitive: false },
   'portfolio.view':    { label: 'See whole portfolio',    desc: 'See the entire property portfolio.',               outbound: false, sensitive: true  },
+
+  // ---- landlord<->manager (1099-delegation) oversight capabilities ---------
+  // The four OWNER powers that a 1099 manager runs the business WITHOUT. They are
+  // the ceiling on delegation: a manager operates, an owner oversees + hands off.
+  'ops.oversight':     { label: 'Watch the workflows',    desc: 'See all workflow activity a manager runs, live.',  outbound: false, sensitive: true  },
+  'ops.history':       { label: 'Review message history', desc: 'Review the historical tenant/manager exchanges.',  outbound: false, sensitive: true  },
+  'ops.train':         { label: 'Train for quality',      desc: 'Coach a manager on workflow quality from the nuance.', outbound: false, sensitive: false },
+  'ops.delegate':      { label: 'Grant access to others', desc: 'Give running/oversight access to family or a 1099 worker.', outbound: false, sensitive: true  },
 
   // ---- family / governance capabilities -----------------------------------
   'family.shared':     { label: 'Shared family surfaces', desc: 'Use the shared family circle data + surfaces.',     outbound: false, sensitive: false },
@@ -292,6 +337,47 @@ export const MATRIX = Object.freeze({
       'tenant.contact': ALLOW,
       'message.tenant': ALLOW,
       'portfolio.view': ALLOW,
+    },
+  },
+  // LANDLORD ↔ MANAGER — the 1099-delegation matrix. The manager RUNS the full
+  // operating set; the owner keeps that whole set AND the four oversight powers.
+  // The delta between the two rows IS the delegation ceiling: watch / review-
+  // history / train / delegate are the owner's alone. Explicit DENY rows (not
+  // omission) so the matrix visibly SHOWS the manager "Not allowed" on the four,
+  // the same way the tenant row visibly shows the portfolio walled off.
+  [RELATIONSHIP_TYPES.LANDLORD_MANAGER]: {
+    manager: {
+      // Runs the business day-to-day — the full landlord operating set.
+      'rentroll.view': ALLOW,
+      'maintenance.manage': ALLOW,
+      'rent.confirm': ALLOW,
+      'notice.post': ALLOW,
+      'lease.manage': ALLOW,
+      'tenant.contact': ALLOW,
+      'message.tenant': ALLOW,
+      'portfolio.view': ALLOW,
+      // …but never owns it. A 1099 worker cannot watch-over as an owner, mine the
+      // whole history to train, coach another manager, or hand access to anyone.
+      'ops.oversight': DENY,
+      'ops.history': DENY,
+      'ops.train': DENY,
+      'ops.delegate': DENY,
+    },
+    landlord: {
+      // The owner can still do everything the manager does — "with or without them."
+      'rentroll.view': ALLOW,
+      'maintenance.manage': ALLOW,
+      'rent.confirm': ALLOW,
+      'notice.post': ALLOW,
+      'lease.manage': ALLOW,
+      'tenant.contact': ALLOW,
+      'message.tenant': ALLOW,
+      'portfolio.view': ALLOW,
+      // …plus the four oversight powers that make delegation safe and trainable.
+      'ops.oversight': ALLOW,
+      'ops.history': ALLOW,
+      'ops.train': ALLOW,
+      'ops.delegate': ALLOW,
     },
   },
 });
