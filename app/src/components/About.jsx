@@ -3,6 +3,7 @@
 // Receives VIEW_TIER_REQUIREMENTS as a prop so this module has no main-file dep.
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
+import TrialStatus from './TrialStatus.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
 import { ARI } from '../lib/ari.js';
@@ -11,7 +12,7 @@ import { ARI } from '../lib/ari.js';
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
 // section (trusted-device list/revoke + change PIN). Both are optional, so the
 // public/demo/anonymous About view is unchanged when they are absent.
-function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, onChangePin = null }) {
+function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, authCreatedAt = null, onChangePin = null }) {
   // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
   // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
@@ -95,6 +96,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
   };
   return (
     <div className="space-y-10 w-full">
+      {authCreatedAt && (
+        <div className="-mb-4"><TrialStatus createdAt={authCreatedAt} /></div>
+      )}
       <section>
         <SectionTitle>What you actually get</SectionTitle>
         {/* The purpose, in the Governor's own words (Darrell 2026-07-03):
