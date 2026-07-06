@@ -261,4 +261,12 @@ export const KJV = {
   "Isaiah 42:8": "I am the LORD: that is my name: and my glory will I not give to another, neither my praise to graven images.",
   "Psalm 115:1": "Not unto us, O LORD, not unto us, but unto thy name give glory, for thy mercy, and for thy truth’s sake.",
   "1 Corinthians 4:7": "For who maketh thee to differ from another? and what hast thou that thou didst not receive? now if thou didst receive it, why dost thou glory, as if thou hadst not received it?",
+
+  // --- Appended 2026-07-06 for the Generations "Pride & the Increase" deck ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json),
+  // never typed from memory (DR-0076).
+  "Proverbs 16:18": "Pride goeth before destruction, and an haughty spirit before a fall.",
+  "Daniel 4:37": "Now I Nebuchadnezzar praise and extol and honour the King of heaven, all whose works are truth, and his ways judgment: and those that walk in pride he is able to abase.",
+  "1 Corinthians 3:7": "So then neither is he that planteth any thing, neither he that watereth; but God that giveth the increase.",
+  "Psalm 127:1": "Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.",
 };

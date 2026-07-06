@@ -300,6 +300,26 @@ const LIFE_DECK = [
       { label: 'Take the credit — “my own hand got me this”', body: 'You let the glory settle on your name. It is a heavier crown than it looks.', effects: { provision: 1, faith: -2, peace: -1 } },
       { label: 'Give Yahweh the glory — He will not share it', body: 'You remember Whose hand carried you from the wilderness, and you say so out loud. Not unto us, O LORD, but unto Thy name give glory.', lens: 'I am the LORD... my glory will I not give to another (Isaiah 42:8). What hast thou that thou didst not receive? Give Him the glory — rightfully His, and He wills not to share it.', scripture: { ref: 'Psalm 115:1' }, effects: { faith: 3, peace: 2, family: 1, souls: 1 }, redemption: true },
     ] },
+
+  // --- Pride & the Increase: don't be proud — be grateful; He makes us win ------
+  // From Darrell's teaching (2026-07-06) and the "Pride Before the Fall" lesson
+  // series (lib/pride-lessons-class.js) — the games are lessons too. You could
+  // labor a thousand years with no increase; the increase and the victory are the
+  // Lord's. Pride goes before the fall; the humble, grateful heart is lifted up.
+  { title: 'The Increase', body: 'You planted and you watered — years of it. Now the harvest comes in. In your heart, whose harvest is it?',
+    lens: 'One plants, another waters, but God gives the increase. You could labor a thousand years and not make one seed grow — the increase was never yours to make; it is His gift.',
+    scripture: { ref: '1 Corinthians 3:7' },
+    choices: [
+      { label: 'Take the credit for the harvest', body: 'You tell yourself your own hand made it grow. The crown is heavier than it looks.', effects: { provision: 1, faith: -1, peace: -1 } },
+      { label: 'Thank Yahweh — the increase is His', body: 'You did your part and you know Who made the seed grow, and you say so.', lens: 'Except the LORD build the house, they labour in vain — the increase is His gift, in His time. Be grateful, not proud.', scripture: { ref: 'Psalm 127:1' }, effects: { faith: 2, peace: 2, wisdom: 1, provision: 1 }, redemption: true },
+    ] },
+  { title: 'At the Peak', body: 'You stand at the top of something you built, and a voice inside says, "look what MY power and MY majesty have made." How you answer it decides what comes next.',
+    lens: 'Pride goeth before destruction, and a haughty spirit before a fall. A king once said "my power, my majesty" over his Babylon — and was abased, until he lifted his eyes to heaven.',
+    scripture: { ref: 'Proverbs 16:18' },
+    choices: [
+      { label: 'Let the peak lift your heart — “I built this”', body: 'You believe your own hype. The higher the puffed-up heart, the harder the ground.', effects: { provision: 1, faith: -2, peace: -2 } },
+      { label: 'Stay low and grateful; He lifts in due time', body: 'You humble yourself on purpose before life does it for you, and give the height back to God.', lens: 'Those that walk in pride He is able to abase; humble yourself, and He shall lift you up in due time — He makes us win.', scripture: { ref: 'Daniel 4:37' }, effects: { faith: 3, peace: 2, wisdom: 1, family: 1 }, redemption: true },
+    ] },
 ];
 
 // ---- the legacy reducer (the finish: faithfulness + what is passed on) -------
