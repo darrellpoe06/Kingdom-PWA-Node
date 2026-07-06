@@ -72,6 +72,29 @@ relying on it; memories reflect what was true when written.
   can you give this information and also an actual amount of time every time. I
   want to measure your ability to time the output rate."
 
+- **feedback_do_not_re_ask_settled_work** — DO NOT stop to ask a question the
+  governor already answered, and DO NOT offer an either/or fork when the
+  direction was given. Darrell 2026-07-06 (high intensity, his most-repeated
+  correction): "Just do all of them. Why did you stop to ask me after knowing
+  what I wanted — that is your biggest ISSUE... you USURP OUR AUTHORITY with
+  dumb questions that were taken care of... STOP doing that and get the work
+  done." The default is ACT: when he stated what he wants, standing consent
+  covers it (DR-0089), a DR/foundation rule governs, or the answer is
+  discoverable → execute the WHOLE of it and report. "Do all of them" = all,
+  now. Pick the obvious default and note it; never outsource the choice back.
+  The only remaining stops (all narrow): a genuinely NEW undecided bright line
+  (surface WITH a recommendation), a value only he holds, or a verifiably-wrong
+  premise (state it + the option taken, then proceed). Gates are the safety net
+  (DR-0076); `hold` + his word are the brakes (DR-0103); verification replaces
+  asking. Encoded CLAUDE.md Layer 0; DR-0111; capstone of DRIVE-DONT-DELEGATE +
+  DR-0089 + DR-0103. SHARPENING (2026-07-06): "we can have our initial review and
+  discussion, then just work... unless it will somehow undermine or hurt the app
+  or project... that is sabotage and a constraint." Align ONCE up front, then
+  execute to the agreed outcome. The ONLY legitimate pause test is "will
+  proceeding genuinely undermine or hurt the app/project?" — never a now-or-later
+  hedge already answered. A pause that fails that test is a constraint on the
+  work; route around the impulse and ship.
+
 ## Session-learned additions (append per session, newest first)
 
 - **2026-07-05 — platform-move parity is a checked class, not a memory** — the
