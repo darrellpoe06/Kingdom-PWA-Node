@@ -5310,6 +5310,7 @@ html{scroll-padding-bottom:280px}
             projects={data.projects || []}
             discussions={data.discussions || []}
             currentUserId={authSession?.user?.id || null}
+            familyData={data}
           />
         )}
 

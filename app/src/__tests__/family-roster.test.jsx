@@ -282,6 +282,6 @@ describe('the safe door stays the only door', () => {
   it('the roster is mounted in the steward seat (Serve faculty)', () => {
     const center = readFileSync(join(SRC, 'components/CommandServeCenter.jsx'), 'utf8');
     expect(center).toContain("import FamilyRoster from './FamilyRoster.jsx'");
-    expect(center).toContain('<FamilyRoster currentUserId={currentUserId} />');
+    expect(center).toMatch(/<FamilyRoster currentUserId={currentUserId}(\s+familyData={familyData})?\s*\/>/);
   });
 });
