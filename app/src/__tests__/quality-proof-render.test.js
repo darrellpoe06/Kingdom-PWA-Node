@@ -49,9 +49,17 @@ beforeAll(async () => {
 describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
   it('renders without throwing, shows the header + every sub-tab chip', () => {
     expect(html).toContain('Quality / Proof');
-    for (const label of ['Break-it gates', 'Closed loops', 'Accessibility', 'Interconnect', 'Reviews']) {
+    for (const label of ['Break-it gates', 'Closed loops', 'Accessibility', 'Interconnect', 'Reviews', 'Re-reviews']) {
       expect(html, `missing sub-tab ${label}`).toContain(label);
     }
+  });
+  it('surfaces the sortable re-review backlog from real REVIEWS.md dates', () => {
+    // Proven-to-catch against real data: REV-0008 carries `re-review 2026-07-13`
+    // et al. in its findings; the backlog tab must extract + render them, sortable.
+    const h = render('rereviews');
+    expect(h).toContain('Re-review backlog');
+    expect(h).toContain('2026-07-13'); // a real dated commitment from REV-0008
+    expect(h).toMatch(/Due.*Item.*Type.*Source.*Status/s); // sortable column headers
   });
   it('surfaces real adversarial gate rows from the manifest (default panel)', () => {
     expect(html).toContain('Per-theme WCAG 2.1 AA contrast');
