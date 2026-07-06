@@ -62,7 +62,44 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+  // Hashed build assets (JS chunks / CSS / fonts) are IMMUTABLE per content hash.
+  // Cache each one as it loads and serve it cache-first, so a build the device is
+  // RUNNING keeps ALL of its chunks even after a newer deploy swaps the CDN. The
+  // loaded (old) version therefore stays fully usable until the new worker takes
+  // over in the background — instead of a lazy chunk 404ing mid-session, tripping
+  // chunk-reload-heal, and dropping the user on the hard "Reload" wall (the
+  // 2026-07-06 "app won't update / let me keep using the old one" report). A new
+  // deploy means new hashes = new cache entries; the activate handler above drops
+  // every prior-deploy cache, so this can never re-serve a stale shell — the app
+  // shell itself stays network-first { no-store } (above), unchanged, so any
+  // privacy/data fix still reaches the device on the very next navigation.
+  const req = event.request;
+  let isHashedAsset = false;
+  try {
+    const url = new URL(req.url);
+    isHashedAsset = url.origin === self.location.origin
+      && url.pathname.startsWith(BASE + '/')
+      && /\.(?:js|css|woff2?)$/.test(url.pathname);
+  } catch (_) { /* non-URL request → fall through to the default path */ }
+
+  if (isHashedAsset) {
+    event.respondWith(
+      caches.match(req).then((cached) => cached || fetch(req).then((res) => {
+        // Best-effort populate; the response is returned either way. Only cache a
+        // real, OK, same-origin response (never an opaque/error one).
+        try {
+          if (res && res.ok && (res.type === 'basic' || res.type === 'default')) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          }
+        } catch (_) { /* caching is best-effort */ }
+        return res;
+      }))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
