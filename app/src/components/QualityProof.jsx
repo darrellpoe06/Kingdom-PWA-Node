@@ -37,10 +37,15 @@ import {
   rowStatus, contrastStatus, reviewStatus, reviewFreshness,
 } from '../lib/quality-proof.js';
 import { normalizeInterconnect, loopRowStatus, interconnectHeadline } from '../lib/interconnect-loops.js';
+import { extractReReviews, sortReReviews, reReviewStatus, reReviewSummary } from '../lib/re-reviews.js';
 
 const MANIFEST = normalizeManifest(typeof __QUALITY_PROOF__ !== 'undefined' ? __QUALITY_PROOF__ : null);
 const INTERCONNECT = normalizeInterconnect(typeof __INTERCONNECT_LOOPS__ !== 'undefined' ? __INTERCONNECT_LOOPS__ : null);
 const REVIEWS = normalizeReviews(typeof __UIUX_REVIEWS__ !== 'undefined' ? __UIUX_REVIEWS__ : null);
+// The DR ledger is already injected for the Governor board; re-review dates live
+// in both it and the review findings, so the backlog reads from both (raw guard
+// pattern — degrade to empty rather than crash if the global is absent).
+const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : null;
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 
 // orchestration deliberately carries no emoji: the consistency guard (DR-0079)
@@ -64,6 +69,14 @@ function Row({ name, detail, status, label }) {
 // default stays 'gates' — the first thing a steward checks.
 export default function QualityProof({ defaultSection = 'gates' }) {
   const [state, setState] = useState({ phase: 'loading', data: null });
+  // Sortable backlog of dated re-review commitments (Darrell 2026-07-06: "keep a
+  // sortable list inside the PoeTech App"). Default: date asc = overdue / soonest
+  // first — the order you pull work in. Clickable headers flip like Imported.jsx.
+  const [rrSort, setRrSort] = useState({ key: 'date', dir: 'asc' });
+  const toggleRrSort = (key) => setRrSort((s) => (
+    s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
+  ));
+  const rrArrow = (key) => (rrSort.key === key ? (rrSort.dir === 'asc' ? ' ↑' : ' ↓') : '');
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
@@ -272,6 +285,78 @@ export default function QualityProof({ defaultSection = 'gates' }) {
                   The live local-LLM diff review of the latest change is in the “🔍 Local-LLM code review” panel below — a second pair of eyes, advisory, never a gate.
                 </p>
               </>
+              );
+            },
+          },
+          {
+            id: 'rereviews',
+            label: 'Re-reviews',
+            render: () => {
+              // The sortable backlog: every dated `re-review:` commitment pulled
+              // from the review findings + the DR ledger (DR-0075). Real dates
+              // only — nothing painted (DR-0076). Measured against now at render.
+              const now = Date.now();
+              const all = extractReReviews({ reviews: REVIEWS, decisions: DR_LEDGER }, now);
+              const rows = sortReReviews(all, rrSort.key, rrSort.dir);
+              const sum = reReviewSummary(all);
+              const Th = ({ k, children, right }) => (
+                <th className={`px-2 py-1 ${right ? 'text-right' : 'text-left'}`}>
+                  <button type="button" onClick={() => toggleRrSort(k)} className="uppercase tracking-wider hover:text-[#B85838]">
+                    {children}{rrArrow(k)}
+                  </button>
+                </th>
+              );
+              return (
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-1.5 px-2 py-1.5 border border-[#E8E4DC]">
+                    <span className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                      Re-review backlog
+                    </span>
+                    <KpiDot
+                      status={sum.overdue > 0 ? 'problem' : sum.soon > 0 ? 'attention' : 'good'}
+                      label={sum.overdue > 0 ? `${sum.overdue} overdue · ${sum.total} total` : sum.soon > 0 ? `${sum.soon} due soon · ${sum.total} total` : `${sum.total} scheduled`}
+                      className="text-[0.5625rem] uppercase tracking-wider shrink-0"
+                    />
+                  </div>
+                  {rows.length > 0 ? (
+                    <div className="border border-[#E8E4DC] overflow-x-auto mb-2">
+                      <table className="w-full text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <thead className="text-[0.5625rem] text-[#5A5751] border-b border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          <tr>
+                            <Th k="date">Due</Th>
+                            <Th k="title">Item</Th>
+                            <Th k="type">Type</Th>
+                            <Th k="source">Source</Th>
+                            <Th k="status" right>Status</Th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((it, i) => {
+                            const rs = reReviewStatus(it);
+                            return (
+                              <tr key={`${it.origin}-${it.sourceId}-${it.date}-${i}`} className="border-b border-[#F2EEE6] last:border-b-0 align-top">
+                                <td className="px-2 py-1.5 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.date}</td>
+                                <td className="px-2 py-1.5 text-[#1A1815]">{it.title}</td>
+                                <td className="px-2 py-1.5 text-[#5A5751]">{TYPE_LABEL[it.type] || it.type}</td>
+                                <td className="px-2 py-1.5 text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.source}</td>
+                                <td className="px-2 py-1.5 text-right">
+                                  <KpiDot status={rs.status} label={rs.label} className="text-[0.5625rem] uppercase tracking-wider justify-end" />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-[0.6875rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                      No dated re-review commitments yet — add a <span className="font-mono">re-review: YYYY-MM-DD</span> to a review finding or decision and it appears here, sortable.
+                    </p>
+                  )}
+                  <p className="text-[0.5625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Every dated commitment we make (DR-0075) — pulled live from the review findings + the decision ledger, sortable by due date, type, source, or urgency. This is the list work is pulled from.
+                  </p>
+                </>
               );
             },
           },
