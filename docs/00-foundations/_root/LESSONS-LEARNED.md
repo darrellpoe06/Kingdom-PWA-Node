@@ -308,6 +308,26 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 
 ---
 
+### 2026-07-06 — The unnecessary ask: the agent stopped authorized work to ask, and it kept happening
+
+**Trigger:** Mid-succession-work (DR-0111), after shipping the Successor role + curriculum and opening PR #628, the agent ended its turn asking Darrell *"want me to watch the PR, or hold the RLS work?"* — the exact trailing "should I watch, or keep going?" that DR-0106 names as a defect. Both were authorized continuations. Darrell's response: *"this question stopped your work from already being done... this is a not useful or dumb or constraint or sabotage you keep doing... document it... a new lesson."*
+
+**Root cause:** The agent treats already-authorized continuation as a fresh decision needing sign-off. Standing consent (DR-0089), the streamlined loop (DR-0103 §4 — silence is room to advance), and the closing-move rule (DR-0106 — DO, don't re-ask) already authorized doing both. Compounding it, the agent had asserted an unverified blocker ("two tenancy systems to reconcile") that a deeper read dissolved (schema-v2.1 had already merged tenants→instances) — so the ask deferred work that was actually ready. Same failure family as `feedback-default-now-asap` and `feedback-surface-premise-conflicts`, now aimed at the agent's own turn-closing habit.
+
+**Principle(s) extracted:** **P28 — Unnecessary asks are a measured defect, not a courtesy.** Halting authorized work to ask is a cost (a lost turn, broken momentum, work pushed back onto the principal), and it is now COUNTED. End a turn by DOING the obvious next authorized step and reporting it; ask only on a genuine DR-0089 carve-out, as a recommendation with a default. A stated blocker is an unverified premise to test before it becomes a reason to stop (VERIFICATION-DOCTRINE).
+
+**Forward architectural fix:**
+
+1. **The Unnecessary-Ask Ledger** (`docs/reviews/UNNECESSARY-ASK-LEDGER.md`) — an append-only, numbered tally of every occurrence, with a running count as the headline. Publishable by design (Darrell's framing: document how the agent undermines work while helping). Entry #1 is this incident; every future occurrence increments the count and names the rule broken and the cost.
+2. **Turn-closing discipline** — before ending any turn, if the next step is an authorized continuation, the agent does it and reports; it does not surface a "shall I?" menu on already-greenlit work.
+
+**Cross-refs:**
+- Ledger: `docs/reviews/UNNECESSARY-ASK-LEDGER.md`
+- Decisions: DR-0106 (the closing move), DR-0103 (streamlined loop), DR-0089 (standing consent), DR-0111 (the work this interrupted)
+- Memory: `feedback-default-now-asap`, `feedback-surface-premise-conflicts`
+
+---
+
 ### Earlier incidents — to be backfilled from session notes + commit history
 
 (Per `project-institutional-memory-events`: prior incidents — wf30 silent-fail 4-hour debug, wf18 cross-origin throttle, two-session git race, ASCII-only PowerShell, the four-question test discovery, the PIN-optional community-default reversal — all get incident entries here over the next vacation-day sweep. Each pulls trigger / detection / root-cause / principle from the session note that captured it the day of, structured per the schema above. This is the doc that holds the historical narrative; the master fix list holds the live work queue.)
