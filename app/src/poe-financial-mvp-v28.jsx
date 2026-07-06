@@ -57,6 +57,11 @@ import {
   buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
 } from './lib/living-lessons-class.js';
 import {
+  WEALTH_LESSONS_META, WEALTH_LESSONS_SESSION_FLOW,
+  WEALTH_LESSONS_INTEREST_TAG, WEALTH_LESSONS_HELPER_TAG, WEALTH_LESSONS_TUTOR_META,
+  buildWealthLessonsSchedule, wealthLessonsProgressSummary, exportWealthLessonsCurriculumMarkdown,
+} from './lib/wealth-lessons-class.js';
+import {
   SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
@@ -5041,6 +5046,42 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Stewardship & Wealth: The Way Up — a Word-first, SELF-PACED series of
+          // seven short lessons that BUILD on each other (own what produces → store
+          // → the debt-trap → buy the asset not the spectacle → pay it off → the
+          // refinance keystone → an inheritance to your children's children), each
+          // brain-sized per age band. Grounded in Darrell's testimony (the honeymoon
+          // rental house, paid off, refinanced without selling), giving Yahweh the
+          // glory. Same shared engine (meta.unit renders rows as "Lesson(s)", no
+          // cohort clock); auto-joins the Learn hub and the Presenter via
+          // coursePresentable. Teaching, not personalized financial/tax/legal advice.
+          const submitWealthLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${WEALTH_LESSONS_INTEREST_TAG} ${(name || 'A learner').trim()} wants more Stewardship & Wealth lessons.` })
+            : null;
+          const wealthLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], WEALTH_LESSONS_INTEREST_TAG) : null;
+          const wealthLessonsCourse = {
+            meta: { ...WEALTH_LESSONS_META, key: 'wealth-lessons' },
+            sessionFlow: WEALTH_LESSONS_SESSION_FLOW,
+            schedule: buildWealthLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => wealthLessonsProgressSummary(p),
+            exportMarkdown: () => exportWealthLessonsCurriculumMarkdown(),
+            downloadName: 'stewardship-and-wealth-the-way-up.md',
+            submitInterest: submitWealthLessonsInterest,
+            roster: wealthLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Stewardship & Wealth lessons?',
+              blurb: 'Tell Darrell which money lessons The Way would help you and your family most, and he’ll add them to the series. Read at your own pace, at any age. Teaching, not personalized financial advice.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what would help most. He gives the power to get wealth; the glory is His.',
+            },
+            tutorCourseMeta: WEALTH_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5051,7 +5092,8 @@ html{scroll-padding-bottom:280px}
                       : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
                         : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
                           : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
-                            : '[Class helper]'
+                            : courseKey === 'wealth-lessons' ? WEALTH_LESSONS_HELPER_TAG
+                              : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5083,7 +5125,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
