@@ -20,13 +20,17 @@
 #                 dispatched deploy is itself wall-clock-bounded and single-flight.
 #   2. LOCK     — concurrency: deploy-freshness (this workflow is single-instance)
 #                 AND the deploy's own cf-pages-deploy group. Deploys never stack.
-#   3. KILL     — gated on the repo variable DEPLOY_FRESHNESS_ENABLED == 'true'.
-#                 SHIPS INERT (variable unset ⇒ the job skips every fire). Unset
-#                 it (or disable this workflow in the Actions UI) to pause
-#                 instantly. Turned on only deliberately, with someone watching.
+#   3. KILL     — SHIPS ACTIVE (DR-0110), because a bounded, idempotent,
+#                 non-spawning deploy-healer is not the runaway class P11/three-
+#                 brakes gates (it is operationally the same as the db-migrate and
+#                 auto-merge deploy dispatches, which already ship active). The
+#                 kill-switch is retained: set the repo variable
+#                 DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the
+#                 Actions UI) to pause instantly. Unset ⇒ runs.
 #
-# ACTIVATE: GitHub → Settings → Secrets and variables → Actions → Variables →
-# add DEPLOY_FRESHNESS_ENABLED = true. Deactivate: delete that variable.
+# PAUSE: GitHub → Settings → Secrets and variables → Actions → Variables →
+# add DEPLOY_FRESHNESS_ENABLED = false (delete it, or set anything but 'false', to
+# resume). Activation requires no action — it heals main from its first fire.
 
 name: Deploy freshness (heal a missed deploy)
 
@@ -46,8 +50,11 @@ permissions:
 
 jobs:
   heal:
-    # KILL-SWITCH: ships INERT. Skips every fire until the variable is set true.
-    if: ${{ vars.DEPLOY_FRESHNESS_ENABLED == 'true' }}
+    # KILL-SWITCH: ships ACTIVE (DR-0110). Runs by default; set the repo variable
+    # DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the Actions UI)
+    # to pause instantly. A bounded, non-spawning deploy-healer is not the
+    # runaway class P11 gates, so it ships on — matching db-migrate/auto-merge.
+    if: ${{ vars.DEPLOY_FRESHNESS_ENABLED != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Deploy main's tip if the served build has fallen behind
