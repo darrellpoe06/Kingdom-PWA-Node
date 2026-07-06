@@ -202,6 +202,7 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
   }
 
   const gid = uid('sk');
+  const airborne = pose === 'jump';
   return (
     <g>
       <defs>
@@ -210,6 +211,10 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
           <stop offset="1" stopColor={skin} />
         </linearGradient>
       </defs>
+      {/* baked contact shadow — grounds the figure in the scene's light (the
+          same "fake shadow under the character" trick the lighting video shows;
+          baked light, no runtime cost). Fainter + lower when airborne. */}
+      <ellipse cx={cx} cy={hipY + r * (airborne ? 2.6 : 2.05)} rx={r * (airborne ? 1.15 : 1.5)} ry={r * 0.4} fill="#2A1A10" opacity={airborne ? 0.12 : 0.22} />
       {legs}
       {/* torso */}
       <path d={`M${cx - sx + torsoLean} ${shoulderY} Q${cx + torsoLean} ${shoulderY - r * 0.4} ${cx + sx + torsoLean} ${shoulderY} L${cx + r * 0.85} ${hipY} Q${cx} ${hipY + r * 0.4} ${cx - r * 0.85} ${hipY} Z`} fill={cloth} />

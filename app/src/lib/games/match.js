@@ -97,10 +97,17 @@ function findPlayer(match, playerId) {
   return match.players.find((p) => p.id === playerId) || null;
 }
 
-// Add (or re-attach) a player. In the lobby this seats a new player; if a player
-// with the same id already exists it is a RE-JOIN (a dropped phone coming back) —
-// we keep their game and just mark them connected and refresh name/token. This is
-// the graceful drop/rejoin path: identity is the id the phone persists locally.
+// Add (or re-attach) a player. Three paths, in order:
+//   1. SAME-ID RE-JOIN — a dropped phone coming back with its persisted id: keep
+//      its game, mark connected, refresh name/token.
+//   2. LOST-SEAT RECOVERY — a NEW id whose chosen token matches a currently-
+//      DISCONNECTED seat: this is a player whose device lost its saved id (an
+//      ephemeral QR / in-app browser that doesn't persist localStorage) coming
+//      back. Re-key their PRESERVED journey to the new id so their points are
+//      never lost just because their phone went off (the exact bug reported).
+//   3. NEW SEAT — an actually-new player. Allowed in the lobby AND mid-game
+//      (family game night: people wander in after "Start"); only a FINISHED
+//      match or a FULL table turns someone away.
 export function addPlayer(def, match, { id, name, token, now = 0 }) {
   const existing = findPlayer(match, id);
   if (existing) {
@@ -114,8 +121,23 @@ export function addPlayer(def, match, { id, name, token, now = 0 }) {
       log: [...match.log, { type: 'rejoin', playerId: id, at: now }],
     });
   }
-  if (match.phase !== 'lobby') {
-    return { ...match, error: 'in-progress' };       // late joiners can't seat mid-game
+  // Lost-seat recovery: reclaim a disconnected seat by its token (the visible
+  // piece the player re-picks), re-keying the preserved journey to the new id.
+  const lostSeat = token
+    ? match.players.find((p) => !p.connected && p.token === token && p.id !== id)
+    : null;
+  if (lostSeat) {
+    return touch({
+      ...match,
+      players: match.players.map((p) =>
+        p.id === lostSeat.id ? { ...p, id, connected: true, name: name || p.name } : p,
+      ),
+      order: match.order.map((oid) => (oid === lostSeat.id ? id : oid)),
+      log: [...match.log, { type: 'recover', from: lostSeat.id, to: id, at: now }],
+    });
+  }
+  if (match.phase === 'finished') {
+    return { ...match, error: 'finished' };          // the journeys are over
   }
   if (match.players.length >= match.maxPlayers) {
     return { ...match, error: 'full' };
@@ -130,12 +152,19 @@ export function addPlayer(def, match, { id, name, token, now = 0 }) {
     joinSeq,
     game: createGame(def, { seed: deriveSeed(match.hostSeed, joinSeq) }),
   };
-  return touch({
+  // Seated mid-game? They start at their own opening and are reached when the
+  // rotation comes around. If the table was stalled (every existing player
+  // disconnected, so no one could act), hand the turn to the newcomer now.
+  const seated = {
     ...match,
     players: [...match.players, player],
     order: [...match.order, id],
     log: [...match.log, { type: 'join', playerId: id, name: player.name, at: now }],
-  });
+  };
+  if (match.phase === 'playing' && currentActor(match) == null) {
+    seated.turnIndex = seated.order.length - 1;
+  }
+  return touch(seated);
 }
 
 // Presence: a phone connected or dropped. Never removes the player (their journey
