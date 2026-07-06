@@ -6,7 +6,6 @@ import { describe, it, expect } from 'vitest';
 import { childHomeModel, childActivities, childFinancesSection, childHomeHasContent } from '../lib/child-home.js';
 import { SETTING } from '../lib/relationships.js';
 
-const ASOF = new Date('2026-07-01T00:00:00Z');
 const BOOKS = {
   accounts: [{ id: 'sav', name: 'Buffer', type: 'savings', openingBalance: 2000 }],
   transactions: [],

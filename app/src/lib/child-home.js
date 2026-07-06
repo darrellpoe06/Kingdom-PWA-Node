@@ -22,7 +22,7 @@
 // home component (once the session exists), by the guardian preview, and by vitest.
 // =============================================================================
 
-import { CHILD_CAPABILITIES, CAPABILITIES, SETTING } from './relationships.js';
+import { CAPABILITIES } from './relationships.js';
 import { decideChildAction } from './guardian-child.js';
 import { childBooksView, normalizeChildViewMode } from './child-books-view.js';
 
