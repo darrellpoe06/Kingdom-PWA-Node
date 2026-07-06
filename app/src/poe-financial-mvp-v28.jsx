@@ -71,6 +71,11 @@ import {
   DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META,
   buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown,
 } from './lib/datasystems-course.js';
+import {
+  SUCCESSION_META, SUCCESSION_SESSION_FLOW,
+  SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META,
+  buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown,
+} from './lib/succession-class.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -5041,6 +5046,39 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Handed Forward — the SUCCESSION course for the heirs being raised to
+          // take over (DR-0111; Darrell 2026-07-06: "we can't expect our heirs to
+          // learn how we did... there are new issues that older people want young
+          // people to take care of"). Self-paced on the same shared engine (no
+          // cohort clock): commission-not-clone, read-before-you-rule (pairs with
+          // the read-only Successor seat), and build what we could not.
+          const submitSuccessionInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SUCCESSION_INTEREST_TAG} ${(name || 'An heir').trim()} wants to take the Handed Forward succession course.` })
+            : null;
+          const successionRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SUCCESSION_INTEREST_TAG) : null;
+          const successionCourse = {
+            meta: { ...SUCCESSION_META, key: 'handed-forward' },
+            sessionFlow: SUCCESSION_SESSION_FLOW,
+            schedule: buildSuccessionSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => successionProgressSummary(p),
+            exportMarkdown: () => exportSuccessionCurriculumMarkdown(),
+            downloadName: 'handed-forward-succession-curriculum.md',
+            submitInterest: submitSuccessionInterest,
+            roster: successionRoster,
+            interestCopy: {
+              heading: 'Being raised to take over?',
+              blurb: 'Tell Darrell you want to take Handed Forward — the succession course for the next generation. We hand you the mission, not our path: know the God of your father, learn to read the real books, and build what we could not. Self-paced, at any age.',
+              cta: 'I want to learn',
+              sent: '✓ Sent — Darrell will see you’re in. We hand it forward.',
+            },
+            tutorCourseMeta: SUCCESSION_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5051,7 +5089,8 @@ html{scroll-padding-bottom:280px}
                       : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
                         : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
                           : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
-                            : '[Class helper]'
+                            : courseKey === 'handed-forward' ? SUCCESSION_HELPER_TAG
+                              : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5083,7 +5122,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse, successionCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}

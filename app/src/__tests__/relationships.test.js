@@ -113,6 +113,36 @@ describe('guardian <-> child: child-safety is structural', () => {
   });
 });
 
+describe('family circle: successor is read-only on the books (DR-0111)', () => {
+  // Darrell 2026-07-06: a steward-in-training being raised to take over. The
+  // staged middle rung — SEES the real books to learn on them, but cannot change
+  // them. Read, don't wreck.
+  it('a successor SEES the family finances (finance.view)', () => {
+    expect(can(REL.FAMILY, 'successor', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'family.shared')).toBe(true);
+  });
+
+  it('a successor CANNOT work the books, build, or manage members', () => {
+    expect(can(REL.FAMILY, 'successor', 'finance.manage')).toBe(false);
+    expect(can(REL.FAMILY, 'successor', 'family.build')).toBe(false);
+    expect(can(REL.FAMILY, 'successor', 'family.manage')).toBe(false);
+  });
+
+  it('the read-only cut is the ONLY difference from a member: a member can work the books, a successor cannot', () => {
+    // Both see the books…
+    expect(can(REL.FAMILY, 'member', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'finance.view')).toBe(true);
+    // …but only the member can change them. That gap IS the succession-safety.
+    expect(can(REL.FAMILY, 'member', 'finance.manage')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'finance.manage')).toBe(false);
+  });
+
+  it('a governor can both see and work the books', () => {
+    expect(can(REL.FAMILY, 'governor', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'governor', 'finance.manage')).toBe(true);
+  });
+});
+
 describe('clamp + resolve primitives', () => {
   it('clampSetting never exceeds the ceiling; unknown -> deny', () => {
     expect(clampSetting(SETTING.ALLOW, SETTING.APPROVAL)).toBe(SETTING.APPROVAL);
