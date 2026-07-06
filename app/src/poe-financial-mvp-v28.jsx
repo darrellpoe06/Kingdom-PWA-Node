@@ -4414,7 +4414,16 @@ html{scroll-padding-bottom:280px}
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
-              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Family Operating Systems</h1>
+              {/* The name NEVER cuts off mid-word (Darrell 2026-07-06). It shows
+                  the full "Family Operating Systems" where the title has its own
+                  full-width row (sm–md, stacked); on the crowded side-by-side row
+                  (lg+, where the controls leave no room) and on the tiniest phones
+                  (<sm) it falls back to the clean brand "PoeTech" — an ellipsis
+                  cut is never acceptable. */}
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+                <span className="hidden sm:inline lg:hidden">Family Operating Systems</span>
+                <span className="sm:hidden lg:inline">PoeTech</span>
+              </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
