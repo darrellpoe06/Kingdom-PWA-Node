@@ -246,4 +246,19 @@ export const KJV = {
   // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
   // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
   "Romans 8:15": "For ye have not received the spirit of bondage again to fear; but ye have received the Spirit of adoption, whereby we cry, Abba, Father.",
+
+  // --- Appended 2026-07-06 for the Generations "Stewardship & Legacy" deck ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json),
+  // never typed from memory (DR-0076).
+  "Genesis 1:11": "And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so.",
+  "Proverbs 27:18": "Whoso keepeth the fig tree shall eat the fruit thereof: so he that waiteth on his master shall be honoured.",
+  "Proverbs 24:27": "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house.",
+  "Luke 14:28": "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?",
+  "2 Kings 4:7": "Then she came and told the man of God. And he said, Go, sell the oil, and pay thy debt, and live thou and thy children of the rest.",
+  "Romans 13:8": "Owe no man any thing, but to love one another: for he that loveth another hath fulfilled the law.",
+  "Proverbs 13:22": "A good man leaveth an inheritance to his children’s children: and the wealth of the sinner is laid up for the just.",
+  "Deuteronomy 8:17": "And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth.",
+  "Isaiah 42:8": "I am the LORD: that is my name: and my glory will I not give to another, neither my praise to graven images.",
+  "Psalm 115:1": "Not unto us, O LORD, not unto us, but unto thy name give glory, for thy mercy, and for thy truth’s sake.",
+  "1 Corinthians 4:7": "For who maketh thee to differ from another? and what hast thou that thou didst not receive? now if thou didst receive it, why dost thou glory, as if thou hadst not received it?",
 };

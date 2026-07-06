@@ -258,6 +258,48 @@ const LIFE_DECK = [
       { label: 'Make them earn their way back', body: 'You keep the distance a while. It helps no one.', effects: { family: -1, peace: -1 } },
       { label: 'Run to meet them; welcome them home', body: 'You forgive before they finish, and a soul comes back to life.', lens: 'There is joy in heaven over one who turns home; love covers a multitude.', scripture: { ref: '2 Peter 3:9' }, effects: { family: 2, souls: 2, joy: 1, faith: 1 }, redemption: true },
     ] },
+
+  // --- Stewardship & Legacy: decisions that ripple to your children's children ---
+  // Drawn from the "Stewardship & Wealth: The Way Up" lesson series (lib/wealth-
+  // lessons-class.js). Each is a choice whose effects flow into the legacy reducer,
+  // so a player SEES how one steward's decision blesses — or shrinks — the
+  // inheritance handed to the next generation, "as the Lord says." Every verse is
+  // verified against the in-repo KJV (DR-0076).
+  { title: 'The Fruit Tree', body: 'A hard season, and the producing thing you own — the tool, the land, the little asset — could be cashed out for one good stretch. Or kept, to feed you for years.',
+    lens: 'Yahweh’s first picture of provision was a fruit tree "whose seed is in itself" — whoever keeps the tree eats its fruit. Own what produces; do not burn it for one night’s warmth.',
+    scripture: { ref: 'Proverbs 27:18' },
+    choices: [
+      { label: 'Cut down the tree for firewood', body: 'You cash out the producing thing for one good season. It is warm, and then it is gone.', effects: { provision: 1, family: -1, wisdom: -1 } },
+      { label: 'Keep the tree; live on its fruit', body: 'You tend it and wait, and it feeds the house year after year.', lens: 'He that keepeth the fig tree shall eat the fruit thereof — provision that carries its own future.', scripture: { ref: 'Genesis 1:11' }, effects: { provision: 2, family: 1, wisdom: 1 }, redemption: true },
+    ] },
+  { title: 'The Asset or the Spectacle', body: 'One pot of money, two roads: the celebration everyone will remember, or the asset that will quietly pay your family for decades.',
+    lens: 'Prepare your field first, and afterward build your house; count the cost before you build. Put the producing thing first — the celebration can be simple.',
+    scripture: { ref: 'Luke 14:28' },
+    choices: [
+      { label: 'Buy the spectacle', body: 'It dazzles once, and produces nothing after.', effects: { joy: 1, provision: -1 } },
+      { label: 'Buy the asset; celebrate simply', body: 'You give the money a job, and keep the party small. Like a couple who bought a rental and honeymooned at a local hotel — it is paid off now, and still pays them.', lens: 'Prepare thy work without... and afterwards build thine house — the asset provides for a generation.', scripture: { ref: 'Proverbs 24:27' }, effects: { provision: 2, family: 1, wisdom: 1 }, redemption: true },
+    ] },
+  { title: 'Pay It Off', body: 'The debt on what you own can be dragged out for years — or attacked and killed, so the thing you own finally works for your family instead of the lender.',
+    lens: 'The widow’s oil: sell it, pay the debt, and THEN live — you and your children — off the rest. Owe no man anything but to love.',
+    scripture: { ref: '2 Kings 4:7' },
+    choices: [
+      { label: 'Live it up; pay it off with the scraps', body: 'You keep the payments and the appearances, and stay a servant to the lender.', effects: { joy: 1, peace: -1, provision: -1 } },
+      { label: 'Pay the debt, then live off the rest', body: 'You retire it on purpose, and a paid-off tree hands you all its fruit.', lens: 'Owe no man any thing, but to love one another — freedom is a kind of worship.', scripture: { ref: 'Romans 13:8' }, effects: { provision: 2, peace: 1, wisdom: 1 }, redemption: true },
+    ] },
+  { title: 'For the Children’s Children', body: 'What you built can be spent down to the last dollar in your own lifetime — or handed down, a river that keeps flowing to people you may never meet.',
+    lens: 'A good man leaves an inheritance to his children’s children. Wealth built The Way is a river, not a pile to hoard and not a show to flaunt.',
+    scripture: { ref: 'Proverbs 13:22' },
+    choices: [
+      { label: 'Consume it all yourself', body: 'You earned it; you spend it. Nothing crosses the finish line with your name on it.', effects: { joy: 1, family: -1 } },
+      { label: 'Build what outlives you; hand it down', body: 'You leave a standing tree, a habit, and a testimony — the asset AND the Way.', lens: 'A good man leaveth an inheritance to his children’s children — the deepest of which is the Way itself.', scripture: { ref: 'Proverbs 3:9-10' }, effects: { provision: 2, family: 2, souls: 1 }, redemption: true },
+    ] },
+  { title: 'Whose Hand Was It?', body: 'The increase came in. Now the quiet, deciding question: who gets the glory for it? Yahweh says He will not share it.',
+    lens: 'Beware lest you say, "my power and the might of mine hand hath gotten me this wealth" — for it is He that giveth thee power to get wealth. "I am the LORD... my glory will I not give to another."',
+    scripture: { ref: 'Deuteronomy 8:17' },
+    choices: [
+      { label: 'Take the credit — “my own hand got me this”', body: 'You let the glory settle on your name. It is a heavier crown than it looks.', effects: { provision: 1, faith: -2, peace: -1 } },
+      { label: 'Give Yahweh the glory — He will not share it', body: 'You remember Whose hand carried you from the wilderness, and you say so out loud. Not unto us, O LORD, but unto Thy name give glory.', lens: 'I am the LORD... my glory will I not give to another (Isaiah 42:8). What hast thou that thou didst not receive? Give Him the glory — rightfully His, and He wills not to share it.', scripture: { ref: 'Psalm 115:1' }, effects: { faith: 3, peace: 2, family: 1, souls: 1 }, redemption: true },
+    ] },
 ];
 
 // ---- the legacy reducer (the finish: faithfulness + what is passed on) -------
