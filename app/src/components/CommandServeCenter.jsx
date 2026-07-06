@@ -82,7 +82,7 @@ function ReadinessChip({ status }) {
   );
 }
 
-export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null, projects = [], discussions = [], currentUserId = null }) {
+export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null, projects = [], discussions = [], currentUserId = null, familyData = null }) {
   const seat = seatOf({ email, persona, isFamily: !!isGovernor });
   const ready = declaredReadiness();
   const [tab, setTab] = useState('see');
@@ -251,7 +251,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
           the 0055/0057 safety rails — never through the email allowlist. */}
       {tab === 'serve' && (
         <div className="space-y-3">
-          <FamilyRoster currentUserId={currentUserId} />
+          <FamilyRoster currentUserId={currentUserId} familyData={familyData} />
           <section className="bg-white border border-[#1A1815] p-4">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
             <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
