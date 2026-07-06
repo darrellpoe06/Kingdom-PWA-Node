@@ -332,6 +332,20 @@ const LIFE_DECK = [
       { label: 'Grab the seat; repay the enemy yourself', body: 'You force your own place and settle the score. It costs your peace and your meekness.', effects: { provision: 1, peace: -2, faith: -1 } },
       { label: 'Let Yahweh seat you; stay meek', body: 'You receive the table He sets and let Him make the footstool, in His time.', lens: 'Blessed are the meek: for they shall inherit the earth — you sit, He subdues; the honor and the victory are His.', scripture: { ref: 'Matthew 5:5' }, effects: { faith: 2, peace: 2, family: 1, souls: 1 }, redemption: true },
     ] },
+
+  // --- The Spirit of Adoption: made wholly His (the games are lessons) ---------
+  // From "The Spirit of Adoption" series (lib/adoption-lessons-class.js) and
+  // Darrell's own testimony (Christina received K'Shawna as her own; grace made
+  // her wholly theirs). Someone crosses your path who doesn't "belong" — an
+  // outsider, an orphan, the one nobody claimed. Do you keep the distance, or
+  // adopt them in, the way grace adopted you?
+  { title: 'The Spirit of Adoption', body: 'Someone crosses your path who doesn’t "belong" to you — a child not your own, an outsider, the one nobody claimed. You could keep the polite distance. Or you could bring them all the way in.',
+    lens: 'You did not receive the spirit of bondage again to fear, but the Spirit of adoption — grace does not half-adopt. God sets the solitary in families; do for the outsider what grace did for you.',
+    scripture: { ref: 'Romans 8:15' },
+    choices: [
+      { label: 'Keep the polite distance', body: 'They’re not really yours to carry, you tell yourself. The door stays almost-closed.', effects: { family: -1, peace: -1 } },
+      { label: 'Bring them all the way in — as your own', body: 'You receive them like family, in law and in love, the way you were received.', lens: 'God setteth the solitary in families; behold what manner of love the Father hath bestowed — grace adopts wholly, and so do we.', scripture: { ref: '1 John 3:1' }, effects: { family: 2, souls: 2, faith: 1, joy: 1 }, redemption: true },
+    ] },
 ];
 
 // ---- the legacy reducer (the finish: faithfulness + what is passed on) -------

@@ -269,4 +269,18 @@ export const KJV = {
   "Daniel 4:37": "Now I Nebuchadnezzar praise and extol and honour the King of heaven, all whose works are truth, and his ways judgment: and those that walk in pride he is able to abase.",
   "1 Corinthians 3:7": "So then neither is he that planteth any thing, neither he that watereth; but God that giveth the increase.",
   "Psalm 127:1": "Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.",
+
+  // --- Appended by scripts/append-verses.mjs (batch: adoption) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json),
+  // never typed from memory (DR-0076).
+  "Romans 8:16": "The Spirit itself beareth witness with our spirit, that we are the children of God:",
+  "Galatians 4:5": "To redeem them that were under the law, that we might receive the adoption of sons.",
+  "Galatians 4:7": "Wherefore thou art no more a servant, but a son; and if a son, then an heir of God through Christ.",
+  "Ephesians 1:5": "Having predestinated us unto the adoption of children by Jesus Christ to himself, according to the good pleasure of his will,",
+  "John 1:12": "But as many as received him, to them gave he power to become the sons of God, even to them that believe on his name:",
+  "1 John 3:1": "Behold, what manner of love the Father hath bestowed upon us, that we should be called the sons of God: therefore the world knoweth us not, because it knew him not.",
+  "Psalm 68:5": "A father of the fatherless, and a judge of the widows, is God in his holy habitation.",
+  "Psalm 68:6": "God setteth the solitary in families: he bringeth out those which are bound with chains: but the rebellious dwell in a dry land.",
+  "2 Corinthians 6:18": "And will be a Father unto you, and ye shall be my sons and daughters, saith the Lord Almighty.",
+  "Ephesians 2:19": "Now therefore ye are no more strangers and foreigners, but fellowcitizens with the saints, and of the household of God;",
 };

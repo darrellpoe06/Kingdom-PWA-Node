@@ -72,6 +72,11 @@ import {
   buildTableLessonsSchedule, tableLessonsProgressSummary, exportTableLessonsCurriculumMarkdown,
 } from './lib/table-lessons-class.js';
 import {
+  ADOPTION_LESSONS_META, ADOPTION_LESSONS_SESSION_FLOW,
+  ADOPTION_LESSONS_INTEREST_TAG, ADOPTION_LESSONS_HELPER_TAG, ADOPTION_LESSONS_TUTOR_META,
+  buildAdoptionLessonsSchedule, adoptionLessonsProgressSummary, exportAdoptionLessonsCurriculumMarkdown,
+} from './lib/adoption-lessons-class.js';
+import {
   SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
@@ -5165,6 +5170,41 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // The Spirit of Adoption — a Word-first, SELF-PACED series of five short
+          // lessons that build on each other (the Spirit of adoption / Abba -> no
+          // more a servant but a son -> a Father to the fatherless -> chosen on
+          // purpose -> full family, full inheritance). Grounded in Darrell's real
+          // testimony (Christina receiving K'Shawna as her own; Bishop Gwin a father
+          // in love), giving Yahweh the glory. Same shared engine (meta.unit ->
+          // "Lesson(s)", no cohort clock); auto-joins the Learn hub + Presenter. The
+          // games are lessons too: playable in the Generations "Spirit of Adoption" card.
+          const submitAdoptionLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${ADOPTION_LESSONS_INTEREST_TAG} ${(name || 'A learner').trim()} wants more Spirit of Adoption lessons.` })
+            : null;
+          const adoptionLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], ADOPTION_LESSONS_INTEREST_TAG) : null;
+          const adoptionLessonsCourse = {
+            meta: { ...ADOPTION_LESSONS_META, key: 'adoption-lessons' },
+            sessionFlow: ADOPTION_LESSONS_SESSION_FLOW,
+            schedule: buildAdoptionLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => adoptionLessonsProgressSummary(p),
+            exportMarkdown: () => exportAdoptionLessonsCurriculumMarkdown(),
+            downloadName: 'the-spirit-of-adoption-made-wholly-his.md',
+            submitInterest: submitAdoptionLessonsInterest,
+            roster: adoptionLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Spirit of Adoption lessons?',
+              blurb: 'Tell Darrell which lessons on adoption, belonging, and being made wholly His would help you and your family most, and he’ll add them. Read at your own pace, at any age. Grace does not half-adopt — you are wholly His.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what would help most. Grace does not half-adopt; the glory is Yahweh’s.',
+            },
+            tutorCourseMeta: ADOPTION_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5178,7 +5218,8 @@ html{scroll-padding-bottom:280px}
                             : courseKey === 'wealth-lessons' ? WEALTH_LESSONS_HELPER_TAG
                               : courseKey === 'pride-lessons' ? PRIDE_LESSONS_HELPER_TAG
                                 : courseKey === 'table-lessons' ? TABLE_LESSONS_HELPER_TAG
-                                  : '[Class helper]'
+                                  : courseKey === 'adoption-lessons' ? ADOPTION_LESSONS_HELPER_TAG
+                                    : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5210,7 +5251,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, prideLessonsCourse, tableLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, prideLessonsCourse, tableLessonsCourse, adoptionLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}

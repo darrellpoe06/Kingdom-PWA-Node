@@ -55,6 +55,12 @@ const BATCHES = {
     'Proverbs 16:18', 'Daniel 4:37',
     '1 Corinthians 3:7', 'Psalm 127:1',
   ],
+  // Generations "The Spirit of Adoption" card + the adoption Learn series
+  adoption: [
+    'Romans 8:16', 'Galatians 4:5', 'Galatians 4:7',
+    'Ephesians 1:5', 'John 1:12', '1 John 3:1',
+    'Psalm 68:5', 'Psalm 68:6', '2 Corinthians 6:18', 'Ephesians 2:19',
+  ],
 };
 
 function fileForBook(book) {
