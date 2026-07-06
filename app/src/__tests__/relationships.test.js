@@ -24,13 +24,54 @@ import {
 const REL = RELATIONSHIP_TYPES;
 
 describe('relationship types', () => {
-  it('defines the three relationships with steward + roles', () => {
+  it('defines the four relationships with steward + roles', () => {
     expect(RELATIONSHIPS.map((r) => r.type).sort()).toEqual(
-      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT].sort(),
+      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT, REL.LANDLORD_MANAGER].sort(),
     );
     for (const r of RELATIONSHIPS) {
       expect(r.roles.length).toBeGreaterThanOrEqual(2);
       expect(r.roles).toContain(r.steward); // the configuring side is a real role
+    }
+  });
+});
+
+describe('landlord <-> manager: the 1099-delegation ceiling', () => {
+  // Darrell 2026-07-06: a landlord lets a 1099 worker MANAGE the business and
+  // WATCHES the workflows, separated from the day-to-day; the owner reviews the
+  // history to train and can grant that sight to new family or another worker.
+  it('a manager RUNS the full day-to-day operating set', () => {
+    for (const cap of [
+      'rentroll.view', 'maintenance.manage', 'rent.confirm', 'notice.post',
+      'lease.manage', 'tenant.contact', 'message.tenant', 'portfolio.view',
+    ]) {
+      expect(can(REL.LANDLORD_MANAGER, 'manager', cap), `manager should run ${cap}`).toBe(true);
+    }
+  });
+
+  it('a manager NEVER owns it: no watching-over, history-review, training, or delegating', () => {
+    // The four owner powers are the ceiling — a 1099 worker operates, it cannot
+    // hand the business to someone else.
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.oversight')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.history')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.train')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.delegate')).toBe(false);
+  });
+
+  it('the owner keeps the whole operating set AND the four oversight powers', () => {
+    // "With or without them" — the owner can always act…
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'rentroll.view')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'message.tenant')).toBe(true);
+    // …and always watch, review, train, and hand the sight to others.
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.oversight')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.history')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.train')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.delegate')).toBe(true);
+  });
+
+  it('the four oversight powers are exactly the owner/manager delta (the ceiling is visible)', () => {
+    for (const cap of ['ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+      expect(can(REL.LANDLORD_MANAGER, 'landlord', cap), `owner should hold ${cap}`).toBe(true);
+      expect(can(REL.LANDLORD_MANAGER, 'manager', cap), `manager should NOT hold ${cap}`).toBe(false);
     }
   });
 });
