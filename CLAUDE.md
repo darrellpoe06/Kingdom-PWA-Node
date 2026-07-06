@@ -438,6 +438,23 @@ Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak prece
 
 Recorded for the ledger as **DR-0108**; grounds **WAYS-REVIEW**. Pairs with GOVERN-EXECUTE-ADVISE (the agent advises with the team's full toolset in view), VERIFICATION-DOCTRINE / SURFACE-PREMISE (an asserted constraint is verified, not assumed), DR-0075 (perpetual improvement — the ways improve too), DR-0102 (the work reviews itself — this is the how-we-work half), and Drive-Don't-Delegate (drive with the principal's tools, ask only for the smallest piece genuinely his).
 
+## Post-Feature Alignment — Sweep the Descriptor Locations (added 2026-07-06, declared by Darrell; DR-0113)
+
+**Binding rule, declared by Darrell 2026-07-06:**
+
+> "Did the other surfaces update to make sure everything keeps the correct context and information updated with every feature and or updates?" … "Update our documentation and ways to make sure we review the other locations that identify the things we change about the app each time."
+
+**When a modeled feature changes, the OTHER locations that DESCRIBE it are swept to match — in the same change, not "later."** The trigger (the exact miss): adding the landlord↔manager (1099) relationship made the live **Matrix** self-update (it renders from the model — DR-0076 "no painted permissions"), but three hardcoded-prose surfaces still said "three relationships" — the in-app help, the Data-Systems course lesson, and the onboarding step. A surface that RENDERS FROM THE MODEL cannot drift; hardcoded copy silently does.
+
+- **The sweep is part of the feature, every time.** After any change to an enumerable modeled thing (a relationship type, a role, a capability, a tier), the agent sweeps every registered location that describes it and updates them in the same PR. This is the surface-reflects-reality half of the post-feature alignment review (REV-0011 standing practice; the sibling of DR-0104's live-production review and DR-0102's cadence). Surfaced as a named step — silence is not a skip.
+- **A gate is the machine floor for the enumerable case.** A remembered pass drifts (REV-0011 itself left copy incomplete), so the miss is mined for a machine check (DR-0076): `app/src/__tests__/relationship-descriptor-consistency.test.js` fails the build when a modeled relationship is not named by a registered descriptor, or the written-out count drifts. It is **proven-to-catch** (authored RED-then-GREEN). New "looked-consistent-but-wasn't" classes become new gates.
+- **The descriptor locations are a REGISTERED list, not a memory.** "What else describes this feature?" is a lookup — the gate's `DESCRIPTOR_LOCATIONS` (help-content, datasystems-course, adopter-onboarding for the relationship model). Adding a descriptor extends the sweep.
+- **Prefer render-from-the-model surfaces** so there is nothing to sweep; where copy must be hardcoded, this review is where it is kept honest. Honest limit: the gate covers the enumerable case; non-enumerable drift still rides the human review.
+
+Recorded for the ledger as **DR-0113**; grounds **DESCRIPTOR-CONSISTENCY**. Pairs with VERIFICATION-DOCTRINE (proven-to-catch gates over remembered passes), REALITY-TRACE (a surface is a live view of real state), APP-IS-PRIMARY, PERPETUAL-IMPROVEMENT (the copy improves with the model), and WAYS-REVIEW (this IS a way, made durable).
+
+---
+
 ## Do the Work — Don't Re-Ask What's Already Decided (added 2026-07-06, declared by Darrell)
 
 **Binding rule, declared by Darrell 2026-07-06, at high intensity, as a recurring correction:**

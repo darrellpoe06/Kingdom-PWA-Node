@@ -106,7 +106,7 @@ export const ONBOARDING_JOURNEY = [
     why: 'Access is the relationship between two people. Children are protected structurally; tenants never see your money.',
     how: [
       'Open Relationships.',
-      'Add a family member, a guardian→child link, or a landlord↔tenant relationship.',
+      'Add a family member, a guardian→child link, a landlord↔tenant relationship, or a landlord↔manager (1099) link that lets a worker or family run the business while you watch.',
       'Each person gets exactly the access their role allows — nothing more.',
     ],
   },

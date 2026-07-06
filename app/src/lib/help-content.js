@@ -305,13 +305,14 @@ export const HELP = {
   relationships: {
     title: 'Relationships',
     tag: 'Who can do what — by the relationship between two people.',
-    what: 'Relationships is where access stops being "is someone signed in" and becomes what the relationship grants. It models three relationships — guardian and child, family, and landlord and tenant — with an explicit can/can\'t matrix, and it is where you set the parts that are yours to set.',
+    what: 'Relationships is where access stops being "is someone signed in" and becomes what the relationship grants. It models four relationships — guardian and child, family, landlord and tenant, and landlord and manager (a 1099 worker or family who runs the business day-to-day) — each with an explicit can/can\'t matrix, and it is where you set the parts that are yours to set.',
     how: [
-      'Open Matrix to see, live from the model, exactly what each role can and cannot do.',
+      'Open Matrix to see, live from the model, exactly what each role can and cannot do — including Landlord & Manager (1099).',
       'In Guardian & Child, set what a child can do — child-safe by default, with outbound and sensitive actions locked or ask-first.',
       'In Landlord & Tenant, run the rent roll, maintenance, rent records (no money moves), notices, and messages — each side scoped to its own.',
+      'A manager (1099 worker or family) runs that full operating set, while you keep the owner\'s oversight: watch the workflows, review the message history to train, and grant that same sight to new family or another worker.',
     ],
-    why: 'A child should do age-appropriate things and not spend money; a tenant should see their unit and not your portfolio. Making the relationship the unit of permission keeps that true by design, not by hope.',
+    why: 'A child should do age-appropriate things and not spend money; a tenant should see their unit and not your portfolio; a 1099 manager should run the business but never own it or hand access to someone else. Making the relationship the unit of permission keeps that true by design, not by hope.',
     section: 'business',
   },
   inventory: {

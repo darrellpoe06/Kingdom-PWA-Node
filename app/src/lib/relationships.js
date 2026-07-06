@@ -100,6 +100,14 @@ export const RELATIONSHIPS = Object.freeze([
   // train their 1099 management… review the historical text exchanges… and even
   // give that sight to new family to run the business or a 1099 worker").
   //
+  // This is the MODEL-level face of DR-0101 (delegated property management): the
+  // `manager` role here is DR-0101's scoped operator (its "Property Manager"),
+  // shown live in the relationship matrix. DR-0101's fuller build — per-person,
+  // per-property REVOCABLE capability toggles (`delegated_capabilities`), a
+  // separate domain-scoped admin with no dev access, and the RLS that enforces
+  // the ceiling — is the staged, Tier-C, flag-off-until-green work; this fixed
+  // matrix is the honest first slice (no per-property scoping painted here).
+  //
   // The MANAGER (a 1099 contractor OR a family member being raised to run it)
   // RUNS the day-to-day — the full landlord operating set (rent roll, maintenance,
   // rent-confirm, notices, lease, tenant contact, messaging). But the manager is
