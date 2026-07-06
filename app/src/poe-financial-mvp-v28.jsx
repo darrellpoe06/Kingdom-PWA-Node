@@ -62,6 +62,11 @@ import {
   buildWealthLessonsSchedule, wealthLessonsProgressSummary, exportWealthLessonsCurriculumMarkdown,
 } from './lib/wealth-lessons-class.js';
 import {
+  PRIDE_LESSONS_META, PRIDE_LESSONS_SESSION_FLOW,
+  PRIDE_LESSONS_INTEREST_TAG, PRIDE_LESSONS_HELPER_TAG, PRIDE_LESSONS_TUTOR_META,
+  buildPrideLessonsSchedule, prideLessonsProgressSummary, exportPrideLessonsCurriculumMarkdown,
+} from './lib/pride-lessons-class.js';
+import {
   SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
   SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
   buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
@@ -5082,6 +5087,42 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
+          // Pride Before the Fall: The Increase Is the Lord's — a Word-first,
+          // SELF-PACED series of six short lessons that build on each other (pride
+          // goes before the fall -> the increase is the Lord's -> except the Lord
+          // build the house -> be grateful not proud -> He makes us win -> humble
+          // yourself and He lifts you). From Darrell's spoken teaching 2026-07-06:
+          // "Don't be proud of yourself; be grateful for Yahweh -- He makes us win."
+          // Same shared engine (meta.unit -> "Lesson(s)", no cohort clock); auto-
+          // joins the Learn hub + Presenter. The games are lessons too: the same
+          // teaching is playable in the Generations "Pride & the Increase" cards.
+          const submitPrideLessonsInterest = authSession
+            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${PRIDE_LESSONS_INTEREST_TAG} ${(name || 'A learner').trim()} wants more Pride & the Increase lessons.` })
+            : null;
+          const prideLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], PRIDE_LESSONS_INTEREST_TAG) : null;
+          const prideLessonsCourse = {
+            meta: { ...PRIDE_LESSONS_META, key: 'pride-lessons' },
+            sessionFlow: PRIDE_LESSONS_SESSION_FLOW,
+            schedule: buildPrideLessonsSchedule(),
+            cohortStart: null,
+            cohortConfirmed: false,
+            setCohortStart: null,
+            confirmCohort: null,
+            progressSummary: (p) => prideLessonsProgressSummary(p),
+            exportMarkdown: () => exportPrideLessonsCurriculumMarkdown(),
+            downloadName: 'pride-before-the-fall-the-increase-is-the-lords.md',
+            submitInterest: submitPrideLessonsInterest,
+            roster: prideLessonsRoster,
+            interestCopy: {
+              heading: 'Want more Pride & the Increase lessons?',
+              blurb: 'Tell Darrell which lessons on pride, humility, and gratitude would help you and your family most, and he’ll add them. Read at your own pace, at any age. Don’t be proud — be grateful; He makes us win.',
+              cta: 'I’d like more',
+              sent: '✓ Sent — Darrell will see what would help most. The increase is the Lord’s; the glory is His.',
+            },
+            tutorCourseMeta: PRIDE_LESSONS_TUTOR_META,
+            engagementByAge,         // Governor: real engagement-by-age aggregate
+          };
+
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
           const helperTagFor = (courseKey) => (
             courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
@@ -5093,7 +5134,8 @@ html{scroll-padding-bottom:280px}
                         : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
                           : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
                             : courseKey === 'wealth-lessons' ? WEALTH_LESSONS_HELPER_TAG
-                              : '[Class helper]'
+                              : courseKey === 'pride-lessons' ? PRIDE_LESSONS_HELPER_TAG
+                                : '[Class helper]'
           );
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
@@ -5125,7 +5167,7 @@ html{scroll-padding-bottom:280px}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, wealthLessonsCourse, prideLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}
