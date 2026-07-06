@@ -438,4 +438,23 @@ Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak prece
 
 Recorded for the ledger as **DR-0108**; grounds **WAYS-REVIEW**. Pairs with GOVERN-EXECUTE-ADVISE (the agent advises with the team's full toolset in view), VERIFICATION-DOCTRINE / SURFACE-PREMISE (an asserted constraint is verified, not assumed), DR-0075 (perpetual improvement — the ways improve too), DR-0102 (the work reviews itself — this is the how-we-work half), and Drive-Don't-Delegate (drive with the principal's tools, ask only for the smallest piece genuinely his).
 
+---
+
+## The Continuous-Efficiency Pass — One Extra Step, Every Task (added 2026-07-06, declared by Darrell; DR-0109)
+
+**Binding rule, declared by Darrell 2026-07-06:**
+
+> "keep pulling teachings and also add a new fix after just watching the process for upgrades that would make it more efficient based on the current workflows... keep that as the model or our Way of working — one extra step to make sure we are increasing efficiencies always."
+
+**Every substantive task ends with one extra step: a continuous-efficiency pass on the WORKFLOW that was just run — and the upgrade it reveals is shipped, then and there.** This is Layer 0 because it is a permanent habit, not a one-time chore; it must be true *before* the agent is asked.
+
+- **Watch the process, not just the product.** After the work is verified, step back and ask: *what did I just do that the next run should not have to do again?* The signals are concrete — duplication I copied, boilerplate I re-typed, a manual step that repeated, a slow path I took twice. (The naming instance: three near-identical ~100-line verse-append scripts `sed`-copied in one session → consolidated into one registry-driven `scripts/append-verses.mjs`; the next teaching's verses are now one `BATCHES` entry.)
+- **Ship the upgrade in the same verified lane** (tests + gates + PR), with the win **stated** ("3 copied scripts → 1 registry entry"), not a claim. If it is genuinely too large for the moment, it becomes a tracked item with a `re-review:` date (DR-0075) — never a silent drop.
+- **Narrow, not scope creep.** It improves how the work is DONE (dedupe, extract a helper, parameterize, delete a dead path), inside the module-growth direction (DR-0103 — grow the modules, not the monolith). It does not invent new product scope or new theology.
+- **Run without being re-asked, and surfaced by name** — like the reality-trace, the tests, the live-production review, and the ways-review, the efficiency pass is a named step the agent states as it closes a task. Silence is not a skip.
+
+Recorded for the ledger as **DR-0109**; grounds **CONTINUOUS-EFFICIENCY-PASS**. The per-task, always-on complement to **DR-0108** (the standing, scheduled ways-review). Pairs with DR-0075 (perpetual improvement — now the workflow improves too), DR-0103 (the streamlined loop — efficiency rides the same lane), and DR-0076 (the upgrade ships with evidence).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
