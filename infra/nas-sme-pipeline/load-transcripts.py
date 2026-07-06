@@ -59,6 +59,7 @@ PLATFORM = "youtube"
 #   python load-transcripts.py --slug colg --dry-run         # fetch, print coverage, write nothing
 # =============================================================================
 import argparse
+import calendar
 import json
 import os
 import random
@@ -75,6 +76,15 @@ PAUSE_FLAG = os.path.join(_OUT_DIR, ".transcripts-paused")
 BLOCKED_RUNS = os.path.join(_OUT_DIR, ".transcripts-blocked-runs")
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 
+# YouTube can take a couple of days (longer for long services) to finish
+# generating a video's auto-captions. A "no captions" result on a video newer
+# than this window is TRANSIENT -- the track is still processing -- so we retry it
+# later instead of burning a durable no-caption verdict on a fresh upload
+# (Darrell 2026-07-06: "there's not closed captions for that video yet... takes a
+# couple days for YouTube to process them"). Older than this, a no-caption result
+# is a real verdict about the video -> Whisper-on-NAS fallback.
+CAPTION_GRACE_DAYS = 4
+
 # Exception class names that are durable verdicts about the video itself
 # (mirrors transcript-backfill-ci.py; verified against youtube-transcript-api's
 # _errors module). Everything else -- RequestBlocked, IpBlocked, network
@@ -90,6 +100,24 @@ VERDICT_ERRORS = (
 def is_verdict(err):
     """True when a stored/new error string is a durable no-caption verdict."""
     return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
+
+
+def within_caption_grace(service_date, now_ms=None, grace_days=CAPTION_GRACE_DAYS):
+    """True when a video is new enough that a missing caption track most likely
+    just means YouTube has not finished processing it yet (retry later) rather
+    than a durable no-caption verdict. `service_date` is 'YYYY-MM-DD' (from
+    choir_sermons) or None. An unknown/unparseable date returns False -- treat it
+    as old, i.e. let the verdict stand -- the conservative default that never
+    leaves a genuinely caption-less old video looping forever. `now_ms` is epoch
+    SECONDS (injected in tests; defaults to time.time())."""
+    if not service_date:
+        return False
+    try:
+        vid_epoch = calendar.timegm(time.strptime(str(service_date)[:10], "%Y-%m-%d"))
+    except (ValueError, TypeError):
+        return False
+    now = now_ms if now_ms is not None else time.time()
+    return (now - vid_epoch) < grace_days * 86400
 
 
 def build_api(YouTubeTranscriptApi):
@@ -192,10 +220,12 @@ def upsert_transcript(url, key, instance_id, vid, record, dry_run):
 
 
 def video_ids_from_cloud(url, key, instance_id):
+    """Return [(video_id, service_date)] newest-first. service_date drives the
+    caption-grace check -- a brand-new upload's missing captions are transient."""
     rows = rest(url, key, "GET",
-                "choir_sermons?select=video_id&instance_id=eq." + instance_id
+                "choir_sermons?select=video_id,service_date&instance_id=eq." + instance_id
                 + "&video_id=not.is.null&order=service_date.desc") or []
-    return [r["video_id"] for r in rows if r.get("video_id")]
+    return [(r["video_id"], r.get("service_date")) for r in rows if r.get("video_id")]
 
 
 # --- id sources -------------------------------------------------------------
@@ -305,6 +335,10 @@ def main():
     ap.add_argument("--channel", help="YouTube channel_id (UC...) -- recent uploads via RSS")
     ap.add_argument("--max", type=int, default=25, help="cap videos fetched THIS run (budget brake; 0 = no cap)")
     ap.add_argument("--refetch", action="store_true", help="re-fetch ids already loaded")
+    ap.add_argument("--caption-grace-days", type=int, default=CAPTION_GRACE_DAYS,
+                    help="a no-caption result on a video newer than this many days is treated "
+                         "as transient (YouTube still processing the captions), not a durable "
+                         f"verdict; such a video is retried on a later run (default {CAPTION_GRACE_DAYS})")
     ap.add_argument("--dry-run", action="store_true", help="fetch + report, write nothing")
     ap.add_argument("--secrets", default=DEFAULT_SECRETS, help="path to Supabase secrets JSON")
     ap.add_argument("--sleep-min", type=float, default=1.0,
@@ -334,6 +368,7 @@ def main():
     instance_id = resolve_instance(url, key, args.slug)
 
     # Assemble the id worklist (explicit sources first, else the cloud corpus).
+    svc_date = {}  # video_id -> service_date (cloud), drives the caption-grace check
     ids = []
     if args.ids:
         ids += [s.strip() for s in args.ids.split(",") if s.strip()]
@@ -342,7 +377,9 @@ def main():
     if args.channel:
         ids += channel_video_ids(args.channel)
     if not ids:
-        ids = video_ids_from_cloud(url, key, instance_id)
+        for _vid, _sd in video_ids_from_cloud(url, key, instance_id):
+            ids.append(_vid)
+            svc_date[_vid] = _sd
     seen, ordered = set(), []
     for v in ids:
         if v not in seen:
@@ -361,14 +398,21 @@ def main():
 
         state = existing_state(url, key, instance_id)
         api = build_api(YouTubeTranscriptApi)
-        fetched = no_caption = blocked = skipped = 0
+        fetched = no_caption = blocked = pending = skipped = 0
         total = len(ordered)
         for i, vid in enumerate(ordered, 1):
             prior = state.get(vid)
-            if prior and not args.refetch and (prior["has_text"] or prior["has_verdict"]):
+            recent = within_caption_grace(svc_date.get(vid), grace_days=args.caption_grace_days)
+            # A recorded no-caption VERDICT counts as resolved -- UNLESS the video
+            # is still inside the caption-processing window, where that verdict may
+            # be premature (YouTube had not generated captions yet). Re-fetching a
+            # recent, verdict-marked video is how a mistaken early verdict SELF-HEALS
+            # once the captions land (no manual cleanup needed).
+            resolved = prior and (prior["has_text"] or (prior["has_verdict"] and not recent))
+            if resolved and not args.refetch:
                 skipped += 1
                 continue
-            if args.max and (fetched + no_caption + blocked) >= args.max:
+            if args.max and (fetched + no_caption + blocked + pending) >= args.max:
                 log(f"--max {args.max} reached; stopping (re-run to continue).")
                 break
             log(f"[{i}/{total}] fetching captions for {vid} ...")
@@ -379,6 +423,13 @@ def main():
                                    "lang": "en", "error": None}, args.dry_run)
                 fetched += 1
                 log(f"    ok  {words} words -> video_transcripts")
+            elif is_verdict(err) and recent:
+                # No caption track YET, but the upload is new enough that YouTube is
+                # very likely still processing it (Darrell 2026-07-06). Treat like a
+                # transient miss: write NOTHING so a later run retries once captions
+                # land -- never burn a durable verdict on a fresh upload.
+                pending += 1
+                log(f"    PENDING ({err}) -> uploaded < {args.caption_grace_days}d ago; captions still processing, will retry")
             elif is_verdict(err):
                 upsert_transcript(url, key, instance_id, vid,
                                   {"text": "", "words": 0, "source": "youtube-asr",
@@ -403,16 +454,22 @@ def main():
         gaps = total - with_text
         log("")
         log(f"This run: {fetched} fetched, {no_caption} no-caption verdicts, "
-            f"{blocked} blocked (will retry), {skipped} already resolved.")
+            f"{pending} pending (too new; will retry), {blocked} blocked (will retry), "
+            f"{skipped} already resolved.")
         log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
         if fetched > 0:
             clear_blocked_runs()  # real progress resets the kill-switch counter
-        if blocked > 0 and fetched == 0:
+        # Only trip the IP-block kill-switch when EVERY attempt was refused -- a run
+        # that got any real answer (a fetch, a verdict, or a still-processing
+        # pending) proves the IP is reaching YouTube.
+        if blocked > 0 and (fetched + no_caption + pending) == 0:
             log(f"BLOCKED: all {blocked} attempts were rejected (YouTube is blocking this IP). Nothing advanced.")
             if not args.dry_run:
                 record_blocked_run()
             sys.exit(3)
-        if fetched == 0 and no_caption == 0 and gaps > 0 and not args.refetch:
+        # A true STALL is nothing happening at all while gaps remain -- NOT the
+        # healthy case where the only work left is pending brand-new uploads.
+        if (fetched + no_caption + blocked + pending) == 0 and gaps > 0 and not args.refetch:
             log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
             sys.exit(3)
         if fetched > 0:
