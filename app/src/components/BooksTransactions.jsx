@@ -11,6 +11,7 @@
 // n8n base + reconciliation helpers it uses were already core libs.
 import React, { useState, useEffect, useMemo } from 'react';
 import { TabScroll } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
@@ -1544,6 +1545,26 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         );
       })()}
 
+      {/* The below-the-ledger analysis stack — 30/60/90 forecast, the all-account
+          balance sweep, and the ledger-integrity proof — was three long sections
+          stacked (Darrell 2026-07-04 "sliding tabs instead of a long scroll";
+          2026-07-05 "a 3rd row of sliding tabs if that tab scrolls really long").
+          The Upcoming/History/Evaluate strip above stays exactly as it is (txView
+          drives real logic: the merged list, the filter bar, the per-row shortfall
+          math), so this grouping is a variant="sub" chip row per the hierarchy:
+          nav slides, tx view switches, analysis slides. Each block moved VERBATIM;
+          only the active panel mounts. */}
+      <SectionTabs
+        variant="sub"
+        ariaLabel="Ledger analysis sections"
+        idBase="books-tx-analysis"
+        defaultId="forecast"
+        sections={[
+          {
+            id: 'forecast',
+            label: '30/60/90 forecast',
+            icon: 'chart',
+            render: () => (
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Cash Forecast · vs prior 30 / 60 / 90 actuals</div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
@@ -1605,8 +1626,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the projected balance at each forward window (current balance + upcoming charges + recurring). Compare the two sides to gut-check: if the forward projection drops faster than the prior 90 days bled, you're projecting tighter than reality — or you've got a real upcoming squeeze. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
         </p>
       </section>
-
-      {(accounts || []).length > 0 && (
+            ),
+          },
+          accounts.length > 0 ? {
+            id: 'balances',
+            label: 'All balances',
+            icon: 'coins',
+            render: () => (
         <section>
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
@@ -1624,11 +1650,19 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             Full balance sweep across every entity. The primary bill-pay account (★) is shown prominently at the top of this tab. Edit any account in Books · Accounts to mark it primary.
           </p>
         </section>
-      )}
-      {/* Proof of the math — the ledger-integrity invariants over the REAL rows
-          (2026-07-05, Darrell: "how do we prove the math is correct so when real
-          numbers are uploaded for years of data it can paint a picture"). */}
-      <LedgerProof data={data} currentDate={currentDate} />
+            ),
+          } : null,
+          {
+            id: 'proof',
+            label: 'Proof of the math',
+            icon: 'check',
+            // Proof of the math — the ledger-integrity invariants over the REAL rows
+            // (2026-07-05, Darrell: "how do we prove the math is correct so when real
+            // numbers are uploaded for years of data it can paint a picture").
+            render: () => <LedgerProof data={data} currentDate={currentDate} />,
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -7,6 +7,11 @@
 // proof, run every CI cycle. The software card renders UNCONDITIONALLY (it is
 // non-financial engineering content — only budget/donations are access-gated),
 // so no signed-in session is needed to prove it shows.
+//
+// The surface now flows as SectionTabs ("sliding tabs instead of a long
+// scroll", Darrell 2026-07-04): only the ACTIVE panel is mounted, so each
+// assertion first clicks the section tab its card lives behind (the same
+// proven clickTab pattern as church-home-render.test.jsx).
 // =============================================================================
 import { describe, it, expect, afterEach } from 'vitest';
 import { createElement } from 'react';
@@ -34,9 +39,26 @@ afterEach(() => {
   root = container = null;
 });
 
+// Click a section tab in the SectionTabs strip by its visible label — only the
+// active panel is mounted, so a card on another section is reached this way.
+const clickTab = (label) => {
+  const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
+  if (!tab) throw new Error(`tab not found: ${label}`);
+  act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
+
 describe('the VX1000 software card shows in the app', () => {
+  it('renders the pinned project header + the section strip on plain mount', async () => {
+    await mount();
+    const text = document.body.textContent;
+    expect(text).toMatch(/Sanctuary LED Video Wall/);
+    expect(container.querySelector('[role="tablist"]')).toBeTruthy();
+    // default section = the on-site working state
+    expect(text).toMatch(/On-site session/i);
+  });
   it('renders the NovaStar download link + all three programs', async () => {
     await mount();
+    clickTab('Software & control');
     const text = document.body.textContent;
     expect(text).toMatch(/VX1000 software/);
     expect(text).toMatch(/NovaLCT/);
@@ -48,6 +70,7 @@ describe('the VX1000 software card shows in the app', () => {
   });
   it('renders the on-site first-setup steps (USB Type-B, admin, 8x6, RCFG, V-Can)', async () => {
     await mount();
+    clickTab('Software & control');
     const text = document.body.textContent;
     expect(text).toMatch(/USB Type-B/);
     expect(text).toMatch(/password "admin"/);
@@ -56,12 +79,14 @@ describe('the VX1000 software card shows in the app', () => {
   });
   it('renders which software goes on which control-room machine', async () => {
     await mount();
+    clickTab('Software & control');
     const text = document.body.textContent;
     expect(text).toMatch(/config laptop/i);
     expect(text).toMatch(/operator machine/i);
   });
   it('renders the sovereign tool cache + control-from-anywhere + guardrails', async () => {
     await mount();
+    clickTab('Software & control');
     const text = document.body.textContent;
     expect(text).toMatch(/tool cache/i);
     expect(text).toMatch(/\/volume1\/PoeTech\/tool-cache\/novastar/);
@@ -72,6 +97,7 @@ describe('the VX1000 software card shows in the app', () => {
   });
   it('renders the illustrated NovaLCT setup runbook (9 steps) with photo slots', async () => {
     await mount();
+    clickTab('Software & control');
     const text = document.body.textContent;
     expect(text).toMatch(/LED Wall Setup/i);
     expect(text).toMatch(/SOFTWARE category/);
@@ -82,21 +108,27 @@ describe('the VX1000 software card shows in the app', () => {
   });
   it('renders the canonical panel spec + verified 8-port connection map', async () => {
     await mount();
-    const text = document.body.textContent;
+    clickTab('Spec & power');
+    let text = document.body.textContent;
     expect(text).toMatch(/MRV412-N/);
     expect(text).toMatch(/320 x 240/);
     expect(text).toMatch(/2560 x 1440/);
+    clickTab('Signal chain');
+    text = document.body.textContent;
     expect(text).toMatch(/Port 1/);
     expect(text).toMatch(/Port 8/);
     expect(text).toMatch(/SELECT the Ethernet port FIRST/i);
   });
   it('renders the final config (per-column apply) + tomorrow activation + gallery', async () => {
     await mount();
-    const text = document.body.textContent;
+    clickTab('Software & control');
+    let text = document.body.textContent;
     expect(text).toMatch(/COMPLETE/);
     expect(text).toMatch(/NO "Apply to Entire Screen"/i);
     expect(text).toMatch(/SEPARATE CABINETS/i);
     expect(text).toMatch(/Quantity of Screens = 1/);
+    clickTab('Story');
+    text = document.body.textContent;
     expect(text).toMatch(/Install gallery/i);
   });
 });
