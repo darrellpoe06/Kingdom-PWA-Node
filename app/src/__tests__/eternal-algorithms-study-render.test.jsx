@@ -104,6 +104,9 @@ describe('EternalAlgorithmsStudy — the public series surface renders faithfull
 
   it('runs the belief-vs-action round and shows the Yahweh-axis mirror', async () => {
     await mount();
+    // The game hook is its own sliding section now ("sliding tabs instead of a
+    // long scroll", Darrell 2026-07-04) — open its tab before running the round.
+    await clickEl(btn(/Take it to the game/));
     await clickEl(btn(/Run the belief-vs-action round/));
     const text0 = container.textContent || '';
     expect(text0).toMatch(/I do the word/);                     // the redemption choice is offered

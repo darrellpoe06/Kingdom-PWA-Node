@@ -19,6 +19,7 @@
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import HelpButton from './HelpButton.jsx';
 import UiIcon from './UiIcon.jsx';
 import { kjvText, readOnline } from '../lib/scriptures.js';
@@ -596,9 +597,6 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
     () => [...studyToGameCards(study, responses), ...algorithmsToGameCards(forge), ...godheadToGameCards()],
     [study, responses, forge],
   );
-  // Which room of the surface is open: the study series, or the whole-Bible
-  // Godhead Study (deterministic algorithms, Torah → Revelation).
-  const [room, setRoom] = useState('series');
   // Persist the generated deck so a Game Night (Generations) can pick it up, and
   // go to the games hub. withStudyDeck proves the deck injects into a real def.
   const toGameNight = () => {
@@ -611,37 +609,19 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
 
   const helpNav = { view, churchView, setView, setChurchView };
 
-  return (
-    <div className="max-w-3xl">
-      <SectionTitle eyebrow="Word-first · for honest self-examination">
-        <span className="inline-flex items-center gap-2">
-          <UiIcon name="sparkle" /> {SERIES.title}
-          <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
-        </span>
-      </SectionTitle>
-
-      {/* Three rooms, one surface: the interactive study series, the
-          whole-Bible Godhead Study, and the 3rd-Dimension Witness — cited
-          science cross-referenced with the Word (Darrell 2026-07-03). */}
-      <div className="flex gap-2 flex-wrap mb-3" role="tablist" aria-label="Eternal Algorithms rooms">
-        <button type="button" role="tab" aria-selected={room === 'series'} onClick={() => setRoom('series')}
-          className={`${BTN} border ${room === 'series' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          Study series
-        </button>
-        <button type="button" role="tab" aria-selected={room === 'godhead'} onClick={() => setRoom('godhead')}
-          className={`${BTN} border ${room === 'godhead' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          The Godhead Study · whole Bible
-        </button>
-        <button type="button" role="tab" aria-selected={room === 'witness'} onClick={() => setRoom('witness')}
-          className={`${BTN} border ${room === 'witness' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          3rd-Dimension Witness
-        </button>
-      </div>
-
-      {room === 'godhead' && <GodheadStudyView />}
-      {room === 'witness' && <WitnessView />}
-
-      {room === 'series' && (<>
+  // The rooms of this surface as sliding section tabs (SectionTabs — Darrell
+  // 2026-07-04 "sliding tabs instead of a long scroll"): the interactive study
+  // series, the whole-Bible Godhead Study, the 3rd-Dimension Witness — cited
+  // science cross-referenced with the Word (Darrell 2026-07-03) — the game
+  // hand-off, and (only when something is published) the family-forge
+  // frameworks. Only the open section mounts; every hook stays up here, so
+  // sliding between sections loses no answers, deck, or forge data.
+  const sections = [
+    {
+      id: 'series',
+      label: 'Study series',
+      icon: 'bookOpen',
+      render: () => (<>
       {/* The series frame — reverent, humble-seeking. */}
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">{SERIES.kicker}</p>
@@ -703,9 +683,26 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </div>
       </div>
 
-      </>)}
-
-      {/* The game hook — belief-vs-action round + Game Night hand-off. */}
+      </>),
+    },
+    {
+      id: 'godhead',
+      label: 'The Godhead Study · whole Bible',
+      icon: 'sparkle',
+      render: () => <GodheadStudyView />,
+    },
+    {
+      id: 'witness',
+      label: '3rd-Dimension Witness',
+      icon: 'globe',
+      render: () => <WitnessView />,
+    },
+    // The game hook — belief-vs-action round + Game Night hand-off.
+    {
+      id: 'game',
+      label: 'Take it to the game',
+      icon: 'dice',
+      render: () => (
       <div className="border-t-2 border-[#1A1815] pt-3">
         <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Take it to the game</h3>
         <p className="text-sm text-[#5A5751] mb-2" style={serif}>
@@ -721,12 +718,18 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </div>
         {showRound && <BeliefVsActionRound cards={cards} />}
       </div>
-
-      {/* FROM THE FORGE — finalized frameworks published from the family's
-          Study gallery (the forge→pulpit bridge). Only what the owner
-          explicitly published appears here; the deep layer only where they
-          chose to include it. Hidden entirely when nothing is published. */}
-      {forge.length > 0 && (
+      ),
+    },
+    // FROM THE FORGE — finalized frameworks published from the family's
+    // Study gallery (the forge→pulpit bridge). Only what the owner
+    // explicitly published appears here; the deep layer only where they
+    // chose to include it. Hidden entirely when nothing is published
+    // (SectionTabs filters the null — the tab never shows empty).
+    forge.length > 0 ? {
+      id: 'forge',
+      label: 'From the family forge',
+      icon: 'tools',
+      render: () => (
         <div className="border-t-2 border-[#1A1815] pt-3 mt-4">
           <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Finalized frameworks · from the family forge</h3>
           <p className="text-sm text-[#5A5751] mb-2" style={serif}>
@@ -736,7 +739,20 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
             {forge.map((alg) => <ForgeFramework key={alg.id} alg={alg} />)}
           </div>
         </div>
-      )}
+      ),
+    } : null,
+  ];
+
+  return (
+    <div className="max-w-3xl">
+      <SectionTitle eyebrow="Word-first · for honest self-examination">
+        <span className="inline-flex items-center gap-2">
+          <UiIcon name="sparkle" /> {SERIES.title}
+          <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
+        </span>
+      </SectionTitle>
+
+      <SectionTabs sections={sections} ariaLabel="Eternal Algorithms sections" idBase="ea" defaultId="series" />
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-4" style={serif}>
         King James Version (Public Domain) shown in-app, fetched verbatim and verified; other translations are referenced and linked, not reproduced (copyright). The Word is the arbiter; where we are unsure, we go back to it. Held in grace and truth, for the soul.

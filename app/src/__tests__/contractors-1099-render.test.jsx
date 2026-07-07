@@ -40,6 +40,16 @@ async function mount(props) {
     root.render(createElement(Contractors1099, props));
   });
 }
+
+// The 1099 surface now flows as SectionTabs ("sliding tabs instead of a long
+// scroll", Darrell 2026-07-04): only the ACTIVE panel is mounted, so a section
+// that lives on another tab is reached by clicking its tab first. This helper
+// clicks a tab in the strip by its visible label (the ChurchHome pattern).
+const clickTab = (label) => {
+  const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
+  if (!tab) throw new Error(`tab not found: ${label}`);
+  return act(async () => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+};
 afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
@@ -86,6 +96,7 @@ describe('Contractors1099 — worker manager honesty', () => {
 describe('Contractors1099 — worker voice never swallows the words', () => {
   it('renders the capture + honest empty state, and a signed-out submit keeps the draft with the reason', async () => {
     await mount(baseProps);
+    await clickTab('Worker voice');
     expect(container.textContent).toContain('Worker voice · operations');
     expect(container.textContent).toContain('No worker perspectives on this device');
 
@@ -118,6 +129,7 @@ describe('Contractors1099 — worker voice never swallows the words', () => {
 
   it('refuses to fabricate: submit with nothing said shows validation, no upload', async () => {
     await mount(baseProps);
+    await clickTab('Worker voice');
     const button = [...container.querySelectorAll('button')].find(b => /Record worker voice/i.test(b.textContent));
     await act(async () => { button.click(); });
     expect(uploadFeedback).not.toHaveBeenCalled();
