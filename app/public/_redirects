@@ -10,4 +10,11 @@
 # Vercel rewrite "/poetech-app/(.*) -> /$1". A 200 (rewrite, not redirect) keeps
 # the URL bar on /poetech-app/ so the service-worker scope + Supabase auth
 # redirect URLs (both pinned to /poetech-app/) stay correct.
+# Her-name share links: /moore serves the static Moore Divahs entry page (its
+# own og tags so a texted link previews as HER shop, then meta-refresh into the
+# door). /mooredivahs is a spelled-out alias. public/moore/index.html is served
+# automatically at /moore/; only the alias needs a rule.
+/mooredivahs   /moore/  301
+/mooredivahs/  /moore/  301
+
 /poetech-app/*  /:splat  200

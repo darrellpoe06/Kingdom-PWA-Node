@@ -71,6 +71,24 @@ export function priceOut(selectedKeys = []) {
   };
 }
 
+// ---- View-as-customer — the door's reviewer lens (DR-0104 sibling) ----------
+// The owner inspects her own app exactly as a customer meets it: updates,
+// features, and what her users are experiencing. THE ONE LAW — STRICTLY
+// NARROWING (same law as the main app's reviewer-mode): the lens can only HIDE
+// steward privilege, never grant any. Someone forcing customerView=true with no
+// steward role gets a strictly smaller view than they already had.
+// my_business_role() + table RLS remain the real gates — this changes what the
+// door RENDERS, not what the database allows.
+export function doorView(role, customerView = false) {
+  const stewardRole = role === 'owner' || role === 'admin';
+  return {
+    stewardRole,                                   // the REAL role — drives the toggle's visibility
+    isSteward: stewardRole && !customerView,       // whether privileged UI renders
+    customerView: stewardRole && customerView,     // the lens is ON (only meaningful for a real steward)
+    authRole: stewardRole && customerView ? 'customer-view' : role, // what DoorAuth displays
+  };
+}
+
 // The union-attribution source every capture from this door carries — this is
 // how "who came in from this union" shows up on the CRM + interest lists.
 export const DOOR_SOURCE = 'moore-divahs-app';

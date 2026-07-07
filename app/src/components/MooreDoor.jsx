@@ -22,7 +22,7 @@ import PasswordAuth from './PasswordAuth.jsx';
 const StewardBoard = lazy(() => import('./MooreDivahs.jsx'));
 import { captureLead } from '../lib/crm-sync.js';
 import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
@@ -429,6 +429,9 @@ function DoorAuth({ role, onRole }) {
   if (role === 'owner' || role === 'admin') {
     return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. <button type="button" className="underline" onClick={() => supabase.auth.signOut().then(() => window.location.reload())}>Sign out</button></p>;
   }
+  // 'customer-view' = a real steward looking through the customer lens: render
+  // exactly what a signed-in customer gets here (nothing) — the strip above the
+  // header is the only tell.
   if (role !== 'signed-out') return null; // signed-in customer — My Orders shows in the Moore tab
   if (open) {
     return (
@@ -455,7 +458,12 @@ export default function MooreDoor() {
   const [theme, setTheme] = useState(() => readThemePref('cream'));
   useEffect(() => { saveThemePref(theme); }, [theme]);
   const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
-  const isSteward = role === 'owner' || role === 'admin';
+  // View-as-customer — the door's reviewer lens (session-only on purpose: a
+  // reload always boots Shay back to her own board, never stuck in the lens).
+  // Strictly narrowing (doorView): it can only HIDE the steward board.
+  const [customerView, setCustomerView] = useState(false);
+  const view = doorView(role, customerView);
+  const isSteward = view.isSteward;
   // Install-to-home-screen carries HER name: swap the document's manifest to the
   // Moore Divahs one (and title/theme to match) while the door is mounted. Icon
   // artwork still reuses the platform icons until Shay supplies hers (md-handles
@@ -474,6 +482,12 @@ export default function MooreDoor() {
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
       <div className="mx-auto max-w-2xl px-4 pb-16">
+        {view.customerView && (
+          <div className="sticky top-0 z-40 -mx-4 flex items-center justify-between gap-2 border-b border-[#B85838] bg-[#FAF8F4] px-4 py-2 text-xs text-[#1A1815]">
+            <span>👁 <strong>Viewing as a customer</strong> — this is exactly what your customers see. Anything you submit here is real.</span>
+            <button type="button" className="whitespace-nowrap rounded-lg border border-[#B85838] px-2 py-1 font-semibold text-[#B85838]" onClick={() => setCustomerView(false)}>Exit</button>
+          </div>
+        )}
         <header className="pt-6 text-center">
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{MOORE_BRAND.tagline}</p>
@@ -491,11 +505,15 @@ export default function MooreDoor() {
                 onClick={() => setSizeKey(s.key)}>A</button>
             ))}
           </div>
-          <div className="mt-3"><DoorAuth role={role} onRole={setRole} /></div>
+          <div className="mt-3"><DoorAuth role={view.authRole} onRole={setRole} /></div>
         </header>
         {isSteward && (
           <Suspense fallback={<p className="mt-4 text-center text-xs text-[#5A5751]">Loading your board…</p>}>
             <div className="mt-2 rounded-2xl border border-[#B85838] p-2">
+              <div className="flex justify-end px-1 pt-1">
+                <button type="button" className="rounded-lg border border-[#E8E2D8] px-2 py-1 text-xs text-[#5A5751]"
+                  onClick={() => setCustomerView(true)}>👁 View as customer</button>
+              </div>
               <StewardBoard />
             </div>
           </Suspense>
