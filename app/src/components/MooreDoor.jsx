@@ -10,8 +10,16 @@
 // capture carries source='moore-divahs-app' so the union's inbound is visible
 // on the CRM from day one.
 // =============================================================================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import supabase from '../lib/supabase.js';
+import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
+import { useTextSize } from '../lib/text-size.js';
+import PasswordAuth from './PasswordAuth.jsx';
+
+// The steward board renders IN-DOOR for an owner/admin (Darrell 2026-07-07:
+// "she as an admin login on her front screen of her app, others say user
+// login"). Lazy so customers never download the steward chunk.
+const StewardBoard = lazy(() => import('./MooreDivahs.jsx'));
 import { captureLead } from '../lib/crm-sync.js';
 import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
@@ -282,9 +290,55 @@ function PoeTechTab() {
   );
 }
 
+// ---- Admin login / User login — one auth, role decides ----------------------
+// The buttons are honest signage; my_business_role() (0090, definer, signed-in
+// only) is the gate's input, and table RLS remains the real wall.
+function DoorAuth({ role, onRole }) {
+  const [open, setOpen] = useState(null); // null | 'admin' | 'user'
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    let on = true;
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!on) return;
+      if (!data?.session) { setChecking(false); onRole('signed-out'); return; }
+      const { data: r, error } = await supabase.rpc('my_business_role', { p_instance_slug: 'moore-divahs' });
+      if (!on) return;
+      onRole(error ? 'none' : (r || 'none'));
+      setChecking(false);
+    }).catch(() => { if (on) { setChecking(false); onRole('signed-out'); } });
+    return () => { on = false; };
+  }, [onRole]);
+  if (checking) return null;
+  if (role === 'owner' || role === 'admin') {
+    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. <button type="button" className="underline" onClick={() => supabase.auth.signOut().then(() => window.location.reload())}>Sign out</button></p>;
+  }
+  if (role !== 'signed-out') return null; // signed-in customer — My Orders shows in the Moore tab
+  if (open) {
+    return (
+      <div className="mx-auto max-w-sm">
+        <PasswordAuth mode="signin" embedded onSignedIn={() => window.location.reload()} />
+        <button type="button" className="mt-1 text-xs text-[#5A5751] underline" onClick={() => setOpen(null)}>Close</button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center gap-2">
+      <button type="button" className="rounded-lg border border-[#B85838] px-3 py-1.5 text-sm font-semibold text-[#B85838]" onClick={() => setOpen('user')}>User login</button>
+      <button type="button" className="rounded-lg border border-[#5A5751] px-3 py-1.5 text-sm text-[#5A5751]" onClick={() => setOpen('admin')}>Admin login</button>
+    </div>
+  );
+}
+
 // ---- the door ------------------------------------------------------------------
 export default function MooreDoor() {
   const [tab, setTab] = useState('moore'); // Moore Divahs first, always
+  const [role, setRole] = useState('signed-out');
+  // Comfort controls — the SAME theme + text-size the PoeTech app uses (shared
+  // libs; the per-device choice follows the user between shells).
+  const [theme, setTheme] = useState(() => readThemePref('cream'));
+  useEffect(() => { saveThemePref(theme); }, [theme]);
+  const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
+  const isSteward = role === 'owner' || role === 'admin';
   // Install-to-home-screen carries HER name: swap the document's manifest to the
   // Moore Divahs one (and title/theme to match) while the door is mounted. Icon
   // artwork still reuses the platform icons until Shay supplies hers (md-handles
@@ -300,12 +354,35 @@ export default function MooreDoor() {
     link.href = '/manifest-moore.webmanifest';
   }, []);
   return (
-    <div className="min-h-screen bg-[#FAF8F4]">
+    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
+      <style>{THEME_CSS}</style>
       <div className="mx-auto max-w-2xl px-4 pb-16">
         <header className="pt-6 text-center">
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{MOORE_BRAND.tagline}</p>
+          <div className="mt-2 flex items-center justify-center gap-2" role="group" aria-label="Comfort controls">
+            {THEMES.map((t) => (
+              <button key={t.key} type="button" aria-label={`${t.label} theme`} title={t.label}
+                className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}
+                onClick={() => setTheme(t.key)} />
+            ))}
+            <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
+            {sizeSteps.map((s) => (
+              <button key={s.key} type="button" aria-label={`Text size ${s.label}`}
+                className={`rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                onClick={() => setSizeKey(s.key)}>A</button>
+            ))}
+          </div>
+          <div className="mt-3"><DoorAuth role={role} onRole={setRole} /></div>
         </header>
+        {isSteward && (
+          <Suspense fallback={<p className="mt-4 text-center text-xs text-[#5A5751]">Loading your board…</p>}>
+            <div className="mt-2 rounded-2xl border border-[#B85838] p-2">
+              <StewardBoard />
+            </div>
+          </Suspense>
+        )}
         <TabScroll className="mt-4 border-b border-[#E8E2D8]" label="Moore Divahs sections">
           {DOOR_TABS.map((t) => (
             <button
