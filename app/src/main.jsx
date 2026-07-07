@@ -9,6 +9,7 @@ import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
+import { captureInstallPrompt } from './lib/install-app.js';
 
 window.storage = storage;
 
@@ -34,6 +35,11 @@ initTextSize();
 // delegated listener covers every date/datetime field on every surface and
 // every standalone boot, current and future. See lib/date-picker-tap.js.
 wireDatePickerTap();
+
+// Catch the browser's one-shot PWA install event at boot so any surface (the
+// PwaPrompts banner, DownloadLatest's install offer) can fire the native
+// install dialog on tap. Passive; armed in every boot mode. See lib/install-app.js.
+captureInstallPrompt(window);
 
 // Lightweight boots by URL param (outside the full app):
 //   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
