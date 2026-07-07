@@ -12,6 +12,7 @@
 // =============================================================================
 import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import supabase from '../lib/supabase.js';
+import { publicRpc } from '../lib/public-rpc.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 import { useTextSize } from '../lib/text-size.js';
 import PasswordAuth from './PasswordAuth.jsx';
@@ -80,9 +81,10 @@ function PublicClasses() {
   const [state, setState] = useState({ phase: 'loading', rows: [] });
   useEffect(() => {
     let on = true;
-    supabase.rpc('moore_public_classes', { p_instance_slug: 'poe-family' })
-      .then(({ data, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: data || [] }); })
-      .catch(() => { if (on) setState({ phase: 'error', rows: [] }); });
+    // publicRpc, NOT the shared client: anon read with a hard deadline — a
+    // wedged auth lock in another PoeTech window can never hang this again.
+    publicRpc('moore_public_classes', { p_instance_slug: 'poe-family' })
+      .then(({ data, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: data || [] }); });
     return () => { on = false; };
   }, []);
   if (state.phase === 'loading') return <p className="text-sm text-[#5A5751]">Loading classes…</p>;
@@ -469,14 +471,25 @@ function DoorAuth({ role, onRole }) {
   const [checking, setChecking] = useState(true);
   useEffect(() => {
     let on = true;
-    supabase.auth.getSession().then(async ({ data }) => {
+    // Hard deadline on the whole check: getSession() waits on a CROSS-TAB auth
+    // lock a wedged PoeTech window can hold forever (the 2026-07-07 "no login
+    // buttons on the front page" hang). If the check can't answer in time, the
+    // door defaults to signed-out — the honest state that always shows the
+    // User/Admin login buttons instead of a blank header.
+    const deadline = new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 5000));
+    (async () => {
+      const s = await Promise.race([supabase.auth.getSession(), deadline]);
       if (!on) return;
-      if (!data?.session) { setChecking(false); onRole('signed-out'); return; }
-      const { data: r, error } = await supabase.rpc('my_business_role', { p_instance_slug: 'moore-divahs' });
+      if (s?.timedOut || !s?.data?.session) { setChecking(false); onRole('signed-out'); return; }
+      const r = await Promise.race([
+        supabase.rpc('my_business_role', { p_instance_slug: 'moore-divahs' }),
+        deadline,
+      ]);
       if (!on) return;
-      onRole(error ? 'none' : (r || 'none'));
+      if (r?.timedOut) { setChecking(false); onRole('signed-out'); return; }
+      onRole(r?.error ? 'none' : (r?.data || 'none'));
       setChecking(false);
-    }).catch(() => { if (on) { setChecking(false); onRole('signed-out'); } });
+    })().catch(() => { if (on) { setChecking(false); onRole('signed-out'); } });
     return () => { on = false; };
   }, [onRole]);
   if (checking) return null;
