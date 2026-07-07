@@ -24,6 +24,8 @@ import AddressField, { osmLink } from './AddressField.jsx';
 import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece } from '../lib/showcase.js';
 import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
+import { QRCodeSVG } from 'qrcode.react';
+import { MOORE_SHARE_URL, MOORE_SHARE_URL_DISPLAY } from '../lib/moore-door.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -612,6 +614,54 @@ function MessagesSection() {
   );
 }
 
+// ---- Share your app — the QR Shay shows from her phone or sends -------------
+// Customers scan (or tap the sent link) → the her-name entry page → her door,
+// installable under HER name (manifest-moore). When they sign in, their orders
+// and class seats follow them onto their phone (the 0087 read-own lane) — the
+// "keep their history" half of the ask (Darrell 2026-07-07).
+function ShareAppSection() {
+  const [copied, setCopied] = useState(false);
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(MOORE_SHARE_URL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard blocked — the visible URL is still typeable */ }
+  };
+  const send = () => {
+    navigator.share({ title: 'Moore Divahs', text: 'Get the Moore Divahs app — custom clothing, scrub caps, custom shoes, sewing classes.', url: MOORE_SHARE_URL }).catch(() => { /* user closed the share sheet */ });
+  };
+  return (
+    <div className="mt-6">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Share your app</h2>
+      <p className="text-sm text-[#5A5751]">
+        Hold this up or send the link — a customer scans it and gets YOUR app.
+        When they sign in, their orders and class seats stay with them on their phone.
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-4 rounded-xl border border-[#E8E2D8] bg-white p-4">
+        <div className="rounded-lg bg-white p-2">
+          <QRCodeSVG value={MOORE_SHARE_URL} size={148} marginSize={2} title="QR code for the Moore Divahs app" />
+        </div>
+        <div className="min-w-[10rem] flex-1 space-y-2 text-sm">
+          <div className="font-semibold text-[#1A1815]" style={SERIF}>{MOORE_SHARE_URL_DISPLAY}</div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={copy} className="rounded-lg border border-[#B85838] px-3 py-1.5 font-semibold text-[#B85838]" aria-live="polite">
+              {copied ? '✓ Copied' : 'Copy link'}
+            </button>
+            {canShare && (
+              <button type="button" onClick={send} className="rounded-lg border border-[#5A5751] px-3 py-1.5 text-[#5A5751]">
+                Send…
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-[#5A5751]">Scanning opens Moore Divahs; &ldquo;Add to home screen&rdquo; installs it under your name.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---- Gallery manager — she uploads her historical pieces when ready (0092) --
 function GalleryManager() {
   const [pieces, setPieces] = useState([]);
@@ -719,6 +769,7 @@ export default function MooreDivahs() {
 
       <ClassesSection />
       <MessagesSection />
+      <ShareAppSection />
       <GalleryManager />
       <MaterialsSection />
       <BackfillSection orders={real} />

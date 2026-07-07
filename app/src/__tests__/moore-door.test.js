@@ -4,7 +4,7 @@
 // the DECLARED build terms (DR-0117) — never invented; the moore pipeline is
 // CONFIG on the one CRM backbone, and its capture forces the safe shape.
 import { describe, it, expect } from 'vitest';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView, MOORE_SHARE_URL } from '../lib/moore-door.js';
 import { getBusiness, getPipeline, attributeSource, validateCapture, canOutreach } from '../lib/crm-engine.js';
 
 describe('the door registry', () => {
@@ -42,6 +42,14 @@ describe('pricing — real numbers only', () => {
   it('empty selection prices nothing (no painted number)', () => {
     expect(priceOut([]).tier).toBeNull();
     expect(priceOut([]).monthly).toBeNull();
+  });
+});
+
+describe('the customer share link (QR + texted links)', () => {
+  it('points at the her-name entry page — the URL every share surface encodes', () => {
+    // Must match public/moore/index.html's og:url page (the Moore-branded
+    // preview + meta-refresh into the door). Changing one requires the other.
+    expect(MOORE_SHARE_URL).toBe('https://poetech.us/moore');
   });
 });
 
