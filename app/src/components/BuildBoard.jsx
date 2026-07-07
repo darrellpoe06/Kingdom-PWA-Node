@@ -16,6 +16,7 @@ import LlmHealth from './LlmHealth.jsx';
 import LlmReview from './LlmReview.jsx';
 import { normalizeGovernanceQueue } from './GovernanceQueue.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
+import DownloadLatest from './DownloadLatest.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
 // The Governor build/dev functions (Operations, Quality & Proof, the conflict
 // loop, the wake orchestrator, and the live project-management pulse) no longer
@@ -236,6 +237,12 @@ export function BuildBoard({ onViewDecisions = null, onNavigate = null, isGovern
         </div>
         <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           These counts are real — workflow files in the repo and dated ships, not hand-typed. Live run-status and per-item % complete are wiring up next.
+        </div>
+        {/* One tap to pull the newest deployed build onto THIS device (Darrell
+            2026-07-07) — checks right now instead of waiting on the browser's
+            own update cycle; honest "you're on the latest" when nothing's newer. */}
+        <div className="mt-3">
+          <DownloadLatest />
         </div>
         {isGovernor && openDecisions > 0 && (
           <button
