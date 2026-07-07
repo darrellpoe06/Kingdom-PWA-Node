@@ -122,12 +122,18 @@ if (__params.get('oauth_popup') === '1') {
     __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
   });
 } else if (__params.get('login') === '1') {
-  import('./components/PasswordAuth.jsx').then(({ default: PasswordAuth }) => {
+  // P0 login-loop fix (2026-07-07): navigating the instant sign-in succeeded
+  // raced supabase's async token write to localStorage — lose the race and the
+  // reloaded app boots signed OUT, showing the sign-in wall again (the
+  // password → PIN → password loop multiple users hit). Wait for the token to
+  // be verifiably persisted before leaving; the short timeout keeps a
+  // storage-blocked webview from trapping the user (no-lockout).
+  Promise.all([import('./components/PasswordAuth.jsx'), import('./lib/session-handoff.js')]).then(([{ default: PasswordAuth }, { awaitPersistedSession }]) => {
     __root.render(
       <React.StrictMode>
         <ErrorBoundary>
           <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
-            <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
+            <PasswordAuth onSignedIn={async () => { await awaitPersistedSession(); window.location.search = ''; }} />
           </div>
         </ErrorBoundary>
       </React.StrictMode>
