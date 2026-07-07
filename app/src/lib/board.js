@@ -520,6 +520,105 @@ export function seedTasksForBoard(boardSlug) {
   }));
 }
 
+// =============================================================================
+// PHASES ON THE TIMELINE — the finish ripple (DR-0120)
+// =============================================================================
+// Darrell 2026-07-07: "Why don't the boards show up on the timelines and why
+// aren't we adding the context to the Timelines and updating the boards after
+// we finish each faze or swim?" The gap: the boards' only timeline presence was
+// the dated-item count chip (boardDueByMonth) — and almost no board item
+// carries a date — and finishing a phase (a board group / swim lane) recorded
+// NOTHING. These helpers close both, honestly (DR-0076: derived from the real
+// rows and the real recorded moment, never an invented date).
+//
+//   * boardPhases       — the per-group roll-up: each group is a PHASE with an
+//                         honest done/total and a complete flag.
+//   * withPhaseCompletion — the ripple. When a status patch moves the LAST open
+//                         item of a group to done, the patch gains an append-only
+//                         kind='phase-complete' entry on links.history — the
+//                         same synced jsonb the handoff record already rides
+//                         (no migration; every device sees it live).
+//   * phaseCompletions  — the derived timeline-context feed: every recorded
+//                         phase completion across all boards, newest first.
+//   * boardTimelineLanes — one lane per live board for the Projects Timeline:
+//                         title + progress + the phase walk + the current phase
+//                         + the nearest real due date. Boards ARE on the
+//                         timeline as lanes, not only as a count chip.
+// -----------------------------------------------------------------------------
+export function boardPhases(tasks, groupOrder = []) {
+  return groupTasks(tasks, groupOrder).map((g) => {
+    const p = boardProgress(g.tasks);
+    return { label: g.label, ...p, complete: p.total > 0 && p.done === p.total };
+  });
+}
+
+export function withPhaseCompletion(allTasks, task, patch, { at = null } = {}) {
+  if (!patch || patch.status !== 'done' || !task || task.status === 'done') return patch;
+  const group = groupLabelOf(task);
+  const peers = tasksForBoard(allTasks, task.boardSlug).filter((t) => groupLabelOf(t) === group);
+  if (!peers.length) return patch;
+  const othersDone = peers.every((t) => t.slug === task.slug || t.status === 'done');
+  if (!othersDone) return patch;
+  const entry = {
+    at: at || null,
+    kind: 'phase-complete',
+    phase: group,
+    board: task.boardSlug,
+    boardTitle: task.boardTitle || null,
+    note: `Phase "${group}" completed — every item done.`,
+  };
+  // Respect a links patch already in flight (e.g. a handoff in the same write);
+  // otherwise append onto the task's current links.
+  return { ...patch, links: appendHistory(patch.links !== undefined ? patch.links : task.links, entry) };
+}
+
+export function phaseCompletions(tasks) {
+  const out = [];
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    for (const e of taskHistory(t)) {
+      if (e && e.kind === 'phase-complete') {
+        out.push({
+          at: e.at || null,
+          phase: e.phase || groupLabelOf(t),
+          boardSlug: e.board || t.boardSlug,
+          boardTitle: e.boardTitle || t.boardTitle || t.boardSlug,
+        });
+      }
+    }
+  }
+  return out.sort((a, b) => (Date.parse(b.at || '') || 0) - (Date.parse(a.at || '') || 0));
+}
+
+export function boardTimelineLanes(tasks) {
+  const bySlug = new Map();
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (!t || !t.boardSlug) continue;
+    if (!bySlug.has(t.boardSlug)) bySlug.set(t.boardSlug, []);
+    bySlug.get(t.boardSlug).push(t);
+  }
+  const lanes = [];
+  for (const [slug, rows] of bySlug) {
+    const spec = SEED_BOARD_BY_SLUG[slug];
+    const phases = boardPhases(rows, spec?.groupOrder || []);
+    let nextDue = null;
+    for (const t of rows) {
+      if (t.status === 'done' || !t.dueDate) continue;
+      const v = Date.parse(t.dueDate);
+      if (!Number.isNaN(v) && (nextDue == null || v < nextDue)) nextDue = v;
+    }
+    lanes.push({
+      slug,
+      title: rows.find((r) => r && r.boardTitle)?.boardTitle || spec?.title || slug,
+      progress: boardProgress(rows),
+      phases,
+      currentPhase: phases.find((p) => !p.complete)?.label || null,
+      nextDue: nextDue != null ? new Date(nextDue).toISOString().slice(0, 10) : null,
+    });
+  }
+  const order = new Map(SEED_BOARDS.map((b, i) => [b.slug, i]));
+  return lanes.sort((a, b) => (order.get(a.slug) ?? Infinity) - (order.get(b.slug) ?? Infinity) || a.title.localeCompare(b.title));
+}
+
 // mergedBoardList — the full set of boards to show: every SEED_BOARD (so an
 // un-seeded program board still appears with a "Load N items" affordance) unioned
 // with every board that exists only in the live task rows (a board the user

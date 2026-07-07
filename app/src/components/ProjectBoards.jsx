@@ -273,8 +273,14 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
 
       {groups.map((g) => (
         <div key={g.label} className="rounded-xl border border-[#E8E4DC] bg-white overflow-hidden">
-          <div className="px-4 py-2 border-b border-[#E8E4DC] bg-[#FAF8F4] font-medium text-[#1A1815] text-sm">
-            {g.label} <span className="text-[#5A5751] font-normal">· {g.tasks.length}</span>
+          <div className="px-4 py-2 border-b border-[#E8E4DC] bg-[#FAF8F4] font-medium text-[#1A1815] text-sm flex items-baseline justify-between gap-2 flex-wrap">
+            <span>{g.label} <span className="text-[#5A5751] font-normal">· {g.tasks.length}</span></span>
+            {/* Phase state (DR-0120): a group whose every item is done IS a
+                completed phase — say so where the phase lives. Derived live
+                from the real rows, never stored separately. */}
+            {g.tasks.length > 0 && g.tasks.every((t) => t.status === 'done') && (
+              <span className="text-xs font-normal text-[#5A6E3D]"><span aria-hidden="true">✓</span> Phase complete — on the Timeline</span>
+            )}
           </div>
           <ul>
             {g.tasks.map((t) => (
@@ -562,7 +568,10 @@ function Handoff({ task, currentUserPersona, onPush }) {
 // so both sides see the same trail on every device.
 // -----------------------------------------------------------------------------
 function HandoffHistory({ task }) {
-  const entries = taskHistory(task);
+  // Only ownership pushes render here; kind='phase-complete' entries (the
+  // finish ripple, DR-0120) ride the same links.history but surface on the
+  // Timeline's context feed and the group header, not as a handoff row.
+  const entries = taskHistory(task).filter((e) => e && (e.kind === 'handoff' || e.kind === 'default'));
   if (!entries.length) return null;
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
   const when = (iso) => {
