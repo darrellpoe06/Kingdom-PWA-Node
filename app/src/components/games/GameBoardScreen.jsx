@@ -21,11 +21,12 @@ import {
   createMatch, applyAction, setConnected, currentActor, standings, boardLength,
   getToken,
 } from '../../lib/games/match.js';
-import { boardFor } from '../../lib/games/engine.js';
+import { boardFor, lastSpin } from '../../lib/games/engine.js';
 import { buildJoinUrl, seedFromCode } from '../../lib/games/room-code.js';
 import { hostRoom } from '../../lib/games/realtime-room.js';
 import { resolveScripture } from '../../lib/games/scripture-link.js';
 import { FamilyPortrait } from './GameArt.jsx';
+import SpinnerWheel from './SpinnerWheel.jsx';
 
 const INK = '#12100E';
 const CREAM = '#FAF8F4';
@@ -210,6 +211,35 @@ function Playing({ def, match, code, joinUrl, track }) {
   const token = acting ? getToken(acting.token) : null;
   const accent = token ? token.color : '#f4b740';
 
+  // The ACTUAL spinner the whole room watches (Christyn, 2026-07-07): diff each
+  // snapshot for a NEW spin log entry and let the wheel decelerate onto the
+  // engine's real number. The first snapshot only primes the ledger — a board
+  // that reloads mid-game never replays a historical spin.
+  const spinSeenRef = useRef(null); // Map playerId -> last seen spin log index
+  const [spin, setSpin] = useState(null); // { name, token, value, seq }
+  const [restedSeq, setRestedSeq] = useState(null);
+  useEffect(() => {
+    const first = spinSeenRef.current == null;
+    const map = first ? new Map() : spinSeenRef.current;
+    let latest = null;
+    for (const p of match.players) {
+      const s = lastSpin(p.game);
+      const idx = s ? s.index : -1;
+      const prev = map.has(p.id) ? map.get(p.id) : -1;
+      if (!first && idx > prev && s && s.value != null) latest = { player: p, spin: s };
+      map.set(p.id, idx);
+    }
+    spinSeenRef.current = map;
+    if (latest) {
+      setSpin({
+        name: latest.player.name,
+        token: latest.player.token,
+        value: latest.spin.value,
+        seq: `${latest.player.id}:${latest.spin.index}`,
+      });
+    }
+  }, [match]);
+
   // The moment on the floor: a pending decision, else the space the actor is on.
   const game = acting ? acting.game : null;
   const space = game && game.pathId != null && game.position >= 0
@@ -240,6 +270,8 @@ function Playing({ def, match, code, joinUrl, track }) {
 
         {/* the current moment */}
         <div className="mt-5 rounded-3xl p-6 sm:p-7" style={{ background: '#1d1a16', borderLeft: `0.5rem solid ${accent}` }}>
+          <div className="flex flex-wrap items-start gap-6">
+          <div className="flex-1" style={{ minWidth: '18rem' }}>
           {actor ? (
             <>
               <div className="flex items-center gap-3">
@@ -283,6 +315,32 @@ function Playing({ def, match, code, joinUrl, track }) {
           ) : (
             <div className="text-xl" style={{ color: MUTE }}>Waiting for a player to reconnect…</div>
           )}
+          </div>
+
+          {/* the wheel — every spin turns HERE, where the whole room sees it */}
+          <div className="flex flex-col items-center shrink-0 mx-auto">
+            <SpinnerWheel
+              value={spin ? spin.value : null}
+              spinSeq={spin ? spin.seq : null}
+              animateFirst
+              size="11rem"
+              onRest={() => setRestedSeq(spin ? spin.seq : null)}
+            />
+            <div className="mt-3 text-center">
+              {spin ? (
+                restedSeq === spin.seq ? (
+                  <div className="text-xl font-semibold" style={{ color: CREAM }}>
+                    {spin.name} spun <span style={{ color: getToken(spin.token)?.color || '#f4b740' }}>{spin.value}</span>
+                  </div>
+                ) : (
+                  <div className="text-xl" style={{ color: MUTE }}>Spinning&hellip;</div>
+                )
+              ) : (
+                <div className="text-base" style={{ color: MUTE }}>The wheel awaits the first spin</div>
+              )}
+            </div>
+          </div>
+          </div>
         </div>
 
         {/* scoreboard */}

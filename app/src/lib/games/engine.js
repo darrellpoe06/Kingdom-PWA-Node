@@ -220,9 +220,26 @@ export function takeTurn(def, state) {
     ...state,
     seed: seedAfterSpin,
     turn: state.turn + 1,
-    log: [...state.log, { spaceId: '__spin__', type: 'spin', title: `Spin: ${spin}`, body: '' }],
+    log: [...state.log, { spaceId: '__spin__', type: 'spin', title: `Spin: ${spin}`, body: '', value: spin }],
   };
   return settleLanding(def, moved, board, nextPos);
+}
+
+// The most recent spin — the REAL value the UI's spinner wheel animates to
+// (the animation is presentation over this already-determined state, never a
+// second random). `index` is the entry's position in the log, so a consumer can
+// tell a NEW spin from a re-render (the index only grows within one journey).
+// Falls back to parsing the title for saves recorded before `value` existed.
+export function lastSpin(state) {
+  const log = (state && state.log) || [];
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e.type !== 'spin') continue;
+    let value = typeof e.value === 'number' ? e.value : parseInt(String(e.title || '').replace(/[^0-9]/g, ''), 10);
+    if (!Number.isFinite(value)) value = null;
+    return { value, index: i };
+  }
+  return null;
 }
 
 // Resolve a pending decision (a crossroads/invest/obstacle space, or a drawn
