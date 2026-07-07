@@ -27,6 +27,7 @@ import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
+import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -170,6 +171,52 @@ function MyOrders({ onReorder = null }) {
   );
 }
 
+// ---- Messages — the customer's own thread with Shay (0091 lane) -------------
+function MyMessages() {
+  const [state, setState] = useState({ phase: 'checking', rows: [] });
+  const [draft, setDraft] = useState('');
+  const load = () => fetchMessages('moore-divahs').then((r) => setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows }));
+  useEffect(() => {
+    let on = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!on) return;
+      if (!data?.session) { setState({ phase: 'signed-out', rows: [] }); return; }
+      load();
+    }).catch(() => { if (on) setState({ phase: 'signed-out', rows: [] }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'checking') return null;
+  if (state.phase === 'signed-out') {
+    return <p className="text-xs text-[#5A5751]">Sign in above and your conversation with Shay lives right here — no more DM digging.</p>;
+  }
+  const send = async (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    const r = await sendMessage('moore-divahs', draft);
+    if (r.ok) { setDraft(''); load(); }
+  };
+  return (
+    <div>
+      {state.rows.length === 0
+        ? <p className="text-xs text-[#5A5751]">No messages yet — say hello and Shay gets it on her board.</p>
+        : (
+          <div className="max-h-64 space-y-1.5 overflow-y-auto rounded-xl border border-[#E8E2D8] bg-white p-2">
+            {state.rows.map((m, i) => (
+              <div key={i} className={`max-w-[85%] rounded-lg px-2 py-1 text-sm ${m.sender === 'customer' ? 'ml-auto border border-[#B85838] text-[#1A1815]' : 'border border-[#E8E2D8] text-[#1A1815]'}`}>
+                <span className="block text-xs text-[#5A5751]">{m.sender === 'customer' ? 'You' : 'Moore Divahs'} · {new Date(m.created_at).toLocaleString()}</span>
+                {m.body}
+              </div>
+            ))}
+          </div>
+        )}
+      <form onSubmit={send} className="mt-2 flex gap-2">
+        <input aria-label="Message Shay" placeholder="Message Shay…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-2 py-1.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white">Send</button>
+      </form>
+    </div>
+  );
+}
+
 function MooreTab() {
   // One-click reorder: a tap on a past order pre-fills the inquiry note below
   // (editable before sending — she quotes fresh; her flyer policies hold).
@@ -212,6 +259,10 @@ function MooreTab() {
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
         <div className="mt-2"><PublicClasses /></div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Messages</h3>
+        <div className="mt-2"><MyMessages /></div>
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
