@@ -26,6 +26,7 @@ import {
   BOARD_STATUS, BOARD_STATUS_ORDER, statusMeta,
   boardProgress, groupTasks, tasksForBoard, mergedBoardList,
   SEED_BOARD_BY_SLUG, HANDOFF_TARGETS, taskHistory, isAiOwner,
+  missingSeedTasks, staleSeedStatuses,
 } from '../lib/board.js';
 import {
   FLOW_STEPS, FLOW_ORDER, hasValidationFlow, validationLanes, laneSummary,
@@ -233,6 +234,34 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
             {busy ? 'Loading…' : `Load the ${(spec.items || []).length} real items`}
           </button>
         )}
+        {/* Seed drift (2026-07-07): a live board that fell BEHIND its build
+            record heals by the governor's tap, never silently. Both actions
+            are upgrade-only — a human's own edits are never overwritten. */}
+        {spec && progress.total > 0 && missingSeedTasks(board.slug, tasks).length > 0 && (
+          <button
+            onClick={onLoadSeed} disabled={busy}
+            className="rounded-lg border border-[#1A1815] text-[#1A1815] px-3 py-2 text-sm disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            {busy ? 'Loading…' : `+ Load ${missingSeedTasks(board.slug, tasks).length} newly-specced item${missingSeedTasks(board.slug, tasks).length > 1 ? 's' : ''}`}
+          </button>
+        )}
+        {(() => {
+          const stale = staleSeedStatuses(board.slug, tasks);
+          if (!stale.length) return null;
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-[#B85838]">
+                ▲ {stale.length} item{stale.length > 1 ? 's' : ''} the build record marks shipped still read “Not started”.
+              </span>
+              <button
+                onClick={() => { for (const t of stale) onPatch(t, { status: 'done' }); }}
+                className="rounded-lg border border-[#5A6E3D] text-[#5A6E3D] px-3 py-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                ✓ Sync {stale.length} status{stale.length > 1 ? 'es' : ''} from the build record
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {/* The validation lane — Darrell's Current → Future → Gap → Decision
