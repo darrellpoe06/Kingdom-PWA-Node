@@ -7,6 +7,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
+import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
@@ -263,7 +264,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // Feedback rides its OWN visible sub-tab with a live count (Darrell
   // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
   // below the fold of the list view). Count = real rows, shown even at zero.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -326,6 +327,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'concerns' && (
         <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
+      )}
+      {subView === 'report' && (
+        <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} />
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}

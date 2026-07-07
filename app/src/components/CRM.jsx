@@ -272,20 +272,15 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
             </section>
           )}
 
-          {/* Board — leads grouped by stage */}
+          {/* Board — leads grouped by stage. Each stage windows its list (no
+              endless scroll — audit: list-pagination, intuitive-ux). */}
           <section className="space-y-3">
             {stageDefs.map((sd) => {
               const leadsInStage = pipeLeads.filter((l) => l.stage === sd.key);
               if (leadsInStage.length === 0) return null;
               return (
-                <div key={sd.key}>
-                  <div className={`text-[10px] uppercase tracking-[0.25em] font-semibold mb-1.5 ${stageColor(sd.group)}`}>{sd.label} · {leadsInStage.length}</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {leadsInStage.map((lead) => (
-                      <LeadCard key={lead.id} lead={lead} pipeline={pipeline} onMove={onMove} onToggleConsent={onToggleConsent} onDelete={onDelete} />
-                    ))}
-                  </div>
-                </div>
+                <StageLeads key={sd.key} stage={sd} leads={leadsInStage} pipeline={pipeline}
+                  onMove={onMove} onToggleConsent={onToggleConsent} onDelete={onDelete} />
               );
             })}
             {pipeLeads.length === 0 && (
@@ -295,6 +290,32 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
             )}
           </section>
         </>
+      )}
+    </div>
+  );
+}
+
+// One stage's lead list, windowed: the first pageSize leads render, the rest
+// wait behind an honest "Show more" (BooksTransactions' consumer-familiar
+// pattern, sized for cards). Resets when the stage's list identity changes.
+function StageLeads({ stage, leads, pipeline, onMove, onToggleConsent, onDelete }) {
+  const pageSize = 24;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  useEffect(() => { setVisibleCount(pageSize); }, [pipeline, stage.key]);
+  const shown = leads.slice(0, visibleCount);
+  return (
+    <div>
+      <div className={`text-[0.625rem] uppercase tracking-[0.25em] font-semibold mb-1.5 ${stageColor(stage.group)}`}>{stage.label} · {leads.length}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {shown.map((lead) => (
+          <LeadCard key={lead.id} lead={lead} pipeline={pipeline} onMove={onMove} onToggleConsent={onToggleConsent} onDelete={onDelete} />
+        ))}
+      </div>
+      {leads.length > visibleCount && (
+        <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
+          className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Show more · {leads.length - visibleCount} remaining
+        </button>
       )}
     </div>
   );

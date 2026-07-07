@@ -23,6 +23,105 @@ import {
   visibleDiscussions, sortDiscussions,
 } from '../lib/discussions.js';
 import { handoffSummary } from '../lib/orchestrator-handoff.js';
+import { ARI } from '../lib/ari.js';
+import { ariNotesFromLedger, ariAssignments, resolveDuties } from '../lib/ari-notes.js';
+import { useBoardTasks } from '../lib/use-board-tasks.js';
+
+// The decision ledger — Ari's derived note source (re-parsed every build).
+const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
+
+// -----------------------------------------------------------------------------
+// AriRecord — Ari's notes + responsibilities, DERIVED (DR-0120/DR-0121 item 3).
+// "This should be full of Ari notes and Ari has stopped updating as we add
+// features" — the fix is structural: one note per dated Decision Record, read
+// from the same ledger the Decisions tab reads, so the feed updates with every
+// build and can never silently stall. Ari's live workload derives from the real
+// board rows (owner = Ari); his standing duties resolve their DR refs against
+// the live ledger (a ref that stops resolving reads as missing, DR-0076).
+// The credentialed Local-LLM tending lane (Tier C, three brakes) will ADD real
+// synced reflections on top when it arms; this derived floor never goes stale.
+// -----------------------------------------------------------------------------
+function AriRecord() {
+  const tasks = useBoardTasks();
+  const [visibleCount, setVisibleCount] = useState(6);
+  const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
+  const work = useMemo(() => ariAssignments(tasks), [tasks]);
+  const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
+  return (
+    <section className="bg-white border border-[#5A4A2E] p-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A4A2E] font-semibold">{ARI.name}&apos;s record · notes, responsibilities, workload — derived live</div>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{notes.length} notes · {work.open} open assignment{work.open === 1 ? '' : 's'}</span>
+      </div>
+      <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        One note per shipped decision, read from the same ledger the Decisions tab reads — it updates with every build, so it cannot silently stall. {ARI.honesty}
+      </p>
+
+      {/* Standing duties — each resolved against the live ledger. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Standing responsibilities (assigned by the ledger)</div>
+        <ul className="space-y-1">
+          {duties.map((d) => (
+            <li key={d.key} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>{d.duty}{' '}
+              {d.found
+                ? <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef}{d.drDate ? ` · ${d.drDate}` : ''})</span>
+                : <span className="text-[0.625rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef} — not in the ledger)</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Live workload — the real board rows pushed to Ari. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Current workload (live board items owned by {ARI.name}: {work.open} open · {work.done} done)</div>
+        {work.openItems.length === 0 ? (
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No open items pushed to {ARI.name} on this device — the boards sync on sign-in, and any item can be pushed to him from ▦ Boards.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {work.openItems.slice(0, 5).map((t) => (
+              <li key={t.slug} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[#2A5A8E] mr-1" aria-hidden="true">◐</span>{t.title}
+                <span className="text-[#5A5751]"> · {t.board}{t.dueDate ? ` · due ${t.dueDate}` : ''} · {t.status}</span>
+              </li>
+            ))}
+            {work.openItems.length > 5 && (
+              <li className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>…and {work.openItems.length - 5} more on ▦ Boards.</li>
+            )}
+          </ul>
+        )}
+      </div>
+
+      {/* The derived notes feed. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Notes — what shipped and why (newest first)</div>
+        {notes.length === 0 ? (
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>The decision ledger was not parsed in this build — showing nothing rather than inventing notes.</p>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              {notes.slice(0, visibleCount).map((n) => (
+                <div key={n.id} className="border-l-2 border-[#5A4A2E] bg-[#FAF8F4] px-2.5 py-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{n.title}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{n.drRef} · {n.date}</span>
+                  </div>
+                  <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{n.body}</p>
+                </div>
+              ))}
+            </div>
+            {notes.length > visibleCount && (
+              <button type="button" onClick={() => setVisibleCount((c) => c + 12)}
+                className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Show more notes · {notes.length - visibleCount} remaining
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const blankForm = () => ({
   kind: 'directive', title: '', body: '', projectSlugs: [],
@@ -110,6 +209,9 @@ export default function Discussions({
           The directive, the decision and its reason, the reflection behind it — kept as real records that link to the projects they drive. A decision can carry its Decision-Record number; a reflection can point back to your Study. Nothing here is lost to a chat scroll.
         </p>
       </section>
+
+      {/* Ari's derived record — notes per shipped decision, duties, live workload. */}
+      <AriRecord />
 
       {/* Filters + capture */}
       <section>

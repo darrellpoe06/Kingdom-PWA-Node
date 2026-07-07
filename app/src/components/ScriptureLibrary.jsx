@@ -509,6 +509,12 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   const onOpenAlgorithms = typeof setChurchView === 'function' ? () => setChurchView('eternal-algorithms') : null;
   const [query, setQuery] = useState('');
   const [activeTheme, setActiveTheme] = useState('all');
+  // Search-result windowing — a common word can match hundreds of verses; the
+  // first pageSize render, the rest wait behind an honest "Show more" (audit:
+  // list-pagination, intuitive-ux). Resets on each new query.
+  const pageSize = 30;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  useEffect(() => { setVisibleCount(pageSize); }, [query]);
   const [tier, setTier] = useState('standard');
   const [level, setLevel] = useState('standard');
   const [consented, setConsented] = useState(false);
@@ -651,10 +657,16 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
           </p>
           {results.length ? (
             <div className="space-y-2">
-              {results.map((v) => (
+              {results.slice(0, visibleCount).map((v) => (
                 <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs}
                   canStudy={canStudy} email={email} themeId={v.themeId} themeTitle={v.themeTitle} onOpenAlgorithms={onOpenAlgorithms} />
               ))}
+              {results.length > visibleCount && (
+                <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
+                  className="w-full text-xs px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Show more · {results.length - visibleCount} remaining
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">

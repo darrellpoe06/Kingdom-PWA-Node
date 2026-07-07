@@ -8,8 +8,11 @@
 //
 // THREE inputs compose on the board (the component merges them):
 //   1. SEED_CONCERNS — the dated baseline below. Platform truth, the same for
-//      everyone with access, edited in code as part of shipping — exactly like
-//      BuildBoard's ROADMAP constant. Honest status on each.
+//      everyone with access, edited in code as part of shipping. Honest status
+//      on each. (BuildBoard's own hand-typed ROADMAP was retired by DR-0121 —
+//      its ship story now derives from live sources via lib/build-story.js;
+//      this seed list remains the one code-kept baseline, and its drain onto
+//      the DB concerns table is on the DR-0121 cleaning backlog.)
 //   2. DB concerns (0039 `concerns` table, via concerns-sync) — net-new concerns
 //      the family / Governor add, edit, re-date, and re-status. Fully synced.
 //   3. feedback rows (read-through) — every submitted feedback item renders as a

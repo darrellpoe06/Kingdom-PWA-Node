@@ -97,6 +97,22 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-07-07 — derived-but-unparsed is a staleness face; report streams are
+  a checked class (DR-0122)** — 28 DR files (incl. every record from DR-0116
+  on) used the list-style header the build's ledger parser could not read, so
+  the newest decisions carried NO date/title into the app: every "derived"
+  surface reading `__DR_LEDGER__` would silently under-report the newest work
+  while looking perfectly live. A derivation is only as honest as its
+  parser's coverage of the real record — when a repo record format drifts,
+  the parser follows in the same PR (`app/vite.config.js` readDecisionLedger
+  now reads both shapes). Standing rules from the same pass: the Build tab,
+  Ari's record (`lib/ari-notes.js` in Discussions), and the Perpetual Report
+  (`lib/perpetual-report.js`, Projects → ∞ Perpetual Report, CSV-portable)
+  all DERIVE — never reintroduce a hand-typed ship list; and a feature that
+  births a new tracked record stream adds its projection to
+  `buildReportRows` in the same PR (the ways-review checks for outrun
+  streams, DR-0122 §3).
+
 - **2026-07-05 — platform-move parity is a checked class, not a memory** — the
   Vercel→Cloudflare Pages cutover silently dropped every same-origin endpoint
   Vercel provided outside the static bundle: /api/market-quote,

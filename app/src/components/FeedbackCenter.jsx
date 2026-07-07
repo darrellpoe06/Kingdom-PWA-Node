@@ -87,6 +87,7 @@ export const FEEDBACK_AREAS = [
     ['build-workflows', '└ Workflow status feed'],
     ['build-llm-health', '└ Local-LLM health card'],
     ['concerns-board', 'Projects · Concerns & Solutions board (open · in-progress · done + feedback read-through)'],
+    ['perpetual-report', 'Projects · Perpetual Report (portable cross-system history + failures & fixes coverage)'],
     ['governance-decisions', 'Projects · Decisions (Governor governance queue)'],
     ['review-feed', 'Projects · Review (freshness-loop staged proposals)'],
     ['loop-health', 'Projects · Loops (loop-health keep / retire)'],

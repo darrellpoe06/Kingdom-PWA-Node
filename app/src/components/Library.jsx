@@ -239,6 +239,11 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   const [reading, setReading] = useState(null);
   const [preview, setPreview] = useState(null);
   const [toast, setToast] = useState('');
+  // Shelf windowing — no endless scroll as the shelf grows (audit:
+  // list-pagination, intuitive-ux). First pageSize books render; the rest wait
+  // behind an honest "Show more".
+  const pageSize = 12;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
 
   useEffect(() => { setShelf(loadShelf(email).books); }, [email]);
 
@@ -343,25 +348,34 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
             </div>
           )
           : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {shelf.map((b) => {
-                const stats = b.stats || bookStats(b);
-                return (
-                  <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
-                    <div>
-                      <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
-                      {b.subtitle && <div className="text-[11px] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
-                      <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {shelf.slice(0, visibleCount).map((b) => {
+                  const stats = b.stats || bookStats(b);
+                  return (
+                    <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
+                      <div>
+                        <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
+                        {b.subtitle && <div className="text-[11px] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
+                        <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>
+                        <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>Remove</button>
+                      </div>
+                      <DownloadRow book={b} />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>
-                      <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>Remove</button>
-                    </div>
-                    <DownloadRow book={b} />
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              {shelf.length > visibleCount && (
+                <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
+                  className="mt-3 w-full text-xs px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+                  Show more · {shelf.length - visibleCount} remaining
+                </button>
+              )}
+            </>
           )
       )}
 
