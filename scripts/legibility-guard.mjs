@@ -34,6 +34,10 @@ import { contrastRatio, parseThemes, collectColorTokens } from './contrast-guard
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
+// 2026-07-07: the [data-theme] palette rules moved to the shared theme source
+// (lib/theme-css.js) so the business doors render the same themes. Theme
+// parsing reads monolith + theme source; page scanning is unchanged.
+const THEME_SOURCE = join(ROOT, 'app/src/lib/theme-css.js');
 const COMPONENTS_DIR = join(ROOT, 'app/src/components');
 const BASELINE_PATH = join(ROOT, 'scripts/legibility-baseline.json');
 const HEALTH_PATH = join(ROOT, 'app/src/lib/legibility-health.json');
@@ -250,7 +254,8 @@ export function loadBaseline() {
 
 // --- the scan ---------------------------------------------------------------
 export function scanLegibility(baseline = loadBaseline()) {
-  const monoSrc = existsSync(MONOLITH) ? readFileSync(MONOLITH, 'utf8') : '';
+  const monoSrc = (existsSync(MONOLITH) ? readFileSync(MONOLITH, 'utf8') : '')
+    + (existsSync(THEME_SOURCE) ? '\n' + readFileSync(THEME_SOURCE, 'utf8') : '');
   const themes = parseThemes(monoSrc);
   const darks = darkThemes(themes);
   // For each dark theme: its remap table + the LIGHTER of its two surfaces
