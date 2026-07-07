@@ -41,6 +41,33 @@ describe('pricing — real numbers only', () => {
   });
 });
 
+describe('the My-Orders lane (0087) — clients read THEIR OWN rows, never anon', () => {
+  // Text-level pin on the migration contract (proven-to-catch: loosening the
+  // lane — an anon grant, or dropping the uid/email guard — fails this).
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const sql = fs.readFileSync(path.join(__dirname, '../../../infra/supabase/migrations-auto/0087-moore-my-orders.sql'), 'utf8');
+  it('read-own policies exist and are keyed to auth.uid()', () => {
+    expect(sql).toMatch(/custom_orders_read_own[\s\S]*?customer_user_id = auth\.uid\(\)/);
+    expect(sql).toMatch(/class_signups_read_own[\s\S]*?customer_user_id = auth\.uid\(\)/);
+  });
+  it('the RPCs require a signed-in caller and match only uid or own email', () => {
+    expect(sql).toMatch(/auth\.uid\(\) IS NOT NULL/);
+    expect(sql).toMatch(/lower\(o\.contact_value\) = lower\(auth\.email\(\)\)/);
+  });
+  it('anon can NEVER execute the history reads', () => {
+    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.my_moore_orders\(\) FROM anon/);
+    expect(sql).toMatch(/REVOKE EXECUTE ON FUNCTION public\.my_moore_class_seats\(\) FROM anon/);
+    expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.my_moore_orders\(\) TO anon/);
+  });
+  it('the customer read exposes no steward-cost fields', () => {
+    const fn = sql.slice(sql.indexOf('FUNCTION public.my_moore_orders'), sql.indexOf('FUNCTION public.my_moore_class_seats'));
+    expect(fn).not.toContain('materials_cents');
+    expect(fn).not.toContain('change_orders');
+    expect(fn).not.toContain('inspo_notes');
+  });
+});
+
 describe('moore rides the ONE CRM (DR-0081 — config, not a fork)', () => {
   it('business + pipeline are registered on the shared engine', () => {
     expect(getBusiness('moore')).toBeTruthy();

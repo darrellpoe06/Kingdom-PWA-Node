@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import supabase from '../lib/supabase.js';
 import { captureLead } from '../lib/crm-sync.js';
-import { MOORE_BRAND, CLASS_FORMATS } from '../lib/moore-divahs.js';
+import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock } from '../lib/moore-divahs.js';
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
@@ -92,6 +92,54 @@ function PublicClasses() {
   );
 }
 
+// ---- My Orders — the signed-in client's OWN history (0087 read-own lane) ----
+function MyOrders() {
+  const [state, setState] = useState({ phase: 'checking', rows: [] });
+  useEffect(() => {
+    let on = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!on) return;
+      if (!data?.session) { setState({ phase: 'signed-out', rows: [] }); return; }
+      supabase.rpc('my_moore_orders')
+        .then(({ data: rows, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: rows || [] }); })
+        .catch(() => { if (on) setState({ phase: 'error', rows: [] }); });
+    }).catch(() => { if (on) setState({ phase: 'signed-out', rows: [] }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'checking') return null;
+  if (state.phase === 'signed-out') {
+    return (
+      <p className="text-xs text-[#5A5751]">
+        Have an account? <a className="underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
+      </p>
+    );
+  }
+  if (state.phase === 'error' || state.rows.length === 0) {
+    return <p className="text-xs text-[#5A5751]">No orders on your account yet — your history appears here the moment your first order is in.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {state.rows.map((o) => {
+        const meta = orderStageMeta(o.stage);
+        const clock = orderClock({ stage: o.stage, paidAt: o.paid_at, turnaroundDays: o.turnaround_days });
+        return (
+          <div key={o.slug} className="flex items-start justify-between gap-2 rounded-xl border border-[#E8E2D8] bg-white p-3">
+            <div>
+              <div className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{o.description || o.product_type}</div>
+              <div className="text-xs text-[#5A5751]">
+                {o.quote_cents ? `${fmt$(o.quote_cents)} · ` : ''}
+                {o.paid_at ? 'paid' : 'awaiting payment'} · {o.delivery === 'pickup' ? 'pickup' : 'ships to you'}
+                {clock.running && clock.daysLeft != null ? ` · ${clock.overdue ? 'finishing up' : `about ${clock.daysLeft} days to go`}` : ''}
+              </div>
+            </div>
+            <span className="shrink-0 rounded-full border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]">{meta.symbol} {meta.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function MooreTab() {
   return (
     <div className="space-y-5">
@@ -122,6 +170,10 @@ function MooreTab() {
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
         <div className="mt-2"><PublicClasses /></div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
+        <div className="mt-2"><MyOrders /></div>
       </div>
     </div>
   );
