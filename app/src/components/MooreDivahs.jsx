@@ -9,7 +9,7 @@
 // Money is the owner's hand: the board RECORDS how Shay collected (Square /
 // Venmo / Apple Pay); it never processes payment.
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage, orderClock,
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
@@ -21,6 +21,7 @@ import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, pa
 import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-classes.js';
 import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
 import AddressField, { osmLink } from './AddressField.jsx';
+import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -492,6 +493,64 @@ function KpiSection({ orders }) {
   );
 }
 
+// ---- Messages — Shay's inbox: every customer thread, one board (0091) -------
+function MessagesSection() {
+  const [state, setState] = useState({ phase: 'loading', rows: [] });
+  const [openThread, setOpenThread] = useState(null);
+  const [draft, setDraft] = useState('');
+  const load = () => fetchMessages('moore-divahs').then((r) => setState({ phase: r.ok ? 'ready' : 'signed-out', rows: r.rows }));
+  useEffect(() => { load(); }, []);
+  const threads = useMemo(() => groupThreads(state.rows), [state.rows]);
+  const current = threads.find((t) => t.customerUserId === openThread) || null;
+  const reply = async (e) => {
+    e.preventDefault();
+    if (!draft.trim() || !current) return;
+    const r = await sendMessage('moore-divahs', draft, current.customerUserId);
+    if (r.ok) { setDraft(''); load(); }
+  };
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Messages</h2>
+      <p className="text-xs text-[#5A5751]">Every customer conversation, one board — no more digging through five inboxes.</p>
+      {state.phase === 'loading' ? null : threads.length === 0 ? (
+        <div className="mt-2 rounded-xl border border-dashed border-[#E8E2D8] p-4 text-center text-sm text-[#5A5751]">
+          No customer messages yet — when someone writes from your app, the thread lands here.
+        </div>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          {threads.map((t) => (
+            <div key={t.customerUserId} className="rounded-xl border border-[#E8E2D8] bg-white p-2">
+              <button type="button" className="flex w-full items-center justify-between text-left text-sm" onClick={() => setOpenThread(openThread === t.customerUserId ? null : t.customerUserId)}>
+                <span className="text-[#1A1815]">
+                  <strong>Customer {String(t.customerUserId).slice(0, 8)}</strong>
+                  <span className="text-[#5A5751]"> · {t.messages.length} messages · {t.last ? new Date(t.lastAt).toLocaleString() : ''}</span>
+                </span>
+                {t.unansweredFromCustomer && <span className="rounded-full border border-[#B85838] px-2 py-0.5 text-xs text-[#B85838]">needs reply</span>}
+              </button>
+              {openThread === t.customerUserId && (
+                <div className="mt-2">
+                  <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-[#E8E2D8] bg-[#FAF8F4] p-2">
+                    {t.messages.map((m, i) => (
+                      <div key={i} className={`max-w-[85%] rounded-lg px-2 py-1 text-sm ${m.sender === 'steward' ? 'ml-auto border border-[#5A6E3D]' : 'border border-[#E8E2D8]'} text-[#1A1815]`}>
+                        <span className="block text-xs text-[#5A5751]">{m.sender === 'steward' ? 'You' : 'Customer'} · {new Date(m.created_at).toLocaleString()}</span>
+                        {m.body}
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={reply} className="mt-2 flex gap-2">
+                    <input aria-label="Reply to customer" placeholder="Reply…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-2 py-1.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+                    <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white">Send</button>
+                  </form>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MooreDivahs() {
   const orders = useMooreOrders();
   const [adding, setAdding] = useState(false);
@@ -548,6 +607,7 @@ export default function MooreDivahs() {
       )}
 
       <ClassesSection />
+      <MessagesSection />
       <MaterialsSection />
       <KpiSection orders={real} />
     </div>
