@@ -14,31 +14,47 @@ DATA-AS-EMPOWERMENT (who this serves and how).
 
 ---
 
-## The six-step client lifecycle (each step has a proven artifact)
+## The seven-step client lifecycle (each step has a proven artifact)
 
 1. **DISCOVERY — the client talks, we capture.** A 30–60 minute conversation
-   (voice-note style welcome). Capture their flow verbatim into a dated
-   session note (Layer 4): services, pricing, policies, channels, worst pain
-   point. Their existing materials (flyers, forms) are SOURCE — their words
-   are senior (Moore proof: the flyer became MOORE_POLICIES verbatim).
-2. **BOARD AT KICKOFF (DR-0113).** The client's build board lands in
+   OR — the standing lane (DR-0117) — **their imported voice notes / an
+   LLM-guided conversation**, transcribed on the NAS rails and extracted per
+   `infra/nas-sme-pipeline/client-discovery-json-prompt.md` into reviewable
+   requirements (every item carries the client's own `source_quote`;
+   `status='extracted'` until a steward confirms — nothing unreviewed is
+   built). Darrell does not need to be in the room. Capture their flow into a
+   dated session note (Layer 4): services, pricing, policies, channels, worst
+   pain point. Their existing materials (flyers, forms) are SOURCE — their
+   words are senior (Moore proof: the flyer became MOORE_POLICIES verbatim).
+2. **QUOTE + THE DEPOSIT GATE (DR-0117).** Small no-overhead segment:
+   **$2,000 minimum, 90 days same as cash** — $500 deposit to start, $500 at
+   MVP delivery, the balance over the rest of the 90 days (no interest, ever),
+   or paid in full up front. **No deposit recorded → no build starts**
+   (`client-engagements.js` `canStartBuild()` — structural, not a habit).
+   Larger/complex builds quote UP from the minimum; the number is always
+   Darrell's. After the build is paid: **$150/mo perpetual support through the
+   Feedback portal**; beyond-portal asks re-enter the front door as a new
+   engagement at the minimum. Payments are recorded, never processed — money
+   moves by the owner's hand (Moore §7). Data is exportable regardless of
+   payment state — never a collection lever.
+3. **BOARD AT KICKOFF (DR-0113).** The client's build board lands in
    Projects → ▦ Boards in the same session as the spec — honest statuses,
    least-human ownership, flipped as increments ship. The governor watches
    every client build from inside the app.
-3. **THEIR TENANT.** A dedicated instance; every table row instance-walled by
+4. **THEIR TENANT.** A dedicated instance; every table row instance-walled by
    RLS (the tenancy guard enforces it structurally). Their data is theirs:
    exportable, never sold, never cross-read (DATA-AS-EMPOWERMENT).
-4. **THEIR PIPELINE ON THE ONE CRM (DR-0081).** A BUSINESSES + PIPELINES
+5. **THEIR PIPELINE ON THE ONE CRM (DR-0081).** A BUSINESSES + PIPELINES
    config entry — never a second CRM. Their sources join SOURCES; every
    capture from their door carries source attribution, so cross-referral
    inside the family of businesses ("the union data") is visible from day one.
-5. **THEIR BRANDED DOOR.** Their name FIRST; their policies rendered at the
+6. **THEIR BRANDED DOOR.** Their name FIRST; their policies rendered at the
    point of order (the up-front consent everything else rests on); classes /
    services with honest availability; client sign-in with their-own-history
    (the 0087 read-own lane pattern); the family-of-businesses tabs + PoeTech
    pricing behind them; installable under their name (per-business manifest).
    Public faces only — anon interactions ride forced-safe RPCs, never tables.
-6. **THEIR STEWARD BOARD + KPIs.** The operating surface: pipeline, real
+7. **THEIR STEWARD BOARD + KPIs.** The operating surface: pipeline, real
    revenue/margin/repeat numbers, the revenue-goal planner ("what do you want
    to make?" → ranked lanes from THEIR real history). Optimize-toward
    language, never guarantees (DR-0100 posture).
@@ -65,8 +81,11 @@ live user-view review (DR-0104).
   lane (same day) → Tier C review with the client before their domain points.
 
 ## What is ALWAYS the governor's hand (never automated)
-- Commercial terms: build pricing, contracts, real money (the price-out shows
-  platform tiers; business-build pricing is Darrell's quote).
+- Commercial terms: contracts and real money stay Darrell's hand. The SMALL
+  no-overhead segment's standing terms are DECLARED (DR-0117: $2,000 min,
+  90 days same as cash, $150/mo Feedback-portal support) and the price-out
+  renders them; larger/complex builds still quote UP from the minimum by
+  Darrell's word. Collection is always the owner's hand — never automated.
 - The client's brand assets (icon, handles) and DNS.
 - Access grants (allowlist / steward seats) and the Tier C front-door
   sign-off with the client (RELEASE-TIERS).

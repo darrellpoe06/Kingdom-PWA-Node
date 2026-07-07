@@ -1,8 +1,8 @@
 // @vitest-environment node
 // moore-door + the moore ONE-CRM config — pinned (DR-0076 / DR-0081).
-// The pricing shown to the Quad Cities is REAL (the in-app tier ladder) or
-// absent (custom quote) — never invented; the moore pipeline is CONFIG on the
-// one CRM backbone, and its capture forces the safe shape.
+// The pricing shown to the Quad Cities is REAL — the in-app tier ladder, and
+// the DECLARED build terms (DR-0117) — never invented; the moore pipeline is
+// CONFIG on the one CRM backbone, and its capture forces the safe shape.
 import { describe, it, expect } from 'vitest';
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote } from '../lib/moore-door.js';
 import { getBusiness, getPipeline, attributeSource, validateCapture, canOutreach } from '../lib/crm-engine.js';
@@ -28,11 +28,15 @@ describe('pricing — real numbers only', () => {
     expect(priceOut(['household', 'business']).tier).toBe('business');
     expect(priceOut(['household', 'business']).monthly).toBe(249);
   });
-  it('a branded-app ask flags custom quote — never an invented build price', () => {
+  it('a branded-app ask carries the DECLARED build terms (DR-0117) — never an invented figure', () => {
     const q = priceOut(['branded']);
     expect(q.customQuote).toBe(true);
-    expect(q.note).toContain('custom quote');
-    // and no need in the registry carries a made-up build dollar figure
+    // the note speaks Darrell's declared numbers, sourced from client-engagements.js
+    expect(q.note).toContain('$2,000');
+    expect(q.note).toContain('90 days same as cash');
+    expect(q.note).toContain('$500 to start');
+    expect(q.note).toContain('$150/mo');
+    // and no need in the registry carries its own build dollar figure (one source of truth)
     for (const n of PRICE_OUT_NEEDS) expect(n.buildPrice).toBeUndefined();
   });
   it('empty selection prices nothing (no painted number)', () => {
