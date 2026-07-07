@@ -17,4 +17,12 @@
 /mooredivahs   /moore/  301
 /mooredivahs/  /moore/  301
 
+# The bare root must land INSIDE the manifest scope (/poetech-app/), or the
+# page a phone naturally opens (poetech.us) is out of scope and Chrome refuses
+# to install the PWA entirely — no prompt, no "Install app" menu entry
+# (2026-07-07, Darrell's phone). 302 on purpose: a 301 gets cached hard by
+# browsers and would fight any future distinct root landing page. Query strings
+# pass through, so shared ?join=1 / ?register links keep working.
+/  /poetech-app/  302
+
 /poetech-app/*  /:splat  200

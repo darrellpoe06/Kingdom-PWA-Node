@@ -48,6 +48,26 @@ describe('Cloudflare Pages parity with the Vercel-era surface', () => {
     expect(existsSync(repo('functions/nas-photos/[[path]].js'))).toBe(true);
   });
 
+  it('the bare root redirects into the manifest scope on BOTH hosts (PWA installability)', () => {
+    // 2026-07-07: the manifest pins scope to /poetech-app/, so a phone sitting
+    // on plain poetech.us is OUT of scope and Chrome refuses to install the
+    // app — no prompt, no "Install app" menu entry. The root must land inside
+    // the scope on whichever host is serving production.
+    const manifest = JSON.parse(readFileSync(repo('public/manifest.webmanifest'), 'utf8'));
+    const scope = manifest.scope;
+    expect(scope).toBe('/poetech-app/'); // scope moves -> revisit both rules below
+
+    const redirects = readFileSync(repo('public/_redirects'), 'utf8');
+    const rootRule = redirects.split('\n').find((l) => /^\/\s+\S/.test(l.trim()));
+    expect(rootRule, 'no root rule in _redirects — poetech.us is uninstallable on Cloudflare').toBeTruthy();
+    expect(rootRule).toMatch(new RegExp(`^/\\s+${scope.replace(/\//g, '\\/')}\\s+30[12]`));
+
+    const vercelCfg = JSON.parse(readFileSync(repo('vercel.json'), 'utf8'));
+    const rootRedirect = (vercelCfg.redirects || []).find((r) => r.source === '/');
+    expect(rootRedirect, 'no root redirect in vercel.json — poetech.us is uninstallable on Vercel').toBeTruthy();
+    expect(rootRedirect.destination).toBe(scope);
+  });
+
   it('every external-origin vercel.json rewrite has a Pages Function; same-site ones ride _redirects', () => {
     const vercelCfg = JSON.parse(readFileSync(repo('vercel.json'), 'utf8'));
     const redirects = readFileSync(repo('public/_redirects'), 'utf8');
