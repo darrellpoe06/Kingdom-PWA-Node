@@ -21,6 +21,7 @@ import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, pa
 import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-classes.js';
 import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
 import AddressField, { osmLink } from './AddressField.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -504,27 +505,19 @@ export default function MooreDivahs() {
     return m;
   }, [real]);
 
-  return (
-    <div className="mx-auto max-w-3xl px-3 pb-24">
-      <div className="mt-3 flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
-          <p className="text-xs text-[#5A5751]">{MOORE_BRAND.tagline} · {MOORE_BRAND.email}</p>
-        </div>
-        <button type="button" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white" onClick={() => setAdding((v) => !v)}>
-          {adding ? 'Close' : '+ New order'}
-        </button>
-      </div>
-      {adding && <AddOrderForm onDone={() => setAdding(false)} />}
-
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <KpiTile label="Paid orders" value={stats.paidOrders} />
-        <KpiTile label="Revenue" value={fmt$(stats.revenueCents || null)} />
-        <KpiTile label="Avg order" value={fmt$(stats.avgOrderCents)} />
-        <KpiTile label="Margin" value={stats.paidOrders ? fmt$(stats.marginCents) : '—'} />
-      </div>
-
-      {real.length === 0 ? (
+  // Sliding section tabs (Darrell 2026-07-04 "sliding tabs for all tabs";
+  // 2026-07-07 "no more down scrolling to see a surface with KPIs"): the brand
+  // header, the + New order intake, and the KPI strip stay PINNED above the
+  // strip; the four stacked blocks — the order board, classes, materials, and
+  // the numbers/goal planner — each become one swipe-tab instead of a long
+  // scroll. Blocks moved verbatim; each section still tells the truth when
+  // empty (no dead-end panels).
+  const sections = [
+    {
+      id: 'orders',
+      label: 'Orders',
+      icon: 'pin',
+      render: () => (real.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-[#E8E2D8] p-6 text-center text-sm text-[#5A5751]">
           No orders yet — tap <strong>+ New order</strong> when the next DM lands.
           Every number above stays honest: it moves only when a real order does.
@@ -545,11 +538,36 @@ export default function MooreDivahs() {
             </div>
           );
         })
-      )}
+      )),
+    },
+    { id: 'classes', label: 'Classes', icon: 'calendar', render: () => <ClassesSection /> },
+    { id: 'materials', label: 'Materials', icon: 'tools', render: () => <MaterialsSection /> },
+    { id: 'numbers', label: 'The numbers', icon: 'chart', render: () => <KpiSection orders={real} /> },
+  ];
 
-      <ClassesSection />
-      <MaterialsSection />
-      <KpiSection orders={real} />
+  return (
+    <div className="mx-auto max-w-3xl px-3 pb-24">
+      <div className="mt-3 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
+          <p className="text-xs text-[#5A5751]">{MOORE_BRAND.tagline} · {MOORE_BRAND.email}</p>
+        </div>
+        <button type="button" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white" onClick={() => setAdding((v) => !v)}>
+          {adding ? 'Close' : '+ New order'}
+        </button>
+      </div>
+      {adding && <AddOrderForm onDone={() => setAdding(false)} />}
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <KpiTile label="Paid orders" value={stats.paidOrders} />
+        <KpiTile label="Revenue" value={fmt$(stats.revenueCents || null)} />
+        <KpiTile label="Avg order" value={fmt$(stats.avgOrderCents)} />
+        <KpiTile label="Margin" value={stats.paidOrders ? fmt$(stats.marginCents) : '—'} />
+      </div>
+
+      <div className="mt-4">
+        <SectionTabs sections={sections} ariaLabel="Moore Divahs sections" idBase="moore" defaultId="orders" />
+      </div>
     </div>
   );
 }

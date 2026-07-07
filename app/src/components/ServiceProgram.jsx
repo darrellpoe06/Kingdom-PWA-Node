@@ -31,6 +31,7 @@ import {
 } from '../lib/service-program.js';
 import { parseEmailOrder } from '../lib/order-import.js';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ServiceActuals from './ServiceActuals.jsx';
 import { subscribeActuals, blueprintFromActual, pickBlueprintProgram, seedSegmentsFromBlueprint } from '../lib/service-actuals.js';
 
@@ -465,7 +466,12 @@ export default function ServiceProgram() {
 
       {program && (
         <>
-          {/* Lens selector — the per-sector view-as strip */}
+          {/* Lens selector — the per-sector view-as strip. KEPT as this
+              surface's own section row (not folded into SectionTabs): `lens`
+              drives deriveSectorView / the header's mineCount, i.e. the state
+              is read beyond the strip's own conditional rendering. The new
+              grouping below rides variant="sub" chips so there is never a
+              second underline row. */}
           <TabScroll className="mb-3" label="View as sector">
             {lensButtons.map((key) => (
               <button key={key} type="button" role="tab" aria-selected={lens === key} onClick={() => setLens(key)}
@@ -496,6 +502,21 @@ export default function ServiceProgram() {
             {program.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{program.notes}</p>}
           </div>
 
+          {/* THIRD-ROW chips (Darrell 2026-07-05): the stack below the header
+              was still a multi-screen scroll — run of show, the actual/blueprint
+              reconciliation, and the steward's team/changes panels are each one
+              chip away now. Blocks moved verbatim; state stays above. */}
+          <SectionTabs
+            variant="sub"
+            ariaLabel="Order of service sections"
+            idBase="svcflow"
+            defaultId="flow"
+            sections={[
+              {
+                id: 'flow',
+                label: 'Run of show',
+                render: () => (
+                  <>
           {/* Reflow control */}
           <div className="flex items-end gap-2 flex-wrap mb-3 bg-[#FAF8F4] border border-[#E8E4DC] p-2">
             <div>
@@ -523,8 +544,52 @@ export default function ServiceProgram() {
           {segmentForm && isStewardEditing && <SegmentForm initial={segmentForm.initial} programSongs={programSongs} programSermons={programSermons} busy={busy} onSave={onSaveSegment} onCancel={() => setSegmentForm(null)} />}
           {emailImportOpen && isStewardEditing && <EmailImportForm existingCount={programSegments.length} busy={busy} onInsert={onImportEmail} onCancel={() => setEmailImportOpen(false)} />}
 
+          {/* The flow */}
+          {view && view.flow.length === 0 && (
+            <p className="text-sm text-[#5A5751] text-center py-6" style={{ fontFamily: '"Fraunces", serif' }}>No segments yet.{isStewardEditing ? ' Add the first one above, or start from the standard order.' : ' A steward is still building this order.'}</p>
+          )}
+          {view && view.flow.length > 0 && (
+            <div className="space-y-1">
+              {!isStewardEditing && view.mineCount === 0 && (
+                <p className="text-xs text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You don't own a segment in this service — here's the full flow for context.</p>
+              )}
+              {view.flow.map((item) => (
+                <div key={item.id} className="group">
+                  <FlowRow item={item} adjustedMin={adjById.get(item.id)} isStewardLens={isStewardEditing} />
+                  {isStewardEditing && (
+                    <div className="flex gap-2 ml-3 mb-1 opacity-70">
+                      <button type="button" onClick={() => setSegmentForm({ initial: item.__seg || programSegments.find((s) => s.id === item.id) })} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                      <button type="button" onClick={async () => { report(await deleteSegment(item.id, { programId: program.id, title: item.title })); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+                  </>
+                ),
+              },
+              // The ACTUAL side: what really happened -> reconcile -> blueprint.
+              // Shown to the whole team (read); the finalizer circle reconciles.
+              // Gated exactly like the original block — no chip (and no empty
+              // panel) until the flow exists.
+              view && view.flow.length > 0 ? {
+                id: 'actuals',
+                label: 'Actuals & blueprint',
+                render: () => (
+                  <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
+                ),
+              } : null,
+              // Steward-only (gated section — absent for sector lenses and any
+              // non-editing viewer, so nothing leaks): the finalizer circle +
+              // the who-changed-what activity trail.
+              isStewardEditing ? {
+                id: 'team',
+                label: 'Team & changes',
+                render: () => (
+                  <>
           {/* Finalizer circle — who can finalize the whole master (collaborative) */}
-          {isStewardEditing && (
             <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -553,10 +618,9 @@ export default function ServiceProgram() {
                 </div>
               )}
             </div>
-          )}
 
           {/* Activity trail — who changed what (institutional memory) */}
-          {isStewardEditing && programChanges.length > 0 && (
+          {programChanges.length > 0 && (
             <details className="bg-white border border-[#E8E4DC] p-2 mb-3">
               <summary className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] cursor-pointer">Recent changes ({programChanges.length})</summary>
               <ul className="mt-2 space-y-0.5">
@@ -569,35 +633,11 @@ export default function ServiceProgram() {
               </ul>
             </details>
           )}
-
-          {/* The flow */}
-          {view && view.flow.length === 0 && (
-            <p className="text-sm text-[#5A5751] text-center py-6" style={{ fontFamily: '"Fraunces", serif' }}>No segments yet.{isStewardEditing ? ' Add the first one above, or start from the standard order.' : ' A steward is still building this order.'}</p>
-          )}
-          {view && view.flow.length > 0 && (
-            <div className="space-y-1">
-              {!isStewardEditing && view.mineCount === 0 && (
-                <p className="text-xs text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You don't own a segment in this service — here's the full flow for context.</p>
-              )}
-              {view.flow.map((item) => (
-                <div key={item.id} className="group">
-                  <FlowRow item={item} adjustedMin={adjById.get(item.id)} isStewardLens={isStewardEditing} />
-                  {isStewardEditing && (
-                    <div className="flex gap-2 ml-3 mb-1 opacity-70">
-                      <button type="button" onClick={() => setSegmentForm({ initial: item.__seg || programSegments.find((s) => s.id === item.id) })} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                      <button type="button" onClick={async () => { report(await deleteSegment(item.id, { programId: program.id, title: item.title })); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* The ACTUAL side: what really happened -> reconcile -> blueprint.
-              Shown to the whole team (read); the finalizer circle reconciles. */}
-          {view && view.flow.length > 0 && (
-            <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
-          )}
+                  </>
+                ),
+              } : null,
+            ]}
+          />
         </>
       )}
     </div>

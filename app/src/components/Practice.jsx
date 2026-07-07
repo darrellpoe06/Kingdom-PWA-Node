@@ -7,12 +7,13 @@
 // this surface tracks PRE-INTAKE inquiries only (non-PHI). PHI stays in
 // Acuity, never in SKOS.
 import React, { useState, useMemo } from 'react';
-import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
+import { MetricCell, SectionTitle } from './shared.jsx';
 import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { Queue } from './Queue.jsx';
 import { ClientGrowth } from './ClientGrowth.jsx';
 import { PracticeLearn } from './PracticeLearn.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -95,7 +96,6 @@ const insuranceLabel = (val) => {
 };
 
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false }) {
-  const [subTab, setSubTab] = useState('operations');
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyInquiry());
@@ -158,134 +158,28 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
     setShowForm(false);
   };
 
-  return (
-    <div className="space-y-5">
-      {/* Practice sub-tabs: day-to-day Operations vs the Client Growth workflow */}
-      <TabScroll label="Practice sections">
-        {[['operations', 'Operations'], ['growth', 'Client Growth'], ['learn', 'Learn']].map(([k, l]) => (
-          <button
-            key={k}
-            onClick={() => setSubTab(k)}
-            aria-pressed={subTab === k}
-            className={`px-3 py-2 min-h-[40px] text-[11px] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${subTab === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}
-          >
-            {l}
-          </button>
-        ))}
-      </TabScroll>
-
-      {subTab === 'growth' && (
-        <ClientGrowth leads={practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
-      )}
-
-      {subTab === 'learn' && (
-        <SectionBoundary name="Practice Learn">
-          <PracticeLearn email={email} isStaff={isStaff} />
-        </SectionBoundary>
-      )}
-
-      {subTab === 'operations' && (<div className="space-y-5">
-      {/* TLC Therapy Solutions integration banner */}
-      <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-          <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
-            <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Real Solutions for Real Life.</h2>
-            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.</p>
-          </div>
-          <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-          <a href="https://tlctherapysolutions.me/" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Site</div>
-            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>tlctherapysolutions.com →</div>
-          </a>
-          <a href="https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Match a Therapist</div>
-            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Find Your Therapist →</div>
-          </a>
-          <a href="mailto:contact@tlctherapysolutions.com" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direct Contact</div>
-            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>contact@tlctherapysolutions.com</div>
-          </a>
-        </div>
-      </section>
-
-      {/* Therapy Options · all link to Acuity booking */}
-      <section>
-        <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {[
-            { name: 'Individual Therapy', desc: 'One-on-one · adult', for: 'Anxiety · depression · grief · life transitions · faith integration' },
-            { name: 'Couples Therapy', desc: 'Marriage & relationships', for: 'Communication · conflict · pre-marital · rebuilding trust' },
-            { name: 'Family Therapy', desc: 'Multi-generation work', for: 'Parent-child · sibling dynamics · blended families' },
-            { name: 'Child & Adolescent', desc: 'Ages 6-17', for: 'Anxiety · school refusal · behavioral · trauma · identity' },
-            { name: 'Group Therapy', desc: 'Themed cohort groups', for: 'Connection-based healing · processing in community' },
-            { name: 'Clinical Consultation', desc: 'For pastors & professionals', for: 'Referral guidance · faith-clinical integration · supervision' },
-          ].map(s => (
-            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
-              <div className="flex items-baseline justify-between gap-2 mb-1">
-                <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
-                <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
-              </div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
-              <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Clinical team · roster with portal links */}
-      <section>
-        <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            { name: 'Christina Poe, LCSW', role: 'Founder · Lead Clinician', specialty: 'Adult · couples · faith integration · clinical consult', url: 'https://tlctherapysolutions.me/christina-poe', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---christina-poe-AR01LXjXPBFJOGxN.jpg' },
-            { name: 'Sheronda Smith-Williams', role: 'Specialist', specialty: 'Multicultural therapy · individual & family', url: 'https://tlctherapysolutions.me/sheronda-smith-williams', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---sheronda-smith-williams-ALp2egQZ9wS64pPW.jpg' },
-            { name: 'Carolyn Nicole Johnson', role: 'Specialist', specialty: 'Child & adolescent · trauma-informed', url: 'https://tlctherapysolutions.me/carolyn-nicole-johnson', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---nicole-johnson-AR01N41P9Es3Xrb8.png' },
-            { name: 'Candace Godbolt', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/candace-godbolt', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---candace-godbolt-m7VDvBz2n5te0wrl.jpeg' },
-            { name: 'Wamaitha Sullivan', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/headshot---wamaitha-sullivan-dJoPzQZMVaIJMPKW.jpg' },
-            { name: 'Dr. Candace Gwin', role: 'Specialist', specialty: 'Clinical specialty services', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---dr-candace-gwin-YD0ElbPRqnHxZqlv.jpg' },
-            { name: 'Carileigh Jones', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---carileigh-jones-m7VD3Xex4RUPGEwn.jpg' },
-          ].map(c => (
-            <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
-              <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-[#B85838] shrink-0">View →</span>
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{c.role}</div>
-                <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{c.specialty}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-        <div className="mt-3 p-3 bg-white border border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Insurance Accepted</div>
-          <p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-            Blue Cross Blue Shield · Aetna · United Health Care · Veterans Affairs · Cigna · Self-pay rates available
-          </p>
-        </div>
-      </section>
-
+  // Harmonized to the shared SectionTabs primitive (Darrell 2026-07-04: "sliding
+  // tabs for all tabs instead of a long scroll"): the old hand-rolled subTab
+  // strip + branches became sections of the same guarded, keyboard-navigable
+  // tablist every surface slides on. All state stays up here; the render thunks
+  // below are plain closures over it. The TLC identity banner and the inquiry
+  // KPI strip stay PINNED above the strip (Darrell 2026-07-07: no scrolling to
+  // see KPIs — they are always visible on every section).
+  const operationsSections = [
+    {
+      id: 'inquiries',
+      label: 'Inquiries',
+      render: () => (<div className="space-y-5">
       <section>
         <SectionTitle eyebrow="Practice Operations">Pre-Intake Inquiry Tracking</SectionTitle>
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
           Capture and track inquiries from prospective clients before they enter Acuity. <strong>No clinical detail. No PHI.</strong> Once an inquiry becomes a scheduled intake, the relationship moves to Acuity — the record of the inquiry stays here for marketing and source tracking only.
         </p>
-      </section>      {/* Stats row */}
-      <section className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-        <MetricCell label="Active" value={`${stats.newCount + stats.inProgress}`} sub={`${stats.newCount} new`} small accent="rust" />
-        <MetricCell label="Converted" value={`${stats.converted}`} sub="to intake" small accent="green" />
-        <MetricCell label="Declined" value={`${stats.declined}`} small />
-        <MetricCell label="Conversion" value={stats.closed > 0 ? `${stats.conversionRate.toFixed(0)}%` : '—'} sub="of closed" small />
       </section>
 
       {/* 2026-05-24: Inquiries section (the Queue + filters + new-inquiry
-          form) was moved up to here so the stats row above sits directly
-          adjacent to the queue. Pipeline Revenue + By Source breakdowns
-          moved below the queue (see further down). */}
+          form) sits right under the pinned stats row. Pipeline Revenue +
+          By Source breakdowns live on the "Revenue & sources" chip. */}
 
       {/* Add inquiry */}
       <section>
@@ -476,9 +370,78 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           />
         )}
       </section>
+      </div>),
+    },
+    {
+      id: 'services',
+      label: 'Services & team',
+      render: () => (<div className="space-y-5">
+      {/* Therapy Options · all link to Acuity booking */}
+      <section>
+        <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {[
+            { name: 'Individual Therapy', desc: 'One-on-one · adult', for: 'Anxiety · depression · grief · life transitions · faith integration' },
+            { name: 'Couples Therapy', desc: 'Marriage & relationships', for: 'Communication · conflict · pre-marital · rebuilding trust' },
+            { name: 'Family Therapy', desc: 'Multi-generation work', for: 'Parent-child · sibling dynamics · blended families' },
+            { name: 'Child & Adolescent', desc: 'Ages 6-17', for: 'Anxiety · school refusal · behavioral · trauma · identity' },
+            { name: 'Group Therapy', desc: 'Themed cohort groups', for: 'Connection-based healing · processing in community' },
+            { name: 'Clinical Consultation', desc: 'For pastors & professionals', for: 'Referral guidance · faith-clinical integration · supervision' },
+          ].map(s => (
+            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
+                <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+              </div>
+              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
+              <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
+      {/* Clinical team · roster with portal links */}
+      <section>
+        <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            { name: 'Christina Poe, LCSW', role: 'Founder · Lead Clinician', specialty: 'Adult · couples · faith integration · clinical consult', url: 'https://tlctherapysolutions.me/christina-poe', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---christina-poe-AR01LXjXPBFJOGxN.jpg' },
+            { name: 'Sheronda Smith-Williams', role: 'Specialist', specialty: 'Multicultural therapy · individual & family', url: 'https://tlctherapysolutions.me/sheronda-smith-williams', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---sheronda-smith-williams-ALp2egQZ9wS64pPW.jpg' },
+            { name: 'Carolyn Nicole Johnson', role: 'Specialist', specialty: 'Child & adolescent · trauma-informed', url: 'https://tlctherapysolutions.me/carolyn-nicole-johnson', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---nicole-johnson-AR01N41P9Es3Xrb8.png' },
+            { name: 'Candace Godbolt', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/candace-godbolt', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---candace-godbolt-m7VDvBz2n5te0wrl.jpeg' },
+            { name: 'Wamaitha Sullivan', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/headshot---wamaitha-sullivan-dJoPzQZMVaIJMPKW.jpg' },
+            { name: 'Dr. Candace Gwin', role: 'Specialist', specialty: 'Clinical specialty services', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---dr-candace-gwin-YD0ElbPRqnHxZqlv.jpg' },
+            { name: 'Carileigh Jones', role: 'Specialist', specialty: 'Multicultural therapy', url: 'https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities', photo: 'https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=200,h=200,fit=crop/YBgjBp7R8bTV8wvZ/website---headshot---carileigh-jones-m7VD3Xex4RUPGEwn.jpg' },
+          ].map(c => (
+            <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
+              <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-[#B85838] shrink-0">View →</span>
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{c.role}</div>
+                <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{c.specialty}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <div className="mt-3 p-3 bg-white border border-[#E8E4DC]">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Insurance Accepted</div>
+          <p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+            Blue Cross Blue Shield · Aetna · United Health Care · Veterans Affairs · Cigna · Self-pay rates available
+          </p>
+        </div>
+      </section>
+      </div>),
+    },
+    // Gated like the original block: no revenue section until a real inquiry
+    // exists (never an empty panel — surface-audit no-dead-ends).
+    stats.total > 0 ? {
+      id: 'revenue',
+      label: 'Revenue & sources',
+      render: () => (<div className="space-y-5">
       {/* Revenue projection — assumptions made explicit, replaces actual data once Acuity sync is built */}
-      {stats.total > 0 && (
         <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
           <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
@@ -502,7 +465,6 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             Assumptions: ~$150/session avg blended (insurance + self-pay), 1 session/week, 48 weeks/year (~$7.2K/client/yr). Estimates only until Acuity integration syncs actual booked + completed session data.
           </p>
         </section>
-      )}
 
       {/* Source breakdown */}
       {stats.bySource.length > 0 && (
@@ -524,7 +486,81 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           </div>
         </section>
       )}
-      </div>)}
+      </div>),
+    } : null,
+  ];
+
+  const sections = [
+    {
+      id: 'operations',
+      label: 'Operations',
+      icon: 'tools',
+      // Operations was still a multi-screen stack — the 3rd-row chips (Darrell
+      // 2026-07-05: "a 3rd row of sliding tabs if that tab scrolls really long")
+      // split it: day-to-day inquiries, the services/team cards, revenue.
+      render: () => (
+        <SectionTabs variant="sub" sections={operationsSections} ariaLabel="Operations sections" idBase="practice-ops" defaultId="inquiries" />
+      ),
+    },
+    {
+      id: 'growth',
+      label: 'Client Growth',
+      icon: 'chart',
+      render: () => (
+        <ClientGrowth leads={practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} />
+      ),
+    },
+    {
+      id: 'learn',
+      label: 'Learn',
+      icon: 'bookOpen',
+      render: () => (
+        <SectionBoundary name="Practice Learn">
+          <PracticeLearn email={email} isStaff={isStaff} />
+        </SectionBoundary>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-5">
+      {/* Pinned above the section strip: the TLC identity banner + the live
+          inquiry KPIs — always visible, never a scroll (or a tab) away. */}
+      {/* TLC Therapy Solutions integration banner */}
+      <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
+            <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Real Solutions for Real Life.</h2>
+            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.</p>
+          </div>
+          <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+          <a href="https://tlctherapysolutions.me/" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Site</div>
+            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>tlctherapysolutions.com →</div>
+          </a>
+          <a href="https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Match a Therapist</div>
+            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Find Your Therapist →</div>
+          </a>
+          <a href="mailto:contact@tlctherapysolutions.com" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
+            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direct Contact</div>
+            <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>contact@tlctherapysolutions.com</div>
+          </a>
+        </div>
+      </section>
+
+      {/* Stats row */}
+      <section className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+        <MetricCell label="Active" value={`${stats.newCount + stats.inProgress}`} sub={`${stats.newCount} new`} small accent="rust" />
+        <MetricCell label="Converted" value={`${stats.converted}`} sub="to intake" small accent="green" />
+        <MetricCell label="Declined" value={`${stats.declined}`} small />
+        <MetricCell label="Conversion" value={stats.closed > 0 ? `${stats.conversionRate.toFixed(0)}%` : '—'} sub="of closed" small />
+      </section>
+
+      <SectionTabs sections={sections} ariaLabel="Practice sections" idBase="practice" defaultId="operations" />
     </div>
   );
 }
