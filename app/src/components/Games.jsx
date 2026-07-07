@@ -22,6 +22,7 @@ import GamePlayer from './GamePlayer.jsx';
 import AssetAllocator from './games/AssetAllocator.jsx';
 import { START_CASH } from '../lib/games/asset-allocation.js';
 import { FamilyPortrait } from './games/GameArt.jsx';
+import { GAME_LEVELS, levelMeta } from '../lib/games/difficulty.js';
 import { listGames, getGame } from '../lib/games/registry.js';
 import { createGame, computeTotals } from '../lib/games/engine.js';
 import { codeFromSeed, buildBoardUrl } from '../lib/games/room-code.js';
@@ -55,6 +56,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
   const [tab, setTab] = useState('play');
   const [activeSaveId, setActiveSaveId] = useState(null);
   const [mini, setMini] = useState(null); // an open mini-game ('steward' | null)
+  const [level, setLevel] = useState('child'); // age/difficulty, young -> old
 
   const games = listGames();
   const activeSave = useMemo(() => saves.find((s) => s.id === activeSaveId) || null, [saves, activeSaveId]);
@@ -80,7 +82,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
     const def = getGame(gameId);
     if (!def || !addSave) return;
     const now = new Date().toISOString();
-    const id = addSave({ gameId, state: createGame(def, { seed: freshSeed() }), createdAt: now, updatedAt: now });
+    const id = addSave({ gameId, state: createGame(def, { seed: freshSeed(), level }), createdAt: now, updatedAt: now });
     if (id) { setActiveSaveId(id); setTab('play'); }
   }
 
@@ -163,6 +165,24 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
 
       {tab === 'play' && (
         <div className="space-y-3">
+          {/* Age / difficulty — young to old, like the Learn tab's levels. Higher
+              levels reveal less, so the choices are a real decision, not obvious. */}
+          <div className={`${BG_CREAM} border ${BORDER} rounded-lg p-3`}>
+            <div className="flex items-center gap-1.5 mb-2"><UiIcon name="chart" className={T_MUTE} /><Eyebrow>Choose a level</Eyebrow></div>
+            <div className="flex flex-wrap gap-1.5">
+              {GAME_LEVELS.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => setLevel(l.id)}
+                  className={`text-sm rounded-full px-3 py-1.5 border ${level === l.id ? `${BG_INK} text-[#FAF8F4] border-[#1A1815]` : `${BG_CARD} ${T_INK} ${BORDER}`}`}
+                >
+                  {l.label} <span className={level === l.id ? 'text-[#D8D2C6]' : T_MUTE}>· {l.age}</span>
+                </button>
+              ))}
+            </div>
+            <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>{levelMeta(level).hint}</p>
+          </div>
+
           {games.map((g) => {
             const resume = inProgressByGame[g.id];
             return (

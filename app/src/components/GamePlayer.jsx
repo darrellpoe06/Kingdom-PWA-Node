@@ -25,6 +25,7 @@ import {
   choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor,
 } from '../lib/games/engine.js';
 import { resolveScripture } from '../lib/games/scripture-link.js';
+import { revealPolicy, displayOrder } from '../lib/games/difficulty.js';
 import { FamilyPortrait, JourneyStart, PathEmblem } from './games/GameArt.jsx';
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
@@ -179,30 +180,41 @@ function MomentCard({ def, state, onChange }) {
     return null;
   }, [state.log]);
 
+  const policy = revealPolicy(state.level);
+
   if (pending) {
+    // Reveal per level: higher levels hide the "second chance" tell, withhold
+    // Yahweh's perspective until AFTER the choice, and shuffle the choice order so
+    // the Kingdom option isn't simply "the last one". Scoring is unchanged — the
+    // display order maps back to the REAL choice index.
+    const order = displayOrder(pending.spaceId, state.seed, state.level, pending.choices.length);
     return (
       <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4`}>
         <Eyebrow>{pending.kind === 'card' ? 'A card from the community' : 'A crossroads'}</Eyebrow>
         <h3 className={`text-lg font-semibold ${T_INK} mt-1`} style={{ fontFamily: 'Fraunces, serif' }}>{pending.title}</h3>
         {pending.body ? <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{pending.body}</p> : null}
-        <LensCallout>{pending.lens}</LensCallout>
-        <ScriptureCallout scripture={pendingScripture(pending)} />
+        {policy.showLensBeforeChoice ? <LensCallout>{pending.lens}</LensCallout> : null}
+        {policy.showLensBeforeChoice ? <ScriptureCallout scripture={pendingScripture(pending)} /> : null}
         <div className="mt-4 grid grid-cols-1 gap-2">
-          {pending.choices.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => onChange(resolveChoice(def, state, i))}
-              className={`text-left ${BG_CREAM} border ${BORDER} rounded-lg p-3 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
-            >
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5"><UiIcon name={c.redemption ? 'dove' : 'check'} className={c.redemption ? T_ACCENT : T_GREEN} /></span>
-                <span>
-                  <span className={`text-sm font-semibold ${T_INK}`}>{c.label}</span>
-                  {c.body ? <span className={`block text-sm ${T_MUTE} mt-0.5`}>{c.body}</span> : null}
-                </span>
-              </div>
-            </button>
-          ))}
+          {order.map((realIdx) => {
+            const c = pending.choices[realIdx];
+            const flagRedemption = policy.showRedemptionHint && c.redemption;
+            return (
+              <button
+                key={realIdx}
+                onClick={() => onChange(resolveChoice(def, state, realIdx))}
+                className={`text-left ${BG_CREAM} border ${BORDER} rounded-lg p-3 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5"><UiIcon name={flagRedemption ? 'dove' : 'check'} className={flagRedemption ? T_ACCENT : T_GREEN} /></span>
+                  <span>
+                    <span className={`text-sm font-semibold ${T_INK}`}>{c.label}</span>
+                    {c.body ? <span className={`block text-sm ${T_MUTE} mt-0.5`}>{c.body}</span> : null}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -217,7 +229,7 @@ function MomentCard({ def, state, onChange }) {
       {lastEvent.body ? <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{lastEvent.body}</p> : null}
       <LensCallout>{lastEvent.lens}</LensCallout>
       <ScriptureCallout scripture={lastEvent.scripture} />
-      <EffectChips def={def} effects={lastEvent.effects} />
+      {policy.showEffects ? <EffectChips def={def} effects={lastEvent.effects} /> : null}
     </div>
   );
 }
