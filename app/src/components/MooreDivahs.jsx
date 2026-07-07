@@ -13,7 +13,7 @@ import React, { useMemo, useState } from 'react';
 import {
   MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage, orderClock,
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
-  changeOrderFee, orderStats, bulkPickList, isSeedOrder,
+  changeOrderFee, orderStats, bulkPickList, bulkTotals, isSeedOrder, BULK_CUTS,
 } from '../lib/moore-divahs.js';
 import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, patchOrder } from '../lib/use-moore-orders.js';
 
@@ -147,15 +147,70 @@ function OrderCard({ order }) {
 }
 
 const BLANK = { customerName: '', contactValue: '', channel: 'instagram', productType: 'custom-clothing', description: '', sizeOrMeasurements: '', fabric: '', quote: '', delivery: 'ship', policyAccepted: true };
+const BLANK_LINE = { qty: '', cut: 'adult', size: '', color: '', names: '' };
+
+// The Google-Doc killer, at the source: one structured row per "6 adult M blue
+// + names" line, so a 25-page group order arrives as data Shay can cut from —
+// never prose she digs through.
+function BulkLineEditor({ lines, setLines }) {
+  const [draft, setDraft] = useState(BLANK_LINE);
+  const setD = (k) => (e) => setDraft({ ...draft, [k]: e.target.value });
+  const addLine = () => {
+    const qty = Math.max(1, Math.round(parseFloat(draft.qty) || 1));
+    setLines([...lines, {
+      qty,
+      cut: draft.cut,
+      size: draft.size || 'M',
+      color: draft.color,
+      names: draft.names.split(',').map((n) => n.trim()).filter(Boolean),
+    }]);
+    setDraft(BLANK_LINE);
+  };
+  const totals = bulkTotals(lines);
+  return (
+    <div className="col-span-2 rounded-lg border border-[#E8E2D8] bg-white p-2 sm:col-span-3">
+      <div className="text-xs font-semibold text-[#1A1815]">Line items — qty × cut × size × color + names</div>
+      {lines.length > 0 && (
+        <ul className="mt-1 list-disc pl-4 text-xs text-[#1A1815]">
+          {bulkPickList(lines).map((p, i) => (
+            <li key={i}>
+              {p}{' '}
+              <button type="button" aria-label={`Remove line ${i + 1}`} className="text-[#B85838] underline" onClick={() => setLines(lines.filter((_, j) => j !== i))}>remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <input aria-label="Line quantity" placeholder="Qty" inputMode="numeric" className="w-14 rounded border border-[#E8E2D8] px-1.5 py-0.5 text-xs" value={draft.qty} onChange={setD('qty')} />
+        <select aria-label="Line cut" className="rounded border border-[#E8E2D8] bg-white px-1 py-0.5 text-xs" value={draft.cut} onChange={setD('cut')}>
+          {BULK_CUTS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <input aria-label="Line size" placeholder="Size" className="w-14 rounded border border-[#E8E2D8] px-1.5 py-0.5 text-xs" value={draft.size} onChange={setD('size')} />
+        <input aria-label="Line color" placeholder="Color" className="w-20 rounded border border-[#E8E2D8] px-1.5 py-0.5 text-xs" value={draft.color} onChange={setD('color')} />
+        <input aria-label="Line names" placeholder="Names, comma-separated" className="min-w-32 flex-1 rounded border border-[#E8E2D8] px-1.5 py-0.5 text-xs" value={draft.names} onChange={setD('names')} />
+        <button type="button" className="rounded-lg border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]" onClick={addLine}>+ Add line</button>
+      </div>
+      {totals.pieces > 0 && (
+        <div className="mt-1 text-xs text-[#5A5751]">{totals.pieces} pieces across {totals.lines} lines · {totals.named} named</div>
+      )}
+    </div>
+  );
+}
 
 function AddOrderForm({ onDone }) {
   const [f, setF] = useState(BLANK);
+  const [bulkLines, setBulkLines] = useState([]);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = async (e) => {
     e.preventDefault();
     if (!f.customerName.trim()) return;
-    await addOrder({ ...f, quoteCents: Math.round((parseFloat(f.quote) || 0) * 100) });
+    await addOrder({
+      ...f,
+      quoteCents: Math.round((parseFloat(f.quote) || 0) * 100),
+      bulkLines: f.productType === 'bulk-apparel' ? bulkLines : [],
+    });
     setF(BLANK);
+    setBulkLines([]);
     onDone?.();
   };
   return (
@@ -176,6 +231,7 @@ function AddOrderForm({ onDone }) {
         <option value="pickup">Local pickup</option>
       </select>
       <input aria-label="Description" placeholder="What they want, their words" className="col-span-2 rounded border border-[#E8E2D8] bg-white px-2 py-1 sm:col-span-1" value={f.description} onChange={set('description')} />
+      {f.productType === 'bulk-apparel' && <BulkLineEditor lines={bulkLines} setLines={setBulkLines} />}
       <button type="submit" className="col-span-2 rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-3">
         Add order
       </button>

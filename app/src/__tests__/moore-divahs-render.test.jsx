@@ -54,4 +54,33 @@ describe('MooreDivahs surface', () => {
     expect(container.querySelector('input[aria-label="Quote dollars"]')).toBeTruthy();
     expect(container.querySelector('select[aria-label="Delivery"]')).toBeTruthy();
   });
+
+  it('bulk-apparel shows the line editor and a submitted order carries the pick-list', async () => {
+    await act(async () => { root.render(createElement(MooreDivahs)); });
+    const open = [...container.querySelectorAll('button')].find((b) => /New order/.test(b.textContent || ''));
+    await act(async () => { open.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+
+    const type = (el, value) => act(async () => {
+      const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+      el.dispatchEvent(new window.Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+    });
+
+    await type(container.querySelector('input[aria-label="Customer name"]'), 'Team Mom');
+    await type(container.querySelector('select[aria-label="Product"]'), 'bulk-apparel');
+    // the structured line editor appears — the Google-Doc killer at the source
+    expect(container.querySelector('input[aria-label="Line quantity"]')).toBeTruthy();
+    await type(container.querySelector('input[aria-label="Line quantity"]'), '6');
+    await type(container.querySelector('input[aria-label="Line size"]'), 'M');
+    await type(container.querySelector('input[aria-label="Line color"]'), 'blue');
+    await type(container.querySelector('input[aria-label="Line names"]'), 'Alicia, Dawn');
+    const addLine = [...container.querySelectorAll('button')].find((b) => /Add line/.test(b.textContent || ''));
+    await act(async () => { addLine.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    expect(container.textContent).toContain('6 pieces across 1 lines');
+
+    const submit = [...container.querySelectorAll('button')].find((b) => /^Add order$/.test((b.textContent || '').trim()));
+    await act(async () => { submit.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    // the created order renders the production pick-list line, structured
+    expect(container.textContent).toContain('6 × adult M · blue — Alicia, Dawn (+4 unnamed)');
+  });
 });
