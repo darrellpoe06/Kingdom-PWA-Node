@@ -90,13 +90,33 @@ function readDecisionLedger() {
     return raw.replace(/\r\n/g, '\n');
   };
   // Lightweight YAML-frontmatter scalar reader (no dep): first --- ... --- block.
+  // FALLBACK (2026-07-07, the "no static data" cleaning pass): 28 of the DR
+  // files use the list-style header instead ("# DR-XXXX — Title" + "- **Date:**
+  // 2026-07-07" bullets) — including the newest records. Without this fallback
+  // they parsed as empty (no title, no date) and silently dropped out of every
+  // date-derived surface (the Build tab's ship story, Ari's notes, the
+  // Perpetual Report). Parse both shapes so the in-app ledger carries the
+  // whole real record.
   const frontmatter = (raw) => {
-    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
     const out = {};
-    if (!m) return out;
-    for (const line of m[1].split('\n')) {
-      const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
-      if (mm) out[mm[1]] = mm[2].trim();
+    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
+    if (m) {
+      for (const line of m[1].split('\n')) {
+        const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
+        if (mm) out[mm[1]] = mm[2].trim();
+      }
+      return out;
+    }
+    // List-style: title from the H1 ("# DR-0121 — <title>"), scalars from the
+    // "- **Field:** value" bullets near the top.
+    const h1 = /^#\s+(DR-\d{4})\s*[—-]\s*(.+)$/m.exec(raw);
+    if (h1) { out.id = h1[1]; out.title = h1[2].trim(); }
+    for (const mm of raw.matchAll(/^-\s+\*\*([A-Za-z-]+):\*\*\s*(.+)$/gm)) {
+      const key = mm[1].toLowerCase();
+      if (key === 'status') out.status = mm[2].trim();
+      else if (key === 'date') out.date = mm[2].trim().slice(0, 10);
+      else if (key === 'tier') out.tier = mm[2].trim().split(/\s/)[0];
+      else if (key === 'superseded-by') out['superseded-by'] = mm[2].trim();
     }
     return out;
   };
@@ -139,7 +159,9 @@ function readDecisionLedger() {
       tier: stripNull(meta.tier),
       supersededBy: stripNull(meta['superseded-by']),
       decision: plain(section(raw, 'Decision')),
-      rationale: plain(section(raw, 'Context')),
+      // Older records carry "## Context"; the list-style ones carry the
+      // directive quote under "## Directive" — either is the why.
+      rationale: plain(section(raw, 'Context') || section(raw, 'Directive')),
       owner: '',
       source: stripNull(meta.source),
     });
