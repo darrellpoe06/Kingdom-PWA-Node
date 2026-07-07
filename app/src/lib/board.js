@@ -364,6 +364,34 @@ export const SEED_BOARDS = [
       { key: 'suc-docs', group: 'Succession', title: 'Governing documents + access handoff plan', status: 'not-started', owner: 'Darrell', notes: 'DB primary → home hardware (~Jul–Aug 2026); sealed-blob backup at church. Access handoff on the same arc.' },
     ],
   },
+
+  // ── 6. Moore Divahs — Shay's fashion business system ──────────────────────
+  // Declared by Darrell 2026-07-07 ("Add this to our Ways" → DR-0113): the build
+  // is watchable in-app from day one. Spec: docs/99-session-notes/
+  // 2026-07-07-moore-divahs-business-system-discovery.md. Statuses HONEST —
+  // discovery is the only shipped piece at kickoff.
+  {
+    slug: 'board-moore-divahs',
+    title: 'Moore Divahs — business system',
+    domain: 'business-moore-divahs',
+    blurb: 'Shay\'s fashion business (custom clothing, scrub caps, custom shoes + sewing classes) built INTO the app: order pipeline with the 3-week clock, the structured bulk-apparel form, seat-held classes, inventory→margin, KPIs, and a branded customer front door. One backbone, two doors (steward tab + /moore).',
+    groupOrder: ['Foundation', 'Orders', 'Classes', 'Money + KPIs', 'Front door'],
+    items: [
+      { key: 'md-discovery', group: 'Foundation', title: 'Discovery spec captured from Shay + Darrell (living doc)', status: 'done', owner: 'Ari', notes: 'docs/99-session-notes/2026-07-07-moore-divahs-business-system-discovery.md — both service lines, pricing ($45 group cap 10 / $75 one-on-one 2.5hr), 3-week turnaround, change-order ladder (50% floor, Shay-variable), inventory, KPIs, channels.' },
+      { key: 'md-brand', group: 'Foundation', title: 'Brand record seam — Moore Divahs as data, not hardcoded', status: 'not-started', owner: 'Ari', notes: 'Name/colors/logo/domain as a config record so the same code serves the steward tab AND the branded customer door; the reusable white-label template for the next QC business.' },
+      { key: 'md-crm', group: 'Foundation', title: 'Leads ride the ONE-CRM (business + pipeline config, no fork)', status: 'not-started', owner: 'Ari', notes: 'DR-0081: add moore business + pipeline(s) to crm-engine.js, capture via crm_capture_lead. New sources: tiktok, whats-going-on-qc, partner-business.' },
+      { key: 'md-engine', group: 'Orders', title: 'Order engine — pipeline, 3-week clock, change-order ladder', status: 'not-started', owner: 'Ari', notes: 'Pure lib: inquiry→designing→quoted→paid→production→ready→delivered→follow-up; clock starts at paid; stage-based change fee (free pre-purchase → materials → 50%-floor Shay-variable in production) with fault attribution (customer/shop/supplier).' },
+      { key: 'md-table', group: 'Orders', title: 'custom_orders migration — instance RLS + realtime', status: 'not-started', owner: 'Ari', notes: 'Modeled on 0059 board_tasks recipe: instance_id, GRANT authenticated, no anon, 4 policies, realtime publication. Change orders + bulk line-items ride the row as jsonb.' },
+      { key: 'md-tab', group: 'Orders', title: 'Moore Divahs tab — the Order Board surface, live in nav', status: 'not-started', owner: 'Ari', notes: 'surfaces.js registry + nav + render switch; the inbox-digging killer: who paid, who is in week two, who ships, who needs follow-up — one screen.' },
+      { key: 'md-bulk', group: 'Orders', title: 'Structured bulk-apparel form (qty × cut × size × color + name roster)', status: 'not-started', owner: 'Ari', notes: 'Kills the 20–25-page Google-Doc intake: line items like "6 adult M blue + names" as structured data feeding a clean production pick-list.' },
+      { key: 'md-classes', group: 'Classes', title: 'Classes board — sessions, paid seat holds (group cap 10 / 1-on-1)', status: 'not-started', owner: 'Ari', notes: 'class_sessions + class_signups; $45 group / $75 one-on-one 2.5hr; dates set ~a month out; 1-on-1 books >=2 weeks out; a seat holds ONLY on recorded payment; real seats-left, never painted.' },
+      { key: 'md-inventory', group: 'Money + KPIs', title: 'shop_inventory — materials on hand + spend feeding margin', status: 'not-started', owner: 'Ari', notes: 'Materials are included in her prices, so margin needs real material cost per order. Own table (kitchen/device inventories stay domain-specific).' },
+      { key: 'md-kpi', group: 'Money + KPIs', title: 'KPI history + revenue-goal planner', status: 'not-started', owner: 'Ari', notes: 'Every order/booking/change is a real dated row → revenue by line + channel, group-vs-1:1, repeat rate, margin, change frequency. Shay sets a revenue goal; the system shows the mix that reaches it. Optimize-toward, never "guarantee" (truthful-claims).' },
+      { key: 'md-door', group: 'Front door', title: 'Branded customer door — /moore standalone boot (PWA installable)', status: 'not-started', owner: 'Ari', notes: 'Customer-facing surfaces only (intake, class sign-up, order status) under the Moore Divahs brand; steward internals never leak. Path first (zero DNS), domain later.' },
+      { key: 'md-dns', group: 'Front door', title: 'Custom domain DNS (mooredivahs)', status: 'not-started', owner: 'Darrell', notes: 'Real-world step only Darrell can do: point DNS + Vercel/Pages domain config. Not blocking — /moore works without it.' },
+      { key: 'md-handles', group: 'Front door', title: 'Shay\'s real social handles (IG / FB / TikTok)', status: 'not-started', owner: 'Darrell', notes: 'Values only Shay holds; wire into the intake link + follow-ups. Email confirmed: mooredivahs1@yahoo.com.' },
+    ],
+  },
 ];
 
 export const SEED_BOARD_BY_SLUG = Object.fromEntries(SEED_BOARDS.map((b) => [b.slug, b]));
