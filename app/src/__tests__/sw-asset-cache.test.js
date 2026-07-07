@@ -27,7 +27,8 @@ function mockResponse({ ok = true, type = 'basic', tag = 'net' } = {}) {
 }
 
 // Load sw.js into a fresh mocked SW global; return the captured handlers + spies.
-function loadSw() {
+// Pass fetchImpl to script what the network returns (e.g. a redirected response).
+function loadSw(fetchImpl) {
   const listeners = {};
   const store = new Map(); // cacheName -> Map(url -> response)
   const fetchCalls = [];
@@ -54,7 +55,7 @@ function loadSw() {
   const fetchMock = async (input, opts) => {
     const url = typeof input === 'string' ? input : input.url;
     fetchCalls.push({ url, opts });
-    return mockResponse({ tag: 'net' });
+    return fetchImpl ? fetchImpl(url, opts) : mockResponse({ tag: 'net' });
   };
 
   const selfMock = {
@@ -135,5 +136,29 @@ describe('sw.js — hashed assets are cached-first and populated on miss', () =>
     const api = { url: `${ORIGIN}/api/whatever`, mode: 'cors' };
     await handleFetch(sw, api);
     expect(await sw.cachesApi.match(api)).toBeFalsy();
+  });
+});
+
+// =============================================================================
+// Navigation redirect guard — the 2026-07-07 /moore ERR_FAILED. The nav handler
+// re-issues the request with a redirect-FOLLOWING fetch; a browser refuses a
+// `redirected` response for a navigation, so every redirecting path (e.g.
+// /moore -> /moore/) hard-failed on any device with the worker installed.
+// Proven-to-catch: with the guard removed, the handler returns the redirected
+// response itself and these expectations fail.
+// =============================================================================
+describe('sw.js — navigation redirect guard (the /moore ERR_FAILED fix)', () => {
+  it('a redirected navigation becomes a real redirect the browser follows itself', async () => {
+    const sw = loadSw(async () => ({ ...mockResponse({ tag: 'net' }), redirected: true, url: `${ORIGIN}/moore/` }));
+    const res = await handleFetch(sw, { url: `${ORIGIN}/moore`, mode: 'navigate' });
+    expect(res.status).toBe(301);
+    expect(res.headers.get('location')).toBe(`${ORIGIN}/moore/`);
+  });
+
+  it('a direct (non-redirected) navigation response is served untouched', async () => {
+    const sw = loadSw();
+    const res = await handleFetch(sw, { url: `${ORIGIN}${BASE}/`, mode: 'navigate' });
+    expect(res.tag).toBe('net');
+    expect(res.status).toBeUndefined(); // the mock response passed straight through
   });
 });

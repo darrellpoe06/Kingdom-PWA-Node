@@ -1,10 +1,10 @@
 // @vitest-environment node
 // moore-door + the moore ONE-CRM config — pinned (DR-0076 / DR-0081).
-// The pricing shown to the Quad Cities is REAL (the in-app tier ladder) or
-// absent (custom quote) — never invented; the moore pipeline is CONFIG on the
-// one CRM backbone, and its capture forces the safe shape.
+// The pricing shown to the Quad Cities is REAL — the in-app tier ladder, and
+// the DECLARED build terms (DR-0117) — never invented; the moore pipeline is
+// CONFIG on the one CRM backbone, and its capture forces the safe shape.
 import { describe, it, expect } from 'vitest';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
 import { getBusiness, getPipeline, attributeSource, validateCapture, canOutreach } from '../lib/crm-engine.js';
 
 describe('the door registry', () => {
@@ -28,16 +28,59 @@ describe('pricing — real numbers only', () => {
     expect(priceOut(['household', 'business']).tier).toBe('business');
     expect(priceOut(['household', 'business']).monthly).toBe(249);
   });
-  it('a branded-app ask flags custom quote — never an invented build price', () => {
+  it('a branded-app ask carries the DECLARED build terms (DR-0117) — never an invented figure', () => {
     const q = priceOut(['branded']);
     expect(q.customQuote).toBe(true);
-    expect(q.note).toContain('custom quote');
-    // and no need in the registry carries a made-up build dollar figure
+    // the note speaks Darrell's declared numbers, sourced from client-engagements.js
+    expect(q.note).toContain('$2,000');
+    expect(q.note).toContain('90 days same as cash');
+    expect(q.note).toContain('$500 to start');
+    expect(q.note).toContain('$150/mo');
+    // and no need in the registry carries its own build dollar figure (one source of truth)
     for (const n of PRICE_OUT_NEEDS) expect(n.buildPrice).toBeUndefined();
   });
   it('empty selection prices nothing (no painted number)', () => {
     expect(priceOut([]).tier).toBeNull();
     expect(priceOut([]).monthly).toBeNull();
+  });
+});
+
+describe('view-as-customer — the door lens is STRICTLY NARROWING (DR-0104 sibling)', () => {
+  it('a real steward with the lens ON sees exactly a customer view', () => {
+    for (const role of ['owner', 'admin']) {
+      const v = doorView(role, true);
+      expect(v.isSteward).toBe(false);          // the board is hidden
+      expect(v.customerView).toBe(true);        // the strip shows (the only tell)
+      expect(v.authRole).toBe('customer-view'); // DoorAuth renders nothing, like a customer
+      expect(v.stewardRole).toBe(true);         // the REAL role is unchanged — Exit restores it
+    }
+  });
+  it('the lens can NEVER grant privilege — proven-to-catch', () => {
+    // forcing customerView on/off with no steward role changes nothing
+    for (const role of ['none', 'customer', 'signed-out', null, undefined, 'member']) {
+      for (const lens of [true, false]) {
+        const v = doorView(role, lens);
+        expect(v.isSteward).toBe(false);
+        expect(v.customerView).toBe(false);     // the lens is meaningless without a real role
+        expect(v.authRole).toBe(role);          // no masking for non-stewards
+      }
+    }
+  });
+  it('lens OFF is the steward\'s normal board', () => {
+    expect(doorView('owner').isSteward).toBe(true);
+    expect(doorView('owner', false).authRole).toBe('owner');
+    expect(doorView('admin').isSteward).toBe(true);
+  });
+});
+
+describe('one-click reorder — a past order becomes the next inquiry note', () => {
+  it('carries what they had made and the prior order reference', () => {
+    const note = buildReorderNote({ slug: 'mo-abc', description: 'Two teal scrub caps', product_type: 'scrub-cap' });
+    expect(note).toBe('Order this again: Two teal scrub caps (prior order mo-abc)');
+  });
+  it('falls back to the product type when the description is empty', () => {
+    expect(buildReorderNote({ slug: 'mo-x', description: '', product_type: 'custom-shoes' })).toContain('custom-shoes');
+    expect(buildReorderNote(null)).toBe('');
   });
 });
 

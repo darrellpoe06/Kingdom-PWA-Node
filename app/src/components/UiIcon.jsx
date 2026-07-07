@@ -67,6 +67,13 @@ const ICONS = {
       <circle cx="15.4" cy="8.6" r="1" fill="currentColor" stroke="none" />
     </>
   ),
+  // open eye — the "view as customer" reviewer lens on business doors (was 👁)
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
   // phone handset — Inbound (was 📞)
   phone: (
     <path d="M6.6 3.5h3l1.4 3.8-2 1.4a11 11 0 0 0 4.9 4.9l1.4-2 3.8 1.4v3a2 2 0 0 1-2.1 2A15.8 15.8 0 0 1 4.4 5.6 2 2 0 0 1 6.6 3.5Z" />

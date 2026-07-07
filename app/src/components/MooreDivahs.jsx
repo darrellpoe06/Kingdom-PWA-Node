@@ -9,7 +9,7 @@
 // Money is the owner's hand: the board RECORDS how Shay collected (Square /
 // Venmo / Apple Pay); it never processes payment.
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage, orderClock,
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
@@ -22,6 +22,9 @@ import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-cla
 import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
 import AddressField, { osmLink } from './AddressField.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
+import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece } from '../lib/showcase.js';
+import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -427,6 +430,65 @@ function MaterialsSection() {
   );
 }
 
+// ---- Backfill + export — history in, her data out (task 19) ------------------
+function download(filename, text) {
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch { /* jsdom / blocked download */ }
+}
+
+function BackfillSection({ orders }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const preview = useMemo(() => parseBackfillLines(text), [text]);
+  const runImport = async () => {
+    setImporting(true);
+    let added = 0;
+    for (const row of preview.rows) { await addOrder(row); added += 1; }
+    setImporting(false);
+    setResult({ added, problems: preview.problems.length });
+    setText('');
+  };
+  return (
+    <div className="mt-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>History &amp; exports</h2>
+          <p className="text-xs text-[#5A5751]">Paste your past customers once — every line becomes a real record. And your data is always yours: one tap exports it.</p>
+        </div>
+        <span className="flex gap-2">
+          <button type="button" className="rounded-lg border border-[#5A6E3D] px-2.5 py-1.5 text-xs font-semibold text-[#5A6E3D]" onClick={() => download('moore-divahs-customers.csv', customersCsv(orders))}>Export customers</button>
+          <button type="button" className="rounded-lg border border-[#5A6E3D] px-2.5 py-1.5 text-xs font-semibold text-[#5A6E3D]" onClick={() => download('moore-divahs-orders.csv', ordersCsv(orders))}>Export orders</button>
+          <button type="button" className="rounded-lg border border-[#B85838] px-2.5 py-1.5 text-xs font-semibold text-[#B85838]" onClick={() => setOpen((v) => !v)}>{open ? 'Close' : '+ Backfill history'}</button>
+        </span>
+      </div>
+      {open && (
+        <div className="mt-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3">
+          <p className="text-xs text-[#5A5751]">
+            One line per past order: <strong>Name, contact, what they bought, when, $amount</strong> — only name + item required.
+            Example: <em>Dana, @dana_sews, two teal scrub caps, 2026-03, $60</em>. Amounts you give are recorded as paid history; nothing is invented.
+          </p>
+          <textarea aria-label="Backfill lines" rows={5} className="mt-2 w-full rounded border border-[#E8E2D8] bg-white p-2 text-sm" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="mt-1 flex items-center gap-3 text-xs">
+            <span className="text-[#5A6E3D]">{preview.rows.length} ready</span>
+            {preview.problems.length > 0 && <span className="text-[#B85838]">{preview.problems.length} lines need a fix: {preview.problems[0].why}</span>}
+            <button type="button" disabled={!preview.rows.length || importing} className="rounded-lg bg-[#B85838] px-3 py-1 font-semibold text-white disabled:opacity-50" onClick={runImport}>
+              {importing ? 'Importing…' : `Import ${preview.rows.length}`}
+            </button>
+          </div>
+          {result && <p className="mt-1 text-xs text-[#5A6E3D]">✓ {result.added} historical orders added{result.problems ? ` · ${result.problems} lines skipped` : ''}. They feed your customer list, repeat rate, and exports.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- KPIs + the revenue-goal planner (her data, her goal) --------------------
 function KpiSection({ orders }) {
   const { sessions, signups } = useMooreClasses();
@@ -493,6 +555,114 @@ function KpiSection({ orders }) {
   );
 }
 
+// ---- Messages — Shay's inbox: every customer thread, one board (0091) -------
+function MessagesSection() {
+  const [state, setState] = useState({ phase: 'loading', rows: [] });
+  const [openThread, setOpenThread] = useState(null);
+  const [draft, setDraft] = useState('');
+  const load = () => fetchMessages('moore-divahs').then((r) => setState({ phase: r.ok ? 'ready' : 'signed-out', rows: r.rows }));
+  useEffect(() => { load(); }, []);
+  const threads = useMemo(() => groupThreads(state.rows), [state.rows]);
+  const current = threads.find((t) => t.customerUserId === openThread) || null;
+  const reply = async (e) => {
+    e.preventDefault();
+    if (!draft.trim() || !current) return;
+    const r = await sendMessage('moore-divahs', draft, current.customerUserId);
+    if (r.ok) { setDraft(''); load(); }
+  };
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Messages</h2>
+      <p className="text-xs text-[#5A5751]">Every customer conversation, one board — no more digging through five inboxes.</p>
+      {state.phase === 'loading' ? null : threads.length === 0 ? (
+        <div className="mt-2 rounded-xl border border-dashed border-[#E8E2D8] p-4 text-center text-sm text-[#5A5751]">
+          No customer messages yet — when someone writes from your app, the thread lands here.
+        </div>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          {threads.map((t) => (
+            <div key={t.customerUserId} className="rounded-xl border border-[#E8E2D8] bg-white p-2">
+              <button type="button" className="flex w-full items-center justify-between text-left text-sm" onClick={() => setOpenThread(openThread === t.customerUserId ? null : t.customerUserId)}>
+                <span className="text-[#1A1815]">
+                  <strong>Customer {String(t.customerUserId).slice(0, 8)}</strong>
+                  <span className="text-[#5A5751]"> · {t.messages.length} messages · {t.last ? new Date(t.lastAt).toLocaleString() : ''}</span>
+                </span>
+                {t.unansweredFromCustomer && <span className="rounded-full border border-[#B85838] px-2 py-0.5 text-xs text-[#B85838]">needs reply</span>}
+              </button>
+              {openThread === t.customerUserId && (
+                <div className="mt-2">
+                  <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-[#E8E2D8] bg-[#FAF8F4] p-2">
+                    {t.messages.map((m, i) => (
+                      <div key={i} className={`max-w-[85%] rounded-lg px-2 py-1 text-sm ${m.sender === 'steward' ? 'ml-auto border border-[#5A6E3D]' : 'border border-[#E8E2D8]'} text-[#1A1815]`}>
+                        <span className="block text-xs text-[#5A5751]">{m.sender === 'steward' ? 'You' : 'Customer'} · {new Date(m.created_at).toLocaleString()}</span>
+                        {m.body}
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={reply} className="mt-2 flex gap-2">
+                    <input aria-label="Reply to customer" placeholder="Reply…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-2 py-1.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+                    <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white">Send</button>
+                  </form>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Gallery manager — she uploads her historical pieces when ready (0092) --
+function GalleryManager() {
+  const [pieces, setPieces] = useState([]);
+  const [f, setF] = useState({ title: '', description: '', productType: 'custom-clothing', file: null });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const load = () => fetchShowcase('moore-divahs').then((r) => setPieces(sortPieces(r.pieces)));
+  useEffect(() => { load(); }, []);
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    const r = await addPiece({ instanceSlug: 'moore-divahs', title: f.title, description: f.description, productType: f.productType, file: f.file });
+    setBusy(false);
+    if (!r.ok) { setErr(r.error === 'title-and-image-required' ? 'A title and an image are both needed.' : `Upload failed: ${r.error}`); return; }
+    setF({ title: '', description: '', productType: 'custom-clothing', file: null });
+    load();
+  };
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Gallery</h2>
+      <p className="text-xs text-[#5A5751]">Your showcased pieces greet every customer who opens your app. Pin favorites to the top; each piece carries an &ldquo;order inspired by this&rdquo; button.</p>
+      <form onSubmit={submit} className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3 text-sm sm:grid-cols-4">
+        <input aria-label="Piece title" required placeholder="Piece title" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+        <select aria-label="Piece type" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.productType} onChange={(e) => setF({ ...f, productType: e.target.value })}>
+          {PRODUCT_TYPES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+        </select>
+        <input aria-label="Piece image" type="file" accept="image/*" className="text-xs" onChange={(e) => setF({ ...f, file: e.target.files?.[0] || null })} />
+        <input aria-label="Piece description" placeholder="A line about it (optional)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <button type="submit" disabled={busy} className="col-span-2 rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-4">{busy ? 'Uploading…' : '+ Add to gallery'}</button>
+        {err && <p className="col-span-2 text-xs text-[#B85838] sm:col-span-4">{err}</p>}
+      </form>
+      {pieces.length > 0 && (
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {pieces.map((p) => (
+            <div key={p.slug} className="rounded-xl border border-[#E8E2D8] bg-white p-2 text-xs">
+              {showcaseImageUrl(p.image_path) && <img src={showcaseImageUrl(p.image_path)} alt={p.title} loading="lazy" className="aspect-square w-full rounded-lg object-cover" />}
+              <div className="mt-1 font-semibold text-[#1A1815]">{p.title}{p.pinned ? ' ✦' : ''}</div>
+              <div className="mt-1 flex gap-1.5">
+                <button type="button" className="rounded border border-[#5A6E3D] px-1.5 py-0.5 text-[#5A6E3D]" onClick={() => setPin('moore-divahs', p.slug, !p.pinned).then(load)}>{p.pinned ? 'Unpin' : 'Pin ✦'}</button>
+                <button type="button" className="rounded border border-[#5A5751] px-1.5 py-0.5 text-[#5A5751]" onClick={() => { if (confirm(`Remove "${p.title}" from the gallery?`)) removePiece('moore-divahs', p.slug).then(load); }}>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MooreDivahs() {
   const orders = useMooreOrders();
   const [adding, setAdding] = useState(false);
@@ -541,7 +711,10 @@ export default function MooreDivahs() {
       )),
     },
     { id: 'classes', label: 'Classes', icon: 'calendar', render: () => <ClassesSection /> },
+    { id: 'messages', label: 'Messages', icon: 'chat', render: () => <MessagesSection /> },
+    { id: 'gallery', label: 'Gallery', icon: 'palette', render: () => <GalleryManager /> },
     { id: 'materials', label: 'Materials', icon: 'tools', render: () => <MaterialsSection /> },
+    { id: 'backfill', label: 'History & export', icon: 'pencil', render: () => <BackfillSection orders={real} /> },
     { id: 'numbers', label: 'The numbers', icon: 'chart', render: () => <KpiSection orders={real} /> },
   ];
 
