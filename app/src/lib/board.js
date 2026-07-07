@@ -130,6 +130,30 @@ export function canonicalSeedOwner(boardSlug, slug) {
 }
 
 // -----------------------------------------------------------------------------
+// Seed drift — a live board can fall BEHIND its own build record (2026-07-07,
+// Darrell's screenshot: the Moore board read "1/13 done" while the seed spec —
+// the build's verifiable record — carried 14/16 SHIPPED). Two pure detectors
+// drive two explicit one-tap board actions; nothing self-mutates silently:
+//   * missingSeedTasks — spec items whose slug has no live row (the board was
+//     seeded before the spec grew). loadSeed() already fills only gaps.
+//   * staleSeedStatuses — live seed rows still 'not-started' while the spec
+//     marks them 'done' (verifiably shipped, per the spec's notes). Upgrade
+//     only, never a downgrade; a row a human moved past not-started is left
+//     alone (their edit outranks the heal).
+// -----------------------------------------------------------------------------
+export function missingSeedTasks(boardSlug, tasks) {
+  const have = new Set((Array.isArray(tasks) ? tasks : []).map((t) => t && t.slug).filter(Boolean));
+  return seedTasksForBoard(boardSlug).filter((r) => !have.has(r.slug));
+}
+export function staleSeedStatuses(boardSlug, tasks) {
+  const bySlug = new Map(seedTasksForBoard(boardSlug).map((r) => [r.slug, r]));
+  return (Array.isArray(tasks) ? tasks : []).filter((t) => {
+    const spec = t && bySlug.get(t.slug);
+    return spec && spec.status === 'done' && t.status === 'not-started';
+  });
+}
+
+// -----------------------------------------------------------------------------
 // boardProgress — the honest roll-up that drives the per-board progress bar and
 // the board-selector pills. Pure tally of the REAL rows passed in (already
 // instance/role-scoped by the caller). pct = done / total, rounded. When a board
