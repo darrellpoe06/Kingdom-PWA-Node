@@ -24,6 +24,7 @@ import { captureLead } from '../lib/crm-sync.js';
 import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
+import UiIcon from './UiIcon.jsx';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
@@ -484,7 +485,7 @@ export default function MooreDoor() {
       <div className="mx-auto max-w-2xl px-4 pb-16">
         {view.customerView && (
           <div className="sticky top-0 z-40 -mx-4 flex items-center justify-between gap-2 border-b border-[#B85838] bg-[#FAF8F4] px-4 py-2 text-xs text-[#1A1815]">
-            <span>👁 <strong>Viewing as a customer</strong> — this is exactly what your customers see. Anything you submit here is real.</span>
+            <span className="flex items-center gap-1.5"><UiIcon name="eye" className="h-4 w-4 shrink-0" /><span><strong>Viewing as a customer</strong> — this is exactly what your customers see. Anything you submit here is real.</span></span>
             <button type="button" className="whitespace-nowrap rounded-lg border border-[#B85838] px-2 py-1 font-semibold text-[#B85838]" onClick={() => setCustomerView(false)}>Exit</button>
           </div>
         )}
@@ -511,8 +512,8 @@ export default function MooreDoor() {
           <Suspense fallback={<p className="mt-4 text-center text-xs text-[#5A5751]">Loading your board…</p>}>
             <div className="mt-2 rounded-2xl border border-[#B85838] p-2">
               <div className="flex justify-end px-1 pt-1">
-                <button type="button" className="rounded-lg border border-[#E8E2D8] px-2 py-1 text-xs text-[#5A5751]"
-                  onClick={() => setCustomerView(true)}>👁 View as customer</button>
+                <button type="button" className="flex items-center gap-1.5 rounded-lg border border-[#E8E2D8] px-2 py-1 text-xs text-[#5A5751]"
+                  onClick={() => setCustomerView(true)}><UiIcon name="eye" className="h-3.5 w-3.5" /> View as customer</button>
               </div>
               <StewardBoard />
             </div>
