@@ -18,15 +18,16 @@
 // moment, the scoreboard leads with the Kingdom axes, and the finish is a
 // LEGACY measured by faithfulness and what is passed on.
 // =============================================================================
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
-  choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor,
+  choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor, lastSpin,
 } from '../lib/games/engine.js';
 import { resolveScripture } from '../lib/games/scripture-link.js';
 import { revealPolicy, displayOrder } from '../lib/games/difficulty.js';
 import { FamilyPortrait, JourneyStart, PathEmblem } from './games/GameArt.jsx';
+import SpinnerWheel, { SPIN_MS } from './games/SpinnerWheel.jsx';
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
 const T_INK = 'text-[#1A1815]';
@@ -311,6 +312,18 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
 
 // ---- the player -------------------------------------------------------------
 export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }) {
+  // The spin veil: while the wheel is visibly turning, the landing stays
+  // face-down. Engine state commits IMMEDIATELY on the tap (the save row is
+  // authoritative; exiting mid-spin loses nothing) — the veil is presentation
+  // only, cleared when the wheel rests (plus a backstop timer so no browser
+  // quirk can leave the moment hidden).
+  const [veil, setVeil] = useState(false);
+  useEffect(() => {
+    if (!veil) return undefined;
+    const t = setTimeout(() => setVeil(false), SPIN_MS + 900);
+    return () => clearTimeout(t);
+  }, [veil]);
+
   if (!def || !state) return null;
 
   if (state.status === 'choosing-path') {
@@ -331,7 +344,7 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
 
   // playing
   const prog = progress(def, state);
-  const lastSpin = [...state.log].reverse().find((e) => e.type === 'spin');
+  const spin = lastSpin(state);
   const board = boardFor(def, state.pathId);
   const stage = board[state.position]?.stage || '';
 
@@ -356,20 +369,31 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
         </div>
       </div>
 
-      <MomentCard def={def} state={state} onChange={onChange} />
-
-      {/* turn control */}
-      {!state.pending && (
-        <div className="text-center">
-          {lastSpin ? <p className={`text-sm ${T_MUTE} mb-2`}>You spun a <span className={`font-semibold ${T_INK}`}>{(lastSpin.title || '').replace('Spin: ', '')}</span>.</p> : null}
-          <button
-            onClick={() => onChange(takeTurn(def, state))}
-            className={`${BG_INK} text-[#FAF8F4] rounded-lg px-6 py-3 text-base font-medium inline-flex items-center gap-2`}
-          >
-            <UiIcon name="dice" /> Spin the wheel
-          </button>
+      {veil ? (
+        <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4 text-center`}>
+          <p className={`text-sm ${T_MUTE}`}>The wheel is turning&hellip;</p>
         </div>
+      ) : (
+        <MomentCard def={def} state={state} onChange={onChange} />
       )}
+
+      {/* the wheel — the ACTUAL spinner; it lands on the engine's real spin */}
+      <div className="text-center">
+        <SpinnerWheel value={spin ? spin.value : null} spinSeq={spin ? spin.index : null} size="10rem" onRest={() => setVeil(false)} />
+        {spin && spin.value != null && !veil ? (
+          <p className={`text-sm ${T_MUTE} mt-2`}>You spun a <span className={`font-semibold ${T_INK}`}>{spin.value}</span>.</p>
+        ) : null}
+        {!state.pending && !veil && (
+          <div className="mt-3">
+            <button
+              onClick={() => { setVeil(true); onChange(takeTurn(def, state)); }}
+              className={`${BG_INK} text-[#FAF8F4] rounded-lg px-6 py-3 text-base font-medium inline-flex items-center gap-2`}
+            >
+              <UiIcon name="dice" /> Spin the wheel
+            </button>
+          </div>
+        )}
+      </div>
 
       <Scoreboard def={def} state={state} />
       <JourneyLog state={state} />
