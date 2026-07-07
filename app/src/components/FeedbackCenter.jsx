@@ -12,7 +12,7 @@
 import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
-import { compressImageFile } from '../lib/image.js';
+import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import UiIcon from './UiIcon.jsx';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
@@ -237,28 +237,52 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
   // a new pick APPENDS so several batches accumulate.
   const [screenshots, setScreenshots] = useState([]);
   const [formError, setFormError] = useState('');
+  // Images still compressing. Submit WAITS on this — without it, submitting
+  // while a big photo was still reading sent the feedback with screenshots:[]
+  // and the image silently vanished (Darrell 2026-07-07: "couldn't upload an
+  // image last time I tried into the Feedback importer").
+  const [readingImages, setReadingImages] = useState(false);
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
   const onPickImage = async (fileList) => {
-    const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type || ''));
+    const all = Array.from(fileList || []);
+    // Loose gate (isLikelyImageFile): Android picks can carry a blank MIME
+    // type — a real photo used to be rejected here as "not an image."
+    const files = all.filter(isLikelyImageFile);
+    const notImages = all.filter(f => !isLikelyImageFile(f));
     if (files.length === 0) {
       setFormError('That file is not an image — a screenshot or photo works best.');
       return;
     }
-    try {
-      // Compress each hard: images only need to be legible and they travel in
-      // the row, so keep them small. Append so multiple picks accumulate.
-      const dataUrls = await Promise.all(files.map(f => compressImageFile(f, 1280, 0.6)));
-      setScreenshots(prev => [...prev, ...dataUrls]);
-      setFormError('');
-    } catch (_) {
-      setFormError('Could not read one of those images. Try again, or submit without it.');
-    }
+    setReadingImages(true);
+    setFormError('');
+    // Compress each hard: images only need to be legible and they travel in
+    // the row, so keep them small. Append so multiple picks accumulate.
+    // allSettled: ONE unreadable photo no longer throws away the whole batch.
+    const results = await Promise.allSettled(files.map(f => compressImageFile(f, 1280, 0.6)));
+    const good = [];
+    const failed = [];
+    results.forEach((r, i) => {
+      // A decode that silently yields an empty/degenerate data URL is a
+      // failure too (same guard as the receipts modal) — never attach a blank.
+      if (r.status === 'fulfilled' && r.value && r.value.length >= 100) good.push(r.value);
+      else failed.push(files[i].name || `image ${i + 1}`);
+    });
+    if (good.length > 0) setScreenshots(prev => [...prev, ...good]);
+    const problems = [];
+    if (failed.length) problems.push(`Could not read ${failed.join(', ')}${good.length ? ` — the other ${good.length} attached fine` : ''}. Try again, or pick a different image.`);
+    if (notImages.length) problems.push(`Skipped ${notImages.map(f => f.name).join(', ')} (not an image).`);
+    setFormError(problems.join(' '));
+    setReadingImages(false);
   };
   const removeScreenshot = (i) => setScreenshots(prev => prev.filter((_, j) => j !== i));
 
   const handleSubmit = () => {
+    if (readingImages) {
+      setFormError('Still reading your photo — one moment, then tap Submit again.');
+      return;
+    }
     if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && screenshots.length === 0) {
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
@@ -351,15 +375,16 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
                 </div>
               )}
               <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
-                <span>{screenshots.length > 0 ? 'Add another image' : 'Attach one or more images to show us what you mean'}</span>
+                <span>{readingImages ? 'Reading your photo…' : screenshots.length > 0 ? 'Add another image' : 'Attach one or more images to show us what you mean'}</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
               </label>
+              {readingImages && <p className="mt-1 text-[0.625rem] text-[#5A5751]" aria-live="polite">Reading and compressing — the preview appears here when it&apos;s in.</p>}
             </div>
           </div>
 
           <div className="flex gap-2 mt-5 pt-4 border-t border-[#E8E4DC]">
             {formError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838] w-full" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{formError}</div>}
-            <button type="button" onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
+            <button type="button" onClick={handleSubmit} disabled={readingImages} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold disabled:opacity-50">{readingImages ? 'Reading photo…' : 'Submit Feedback'}</button>
             <button type="button" onClick={onClose} className="border border-[#E8E4DC] text-[#5A5751] px-6 py-2.5 text-xs uppercase tracking-wider hover:border-[#1A1815]">Cancel</button>
           </div>
         </div>

@@ -21,7 +21,7 @@ import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
-import { compressImageFile } from '../lib/image.js';
+import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import LedgerProof from './LedgerProof.jsx';
 
@@ -76,7 +76,10 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
 
   const onPhoto = async (file) => {
     if (!file) return;
-    if (!(file.type || '').startsWith('image/')) { setSrc(''); setBusy(`"${file.name}" is not a photo — pick a JPG, PNG, or HEIC image.`); return; }
+    // Loose gate (isLikelyImageFile, DR-0121 item 9): Android picks can carry
+    // a blank MIME type — a real photo used to be rejected here before the
+    // decoder ever saw it. The decoder below stays the real judge.
+    if (!isLikelyImageFile(file)) { setSrc(''); setBusy(`"${file.name}" is not a photo — pick a JPG, PNG, or HEIC image.`); return; }
     // Clear any prior photo so a failed read can never leave a stale preview
     // standing in for the file the user actually picked.
     setSrc('');

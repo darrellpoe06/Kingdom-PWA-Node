@@ -194,10 +194,26 @@ export function RecentlyShipped() {
   );
 }
 
+// How old the hand-kept ship record may grow before this page must say so.
+// A week: longer than any normal shipping lull, far shorter than the silent
+// 20-day drift that triggered the rule.
+const RECORD_STALE_DAYS = 7;
+
 export function BuildBoard({ onViewDecisions = null, onNavigate = null, isGovernor = false }) {
   const [openId, setOpenId] = useState(null);
   // Open decisions waiting on the governor — read from the real queue (#4).
   const openDecisions = normalizeGovernanceQueue(GOVERNANCE_QUEUE).openCount;
+
+  // The record's own freshness: the newest dated SHIP in the hand-kept ROADMAP.
+  // (Future-dated targets are commitments, not updates — only shipped entries
+  // prove the record was touched.)
+  const recordLastMs = ROADMAP.reduce((max, r) => {
+    if (r.status !== 'shipped') return max;
+    const v = Date.parse(r.when || '');
+    return !Number.isNaN(v) && v > max ? v : max;
+  }, 0);
+  const recordAgeDays = recordLastMs ? Math.floor((Date.now() - recordLastMs) / (24 * 60 * 60 * 1000)) : null;
+  const recordLastDate = recordLastMs ? new Date(recordLastMs).toISOString().slice(0, 10) : null;
 
   // Past Due — anything past its committed target but still in progress. A
   // cross-cutting view over Building + Next: the board adjusting to the real
@@ -236,8 +252,21 @@ export function BuildBoard({ onViewDecisions = null, onNavigate = null, isGovern
           🔧 {WORKFLOW_STATS.built} automation workflows built · {WORKFLOW_STATS.active} active in the repo
         </div>
         <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          These counts are real — workflow files in the repo and dated ships, not hand-typed. Live run-status and per-item % complete are wiring up next.
+          The workflow counts are real (files in the repo). The ship list on this page is a HAND-KEPT record — its freshness is shown honestly below (DR-0076).
         </div>
+        {/* Staleness made legible (DR-0120 / P30, Darrell 2026-07-07: "No static
+            data"): this page's ROADMAP is a hand-typed record, and it fell 20
+            days behind the live boards without anything saying so. Until the
+            consolidation onto the live board store lands (DR-0121), the record
+            declares its own age the moment it falls behind. */}
+        {recordAgeDays > RECORD_STALE_DAYS && (
+          <div className="mt-2 border border-[#B85838] bg-[#FAF8F4] p-2.5 text-xs text-[#1A1815]" role="status">
+            <span className="text-[#B85838] font-semibold" aria-hidden="true">▲</span>{' '}
+            This hand-kept record was last updated <span className="font-medium">{recordAgeDays} days ago{recordLastDate ? ` (${recordLastDate})` : ''}</span> and has fallen behind the live work.
+            The current build truth is <button type="button" onClick={() => onNavigate && onNavigate('projects')} className="underline text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] rounded">Projects → ▦ Boards</button> (live, synced, phase-tracked);
+            this page is queued to consolidate onto that live source (DR-0121).
+          </div>
+        )}
         {/* One tap to pull the newest deployed build onto THIS device (Darrell
             2026-07-07) — checks right now instead of waiting on the browser's
             own update cycle; honest "you're on the latest" when nothing's newer. */}
