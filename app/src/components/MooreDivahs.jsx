@@ -20,6 +20,7 @@ import {
 import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, patchOrder } from '../lib/use-moore-orders.js';
 import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-classes.js';
 import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
+import AddressField, { osmLink } from './AddressField.jsx';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -244,7 +245,7 @@ function AddOrderForm({ onDone }) {
 }
 
 // ---- Classes — sessions + paid-seat holds (cap 10 group / 1-on-1 2.5h) ------
-const BLANK_SESSION = { format: 'group', project: '', dateIso: '', location: '', price: '' };
+const BLANK_SESSION = { format: 'group', project: '', dateIso: '', location: '', locationLat: null, locationLon: null, price: '' };
 
 function SeatForm({ session, signups }) {
   const [name, setName] = useState('');
@@ -279,6 +280,7 @@ function ClassesSection() {
     if (!f.dateIso) return;
     await addSession({
       format: f.format, project: f.project, location: f.location,
+      locationLat: f.locationLat, locationLon: f.locationLon,
       dateIso: new Date(f.dateIso).toISOString(),
       priceCents: f.price ? Math.round(parseFloat(f.price) * 100) : spec.priceCentsDefault,
     });
@@ -304,7 +306,13 @@ function ClassesSection() {
           </select>
           <input aria-label="Class project" placeholder="This session's project" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.project} onChange={set('project')} />
           <input aria-label="Class date" type="datetime-local" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.dateIso} onChange={set('dateIso')} />
-          <input aria-label="Class location" placeholder="Location (she travels)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.location} onChange={set('location')} />
+          <AddressField
+            ariaLabel="Class location"
+            placeholder="Location — type the address"
+            value={f.location}
+            onChange={(v) => setF((cur) => ({ ...cur, location: v, locationLat: null, locationLon: null }))}
+            onPick={(loc) => setF((cur) => ({ ...cur, location: loc.label, locationLat: loc.lat, locationLon: loc.lon }))}
+          />
           <input aria-label="Class price dollars" placeholder={`Price $ (default ${(spec.priceCentsDefault / 100).toFixed(0)})`} inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.price} onChange={set('price')} />
           <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white">Schedule</button>
         </form>
@@ -329,6 +337,9 @@ function ClassesSection() {
                       {s.dateIso ? new Date(s.dateIso).toLocaleString() : 'date TBD'}
                       {s.location ? ` · ${s.location}` : ''} · {fmt$(s.priceCents)}
                       {s.format === 'one-on-one' ? ` · ${CLASS_FORMATS['one-on-one'].durationHours}h session` : ''}
+                      {osmLink(s.locationLat, s.locationLon) && (
+                        <> · <a className="underline" href={osmLink(s.locationLat, s.locationLon)} target="_blank" rel="noreferrer">map</a></>
+                      )}
                     </div>
                     {roster.length > 0 && (
                       <div className="mt-1 text-xs text-[#1A1815]">Paid seats: {roster.map((r) => r.studentName).join(', ')}</div>

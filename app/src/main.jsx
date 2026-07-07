@@ -8,6 +8,7 @@ import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
+import { wireDatePickerTap } from './lib/date-picker-tap.js';
 
 window.storage = storage;
 
@@ -28,6 +29,11 @@ installGlobalErrorCapture(window);
 // Runs for the full app AND every standalone boot below — the conference page a
 // senior opens is already large if they set it large. See lib/text-size.js.
 initTextSize();
+
+// Tap a date field → the CALENDAR opens right away (no segment typing). One
+// delegated listener covers every date/datetime field on every surface and
+// every standalone boot, current and future. See lib/date-picker-tap.js.
+wireDatePickerTap();
 
 // Lightweight boots by URL param (outside the full app):
 //   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
