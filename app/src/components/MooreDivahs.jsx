@@ -22,6 +22,7 @@ import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-cla
 import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
 import AddressField, { osmLink } from './AddressField.jsx';
 import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
+import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece } from '../lib/showcase.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -551,6 +552,56 @@ function MessagesSection() {
   );
 }
 
+// ---- Gallery manager — she uploads her historical pieces when ready (0092) --
+function GalleryManager() {
+  const [pieces, setPieces] = useState([]);
+  const [f, setF] = useState({ title: '', description: '', productType: 'custom-clothing', file: null });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const load = () => fetchShowcase('moore-divahs').then((r) => setPieces(sortPieces(r.pieces)));
+  useEffect(() => { load(); }, []);
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    setBusy(true);
+    const r = await addPiece({ instanceSlug: 'moore-divahs', title: f.title, description: f.description, productType: f.productType, file: f.file });
+    setBusy(false);
+    if (!r.ok) { setErr(r.error === 'title-and-image-required' ? 'A title and an image are both needed.' : `Upload failed: ${r.error}`); return; }
+    setF({ title: '', description: '', productType: 'custom-clothing', file: null });
+    load();
+  };
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Gallery</h2>
+      <p className="text-xs text-[#5A5751]">Your showcased pieces greet every customer who opens your app. Pin favorites to the top; each piece carries an &ldquo;order inspired by this&rdquo; button.</p>
+      <form onSubmit={submit} className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3 text-sm sm:grid-cols-4">
+        <input aria-label="Piece title" required placeholder="Piece title" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+        <select aria-label="Piece type" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.productType} onChange={(e) => setF({ ...f, productType: e.target.value })}>
+          {PRODUCT_TYPES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+        </select>
+        <input aria-label="Piece image" type="file" accept="image/*" className="text-xs" onChange={(e) => setF({ ...f, file: e.target.files?.[0] || null })} />
+        <input aria-label="Piece description" placeholder="A line about it (optional)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <button type="submit" disabled={busy} className="col-span-2 rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-4">{busy ? 'Uploading…' : '+ Add to gallery'}</button>
+        {err && <p className="col-span-2 text-xs text-[#B85838] sm:col-span-4">{err}</p>}
+      </form>
+      {pieces.length > 0 && (
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {pieces.map((p) => (
+            <div key={p.slug} className="rounded-xl border border-[#E8E2D8] bg-white p-2 text-xs">
+              {showcaseImageUrl(p.image_path) && <img src={showcaseImageUrl(p.image_path)} alt={p.title} loading="lazy" className="aspect-square w-full rounded-lg object-cover" />}
+              <div className="mt-1 font-semibold text-[#1A1815]">{p.title}{p.pinned ? ' ✦' : ''}</div>
+              <div className="mt-1 flex gap-1.5">
+                <button type="button" className="rounded border border-[#5A6E3D] px-1.5 py-0.5 text-[#5A6E3D]" onClick={() => setPin('moore-divahs', p.slug, !p.pinned).then(load)}>{p.pinned ? 'Unpin' : 'Pin ✦'}</button>
+                <button type="button" className="rounded border border-[#5A5751] px-1.5 py-0.5 text-[#5A5751]" onClick={() => { if (confirm(`Remove "${p.title}" from the gallery?`)) removePiece('moore-divahs', p.slug).then(load); }}>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MooreDivahs() {
   const orders = useMooreOrders();
   const [adding, setAdding] = useState(false);
@@ -608,6 +659,7 @@ export default function MooreDivahs() {
 
       <ClassesSection />
       <MessagesSection />
+      <GalleryManager />
       <MaterialsSection />
       <KpiSection orders={real} />
     </div>
