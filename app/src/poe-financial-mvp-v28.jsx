@@ -157,7 +157,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
-  EternalAlgorithmsStudy, ChurchHome, Relationships,
+  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
@@ -4591,6 +4591,13 @@ html{scroll-padding-bottom:280px}
                 // (operations tooling); spread so the entry is absent from the DOM
                 // for everyone else, like Center / CRM.
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
+                // Moore Divahs — Shay's fashion business system (DR-0113 board;
+                // discovery 2026-07-07). The steward door: orders + the 3-week
+                // clock + change-order ladder. Family/Governor only for now (the
+                // customer-facing door ships separately as the branded /moore
+                // boot); spread so the entry is absent from the DOM for everyone
+                // else (no-leak), like Center / CRM.
+                ...(isFamilyMember ? [['moore', <><UiIcon name="palette" /> Moore Divahs</>]] : []),
                 // Forecast — the financial-engineering / forward-projection layer.
                 // Family/Governor only (it models the family's real money); spread
                 // so the entry is absent from the DOM for everyone else (no-leak),
@@ -5367,6 +5374,24 @@ html{scroll-padding-bottom:280px}
               <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
               <p className="text-sm text-[#1A1815] font-semibold">Inventory is a stewardship space.</p>
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The inventory system of record is steward-only. Sign in with a family/governor account to manage items and stock.</p>
+            </div>
+          ))}
+
+        {/* Moore Divahs — Shay's fashion business Order Board (custom orders,
+            the 3-week clock, the change-order ladder). Family/Governor only for
+            now; the branded customer door ships separately. Own SectionBoundary
+            so a thrown error degrades just this surface. */}
+        {view === 'moore' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Moore Divahs">
+              <MooreDivahs />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Moore Divahs is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The order board is steward-only. Sign in with a family/governor account to run the business.</p>
             </div>
           ))}
 

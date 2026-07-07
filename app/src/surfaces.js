@@ -57,6 +57,7 @@ export const SURFACES = [
   // report and retired the separate Access tab (Darrell 2026-07-04). AdminConsole
   // now renders AccessUsageMetrics directly; there is no standalone 'access' route.
   { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
+  { id: 'moore',        label: 'Moore Divahs',     nav: 'top', view: 'moore',        sub: null,          gate: 'family/governor',                            load: () => import('./components/MooreDivahs.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
@@ -117,6 +118,7 @@ export const Relationships    = surfaceById['relationships'].component;
 export const Inventory        = surfaceById['inventory'].component;
 export const Forecast         = surfaceById['forecast'].component;
 export const AdminConsole     = surfaceById['admin'].component;
+export const MooreDivahs      = surfaceById['moore'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
 export const TVTime           = surfaceById['tvtime'].component;

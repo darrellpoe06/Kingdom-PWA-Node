@@ -78,6 +78,7 @@
       "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#1d4ed8|midnight/card",
       "inline-dark-text|#92400e|midnight/card",
+      "inline-dark-text|#92400e|midnight/card",
       "inline-dark-text|#991b1b|midnight/card"
     ],
     "components/Imported.jsx": [
@@ -86,6 +87,8 @@
       "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#166534|midnight/card",
+      "inline-dark-text|#166534|midnight/card",
+      "inline-dark-text|#b85838|midnight/card",
       "inline-dark-text|#b85838|midnight/card",
       "inline-dark-text|#b85838|midnight/card",
       "inline-dark-text|#b85838|midnight/card",
@@ -152,9 +155,7 @@
       "inline-dark-text|#b85838|midnight/card"
     ],
     "poe-financial-mvp-v28.jsx": [
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#b85838|midnight/card"
+      "inline-dark-text|#1a1815|midnight/card"
     ]
   }
 }
