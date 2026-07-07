@@ -3,7 +3,7 @@
 // clock, categories are real, governor-hold never counts as unnecessary, and
 // an empty ledger reports zeros (never a painted average).
 import { describe, it, expect } from 'vitest';
-import { loadDelayLedger, delayStats, DELAY_CATEGORIES } from '../lib/delay-ledger.js';
+import { loadDelayLedger, delayStats, DELAY_CATEGORIES, entryOverrun } from '../lib/delay-ledger.js';
 
 describe('the seeded ledger', () => {
   it('carries the 2026-07-07 overnight deferral with the corrected wall-clock math', () => {
@@ -37,5 +37,29 @@ describe('delayStats', () => {
     expect(s.count).toBe(0);
     expect(s.totalUnnecessaryHours).toBe(0);
     expect(s.worst).toBeNull();
+    expect(s.overallOverrunFactor).toBeNull();
+  });
+});
+
+describe('the weight — should-have-taken vs actually-took (Darrell 2026-07-07)', () => {
+  it('the overnight deferral weighs ~8.5x: 45 minutes of work on a 6.4-hour clock', () => {
+    const e = loadDelayLedger().find((x) => x.id === 'dl-2026-07-07-door-shell');
+    expect(entryOverrun(e)).toBeGreaterThan(8);
+    expect(entryOverrun(e)).toBeLessThan(9);
+  });
+  it('delivering on the work\'s own clock weighs 1.0', () => {
+    expect(entryOverrun({ directEstimateMinutes: 60, wallClockHours: 1 })).toBe(1);
+  });
+  it('no benchmark = null, never a painted ratio', () => {
+    expect(entryOverrun({ wallClockHours: 5 })).toBeNull();
+  });
+  it('the overall factor aggregates should vs actual across entries', () => {
+    const s = delayStats([
+      { id: 'a', category: 'agent-self-deferral', directEstimateMinutes: 45, wallClockHours: 6.4, unnecessaryDelayHours: 5.6 },
+      { id: 'b', category: 'external-wait', directEstimateMinutes: 60, wallClockHours: 1, unnecessaryDelayHours: 0 },
+    ]);
+    expect(s.totalShouldHaveTakenHours).toBe(1.75);
+    expect(s.totalActualHours).toBe(7.4);
+    expect(s.overallOverrunFactor).toBe(4.2);
   });
 });
