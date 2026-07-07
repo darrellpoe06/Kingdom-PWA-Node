@@ -18,6 +18,7 @@ import { boardTasksSync, mergeRemoteBoardTasks } from './board-tasks-sync.js';
 import {
   newTaskSlug, seedTasksForBoard, nextStatus, tasksForBoard, groupLabelOf,
   normalizeOwner, canonicalSeedOwner, taskHistory, makeHandoff, appendHistory,
+  withPhaseCompletion,
 } from './board.js';
 
 const LS_KEY = 'poetech-board-tasks-v1';
@@ -101,9 +102,16 @@ export async function addTask({ boardSlug, boardTitle, group, title, owner = nul
 }
 
 export function patchTask(task, patch) {
-  setState((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...patch } : t)));
+  // The finish ripple (DR-0120): a status patch that completes the LAST open
+  // item of a phase (board group / swim lane) records the completion as an
+  // append-only links.history entry in the SAME write — so the Timeline's
+  // context feed and the board's phase walk update themselves the moment the
+  // phase actually finishes, on every status path (chip tap, select, lane
+  // cell, seed-sync). Real recorded moment, never an invented date (DR-0076).
+  const full = withPhaseCompletion(state, task, patch, { at: new Date().toISOString() });
+  setState((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...full } : t)));
   if (task.remoteUuid) {
-    boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(patch))
+    boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(full))
       .catch((e) => console.warn('[board-tasks-sync] update failed', e));
   }
 }

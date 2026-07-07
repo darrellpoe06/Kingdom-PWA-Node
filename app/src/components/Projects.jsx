@@ -12,7 +12,7 @@ import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
-import { boardDueByMonth } from '../lib/board.js';
+import { boardDueByMonth, boardTimelineLanes, phaseCompletions } from '../lib/board.js';
 import DelayReport from './DelayReport.jsx';
 import ClientDiscovery from './ClientDiscovery.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
@@ -41,6 +41,91 @@ const safeDate = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
+
+// -----------------------------------------------------------------------------
+// BoardsOnTimeline — the work boards rendered ON the Projects timeline (DR-0120).
+// One lane per live board: the phase walk (each group / swim lane as a chip —
+// ✓ complete, ◐ current, ○ ahead), the honest done/total, and the nearest real
+// due date. Under the lanes: the timeline CONTEXT feed — every recorded
+// phase-complete moment (written by the finish ripple the instant a phase's
+// last item goes done). Derived entirely from real board_tasks rows; an empty
+// state says so honestly instead of painting lanes.
+// -----------------------------------------------------------------------------
+function BoardsOnTimeline({ tasks }) {
+  const lanes = useMemo(() => boardTimelineLanes(tasks), [tasks]);
+  const completions = useMemo(() => phaseCompletions(tasks), [tasks]);
+  const when = (iso) => {
+    const d = safeDate(iso);
+    return d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'date not recorded';
+  };
+  return (
+    <section>
+      <SectionTitle eyebrow="Coordination">Boards on the Timeline · Phase Walk</SectionTitle>
+      {lanes.length === 0 ? (
+        <div className="bg-white border border-[#E8E4DC] p-4 text-sm text-[#5A5751]">
+          No board items yet — open <span aria-hidden="true">▦</span> Boards and load a program board&apos;s real items; each board then rides this timeline as a lane.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {lanes.map((lane) => (
+            <div key={lane.slug} className="bg-white border border-[#E8E4DC] p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-sm font-medium text-[#1A1815]"><span aria-hidden="true">▦</span> {lane.title}</span>
+                <span className="text-xs text-[#5A5751]">
+                  {lane.progress.done}/{lane.progress.total} done · {lane.progress.pct}%
+                  {lane.nextDue ? ` · next due ${when(lane.nextDue)}` : ''}
+                </span>
+              </div>
+              {/* The phase walk — the board's groups (swim lanes) in order. */}
+              <div className="tab-scroll w-full overflow-x-auto overscroll-x-contain mt-2">
+                <div className="flex items-center gap-1.5 min-w-max">
+                  {lane.phases.map((ph, i) => {
+                    const state = ph.complete ? 'complete' : (ph.label === lane.currentPhase ? 'current' : 'ahead');
+                    const cls = state === 'complete'
+                      ? 'border-[#5A6E3D] text-[#5A6E3D]'
+                      : state === 'current' ? 'border-[#2A5A8E] text-[#2A5A8E]' : 'border-[#E8E4DC] text-[#5A5751]';
+                    return (
+                      <React.Fragment key={ph.label}>
+                        {i > 0 && <span aria-hidden="true" className="text-[#5A5751] text-xs shrink-0">→</span>}
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs whitespace-nowrap ${cls}`}
+                          title={`${ph.label}: ${ph.done}/${ph.total} done${ph.blocked ? ` · ${ph.blocked} blocked` : ''}`}
+                        >
+                          <span aria-hidden="true">{state === 'complete' ? '✓' : state === 'current' ? '◐' : '○'}</span>
+                          {ph.label} <span className="text-[#5A5751]">{ph.done}/{ph.total}</span>
+                          {ph.blocked > 0 && <span className="text-[#B85838]" aria-hidden="true">▲</span>}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* The timeline context feed — recorded phase completions, newest first. */}
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1">Timeline context · phases completed</div>
+            {completions.length === 0 ? (
+              <p className="text-xs text-[#5A5751]">
+                None recorded yet. From now on, the moment a phase&apos;s last item is marked done, its completion lands here on its own — with the board, the phase, and the real moment it happened.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {completions.map((c, i) => (
+                  <li key={`${c.boardSlug}-${c.phase}-${c.at || i}`} className="text-xs text-[#1A1815]">
+                    <span className="text-[#5A6E3D]" aria-hidden="true">✓</span>{' '}
+                    Phase <span className="font-medium">“{c.phase}”</span> completed — {c.boardTitle}
+                    <span className="text-[#5A5751]"> · {when(c.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Per-user project scope (Darrell, 2026-06-13): "show me my projects since I'm
 // logged in ... each user has their own list ... the whole family's projects can
@@ -810,6 +895,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         </section>
       )}
+
+      {/* Boards ON the timeline (DR-0120; Darrell 2026-07-01 + 2026-07-07: "why
+          don't the boards show up on the timelines?"). Each live board is a
+          LANE: its phase walk (the groups / swim lanes, in board order), the
+          honest roll-up, and the phase it is currently in. Below the lanes,
+          the timeline CONTEXT feed — every recorded phase completion, written
+          the moment the last item of a phase went done (the finish ripple in
+          use-board-tasks.patchTask). All derived from the real board_tasks
+          rows and real recorded moments — never an invented date (DR-0076). */}
+      <BoardsOnTimeline tasks={boardTasks} />
 
       {/* Filter + add */}
       <section>

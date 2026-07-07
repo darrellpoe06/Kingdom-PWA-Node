@@ -11,6 +11,7 @@
 // baseline debt on purpose.
 import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
+import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile } from '../lib/image.js';
 import UiIcon from './UiIcon.jsx';
 
@@ -401,6 +402,10 @@ function feedbackSummary(f, maxLen = 60) {
 export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
   if (!feedback || feedback.length === 0) return null;
   const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Staleness made legible (DR-0120 / P30): a queue is WORKED, not stored.
+  // When items have waited past the threshold, the queue says so at the top —
+  // an unworked queue must never look fine.
+  const freshness = queueFreshness(sorted);
 
   const promoteToProject = (f) => {
     const name = `${f.area || 'Feedback'}: ${feedbackSummary(f)}`;
@@ -447,6 +452,14 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
 
   return (
     <div className="mt-8">
+      {freshness.stale > 0 && (
+        <div className="mb-2 border border-[#B85838] bg-[#FAF8F4] p-3 text-sm text-[#1A1815]" role="status">
+          <span className="text-[#B85838] font-semibold" aria-hidden="true">▲</span>{' '}
+          <span className="font-medium">{freshness.stale} of {freshness.total} item{freshness.stale > 1 ? 's have' : ' has'} waited over {QUEUE_STALE_DAYS} days</span>
+          {freshness.oldestDays != null && <span className="text-[#5A5751]"> (oldest: {freshness.oldestDays} days)</span>}
+          <span className="text-[#5A5751]"> — a queue is worked, not stored. Promote each to a Change / Incident / Project, or delete it.</span>
+        </div>
+      )}
       <Queue
         title="Feedback Log · Promote queue"
         subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
