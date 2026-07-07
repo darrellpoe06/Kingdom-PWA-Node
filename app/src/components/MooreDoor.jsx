@@ -64,10 +64,13 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
   }
   return (
     <form onSubmit={submit} className="grid grid-cols-1 gap-2 rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm sm:grid-cols-3">
-      <input aria-label="Your name" required placeholder="Your name" className="rounded border border-[#E8E2D8] px-2 py-1.5" value={f.name} onChange={set('name')} />
-      <input aria-label="Your email or handle" required placeholder="Email or @handle" className="rounded border border-[#E8E2D8] px-2 py-1.5" value={f.contactValue} onChange={set('contactValue')} />
-      <input aria-label="Details" placeholder={notePlaceholder} className="rounded border border-[#E8E2D8] px-2 py-1.5" value={f.notes} onChange={set('notes')} />
-      <button type="submit" disabled={state === 'sending'} className="rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-3">
+      {/* Entrance-review 2026-07-07: autofill + the right mobile keyboard on the
+          money path, comfortable tap heights (~44px), and a real multi-line
+          field for a sentence-length ask. */}
+      <input aria-label="Your name" required placeholder="Your name" autoComplete="name" className="rounded border border-[#E8E2D8] px-3 py-2.5" value={f.name} onChange={set('name')} />
+      <input aria-label="Your email or handle" required placeholder="Email or @handle" autoComplete="email" inputMode="email" className="rounded border border-[#E8E2D8] px-3 py-2.5" value={f.contactValue} onChange={set('contactValue')} />
+      <textarea aria-label="Details" rows={2} placeholder={notePlaceholder} className="rounded border border-[#E8E2D8] px-3 py-2.5 sm:col-span-3" value={f.notes} onChange={set('notes')} />
+      <button type="submit" disabled={state === 'sending'} className="rounded-lg bg-[#B85838] px-3 py-2.5 font-semibold text-white sm:col-span-3">
         {state === 'sending' ? 'Sending…' : promptLabel}
       </button>
       {state === 'error' && <p className="text-xs text-[#B85838] sm:col-span-3">Could not send right now — please try again in a moment.</p>}
@@ -137,7 +140,7 @@ function MyOrders({ onReorder = null }) {
     return (
       <div className="text-xs text-[#5A5751]">
         <p>
-          Have an account? <a className="underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
+          Have an account? <a className="inline-block px-1 py-2 font-semibold underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
         </p>
         {isInAppBrowser() && <p className="mt-1 text-[#B85838]">{IN_APP_BROWSER_HINT}</p>}
       </div>
@@ -217,8 +220,8 @@ function MyMessages() {
           </div>
         )}
       <form onSubmit={send} className="mt-2 flex gap-2">
-        <input aria-label="Message Shay" placeholder="Message Shay…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-2 py-1.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white">Send</button>
+        <input aria-label="Message Shay" placeholder="Message Shay…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-3 py-2.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <button type="submit" className="rounded-lg bg-[#B85838] px-4 py-2.5 text-sm font-semibold text-white">Send</button>
       </form>
     </div>
   );
@@ -510,8 +513,8 @@ function DoorAuth({ role, onRole }) {
   }
   return (
     <div className="flex justify-center gap-2">
-      <button type="button" className="rounded-lg border border-[#B85838] px-3 py-1.5 text-sm font-semibold text-[#B85838]" onClick={() => setOpen('user')}>User login</button>
-      <button type="button" className="rounded-lg border border-[#5A5751] px-3 py-1.5 text-sm text-[#5A5751]" onClick={() => setOpen('admin')}>Admin login</button>
+      <button type="button" className="rounded-lg border border-[#B85838] px-4 py-2.5 text-sm font-semibold text-[#B85838]" onClick={() => setOpen('user')}>User login</button>
+      <button type="button" className="rounded-lg border border-[#5A5751] px-4 py-2.5 text-sm text-[#5A5751]" onClick={() => setOpen('admin')}>Admin login</button>
     </div>
   );
 }
@@ -559,16 +562,22 @@ export default function MooreDoor() {
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{MOORE_BRAND.tagline}</p>
           <div className="mt-2 flex items-center justify-center gap-2" role="group" aria-label="Comfort controls">
+            {/* Entrance-review 2026-07-07: the dot stays small, the HITBOX does
+                not — 36px buttons around 20px swatches, for the hands this
+                platform serves (COMMUNITY-FIRST). */}
             {THEMES.map((t) => (
               <button key={t.key} type="button" aria-label={`${t.label} theme`} title={t.label}
-                className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
-                style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}
-                onClick={() => setTheme(t.key)} />
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                onClick={() => setTheme(t.key)}>
+                <span aria-hidden="true"
+                  className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                  style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }} />
+              </button>
             ))}
             <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
             {sizeSteps.map((s) => (
               <button key={s.key} type="button" aria-label={`Text size ${s.label}`}
-                className={`rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                className={`min-h-[36px] min-w-[32px] rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
                 onClick={() => setSizeKey(s.key)}>A</button>
             ))}
           </div>
