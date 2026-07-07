@@ -233,6 +233,31 @@ export function tasksForBoard(tasks, boardSlug) {
 }
 
 // -----------------------------------------------------------------------------
+// boardDueByMonth — dated, not-done board items per forecast month. Feeds the
+// 12-Month Workload Forecast so the boards ARE on the timeline (Darrell
+// 2026-07-01: "the boards timeline IS the timeline"; asked again 2026-07-07 —
+// "why don't the boards go into the timelines?"). HONEST: a COUNT of real due
+// items, never invented hours (a board item carries no hours/week — DR-0076).
+// Keys match the forecast's `${year}-${paddedMonthIndex}` convention.
+// -----------------------------------------------------------------------------
+export function boardDueByMonth(tasks, { now = null } = {}) {
+  const base = now ? new Date(now) : new Date();
+  const out = {};
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+    out[`${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`] = 0;
+  }
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (!t || t.status === 'done' || !t.dueDate) continue;
+    const d = new Date(t.dueDate);
+    if (Number.isNaN(d.getTime())) continue;
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+    if (key in out) out[key] += 1;
+  }
+  return out;
+}
+
+// -----------------------------------------------------------------------------
 // slug helpers. New tasks get a non-UUID local id ('bt-...') so the sync
 // substrate's unionPreservingLocal keeps them until their INSERT lands. Seed
 // items carry a STABLE slug so re-seeding is idempotent (the 0059 unique index on
@@ -378,16 +403,16 @@ export const SEED_BOARDS = [
     groupOrder: ['Foundation', 'Orders', 'Classes', 'Money + KPIs', 'Front door'],
     items: [
       { key: 'md-discovery', group: 'Foundation', title: 'Discovery spec captured from Shay + Darrell (living doc)', status: 'done', owner: 'Ari', notes: 'docs/99-session-notes/2026-07-07-moore-divahs-business-system-discovery.md — both service lines, pricing ($45 group cap 10 / $75 one-on-one 2.5hr), 3-week turnaround, change-order ladder (50% floor, Shay-variable), inventory, KPIs, channels.' },
-      { key: 'md-brand', group: 'Foundation', title: 'Brand record seam — Moore Divahs as data, not hardcoded', status: 'not-started', owner: 'Ari', notes: 'Name/colors/logo/domain as a config record so the same code serves the steward tab AND the branded customer door; the reusable white-label template for the next QC business.' },
-      { key: 'md-crm', group: 'Foundation', title: 'Leads ride the ONE-CRM (business + pipeline config, no fork)', status: 'not-started', owner: 'Ari', notes: 'DR-0081: add moore business + pipeline(s) to crm-engine.js, capture via crm_capture_lead. New sources: tiktok, whats-going-on-qc, partner-business.' },
+      { key: 'md-brand', group: 'Foundation', title: 'Brand record seam — Moore Divahs as data, not hardcoded', status: 'done', owner: 'Ari', notes: 'SHIPPED: MOORE_BRAND record (moore-divahs.js) drives the tab AND the /moore door + manifest-moore.webmanifest. The reusable white-label template for the next QC business.' },
+      { key: 'md-crm', group: 'Foundation', title: 'Leads ride the ONE-CRM (business + pipeline config, no fork)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#648): moore business + moore-orders pipeline as CONFIG on the one engine (DR-0081); sources tiktok / whats-going-on-qc / partner-business / moore-divahs-app; anon captures via crm_capture_lead only.' },
       { key: 'md-engine', group: 'Orders', title: 'Order engine — pipeline, 3-week clock, change-order ladder', status: 'done', owner: 'Ari', notes: 'SHIPPED: lib/moore-divahs.js + 22 pinned tests (moore-divahs.test.js). Clock starts at paid; 50%-floor Shay-variable change fee with fault attribution; card/bank fields structurally stripped.' },
       { key: 'md-table', group: 'Orders', title: 'custom_orders migration — instance RLS + realtime', status: 'done', owner: 'Ari', notes: 'SHIPPED: 0083-moore-divahs-orders.sql (0059 recipe: instance_id, GRANT authenticated, no anon, 4 policies, realtime) + moore-orders-sync.js round-trip pinned. Passes tenancy/grant/ONE-CRM guards.' },
       { key: 'md-tab', group: 'Orders', title: 'Moore Divahs tab — the Order Board surface, live in nav', status: 'done', owner: 'Ari', notes: 'SHIPPED: components/MooreDivahs.jsx via surfaces.js + family-gated nav/render (no-leak spread). One screen: who paid, the clock, ship/pickup, follow-up ask, change-order fee preview.' },
-      { key: 'md-bulk', group: 'Orders', title: 'Structured bulk-apparel form (qty × cut × size × color + name roster)', status: 'in-progress', owner: 'Ari', notes: 'Engine + pick-list display SHIPPED (bulk lines render on the card as "6 × adult M · blue — names"); the line-item EDITOR in the add-order form is the remaining piece.' },
-      { key: 'md-classes', group: 'Classes', title: 'Classes board — sessions, paid seat holds (group cap 10 / 1-on-1)', status: 'not-started', owner: 'Ari', notes: 'class_sessions + class_signups; $45 group / $75 one-on-one 2.5hr; dates set ~a month out; 1-on-1 books >=2 weeks out; a seat holds ONLY on recorded payment; real seats-left, never painted.' },
-      { key: 'md-inventory', group: 'Money + KPIs', title: 'shop_inventory — materials on hand + spend feeding margin', status: 'not-started', owner: 'Ari', notes: 'Materials are included in her prices, so margin needs real material cost per order. Own table (kitchen/device inventories stay domain-specific).' },
-      { key: 'md-kpi', group: 'Money + KPIs', title: 'KPI history + revenue-goal planner', status: 'not-started', owner: 'Ari', notes: 'Every order/booking/change is a real dated row → revenue by line + channel, group-vs-1:1, repeat rate, margin, change frequency. Shay sets a revenue goal; the system shows the mix that reaches it. Optimize-toward, never "guarantee" (truthful-claims).' },
-      { key: 'md-door', group: 'Front door', title: 'Branded customer door — /moore standalone boot (PWA installable)', status: 'not-started', owner: 'Ari', notes: 'Customer-facing surfaces only (intake, class sign-up, order status) under the Moore Divahs brand; steward internals never leak. Path first (zero DNS), domain later.' },
+      { key: 'md-bulk', group: 'Orders', title: 'Structured bulk-apparel form (qty × cut × size × color + name roster)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#646/#648 era): line-item editor in the add-order form + pick-list on the card ("6 × adult M · blue — names"). The Google-Doc intake is dead.' },
+      { key: 'md-classes', group: 'Classes', title: 'Classes board — sessions, paid seat holds (group cap 10 / 1-on-1)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#647): class_sessions + class_signups (0084), Classes section in the tab, paid-only seat holds, real seats-left; public listings via moore_public_classes RPC (0085) on the /moore door.' },
+      { key: 'md-inventory', group: 'Money + KPIs', title: 'shop_inventory — materials on hand + spend feeding margin', status: 'done', owner: 'Ari', notes: 'SHIPPED: shop_inventory (0086) + Materials section in the tab (on-hand, unit cost, +/- use, derived value). Margin reads real material spend.' },
+      { key: 'md-kpi', group: 'Money + KPIs', title: 'KPI history + revenue-goal planner', status: 'done', owner: 'Ari', notes: 'SHIPPED: "The numbers" section — revenue by channel, classes group-vs-1:1 + fill, repeat rate, change count, and the goal input ranking lanes by REAL per-unit earnings. Optimize-toward language.' },
+      { key: 'md-door', group: 'Front door', title: 'Branded customer door — /moore standalone boot (PWA installable)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#648): ?moore=1 lean boot — Moore Divahs first, family-of-businesses tabs, pricing + price-out, captures via forced-safe RPCs w/ source=moore-divahs-app; manifest-moore.webmanifest installs under HER name (icon artwork still awaits her asset).' },
       { key: 'md-dns', group: 'Front door', title: 'Custom domain DNS (mooredivahs)', status: 'not-started', owner: 'Darrell', notes: 'Real-world step only Darrell can do: point DNS + Vercel/Pages domain config. Not blocking — /moore works without it.' },
       { key: 'md-handles', group: 'Front door', title: 'Shay\'s real social handles (IG / FB / TikTok)', status: 'not-started', owner: 'Darrell', notes: 'Values only Shay holds; wire into the intake link + follow-ups. Email confirmed: mooredivahs1@yahoo.com.' },
     ],

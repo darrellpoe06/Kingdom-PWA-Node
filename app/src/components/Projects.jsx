@@ -11,6 +11,8 @@ import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
+import { useBoardTasks } from '../lib/use-board-tasks.js';
+import { boardDueByMonth } from '../lib/board.js';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
 import DbHealth from './DbHealth.jsx';
@@ -171,7 +173,10 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  // Feedback rides its OWN visible sub-tab with a live count (Darrell
+  // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
+  // below the fold of the list view). Count = real rows, shown even at zero.
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -205,11 +210,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'list' && (
         <>
           <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
-          {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
-              between All Projects (above) and the 12-Month Capital Forecast
-              (below) so the "decide what becomes a project" loop is visually
-              adjacent to the projects list itself. */}
-          {feedbackPanel}
+          {/* Feedback moved to its OWN sub-tab with a count (2026-07-07) — it
+              rendered buried below the fold here and Darrell lost his own
+              submission. See the 'feedback' branch below. */}
           {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
               bottom of the Projects list so the connection is obvious. The
               dedicated Inventory sub-tab is where the editing/adding lives. */}
@@ -218,6 +221,11 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'boards' && (
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
+      )}
+      {subView === 'feedback' && (
+        <div className="space-y-4">
+          {feedbackPanel || <p className="text-sm text-[#5A5751]">No feedback submissions yet — the FEEDBACK button on any page lands here.</p>}
+        </div>
       )}
       {subView === 'discussions' && (
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
@@ -697,6 +705,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return months;
   }, [scoped, now]);
 
+  // The boards ARE on the timeline (Darrell 2026-07-01 ruling; asked again
+  // 2026-07-07): dated, not-done board items count into each forecast month.
+  // HONEST count, never invented hours — a board item carries no hours/week.
+  const boardTasks = useBoardTasks();
+  const boardDue = useMemo(() => boardDueByMonth(boardTasks, { now }), [boardTasks, now]);
+
   // Preparatory scaffolding — pending "current month's committed hours" chip.
   // eslint-disable-next-line no-unused-vars
   const totalActiveHours = Object.values(monthlyWorkload).length > 0 ? Object.values(monthlyWorkload)[0].hours : 0;
@@ -772,6 +786,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       <div className={`h-full ${isHeavy ? 'bg-[#B85838]' : isModerate ? 'bg-[#8B6F47]' : 'bg-[#5A6E3D]'}`} style={{ width: `${Math.min(pct, 100)}%` }}></div>
                       {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
                     </div>
+                    {(boardDue[key] || 0) > 0 && (
+                      <div className="text-xs text-[#5A5751] shrink-0">▦ {boardDue[key]} due</div>
+                    )}
                   </div>
                 );
               })}

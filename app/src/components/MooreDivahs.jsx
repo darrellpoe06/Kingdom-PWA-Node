@@ -15,9 +15,11 @@ import {
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
   changeOrderFee, orderStats, bulkPickList, bulkTotals, isSeedOrder, BULK_CUTS,
   CLASS_FORMATS, seatsLeft, canBook,
+  INVENTORY_CATEGORIES, inventoryValueCents, classStats, revenueGoalPlan,
 } from '../lib/moore-divahs.js';
 import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, patchOrder } from '../lib/use-moore-orders.js';
 import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-classes.js';
+import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/use-moore-inventory.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -348,6 +350,137 @@ function ClassesSection() {
   );
 }
 
+// ---- Materials — on hand + spend, the cost input to margin ------------------
+const BLANK_ITEM = { name: '', category: 'fabric', qty: '', unit: 'yards', cost: '' };
+
+function MaterialsSection() {
+  const items = useMooreInventory();
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState(BLANK_ITEM);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const real = items.filter((i) => i && i.seed !== true);
+  const value = inventoryValueCents(real);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!f.name.trim()) return;
+    await addInventoryItem({
+      name: f.name, category: f.category, unit: f.unit,
+      qty: parseFloat(f.qty) || 0,
+      unitCostCents: Math.round((parseFloat(f.cost) || 0) * 100),
+    });
+    setF(BLANK_ITEM);
+    setAdding(false);
+  };
+  return (
+    <div className="mt-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Materials</h2>
+          <p className="text-xs text-[#5A5751]">
+            On hand: {real.length ? `${real.length} items · ${fmt$(value)} value` : 'nothing tracked yet'} — real spend feeds the margin above.
+          </p>
+        </div>
+        <button type="button" className="rounded-lg border border-[#B85838] px-3 py-1.5 text-sm font-semibold text-[#B85838]" onClick={() => setAdding((v) => !v)}>
+          {adding ? 'Close' : '+ Material'}
+        </button>
+      </div>
+      {adding && (
+        <form onSubmit={submit} className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3 text-sm sm:grid-cols-5">
+          <input aria-label="Material name" required placeholder="Material" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.name} onChange={set('name')} />
+          <select aria-label="Material category" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.category} onChange={set('category')}>
+            {INVENTORY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input aria-label="Material quantity" placeholder="Qty" inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.qty} onChange={set('qty')} />
+          <input aria-label="Material unit" placeholder="Unit (yards)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.unit} onChange={set('unit')} />
+          <input aria-label="Material unit cost" placeholder="Cost $/unit" inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.cost} onChange={set('cost')} />
+          <button type="submit" className="col-span-2 rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-5">Add material</button>
+        </form>
+      )}
+      {real.length > 0 && (
+        <div className="mt-2 space-y-1.5">
+          {real.map((i) => (
+            <div key={i.id} className="flex items-center justify-between rounded-xl border border-[#E8E2D8] bg-white px-3 py-2 text-sm">
+              <span className="text-[#1A1815]">
+                <strong>{i.name}</strong> <span className="text-[#5A5751]">· {i.category} · {i.qty} {i.unit} · {fmt$(i.unitCostCents)}/{i.unit}</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <button type="button" aria-label={`Use one ${i.unit} of ${i.name}`} className="rounded-lg border border-[#5A5751] px-2 py-0.5 text-xs text-[#5A5751]" onClick={() => adjustInventoryQty(i, -1)}>−1</button>
+                <button type="button" aria-label={`Add one ${i.unit} of ${i.name}`} className="rounded-lg border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]" onClick={() => adjustInventoryQty(i, 1)}>+1</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- KPIs + the revenue-goal planner (her data, her goal) --------------------
+function KpiSection({ orders }) {
+  const { sessions, signups } = useMooreClasses();
+  const [goal, setGoal] = useState('');
+  const os = useMemo(() => orderStats(orders), [orders]);
+  const cs = useMemo(() => classStats(sessions, signups), [sessions, signups]);
+  const plan = useMemo(
+    () => revenueGoalPlan(Math.round((parseFloat(goal) || 0) * 100), { orders, sessions, signups }),
+    [goal, orders, sessions, signups]
+  );
+  const money = (c) => (c ? fmt$(c) : '—');
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>The numbers</h2>
+      <p className="text-xs text-[#5A5751]">Every figure is computed from real orders, classes, and changes — nothing painted.</p>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <KpiTile label="Order revenue" value={money(os.revenueCents)} />
+        <KpiTile label="Class revenue" value={money(cs.revenueCents)} />
+        <KpiTile label="Repeat rate" value={os.repeatRatePct == null ? '—' : `${os.repeatRatePct}%`} />
+        <KpiTile label="Change orders" value={os.changeOrders} />
+      </div>
+      {(Object.keys(os.byChannel).length > 0 || cs.sessions > 0) && (
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {Object.keys(os.byChannel).length > 0 && (
+            <div className="rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#5A5751]">Revenue by channel</div>
+              {Object.entries(os.byChannel).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                <div key={k} className="mt-1 flex justify-between text-[#1A1815]"><span>{k}</span><span>{fmt$(v)}</span></div>
+              ))}
+            </div>
+          )}
+          {cs.sessions > 0 && (
+            <div className="rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#5A5751]">Classes</div>
+              <div className="mt-1 flex justify-between text-[#1A1815]"><span>Group</span><span>{money(cs.groupRevenueCents)}</span></div>
+              <div className="flex justify-between text-[#1A1815]"><span>One-on-one</span><span>{money(cs.oneOnOneRevenueCents)}</span></div>
+              <div className="flex justify-between text-[#1A1815]"><span>Seat fill</span><span>{cs.fillRatePct == null ? '—' : `${cs.fillRatePct}%`}</span></div>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="mt-3 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3">
+        <label className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
+          What do you want to make?
+          <input aria-label="Revenue goal dollars" placeholder="Goal $" inputMode="decimal" className="ml-2 w-28 rounded border border-[#E8E2D8] bg-white px-2 py-1 text-sm font-normal" value={goal} onChange={(e) => setGoal(e.target.value)} />
+        </label>
+        <div className="mt-2 text-sm text-[#1A1815]">
+          {plan.hasHistory && plan.goalCents > 0 ? (
+            <>
+              {plan.lanes.map((l) => (
+                <div key={l.lane} className="flex justify-between">
+                  <span>{l.lane} <span className="text-xs text-[#5A5751]">({l.evidence})</span></span>
+                  <span>{l.unitsToGoal} to goal · {fmt$(l.perUnitCents)} each</span>
+                </div>
+              ))}
+              <p className="mt-1 text-xs text-[#5A5751]">{plan.note}</p>
+            </>
+          ) : (
+            <span className="text-xs text-[#5A5751]">{plan.note}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MooreDivahs() {
   const orders = useMooreOrders();
   const [adding, setAdding] = useState(false);
@@ -404,6 +537,8 @@ export default function MooreDivahs() {
       )}
 
       <ClassesSection />
+      <MaterialsSection />
+      <KpiSection orders={real} />
     </div>
   );
 }

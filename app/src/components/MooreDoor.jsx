@@ -217,6 +217,20 @@ function PoeTechTab() {
 // ---- the door ------------------------------------------------------------------
 export default function MooreDoor() {
   const [tab, setTab] = useState('moore'); // Moore Divahs first, always
+  // Install-to-home-screen carries HER name: swap the document's manifest to the
+  // Moore Divahs one (and title/theme to match) while the door is mounted. Icon
+  // artwork still reuses the platform icons until Shay supplies hers (md-handles
+  // sibling — an asset only she holds).
+  useEffect(() => {
+    document.title = `${MOORE_BRAND.label} — ${MOORE_BRAND.tagline}`;
+    let link = document.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    link.href = '/manifest-moore.webmanifest';
+  }, []);
   return (
     <div className="min-h-screen bg-[#FAF8F4]">
       <div className="mx-auto max-w-2xl px-4 pb-16">
