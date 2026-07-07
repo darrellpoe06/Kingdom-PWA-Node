@@ -89,6 +89,12 @@ export function doorView(role, customerView = false) {
   };
 }
 
+// The canonical customer share link — the her-name entry page (public/moore/
+// index.html): QR codes, texted links, and social posts all point HERE so the
+// preview reads Moore Divahs and the door opens installable under her name.
+export const MOORE_SHARE_URL = 'https://poetech.us/moore';
+export const MOORE_SHARE_URL_DISPLAY = 'poetech.us/moore';
+
 // The union-attribution source every capture from this door carries — this is
 // how "who came in from this union" shows up on the CRM + interest lists.
 export const DOOR_SOURCE = 'moore-divahs-app';
