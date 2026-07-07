@@ -4,7 +4,7 @@
 // the DECLARED build terms (DR-0117) — never invented; the moore pipeline is
 // CONFIG on the one CRM backbone, and its capture forces the safe shape.
 import { describe, it, expect } from 'vitest';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
 import { getBusiness, getPipeline, attributeSource, validateCapture, canOutreach } from '../lib/crm-engine.js';
 
 describe('the door registry', () => {
@@ -42,6 +42,34 @@ describe('pricing — real numbers only', () => {
   it('empty selection prices nothing (no painted number)', () => {
     expect(priceOut([]).tier).toBeNull();
     expect(priceOut([]).monthly).toBeNull();
+  });
+});
+
+describe('view-as-customer — the door lens is STRICTLY NARROWING (DR-0104 sibling)', () => {
+  it('a real steward with the lens ON sees exactly a customer view', () => {
+    for (const role of ['owner', 'admin']) {
+      const v = doorView(role, true);
+      expect(v.isSteward).toBe(false);          // the board is hidden
+      expect(v.customerView).toBe(true);        // the strip shows (the only tell)
+      expect(v.authRole).toBe('customer-view'); // DoorAuth renders nothing, like a customer
+      expect(v.stewardRole).toBe(true);         // the REAL role is unchanged — Exit restores it
+    }
+  });
+  it('the lens can NEVER grant privilege — proven-to-catch', () => {
+    // forcing customerView on/off with no steward role changes nothing
+    for (const role of ['none', 'customer', 'signed-out', null, undefined, 'member']) {
+      for (const lens of [true, false]) {
+        const v = doorView(role, lens);
+        expect(v.isSteward).toBe(false);
+        expect(v.customerView).toBe(false);     // the lens is meaningless without a real role
+        expect(v.authRole).toBe(role);          // no masking for non-stewards
+      }
+    }
+  });
+  it('lens OFF is the steward\'s normal board', () => {
+    expect(doorView('owner').isSteward).toBe(true);
+    expect(doorView('owner', false).authRole).toBe('owner');
+    expect(doorView('admin').isSteward).toBe(true);
   });
 });
 

@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- =========================================================================
+  poetech.us/moore — Moore Divahs' shareable front-door link.
+  WHY THIS FILE EXISTS: link previews (RCS/iMessage/social) read the STATIC
+  HTML at the shared URL — they never run the app, so ?moore=1 previews as
+  "PoeTech Family OS". This page carries HER name in the tags, then meta-
+  refreshes into the real door (/poetech-app/?moore=1). No inline JS (CSP:
+  script-src 'self'). Icon artwork reuses the platform icons until Shay
+  supplies hers (board: md-brand / md-handles — an asset only she holds).
+  Brand strings mirror lib/moore-divahs.js MOORE_BRAND + manifest-moore.
+========================================================================== -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moore Divahs — custom clothing · scrub caps · custom shoes · sewing classes</title>
+  <meta name="description" content="Custom clothing, scrub caps, custom shoes, and sewing classes — Moore Divahs, Quad Cities." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Moore Divahs" />
+  <meta property="og:title" content="Moore Divahs" />
+  <meta property="og:description" content="Custom clothing · scrub caps · custom shoes · sewing classes — Quad Cities." />
+  <meta property="og:url" content="https://poetech.us/moore/" />
+  <meta property="og:image" content="https://poetech.us/icon-512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#B85838" />
+  <link rel="manifest" href="/manifest-moore.webmanifest" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/icon-192.png" />
+  <meta http-equiv="refresh" content="0; url=/poetech-app/?moore=1" />
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FAF8F4; color: #1A1815; font-family: Georgia, 'Times New Roman', serif; text-align: center; }
+    .card { padding: 2rem; }
+    h1 { margin: 0 0 .25rem; font-size: 2rem; }
+    p { margin: .25rem 0; color: #5A5751; font-size: .95rem; }
+    a { color: #B85838; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Moore Divahs</h1>
+    <p>Custom clothing · scrub caps · custom shoes · sewing classes</p>
+    <p>Opening the shop… <a href="/poetech-app/?moore=1">tap here if it doesn't open</a>.</p>
+  </div>
+</body>
+</html>
