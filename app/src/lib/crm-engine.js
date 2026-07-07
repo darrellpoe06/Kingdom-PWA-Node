@@ -86,6 +86,16 @@ export const BUSINESSES = {
     phiBoundary: false,
     accent: '#6E5A3D',
   },
+  moore: {
+    key: 'moore',
+    label: 'Moore Divahs',
+    // Family-stewarded until Shay's own instance is provisioned — leads land
+    // where Darrell's CRM tab already reads (the union data he asked for,
+    // 2026-07-07). Re-point to a dedicated 'moore-divahs' instance at onboarding.
+    instanceSlug: 'poe-family',
+    phiBoundary: false,
+    accent: '#B85838',
+  },
 };
 
 export function getBusiness(key) {
@@ -206,6 +216,17 @@ export const PIPELINES = {
     phiSensitive: false,
     complianceNote: 'Fair-housing posture: same process, same criteria for every applicant. No payment processing by us.',
   },
+  'moore-orders': {
+    id: 'moore-orders',
+    business: 'moore',
+    label: 'Custom-order inquiries',
+    leadNoun: 'custom-order inquiry',
+    stages: ['new', 'contacted', 'engaged', 'booked', 'declined', 'lost'],
+    sources: ['instagram', 'facebook', 'tiktok', 'email', 'whats-going-on-qc', 'partner-business', 'moore-divahs-app', 'referral', 'other'],
+    sequenceKey: 'moore-nurture',
+    phiSensitive: false,
+    complianceNote: 'Contact-level only. A booked inquiry converts into a custom_orders row (the fulfillment domain); payment is always the owner\'s hand.',
+  },
 };
 
 export const PIPELINE_KEYS = Object.keys(PIPELINES);
@@ -269,6 +290,11 @@ export const SOURCES = [
   { key: 'instagram',        label: 'Instagram' },
   { key: 'facebook',         label: 'Facebook' },
   { key: 'social',           label: 'Social' },
+  { key: 'tiktok',           label: 'TikTok' },
+  { key: 'email',            label: 'Email' },
+  { key: 'whats-going-on-qc', label: "What's Going On QC" },
+  { key: 'partner-business', label: 'Partner business' },
+  { key: 'moore-divahs-app', label: 'Moore Divahs app' },
   { key: 'youtube',          label: 'YouTube' },
   { key: 'linkedin',         label: 'LinkedIn' },
   { key: 'google',           label: 'Google search' },
@@ -434,6 +460,14 @@ export const SEQUENCES = {
     steps: [
       { step: 0, channel: 'email', dayOffset: 0, intent: 'Property details + how to schedule a showing. Same process for everyone.' },
       { step: 1, channel: 'phone', dayOffset: 2, intent: 'Offer a showing time + answer questions.' },
+    ],
+  },
+  'moore-nurture': {
+    key: 'moore-nurture',
+    label: 'Custom-order inquiry follow-up',
+    steps: [
+      { step: 0, channel: 'email', dayOffset: 0, intent: 'Warm welcome + what to send (what you want, inspo pictures, size). Quote comes per item; materials included; 3-week turnaround once paid.' },
+      { step: 1, channel: 'email', dayOffset: 3, intent: 'Gentle check-in + invite the details that unlock the quote.' },
     ],
   },
 };
