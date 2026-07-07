@@ -17,6 +17,7 @@ import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock } from '../lib/m
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
+import { osmLink } from './AddressField.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -79,6 +80,9 @@ function PublicClasses() {
             <div className="text-xs text-[#5A5751]">
               {c.date_iso ? new Date(c.date_iso).toLocaleString() : ''}{c.location ? ` · ${c.location}` : ''} · {fmt$(c.price_cents)}
               {c.format === 'one-on-one' ? ' · 2.5-hour private session' : ''}
+              {osmLink(c.location_lat, c.location_lon) && (
+                <> · <a className="underline" href={osmLink(c.location_lat, c.location_lon)} target="_blank" rel="noreferrer">map</a></>
+              )}
             </div>
             <div className="text-xs text-[#5A5751]">Machines + materials provided — just show up and create.</div>
           </div>

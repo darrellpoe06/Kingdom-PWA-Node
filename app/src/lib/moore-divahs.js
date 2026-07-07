@@ -316,6 +316,8 @@ export function newClassSession(partial = {}, { now = null, id = null } = {}) {
     project: asStr(partial.project),                 // a different project each time
     dateIso: asStr(partial.dateIso) || null,
     location: asStr(partial.location),               // varies; Shay travels
+    locationLat: Number.isFinite(partial.locationLat) ? partial.locationLat : null,
+    locationLon: Number.isFinite(partial.locationLon) ? partial.locationLon : null,
     priceCents: Math.max(0, asNum(partial.priceCents, spec.priceCentsDefault)),
     seatCap: Math.min(spec.seatCap, Math.max(1, asNum(partial.seatCap, spec.seatCap))), // never above the hard cap
     seed: partial.seed === true,

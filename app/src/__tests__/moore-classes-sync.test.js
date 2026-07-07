@@ -32,6 +32,17 @@ describe('session round-trip', () => {
     expect(back.dateIso).toBe('2026-08-08T17:00:00.000Z');
     expect(back.remoteUuid).toBe('uuid-s1');
   });
+  it('picked map coordinates survive the round-trip', () => {
+    const s = newClassSession({ format: 'group', location: '1234 5th Ave, Moline, Illinois', locationLat: 41.5067, locationLon: -90.5151 }, { now: NOW, id: 'mc-loc' });
+    const back = fromSessionRow({ ...toSessionRow(s, CTX), id: 'uuid-loc', created_at: s.createdAt });
+    expect(back.locationLat).toBeCloseTo(41.5067);
+    expect(back.locationLon).toBeCloseTo(-90.5151);
+    // and a session without a pick carries nulls, never fabricated coords
+    const bare = fromSessionRow({ ...toSessionRow(newClassSession({}, { now: NOW, id: 'mc-b' }), CTX), id: 'u2' });
+    expect(bare.locationLat).toBeNull();
+    expect(bare.locationLon).toBeNull();
+  });
+
   it('a hydrated row can never exceed the structural cap', () => {
     const back = fromSessionRow({ id: 'u', slug: 'mc-2', format: 'group', seat_cap: 40, price_cents: 4500 });
     expect(back.seatCap).toBe(10); // "so I can control the classroom"
