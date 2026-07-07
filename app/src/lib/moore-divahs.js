@@ -393,6 +393,32 @@ export function classStats(sessions = [], signups = [], { includeSeed = false } 
   };
 }
 
+// -----------------------------------------------------------------------------
+// Shop inventory — materials on hand + spend, the cost input to margin. Pure
+// shape + honest value math; rows live in shop_inventory (0086).
+// -----------------------------------------------------------------------------
+export const INVENTORY_CATEGORIES = ['fabric', 'notions', 'blanks', 'thread', 'other'];
+export function normalizeInventoryItem(raw = {}, { now = null, id = null } = {}) {
+  const ts = now || new Date().toISOString();
+  return {
+    id: id || raw.id || `mi-${(now ? Date.parse(now) : Date.now()).toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    name: asStr(raw.name).trim(),
+    category: INVENTORY_CATEGORIES.includes(raw.category) ? raw.category : 'other',
+    qty: Math.max(0, asNum(raw.qty, 0)),
+    unit: asStr(raw.unit).trim() || 'each',           // yards / each / spools ...
+    unitCostCents: Math.max(0, asNum(raw.unitCostCents, 0)),
+    notes: asStr(raw.notes),
+    seed: raw.seed === true,
+    createdAt: asStr(raw.createdAt) || ts,
+  };
+}
+// Total on-hand value — a derived number from real rows, never stored.
+export function inventoryValueCents(items = [], { includeSeed = false } = {}) {
+  return asArr(items)
+    .filter((i) => i && (includeSeed || i.seed !== true))
+    .reduce((s, i) => s + Math.round(Math.max(0, asNum(i.qty, 0)) * Math.max(0, asNum(i.unitCostCents, 0))), 0);
+}
+
 // revenueGoalPlan — Shay names the money she wants; the system shows the mix
 // that reaches it, ranked by what her REAL history earns per unit. Optimize-
 // toward, never "guarantee" (truthful-claims posture).
