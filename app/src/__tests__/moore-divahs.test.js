@@ -6,7 +6,7 @@
 // paid-seats-only holds, and honest (null-when-empty) stats.
 import { describe, it, expect } from 'vitest';
 import {
-  MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage,
+  MOORE_BRAND, MOORE_POLICIES, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage,
   stripDisallowedOrderFields, newOrder, moveOrderStage, recordPayment,
   orderDueIso, orderClock, TURNAROUND_DAYS,
   normalizeBulkLine, validateBulkLine, bulkPickList, bulkTotals,
@@ -22,6 +22,14 @@ describe('brand + binding posture', () => {
     expect(MOORE_BRAND.label).toBe('Moore Divahs');
     expect(MOORE_BRAND.email).toBe('mooredivahs1@yahoo.com');
     expect(NO_PAYMENT_PROCESSING).toBe(true);
+  });
+  it('her flyer policies are encoded verbatim in spirit — her words are senior', () => {
+    expect(MOORE_POLICIES.noRushOrders).toBe(true);
+    expect(MOORE_POLICIES.adjustmentWindowHours).toBe(72);
+    expect(MOORE_POLICIES.nonRefundable).toContain('non-refundable');
+    expect(MOORE_POLICIES.leadTime).toContain('3-4 weeks');
+    expect(MOORE_POLICIES.inspoHerWay).toContain('her way');
+    expect(orderStageMeta('ready').label).toContain('final fitting');
   });
   it('card/bank fields are structurally stripped from any payload', () => {
     const clean = stripDisallowedOrderFields({ customerName: 'A', cardNumber: '4111', cvv: '123', bankAccount: 'x' });

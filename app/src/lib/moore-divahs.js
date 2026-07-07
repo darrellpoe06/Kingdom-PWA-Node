@@ -55,6 +55,23 @@ export const MOORE_BRAND = {
 };
 
 // -----------------------------------------------------------------------------
+// Shay's stated order policies — HER words, from the informational she sends
+// (flyer supplied by Darrell 2026-07-07; discovery note §2b). These render at
+// the point of order on the customer door — the up-front consent the
+// change-order ladder rests on.
+// -----------------------------------------------------------------------------
+export const MOORE_POLICIES = {
+  leadTime: 'Custom outfit orders are placed 3-4 weeks before your date of need.',
+  paymentUpfront: 'Payment is always upfront — payment books your order.',
+  noRushOrders: true, // she does not do rush orders; the lead time is the lead time
+  inspoHerWay: 'Send images for inspiration — she uses them for inspo, but only creates her way.',
+  finalFitting: 'Every custom can be tried on at a final fitting. If you skip the fitting, adjustments need contact within 72 hours — none after that.',
+  adjustmentWindowHours: 72,
+  nonRefundable: 'All orders are non-refundable.',
+  madeWithLove: 'Orders are made with love — so come with it as well.',
+};
+
+// -----------------------------------------------------------------------------
 // Order pipeline. `group` drives the board columns + the stats:
 //   pre  — before money (inquiry/designing/quoted)
 //   work — paid + the 3-week clock running (paid/in-production/ready)
@@ -67,7 +84,7 @@ export const ORDER_STAGES = {
   'quoted':        { label: 'Quoted',         group: 'pre',  symbol: '◑' },
   'paid':          { label: 'Paid — clock on', group: 'work', symbol: '◉' },
   'in-production': { label: 'In production',  group: 'work', symbol: '◈' },
-  'ready':         { label: 'Ready',          group: 'work', symbol: '◆' },
+  'ready':         { label: 'Ready — final fitting', group: 'work', symbol: '◆' },
   'delivered':     { label: 'Delivered',      group: 'done', symbol: '✓' },
   'followed-up':   { label: 'Followed up',    group: 'done', symbol: '✦' },
   'declined':      { label: 'Declined',       group: 'lost', symbol: '—' },

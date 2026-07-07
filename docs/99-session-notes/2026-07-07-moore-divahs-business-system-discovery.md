@@ -62,6 +62,25 @@ color / per-name roster as structured data — never free-form prose she has to
 parse. This directly kills the Google-Doc headache and feeds a clean production
 pick-list.
 
+### 2b. Shay's stated order policies (from her own informational flyer, added 2026-07-07)
+
+Darrell supplied the informational she sends customers. Her policies, verbatim
+from the flyer (these are HER words and they are senior to our defaults):
+
+- "Custom outfits orders placed **3-4 weeks prior to date of need**."
+- "**Payment always upfront** — **don't do rush orders**."
+- "If sending an image I can use for inspo **but only create my way**."
+- "All customs can be tried on at a **final fitting**. If choose not to and
+  need, contact within **72hrs** or **no adjustments after that**."
+- "Orders are made with love so come with it as well."
+- "**ALL ORDERS ARE NON REFUNDABLE**." ← answers the cancellation-policy open
+  item from §8: there is no refund lane; the change-order ladder governs
+  changes, and the 72-hour window governs post-delivery adjustments.
+
+Encoded as `MOORE_POLICIES` in `app/src/lib/moore-divahs.js`; shown to
+customers on the /moore door at the point of order (the up-front consent the
+change-order design requires). The 'ready' stage is her final fitting.
+
 ## 3. Service line B — Sewing Classes
 
 Each class is a **different project each time.** Shay **brings the sewing
