@@ -780,7 +780,7 @@ export default function MooreDivahs() {
       <div className="mt-3 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
-          <p className="text-xs text-[#5A5751]">{MOORE_BRAND.tagline} · {MOORE_BRAND.email}</p>
+          <p className="text-xs text-[#5A5751]">{MOORE_BRAND.tagline}</p>
         </div>
         <button type="button" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white" onClick={() => setAdding((v) => !v)}>
           {adding ? 'Close' : '+ New order'}

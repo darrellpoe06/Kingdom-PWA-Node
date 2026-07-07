@@ -46,7 +46,9 @@ describe('MooreDivahs surface', () => {
     await act(async () => { root.render(createElement(MooreDivahs)); });
     const text = container.textContent || '';
     expect(text).toContain('Moore Divahs');
-    expect(text).toContain('mooredivahs1@yahoo.com');
+    // Her address is sign-in-only — it must never render (Darrell 2026-07-07)
+    expect(text).not.toContain('mooredivahs1');
+    expect(text).not.toContain('yahoo.com');
     // honest empty world — an explicit no-orders card, no fake revenue
     expect(text).toContain('No orders yet');
     expect(text).toContain('Paid orders');
