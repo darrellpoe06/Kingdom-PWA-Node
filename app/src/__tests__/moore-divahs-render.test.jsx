@@ -83,4 +83,33 @@ describe('MooreDivahs surface', () => {
     // the created order renders the production pick-list line, structured
     expect(container.textContent).toContain('6 × adult M · blue — Alicia, Dawn (+4 unnamed)');
   });
+
+  it('classes: schedule a session, hold a seat by payment, seats-left decrements', async () => {
+    await act(async () => { root.render(createElement(MooreDivahs)); });
+    expect(container.textContent).toContain('Sewing Classes');
+
+    const type = (el, value) => act(async () => {
+      const proto = el.tagName === 'SELECT' ? window.HTMLSelectElement.prototype : window.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+      el.dispatchEvent(new window.Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+    });
+    const click = (el) => act(async () => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    const btn = (re) => [...container.querySelectorAll('button')].find((b) => re.test((b.textContent || '').trim()));
+
+    await click(btn(/Schedule class/));
+    await type(container.querySelector('input[aria-label="Class project"]'), 'Tote bag');
+    // a month out — inside the booking window
+    const next = new Date(Date.now() + 30 * 86400000);
+    const local = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}T17:00`;
+    await type(container.querySelector('input[aria-label="Class date"]'), local);
+    await click(btn(/^Schedule$/));
+    expect(container.textContent).toContain('10 of 10 seats left');
+    expect(container.textContent).toContain('$45.00'); // her real group price by default
+
+    await type(container.querySelector('input[aria-label="Student name"]'), 'Dana');
+    await click(btn(/Paid — hold seat/));
+    // the seat exists only through payment — and the count is REAL
+    expect(container.textContent).toContain('9 of 10 seats left');
+    expect(container.textContent).toContain('Paid seats: Dana');
+  });
 });

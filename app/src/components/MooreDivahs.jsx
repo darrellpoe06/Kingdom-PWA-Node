@@ -14,8 +14,10 @@ import {
   MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage, orderClock,
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
   changeOrderFee, orderStats, bulkPickList, bulkTotals, isSeedOrder, BULK_CUTS,
+  CLASS_FORMATS, seatsLeft, canBook,
 } from '../lib/moore-divahs.js';
 import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, patchOrder } from '../lib/use-moore-orders.js';
+import { useMooreClasses, addSession, addPaidSignup } from '../lib/use-moore-classes.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -239,6 +241,113 @@ function AddOrderForm({ onDone }) {
   );
 }
 
+// ---- Classes — sessions + paid-seat holds (cap 10 group / 1-on-1 2.5h) ------
+const BLANK_SESSION = { format: 'group', project: '', dateIso: '', location: '', price: '' };
+
+function SeatForm({ session, signups }) {
+  const [name, setName] = useState('');
+  const [method, setMethod] = useState('square');
+  const gate = canBook(session, signups);
+  if (!gate.ok) return <span className="text-xs text-[#5A5751]">{gate.reason}</span>;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <input aria-label="Student name" placeholder="Student name" className="rounded border border-[#E8E2D8] px-1.5 py-0.5 text-xs" value={name} onChange={(e) => setName(e.target.value)} />
+      <select aria-label="Seat pay method" className="rounded border border-[#E8E2D8] bg-white px-1 py-0.5 text-xs" value={method} onChange={(e) => setMethod(e.target.value)}>
+        {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+      </select>
+      <button
+        type="button"
+        className="rounded-lg border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]"
+        onClick={() => { if (name.trim()) { addPaidSignup(session, { studentName: name, method }); setName(''); } }}
+      >
+        ◉ Paid — hold seat
+      </button>
+    </span>
+  );
+}
+
+function ClassesSection() {
+  const { sessions, signups } = useMooreClasses();
+  const [adding, setAdding] = useState(false);
+  const [f, setF] = useState(BLANK_SESSION);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const spec = CLASS_FORMATS[f.format];
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!f.dateIso) return;
+    await addSession({
+      format: f.format, project: f.project, location: f.location,
+      dateIso: new Date(f.dateIso).toISOString(),
+      priceCents: f.price ? Math.round(parseFloat(f.price) * 100) : spec.priceCentsDefault,
+    });
+    setF(BLANK_SESSION);
+    setAdding(false);
+  };
+  const upcoming = [...sessions].filter((s) => s && s.seed !== true).sort((a, b) => String(a.dateIso).localeCompare(String(b.dateIso)));
+  return (
+    <div className="mt-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Sewing Classes</h2>
+          <p className="text-xs text-[#5A5751]">Machines + materials provided — just show up and create. A seat is held when it&rsquo;s paid.</p>
+        </div>
+        <button type="button" className="rounded-lg border border-[#B85838] px-3 py-1.5 text-sm font-semibold text-[#B85838]" onClick={() => setAdding((v) => !v)}>
+          {adding ? 'Close' : '+ Schedule class'}
+        </button>
+      </div>
+      {adding && (
+        <form onSubmit={submit} className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3 text-sm sm:grid-cols-3">
+          <select aria-label="Class format" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.format} onChange={set('format')}>
+            {Object.entries(CLASS_FORMATS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+          <input aria-label="Class project" placeholder="This session's project" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.project} onChange={set('project')} />
+          <input aria-label="Class date" type="datetime-local" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.dateIso} onChange={set('dateIso')} />
+          <input aria-label="Class location" placeholder="Location (she travels)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.location} onChange={set('location')} />
+          <input aria-label="Class price dollars" placeholder={`Price $ (default ${(spec.priceCentsDefault / 100).toFixed(0)})`} inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.price} onChange={set('price')} />
+          <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white">Schedule</button>
+        </form>
+      )}
+      {upcoming.length === 0 ? (
+        <div className="mt-3 rounded-xl border border-dashed border-[#E8E2D8] p-4 text-center text-sm text-[#5A5751]">
+          No classes scheduled yet — dates are set about a month ahead so people can book their seat.
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {upcoming.map((s) => {
+            const left = seatsLeft(s, signups);
+            const roster = signups.filter((x) => x.sessionId === s.id && x.paidAt);
+            return (
+              <div key={s.id} className="rounded-xl border border-[#E8E2D8] bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold text-[#1A1815]" style={SERIF}>
+                      {CLASS_FORMATS[s.format]?.label || s.format}{s.project ? ` — ${s.project}` : ''}
+                    </div>
+                    <div className="text-xs text-[#5A5751]">
+                      {s.dateIso ? new Date(s.dateIso).toLocaleString() : 'date TBD'}
+                      {s.location ? ` · ${s.location}` : ''} · {fmt$(s.priceCents)}
+                      {s.format === 'one-on-one' ? ` · ${CLASS_FORMATS['one-on-one'].durationHours}h session` : ''}
+                    </div>
+                    {roster.length > 0 && (
+                      <div className="mt-1 text-xs text-[#1A1815]">Paid seats: {roster.map((r) => r.studentName).join(', ')}</div>
+                    )}
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${left > 0 ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
+                    {left > 0 ? `${left} of ${s.seatCap} seats left` : 'Full — every seat paid'}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs">
+                  <SeatForm session={s} signups={signups} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MooreDivahs() {
   const orders = useMooreOrders();
   const [adding, setAdding] = useState(false);
@@ -293,6 +402,8 @@ export default function MooreDivahs() {
           );
         })
       )}
+
+      <ClassesSection />
     </div>
   );
 }
