@@ -21,6 +21,11 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
+// 2026-07-07: the [data-theme] palette CSS moved to the shared theme source so
+// the standalone business doors render the same themes (lib/theme-css.js). The
+// guard reads BOTH files, so the single-source contract holds wherever the
+// rules live.
+const THEME_SOURCE = join(ROOT, 'app/src/lib/theme-css.js');
 const COMPONENTS_DIR = join(ROOT, 'app/src/components');
 
 const AA_NORMAL = 4.5; // WCAG 2.1 AA, normal-size text
@@ -167,7 +172,8 @@ export function checkContrastDetailed(themes) {
 
 export function scanContrast() {
   if (!existsSync(MONOLITH)) return { themes: {}, violations: [{ theme: '(none)', what: 'monolith not found', fg: '', bg: '' }] };
-  const src = readFileSync(MONOLITH, 'utf8');
+  const src = readFileSync(MONOLITH, 'utf8')
+    + (existsSync(THEME_SOURCE) ? '\n' + readFileSync(THEME_SOURCE, 'utf8') : '');
   const themes = parseThemes(src);
   const { violations, warnings } = checkContrastDetailed(themes);
   return { themes, violations, warnings };
@@ -333,7 +339,11 @@ export function checkTokenCoverage(remap, used) {
 export function scanTokenCoverage() {
   if (!existsSync(MONOLITH)) return { violations: [], remap: { bg: {}, text: {} }, used: { bg: new Set(), text: new Set() } };
   const monoSrc = readFileSync(MONOLITH, 'utf8');
-  const remap = parseMidnightRemap(monoSrc);
+  // The midnight remap rules live in the shared theme source (lib/theme-css.js)
+  // since the 2026-07-07 extraction; the monolith is still scanned for USED
+  // tokens. Read both so coverage keeps meaning coverage.
+  const themeSrc = existsSync(THEME_SOURCE) ? readFileSync(THEME_SOURCE, 'utf8') : '';
+  const remap = parseMidnightRemap(monoSrc + '\n' + themeSrc);
   const used = { bg: new Set(), text: new Set() };
   const add = (src) => { const t = collectColorTokens(src); t.bg.forEach((x) => used.bg.add(x)); t.text.forEach((x) => used.text.add(x)); };
   add(monoSrc);
