@@ -99,7 +99,7 @@ export function computeTotals(def, state) {
 
 // ---- lifecycle --------------------------------------------------------------
 // A fresh game, paused at the opening crossroads where the player picks a path.
-export function createGame(def, { seed = 1 } = {}) {
+export function createGame(def, { seed = 1, level = 'child' } = {}) {
   return {
     gameId: def.id,
     status: 'choosing-path',  // -> 'playing' -> 'finished'
@@ -107,6 +107,9 @@ export function createGame(def, { seed = 1 } = {}) {
     position: -1,             // not on the board until a path is chosen
     turn: 0,
     seed: seed >>> 0,
+    // Age/difficulty level (young -> old). Pure carry — it never touches scoring;
+    // the UI reads it via lib/games/difficulty.js to decide how much to reveal.
+    level,
     scores: { ...emptyScores(def), ...(def.startingScores || {}) },
     pending: null,            // a choice/card awaiting the player's decision
     log: [],
