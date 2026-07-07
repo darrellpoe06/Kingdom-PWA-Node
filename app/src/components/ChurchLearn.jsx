@@ -58,6 +58,7 @@ import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
+import SectionTabs from './SectionTabs.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -830,186 +831,22 @@ function CourseView({
     return <Presenter presentable={coursePresentable(course)} onClose={() => setTeaching(false)} />;
   }
 
-  return (
-    <>
-      {/* ===== Screen UI (hidden when printing) ===== */}
-      <div className="print:hidden">
-      <p className="text-sm text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{meta.tagline}</p>
-      <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-        For {meta.audience}. {meta.format}.
-      </p>
-
-      {/* Interest — a real connection to Darrell */}
-      <div className="bg-[#FAF8F4] border-2 border-[#1A1815] p-4 mb-5">
-        <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{interestCopy.heading}</h3>
-        <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          {interestCopy.blurb}
-        </p>
-        {interestSent ? (
-          <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
-            {interestCopy.sent}
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onSendInterest}
-            disabled={!canSendInterest}
-            className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[40px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-          >
-            {interestCopy.cta} →
-          </button>
-        )}
-        {!canSendInterest && (
-          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to send your interest.</p>
-        )}
-      </div>
-
-      {/* Governor-only roster — who has asked to join, ACROSS instances. */}
-      {isGovernor && Array.isArray(roster) && (
-        <div className="border border-[#E8E4DC] p-4 mb-5">
-          <div className="flex items-baseline justify-between gap-2 mb-2">
-            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Who wants in</h3>
-            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{roster.length} interested</span>
-          </div>
-          {roster.length === 0 ? (
-            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              No one has tapped “{interestCopy.cta}” yet. When they do — from any device, on any instance — they appear here.
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {roster.map((r, i) => (
-                <li key={r.id || i} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <span>{r.who || r.displayName || 'A parishioner'}</span>
-                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Your progress — real, from the signed-in record */}
-      {toggleModule && (
-        <div className="border border-[#E8E4DC] p-4 mb-5">
-          <div className="flex items-baseline justify-between gap-2 mb-2">
-            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Your progress</h3>
-            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{prog.done} of {prog.total} · {prog.pct}%</span>
-          </div>
-          <div className="h-2 bg-[#E8E4DC] overflow-hidden" role="progressbar" aria-valuenow={prog.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Class progress">
-            <div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} />
-          </div>
-          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            Check off each {U.noun} as you finish it — this is counted from your own record, just for you.
-          </p>
-        </div>
-      )}
-
-      {/* Age band — the MASTER control: one curriculum, paced + pitched to the
-          learner's age (short/visual/playful for a child, deeper for an adult). */}
-      {setAgeBand && (
-        <div className="border border-[#E8E4DC] p-3 mb-5">
-          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Who’s learning? (sets the pace)</div>
-          <div role="group" aria-label="Choose the learner's age" className="flex flex-wrap gap-2">
-            {AGE_BANDS.map((b) => {
-              const on = ageBand === b.id;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  aria-pressed={on}
-                  title={b.hint}
-                  onClick={() => setAgeBand(b.id)}
-                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-                >
-                  {b.label} <span className="opacity-70">{b.range}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            {ageBandProfile(ageBand).pacing}
-          </p>
-        </div>
-      )}
-
-      {/* Fine-tune depth (optional) — the existing skill-level branching, now an
-          override on top of the age band. "Auto" follows your age. */}
-      {setLearnLevel && (
-        <div className="border border-[#E8E4DC] p-3 mb-5">
-          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Fine-tune depth (optional)</div>
-          <div role="group" aria-label="Choose your learning depth" className="flex flex-wrap gap-2">
-            {[{ id: 'auto', label: 'Auto', hint: 'Follow my age band.' }, ...LEARN_LEVELS].map((lv) => {
-              const on = (learnLevel || 'auto') === lv.id;
-              return (
-                <button
-                  key={lv.id}
-                  type="button"
-                  aria-pressed={on}
-                  title={lv.hint}
-                  onClick={() => setLearnLevel(lv.id)}
-                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-                >
-                  {lv.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Governor — engagement BY AGE BAND, from real use. Tunes the pacing
-          defaults: improving one age improves every course's library. */}
-      {isGovernor && engagementByAge && (
-        <div className="border border-[#E8E4DC] p-4 mb-5">
-          <div className="flex items-baseline justify-between gap-2 mb-2">
-            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Engagement by age</h3>
-            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{engagementByAge.totals?.records || 0} signals</span>
-          </div>
-          {(engagementByAge.totals?.records || 0) === 0 ? (
-            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-              No engagement signals yet. As learners use the courses, each age band’s real use shows here — and the pacing defaults get tuned from it.
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {AGE_BANDS.map((b) => {
-                const row = engagementByAge.byBand?.[b.id];
-                if (!row || row.total === 0) return null;
-                return (
-                  <li key={b.id} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span>{b.label} <span className="text-[#5A5751]">{b.range}</span></span>
-                    <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      {row.total} signals · score {row.score} · {row.counts['completed'] || 0} completed
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Graduate → next-cohort helper (the course teaches itself forward) */}
-      {assessment.complete && (
-        <div className="bg-[#5A6E3D]/10 border-2 border-[#5A6E3D] p-4 mb-5">
-          <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You finished {meta.title}. 🎓</h3>
-          <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            All {assessment.total} {U.plural} done{assessment.quizTotal ? ` and ${assessment.quizzesPassed}/${assessment.quizTotal} checks passed` : ''}. {U.selfPaced ? 'The best way to keep it is to hand it on — put your name forward to help others through it.' : 'The best students help teach the next group — put your name forward to help the next cohort.'}
-          </p>
-          {helped ? (
-            <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">✓ Sent — thank you for raising the next group.</div>
-          ) : (
-            <button
-              type="button"
-              onClick={onBecomeHelper}
-              disabled={!onBecomeHelper}
-              className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[40px] border-2 border-[#5A6E3D] text-white bg-[#5A6E3D] hover:bg-[#4a5a31] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >
-              I’ll help teach the next cohort →
-            </button>
-          )}
-        </div>
-      )}
-
+  // The course body, reorganized behind third-row sliding chips (Darrell
+  // 2026-07-04 "sliding tabs instead of a long scroll"; 2026-07-05 "a 3rd row
+  // of sliding tabs if that tab scrolls really long"). The COURSE PICKER above
+  // stays the section row (its activeKey drives real logic in the wrapper), so
+  // this grouping is variant="sub" chips per the hierarchy: nav slides, course
+  // row switches, sub-section slides. The tagline, Your-progress (the KPI
+  // strip) and the graduation banner stay PINNED above the chips; every block
+  // below moved VERBATIM into its section. All hooks stay at the top level, so
+  // a chip switch never drops facilitator/tutor/export state.
+  const sections = [
+    {
+      id: 'weeks',
+      label: `${U.cap}s`,
+      icon: 'bookOpen',
+      render: () => (
+        <div>
       {/* The timeline + curriculum */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced ? (meta.weeks === 1 ? `The ${U.noun}` : `The ${meta.weeks} ${U.plural}`) : `The ${meta.weeks} ${U.plural}`}</h3>
@@ -1024,18 +861,6 @@ function CourseView({
             ? <>Starts <strong>{fmtDate(schedule[0].date)}</strong>, then weekly. {cohortConfirmed ? '' : 'Dates are proposed until Darrell confirms.'}</>
             : 'A start date will be set soon.'}
       </p>
-
-      {/* Export — Darrell trusts paper; same source as the screen */}
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
-        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
-          <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
-          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
-        </div>
-        {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
-      </div>
-
       {/* Governor-only: set / confirm the real start date + reveal the facilitator guide */}
       {isGovernor && (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
@@ -1084,7 +909,6 @@ function CourseView({
           </button>
         </div>
       )}
-
       <ol className="space-y-3">
         {schedule.map((m) => {
           const done = !!progress[m.id];
@@ -1207,6 +1031,224 @@ function CourseView({
 
       {/* POV Sequence / SOP Library (broadcast course only — present when wired) */}
       <SopLibrary sequences={sopSequences} pipeline={capturePipeline} />
+        </div>
+      ),
+    },
+    {
+      id: 'join',
+      label: 'Join',
+      icon: 'users',
+      render: () => (
+        <div>
+      {/* Interest — a real connection to Darrell */}
+      <div className="bg-[#FAF8F4] border-2 border-[#1A1815] p-4 mb-5">
+        <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{interestCopy.heading}</h3>
+        <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          {interestCopy.blurb}
+        </p>
+        {interestSent ? (
+          <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">
+            {interestCopy.sent}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onSendInterest}
+            disabled={!canSendInterest}
+            className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[40px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            {interestCopy.cta} →
+          </button>
+        )}
+        {!canSendInterest && (
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to send your interest.</p>
+        )}
+      </div>
+      {/* Governor-only roster — who has asked to join, ACROSS instances. */}
+      {isGovernor && Array.isArray(roster) && (
+        <div className="border border-[#E8E4DC] p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Who wants in</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{roster.length} interested</span>
+          </div>
+          {roster.length === 0 ? (
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No one has tapped “{interestCopy.cta}” yet. When they do — from any device, on any instance — they appear here.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {roster.map((r, i) => (
+                <li key={r.id || i} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span>{r.who || r.displayName || 'A parishioner'}</span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+        </div>
+      ),
+    },
+    (setAgeBand || setLearnLevel || (isGovernor && engagementByAge)) ? {
+      id: 'pace',
+      label: 'Pace & depth',
+      icon: 'sliders',
+      render: () => (
+        <div>
+      {/* Age band — the MASTER control: one curriculum, paced + pitched to the
+          learner's age (short/visual/playful for a child, deeper for an adult). */}
+      {setAgeBand && (
+        <div className="border border-[#E8E4DC] p-3 mb-5">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Who’s learning? (sets the pace)</div>
+          <div role="group" aria-label="Choose the learner's age" className="flex flex-wrap gap-2">
+            {AGE_BANDS.map((b) => {
+              const on = ageBand === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={on}
+                  title={b.hint}
+                  onClick={() => setAgeBand(b.id)}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                >
+                  {b.label} <span className="opacity-70">{b.range}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            {ageBandProfile(ageBand).pacing}
+          </p>
+        </div>
+      )}
+      {/* Fine-tune depth (optional) — the existing skill-level branching, now an
+          override on top of the age band. "Auto" follows your age. */}
+      {setLearnLevel && (
+        <div className="border border-[#E8E4DC] p-3 mb-5">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Fine-tune depth (optional)</div>
+          <div role="group" aria-label="Choose your learning depth" className="flex flex-wrap gap-2">
+            {[{ id: 'auto', label: 'Auto', hint: 'Follow my age band.' }, ...LEARN_LEVELS].map((lv) => {
+              const on = (learnLevel || 'auto') === lv.id;
+              return (
+                <button
+                  key={lv.id}
+                  type="button"
+                  aria-pressed={on}
+                  title={lv.hint}
+                  onClick={() => setLearnLevel(lv.id)}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                >
+                  {lv.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {/* Governor — engagement BY AGE BAND, from real use. Tunes the pacing
+          defaults: improving one age improves every course's library. */}
+      {isGovernor && engagementByAge && (
+        <div className="border border-[#E8E4DC] p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Engagement by age</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{engagementByAge.totals?.records || 0} signals</span>
+          </div>
+          {(engagementByAge.totals?.records || 0) === 0 ? (
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              No engagement signals yet. As learners use the courses, each age band’s real use shows here — and the pacing defaults get tuned from it.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {AGE_BANDS.map((b) => {
+                const row = engagementByAge.byBand?.[b.id];
+                if (!row || row.total === 0) return null;
+                return (
+                  <li key={b.id} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span>{b.label} <span className="text-[#5A5751]">{b.range}</span></span>
+                    <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {row.total} signals · score {row.score} · {row.counts['completed'] || 0} completed
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+        </div>
+      ),
+    } : null,
+    {
+      id: 'paper',
+      label: 'Paper & print',
+      icon: 'pencil',
+      render: () => (
+        <div>
+      {/* Export — Darrell trusts paper; same source as the screen */}
+      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
+          <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
+          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
+        </div>
+        {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
+      </div>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      {/* ===== Screen UI (hidden when printing) ===== */}
+      <div className="print:hidden">
+      <p className="text-sm text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{meta.tagline}</p>
+      <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+        For {meta.audience}. {meta.format}.
+      </p>
+
+      {/* Your progress — real, from the signed-in record */}
+      {toggleModule && (
+        <div className="border border-[#E8E4DC] p-4 mb-5">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Your progress</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{prog.done} of {prog.total} · {prog.pct}%</span>
+          </div>
+          <div className="h-2 bg-[#E8E4DC] overflow-hidden" role="progressbar" aria-valuenow={prog.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Class progress">
+            <div className="h-full bg-[#5A6E3D]" style={{ width: `${prog.pct}%` }} />
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Check off each {U.noun} as you finish it — this is counted from your own record, just for you.
+          </p>
+        </div>
+      )}
+
+      {/* Graduate → next-cohort helper (the course teaches itself forward) */}
+      {assessment.complete && (
+        <div className="bg-[#5A6E3D]/10 border-2 border-[#5A6E3D] p-4 mb-5">
+          <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You finished {meta.title}. 🎓</h3>
+          <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            All {assessment.total} {U.plural} done{assessment.quizTotal ? ` and ${assessment.quizzesPassed}/${assessment.quizTotal} checks passed` : ''}. {U.selfPaced ? 'The best way to keep it is to hand it on — put your name forward to help others through it.' : 'The best students help teach the next group — put your name forward to help the next cohort.'}
+          </p>
+          {helped ? (
+            <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">✓ Sent — thank you for raising the next group.</div>
+          ) : (
+            <button
+              type="button"
+              onClick={onBecomeHelper}
+              disabled={!onBecomeHelper}
+              className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[40px] border-2 border-[#5A6E3D] text-white bg-[#5A6E3D] hover:bg-[#4a5a31] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            >
+              I’ll help teach the next cohort →
+            </button>
+          )}
+        </div>
+      )}
+
+      <SectionTabs variant="sub" sections={sections} ariaLabel={`${meta.title} sections`} idBase={`learn-${meta.key}`} defaultId="weeks" />
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-5" style={{ fontFamily: '"Fraunces", serif' }}>
         Taught by Darrell Poe · The Church of the Living God · built on PoeTech. The first community we serve, the way we serve every community after.

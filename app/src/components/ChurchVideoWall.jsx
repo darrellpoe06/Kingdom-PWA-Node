@@ -22,6 +22,7 @@
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   getVideoWallAccess, subscribeProjects, subscribeBudgetLines,
   budgetTotals, donationProgress,
@@ -252,27 +253,19 @@ export default function ChurchVideoWall() {
   // default reflects reality; a live project row can still override it.
   const status = project?.status || 'operational';
 
-  return (
-    <div className="space-y-4">
-      {/* HEADER — church name pair (legal + community nickname, side by side) */}
-      <div className={card}>
-        <div className={labelCls}>Capital Project · Facilities / CapEx</div>
-        <h2 className="mt-1 text-xl sm:text-2xl text-[#1A1815]" style={serif}>Sanctuary LED Video Wall</h2>
-        <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
-          The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
-        </div>
-        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">
-          The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
-        </p>
-        <div className="mt-3"><StatusBadge status={status} /></div>
-        <p className="mt-3 text-sm text-[#5A5751]">
-          {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
-        </p>
-        <p className="mt-2 text-[0.75rem] text-[#1A1815]">
-          {project?.installNote || 'Commissioned 2026-07-03: one 2560x1440 screen across 48 cabinets, config saved to the receiving cards, Preset 1 = the Sunday service state, first sermon video played full-wall the same night. Remaining: warranty module swaps + EDID nicety (punch list).'}
-        </p>
-      </div>
-
+  // The long capital-project record, reorganized behind sliding section tabs
+  // (Darrell 2026-07-04 "sliding tabs instead of a long scroll"; 2026-07-07 "no
+  // more down scrolling"). The identity/status header card stays PINNED above
+  // the strip; every card below moved VERBATIM into its section. All state +
+  // effects (access, subscriptions, checklists) stay at the top level so a
+  // section unmount/remount never drops a subscription or a checkbox.
+  const sections = [
+    {
+      id: 'onsite',
+      label: 'On-site now',
+      icon: 'pin',
+      render: () => (
+        <div className="space-y-4">
       {/* ===== 2026-07-05 ON-SITE — service online, wall held on Freeze ===== */}
       <div className={card}>
         <div className="flex items-center justify-between">
@@ -397,7 +390,15 @@ export default function ChurchVideoWall() {
         </ul>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">Progress saved on this device. Full runbook: docs/99-session-notes/2026-07-01-colg-onsite-session-turnkey-runbook.md</p>
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'spec',
+      label: 'Spec & power',
+      icon: 'monitor',
+      render: () => (
+        <div className="space-y-4">
       {/* STAGE-VISUAL IMAGE SLOT — filled from the church YouTube once Darrell
           confirms the video link. Left as an explicit placeholder, not faked. */}
       <div className={card}>
@@ -481,7 +482,30 @@ export default function ChurchVideoWall() {
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; top cabinet of a column &rarr; daisy-chain DOWN its {ledMath.cabinetsPerLine} cabinets. DIRECT, no switch.</span></li>
         </ul>
       </div>
-
+      {/* ===== PANEL / WALL SPEC (canonical) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Panel / wall spec (canonical &middot; confirmed on-site)</div>
+        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.75rem]">
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Panel</dt><dd className="text-[#1A1815]">{PANEL_SPEC.vendor}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Model / RX card</dt><dd className="text-[#1A1815]">{PANEL_SPEC.panelModel} &middot; {PANEL_SPEC.receivingCard}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Cabinet</dt><dd className="text-[#1A1815]">{PANEL_SPEC.cabinetPx} ({PANEL_SPEC.cabinetMm}), {PANEL_SPEC.modules}, {PANEL_SPEC.pitchMm}mm</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Module params</dt><dd className="text-[#1A1815]">{PANEL_SPEC.moduleParams}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Wall</dt><dd className="text-[#1A1815]">{PANEL_SPEC.grid} = {PANEL_SPEC.nativePx}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">RX Card Size</dt><dd className="text-[#1A1815]">{PANEL_SPEC.receivingCardSize}</dd></div>
+        </dl>
+        <p className="mt-2 text-[0.6875rem] text-[#1A1815]"><b>Per-port:</b> {PANEL_SPEC.perPortLoad}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Source:</b> {PANEL_SPEC.source}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{PANEL_SPEC.verify}</p>
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'signal',
+      label: 'Signal chain',
+      icon: 'link',
+      render: () => (
+        <div className="space-y-4">
       {/* SIGNAL CHAIN + AV DEVICE INVENTORY — two switchers, two jobs */}
       <div className={card}>
         <div className={labelCls}>Signal chain &middot; cameras &rarr; ATEM &rarr; NovaStar &rarr; wall</div>
@@ -626,7 +650,32 @@ export default function ChurchVideoWall() {
         </div>
         <p className="mt-3 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>{TEACHING_CARD.oneLiner}</b></p>
       </div>
-
+      {/* ===== VERIFIED SCREEN CONNECTION MAP (canonical reference) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Verified screen connection map &middot; {SCREEN_CONNECTION_MAP.verifiedOn}</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{SCREEN_CONNECTION_MAP.rule}</p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>The mechanic to teach:</b> {SCREEN_CONNECTION_MAP.mechanic}</p>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {SCREEN_CONNECTION_MAP.ports.map((p) => (
+            <div key={p.port} className="border border-[#E8E4DC] p-1.5 text-[0.625rem]">
+              <div className="font-semibold text-[#1A1815]">Port {p.port}</div>
+              <div className="text-[#5A5751]">{p.column}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">{SCREEN_CONNECTION_MAP.receivingCardSizeNote}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{SCREEN_CONNECTION_MAP.save}</p>
+        <MediaSlot base={mediaBase} photo={SCREEN_CONNECTION_MAP.photo} label={SCREEN_CONNECTION_MAP.slot} />
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'software',
+      label: 'Software & control',
+      icon: 'tools',
+      render: () => (
+        <div className="space-y-4">
       {/* ===== VX1000 SOFTWARE — the NovaStar program stack (copy on-site) ===== */}
       <div className={card}>
         <div className={labelCls}>VX1000 software &middot; {VX1000_SOFTWARE.controller}</div>
@@ -700,41 +749,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           ))}
         </ol>
       </div>
-
-      {/* ===== PANEL / WALL SPEC (canonical) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Panel / wall spec (canonical &middot; confirmed on-site)</div>
-        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.75rem]">
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Panel</dt><dd className="text-[#1A1815]">{PANEL_SPEC.vendor}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Model / RX card</dt><dd className="text-[#1A1815]">{PANEL_SPEC.panelModel} &middot; {PANEL_SPEC.receivingCard}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Cabinet</dt><dd className="text-[#1A1815]">{PANEL_SPEC.cabinetPx} ({PANEL_SPEC.cabinetMm}), {PANEL_SPEC.modules}, {PANEL_SPEC.pitchMm}mm</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Module params</dt><dd className="text-[#1A1815]">{PANEL_SPEC.moduleParams}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Wall</dt><dd className="text-[#1A1815]">{PANEL_SPEC.grid} = {PANEL_SPEC.nativePx}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">RX Card Size</dt><dd className="text-[#1A1815]">{PANEL_SPEC.receivingCardSize}</dd></div>
-        </dl>
-        <p className="mt-2 text-[0.6875rem] text-[#1A1815]"><b>Per-port:</b> {PANEL_SPEC.perPortLoad}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Source:</b> {PANEL_SPEC.source}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{PANEL_SPEC.verify}</p>
-      </div>
-
-      {/* ===== VERIFIED SCREEN CONNECTION MAP (canonical reference) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Verified screen connection map &middot; {SCREEN_CONNECTION_MAP.verifiedOn}</div>
-        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{SCREEN_CONNECTION_MAP.rule}</p>
-        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>The mechanic to teach:</b> {SCREEN_CONNECTION_MAP.mechanic}</p>
-        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          {SCREEN_CONNECTION_MAP.ports.map((p) => (
-            <div key={p.port} className="border border-[#E8E4DC] p-1.5 text-[0.625rem]">
-              <div className="font-semibold text-[#1A1815]">Port {p.port}</div>
-              <div className="text-[#5A5751]">{p.column}</div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">{SCREEN_CONNECTION_MAP.receivingCardSizeNote}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{SCREEN_CONNECTION_MAP.save}</p>
-        <MediaSlot base={mediaBase} photo={SCREEN_CONNECTION_MAP.photo} label={SCREEN_CONNECTION_MAP.slot} />
-      </div>
-
       {/* ===== VERIFIED FINAL CONFIG + the real apply procedure ===== */}
       <div className={card}>
         <div className={labelCls}>Screen configuration &middot; COMPLETE (verified)</div>
@@ -758,18 +772,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         </ol>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">{TOMORROW_ACTIVATION.status}</p>
       </div>
-
-      {/* ===== INSTALL GALLERY (labeled slots — attach the on-site photos) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Install gallery &middot; on-site photos</div>
-        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">The actual COLG install. Labeled slots until the on-site photos are attached (serving pending the NAS media host).</p>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {INSTALL_GALLERY.map((g) => (
-            <MediaSlot key={g.id} base={mediaBase} photo={g.photo} label={g.label} />
-          ))}
-        </div>
-      </div>
-
       {/* ===== TOOL CACHE + CONTROL FROM ANYWHERE ===== */}
       <div className={card}>
         <div className={labelCls}>Tool cache &amp; control from anywhere</div>
@@ -841,7 +843,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Send tonight &mdash; {VENDOR_MESSAGE.to}</div>
         <pre className="mt-1.5 whitespace-pre-wrap text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 font-sans">{VENDOR_MESSAGE.body.join('\n')}</pre>
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'work',
+      label: 'Checklists',
+      icon: 'check',
+      render: () => (
+        <div className="space-y-4">
       {/* ===== FINISH CHECKLIST — work it down to done ===== */}
       <div className={card}>
         <div className="flex items-center justify-between">
@@ -908,7 +918,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           Full on-site runbook: docs/99-session-notes/2026-06-29-colg-video-wall-install-power-data-runbook.md
         </p>
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'money',
+      label: 'Budget',
+      icon: 'coins',
+      render: () => (
+        <div className="space-y-4">
       {/* BUDGET — GATED. Money is fetched (owner/admin) or hidden. */}
       <div className={card}>
         <div className="flex items-center justify-between">
@@ -956,7 +974,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           </div>
         )}
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'story',
+      label: 'Story',
+      icon: 'calendar',
+      render: () => (
+        <div className="space-y-4">
       {/* STATUS TIMELINE — public-safe narrative */}
       <div className={card}>
         <div className={labelCls}>Timeline</div>
@@ -972,7 +998,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           ))}
         </ol>
       </div>
-
       {/* ON-SITE INSTALL — the install-milestone EVENT record (public-safe facts) */}
       <div className={card}>
         <div className={labelCls}>On site &middot; install in progress &middot; {INSTALL.observedOn}</div>
@@ -992,7 +1017,16 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         </ul>
         <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {INSTALL.source}.</p>
       </div>
-
+      {/* ===== INSTALL GALLERY (labeled slots — attach the on-site photos) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Install gallery &middot; on-site photos</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">The actual COLG install. Labeled slots until the on-site photos are attached (serving pending the NAS media host).</p>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {INSTALL_GALLERY.map((g) => (
+            <MediaSlot key={g.id} base={mediaBase} photo={g.photo} label={g.label} />
+          ))}
+        </div>
+      </div>
       {/* OPPORTUNITIES */}
       <div className={card}>
         <div className={labelCls}>Opportunities</div>
@@ -1026,6 +1060,33 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>COLG NAS build</b> &mdash; church-owned storage + playback the wall reads from; this CapEx record seeds the church-infrastructure accounting that gates the media-pipeline build.</span></li>
         </ul>
       </div>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* HEADER — church name pair (legal + community nickname, side by side) */}
+      <div className={card}>
+        <div className={labelCls}>Capital Project · Facilities / CapEx</div>
+        <h2 className="mt-1 text-xl sm:text-2xl text-[#1A1815]" style={serif}>Sanctuary LED Video Wall</h2>
+        <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
+          The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
+        </div>
+        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">
+          The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
+        </p>
+        <div className="mt-3"><StatusBadge status={status} /></div>
+        <p className="mt-3 text-sm text-[#5A5751]">
+          {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
+        </p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815]">
+          {project?.installNote || 'Commissioned 2026-07-03: one 2560x1440 screen across 48 cabinets, config saved to the receiving cards, Preset 1 = the Sunday service state, first sermon video played full-wall the same night. Remaining: warranty module swaps + EDID nicety (punch list).'}
+        </p>
+      </div>
+
+      <SectionTabs sections={sections} ariaLabel="Video wall sections" idBase="vwall" defaultId="onsite" />
     </div>
   );
 }

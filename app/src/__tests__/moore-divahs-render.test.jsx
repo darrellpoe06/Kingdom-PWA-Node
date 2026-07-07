@@ -31,6 +31,16 @@ afterEach(async () => {
   container.remove();
 });
 
+// The surface now flows as SectionTabs ("sliding tabs instead of a long
+// scroll", Darrell 2026-07-04): only the ACTIVE panel is mounted, so a section
+// that lives on another tab is reached by clicking its tab first. This helper
+// clicks a tab in the strip by its visible label (church-home-render pattern).
+const clickTab = async (label) => {
+  const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
+  if (!tab) throw new Error(`tab not found: ${label}`);
+  await act(async () => { tab.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+};
+
 describe('MooreDivahs surface', () => {
   it('renders the brand header and an honest empty state', async () => {
     await act(async () => { root.render(createElement(MooreDivahs)); });
@@ -86,6 +96,8 @@ describe('MooreDivahs surface', () => {
 
   it('classes: schedule a session, hold a seat by payment, seats-left decrements', async () => {
     await act(async () => { root.render(createElement(MooreDivahs)); });
+    // Classes live behind their own section tab now — open it first.
+    await clickTab('Classes');
     expect(container.textContent).toContain('Sewing Classes');
 
     const type = (el, value) => act(async () => {
