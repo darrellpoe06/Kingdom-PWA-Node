@@ -23,9 +23,10 @@
 // =============================================================================
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import UiIcon from './UiIcon.jsx';
-import { TabScroll, MetricCell } from './shared.jsx';
+import { MetricCell } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
-  RELATIONSHIPS, relationshipByType, RELATIONSHIP_TYPES, SETTING,
+  RELATIONSHIPS, RELATIONSHIP_TYPES, SETTING,
   buildMatrix,
 } from '../lib/relationships.js';
 import {
@@ -64,8 +65,6 @@ function Panel({ title, icon, children, note }) {
 // Matrix panel — the live can/can't grid for every relationship + role.
 // ---------------------------------------------------------------------------
 function MatrixPanel() {
-  const [type, setType] = useState(RELATIONSHIP_TYPES.GUARDIAN_CHILD);
-  const rel = relationshipByType[type];
   // The matrix previews the MODEL — the child-safe defaults and ceilings every
   // role starts from. Per-child grants are set AND shown on the Family Roster
   // (Center → Serve). The 2026-07-03 claims audit found the old live-config
@@ -74,47 +73,51 @@ function MatrixPanel() {
   // the defaults are the honest thing this panel can claim.
   const rows = useMemo(() => buildMatrix({}), []);
 
+  // One chip (variant="sub") per relationship type. The old hand-rolled strip's
+  // state only drove which grid rendered — nothing else read it — so it folds
+  // into SectionTabs per the sliding-tabs harmonization (Darrell 2026-07-04).
+  const relSections = RELATIONSHIPS.map((rel) => ({
+    id: rel.type,
+    label: rel.label,
+    render: () => (
+      <>
+        <p className="text-sm mb-4 text-[#5A5751]">{rel.blurb}</p>
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${rel.roles.length}, minmax(0, 1fr))` }}>
+          {rel.roles.map((role) => {
+            const roleRows = rows.filter((r) => r.relationship === rel.type && r.role === role);
+            return (
+              <div key={role} className="border border-[#1A1815]">
+                <div className="px-3 py-2 border-b border-[#1A1815] text-sm font-bold capitalize text-[#1A1815] bg-[#F4F2EE]">
+                  {role}{role === rel.steward ? ' · sets access' : ''}
+                </div>
+                <ul className="divide-y divide-[#E6E0D6]">
+                  {roleRows.map((r) => {
+                    const cls = SETTING_CLASS[r.setting];
+                    return (
+                      <li key={r.capability} className="px-3 py-2 flex items-center justify-between gap-2">
+                        <span className="text-sm text-[#1A1815]">
+                          {r.label}
+                          {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
+                          {!r.configurable && role === 'child' ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
+                        </span>
+                        <Badge cls={cls}>{cls.label}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    ),
+  }));
+
   return (
     <Panel title="What each relationship grants" icon="users"
       note="Derived live from the permission model — the defaults and safety ceilings each role starts from. Per-child grants are made and shown on the Family Roster (Center → Serve).">
-      <TabScroll>
-        <div className="flex gap-2 mb-4">
-          {RELATIONSHIPS.map((r) => (
-            <button key={r.type} onClick={() => setType(r.type)}
-              className={`px-3 py-1.5 border border-[#1A1815] text-sm font-semibold whitespace-nowrap ${type === r.type ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815]'}`}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </TabScroll>
-      <p className="text-sm mb-4 text-[#5A5751]">{rel.blurb}</p>
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${rel.roles.length}, minmax(0, 1fr))` }}>
-        {rel.roles.map((role) => {
-          const roleRows = rows.filter((r) => r.relationship === type && r.role === role);
-          return (
-            <div key={role} className="border border-[#1A1815]">
-              <div className="px-3 py-2 border-b border-[#1A1815] text-sm font-bold capitalize text-[#1A1815] bg-[#F4F2EE]">
-                {role}{role === rel.steward ? ' · sets access' : ''}
-              </div>
-              <ul className="divide-y divide-[#E6E0D6]">
-                {roleRows.map((r) => {
-                  const cls = SETTING_CLASS[r.setting];
-                  return (
-                    <li key={r.capability} className="px-3 py-2 flex items-center justify-between gap-2">
-                      <span className="text-sm text-[#1A1815]">
-                        {r.label}
-                        {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
-                        {!r.configurable && role === 'child' ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
-                      </span>
-                      <Badge cls={cls}>{cls.label}</Badge>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
+      <SectionTabs variant="sub" sections={relSections} ariaLabel="Relationship types"
+        idBase="rel-matrix" defaultId={RELATIONSHIP_TYPES.GUARDIAN_CHILD} />
     </Panel>
   );
 }
@@ -262,7 +265,6 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
 // The surface.
 // ---------------------------------------------------------------------------
 export function Relationships({ isGovernor = false, currentUserId = null }) {
-  const [tab, setTab] = useState('matrix');
   const [tenancies, setTenancies] = useState([]);
   const [selectedTenancy, setSelectedTenancy] = useState(null);
   const [workflows, setWorkflows] = useState({ maintenance: [], rent: [], notices: [], messages: [] });
@@ -359,10 +361,39 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
     );
   }
 
-  const TABS = [
-    ['matrix', 'Matrix', 'users'],
-    ['guardian', 'Guardian & Child', 'sliders'],
-    ['landlord', 'Landlord & Tenant', 'pin'],
+  // The section row (2nd-row sliding tabs). The old hand-rolled setTab strip's
+  // state only drove which panel rendered — no other logic read it — so it is
+  // REPLACED by SectionTabs (Darrell 2026-07-04: "sliding tabs for all tabs
+  // instead of a long scroll"). All state + effects stay at this top level;
+  // the render thunks are plain closures over them.
+  const sections = [
+    { id: 'matrix', label: 'Matrix', icon: 'users', render: () => <MatrixPanel /> },
+    {
+      id: 'guardian',
+      label: 'Guardian & Child',
+      icon: 'sliders',
+      render: () => (
+        <Panel title="Guardian & Child — moved to its one home" icon="users"
+          note="One place for the family, not four similar ones (DR-0095).">
+          <p className="text-sm text-[#1A1815]">
+            Adding a family member <strong>and</strong> deciding what each child can see and do — including
+            {' '}<strong>See family finances</strong> for money education (your call, DR-0094) — now live together
+            on the <strong>Family Roster</strong>: Command, Control &amp; Serve Center → <strong>Serve</strong>.
+            The read-only matrix view stays here; landlord &amp; tenant stays here.
+          </p>
+        </Panel>
+      ),
+    },
+    {
+      id: 'landlord',
+      label: 'Landlord & Tenant',
+      icon: 'pin',
+      render: () => (
+        <LandlordPanel tenancies={tenancies} selected={selectedTenancy} onSelect={setSelectedTenancy}
+          workflows={workflows} onAction={onLandlordAction} busy={saving}
+          onRefresh={refresh} refreshing={refreshing} />
+      ),
+    },
   ];
 
   return (
@@ -376,36 +407,10 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
         </p>
       </header>
 
-      <TabScroll>
-        <div className="flex gap-2 mb-4">
-          {TABS.map(([id, label, icon]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`px-3 py-1.5 border border-[#1A1815] text-sm font-semibold whitespace-nowrap flex items-center gap-1 ${tab === id ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815]'}`}>
-              <UiIcon name={icon} className="w-4 h-4" />{label}
-            </button>
-          ))}
-        </div>
-      </TabScroll>
-
+      {/* Pinned above the strip: the save flash stays visible whichever section is open. */}
       {flash ? <div className="mb-3 text-xs px-3 py-2 border border-[#5A6E3D] text-[#1A1815] bg-[#F2F4EC]">{flash}</div> : null}
 
-      {tab === 'matrix' && <MatrixPanel />}
-      {tab === 'guardian' && (
-        <Panel title="Guardian & Child — moved to its one home" icon="users"
-          note="One place for the family, not four similar ones (DR-0095).">
-          <p className="text-sm text-[#1A1815]">
-            Adding a family member <strong>and</strong> deciding what each child can see and do — including
-            {' '}<strong>See family finances</strong> for money education (your call, DR-0094) — now live together
-            on the <strong>Family Roster</strong>: Command, Control &amp; Serve Center → <strong>Serve</strong>.
-            The read-only matrix view stays here; landlord &amp; tenant stays here.
-          </p>
-        </Panel>
-      )}
-      {tab === 'landlord' && (
-        <LandlordPanel tenancies={tenancies} selected={selectedTenancy} onSelect={setSelectedTenancy}
-          workflows={workflows} onAction={onLandlordAction} busy={saving}
-          onRefresh={refresh} refreshing={refreshing} />
-      )}
+      <SectionTabs sections={sections} ariaLabel="Relationships sections" idBase="relationships" defaultId="matrix" />
     </div>
   );
 }

@@ -25,7 +25,7 @@
 // device-local like Study + the Eternal Algorithms library — never extracted.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SectionTitle } from './shared.jsx';
+import { SectionTitle, TabScroll } from './shared.jsx';
 import { FAMILY_ARTISTS, FAMILY_PICKS, LISTENING_TAGLINE } from '../lib/family-listening.js';
 import { triggerDownload, exportFilename } from '../lib/creation-workspace.js';
 import { bookStats } from '../lib/book-engine.js';
@@ -292,9 +292,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
     return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} userKey={email} />;
   }
 
+  // KEPT as component state (not folded into SectionTabs): `mode` is WRITTEN
+  // from outside the strip — onSave jumps back to the shelf, and the empty
+  // shelf's "Open the Studio" CTA jumps to the studio — which the uncontrolled
+  // SectionTabs primitive cannot express. Harmonized instead: the strip now
+  // rides the shared <TabScroll> primitive (role=tab, nowrap) so it scrolls
+  // and feels identical to every other section row (tab-overflow-guard inv. 3).
   const tabBtn = (id, label) => (
-    <button key={id} type="button" onClick={() => setMode(id)}
-      className={`px-3 py-2 text-sm border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium' : ''}`}
+    <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}
+      className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium' : ''}`}
       style={{ borderColor: mode === id ? PALETTE.accent : 'transparent', color: mode === id ? PALETTE.ink : PALETTE.muted }}>
       {label}
     </button>
@@ -307,11 +313,13 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
         Books made from the house's own teaching — that read you straight back into the living app.
       </p>
 
-      <div className="flex gap-1 border-b mb-4" style={{ borderColor: PALETTE.line }}>
-        {tabBtn('store', 'Store')}
-        {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
-        {tabBtn('listening', 'Listening')}
-        {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
+      <div className="border-b mb-4" style={{ borderColor: PALETTE.line }}>
+        <TabScroll label="Library sections">
+          {tabBtn('store', 'Store')}
+          {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
+          {tabBtn('listening', 'Listening')}
+          {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
+        </TabScroll>
       </div>
 
       {toast && <div className="mb-3 text-xs px-3 py-2 border" style={{ borderColor: PALETTE.line, background: PALETTE.panel, color: PALETTE.ink }}>{toast}</div>}

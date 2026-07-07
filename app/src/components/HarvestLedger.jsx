@@ -26,6 +26,7 @@
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
@@ -321,74 +322,17 @@ export default function HarvestLedger() {
 
   const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {} };
 
-  return (
-    <div>
-      <SectionTitle>Harvest Ledger</SectionTitle>
-      <p className="text-sm text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-        “No video should be lost to that Sunday or Wednesday — we need each video to give us new content and context to something.”
-        Every ingested recording is one source mined into many harvests. This ledger shows what each video has produced and surfaces, first, the ones still owed.
-      </p>
-
-      {l.videos === 0 ? (
-        <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          No service recordings have been ingested yet. Import them from the <span className="font-semibold text-[#1A1815]">Choir → The Word</span> YouTube import, and each one will appear here to be fully mined.
-        </div>
-      ) : (
+  // Sliding section tabs (Darrell 2026-07-04 / 2026-07-05): the KPI banner +
+  // stat strip stay PINNED above the strip (always visible — "no more down
+  // scrolling to see KPIs"); the long stacked content moves behind sections.
+  // All hooks stay at this top level; the render thunks are plain closures.
+  const sections = [
+    {
+      id: 'recordings',
+      label: 'Recordings',
+      icon: 'volume',
+      render: () => (
         <>
-          <div className="mb-3 p-3 border" style={{ borderColor: l.noVideoLost ? '#166534' : '#991B1B', background: l.noVideoLost ? '#F0FAF1' : '#FCEDEC' }}>
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="text-sm font-semibold" style={{ color: l.noVideoLost ? '#166534' : '#991B1B', fontFamily: '"Fraunces", serif' }}>
-                {l.noVideoLost ? '✓ No video lost — every ingested recording has been mined.' : `⚠ ${l.orphans} recording${l.orphans === 1 ? '' : 's'} not yet mined — content is being lost.`}
-              </span>
-              <span className="text-[11px] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            <Stat label="Videos ingested" value={l.videos} />
-            <Stat label="Fully mined" value={l.fullyHarvested} tone="good" />
-            <Stat label="Partly mined" value={l.partiallyHarvested} />
-            <Stat label="Not yet mined" value={l.orphans} tone={l.orphans ? 'bad' : 'good'} />
-          </div>
-
-          <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
-            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-              <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
-              <p className="text-[10px] text-[#5A5751]">
-                <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
-                <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
-              </p>
-            </div>
-            <div className="space-y-1">
-              {HARVEST_TYPES.map((t) => {
-                // count a partial harvest as progress too, so an auto type that
-                // lights partially (scripture / songs) still shows movement.
-                const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
-                const done = bt.complete + bt.partial * 0.5;
-                const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
-                const fromTranscript = FROM_TRANSCRIPT.has(t.key);
-                return (
-                  <div key={t.key} className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
-                      <span className="truncate">{t.label}</span>
-                      <span
-                        className="text-[8px] px-1 rounded leading-tight shrink-0"
-                        style={fromTranscript
-                          ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
-                          : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
-                        title={fromTranscript ? 'Mined automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is the fallback for a video with no captions.' : 'Derived in-app the moment the recording is ingested.'}
-                      >{fromTranscript ? 'caption' : 'now'}</span>
-                    </span>
-                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
-                    <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {access?.canEdit && <OpsAdminCard />}
-
           {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
 
           <RecordsLog
@@ -406,6 +350,95 @@ export default function HarvestLedger() {
           <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
           </p>
+        </>
+      ),
+    },
+    {
+      id: 'coverage',
+      label: 'Coverage by type',
+      icon: 'chart',
+      render: () => (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+            <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
+            <p className="text-[10px] text-[#5A5751]">
+              <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
+              <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
+            </p>
+          </div>
+          <div className="space-y-1">
+            {HARVEST_TYPES.map((t) => {
+              // count a partial harvest as progress too, so an auto type that
+              // lights partially (scripture / songs) still shows movement.
+              const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
+              const done = bt.complete + bt.partial * 0.5;
+              const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
+              const fromTranscript = FROM_TRANSCRIPT.has(t.key);
+              return (
+                <div key={t.key} className="flex items-center gap-2">
+                  <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
+                    <span className="truncate">{t.label}</span>
+                    <span
+                      className="text-[8px] px-1 rounded leading-tight shrink-0"
+                      style={fromTranscript
+                        ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
+                        : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
+                      title={fromTranscript ? 'Mined automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is the fallback for a video with no captions.' : 'Derived in-app the moment the recording is ingested.'}
+                    >{fromTranscript ? 'caption' : 'now'}</span>
+                  </span>
+                  <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
+                  <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ),
+    },
+    // Gated section — steward-only pipeline controls (RLS 0068 is the real wall);
+    // SectionTabs filters the falsy entry so nothing leaks to non-editors.
+    access?.canEdit ? {
+      id: 'pipeline',
+      label: 'Pipeline controls',
+      icon: 'tools',
+      render: () => <OpsAdminCard />,
+    } : null,
+  ];
+
+  return (
+    <div>
+      <SectionTitle>Harvest Ledger</SectionTitle>
+      <p className="text-sm text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        “No video should be lost to that Sunday or Wednesday — we need each video to give us new content and context to something.”
+        Every ingested recording is one source mined into many harvests. This ledger shows what each video has produced and surfaces, first, the ones still owed.
+      </p>
+
+      {l.videos === 0 ? (
+        <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          No service recordings have been ingested yet. Import them from the <span className="font-semibold text-[#1A1815]">Choir → The Word</span> YouTube import, and each one will appear here to be fully mined.
+        </div>
+      ) : (
+        <>
+          {/* PINNED above the strip — the no-video-lost banner + the KPI strip
+              stay visible whichever section is open (Darrell 2026-07-07: "no
+              more down scrolling to see a surface with KPIs"). */}
+          <div className="mb-3 p-3 border" style={{ borderColor: l.noVideoLost ? '#166534' : '#991B1B', background: l.noVideoLost ? '#F0FAF1' : '#FCEDEC' }}>
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-sm font-semibold" style={{ color: l.noVideoLost ? '#166534' : '#991B1B', fontFamily: '"Fraunces", serif' }}>
+                {l.noVideoLost ? '✓ No video lost — every ingested recording has been mined.' : `⚠ ${l.orphans} recording${l.orphans === 1 ? '' : 's'} not yet mined — content is being lost.`}
+              </span>
+              <span className="text-[11px] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <Stat label="Videos ingested" value={l.videos} />
+            <Stat label="Fully mined" value={l.fullyHarvested} tone="good" />
+            <Stat label="Partly mined" value={l.partiallyHarvested} />
+            <Stat label="Not yet mined" value={l.orphans} tone={l.orphans ? 'bad' : 'good'} />
+          </div>
+
+          <SectionTabs sections={sections} ariaLabel="Harvest ledger sections" idBase="harvest" defaultId="recordings" />
         </>
       )}
     </div>
