@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import supabase from '../lib/supabase.js';
 import { captureLead } from '../lib/crm-sync.js';
-import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock } from '../lib/moore-divahs.js';
+import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
@@ -49,7 +49,7 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
       <button type="submit" disabled={state === 'sending'} className="rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-3">
         {state === 'sending' ? 'Sending…' : promptLabel}
       </button>
-      {state === 'error' && <p className="text-xs text-[#B85838] sm:col-span-3">Could not send right now — email {MOORE_BRAND.email} instead.</p>}
+      {state === 'error' && <p className="text-xs text-[#B85838] sm:col-span-3">Could not send right now — please try again in a moment.</p>}
       <p className="text-xs text-[#5A5751] sm:col-span-3">Contact info only — you choose how we reach you. Never sold, ever.</p>
     </form>
   );
@@ -67,7 +67,7 @@ function PublicClasses() {
   }, []);
   if (state.phase === 'loading') return <p className="text-sm text-[#5A5751]">Loading classes…</p>;
   if (state.phase === 'error' || state.rows.length === 0) {
-    return <p className="text-sm text-[#5A5751]">New class dates post about a month ahead — message {MOORE_BRAND.email} to hear about the next one first.</p>;
+    return <p className="text-sm text-[#5A5751]">New class dates post about a month ahead — send an order inquiry above and ask to hear about the next one first.</p>;
   }
   return (
     <div className="space-y-2">
@@ -91,7 +91,7 @@ function PublicClasses() {
           </span>
         </div>
       ))}
-      <p className="text-xs text-[#5A5751]">A seat is held when it&rsquo;s paid — message {MOORE_BRAND.email} to book yours.</p>
+      <p className="text-xs text-[#5A5751]">A seat is held when it&rsquo;s paid — send an inquiry above to book yours and Shay will reach out.</p>
     </div>
   );
 }
@@ -170,6 +170,14 @@ function MooreTab() {
             okMessage="Sent! Shay will reach out to talk through your piece."
           />
         </div>
+        {/* Her house rules — her own flyer's words, agreed at the point of order. */}
+        <ul className="mt-2 list-disc pl-4 text-xs text-[#5A5751]">
+          <li>{MOORE_POLICIES.leadTime} No rush orders.</li>
+          <li>{MOORE_POLICIES.paymentUpfront} {MOORE_POLICIES.nonRefundable}</li>
+          <li>{MOORE_POLICIES.inspoHerWay}</li>
+          <li>{MOORE_POLICIES.finalFitting}</li>
+          <li>{MOORE_POLICIES.madeWithLove}</li>
+        </ul>
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
@@ -293,7 +301,6 @@ export default function MooreDoor() {
         <header className="pt-6 text-center">
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{MOORE_BRAND.tagline}</p>
-          <p className="text-xs text-[#5A5751]">{MOORE_BRAND.email}</p>
         </header>
         <TabScroll className="mt-4 border-b border-[#E8E2D8]" label="Moore Divahs sections">
           {DOOR_TABS.map((t) => (
