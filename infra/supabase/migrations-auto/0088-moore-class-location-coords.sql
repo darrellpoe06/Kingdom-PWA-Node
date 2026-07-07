@@ -13,7 +13,12 @@ ALTER TABLE class_sessions ADD COLUMN IF NOT EXISTS location_lon double precisio
 
 -- Public listings now include the coordinates (place data only — still no
 -- student names, no contact values across the anon boundary).
-CREATE OR REPLACE FUNCTION public.moore_public_classes(p_instance_slug text)
+-- DROP first: Postgres cannot change an existing function's RETURN TYPE via
+-- CREATE OR REPLACE ("Row type defined by OUT parameters is different" — the
+-- exact 2026-07-07 db-migrate failure on this file). GRANTs are re-issued
+-- below, so the anon read is restored in the same migration.
+DROP FUNCTION IF EXISTS public.moore_public_classes(text);
+CREATE FUNCTION public.moore_public_classes(p_instance_slug text)
 RETURNS TABLE (
   slug         text,
   format       text,
