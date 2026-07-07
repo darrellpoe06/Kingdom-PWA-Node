@@ -9,10 +9,18 @@
 // PRICING IS REAL OR ABSENT (DR-0076): the tier ladder + monthly prices below
 // mirror the in-app ladder (entitlements.js foundation < poetech-plus < family
 // < premium < business; prices per the ARPU model, components/DevOps.jsx:704).
-// Business/white-label BUILD pricing (a branded app like this one) is a value
-// only Darrell holds — it renders as "custom quote" until he sets numbers,
-// never an invented figure.
+// Business/white-label BUILD pricing was "custom quote" until Darrell set the
+// numbers (2026-07-07, DR-0117): $2,000 minimum, 90 days same as cash ($500 to
+// start, $500 at MVP, balance over the rest of the 90), then $150/mo support
+// through the Feedback portal. Those figures render from client-engagements.js
+// — one source of truth, never re-typed here. Larger builds quote UP from the
+// minimum; that number stays the governor's hand.
 // =============================================================================
+import { BUILD_MINIMUM_CENTS, SUPPORT_MONTHLY_CENTS } from './client-engagements.js';
+
+const dollars = (cents) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+export const BUILD_TERMS_LINE =
+  `Your own branded app starts at ${dollars(BUILD_MINIMUM_CENTS)} — 90 days same as cash: $500 to start, $500 when your MVP is delivered, the balance over the rest of the 90 days. Then ${dollars(SUPPORT_MONTHLY_CENTS)}/mo keeps it supported through the Feedback portal.`;
 
 // The family-of-businesses tab registry — Moore Divahs first, always.
 export const DOOR_TABS = [
@@ -43,8 +51,8 @@ export const PRICE_OUT_NEEDS = [
   { key: 'branded',   label: 'My own branded app (like Moore Divahs)', minTier: 'business', customQuote: true },
 ];
 
-// Pick the tier that covers every selected need; flag when a custom-quote
-// conversation (white-label build) is part of the ask.
+// Pick the tier that covers every selected need; when a branded-app build is
+// part of the ask, the note carries the REAL declared build terms (DR-0117).
 export function priceOut(selectedKeys = []) {
   const picked = PRICE_OUT_NEEDS.filter((n) => selectedKeys.includes(n.key));
   if (!picked.length) return { tier: null, monthly: null, customQuote: false, note: 'Pick what you need — the price follows.' };
@@ -58,7 +66,7 @@ export function priceOut(selectedKeys = []) {
     monthly: tier.monthly,
     customQuote,
     note: customQuote
-      ? `${tier.label} covers the platform side ($${tier.monthly}/mo). The branded-app build itself is a custom quote — talk to Darrell.`
+      ? `${tier.label} covers the platform side ($${tier.monthly}/mo). ${BUILD_TERMS_LINE}`
       : `${tier.label} covers everything you picked — $${tier.monthly}/mo.`,
   };
 }

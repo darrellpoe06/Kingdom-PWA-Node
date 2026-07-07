@@ -395,7 +395,7 @@ function PoeTechTab() {
         </div>
         <div className="mt-2 rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm text-[#1A1815]">
           {quote.tier
-            ? <><strong>{quote.label}{quote.monthly != null ? ` — ${quote.monthly === 0 ? 'Free' : `$${quote.monthly}/mo`}` : ''}</strong>{quote.customQuote ? ' + custom build quote' : ''}<div className="mt-1 text-xs text-[#5A5751]">{quote.note}</div></>
+            ? <><strong>{quote.label}{quote.monthly != null ? ` — ${quote.monthly === 0 ? 'Free' : `$${quote.monthly}/mo`}` : ''}</strong>{quote.customQuote ? ' + build from $2,000' : ''}<div className="mt-1 text-xs text-[#5A5751]">{quote.note}</div></>
             : <span className="text-[#5A5751]">{quote.note}</span>}
         </div>
       </div>
