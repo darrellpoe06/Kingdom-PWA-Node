@@ -72,6 +72,9 @@ export const FEEDBACK_AREAS = [
     ['rentals-evaluator', '└ Investment evaluator (cap rate · DSCR · 1%)'],
     ['rentals-tenant-issue', '└ Tenant Not Paying → issue affordance'],
   ]},
+  { group: 'Moore Divahs', items: [
+    ['moore', 'Moore Divahs · order board (custom orders · 3-week clock · change orders)'],
+  ]},
   { group: 'Projects · Ops', items: [
     ['projects', 'Projects · Timeline + workload'],
     ['scopes', 'Projects · Scope-of-work agreements'],
