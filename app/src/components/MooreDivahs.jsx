@@ -14,7 +14,7 @@ import {
   MOORE_BRAND, ORDER_STAGE_ORDER, orderStageMeta, nextOrderStage, orderClock,
   PRODUCT_TYPES, ORDER_CHANNELS, PAY_METHODS, CHANGE_BANDS, CHANGE_REASONS,
   changeOrderFee, orderStats, bulkPickList, bulkTotals, isSeedOrder, BULK_CUTS,
-  CLASS_FORMATS, seatsLeft, canBook,
+  CLASS_FORMATS, seatsLeft, canBook, oneOnOneSlotIssue,
   INVENTORY_CATEGORIES, inventoryValueCents, classStats, revenueGoalPlan,
 } from '../lib/moore-divahs.js';
 import { useMooreOrders, addOrder, advanceOrder, payOrder, recordChangeOrder, patchOrder } from '../lib/use-moore-orders.js';
@@ -281,9 +281,14 @@ function ClassesSection() {
   const [f, setF] = useState(BLANK_SESSION);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const spec = CLASS_FORMATS[f.format];
+  const [slotErr, setSlotErr] = useState('');
   const submit = async (e) => {
     e.preventDefault();
     if (!f.dateIso) return;
+    // Her window, enforced at scheduling: one-on-ones land Mon-Fri, 9 AM-1 PM.
+    const issue = f.format === 'one-on-one' ? oneOnOneSlotIssue(f.dateIso) : null;
+    if (issue) { setSlotErr(issue); return; }
+    setSlotErr('');
     await addSession({
       format: f.format, project: f.project, location: f.location,
       locationLat: f.locationLat, locationLon: f.locationLon,
@@ -321,6 +326,7 @@ function ClassesSection() {
           />
           <input aria-label="Class price dollars" placeholder={`Price $ (default ${(spec.priceCentsDefault / 100).toFixed(0)})`} inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.price} onChange={set('price')} />
           <button type="submit" className="rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white">Schedule</button>
+          {slotErr && <p className="col-span-2 text-xs text-[#B85838] sm:col-span-3">{slotErr}</p>}
         </form>
       )}
       {upcoming.length === 0 ? (

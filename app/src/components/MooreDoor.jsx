@@ -99,7 +99,7 @@ function PublicClasses() {
             </div>
             <div className="text-xs text-[#5A5751]">
               {c.date_iso ? new Date(c.date_iso).toLocaleString() : ''}{c.location ? ` · ${c.location}` : ''} · {fmt$(c.price_cents)}
-              {c.format === 'one-on-one' ? ' · 2.5-hour private session' : ''}
+              {c.format === 'one-on-one' ? ' · 2.5-hour private session · Mon-Fri, 9 AM-1 PM' : ''}
               {osmLink(c.location_lat, c.location_lon) && (
                 <> · <a className="underline" href={osmLink(c.location_lat, c.location_lon)} target="_blank" rel="noreferrer">map</a></>
               )}
