@@ -21,7 +21,9 @@ const NOW = '2026-07-07T12:00:00.000Z';
 describe('brand + binding posture', () => {
   it('Moore Divahs is data, not hardcoding — and never processes payment', () => {
     expect(MOORE_BRAND.label).toBe('Moore Divahs');
-    expect(MOORE_BRAND.email).toBe('mooredivahs1@yahoo.com');
+    // Her address is sign-in-only (Darrell 2026-07-07) — the brand record must
+    // never carry it, so no surface can ever render it.
+    expect(MOORE_BRAND.email).toBeUndefined();
     expect(NO_PAYMENT_PROCESSING).toBe(true);
   });
   it('her flyer policies are encoded verbatim in spirit — her words are senior', () => {

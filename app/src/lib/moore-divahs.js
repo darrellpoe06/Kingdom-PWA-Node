@@ -47,7 +47,9 @@ export const MOORE_BRAND = {
   key: 'moore-divahs',
   label: 'Moore Divahs',
   owner: 'Shay',
-  email: 'mooredivahs1@yahoo.com',
+  // No email field on purpose (Darrell 2026-07-07): her address is her private
+  // sign-in only — it never renders on any surface. Contact flows in-app
+  // (messaging + order intake); the relay to her inbox rides the CRM, unseen.
   tagline: 'Custom clothing · scrub caps · custom shoes · sewing classes',
   accent: '#B85838',
   // Values only Shay holds — filled when she provides them (board: md-handles).
