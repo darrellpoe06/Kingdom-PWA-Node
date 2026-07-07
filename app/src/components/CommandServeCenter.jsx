@@ -44,6 +44,7 @@ import WakeOrchestrator from './WakeOrchestrator.jsx';
 import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
 import { KpiLegend } from './KpiLegend.jsx';
 import { FreshnessDot } from './FreshnessDot.jsx';
+import DownloadLatest from './DownloadLatest.jsx';
 import {
   FACULTIES,
   seatOf,
@@ -238,6 +239,9 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
             <span>live build {BUILD_SHA}{BUILD_TIME ? ` · ${BUILD_TIME.slice(0, 10)}` : ''}</span>
             <FreshnessDot />
           </div>
+        </div>
+        <div className="mt-2">
+          <DownloadLatest />
         </div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           One seat to <strong>see</strong> the whole system, <strong>command</strong> what gets built, <strong>control</strong> the work, and do it all in order to <strong>serve</strong> — the steward at the helm, for the family and the community.
