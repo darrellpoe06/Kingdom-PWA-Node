@@ -91,7 +91,7 @@ point; say it on the sign-up).
 |---|---|---|
 | **Price** | **$45** per class | **$75** for a **2.5-hour** session |
 | **Seats** | **Hard cap 10** (so she can control the classroom) | 1 |
-| **Booking window** | Dates set **~1 month ahead**; customers book a seat in that window | Must be scheduled **>= 2 weeks out** from date of need |
+| **Booking window** | Dates set **~1 month ahead**; customers book a seat in that window | Must be scheduled **>= 2 weeks out** from date of need; **Monday-Friday only, start time 9 AM-1 PM** (Shay via Darrell 2026-07-07, priority — enforced structurally in `oneOnOneSlotIssue` + `canBook`) |
 | **Payment** | **In advance to HOLD the seat** (seat not held until paid) | In advance |
 | **Location** | **Varies** — different locations; **Shay travels** depending on distance | Same |
 | **Pay methods** | Square / Venmo / Apple Pay | Same |
