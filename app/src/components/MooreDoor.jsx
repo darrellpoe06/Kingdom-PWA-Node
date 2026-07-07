@@ -28,6 +28,7 @@ import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
 import { fetchMessages, sendMessage } from '../lib/business-messages.js';
+import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -217,12 +218,59 @@ function MyMessages() {
   );
 }
 
+// ---- Gallery — her work greets everyone who enters (0092) -------------------
+function Gallery({ onInspired }) {
+  const [state, setState] = useState({ phase: 'loading', pieces: [] });
+  useEffect(() => {
+    let on = true;
+    fetchShowcase('moore-divahs').then((r) => { if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'loading') return null;
+  if (state.pieces.length === 0) {
+    return (
+      <p className="rounded-2xl border border-dashed border-[#B85838] p-4 text-center text-sm text-[#5A5751]" style={SERIF}>
+        The gallery is being curated — Shay&rsquo;s favorite pieces post here soon.
+      </p>
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {state.pieces.map((p) => {
+        const url = showcaseImageUrl(p.image_path);
+        return (
+          <figure key={p.slug} className="overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white">
+            {url && <img src={url} alt={p.title} loading="lazy" className="aspect-square w-full object-cover" />}
+            <figcaption className="p-2">
+              <div className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{p.title}{p.pinned ? ' ✦' : ''}</div>
+              {p.description && <div className="text-xs text-[#5A5751]">{p.description}</div>}
+              <button
+                type="button"
+                className="mt-1.5 w-full rounded-lg border border-[#B85838] px-2 py-1 text-xs font-semibold text-[#B85838]"
+                onClick={() => onInspired?.(p)}
+              >
+                Order inspired by this
+              </button>
+            </figcaption>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
 function MooreTab() {
   // One-click reorder: a tap on a past order pre-fills the inquiry note below
   // (editable before sending — she quotes fresh; her flyer policies hold).
   const [reorderNote, setReorderNote] = useState('');
   return (
     <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Her work</h2>
+        <div className="mt-2">
+          <Gallery onInspired={(p) => { setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* no-op */ } }} />
+        </div>
+      </div>
       <div>
         <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Custom work, made for you</h2>
         <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
