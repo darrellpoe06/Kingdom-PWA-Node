@@ -25,6 +25,9 @@ import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES 
 import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import UiIcon from './UiIcon.jsx';
+import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
+import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
@@ -322,6 +325,9 @@ function MooreTab() {
 }
 
 // ---- family-of-businesses tabs -------------------------------------------------
+// The Practice tab shows the REAL clinical team (Darrell 2026-07-07) — the same
+// TLC_TEAM record the main app's Practice tab renders (one source, no drift).
+// Public marketing facts only; the capture form stays contact-info-only.
 function PracticeTab() {
   return (
     <div className="space-y-3">
@@ -330,6 +336,26 @@ function PracticeTab() {
         Faith-aware counseling and wellness. Ask for a call about fit — contact info only here; everything
         clinical stays in the counseling room where it belongs.
       </p>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Meet the therapists</h3>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {TLC_TEAM.map((t) => (
+            <a key={t.name} href={t.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-start gap-3 rounded-xl border border-[#E8E2D8] bg-white p-3">
+              <img src={t.photo} alt={t.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] object-cover" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{t.name}</span>
+                  <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#B85838]">View →</span>
+                </div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.role}</div>
+                <p className="mt-1 text-xs leading-snug text-[#5A5751]">{t.specialty}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[#5A5751]"><span className="font-semibold text-[#B85838]">Insurance accepted:</span> {TLC_INSURANCE}</p>
+      </div>
       <ContactCaptureForm
         pipeline="tlc-client-intake"
         instanceSlug="tlc"
@@ -341,17 +367,44 @@ function PracticeTab() {
   );
 }
 
+// The Church tab plays the latest live service (Darrell 2026-07-07) — the same
+// no-API-key rolling-latest player the main app's Church tab uses: live embed
+// inside a service window, the channel's latest upload otherwise.
 function ChurchTab() {
+  const c = COLG_DEFAULT_CHURCH;
+  const { live } = liveStatus(c.services);
+  const embed = live ? liveStreamEmbedUrl(c.youtubeChannelId) : latestUploadEmbedUrl(c.youtubeChannelId);
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>The Church of the Living God</h2>
       <p className="text-sm text-[#5A5751]">
         The Poe family&rsquo;s home church in Champaign-Urbana — worship, community, and a place at the table.
-        The church side of the platform carries services, scripture study, and events.
+        {live ? ' Streaming live right now — join in below.' : ' Between services the most recent message plays here; the next live stream rolls in on its own.'}
       </p>
-      <a className="inline-block rounded-lg border border-[#2A5A8E] px-3 py-1.5 text-sm font-semibold text-[#2A5A8E]" href="/?join=1">
-        Get connected →
-      </a>
+      {embed && (
+        <iframe
+          src={embed}
+          title={live ? `${c.name} — live service` : `${c.name} — latest message`}
+          loading="lazy"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          className="aspect-video w-full rounded-xl border border-[#E8E2D8] bg-black"
+        />
+      )}
+      <p className="text-xs text-[#5A5751]">
+        <span className="font-semibold text-[#B85838]">Service times:</span>{' '}
+        {c.services.map((s) => `${s.day} ${s.time}`).join(' · ')}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {c.media?.youtube && (
+          <a className="inline-block rounded-lg border border-[#5A5751] px-3 py-1.5 text-sm text-[#5A5751]" href={c.media.youtube} target="_blank" rel="noopener noreferrer">
+            Watch on YouTube
+          </a>
+        )}
+        <a className="inline-block rounded-lg border border-[#2A5A8E] px-3 py-1.5 text-sm font-semibold text-[#2A5A8E]" href="/?join=1">
+          Get connected →
+        </a>
+      </div>
     </div>
   );
 }
