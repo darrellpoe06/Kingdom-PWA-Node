@@ -23,6 +23,7 @@ import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/
 import AddressField, { osmLink } from './AddressField.jsx';
 import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece } from '../lib/showcase.js';
+import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -428,6 +429,65 @@ function MaterialsSection() {
   );
 }
 
+// ---- Backfill + export — history in, her data out (task 19) ------------------
+function download(filename, text) {
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch { /* jsdom / blocked download */ }
+}
+
+function BackfillSection({ orders }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const preview = useMemo(() => parseBackfillLines(text), [text]);
+  const runImport = async () => {
+    setImporting(true);
+    let added = 0;
+    for (const row of preview.rows) { await addOrder(row); added += 1; }
+    setImporting(false);
+    setResult({ added, problems: preview.problems.length });
+    setText('');
+  };
+  return (
+    <div className="mt-8">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>History &amp; exports</h2>
+          <p className="text-xs text-[#5A5751]">Paste your past customers once — every line becomes a real record. And your data is always yours: one tap exports it.</p>
+        </div>
+        <span className="flex gap-2">
+          <button type="button" className="rounded-lg border border-[#5A6E3D] px-2.5 py-1.5 text-xs font-semibold text-[#5A6E3D]" onClick={() => download('moore-divahs-customers.csv', customersCsv(orders))}>Export customers</button>
+          <button type="button" className="rounded-lg border border-[#5A6E3D] px-2.5 py-1.5 text-xs font-semibold text-[#5A6E3D]" onClick={() => download('moore-divahs-orders.csv', ordersCsv(orders))}>Export orders</button>
+          <button type="button" className="rounded-lg border border-[#B85838] px-2.5 py-1.5 text-xs font-semibold text-[#B85838]" onClick={() => setOpen((v) => !v)}>{open ? 'Close' : '+ Backfill history'}</button>
+        </span>
+      </div>
+      {open && (
+        <div className="mt-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3">
+          <p className="text-xs text-[#5A5751]">
+            One line per past order: <strong>Name, contact, what they bought, when, $amount</strong> — only name + item required.
+            Example: <em>Dana, @dana_sews, two teal scrub caps, 2026-03, $60</em>. Amounts you give are recorded as paid history; nothing is invented.
+          </p>
+          <textarea aria-label="Backfill lines" rows={5} className="mt-2 w-full rounded border border-[#E8E2D8] bg-white p-2 text-sm" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="mt-1 flex items-center gap-3 text-xs">
+            <span className="text-[#5A6E3D]">{preview.rows.length} ready</span>
+            {preview.problems.length > 0 && <span className="text-[#B85838]">{preview.problems.length} lines need a fix: {preview.problems[0].why}</span>}
+            <button type="button" disabled={!preview.rows.length || importing} className="rounded-lg bg-[#B85838] px-3 py-1 font-semibold text-white disabled:opacity-50" onClick={runImport}>
+              {importing ? 'Importing…' : `Import ${preview.rows.length}`}
+            </button>
+          </div>
+          {result && <p className="mt-1 text-xs text-[#5A6E3D]">✓ {result.added} historical orders added{result.problems ? ` · ${result.problems} lines skipped` : ''}. They feed your customer list, repeat rate, and exports.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- KPIs + the revenue-goal planner (her data, her goal) --------------------
 function KpiSection({ orders }) {
   const { sessions, signups } = useMooreClasses();
@@ -661,6 +721,7 @@ export default function MooreDivahs() {
       <MessagesSection />
       <GalleryManager />
       <MaterialsSection />
+      <BackfillSection orders={real} />
       <KpiSection orders={real} />
     </div>
   );
