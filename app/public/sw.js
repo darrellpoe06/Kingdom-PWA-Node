@@ -57,8 +57,17 @@ self.addEventListener('fetch', (event) => {
     // shell to come from the network every navigation when online; we fall
     // back to the precached shell only when offline. Content-hashed asset
     // bundles need no such guard (a new hash is always a fresh network fetch).
+    //
+    // REDIRECT GUARD (2026-07-07, the /moore ERR_FAILED): this constructed
+    // fetch FOLLOWS redirects, and a browser refuses a `redirected` response
+    // for a navigation — so any redirecting path (/moore -> /moore/) died with
+    // ERR_FAILED on every device with this worker installed. When the followed
+    // response is redirected, hand the browser a real redirect to the final
+    // URL and let IT navigate; the second hop returns a direct 200.
     event.respondWith(
-      fetch(event.request.url, { cache: 'no-store' }).catch(() => caches.match(BASE + '/index.html'))
+      fetch(event.request.url, { cache: 'no-store' })
+        .then((res) => (res.redirected ? Response.redirect(res.url, 301) : res))
+        .catch(() => caches.match(BASE + '/index.html'))
     );
     return;
   }
