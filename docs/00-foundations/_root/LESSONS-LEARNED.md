@@ -77,6 +77,20 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 
 ## Incident Log (chronological — newest first)
 
+### 2026-07-07 — Darrell had to ask a THIRD time for sliding tabs on all surfaces — a directive without a tracked backlog stalled silently at 8 of 39
+
+**Trigger:** Darrell: "All tabs need sideways sub tabs for sections with the sideways scroll bars so we can see what we have — this is the second time I'm asking." (Counting the original 2026-07-04 declaration, this was the third statement of the same requirement.)
+**Detection path:** the principal himself, on the live app, finding content still buried down long pages. No system surface flagged the stalled rollout.
+**Detection delay:** ~3 days (2026-07-04 directive → 2026-07-07 re-ask) — flagged.
+**Investigation steps:** ways-and-documentation review before any change (4 parallel research passes): feature history, delivery-lane rules, technical/test landscape, IA alignment.
+**Root cause(s):** (1) the 2026-07-04/05 "sliding tabs for ALL tabs" directive was captured only as a comment in `SectionTabs.jsx` — no DR, no coverage checklist, no re-review date — so the remaining ~30 surfaces never existed as a tracked backlog; the first 8 adoptions shipped and the rest stalled with nothing to catch it. (2) No standing question asked "is any ALL-scope directive partially delivered?"
+**What worked:** the review-first gate (zero red gates across a ~30-surface sweep because the guard landscape was mapped before editing); 8 parallel conversion crews on disjoint files under one written contract (request → all code pushed in 34 minutes, 407 files / 4,885 tests green); per-verified-batch commits riding the auto-merge lane.
+**What didn't work:** relying on a code comment as the record of an "all surfaces" directive — comments document the primitive, they cannot track the rollout.
+**Principle(s) extracted:** **P29 — An "all X" directive is a backlog, not a memo: at declaration time it gets a DR, a per-item coverage checklist, and re-review dates, or it will stall silently at the first convenient stopping point.** (Sibling of P28: parking-without-the-governor; here the park was invisible because the list never existed.)
+**Forward architectural fix:** DR-0116 records the directive with the full per-surface checklist (session note 2026-07-07-sideways-sub-tabs-sweep.md); "new surfaces adopt SectionTabs at birth or record a fit-exemption" is now a review finding; the ways-review checklist gains "is any ALL-scope directive partially delivered with no tracked remainder?"
+**Observability gap (if any):** no gate can see an unwritten backlog — the control is P29's declaration-time discipline plus the ways-review question.
+**Cross-refs:** DR-0116, REV-0012, docs/99-session-notes/2026-07-07-sideways-sub-tabs-sweep.md, DR-0075 (nothing stagnates silently), P28.
+
 ### 2026-07-07 — The agent parked an authorized, mapped, ASAP increment "for a fresh stretch" — no wake armed, turn ended on a promise
 
 **Trigger:** Darrell asked for theme + text-size on the Moore Divahs door ("Timeline?"), then had to prompt "?", then found the increment still unstarted: "Nothing got done!" and named the failure: "Underminer... come up with a comprehensive plan to make sure you can't undermine us in the same way or other ways."
