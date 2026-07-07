@@ -22,7 +22,7 @@ import PasswordAuth from './PasswordAuth.jsx';
 const StewardBoard = lazy(() => import('./MooreDivahs.jsx'));
 import { captureLead } from '../lib/crm-sync.js';
 import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote } from '../lib/moore-door.js';
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
@@ -32,10 +32,15 @@ const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
 
 // ---- shared: a public capture form that lands a forced-safe CRM lead --------
-function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlaceholder, okMessage }) {
+function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlaceholder, okMessage, prefillNotes = '' }) {
   const [f, setF] = useState({ name: '', contactValue: '', notes: '' });
   const [state, setState] = useState('idle'); // idle | sending | ok | error
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  // One-click reorder drops the prior piece into the note — editable, and a
+  // fresh reorder resets a sent form so "again" is one tap, not a page hunt.
+  useEffect(() => {
+    if (prefillNotes) { setF((cur) => ({ ...cur, notes: prefillNotes })); setState('idle'); }
+  }, [prefillNotes]);
   const submit = async (e) => {
     e.preventDefault();
     if (!f.name.trim() || !f.contactValue.trim()) return;
@@ -106,7 +111,7 @@ function PublicClasses() {
 }
 
 // ---- My Orders — the signed-in client's OWN history (0087 read-own lane) ----
-function MyOrders() {
+function MyOrders({ onReorder = null }) {
   const [state, setState] = useState({ phase: 'checking', rows: [] });
   useEffect(() => {
     let on = true;
@@ -149,6 +154,15 @@ function MyOrders() {
               </div>
             </div>
             <span className="shrink-0 rounded-full border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]">{meta.symbol} {meta.label}</span>
+            {onReorder && (
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-[#B85838] px-2 py-0.5 text-xs text-[#B85838]"
+                onClick={() => onReorder(o)}
+              >
+                ↺ Order again
+              </button>
+            )}
           </div>
         );
       })}
@@ -157,6 +171,9 @@ function MyOrders() {
 }
 
 function MooreTab() {
+  // One-click reorder: a tap on a past order pre-fills the inquiry note below
+  // (editable before sending — she quotes fresh; her flyer policies hold).
+  const [reorderNote, setReorderNote] = useState('');
   return (
     <div className="space-y-5">
       <div>
@@ -180,6 +197,7 @@ function MooreTab() {
             promptLabel="Send my order inquiry"
             notePlaceholder="What do you want made?"
             okMessage="Sent! Shay will reach out to talk through your piece."
+            prefillNotes={reorderNote}
           />
         </div>
         {/* Her house rules — her own flyer's words, agreed at the point of order. */}
@@ -197,7 +215,7 @@ function MooreTab() {
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
-        <div className="mt-2"><MyOrders /></div>
+        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* no-op */ } }} /></div>
       </div>
     </div>
   );

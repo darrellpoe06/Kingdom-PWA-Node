@@ -4,7 +4,7 @@
 // absent (custom quote) — never invented; the moore pipeline is CONFIG on the
 // one CRM backbone, and its capture forces the safe shape.
 import { describe, it, expect } from 'vitest';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from '../lib/moore-door.js';
+import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote } from '../lib/moore-door.js';
 import { getBusiness, getPipeline, attributeSource, validateCapture, canOutreach } from '../lib/crm-engine.js';
 
 describe('the door registry', () => {
@@ -38,6 +38,17 @@ describe('pricing — real numbers only', () => {
   it('empty selection prices nothing (no painted number)', () => {
     expect(priceOut([]).tier).toBeNull();
     expect(priceOut([]).monthly).toBeNull();
+  });
+});
+
+describe('one-click reorder — a past order becomes the next inquiry note', () => {
+  it('carries what they had made and the prior order reference', () => {
+    const note = buildReorderNote({ slug: 'mo-abc', description: 'Two teal scrub caps', product_type: 'scrub-cap' });
+    expect(note).toBe('Order this again: Two teal scrub caps (prior order mo-abc)');
+  });
+  it('falls back to the product type when the description is empty', () => {
+    expect(buildReorderNote({ slug: 'mo-x', description: '', product_type: 'custom-shoes' })).toContain('custom-shoes');
+    expect(buildReorderNote(null)).toBe('');
   });
 });
 
