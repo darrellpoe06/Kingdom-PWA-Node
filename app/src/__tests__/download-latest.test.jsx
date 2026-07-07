@@ -97,6 +97,62 @@ describe('DownloadLatest (render)', () => {
     expect(container.querySelector('button').disabled).toBe(true);
   });
 
+  it('after "on the latest"/no-sw on an uninstalled device, offers the ACTUAL app install', async () => {
+    act(() => root.render(<DownloadLatest reg={null} />));
+    clickButton();
+    await act(tick);
+    // The build answer stays honest AND the second "download" is offered.
+    expect(container.textContent).toContain('Updates arrive with the site');
+    expect(container.textContent).toContain('isn’t installed on this device');
+    expect(container.textContent).toContain('Yes — install the app on this device');
+  });
+
+  it('install tap fires the captured native prompt; accepted = honest landing note', async () => {
+    let prompted = false;
+    window.__pwaInstallEvt = {
+      prompt: () => { prompted = true; },
+      userChoice: Promise.resolve({ outcome: 'accepted' }),
+    };
+    act(() => root.render(<DownloadLatest reg={null} />));
+    clickButton();
+    await act(tick);
+    const installBtn = [...container.querySelectorAll('button')]
+      .find((b) => b.textContent.includes('install the app'));
+    act(() => installBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await act(tick);
+    expect(prompted).toBe(true);
+    expect(window.__pwaInstallEvt).toBe(null); // spent — prompt() is one-shot
+    expect(container.textContent).toContain('landing on your home screen');
+    delete window.__pwaInstallEvt;
+  });
+
+  it('install tap with NO captured prompt shows the platform steps — never a dead end', async () => {
+    act(() => root.render(<DownloadLatest reg={null} />));
+    clickButton();
+    await act(tick);
+    const installBtn = [...container.querySelectorAll('button')]
+      .find((b) => b.textContent.includes('install the app'));
+    act(() => installBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await act(tick);
+    // jsdom's UA reads as desktop — the desktop steps must appear.
+    expect(container.textContent).toContain('Install');
+    expect(container.querySelectorAll('ol li').length).toBeGreaterThan(0);
+  });
+
+  it('an installed (standalone) device never sees the install offer', async () => {
+    const realMatchMedia = window.matchMedia;
+    window.matchMedia = () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} });
+    try {
+      act(() => root.render(<DownloadLatest reg={null} />));
+      clickButton();
+      await act(tick);
+      expect(container.textContent).toContain('Updates arrive with the site');
+      expect(container.textContent).not.toContain('install the app on this device');
+    } finally {
+      window.matchMedia = realMatchMedia;
+    }
+  });
+
   it('tap with a waiting worker goes straight to applying (downloads the update)', async () => {
     let posted = null;
     const reg = {
