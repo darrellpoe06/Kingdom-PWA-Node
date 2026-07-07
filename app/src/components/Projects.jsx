@@ -14,6 +14,7 @@ import { deriveAppDecisions } from '../lib/decisions.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { boardDueByMonth } from '../lib/board.js';
 import DelayReport from './DelayReport.jsx';
+import ClientDiscovery from './ClientDiscovery.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
 import DbHealth from './DbHealth.jsx';
@@ -193,6 +194,10 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // The delay ledger (DR-0115): request-to-finish vs should-have-taken, the
   // data-driven model-choice report Darrell ordered. Governor-only.
   if (isGovernor) tabs.push(['delays','◔ Delays']);
+  // Recorded client discovery (cf-voice-discovery, DR-0114/0117): the review
+  // gate where extracted requirements become build-board items by a steward's
+  // hand. Governor-gated like the rest of the factory surfaces.
+  if (isGovernor) tabs.push(['clients','◈ Clients']);
   return (
     <div className="space-y-4">
       {/* App Firm-Up / Completion headline — the live rollup of the whole build.
@@ -241,6 +246,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
       {subView === 'delays' && isGovernor && <DelayReport />}
+      {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
         <GovernanceQueue
           appDecisions={deriveAppDecisions({ discussions, concerns })}
