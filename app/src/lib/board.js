@@ -417,6 +417,28 @@ export const SEED_BOARDS = [
       { key: 'md-handles', group: 'Front door', title: 'Shay\'s real social handles (IG / FB / TikTok)', status: 'not-started', owner: 'Darrell', notes: 'Values only Shay holds; wire into the intake link + follow-ups. Email confirmed: mooredivahs1@yahoo.com.' },
     ],
   },
+
+  // ── 7. Client-business factory (DR-0114) — the all-clients machinery ──────
+  // Declared by Darrell 2026-07-07: "run this like I will need to moving
+  // forward with all clients... asap." Moore Divahs is the prototype; this
+  // board carries the factory machinery + the P0 entrance overhaul (the login
+  // loop hitting multiple users, and the unified admin/user front door).
+  {
+    slug: 'board-client-factory',
+    title: 'Client-business factory',
+    domain: 'business-poetech',
+    blurb: 'The repeatable client-onboarding machinery (CLIENT-BUSINESS-FACTORY / DR-0114): one generic branded door driven by a business registry, per-client tenants, ONE-CRM pipelines — plus the P0 entrance overhaul so every login is clean.',
+    groupOrder: ['Entrance (P0)', 'Registry', 'Provisioning', 'Commercial'],
+    items: [
+      { key: 'cf-loop', group: 'Entrance (P0)', title: 'Kill the login loop (password → PIN → password)', status: 'in-progress', owner: 'Ari', notes: 'Multiple users + Shay locked out (2026-07-07). Suspects isolated: the ?login=1 instant-reload racing session persistence, and IG/FB in-app browsers dropping storage. Fix = await persisted session / in-place sign-in + webview affordance; regression-pinned.' },
+      { key: 'cf-door-roles', group: 'Entrance (P0)', title: 'Unified door: Admin login + User login, role-decided', status: 'not-started', owner: 'Ari', notes: 'Darrell: Shay enters through the SAME front door as her customers — her screen shows Admin login; others User login. One auth; server-verified role decides what renders (steward board in-door vs My Orders). No reload handoffs.' },
+      { key: 'cf-registry', group: 'Registry', title: 'Business registry — one generic door at ?biz=<slug>', status: 'not-started', owner: 'Ari', notes: 'Brand/tabs/pipeline/policies/door-slug as DATA; one BusinessDoor renders any registered business; Moore converts to the first row (?moore=1 stays as alias). New client door = a registry row, never a new component.' },
+      { key: 'cf-instance', group: 'Provisioning', title: 'moore-divahs instance + Shay\'s admin seat', status: 'not-started', owner: 'Ari', notes: 'Provision via the 0081 invite lane; grant Shay owner/admin; re-point BUSINESSES.moore + door RPC slugs; migrate existing moore rows. Blocked on one value: Shay\'s sign-in email (Darrell).' },
+      { key: 'cf-runbook', group: 'Provisioning', title: 'Per-client provisioning runbook (instance + seats + registry row)', status: 'not-started', owner: 'Ari', notes: 'The repeatable checklist from CLIENT-BUSINESS-FACTORY.md steps 3-5, executed per client; target clock: same day.' },
+      { key: 'cf-relay', group: 'Provisioning', title: 'Inquiry email relay per business (owner notified, address never public)', status: 'not-started', owner: 'Darrell', notes: 'NAS-side sender (three brakes); the credential is Darrell\'s hand. Until then each owner\'s inbox is their CRM pipeline view.' },
+      { key: 'cf-pricing', group: 'Commercial', title: 'Business-build pricing (the custom-quote numbers)', status: 'not-started', owner: 'Darrell', notes: 'The price-out shows real platform tiers; build/white-label numbers are the governor\'s quote. When set, the calculator upgrades from "custom quote" to figures.' },
+    ],
+  },
 ];
 
 export const SEED_BOARD_BY_SLUG = Object.fromEntries(SEED_BOARDS.map((b) => [b.slug, b]));
