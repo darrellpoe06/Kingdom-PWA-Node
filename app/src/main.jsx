@@ -61,6 +61,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
   || __params.get('share') === '1'
+  || __params.get('moore') === '1'
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
@@ -136,6 +137,14 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
     __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
   }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('moore') === '1') {
+  // The Moore Divahs public door — the branded family-of-businesses app Shay
+  // shows clients (Darrell 2026-07-07). Her brand first; PoeTech + the family
+  // businesses behind it. Public faces only; captures ride forced-safe RPCs
+  // with source='moore-divahs-app'. Lean boot like the others.
+  import('./components/MooreDoor.jsx').then(({ default: MooreDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><MooreDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('moore boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('room')) {
   // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
   // renders the big-screen board (host) or a phone controller. Lazy-imported so
