@@ -66,3 +66,13 @@ export function priceOut(selectedKeys = []) {
 // The union-attribution source every capture from this door carries — this is
 // how "who came in from this union" shows up on the CRM + interest lists.
 export const DOOR_SOURCE = 'moore-divahs-app';
+
+// One-click reorder (Darrell 2026-07-07): a past order becomes the next
+// inquiry's pre-filled note — editable before sending, and carrying the prior
+// order reference so Shay knows exactly which piece "again" means.
+export function buildReorderNote(order) {
+  if (!order) return '';
+  const what = (order.description || '').trim() || (order.product_type || 'my last piece');
+  const ref = order.slug ? ` (prior order ${order.slug})` : '';
+  return `Order this again: ${what}${ref}`;
+}
