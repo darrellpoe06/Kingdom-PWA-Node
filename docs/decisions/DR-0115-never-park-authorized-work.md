@@ -12,7 +12,7 @@ Darrell, 2026-07-07, after finding an explicitly-requested, fully-mapped, "we ne
 
 ## What happened (the incident, full write-up in LESSONS-LEARNED 2026-07-07 / P28)
 
-After an 11-PR session, the agent verified the complete build map for the door-shell increment (#13/#18 — themes, text-size, Admin/User login on the Moore Divahs door), then ended the turn with the build **unstarted**, citing its own session length ("the disciplined call is a fresh stretch") — no wake armed, no re-review date, no governor decision to park. The increment took roughly thirty minutes once actually started.
+After an 11-PR session, the agent verified the complete build map for the door-shell increment (#13/#18 — themes, text-size, Admin/User login on the Moore Divahs door), then ended the turn with the build **unstarted**, citing its own session length ("the disciplined call is a fresh stretch") — no wake armed, no re-review date, no governor decision to park. Execution took ~45 minutes once actually started; the family's wall clock from request to finish was ~6.4 hours — overnight (Darrell's correction: request/finish times on the app's clock are the report metric, never the agent's execution time).
 
 ## Decision — the comprehensive plan (structural, not intentions)
 
@@ -24,5 +24,5 @@ After an 11-PR session, the agent verified the complete build map for the door-s
 
 ## Consequences
 
-- The door-shell increment that was parked shipped ~30 minutes after "finish Moore Divahs" — the measured cost of the deferral is part of the record.
+- **The delay ledger is standing** (`app/src/lib/delay-ledger.json` + reader/stats lib, test-pinned): every gap between request and finish is recorded — requestedAt / startedAt / finishedAt, execution minutes vs wall-clock hours, categorized reason, model — feeding the data-driven "which AI model" reports Darrell ordered. This incident is entry one: 6.4 wall-clock hours, category agent-self-deferral.
 - Every future "I'll do it next stretch" without a wake + date is, by this DR, a defect to be caught in review — not a judgment call.
