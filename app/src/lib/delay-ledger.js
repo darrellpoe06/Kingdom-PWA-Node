@@ -36,13 +36,33 @@ export function delayStats(entries = loadDelayLedger()) {
     byModel[m].count += 1;
     byModel[m].hours = +(byModel[m].hours + hrs).toFixed(2);
   }
+  // The WEIGHT (Darrell 2026-07-07): should-have-taken vs actually-took.
+  let shouldH = 0, actualH = 0;
+  for (const e of list) {
+    shouldH += Math.max(0, Number(e.directEstimateMinutes) || 0) / 60;
+    actualH += Math.max(0, Number(e.wallClockHours) || 0);
+  }
   return {
     count: list.length,
     totalUnnecessaryHours: +unnecessary.toFixed(2),
+    totalShouldHaveTakenHours: +shouldH.toFixed(2),
+    totalActualHours: +actualH.toFixed(2),
+    // How many times longer the family waited than the work required. Derived
+    // every read, never stored (DR-0076); null when there is nothing to weigh.
+    overallOverrunFactor: shouldH > 0 ? +(actualH / shouldH).toFixed(1) : null,
     byCategory,
     byModel,
     worst: list.length
       ? list.reduce((a, b) => ((Number(b.unnecessaryDelayHours) || 0) > (Number(a.unnecessaryDelayHours) || 0) ? b : a))
       : null,
   };
+}
+
+// Per-entry weight: actual wall-clock vs the should-have-taken benchmark.
+// 1.0 = delivered on the work's own clock; 8.5 = the family waited 8.5x the
+// work. null when the entry carries no benchmark (never a painted ratio).
+export function entryOverrun(e) {
+  const should = (Number(e?.directEstimateMinutes) || 0) / 60;
+  const actual = Number(e?.wallClockHours) || 0;
+  return should > 0 ? +(actual / should).toFixed(1) : null;
 }
