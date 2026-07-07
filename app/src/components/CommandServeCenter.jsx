@@ -33,8 +33,9 @@
 // (4.7:1 on the white card); on midnight they remap to bright tokens (#E5E5E5,
 // #888888, #86EFAC, #FB923C) that clear AA on black. The contrast guard now
 // enforces this per-theme + scans for any inline color that would regress it.
-import React, { useState } from 'react';
+import React from 'react';
 import OpsBoard from './OpsBoard.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import QualityProof from './QualityProof.jsx';
 import QualityThroughput from './QualityThroughput.jsx';
 import FamilyRoster from './FamilyRoster.jsx';
@@ -85,7 +86,6 @@ function ReadinessChip({ status }) {
 export function CommandServeCenter({ isGovernor = false, persona = null, email = null, onNavigate = null, projects = [], discussions = [], currentUserId = null, familyData = null }) {
   const seat = seatOf({ email, persona, isFamily: !!isGovernor });
   const ready = declaredReadiness();
-  const [tab, setTab] = useState('see');
 
   // No-leak: the seat is not theirs to command. Visible-but-locked is handled by
   // the nav render gate in the monolith; this is the defense-in-depth backstop.
@@ -102,7 +102,128 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
     );
   }
 
-  const activeFaculty = FACULTIES.find((f) => f.key === tab) || FACULTIES[0];
+  // Faculty sections — See / Command / Control / Serve on the shared SectionTabs
+  // primitive ("sliding tabs instead of a long scroll", Darrell 2026-07-04): the
+  // hand-rolled faculty strip + local tab state are replaced by the ONE guarded
+  // strip every long surface uses (same TabScroll feel, real tablist a11y, lazy
+  // panel mount). Each strip label keeps the faculty glyph AND its honest
+  // declared-readiness symbol (at-a-glance across faculties, provenance intact);
+  // each panel opens with the faculty header (tagline + readiness note), then
+  // mounts its real composed surfaces only when opened.
+  const facultyOf = (key) => FACULTIES.find((f) => f.key === key) || FACULTIES[0];
+  const stripLabel = (key) => {
+    const f = facultyOf(key);
+    const m = READY_META[ready[key]?.status] || READY_META.wiring;
+    return (
+      <>
+        <span aria-hidden="true">{f.glyph}</span>
+        {f.label}
+        <span aria-hidden="true" title={READINESS_PROVENANCE} className={m.cls}>{m.symbol}</span>
+      </>
+    );
+  };
+  const facultyHeader = (key) => {
+    const f = facultyOf(key);
+    return (
+      <section className="bg-white border border-[#1A1815] p-3">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <h3 className="text-[0.6875rem] uppercase tracking-[0.25em] font-semibold text-[#1A1815]">
+            <span aria-hidden="true" className="mr-1">{f.glyph}</span>{f.label}
+          </h3>
+          <ReadinessChip status={ready[key]?.status} />
+        </div>
+        <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{f.tagline}</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ready[key]?.note}</p>
+      </section>
+    );
+  };
+
+  const sections = [
+    {
+      id: 'see',
+      label: stripLabel('see'),
+      // SEE — real system + quality state. The Quality & Throughput board
+      // (DR-0091) leads as the roll-up: every gate/coverage/ops number read
+      // live from its real artifact with the governing DR + principle beside
+      // it; OpsBoard and QualityProof carry the per-area detail below.
+      render: () => (
+        <div className="space-y-4">
+          {facultyHeader('see')}
+          <KpiLegend />
+          <QualityThroughput />
+          <OpsBoard />
+          <QualityProof />
+        </div>
+      ),
+    },
+    {
+      id: 'command',
+      label: stripLabel('command'),
+      // COMMAND — direct the build via the braked orchestrator + the conflict
+      // loop (what to build / hot files / decomposition).
+      render: () => (
+        <div className="space-y-4">
+          {facultyHeader('command')}
+          <WakeOrchestrator />
+          <ConflictLoop />
+        </div>
+      ),
+    },
+    {
+      id: 'control',
+      label: stripLabel('control'),
+      // CONTROL — the work. The live project-management pulse (real projects by
+      // stage, the discussions driving them, braked hand-offs) composes here in
+      // the seat — it used to be buried at the bottom of the Build board; now it
+      // lives in its one home. The full Projects / Build surface opens from here
+      // for editing. No painted data — the pulse reads real synced rows.
+      render: () => (
+        <div className="space-y-3">
+          {facultyHeader('control')}
+          <ProjectMgmtPulse projects={projects} discussions={discussions} currentUserId={currentUserId} isGovernor={isGovernor} />
+          <section className="bg-white border border-[#1A1815] p-3">
+            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Open the full Projects &amp; Build surface to edit projects, scopes, capital, discussions, and the public build roadmap:
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate && onNavigate('projects')}
+                disabled={!onNavigate}
+                className="inline-flex items-center text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#1A1815]"
+              >
+                Open Projects &amp; Build →
+              </button>
+            </div>
+          </section>
+        </div>
+      ),
+    },
+    {
+      id: 'serve',
+      label: stripLabel('serve'),
+      // SERVE — the ontology the seat operates within, and the household it
+      // serves first: the Family Roster (DR-0093) provisions children through
+      // the 0055/0057 safety rails — never through the email allowlist.
+      render: () => (
+        <div className="space-y-3">
+          {facultyHeader('serve')}
+          <FamilyRoster currentUserId={currentUserId} familyData={familyData} />
+          <section className="bg-white border border-[#1A1815] p-4">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
+            <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              The seat exists to <strong>serve and steward</strong>, not to dominate. Every command issued from here answers the same standing test: does this lift the family <em>and</em> the community, and create rather than extract?
+            </p>
+            <ul className="mt-3 space-y-1.5 text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>The steward at the helm.</strong> Role-scoped access — this seat renders for the family stewards only (no-leak).</li>
+              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>Serve the community first.</strong> The Church of the Living God is the named first community; outward-serving surfaces build from this seat.</li>
+              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>Create, never extract.</strong> The system makes the person more able to follow The Way — it does not extract from them.</li>
+            </ul>
+          </section>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -162,109 +283,8 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         </ol>
       </section>
 
-      {/* Faculty tabs — See / Command / Control / Serve. */}
-      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Center faculties">
-        {FACULTIES.map((f) => {
-          const active = tab === f.key;
-          const r = ready[f.key];
-          const rMeta = READY_META[r?.status] || READY_META.wiring;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(f.key)}
-              className={`text-xs uppercase tracking-wider px-3 py-1.5 border min-h-[36px] inline-flex items-center gap-1.5 focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] ${active ? 'bg-[#1A1815] text-white' : 'text-[#1A1815]'}`}
-            >
-              <span aria-hidden="true">{f.glyph}</span>{f.label}
-              <span aria-hidden="true" title={READINESS_PROVENANCE} className={active ? 'text-white' : rMeta.cls}>
-                {rMeta.symbol}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Active faculty header — tagline + honest readiness note. */}
-      <section className="bg-white border border-[#1A1815] p-3">
-        <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <h3 className="text-[0.6875rem] uppercase tracking-[0.25em] font-semibold text-[#1A1815]">
-            <span aria-hidden="true" className="mr-1">{activeFaculty.glyph}</span>{activeFaculty.label}
-          </h3>
-          <ReadinessChip status={ready[activeFaculty.key]?.status} />
-        </div>
-        <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{activeFaculty.tagline}</p>
-        <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ready[activeFaculty.key]?.note}</p>
-      </section>
-
-      {/* SEE — real system + quality state. The Quality & Throughput board
-          (DR-0091) leads as the roll-up: every gate/coverage/ops number read
-          live from its real artifact with the governing DR + principle beside
-          it; OpsBoard and QualityProof carry the per-area detail below. */}
-      {tab === 'see' && (
-        <div className="space-y-4">
-          <KpiLegend />
-          <QualityThroughput />
-          <OpsBoard />
-          <QualityProof />
-        </div>
-      )}
-
-      {/* COMMAND — direct the build via the braked orchestrator + the conflict
-          loop (what to build / hot files / decomposition). */}
-      {tab === 'command' && (
-        <div className="space-y-4">
-          <WakeOrchestrator />
-          <ConflictLoop />
-        </div>
-      )}
-
-      {/* CONTROL — the work. The live project-management pulse (real projects by
-          stage, the discussions driving them, braked hand-offs) composes here in
-          the seat — it used to be buried at the bottom of the Build board; now it
-          lives in its one home. The full Projects / Build surface opens from here
-          for editing. No painted data — the pulse reads real synced rows. */}
-      {tab === 'control' && (
-        <div className="space-y-3">
-          <ProjectMgmtPulse projects={projects} discussions={discussions} currentUserId={currentUserId} isGovernor={isGovernor} />
-          <section className="bg-white border border-[#1A1815] p-3">
-            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-              Open the full Projects &amp; Build surface to edit projects, scopes, capital, discussions, and the public build roadmap:
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigate && onNavigate('projects')}
-                disabled={!onNavigate}
-                className="inline-flex items-center text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#1A1815]"
-              >
-                Open Projects &amp; Build →
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* SERVE — the ontology the seat operates within, and the household it
-          serves first: the Family Roster (DR-0093) provisions children through
-          the 0055/0057 safety rails — never through the email allowlist. */}
-      {tab === 'serve' && (
-        <div className="space-y-3">
-          <FamilyRoster currentUserId={currentUserId} familyData={familyData} />
-          <section className="bg-white border border-[#1A1815] p-4">
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>
-            <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              The seat exists to <strong>serve and steward</strong>, not to dominate. Every command issued from here answers the same standing test: does this lift the family <em>and</em> the community, and create rather than extract?
-            </p>
-            <ul className="mt-3 space-y-1.5 text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>The steward at the helm.</strong> Role-scoped access — this seat renders for the family stewards only (no-leak).</li>
-              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>Serve the community first.</strong> The Church of the Living God is the named first community; outward-serving surfaces build from this seat.</li>
-              <li><span className="text-[#5A6E3D] mr-1" aria-hidden="true">›</span><strong>Create, never extract.</strong> The system makes the person more able to follow The Way — it does not extract from them.</li>
-            </ul>
-          </section>
-        </div>
-      )}
+      {/* Faculty sections — See / Command / Control / Serve, one strip, lazy panels. */}
+      <SectionTabs sections={sections} ariaLabel="Center faculties" idBase="c2s" defaultId="see" />
 
       <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Every surface here is a live view of real system state — composed into one seat, not scattered. Readiness chips are declared wiring status (asserted at build, pinned by tests — not a runtime measurement); a partial faculty says so.

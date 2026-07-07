@@ -19,6 +19,7 @@
 // numbers — revenue sums REAL quoted prices on scheduled/completed bookings only.
 import React, { useEffect, useMemo, useState } from 'react';
 import KpiDot from './KpiDot.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import VenueRequestForm from './VenueRequestForm.jsx';
 import {
   CAMPUSES, eventTypeLabel, findCampus, findSpace,
@@ -285,45 +286,77 @@ function StaffConsole() {
 
       {!loaded && <p className="text-sm text-[#5A5751]" style={serif}>Loading bookings…</p>}
 
+      {/* The back office flows as SectionTabs ("sliding tabs instead of a long
+          scroll", Darrell 2026-07-04): the revenue/health KPI strip stays PINNED
+          above the strip (always visible — "no more down scrolling to see KPIs"),
+          and the long booking lists move behind section tabs. Requests and
+          Declined/cancelled are data-conditional sections — they appear only when
+          real rows exist; the pinned KPIs still say "all clear" when they don't.
+          Mounted once bookings have loaded so the default tab opens on real data. */}
       {loaded && (
-        <>
-          {open.length > 0 && (
-            <section className="mb-6">
-              <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Requests to review</h3>
-              <div className="space-y-3">
-                {open.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}
-              </div>
-            </section>
-          )}
-
-          <section className="mb-6">
-            <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Booking calendar</h3>
-            {scheduled.length === 0
-              ? <p className="text-sm text-[#5A5751]" style={serif}>No scheduled bookings yet. Approve a request above, or log one below.</p>
-              : <div className="space-y-3">{scheduled.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>}
-          </section>
-
-          {closed.length > 0 && (
-            <section className="mb-6">
-              <h3 className="text-sm font-semibold text-[#5A5751] mb-2" style={serif}>Declined / cancelled ({closed.length})</h3>
-              <div className="space-y-3">{closed.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>
-            </section>
-          )}
-        </>
+        <SectionTabs
+          ariaLabel="Venue back-office sections"
+          idBase="venues-staff"
+          defaultId="requests"
+          sections={[
+            open.length > 0 ? {
+              id: 'requests',
+              label: `Requests to review (${open.length})`,
+              icon: 'mail',
+              render: () => (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Requests to review</h3>
+                  <div className="space-y-3">
+                    {open.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}
+                  </div>
+                </section>
+              ),
+            } : null,
+            {
+              id: 'calendar',
+              label: 'Booking calendar',
+              icon: 'calendar',
+              render: () => (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Booking calendar</h3>
+                  {scheduled.length === 0
+                    ? <p className="text-sm text-[#5A5751]" style={serif}>No scheduled bookings yet. Approve a request from the Requests tab, or log one from the Log-a-booking tab.</p>
+                    : <div className="space-y-3">{scheduled.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>}
+                </section>
+              ),
+            },
+            closed.length > 0 ? {
+              id: 'closed',
+              label: `Declined / cancelled (${closed.length})`,
+              render: () => (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#5A5751] mb-2" style={serif}>Declined / cancelled ({closed.length})</h3>
+                  <div className="space-y-3">{closed.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>
+                </section>
+              ),
+            } : null,
+            {
+              id: 'log',
+              label: 'Log a booking',
+              icon: 'pencil',
+              // Staff: log a booking directly (creates a request they then schedule).
+              render: () => (
+                <section className="mt-2">
+                  <button type="button" onClick={() => setShowAdd((s) => !s)} className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                    {showAdd ? 'Close' : '+ Log a booking'}
+                  </button>
+                  {showAdd && (
+                    <div className="bg-white border border-[#E8E4DC] p-4 mt-3">
+                      <p className="text-xs text-[#5A5751] mb-3" style={serif}>Logs a request you can then schedule and price from the Booking calendar tab.</p>
+                      <VenueRequestForm source="staff" onDone={() => setShowAdd(false)} />
+                    </div>
+                  )}
+                </section>
+              ),
+            },
+          ]}
+        />
       )}
-
-      {/* Staff: log a booking directly (creates a request they then schedule). */}
-      <section className="mt-2">
-        <button type="button" onClick={() => setShowAdd((s) => !s)} className="text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
-          {showAdd ? 'Close' : '+ Log a booking'}
-        </button>
-        {showAdd && (
-          <div className="bg-white border border-[#E8E4DC] p-4 mt-3">
-            <p className="text-xs text-[#5A5751] mb-3" style={serif}>Logs a request you can then schedule and price below.</p>
-            <VenueRequestForm source="staff" onDone={() => setShowAdd(false)} />
-          </div>
-        )}
-      </section>
     </div>
   );
 }

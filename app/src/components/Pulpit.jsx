@@ -723,6 +723,15 @@ export default function Pulpit() {
           control. A duplicate per-module stepper used to live here; removed so there
           is one control to learn, not two that look the same. */}
 
+      {/* SectionTabs harmonization (2026-07-07, sliding-tabs pass): this strip
+          stays the hand-rolled TabScroll ON PURPOSE — `tab` is WRITTEN
+          programmatically outside the strip (onReuse jumps back to 'library'
+          after a re-preach), which the uncontrolled SectionTabs cannot do; the
+          tab ids come from the unit-tested access rule theWordTabs() (public
+          library vs leadership prep — RLS-mirrored); and DR-0079 plans a future
+          "Sermon Stories" sub-tab on these SAME stable ids. It already rides the
+          shared TabScroll primitive, so the overflow/consistency guards hold.
+          For non-leadership there is one tab and no strip renders at all. */}
       {tabs.length > 1 && (
         <TabScroll className="mb-3">
           {tabs.map(([id, label]) => (

@@ -18,6 +18,7 @@
 //     Engagement's MessageThread proves out.
 import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { smsHref } from '../lib/dispatch.js';
 import { uploadFeedback, subscribeFeedback } from '../lib/feedback-sync.js';
 import { onAuthChange } from '../lib/supabase.js';
@@ -392,6 +393,21 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         )}
       </section>
 
+      {/* The three stacked lists now flow as sliding section tabs ("sliding
+          tabs for all tabs instead of a long scroll", Darrell 2026-07-04). The
+          header + Add form above stay PINNED; each block below moved verbatim.
+          Hooks all live at the top level (or inside WorkerVoice itself) — the
+          render thunks are plain closures over that state. */}
+      <SectionTabs
+        ariaLabel="1099 Relationships sections"
+        idBase="k1099"
+        defaultId="outbound"
+        sections={[
+          {
+            id: 'outbound',
+            label: 'Outbound',
+            icon: 'users',
+            render: () => (
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound · {outbound.length}</h3>
         {!incidentsProvided && outbound.length > 0 && (
@@ -409,7 +425,13 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
           </div>
         )}
       </section>
-
+            ),
+          },
+          {
+            id: 'inbound',
+            label: 'Inbound',
+            icon: 'coins',
+            render: () => (
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Inbound · {inbound.length}</h3>
         {inbound.length === 0 ? (
@@ -422,8 +444,16 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
           </div>
         )}
       </section>
-
-      <WorkerVoice workers={outbound} incidents={incidents} />
+            ),
+          },
+          {
+            id: 'voice',
+            label: 'Worker voice',
+            icon: 'mic',
+            render: () => <WorkerVoice workers={outbound} incidents={incidents} />,
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   uploadTriviaAnswer, sendMessage, subscribeMessages,
@@ -481,11 +482,19 @@ export default function Engagement() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
+  // Two swipeable sections instead of a stacked scroll (Darrell 2026-07-04:
+  // "sliding tabs for all tabs instead of a long scroll"). The title stays
+  // pinned above the strip. Each card mounts lazily — the thread's realtime
+  // subscription starts only when its tab is actually opened.
+  const sections = [
+    { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
+    { id: 'thread', label: 'Messages', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+  ];
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
-      <TriviaCard signedIn={signedIn} />
-      <MessageThread signedIn={signedIn} />
+      <SectionTabs sections={sections} ariaLabel="Engagement sections" idBase="engage" defaultId="trivia" />
     </div>
   );
 }

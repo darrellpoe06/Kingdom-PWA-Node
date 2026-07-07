@@ -28,6 +28,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   SEED_DEVICES, DEVICE_TYPES, DEVICE_STATUSES, CAPABILITIES, GPU_JOB_CAPABILITIES,
   typeLabel, typeIcon, statusTone, statusLabel, capabilityLabel,
@@ -253,7 +254,6 @@ function DeviceEditor({ target, onClose }) {
 export default function DeviceInventory() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [rows, setRows] = useState(null); // null = loading / not subscribed
-  const [section, setSection] = useState('registry');
   // editor: null = closed; { target: null } = add form; { target: device } = edit.
   const [editor, setEditor] = useState(null);
 
@@ -303,7 +303,7 @@ export default function DeviceInventory() {
         {access.canEdit && (
           <button
             type="button"
-            onClick={() => { setSection('registry'); setEditor({ target: null }); }}
+            onClick={() => setEditor({ target: null })}
             className="mt-3 text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
             + Add device
@@ -311,72 +311,79 @@ export default function DeviceInventory() {
         )}
       </div>
 
-      {/* SECTION TABS */}
-      <div className="flex gap-2">
-        {[['registry', 'Registry'], ['compute', 'Compute Pool']].map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setSection(k)}
-            className={`px-3 py-1.5 text-sm border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${section === k ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#C9C2B6] text-[#5A5751] hover:text-[#1A1815]'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {section === 'registry' && (
-        <>
-          {/* STEWARD EDITOR — governors only; keyed so switching target resets the form */}
-          {access.canEdit && editor && (
-            <DeviceEditor
-              key={editor.target ? editor.target.id : 'dev-ed-new'}
-              target={editor.target}
-              onClose={() => setEditor(null)}
-            />
-          )}
-
-          {/* SUMMARY KPIs */}
-          <div className={card}>
-            <div className={labelCls}>At a glance</div>
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                ['Devices', summary.total],
-                ['Online (steward-set)', summary.online],
-                ['Compute nodes', summary.computeNodes],
-                ['Need confirmation', summary.smeNeeded],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div className="text-2xl text-[#1A1815] tabular-nums" style={serif}>{v}</div>
-                  <div className="text-[11px] text-[#5A5751]">{k}</div>
-                </div>
-              ))}
-            </div>
-            {summary.smeNeeded > 0 && (
-              <p className="mt-3 text-[12px] text-[#B85838]">
-                {summary.smeNeeded} device(s) carry specs not yet read off the hardware — flagged for Darrell rather than fabricated.
-              </p>
-            )}
-          </div>
-
-          {/* DEVICES BY TYPE */}
-          {DEVICE_TYPES.filter((t) => (grouped[t.id] || []).length > 0).map((t) => (
-            <div key={t.id} className={card}>
-              <div className={`${labelCls} flex items-center gap-1.5`}>
-                <span className="text-[#B85838]" aria-hidden="true"><UiIcon name={t.icon} /></span> {t.label}
-                <span className="text-[#C9C2B6]">· {grouped[t.id].length}</span>
-              </div>
-              <div className="mt-2 space-y-2.5">
-                {grouped[t.id].map((d) => (
-                  <DeviceCard key={d.id} device={d} canEdit={access.canEdit} onEdit={(dev) => setEditor({ target: dev })} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </>
+      {/* STEWARD EDITOR — governors only; keyed so switching target resets the
+          form. PINNED above the section strip so the form stays visible (and
+          survives a tab switch) no matter which section the steward is on. */}
+      {access.canEdit && editor && (
+        <DeviceEditor
+          key={editor.target ? editor.target.id : 'dev-ed-new'}
+          target={editor.target}
+          onClose={() => setEditor(null)}
+        />
       )}
 
-      {section === 'compute' && (
-        <>
+      {/* SUMMARY KPIs — pinned above the section strip (2026-07-07: "no more
+          down scrolling to see a surface with KPIs"; the numbers stay visible
+          whichever section is open). */}
+      <div className={card}>
+        <div className={labelCls}>At a glance</div>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            ['Devices', summary.total],
+            ['Online (steward-set)', summary.online],
+            ['Compute nodes', summary.computeNodes],
+            ['Need confirmation', summary.smeNeeded],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div className="text-2xl text-[#1A1815] tabular-nums" style={serif}>{v}</div>
+              <div className="text-[11px] text-[#5A5751]">{k}</div>
+            </div>
+          ))}
+        </div>
+        {summary.smeNeeded > 0 && (
+          <p className="mt-3 text-[12px] text-[#B85838]">
+            {summary.smeNeeded} device(s) carry specs not yet read off the hardware — flagged for Darrell rather than fabricated.
+          </p>
+        )}
+      </div>
+
+      {/* SECTION TABS — the shared sliding-tabs primitive ("sliding tabs for
+          all tabs instead of a long scroll", Darrell 2026-07-04). Same two
+          sections as the old hand-rolled strip; each block moved verbatim. */}
+      <SectionTabs
+        ariaLabel="Device Inventory sections"
+        idBase="devinv"
+        defaultId="registry"
+        sections={[
+          {
+            id: 'registry',
+            label: 'Registry',
+            icon: 'monitor',
+            render: () => (
+              <div className="space-y-4">
+                {/* DEVICES BY TYPE */}
+                {DEVICE_TYPES.filter((t) => (grouped[t.id] || []).length > 0).map((t) => (
+                  <div key={t.id} className={card}>
+                    <div className={`${labelCls} flex items-center gap-1.5`}>
+                      <span className="text-[#B85838]" aria-hidden="true"><UiIcon name={t.icon} /></span> {t.label}
+                      <span className="text-[#C9C2B6]">· {grouped[t.id].length}</span>
+                    </div>
+                    <div className="mt-2 space-y-2.5">
+                      {grouped[t.id].map((d) => (
+                        <DeviceCard key={d.id} device={d} canEdit={access.canEdit} onEdit={(dev) => setEditor({ target: dev })} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ),
+          },
+          {
+            id: 'compute',
+            label: 'Compute Pool',
+            icon: 'chart',
+            render: () => (
+              <div className="space-y-4">
           {/* SCHEDULER STATE — INERT */}
           <div className={card}>
             <div className="flex items-center justify-between">
@@ -463,8 +470,11 @@ export default function DeviceInventory() {
               })}
             </div>
           </div>
-        </>
-      )}
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

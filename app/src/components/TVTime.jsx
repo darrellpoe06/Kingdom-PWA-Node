@@ -27,7 +27,9 @@ import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '..
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
+import { TV_SHARING_ENABLED } from '../lib/tv-circle-sync.js';
 import TVCircle from './TVCircle.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -640,17 +642,28 @@ export default function TVTime({ email = null }) {
         )}
       </div>
 
-      {/* What's getting watched — dynamic, from real activity. */}
+      {/* What's getting watched — dynamic, from real activity. PINNED above the
+          section strip (the KPI-style summary stays always visible). */}
       <TrendingStrip items={trending} />
 
-      {/* Family/circle sharing — LIVE. TV_SHARING_ENABLED opened 2026-07-04 after
-          the data-isolation smoke test passed against the real database
-          (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
-          this renders null. state + a light catalog let it publish only your
-          tagged shows. */}
-      <TVCircle state={state} email={me}
-        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+      <SectionTabs sections={[
+        { id: 'shows', label: 'My shows & picks', icon: 'monitor', render: renderShows },
+        // Family/circle sharing — LIVE. TV_SHARING_ENABLED opened 2026-07-04 after
+        // the data-isolation smoke test passed against the real database
+        // (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
+        // the section is filtered out entirely (no empty panel, no dead tab).
+        TV_SHARING_ENABLED ? { id: 'circle', label: 'Your circle', icon: 'users', render: renderCircle } : null,
+      ]} ariaLabel="TV Time sections" idBase="tvtime" defaultId="shows" />
+    </div>
+  );
 
+  // The shows-and-picks flow. One section on purpose: the genre chips filter
+  // BOTH your tracked list AND the Popular picks below them (never a dead end),
+  // so splitting them across tabs would break that promise. Plain closure over
+  // the top-level state — no hooks in here.
+  function renderShows() {
+    return (
+      <>
       {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
           picks below (Darrell 2026-07-04: pick a genre and it shows all in that
           genre, never a dead end). Always shown, so an empty list still browses. */}
@@ -778,8 +791,20 @@ export default function TVTime({ email = null }) {
       })()}
 
       {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: look up any show above, or import your old list — your own shows land in the sections here.</p>}
-    </div>
-  );
+      </>
+    );
+  }
+
+  // Your circle — the family/friends sharing surface, in its own section so the
+  // main list isn't a long read-down past it. Its circle fetch runs when the
+  // panel mounts (publishing is a deliberate button, never a mount side effect),
+  // so nothing is lost by opening it on demand.
+  function renderCircle() {
+    return (
+      <TVCircle state={state} email={me}
+        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+    );
+  }
 }
 
 function safeNow() {
