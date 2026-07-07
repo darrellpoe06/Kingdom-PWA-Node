@@ -20,6 +20,7 @@ import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
 import AssetAllocator from './games/AssetAllocator.jsx';
+import { START_CASH } from '../lib/games/asset-allocation.js';
 import { FamilyPortrait } from './games/GameArt.jsx';
 import { listGames, getGame } from '../lib/games/registry.js';
 import { createGame, computeTotals } from '../lib/games/engine.js';
@@ -107,7 +108,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
           <TextSizeControl />
         </div>
         <p className={`text-sm leading-relaxed ${T_MUTE} mb-4`}>
-          Christiana has <span className={T_INK}>$30,000</span>. Buy wisely &mdash; put a little down on the houses you
+          Christiana has <span className={T_INK}>{'$' + START_CASH.toLocaleString('en-US')}</span>. Buy wisely &mdash; put a little down on the houses you
           want (as low as 5%), spread it across a few, and keep a reserve for when a furnace breaks. It isn&rsquo;t
           about the most doors; it&rsquo;s about stewarding what you were given.
         </p>
@@ -221,7 +222,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
             </div>
             <p className={`text-sm ${T_ACCENT} mt-1`}>Real dollars, real houses &mdash; steward $30,000.</p>
             <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>
-              Christiana has $30,000. Buy houses with as little as 5% down, split it across a few, watch each
+              Christiana has {'$' + START_CASH.toLocaleString('en-US')}. Buy houses with as little as 5% down, split it across a few, watch each
               door&rsquo;s cash flow, and keep a contingency reserve. See how you stewarded it &mdash; measured the way
               Yahweh measures.
             </p>
