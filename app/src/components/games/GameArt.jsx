@@ -31,7 +31,8 @@ import React from 'react';
 
 // ---- palette (artwork colors, not theme tokens) -----------------------------
 const SKIN = ['#5F4230', '#7A5237', '#8F5E3D', '#A56E45', '#BE855A']; // deep -> light, all rich brown
-const SKIN_HI = ['#7A5941', '#96694A', '#AB7A52', '#C1885B', '#D6A074']; // matched highlights
+const SKIN_HI = ['#7A5941', '#96694A', '#AB7A52', '#C1885B', '#D6A074']; // matched highlights (lit side)
+const SKIN_LO = ['#402C1D', '#553824', '#66442C', '#774E31', '#8E6440']; // matched shade side (form shadow)
 const HAIR = '#231A15';
 const HAIR2 = '#3B2A20';
 const C = { terracotta: '#C15C3A', coral: '#E08A5B', olive: '#5E7A3A', green: '#4E7C4E', slate: '#54697C', indigo: '#3E4E86', gold: '#D6A63C', plum: '#7C4D66', cream: '#F5E9D8' };
@@ -156,6 +157,7 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
   const r = 13 * scale;
   const cx = x, cy = y;
   const shHi = hi || SKIN_HI[SKIN.indexOf(skin)] || SKIN_HI[2];
+  const shLo = SKIN_LO[SKIN.indexOf(skin)] || SKIN_LO[2];
   const armW = r * 0.42, legW = r * 0.5;
   const shoulderY = cy + r * 1.5;
   const hipY = cy + r * 3.0;
@@ -206,10 +208,14 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
   return (
     <g>
       <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+        {/* directional light: a lit-sphere radial with the light up-and-left, so
+            the head reads round (highlight -> midtone -> form shadow), not flat —
+            the "baked directional light" step up from a flat fill. */}
+        <radialGradient id={gid} cx="0.36" cy="0.3" r="0.85">
           <stop offset="0" stopColor={shHi} />
-          <stop offset="1" stopColor={skin} />
-        </linearGradient>
+          <stop offset="0.55" stopColor={skin} />
+          <stop offset="1" stopColor={shLo} />
+        </radialGradient>
       </defs>
       {/* baked contact shadow — grounds the figure in the scene's light (the
           same "fake shadow under the character" trick the lighting video shows;
@@ -224,6 +230,9 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
       <rect x={cx - r * 0.3} y={cy + r * 0.75} width={r * 0.6} height={r * 0.9} rx={r * 0.28} fill={skin} />
       <Hair style={hair} cx={cx} cy={cy} r={r} color={hairColor} />
       <circle cx={cx} cy={cy} r={r} fill={`url(#${gid})`} />
+      {/* rim-light on the sun-facing (upper-left) edge — the catch of light that
+          sells the direction of the source */}
+      <path d={`M${cx - r * 0.92} ${cy - r * 0.38} A${r} ${r} 0 0 1 ${cx - r * 0.12} ${cy - r * 0.99}`} fill="none" stroke="#FFEBCB" strokeWidth={r * 0.15} strokeLinecap="round" opacity="0.5" />
       {(hair === 'afro' || hair === 'coils' || hair === 'puffs') && (
         <path d={`M${cx - r} ${cy - r * 0.1} A${r} ${r} 0 0 1 ${cx + r} ${cy - r * 0.1}`} fill="none" stroke={hairColor} strokeWidth={r * 0.45} strokeLinecap="round" />
       )}
@@ -235,14 +244,29 @@ function Person({ x = 0, y = 0, scale = 1, skin = SKIN[2], hi, hair = 'afro', ha
 // ---- scenery -----------------------------------------------------------------
 const Sun = ({ cx, cy, r, id }) => (
   <g>
+    {/* layered bloom — a wide soft halo under a brighter core (baked glow) */}
+    <circle cx={cx} cy={cy} r={r * 3.6} fill={`url(#sun-${id})`} opacity="0.5" />
     <circle cx={cx} cy={cy} r={r * 2.2} fill={`url(#sun-${id})`} />
+    {/* god-rays: long faint light shafts fanning out from the source */}
+    {Array.from({ length: 9 }).map((_, i) => {
+      const a = (i / 9) * Math.PI * 2 + 0.2;
+      const len = r * (5 + (i % 3) * 2.2);
+      return (
+        <path key={`ray${i}`}
+          d={`M${cx} ${cy} L${cx + Math.cos(a - 0.05) * len} ${cy + Math.sin(a - 0.05) * len} L${cx + Math.cos(a + 0.05) * len} ${cy + Math.sin(a + 0.05) * len} Z`}
+          fill="#FFE6A6" opacity="0.14" />
+      );
+    })}
     {Array.from({ length: 12 }).map((_, i) => {
       const a = (i / 12) * Math.PI * 2;
       return <line key={i} x1={cx + Math.cos(a) * r * 1.25} y1={cy + Math.sin(a) * r * 1.25} x2={cx + Math.cos(a) * r * 1.75} y2={cy + Math.sin(a) * r * 1.75} stroke="#FFCF7A" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />;
     })}
+    <circle cx={cx} cy={cy} r={r * 1.15} fill="#FFF3D0" opacity="0.7" />
     <circle cx={cx} cy={cy} r={r} fill="#FFE9B0" />
   </g>
 );
+// A faint atmospheric haze band at the horizon — distant things sit in light air.
+const Haze = ({ w, h }) => <rect x="0" y={h * 0.58} width={w} height={h * 0.16} fill="#FFFCF4" opacity="0.28" />;
 const Birds = ({ pts }) => (
   <g fill="none" stroke="#6B5A48" strokeWidth="1.6" strokeLinecap="round" opacity="0.7">
     {pts.map(([x, y, s], i) => <path key={i} d={`M${x} ${y} q${3 * s} ${-3 * s} ${6 * s} 0 q${3 * s} ${-3 * s} ${6 * s} 0`} />)}
@@ -271,6 +295,7 @@ function Village({ w, h, id, sunAt = [0.5, 0.72] }) {
     <g>
       <rect x="0" y="0" width={w} height={h} fill={`url(#sky-${id})`} />
       <Sun cx={w * sxr} cy={h * syr} r={13} id={id} />
+      <Haze w={w} h={h} />
       <Birds pts={[[w * 0.16, h * 0.2, 1], [w * 0.24, h * 0.16, 0.8], [w * 0.8, h * 0.22, 1]]} />
       {/* far hill */}
       <path d={`M0 ${h * 0.72} Q${w * 0.3} ${h * 0.58} ${w * 0.6} ${h * 0.7} T${w} ${h * 0.68} V${h} H0 Z`} fill={C.olive} opacity="0.55" />
