@@ -154,10 +154,14 @@ function Header({ def, me, token }) {
 function JoinForm({ def, match, status, initialName, onJoin }) {
   const [name, setName] = useState(initialName || '');
   const [token, setToken] = useState('');
+  // Tokens held by CONNECTED players are taken; a disconnected seat's token stays
+  // pickable so a returning player can reclaim their piece (and their points).
   const taken = useMemo(() => new Set((match?.players || []).filter((p) => p.connected).map((p) => p.token)), [match]);
   const full = match && match.players.length >= match.maxPlayers;
-  const started = match && match.phase !== 'lobby';
-  const canJoin = name.trim().length > 0 && token && !taken.has(token) && !full && !started;
+  const finished = match && match.phase === 'finished';
+  const inProgress = match && match.phase === 'playing';
+  // Late joiners are welcome mid-game; only a finished or full table turns you away.
+  const canJoin = name.trim().length > 0 && token && !taken.has(token) && !full && !finished;
 
   return (
     <div className="min-h-screen px-4 py-8" style={{ background: INK, color: CREAM, fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -166,8 +170,9 @@ function JoinForm({ def, match, status, initialName, onJoin }) {
         <h1 className="text-3xl font-semibold" style={{ fontFamily: 'Fraunces, serif' }}>{def.title}</h1>
         <p className="text-sm mt-2" style={{ color: MUTE }}>Take a seat. Pick your name and a token — your piece on the big screen.</p>
 
-        {started && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>This game has already started. Ask the host for a fresh room.</p>}
-        {full && !started && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>The table is full ({match.maxPlayers} players).</p>}
+        {inProgress && !full && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#16221a', color: '#86efac' }}>This game is already underway — jump in! Pick your name and token and you&rsquo;ll join on the next round. Coming back after your phone went off? Pick the same token to get your seat and points back.</p>}
+        {finished && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>These journeys have finished. Ask the host to start a new one.</p>}
+        {full && !finished && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>The table is full ({match.maxPlayers} players).</p>}
 
         <label className="block mt-5 text-sm" style={{ color: MUTE }}>Your name</label>
         <input

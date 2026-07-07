@@ -25,6 +25,7 @@ import { boardFor } from '../../lib/games/engine.js';
 import { buildJoinUrl, seedFromCode } from '../../lib/games/room-code.js';
 import { hostRoom } from '../../lib/games/realtime-room.js';
 import { resolveScripture } from '../../lib/games/scripture-link.js';
+import { FamilyPortrait } from './GameArt.jsx';
 
 const INK = '#12100E';
 const CREAM = '#FAF8F4';
@@ -148,6 +149,7 @@ function Lobby({ def, match, code, joinUrl, onStart }) {
           <div className="text-sm uppercase tracking-[0.35em]" style={{ color: '#f4b740' }}>Game Night</div>
           <Title className="text-4xl sm:text-6xl mt-2">{def.title}</Title>
           <p className="text-lg sm:text-2xl mt-3" style={{ color: MUTE }}>{def.subtitle}</p>
+          <FamilyPortrait className="mt-5 mx-auto max-w-2xl" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -376,6 +378,7 @@ function Finish({ def, match, onAgain }) {
         <div className="text-sm uppercase tracking-[0.35em]" style={{ color: '#f4b740' }}>The journeys are finished</div>
         <Title className="text-4xl sm:text-6xl mt-2">A Legacy, measured by Yahweh</Title>
         <p className="text-lg mt-3" style={{ color: MUTE }}>Not by what was kept — by what was walked in and passed on (Matthew 25:21).</p>
+        <FamilyPortrait className="mt-5 mx-auto max-w-xl" />
 
         <ol className="mt-8 space-y-4 text-left">
           {ranks.map((r, idx) => {

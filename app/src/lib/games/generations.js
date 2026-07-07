@@ -37,7 +37,27 @@ export const CATEGORIES = [
   { key: 'provision', label: 'Provision',        short: 'Wealth, held rightly',       weight: 1 },
 ];
 
-// ---- starting paths (the first crossroads: where the journey begins) --------
+// ---- childhood prologue (kindergarten -> coming of age) ----------------------
+// Darrell, 2026-07-06: the journey runs "from kindergarten to end of life."
+// Every road begins the same way — a child raised in the Way — so this shared
+// prologue is spread into the front of EACH path's opening. It plays before the
+// young-adult, road-specific content, so the life truly starts in childhood and
+// runs all the way to the legacy finish. Scripture is carried verbatim by
+// lib/scripture-kjv.js (DR-0076).
+const CHILDHOOD = [
+  { id: 'child-kinder', type: 'word', stage: 'Childhood', title: 'The First Day', body: 'Kindergarten. A backpack too big, a lunch packed with love, a mother or grandmother praying over you at the door. A whole community is quietly believing in this child.', lens: 'Like a father pities his children, so Yahweh tends the little ones; the God who knows your frame has watched over you from the very first day.', scripture: { ref: 'Psalm 103:13-14' }, effects: { faith: 1, family: 1, joy: 1 } },
+  { id: 'child-formation', type: 'word', stage: 'Childhood', title: 'Taught the Way Early', body: 'Before you can spell it, you are taught it — at the kitchen table, in the pew, on a grandmother’s knee: guard your heart, tell the truth, honor Yahweh. The Way is caught young.', lens: 'Keep your heart with all diligence, for out of it flow the issues of life — a child taught to guard the heart is handed the key to everything after.', scripture: { ref: 'Proverbs 4:23' }, effects: { faith: 1, wisdom: 1, family: 1 } },
+  { id: 'child-comingofage', type: 'crossroads', stage: 'Coming of Age',
+    body: 'You are old enough now to decide how you will carry what you were given. The whole road ahead bends on this: whose understanding will you lean on?',
+    lens: 'Trust in Yahweh with all your heart and lean not on your own understanding; in all your ways acknowledge Him, and He directs the path.',
+    scripture: { ref: 'Proverbs 3:5-6' },
+    choices: [
+      { label: 'Lean on your own understanding — go your own way', body: 'You decide you know best and set your own course, no counsel needed. It feels like freedom for a while.', effects: { wisdom: 1, faith: -1, peace: -1 } },
+      { label: 'Trust Yahweh with all your heart — let Him direct the road', body: 'You give Him the pen for the road ahead, and acknowledge Him in each turn.', lens: 'Acknowledge Him in all your ways, and He makes the crooked places straight — the young heart that trusts early is spared years of wandering.', effects: { faith: 2, wisdom: 1, peace: 1 }, redemption: true },
+    ] },
+];
+
+// ---- starting paths (the road chosen at the outset; unfolds from childhood) --
 const PATHS = [
   {
     id: 'college',
@@ -46,6 +66,7 @@ const PATHS = [
     lens: 'Wisdom is the principal thing; Yahweh honors the one who seeks understanding for more than themselves.',
     scripture: { ref: 'Proverbs 4:7' },
     opening: [
+      ...CHILDHOOD,
       { id: 'col-enroll', type: 'word', stage: 'Young Adult', title: 'Enrollment', body: 'You enroll — maybe at an HBCU your family has prayed over for years. The cost is real; so is the door it opens.', lens: 'A door Yahweh opens, no one shuts. Walk through it as a steward, not an owner.', scripture: { ref: 'Proverbs 16:9' }, effects: { wisdom: 2, faith: 1, provision: -1 } },
       { id: 'col-study', type: 'card', stage: 'Young Adult', title: 'The Long Nights', body: 'Late libraries, work-study shifts, a community that studies together.', deck: 'life' },
       { id: 'col-mentor', type: 'word', stage: 'Young Adult', title: 'A Hand Back', body: 'An upperclassman who looks like you refuses to let you fail, and asks only that you do the same for the next one.', lens: 'The Way is handed down — freely you received, freely give.', scripture: { ref: '2 Timothy 2:2' }, effects: { wisdom: 1, souls: 1, family: 1 } },
@@ -59,6 +80,7 @@ const PATHS = [
     lens: 'Whatever your hands find to do, do it as unto Yahweh — the skilled worker stands before kings.',
     scripture: { ref: 'Colossians 3:23' },
     opening: [
+      ...CHILDHOOD,
       { id: 'trd-appr', type: 'word', stage: 'Young Adult', title: 'The Apprentice', body: 'You learn a trade under someone who has done it for thirty years and is glad to teach.', lens: 'Honest work is honorable before Yahweh; He sees the unseen craftsmanship.', scripture: { ref: 'Colossians 3:23' }, effects: { wisdom: 1, provision: 1, service: 1 } },
       { id: 'trd-craft', type: 'card', stage: 'Young Adult', title: 'Mastering the Craft', body: 'You get faster, surer, sought-after. Your word becomes your bond.', deck: 'life' },
       { id: 'trd-steady', type: 'word', stage: 'Young Adult', title: 'A Diligent Hand', body: 'You show up when others do not. The diligent hand gathers; the steady worker is trusted with more.', lens: 'The one diligent in their work will stand before kings, not obscure men.', scripture: { ref: 'Proverbs 22:29' }, effects: { provision: 2, wisdom: 1 } },
@@ -72,6 +94,7 @@ const PATHS = [
     lens: 'Commit your works to Yahweh and your plans are established; the builder who builds with Him does not labor in vain.',
     scripture: { ref: 'Proverbs 16:3' },
     opening: [
+      ...CHILDHOOD,
       { id: 'ent-start', type: 'word', stage: 'Young Adult', title: 'The First Door', body: 'You open a small business with more faith than capital. The lights come on.', lens: 'Commit it to Yahweh before the grand opening; He establishes the work of faithful hands.', scripture: { ref: 'Proverbs 16:3' }, effects: { provision: 1, faith: 1, service: 1 } },
       { id: 'ent-risk', type: 'card', stage: 'Young Adult', title: 'The Lean Months', body: 'Some weeks the register is thin. You learn what you are made of.', deck: 'life' },
       { id: 'ent-roots', type: 'word', stage: 'Young Adult', title: 'Customers Become Neighbors', body: 'You hire from your block and your customers become a community.', lens: 'The Father’s economy lifts the whole street, not one house alone — we all win, and we create.', scripture: { ref: 'Proverbs 11:30' }, effects: { service: 2, souls: 1, family: 1 } },
@@ -85,6 +108,7 @@ const PATHS = [
     lens: 'Whoever would be great among you must be servant of all; the Son of Man came not to be served, but to serve.',
     scripture: { ref: 'Mark 10:43-45' },
     opening: [
+      ...CHILDHOOD,
       { id: 'min-call', type: 'word', stage: 'Young Adult', title: 'The Call', body: 'You sense a call you cannot shake, and you answer it.', lens: 'Yahweh equips the ones He calls; the servant’s road is never walked alone.', scripture: { ref: 'Mark 10:43-45' }, effects: { faith: 2, service: 1 } },
       { id: 'min-serve', type: 'card', stage: 'Young Adult', title: 'In the Trenches', body: 'Hospital visits, food pantries, funerals, weddings — the whole of life passes through your hands.', deck: 'life' },
       { id: 'min-disciple', type: 'word', stage: 'Young Adult', title: 'Discipling the Young', body: 'You pour into young people the church had almost given up on.', lens: 'The one who wins souls is wise; this is the Father’s business.', scripture: { ref: 'Proverbs 11:30' }, effects: { souls: 2, faith: 1 } },
@@ -94,8 +118,41 @@ const PATHS = [
 ];
 
 // ---- the shared trunk (the common life journey, all paths converge here) -----
+// The trunk opens on a WORK-&-CALLING sequence (Darrell's spoken teaching,
+// 2026-07-06): the first real job pays differently on different roads — braid
+// hair eight hours for $120 because the gift is in your hands, serve at a
+// counter, or apprentice to a craft and build the technology the community runs
+// on. His points, built in order: (1) different work pays different money —
+// choose by the GIFT Yahweh put in your hands, not your neighbor's, and NEVER by
+// keeping up with the Joneses; (2) gaining SKILL with the time you have is the
+// real wage; (3) THINKING ON GOOD THINGS as Yahweh said (Philippians 4:8 — the
+// Test) and programming the mind with His Word DAILY (Romans 12:2 — the renewed
+// mind) is the engine of the whole life; (4) the ability to create wealth and the
+// tables Yahweh sets both come from HIM, His Way, working for our good
+// (Deuteronomy 8:18) — never from comparison — and the money comes, eventually,
+// to the one who waits on Him; the next space (Seek first the Kingdom, Matthew
+// 6:33) is the capstone. All three gift-tracks are honorable; the only wrong move
+// is abandoning your gift to keep up with someone else. FRAMING is Darrell +
+// Bishop's to govern (GOVERNANCE-EXECUTION-ADVISORY) and is flagged for review.
 const TRUNK = [
-  { id: 'foundation', type: 'word', stage: 'Building Years', title: 'The Foundation', body: 'Whatever road you took, one decision sets the rest: what comes first.', lens: 'Seek first the Kingdom of Yahweh and His righteousness, and all these things are added to you.', scripture: { ref: 'Matthew 6:33' }, effects: { faith: 2, peace: 1 } },
+  { id: 'calling', type: 'crossroads', stage: 'Young Adult', title: 'The Gift in Your Hands',
+    body: 'The first real work is in front of you, and it does not pay the same everywhere. Braid hair for eight hours and you make a hundred and twenty dollars — and if the gift is in your hands, you would do it again tomorrow. Hair is not everyone’s gift; another would rather serve people at a counter, or apprentice to a craft and build the technology the community runs on. Different roads, different money. The question underneath is not which pays most today — it is which gift Yahweh put in your hands.',
+    lens: 'The gifts differ, but the same Spirit gives them. Steward the one placed in your hands, not your neighbor’s — the hand that works its own calling works gladly, and gladness outlasts a wage.',
+    scripture: { ref: '1 Peter 4:10' },
+    choices: [
+      { label: 'Keep up with the Joneses — chase the biggest paycheck', body: 'You take whatever pays most, gift or no gift, to keep up with what the next family has. It fills the account today and quietly empties something a paycheck cannot refill.', effects: { provision: 2, peace: -1, joy: -1 } },
+      { label: 'Braid hair — the gift is in your hands', body: 'Eight hours, a hundred and twenty dollars, and work that sings because it is yours to do.', lens: 'Whatsoever your hand finds to do, do it heartily as unto Yahweh — the gift worked gladly is worship.', effects: { service: 2, provision: 1, joy: 1 } },
+      { label: 'Serve people at the counter', body: 'Hair is not your gift, but people are. Fewer hours, honest pay, and you are good with folks.', effects: { service: 1, souls: 1, joy: 1, provision: 1 } },
+      { label: 'Apprentice to a craft — put your hand to building', body: 'You learn a skill — building the very technology the community will run on. The pay starts small; the craft compounds.', lens: 'Yahweh honors the diligent hand that learns a trade; the skill you build with your hours is provision no one can take back.', effects: { wisdom: 2, service: 1, joy: 1 } },
+    ] },
+
+  { id: 'skill', type: 'word', stage: 'Young Adult', title: 'The Skill Is the Real Wage', body: 'Two people work the same hours; one ends the year with only a paycheck already spent, the other with a skill no one can take back. The truest wage of your time is what your hands LEARN — and the money for it comes later, in Yahweh’s time and His Way.', lens: 'The diligent hand that gains a craft comes to stand before kings. Skill built with your hours is provision that cannot be spent — wait on Yahweh, and the increase comes His Way, in His time.', scripture: { ref: 'Proverbs 22:29' }, effects: { wisdom: 1, service: 1, provision: 1 } },
+
+  { id: 'goodthings', type: 'word', stage: 'Young Adult', title: 'Program the Mind With the Word', body: 'While the hands work, the mind is working too — and Yahweh gave the rule for it: whatsoever is true, honest, just, pure, lovely, of good report — think on these things. This is not once; it is daily. You program the mind with His Word every day the way you would train any muscle, until His way of thinking becomes your own.', lens: 'Think on good things, as Yahweh said, and be transformed by the renewing of your mind — daily. A mind programmed with His Word is the engine of the whole life; the Test keeps the gate.', scripture: { ref: 'Philippians 4:8' }, effects: { peace: 1, faith: 1, wisdom: 1 } },
+
+  { id: 'wealthgift', type: 'word', stage: 'Young Adult', title: 'He Gives the Power to Get Wealth', body: 'Here is where the ability to build actually comes from. Not from keeping up with anyone — from Yahweh. He is the One who gives the power to get wealth, and He is the One who sets a table for you even in front of those who counted you out. His Ways, worked daily, are what create the table and the increase.', lens: 'It is Yahweh who gives you the power to get wealth, to establish His covenant — never the striving to keep up with the Joneses. The abilities to create, and the table He prepares, both come from Him, His Way, working for your good.', scripture: { ref: 'Deuteronomy 8:18' }, effects: { faith: 1, wisdom: 1, provision: 1 } },
+
+  { id: 'foundation', type: 'word', stage: 'Building Years', title: 'The Foundation', body: 'Whatever road you took, one decision sets the rest: what comes first.', lens: 'Seek first the Kingdom of Yahweh and His righteousness, and all these things are added to you — the provision comes His Way, in His time.', scripture: { ref: 'Matthew 6:33' }, effects: { faith: 2, peace: 1 } },
 
   { id: 'marriage', type: 'word', stage: 'Building Years', title: 'A Covenant', body: 'You join your life to another in covenant, not just contract.', lens: 'A cord of faith, family and Yahweh is not quickly broken.', scripture: { ref: 'Deuteronomy 6:4' }, effects: { family: 2, joy: 1 } },
 
@@ -127,6 +184,16 @@ const TRUNK = [
     choices: [
       { label: 'Keep building your own house', body: 'You consolidate. It is not wrong; it is just not yet Kingdom.', effects: { provision: 2 } },
       { label: "Invest in the Father's business", body: 'You fund the ministry, the after-school program, the widow down the street.', lens: 'Lay up treasure where neither rust nor robber reaches; Yahweh is no one’s debtor.', effects: { provision: -1, souls: 2, service: 2, faith: 1 }, redemption: true },
+    ] },
+
+  { id: 'assets', type: 'crossroads', stage: 'Establishing', title: 'Buying & Managing Assets',
+    body: 'You have enough now to acquire something that WORKS while you sleep — a rental, a set of tools, a share of a business, a piece of land. But owning is only half of it; an asset left untended decays. What you buy, and whether you steward it, is the question.',
+    lens: 'The wise store treasure in their dwelling; the foolish spend it up. An asset bought to keep and MANAGED with a faithful hand becomes provision for your children’s children.',
+    scripture: { ref: 'Proverbs 21:20' },
+    choices: [
+      { label: 'Flip it fast and spend the gain', body: 'You cash out and consume it. The number was good; nothing is left standing.', effects: { provision: 2, wisdom: -1 } },
+      { label: 'Buy it, but leave it untended', body: 'You own it and forget it. Neglect quietly eats what ownership gave you.', effects: { provision: 1, peace: -1 } },
+      { label: 'Buy to keep and steward it well — for the generations', body: 'You buy to hold, you learn to manage it, you maintain it, and you let it produce year after year.', lens: 'Faithful in little, faithful in much — Yahweh trusts the diligent manager with more, and the well-kept asset outlives its buyer.', scripture: { ref: 'Luke 16:10' }, effects: { provision: 1, wisdom: 2, family: 2, service: 1 }, redemption: true },
     ] },
 
   { id: 'tithe', type: 'crossroads', stage: 'Establishing', title: 'First-Fruits',
@@ -176,6 +243,15 @@ const TRUNK = [
 
   { id: 'generational', type: 'word', stage: 'Elder', title: 'Generational Wealth', body: 'You build something meant to outlast you — not to be consumed, but inherited.', lens: 'A good man leaves an inheritance to his children’s children; honor Yahweh with the first of it and the rest is sanctified.', scripture: { ref: 'Proverbs 3:9-10' }, effects: { provision: 2, family: 2 } },
 
+  { id: 'grandchildren', type: 'crossroads', stage: 'Elder', title: 'Helping the Grandchildren',
+    body: 'The children of your children are here now, and you have what a young family rarely does: time, wisdom, and something saved. You can keep it for your own comfort, or pour it forward — teaching them the Way and handing them a start.',
+    lens: 'What you learned, entrust to them, that they may teach the ones after — an elder who pours into the grandchildren plants a tree whose shade they will never sit in, and blesses generations they will never meet.',
+    scripture: { ref: '2 Timothy 2:2' },
+    choices: [
+      { label: 'Keep it for yourself — they’ll make their own way', body: 'You hold it close. You earned it, after all. The table has an empty chair you do not fill.', effects: { provision: 1, family: -1 } },
+      { label: 'Pour into the grandchildren — teach them, help them, hand them a start', body: 'You teach them the Way, you help with the first home or the first business, you leave them more than money.', lens: 'The things you have learned, commit to faithful children who will teach the next ones also — this is how the Way, and the inheritance, run past your lifetime.', effects: { family: 2, souls: 1, wisdom: 1, faith: 1 }, redemption: true },
+    ] },
+
   { id: 'peace', type: 'word', stage: 'Elder', title: 'A Settled Peace', body: 'The striving quiets. You have learned where peace actually comes from.', lens: 'Yahweh keeps in perfect peace the mind stayed on Him — a peace the world cannot give and cannot take.', scripture: { ref: 'Isaiah 26:3' }, effects: { peace: 2, faith: 1, joy: 1 } },
 
   { id: 'elder', type: 'word', stage: 'Elder', title: 'Elder & Honored', body: 'Gray hair is a crown now; the family gathers around your table for the blessing.', lens: 'From everlasting to everlasting, Yahweh is God; the elder who walked with Him becomes a wellspring for many.', scripture: { ref: 'Psalm 90:2' }, effects: { family: 2, wisdom: 1, joy: 1 } },
@@ -199,6 +275,7 @@ const LIFE_DECK = [
   { title: 'The Co-op', body: 'Neighbors pool what little each has and build together what none could alone.', lens: 'The Father’s economy multiplies the shared loaf; we all win, and we create.', effects: { service: 2, provision: 1, souls: 1 } },
   { title: 'Plant Where There Was None', body: 'You turn a vacant lot into a garden, and the whole block starts to breathe again.', lens: 'Yahweh makes the desert bloom through ordinary, faithful hands.', effects: { service: 1, joy: 1, provision: 1, family: 1 } },
   { title: 'Lead the Youth Ministry', body: 'You take on the young people the world had already written off.', lens: 'The harvest is people; the one who labors for souls labors for what lasts forever.', scripture: { ref: '2 Timothy 2:2' }, effects: { souls: 2, service: 1, faith: 1 } },
+  { title: 'The Gift You Were Given', body: 'You watch someone work a gift you do not have — braiding, fixing, teaching, building — and you stop envying it. Yahweh handed each person a different set of tools; yours are already in your own hands.', lens: 'No gift is wasted in the Father’s economy; the body needs every hand doing the one thing it was made to do. Steward yours, and build the skill while you have the time.', scripture: { ref: '1 Peter 4:10' }, effects: { service: 1, wisdom: 1, joy: 1 } },
   // --- choice cards ---
   { title: 'Unequal Treatment', body: 'You are treated as less than you are — at the counter, the traffic stop, the interview. How you carry it shapes you.',
     lens: 'Yahweh keeps the accounts the world refuses to. Your dignity is His gift; no one can vote it away.',

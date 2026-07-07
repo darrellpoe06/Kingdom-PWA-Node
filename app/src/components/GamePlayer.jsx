@@ -25,6 +25,7 @@ import {
   choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor,
 } from '../lib/games/engine.js';
 import { resolveScripture } from '../lib/games/scripture-link.js';
+import { FamilyPortrait, JourneyStart, PathEmblem } from './games/GameArt.jsx';
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
 const T_INK = 'text-[#1A1815]';
@@ -130,6 +131,7 @@ function PathPicker({ def, state, onChange }) {
   return (
     <div>
       <div className={`${BG_CREAM} border ${BORDER} rounded-lg p-4 mb-4`}>
+        <JourneyStart className="mb-3 border border-[#E8E4DC]" />
         <Eyebrow>Where the journey begins</Eyebrow>
         <p className={`text-sm leading-relaxed ${T_INK} mt-1`}>
           Every life starts at a crossroads. Choose the road you&rsquo;ll set out on. There is no wrong door &mdash;
@@ -143,11 +145,16 @@ function PathPicker({ def, state, onChange }) {
             onClick={() => onChange(choosePath(def, state, p.id))}
             className={`text-left ${BG_CARD} border ${BORDER} rounded-lg p-4 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
           >
-            <div className="flex items-center justify-between">
-              <span className={`text-base font-semibold ${T_INK}`}>{p.label}</span>
-              <UiIcon name="pin" className={T_ACCENT} />
+            <div className="flex items-start gap-3">
+              <PathEmblem pathId={p.id} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-base font-semibold ${T_INK}`}>{p.label}</span>
+                  <UiIcon name="pin" className={T_ACCENT} />
+                </div>
+                <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{p.blurb}</p>
+              </div>
             </div>
-            <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{p.blurb}</p>
             <LensCallout>{p.lens}</LensCallout>
           </button>
         ))}
@@ -247,6 +254,8 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
         <Eyebrow>Legacy</Eyebrow>
         <h2 className={`text-2xl font-semibold ${T_INK} mt-1`} style={{ fontFamily: 'Fraunces, serif' }}>{legacy.tier}</h2>
         <p className={`text-sm leading-relaxed ${T_INK} mt-2 max-w-prose mx-auto`}>{legacy.headline}</p>
+        <FamilyPortrait className="mt-4 border border-[#E8E4DC] max-w-sm mx-auto" />
+        <p className={`text-[0.625rem] ${T_MUTE} mt-2`}>The generation you walked for &mdash; and the one you hand it to.</p>
       </div>
 
       <div className="mt-4">
