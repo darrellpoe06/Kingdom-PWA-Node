@@ -18,6 +18,7 @@ import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE } from
 import AppInterestCapture from './AppInterestCapture.jsx';
 import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
+import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -113,9 +114,12 @@ function MyOrders() {
   if (state.phase === 'checking') return null;
   if (state.phase === 'signed-out') {
     return (
-      <p className="text-xs text-[#5A5751]">
-        Have an account? <a className="underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
-      </p>
+      <div className="text-xs text-[#5A5751]">
+        <p>
+          Have an account? <a className="underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
+        </p>
+        {isInAppBrowser() && <p className="mt-1 text-[#B85838]">{IN_APP_BROWSER_HINT}</p>}
+      </div>
     );
   }
   if (state.phase === 'error' || state.rows.length === 0) {
