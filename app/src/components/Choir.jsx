@@ -17,7 +17,8 @@
 // labelled inputs, visible #B85838 focus outline, aria-live on the thread.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionTitle, TabScroll } from './shared.jsx';
+import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
 import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
@@ -685,7 +686,6 @@ const TABS = [['week', 'This week'], ['songs', 'Songs'], ['songbook', 'Songbook'
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ canSee: false, canEdit: false });
-  const [tab, setTab] = useState('week');
   const [songs, setSongs] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [sermons, setSermons] = useState([]);
@@ -753,88 +753,89 @@ export default function Choir() {
     );
   }
 
+  // One panel per tab id — plain closures over the top-level state (SectionTabs
+  // mounts only the active one, same lazy behavior the hand-rolled strip had).
+  // Keyed off `const TABS` above, which scripts/feedback-area-guard.mjs scrapes:
+  // the ids must keep matching the `choir-<id>` FEEDBACK_AREAS keys.
+  const PANELS = {
+    week: () => (
+      <>
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <ThisWeekPanel
+          schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+        />
+      </>
+    ),
+    songs: () => <ChoirSongWorkshop access={access} />,
+    songbook: () => <ChoirSongbook songs={songs} access={access} />,
+    schedule: () => (
+      <>
+        {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <SchedulePanel
+          schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAdd={() => setServiceForm({ initial: null })}
+          onEdit={(svc) => setServiceForm({ initial: svc })}
+          onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+        />
+      </>
+    ),
+    teamdocs: () => (
+      <TeamDocsPanel
+        docs={teamDocs} canEdit={access.canEdit}
+        onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
+        onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
+      />
+    ),
+    availability: () => (
+      <AvailabilityPanel
+        absences={absences} members={members} canEdit={access.canEdit}
+        onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
+        onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
+        onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
+      />
+    ),
+    messages: () => (
+      <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
+    ),
+    resources: () => (
+      <ResourcesPanel
+        resources={resources} canEdit={access.canEdit}
+        onAdd={async (r) => { reportSkip(await saveResource(r)); }}
+        onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
+      />
+    ),
+    roster: () => (
+      <RosterPanel
+        members={members} canEdit={access.canEdit}
+        onAdd={async (m) => { reportSkip(await addMember(m)); }}
+        onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
+        onInvite={(email, role) => inviteToChurch(email, role)}
+      />
+    ),
+  };
+
+  // The sliding section row is the shared SectionTabs primitive ("sliding tabs
+  // instead of a long scroll", Darrell 2026-07-04) — same TabScroll motion the
+  // old strip had, now with the real tablist a11y. The error banner stays PINNED
+  // above the strip so a failed save is visible from any tab.
+  const sections = TABS.map(([id, label]) => ({ id, label, render: PANELS[id] }));
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
-      <TabScroll className="mb-3">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </TabScroll>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
 
-      {tab === 'week' && (
-        <>
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <ThisWeekPanel
-            schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
-            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
-            onEditSong={(s) => setSongForm({ initial: s })}
-            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
-            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
-          />
-        </>
-      )}
-
-      {tab === 'songs' && <ChoirSongWorkshop access={access} />}
-
-      {tab === 'songbook' && <ChoirSongbook songs={songs} access={access} />}
-
-      {tab === 'schedule' && (
-        <>
-          {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <SchedulePanel
-            schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
-            onAdd={() => setServiceForm({ initial: null })}
-            onEdit={(svc) => setServiceForm({ initial: svc })}
-            onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
-            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
-            onEditSong={(s) => setSongForm({ initial: s })}
-            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
-            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
-          />
-        </>
-      )}
-
-      {tab === 'teamdocs' && (
-        <TeamDocsPanel
-          docs={teamDocs} canEdit={access.canEdit}
-          onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
-          onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
-        />
-      )}
-
-      {tab === 'resources' && (
-        <ResourcesPanel
-          resources={resources} canEdit={access.canEdit}
-          onAdd={async (r) => { reportSkip(await saveResource(r)); }}
-          onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
-        />
-      )}
-
-      {tab === 'availability' && (
-        <AvailabilityPanel
-          absences={absences} members={members} canEdit={access.canEdit}
-          onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
-          onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
-          onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
-        />
-      )}
-
-      {tab === 'messages' && (
-        <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
-      )}
-
-      {tab === 'roster' && (
-        <RosterPanel
-          members={members} canEdit={access.canEdit}
-          onAdd={async (m) => { reportSkip(await addMember(m)); }}
-          onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
-          onInvite={(email, role) => inviteToChurch(email, role)}
-        />
-      )}
+      <SectionTabs sections={sections} ariaLabel="Choir sections" idBase="choir" defaultId="week" />
     </div>
   );
 }
