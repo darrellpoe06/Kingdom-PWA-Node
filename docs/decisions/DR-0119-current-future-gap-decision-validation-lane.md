@@ -1,4 +1,4 @@
-# DR-0118 — The validation lane: Current State → Future State → Gap → Decision, with honest outcomes
+# DR-0119 — The validation lane: Current State → Future State → Gap → Decision, with honest outcomes
 
 - **Status:** accepted
 - **Tier:** B (a working-boards capability + one real seed application)

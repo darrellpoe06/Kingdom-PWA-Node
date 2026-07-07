@@ -1,5 +1,5 @@
 // =============================================================================
-// board-validation — the Current → Future → Gap → Decision lane (DR-0118)
+// board-validation — the Current → Future → Gap → Decision lane (DR-0119)
 // =============================================================================
 // Pins Darrell's Mosaic-board validation workflow as adopted into the working
 // boards: the four flow steps, the honest outcome vocabulary (unknown by

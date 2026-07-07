@@ -61,7 +61,10 @@ DATA-AS-EMPOWERMENT (who this serves and how).
 
 Every step ships through the standing lane: tests + gates → auto-merge on
 green → deploy PROVEN (DR-0107) → migrations verified in the ledger → the
-live user-view review (DR-0104).
+live user-view review (DR-0104) → and before FIRST customers, the recorded
+**entrance review** (ENTRANCE-REVIEW.md, DR-0118): every entry/input spot
+walked on the running build, results appended to `docs/reviews/REVIEWS.md`
+every time.
 
 ## The machinery (what makes it ASAP for client #2+)
 

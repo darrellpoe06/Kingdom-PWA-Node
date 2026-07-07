@@ -236,7 +236,7 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
       </div>
 
       {/* The validation lane — Darrell's Current → Future → Gap → Decision
-          workflow (DR-0118, from his Mosaic implementation board). Renders only
+          workflow (DR-0119, from his Mosaic implementation board). Renders only
           when this board carries flow-tagged rows; plain boards are untouched.
           The same rows also stay listed in their group below (one data model,
           two views) so every edit affordance is preserved. */}
@@ -275,7 +275,7 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
 
 // -----------------------------------------------------------------------------
 // ValidationLanes — the sideways Current → Future → Gap → Decision walk, one
-// lane per unit, 'All units' pinned first (DR-0118; Darrell's Mosaic-board
+// lane per unit, 'All units' pinned first (DR-0119; Darrell's Mosaic-board
 // workflow). Each cell: the step, the row's work status (tap = advance), and
 // its validation OUTCOME chip (tap = cycle Fit → Partial fit → Gap → Unknown).
 // A step with no row reads "not examined" — honest, never invented. The lane

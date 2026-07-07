@@ -1,6 +1,6 @@
 // =============================================================================
 // ValidationLanes render proof — the sideways Current → Future → Gap → Decision
-// walk (DR-0118), rendered with the REAL Moore discovery-validation seed rows.
+// walk (DR-0119), rendered with the REAL Moore discovery-validation seed rows.
 // =============================================================================
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';

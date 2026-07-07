@@ -16,7 +16,7 @@
 //
 // This is the board-shaped form of the reality-trace + DR-0076: current reality
 // named first, the expectation stated, the gap made explicit, and a decision
-// recorded — never a build straight from assumption. Recorded as DR-0118.
+// recorded — never a build straight from assumption. Recorded as DR-0119.
 //
 // DATA SHAPE — additive, no migration: a task opts into the lane view via its
 // synced `links` jsonb: links.flow = one of FLOW_ORDER, links.unit = the lane

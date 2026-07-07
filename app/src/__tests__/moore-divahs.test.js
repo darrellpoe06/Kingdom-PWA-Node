@@ -12,6 +12,7 @@ import {
   normalizeBulkLine, validateBulkLine, bulkPickList, bulkTotals,
   changeOrderFee, appendChangeOrder, IN_PRODUCTION_FEE_FLOOR_PCT,
   CHANGE_ADMIN_FEE_CENTS, newClassSession, seatsLeft, canBook, CLASS_FORMATS,
+  oneOnOneSlotIssue,
   orderStats, classStats, revenueGoalPlan, isSeedOrder, NO_PAYMENT_PROCESSING,
 } from '../lib/moore-divahs.js';
 
@@ -20,7 +21,9 @@ const NOW = '2026-07-07T12:00:00.000Z';
 describe('brand + binding posture', () => {
   it('Moore Divahs is data, not hardcoding — and never processes payment', () => {
     expect(MOORE_BRAND.label).toBe('Moore Divahs');
-    expect(MOORE_BRAND.email).toBe('mooredivahs1@yahoo.com');
+    // Her address is sign-in-only (Darrell 2026-07-07) — the brand record must
+    // never carry it, so no surface can ever render it.
+    expect(MOORE_BRAND.email).toBeUndefined();
     expect(NO_PAYMENT_PROCESSING).toBe(true);
   });
   it('her flyer policies are encoded verbatim in spirit — her words are senior', () => {
@@ -147,10 +150,38 @@ describe('classes — cap 10, paid seats only, two-week 1-on-1 lead', () => {
     const sess = newClassSession({ format: 'group', dateIso: '2026-08-08T17:00:00.000Z' }, { now: NOW, id: 'mc-2' });
     const full = Array.from({ length: 10 }, (_, i) => ({ sessionId: 'mc-2', paidAt: NOW, name: `s${i}` }));
     expect(canBook(sess, full, { now: NOW }).ok).toBe(false);
-    const one = newClassSession({ format: 'one-on-one', dateIso: '2026-07-14T17:00:00.000Z' }, { now: NOW, id: 'mc-3' });
+    // Local-constructed slots: the window rule reads the local wall clock,
+    // exactly the clock the datetime-local picker writes.
+    const one = newClassSession({ format: 'one-on-one', dateIso: new Date(2026, 6, 14, 10, 0).toISOString() }, { now: NOW, id: 'mc-3' });
     expect(canBook(one, [], { now: NOW }).ok).toBe(false); // only 7 days out
-    const oneOk = newClassSession({ format: 'one-on-one', dateIso: '2026-07-28T17:00:00.000Z' }, { now: NOW, id: 'mc-4' });
-    expect(canBook(oneOk, [], { now: NOW }).ok).toBe(true);
+    const oneOk = newClassSession({ format: 'one-on-one', dateIso: new Date(2026, 6, 28, 10, 0).toISOString() }, { now: NOW, id: 'mc-4' });
+    expect(canBook(oneOk, [], { now: NOW }).ok).toBe(true); // Tue 10 AM, 21 days out
+  });
+});
+
+describe('one-on-one window — Mon-Fri, 9 AM-1 PM (Shay, priority 2026-07-07)', () => {
+  // 2026-07-25 = Saturday, 2026-07-27 = Monday. Dates built with the LOCAL
+  // constructor so getDay/getHours see exactly what the picker would write.
+  it('weekends are refused; group classes are untouched', () => {
+    const sat = new Date(2026, 6, 25, 10, 0).toISOString();
+    expect(oneOnOneSlotIssue(sat)).toBe('One-on-one sessions land Monday through Friday.');
+    expect(oneOnOneSlotIssue(sat, 'group')).toBeNull();
+  });
+  it('start time must fall inside 9 AM - 1 PM, boundaries included', () => {
+    expect(oneOnOneSlotIssue(new Date(2026, 6, 27, 8, 0).toISOString())).toBe('One-on-one sessions start between 9 AM and 1 PM.');
+    expect(oneOnOneSlotIssue(new Date(2026, 6, 27, 9, 0).toISOString())).toBeNull();
+    expect(oneOnOneSlotIssue(new Date(2026, 6, 27, 13, 0).toISOString())).toBeNull();
+    expect(oneOnOneSlotIssue(new Date(2026, 6, 27, 13, 30).toISOString())).toBe('One-on-one sessions start between 9 AM and 1 PM.');
+  });
+  it('a missing or garbage date names itself instead of passing', () => {
+    expect(oneOnOneSlotIssue('')).toBe('A date and time are required.');
+    expect(oneOnOneSlotIssue('not-a-date')).toBe('A date and time are required.');
+  });
+  it('canBook refuses an out-of-window one-on-one even past the 14-day lead', () => {
+    const sat = newClassSession({ format: 'one-on-one', dateIso: new Date(2026, 6, 25, 10, 0).toISOString() }, { now: NOW, id: 'mc-5' });
+    expect(canBook(sat, [], { now: NOW })).toEqual({ ok: false, reason: 'One-on-one sessions land Monday through Friday.' });
+    const lateMon = newClassSession({ format: 'one-on-one', dateIso: new Date(2026, 6, 27, 15, 0).toISOString() }, { now: NOW, id: 'mc-6' });
+    expect(canBook(lateMon, [], { now: NOW }).reason).toBe('One-on-one sessions start between 9 AM and 1 PM.');
   });
 });
 

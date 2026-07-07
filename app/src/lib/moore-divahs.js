@@ -47,7 +47,9 @@ export const MOORE_BRAND = {
   key: 'moore-divahs',
   label: 'Moore Divahs',
   owner: 'Shay',
-  email: 'mooredivahs1@yahoo.com',
+  // No email field on purpose (Darrell 2026-07-07): her address is her private
+  // sign-in only — it never renders on any surface. Contact flows in-app
+  // (messaging + order intake); the relay to her inbox rides the CRM, unseen.
   tagline: 'Custom clothing · scrub caps · custom shoes · sewing classes',
   accent: '#B85838',
   // Values only Shay holds — filled when she provides them (board: md-handles).
@@ -321,7 +323,13 @@ export function appendChangeOrder(order, { band, reason, shayPct = null, accepte
 // -----------------------------------------------------------------------------
 export const CLASS_FORMATS = {
   'group':      { label: 'Group class',  priceCentsDefault: 4500, seatCap: 10,  minLeadDays: 0,  blurb: 'Bring a friend — machines + materials provided. Just show up and create.' },
-  'one-on-one': { label: 'One-on-one',   priceCentsDefault: 7500, seatCap: 1,   minLeadDays: 14, durationHours: 2.5, blurb: 'A 2.5-hour private session. Book at least two weeks out.' },
+  'one-on-one': { label: 'One-on-one',   priceCentsDefault: 7500, seatCap: 1,   minLeadDays: 14, durationHours: 2.5,
+                  // Shay 2026-07-07 (via Darrell, priority): one-on-ones are
+                  // booked out AND land Monday-Friday inside 9 AM - 1 PM. Local
+                  // wall-clock rules — validated with local Date methods, the
+                  // same clock the datetime-local picker writes.
+                  bookableDays: [1, 2, 3, 4, 5], windowStartHour: 9, windowEndHour: 13,
+                  blurb: 'A 2.5-hour private session. Book at least two weeks out — weekdays, 9 AM to 1 PM.' },
 };
 export function newClassSession(partial = {}, { now = null, id = null } = {}) {
   const ts = now || new Date().toISOString();
@@ -347,6 +355,25 @@ export function seatsLeft(session, signups = []) {
   const paid = asArr(signups).filter((s) => s && s.sessionId === session?.id && s.paidAt).length;
   return Math.max(0, asNum(session?.seatCap, 0) - paid);
 }
+// oneOnOneSlotIssue — HER window, structural: a one-on-one slot must fall
+// Monday-Friday with a start time inside 9 AM - 1 PM (local wall clock — the
+// clock the scheduling picker writes). null = the slot is fine; a string names
+// exactly what is wrong. Group classes are untouched.
+export function oneOnOneSlotIssue(dateIso, format = 'one-on-one') {
+  const spec = CLASS_FORMATS[format];
+  if (!spec || !spec.bookableDays) return null;
+  const d = new Date(dateIso || '');
+  if (Number.isNaN(d.getTime())) return 'A date and time are required.';
+  if (!spec.bookableDays.includes(d.getDay())) {
+    return 'One-on-one sessions land Monday through Friday.';
+  }
+  const startMinutes = d.getHours() * 60 + d.getMinutes();
+  if (startMinutes < spec.windowStartHour * 60 || startMinutes > spec.windowEndHour * 60) {
+    return 'One-on-one sessions start between 9 AM and 1 PM.';
+  }
+  return null;
+}
+
 export function canBook(session, signups = [], { now = null } = {}) {
   if (!session || !session.dateIso) return { ok: false, reason: 'No session date set.' };
   const base = now ? Date.parse(now) : Date.now();
@@ -354,6 +381,8 @@ export function canBook(session, signups = [], { now = null } = {}) {
   const minLead = CLASS_FORMATS[session.format]?.minLeadDays || 0;
   if (lead < 0) return { ok: false, reason: 'This class date has passed.' };
   if (lead < minLead) return { ok: false, reason: `One-on-one sessions book at least ${minLead} days out.` };
+  const slotIssue = oneOnOneSlotIssue(session.dateIso, session.format);
+  if (slotIssue) return { ok: false, reason: slotIssue };
   if (seatsLeft(session, signups) < 1) return { ok: false, reason: 'Class is full — every seat is paid.' };
   return { ok: true, reason: null };
 }

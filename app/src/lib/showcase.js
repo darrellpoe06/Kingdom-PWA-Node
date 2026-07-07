@@ -6,11 +6,17 @@
 // first, then newest — "sorted by whatever makes sense").
 // =============================================================================
 import supabase from './supabase.js';
+import { publicRpc } from './public-rpc.js';
 
 const BUCKET = 'moore-showcase';
 
+// Public read rides publicRpc (anon + hard deadline), NEVER the shared client:
+// the shared client's getSession() waits on a cross-tab auth lock, and a wedged
+// PoeTech window on the same device hangs it forever (the 2026-07-07 "gallery
+// never loads" hang). Steward WRITES below keep the real client — they need
+// the session.
 export async function fetchShowcase(instanceSlug) {
-  const { data, error } = await supabase.rpc('moore_showcase', { p_instance_slug: instanceSlug });
+  const { data, error } = await publicRpc('moore_showcase', { p_instance_slug: instanceSlug });
   if (error) return { ok: false, pieces: [] };
   return { ok: true, pieces: data || [] };
 }
