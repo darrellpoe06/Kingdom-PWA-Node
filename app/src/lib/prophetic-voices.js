@@ -37,6 +37,16 @@ export const PV_META = {
   cadenceDays: 7,
   weeks: 6,
   handsOnLabel: 'Hands-on: hear the primary source',
+  // Self-paced label layer — the shared engine renders rows as "Voice(s)" with
+  // no cohort clock (this is a study catalog, not a weekly class).
+  unit: {
+    noun: 'voice',
+    nounPlural: 'voices',
+    cap: 'Voice',
+    selfPaced: true,
+    sessionLabel: 'How to lead it (family or small group)',
+    countNoun: 'voice',
+  },
   blurb: 'The Body’s own overlooked voices — preachers who named America’s sins and the Church’s complicity (Dr. Frederick K.C. Price, Pastor Stephen Darby), and scientists/scholars who recovered the truth of Nile Valley civilization against imperial revisionism (Dr. Cheikh Anta Diop, Dr. Théophile Obenga, Dr. Chancellor Williams). Each voice is cited to its real work and cross-referenced with the Word; the study holds the record and points you to the source to weigh with discernment (the Test). Yahweh is the Light of Truth.',
   footer: '_Compiled by Darrell Poe · The Church of the Living God + PoeTech. We keep the record of the Body’s own prophets — cited, not endorsed wholesale — and we weigh every teaching by the Word (the Test). Honour to whom honour is due (Romans 13:7)._',
 };
@@ -301,6 +311,7 @@ import {
 } from './church-classes.js';
 
 export const PV_INTEREST_TAG = '[Prophetic Voices study interest]';
+export const PV_HELPER_TAG = '[Prophetic Voices study helper]';
 
 export function resolvePvCohort(localCohort = null) {
   return resolveCohortGeneric(localCohort, PV_CONFIRMED_COHORT, PV_PROPOSED_COHORT_START);
@@ -317,6 +328,13 @@ export function exportPvCurriculumMarkdown(startISO = null) {
     startISO,
   );
 }
+
+// The tutor course-meta this study passes to askTutor.
+export const PV_TUTOR_META = {
+  title: PV_META.title,
+  intro: 'You are a careful, honoring study guide for "Prophetic Voices: The Body’s Own on America’s Sins & the Church’s Account."',
+  posture: 'Guide ONE learner — matching your words and pace to their age — through the record of the Body’s own prophetic witnesses: preachers and scholars who named America’s sins and the American Church’s complicity plainly, at cost, and were overlooked for it (Matthew 13:57; Acts 7:52). Hold the study’s own discipline: cite every voice to its real, primary work with dates (DR-0076 — never a claim from memory); state the DOCUMENTED record plainly, never softened (DR-0100); point the learner to the primary source; and weigh every teaching by the Word (the Test) — the study holds the record and cross-references Scripture, it does not endorse every teaching of every voice wholesale. Honour to whom honour is due (Romans 13:7). Cite Scripture by reference; never invent or paraphrase a verse as if quoting it; if unsure, say so plainly.',
+};
 
 // Every documented source across the study, flattened (DR-0076 verification).
 export function pvSources() {

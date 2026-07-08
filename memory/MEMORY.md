@@ -118,6 +118,24 @@ relying on it; memories reflect what was true when written.
   `| head` on pass/fail commands; capture `$?` before trimming), and a piped
   local "green" is not evidence — re-run clean before claiming it.
 
+- **2026-07-08 — courses are a built⇒surfaced checked class; lessons speak the
+  Word's justice (DR-0129)** — Kingdom Economics + Prophetic Voices were fully
+  authored 2026-07-04 and never wired into Church → Learn (the host hand-listed
+  10 descriptors), and Living Lessons L12 shipped without an `anchor` and
+  crashed the live Learn surface (the old render test only exercised the
+  DEFAULT course). Standing rules: (1) every finished course registers in
+  `app/src/lib/learn-catalog.js` — the host mounts self-paced courses FROM the
+  registry, and `learn-catalog-render.test.jsx` clicks EVERY course, holds the
+  ≥ 40-lesson floor, and scans src/lib for unregistered course libs; (2) a
+  discernment lesson's OWN voice states adjudicated findings plainly (a jury
+  finding IS a verdict — deflating it into "allegation" is false witness in
+  reverse, Isaiah 5:20 / Jeremiah 6:14), leads with Jesus' justice pattern
+  (Luke 4:18; Matthew 21:13; Mark 6:18; Luke 19:8-9), stages perspectives over
+  the UNRESOLVED parts only, and withholds ONLY the verdict on a soul; (3) new
+  Learn content adds no static counts — the header count derives from the
+  mounted courses, and the report's `courses` stream projects from the same
+  registry (DR-0122 §3).
+
 - **2026-07-07 — derived-but-unparsed is a staleness face; report streams are
   a checked class (DR-0122)** — 28 DR files (incl. every record from DR-0116
   on) used the list-style header the build's ledger parser could not read, so

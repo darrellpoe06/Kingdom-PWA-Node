@@ -41,6 +41,7 @@ export const REPORT_SYSTEMS = [
   ['decisions', 'Decision ledger'],
   ['reviews', 'Reviews'],
   ['lessons', 'Lessons incidents'],
+  ['courses', 'Learn catalog'],
 ];
 
 // ---------------------------------------------------------------------------
@@ -50,9 +51,30 @@ export const REPORT_SYSTEMS = [
 // ---------------------------------------------------------------------------
 export function buildReportRows({
   projects = [], tasks = [], concerns = [], discussions = [], scopes = [],
-  ledger = null, reviews = null, lessons = null,
+  ledger = null, reviews = null, lessons = null, courses = null,
 } = {}) {
   const rows = [];
+
+  // Learn catalog — every finished course is a tracked record stream
+  // (DR-0122 §3; the catalog registry landed DR-0129). The caller passes
+  // LEARN_CATALOG so the report and the Learn tab derive from the SAME
+  // registry and can never disagree. Courses carry no event date — they stay
+  // honestly undated (DR-0076), described by their live lesson count.
+  for (const c of (courses || [])) {
+    if (!c || !c.key) continue;
+    let lessonCount;
+    try { lessonCount = c.buildScheduleRows().length; } catch { lessonCount = 0; }
+    rows.push({
+      id: `course-${c.key}`,
+      date: '',
+      system: 'courses',
+      kind: c.wiring === 'cohort' ? 'cohort course' : 'self-paced course',
+      title: c.meta?.title || c.key,
+      detail: clip(`${lessonCount} lessons · ${c.meta?.tagline || ''}`),
+      status: 'published',
+      source: 'app/src/lib/learn-catalog.js',
+    });
+  }
 
   // Scopes / agreements (contractor + client) — a tracked record stream joins
   // the report as it is born (DR-0122 §3; client agreements landed DR-0123).

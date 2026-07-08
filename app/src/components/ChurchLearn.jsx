@@ -940,9 +940,11 @@ function CourseView({
               <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
               </p>
-              <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
-              </p>
+              {m.anchor?.ref && (
+                <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
+                </p>
+              )}
 
               {/* World-Issues / Discernment modules carry a structured `issue`:
                   render the dedicated five-stage walk-through. Other courses have
@@ -1272,7 +1274,7 @@ function CourseView({
             )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
-            <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>
+            {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
             {m.facilitator && (
               <div>
                 {m.facilitator.talkingPoints?.length > 0 && (
@@ -1414,6 +1416,15 @@ export default function ChurchLearn({
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
+
+        {/* Derived catalog line — counted LIVE from the mounted courses (never a
+            hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
+            by learn-catalog-render.test.jsx. */}
+        {courses.length > 1 && (
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
+            {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
+          </p>
+        )}
 
         {/* Course picker — only shown when there's more than one course */}
         {courses.length > 1 && (
