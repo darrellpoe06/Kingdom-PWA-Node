@@ -4411,11 +4411,11 @@ ${THEME_CSS}
                 // Family/Governor only (steward tooling across all businesses);
                 // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
-                // Relationships — the relationship-based permission model: who can
-                // do what based on the relationship (guardian<->child, family,
-                // landlord<->tenant). Family/Governor only (it SETS access); spread
-                // so the entry is absent from the DOM for everyone else (no-leak).
-                ...(isFamilyMember ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
+                // Relationships — the relationship permission model (guardian<->
+                // child, family, landlord<->tenant/manager). Family/Governor AND
+                // the Business tier (Darrell 2026-07-08, DR-0128: the delegation
+                // matrix IS a business feature; RLS keeps the boundary). No-leak.
+                ...((isFamilyMember || tierMeets(data.userTier, 'business')) ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
                 // Inventory — a real inventory-control system of record (derived
                 // on-hand over an immutable movement ledger). Family/Governor only
                 // (operations tooling); spread so the entry is absent from the DOM
@@ -5177,7 +5177,7 @@ ${THEME_CSS}
             this surface. */}
         {view === 'relationships' && (
           <SectionBoundary name="Relationships">
-            <Relationships isGovernor={isFamilyMember} currentUserId={authSession?.user?.id || null} />
+            <Relationships isGovernor={isFamilyMember || tierMeets(data.userTier, 'business')} currentUserId={authSession?.user?.id || null} />
           </SectionBoundary>
         )}
 

@@ -355,7 +355,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
         <div className="mb-2 text-[#1A1815]"><UiIcon name="lock" /></div>
         <p className="text-sm font-semibold text-[#1A1815]">Relationships is a stewardship space.</p>
         <p className="text-xs mt-1.5 leading-relaxed text-[#5A5751]">
-          Setting what a child can do and managing landlord/tenant access is steward-only. Sign in with a family/governor account.
+          Setting what a child can do and managing landlord/tenant/manager access is steward-only. Sign in with a family/governor account — or run it for your own operation on the Business tier.
         </p>
       </div>
     );
