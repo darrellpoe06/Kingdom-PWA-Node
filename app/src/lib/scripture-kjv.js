@@ -241,4 +241,12 @@ export const KJV = {
   "Romans 8:37": "Nay, in all these things we are more than conquerors through him that loved us.",
   "Revelation 3:21": "To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.",
   "Luke 6:38": "Give, and it shall be given unto you; good measure, pressed down, and shaken together, and running over, shall men give into your bosom. For with the same measure that ye mete withal it shall be measured to you again.",
+
+  // --- Appended 2026-07-08 for the games' Heritage foundation (lib/games/heritage.js) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
+  // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
+  "Psalm 16:6": "The lines are fallen unto me in pleasant places; yea, I have a goodly heritage.",
+  "Psalm 145:4": "One generation shall praise thy works to another, and shall declare thy mighty acts.",
+  "Psalm 127:1": "Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.",
+  "Proverbs 13:22": "A good man leaveth an inheritance to his children’s children: and the wealth of the sinner is laid up for the just.",
 };

@@ -26,6 +26,7 @@ import { buildJoinUrl, seedFromCode } from '../../lib/games/room-code.js';
 import { hostRoom } from '../../lib/games/realtime-room.js';
 import { resolveScripture } from '../../lib/games/scripture-link.js';
 import { FamilyPortrait } from './GameArt.jsx';
+import HeritageGallery from './HeritageGallery.jsx';
 import SpinnerWheel from './SpinnerWheel.jsx';
 
 const INK = '#12100E';
@@ -198,6 +199,9 @@ function Lobby({ def, match, code, joinUrl, onStart }) {
             </p>
           </div>
         </div>
+
+        {/* the real foundation under the game — the family photos Darrell declared (lib/games/heritage.js) */}
+        <HeritageGallery on="dark" className="mt-8" />
       </div>
     </Shell>
   );

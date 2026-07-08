@@ -28,6 +28,7 @@ import { resolveScripture } from '../lib/games/scripture-link.js';
 import { revealPolicy, displayOrder } from '../lib/games/difficulty.js';
 import { FamilyPortrait, JourneyStart, PathEmblem } from './games/GameArt.jsx';
 import SpinnerWheel, { SPIN_MS } from './games/SpinnerWheel.jsx';
+import HeritageGallery from './games/HeritageGallery.jsx';
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
 const T_INK = 'text-[#1A1815]';
@@ -302,6 +303,11 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
         <p className={`text-[0.6875rem] ${T_MUTE} mt-1 text-center`}>Legacy is weighted toward the things that last &mdash; faith, family and souls above provision (Matthew 6:33). Kingdom-weighted total: {totals.weighted}.</p>
       </div>
 
+      {/* the legacy the game just measured, standing on the family's real one */}
+      <div className="mt-4">
+        <HeritageGallery on="light" />
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-2 justify-center">
         <button onClick={onPlayAgain} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium`}>Walk it again</button>
         <button onClick={onExit} className={`${BG_CARD} border ${BORDER} ${T_INK} rounded-lg px-4 py-2.5 text-sm font-medium`}>Back to games</button>
@@ -331,6 +337,8 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
       <div className="space-y-4">
         <SectionTitle eyebrow={`${def.title} &middot; ${def.subtitle}`}>{def.title}</SectionTitle>
         <PathPicker def={def} state={state} onChange={onChange} />
+        {/* the real foundation under the game — the family photos Darrell declared (lib/games/heritage.js) */}
+        <HeritageGallery on="light" />
         <div className="flex">
           <button onClick={onExit} className={`text-sm ${T_MUTE} hover:${T_INK} underline`}>Back to games</button>
         </div>
