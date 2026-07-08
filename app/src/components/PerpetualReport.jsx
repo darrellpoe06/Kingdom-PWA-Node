@@ -35,7 +35,7 @@ const STREAM_TONE = {
   closed: 'text-[#5A6E3D]',
 };
 
-export default function PerpetualReport({ projects = [], concerns = [], feedback = [], discussions = [] }) {
+export default function PerpetualReport({ projects = [], concerns = [], feedback = [], discussions = [], scopes = [] }) {
   const tasks = useBoardTasks();
   const [system, setSystem] = useState('all');
   const [status, setStatus] = useState('all');
@@ -54,9 +54,9 @@ export default function PerpetualReport({ projects = [], concerns = [], feedback
   );
 
   const rows = useMemo(() => buildReportRows({
-    projects, tasks, concerns: allConcerns, discussions,
+    projects, tasks, concerns: allConcerns, discussions, scopes,
     ledger: DR_LEDGER, reviews: UIUX_REVIEWS, lessons: LESSONS,
-  }), [projects, tasks, allConcerns, discussions]);
+  }), [projects, tasks, allConcerns, discussions, scopes]);
 
   const statuses = useMemo(() => reportStatuses(rows), [rows]);
   const filtered = useMemo(
