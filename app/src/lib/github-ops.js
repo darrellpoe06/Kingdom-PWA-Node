@@ -138,6 +138,13 @@ function persistEtagCache(cache) {
   } catch { /* private mode / full storage — caching is best-effort */ }
 }
 
+// Exported for sibling live-read modules (site-health.js) so every GitHub read
+// in the app shares ONE ETag cache + rate-budget discipline — a second module
+// growing its own fetch path is how the 60/hr budget gets re-blown.
+export async function ghGetJson(url, fetchImpl) {
+  return getJson(url, fetchImpl);
+}
+
 async function getJson(url, fetchImpl) {
   const f = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
   if (!f) throw new Error('no fetch');
