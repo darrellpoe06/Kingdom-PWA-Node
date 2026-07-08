@@ -1,0 +1,173 @@
+# Site health — proves poetech.us is UP and FRESH, from outside the building.
+#
+# WHY THIS EXISTS (2026-07-08, DR-0107 lineage). Every existing safeguard in the
+# lane watches the PIPELINE: CI proves the build, deploy-freshness proves a
+# deploy was DISPATCHED for main's tip, the auto-merge heal step dispatches it.
+# None of them ever makes an HTTP request to the site the family actually opens.
+# On 2026-07-08 Darrell reported the app down AGAIN while every deploy run in
+# the ledger was green — the exact blind spot: deploy-success is not site-up.
+# This workflow is the missing instrument: an outside-in probe of the served
+# product (DR-0076 rule 7, independent verification; LESSONS P5/P22/P26).
+#
+# WHAT IT MEASURES (all against the LIVE domain, browser-shaped requests):
+#   1. UP        — the root redirect (302 -> /poetech-app/) and the app shell
+#                  (200, real HTML with the #root mount) both answer.
+#   2. INTACT    — the hashed JS bundle index.html points at actually exists
+#                  (catches the stale-shell / missing-chunk white-screen class,
+#                  2026-06-30 signature).
+#   3. FRESH     — the build SHA embedded in the served sw.js matches main's
+#                  tip (catches the silent-stale class, 2026-07-06 incident).
+#   4. ISOLATED  — the same checks against poetech-app.pages.dev, so a failure
+#                  localizes to the custom domain layer vs the Pages project.
+#
+# WHAT IT DOES WITH A FAILURE:
+#   - DOWN/BROKEN: opens (or comments on) the single rolling "site-health
+#     incident" issue, labeled `incident`, with the measured evidence — the
+#     durable, queryable downtime record ("how many times today?" has an
+#     answer). Recovery posts the close.
+#   - STALE: dispatches deploy-cloudflare-pages.yml (same one-shot heal as
+#     deploy-freshness; the deploy's own concurrency group makes stacking
+#     impossible).
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — a handful of HTTP GETs + at most one deploy dispatch + at most
+#      one issue write per fire; hard step timeout; no compute is spawned.
+#   2. LOCK   — concurrency group `site-health`, single-instance; the healed
+#      deploy is single-flight in its own `cf-pages-deploy` group.
+#   3. KILL   — set repo variable SITE_HEALTH_ENABLED='false' (or disable in
+#      the Actions UI) to pause instantly. Unset => runs (DR-0110 class: a
+#      bounded, idempotent, non-spawning prober is the deploy-freshness class,
+#      which ships active).
+
+name: Site health (up + fresh, outside-in)
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # every 10 min (public repo — Actions minutes free)
+  workflow_dispatch: {}
+
+concurrency:
+  group: site-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # dispatch the deploy heal
+  issues: write  # the rolling incident record
+
+jobs:
+  probe:
+    if: ${{ vars.SITE_HEALTH_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      UA: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+    steps:
+      - name: Probe the live site
+        id: probe
+        run: |
+          set -uo pipefail
+          fail_reasons=""
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          add_fail() { fail_reasons="${fail_reasons}${fail_reasons:+; }$1"; }
+
+          fetch() { # fetch <url> -> sets CODE, BODY_FILE, LOC
+            local url="$1"; BODY_FILE=$(mktemp)
+            local out
+            out=$(curl -sS -A "$UA" -o "$BODY_FILE" -w '%{http_code} %{redirect_url}' --max-time 20 "$url" 2>&1) || true
+            CODE="${out%% *}"; LOC="${out#* }"
+          }
+
+          note "## Site health probe — $(date -u +%FT%TZ)"
+
+          # 1. UP: root answers and routes into the manifest scope.
+          fetch "https://poetech.us/"
+          note "- \`GET /\` -> **$CODE** (redirect: ${LOC:-none})"
+          case "$CODE" in
+            301|302|307|308)
+              case "$LOC" in *"/poetech-app/"*) : ;; *) add_fail "root redirects to '$LOC', not /poetech-app/";; esac ;;
+            200) : ;; # a future distinct root landing page is legal
+            *) add_fail "root returned HTTP $CODE" ;;
+          esac
+
+          # 2. UP: the app shell is real HTML with the mount point.
+          fetch "https://poetech.us/poetech-app/"
+          note "- \`GET /poetech-app/\` -> **$CODE**"
+          if [ "$CODE" != "200" ]; then
+            add_fail "app shell returned HTTP $CODE"
+          elif ! grep -q 'id="root"' "$BODY_FILE"; then
+            add_fail "app shell 200 but no #root mount (body starts: $(head -c 120 "$BODY_FILE" | tr -d '\n'))"
+          fi
+          SHELL_BODY="$BODY_FILE"
+
+          # 3. INTACT: the hashed bundle the shell points at exists.
+          asset=$(grep -o '/poetech-app/assets/[^"]*\.js' "$SHELL_BODY" | head -1 || true)
+          if [ -n "$asset" ]; then
+            fetch "https://poetech.us$asset"
+            note "- \`GET $asset\` -> **$CODE**"
+            [ "$CODE" = "200" ] || add_fail "shell's own bundle $asset returned HTTP $CODE (stale-shell/missing-chunk class)"
+          fi
+
+          # 4. FRESH: served sw.js carries main's tip.
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null | cut -c1-7 || echo "")
+          fetch "https://poetech.us/poetech-app/sw.js"
+          served_sha=$(grep -oE "poetech-[0-9a-f]{7}|SW_VERSION = '[0-9a-f]{7}'|'[0-9a-f]{7}'" "$BODY_FILE" | grep -oE '[0-9a-f]{7}' | head -1 || true)
+          note "- served build: **${served_sha:-unknown}** · main tip: **${main_sha:-unknown}**"
+          stale="false"
+          if [ -n "$main_sha" ] && [ -n "$served_sha" ] && [ "$served_sha" != "$main_sha" ]; then
+            stale="true"
+          fi
+
+          # 5. ISOLATE: same shell check on the Pages project domain.
+          fetch "https://poetech-app.pages.dev/poetech-app/"
+          note "- \`GET pages.dev/poetech-app/\` -> **$CODE** (isolates domain layer vs project)"
+          PAGES_CODE="$CODE"
+
+          echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
+          echo "stale=$stale" >> "$GITHUB_OUTPUT"
+          echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
+          echo "served_sha=${served_sha:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "main_sha=${main_sha:-unknown}" >> "$GITHUB_OUTPUT"
+          if [ -n "$fail_reasons" ]; then
+            note ""
+            note "**DOWN/BROKEN:** $fail_reasons"
+          else
+            note ""
+            note "**UP.**${stale:+ }$([ "$stale" = "true" ] && echo "**But STALE** — dispatching the deploy heal." || echo " Fresh.")"
+          fi
+
+      - name: Heal a stale build (one-shot deploy dispatch)
+        if: ${{ steps.probe.outputs.stale == 'true' && steps.probe.outputs.fail_reasons == '' }}
+        run: gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main || echo "::warning::could not dispatch deploy"
+
+      - name: Record the incident (rolling issue, labeled `incident`)
+        if: ${{ steps.probe.outputs.fail_reasons != '' }}
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
+          SERVED: ${{ steps.probe.outputs.served_sha }}
+          MAIN: ${{ steps.probe.outputs.main_sha }}
+        run: |
+          set -uo pipefail
+          title="site-health: poetech.us failing the outside-in probe"
+          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS}. pages.dev shell: HTTP ${PAGES_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$body"
+          else
+            gh label create incident --repo "$REPO" --color B60205 --description "Live-site downtime record (site-health probe)" 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
+          fi
+          exit 1 # a failing probe is a failing run — visible in the Actions list
+
+      - name: Close a recovered incident
+        if: ${{ steps.probe.outputs.fail_reasons == '' }}
+        run: |
+          set -uo pipefail
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue close "$open_issue" --repo "$REPO" \
+              --comment "$(date -u +%FT%TZ) — RECOVERED: probe green (served build ${{ steps.probe.outputs.served_sha }})."
+          fi
