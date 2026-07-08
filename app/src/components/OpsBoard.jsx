@@ -14,6 +14,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
+import { fetchSiteHealth } from '../lib/site-health.js';
 
 function laneBadge(lane) {
   if (lane === 'parallel-safe') return { status: 'good', label: 'parallel-safe' };
@@ -28,13 +29,69 @@ function prKpi(p) {
   return { status: 'attention', label: 'open — no auto-merge' };
 }
 
+// The uptime verdict, from the outside-in probe's real runs (DR-0125). Deploy
+// green is NOT site-up (2026-07-08; LESSONS P26) — this is the site's own line.
+function UptimeStrip({ health }) {
+  if (!health) return null;
+  if (!health.ok) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751] mb-2">
+        Uptime record unreadable right now — {health.notice}
+      </p>
+    );
+  }
+  const { probe, incidents, freshness: fr } = health;
+  const openIncident = incidents.find((i) => i.state === 'open');
+  const up = openIncident ? false : (probe.latest ? probe.latest.verdict === 'up' : null);
+  const kpi = up === null
+    ? { status: 'idle', label: 'not yet measured' }
+    : up
+      ? { status: 'good', label: 'site up (probed from outside)' }
+      : { status: 'problem', label: 'site failing the probe' };
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">poetech.us — live site</span>
+        <span className="flex items-center gap-2">
+          <KpiDot status={kpi.status} label={kpi.label} />
+          {fr && fr.known && (
+            <KpiDot
+              status={fr.fresh ? 'good' : 'attention'}
+              label={fr.fresh ? `serving main (${fr.deployedSha})` : `stale: serving ${fr.deployedSha}, main is ${fr.mainSha}`}
+            />
+          )}
+        </span>
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {probe.measured
+          ? <>Today: {probe.checksToday} outside-in checks, {probe.downToday} failing.{' '}</>
+          : <>The probe has not completed a run yet — the record starts measuring on its first fire.{' '}</>}
+        {openIncident ? (
+          <a href={openIncident.url} target="_blank" rel="noreferrer" className="underline decoration-dotted font-semibold">
+            Open incident #{openIncident.number} ({openIncident.observations} observations)
+          </a>
+        ) : (
+          incidents.length > 0
+            ? <>Downtime ledger: {incidents.length} recorded incident{incidents.length === 1 ? '' : 's'}, none open.</>
+            : <>No recorded incidents yet.</>
+        )}
+      </p>
+    </div>
+  );
+}
+
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
+  const [health, setHealth] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const data = await fetchOps();
+    const [data, sh] = await Promise.all([
+      fetchOps(),
+      fetchSiteHealth().catch(() => null),
+    ]);
     setState({ phase: 'ready', data });
+    setHealth(sh);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -80,6 +137,9 @@ export default function OpsBoard() {
           >DR-0103</a>. The live lane below is the proof.
         </span>
       </div>
+
+      {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
+      <UptimeStrip health={health} />
 
       {state.phase === 'loading' && !data && (
         <p className="text-xs text-[#5A5751]">Reading live state from GitHub…</p>

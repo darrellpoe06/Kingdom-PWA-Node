@@ -110,14 +110,25 @@ jobs:
             [ "$CODE" = "200" ] || add_fail "shell's own bundle $asset returned HTTP $CODE (stale-shell/missing-chunk class)"
           fi
 
-          # 4. FRESH: served sw.js carries main's tip.
+          # 4. FRESH: served sw.js carries main's tip. The build stamps
+          # `const SW_VERSION = "abc1234";` (JSON.stringify => DOUBLE quotes —
+          # vite.config.js sw-version-stamp; the first probe run missed this
+          # with a single-quote pattern and read "unknown").
           main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null | cut -c1-7 || echo "")
           fetch "https://poetech.us/poetech-app/sw.js"
-          served_sha=$(grep -oE "poetech-[0-9a-f]{7}|SW_VERSION = '[0-9a-f]{7}'|'[0-9a-f]{7}'" "$BODY_FILE" | grep -oE '[0-9a-f]{7}' | head -1 || true)
-          note "- served build: **${served_sha:-unknown}** · main tip: **${main_sha:-unknown}**"
+          served_sha=$(grep -oE 'SW_VERSION = "[0-9a-f]{7}"' "$BODY_FILE" | grep -oE '[0-9a-f]{7}' | head -1 || true)
           stale="false"
-          if [ -n "$main_sha" ] && [ -n "$served_sha" ] && [ "$served_sha" != "$main_sha" ]; then
-            stale="true"
+          if [ -n "$main_sha" ] && [ -n "$served_sha" ]; then
+            [ "$served_sha" != "$main_sha" ] && stale="true"
+            note "- served build: **$served_sha** · main tip: **$main_sha**"
+          else
+            # UNKNOWN never reads as fresh. Fall back to the deploy ledger:
+            # the last successful deploy's head_sha vs main's tip.
+            deployed_sha=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null | cut -c1-7 || echo "")
+            [ -n "$main_sha" ] && [ -n "$deployed_sha" ] && [ "$deployed_sha" != "$main_sha" ] && stale="true"
+            note "- served build: **unverified** (sw.js extraction missed) · last deployed: **${deployed_sha:-unknown}** · main tip: **${main_sha:-unknown}**"
           fi
 
           # 5. ISOLATE: same shell check on the Pages project domain.
