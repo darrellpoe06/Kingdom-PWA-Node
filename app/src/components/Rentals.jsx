@@ -139,8 +139,109 @@ function occupancyRollup(rooms = []) {
   return { actual, potential, opportunity: potential - actual, vacantSpots };
 }
 
-function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
+// PropertyGallery — THE PROPERTY'S PHOTO STORY, FIRST AND CHRONOLOGICAL
+// (Darrell 2026-07-08: "The images for properties need to be first and
+// chronological up until the latest images for each property.") One strip at
+// the top of the records panel combining every photo the property actually
+// has — room-filed photos, maintenance receipts/shots, and the live NAS chat
+// archive (served newest-first by the sovereign photo server; we fetch the
+// most recent page and sort EVERYTHING oldest → latest so the story reads
+// forward in time and ends at the latest picture). "Load earlier" pages
+// deeper into the archive. Real dates only — an undated photo sorts first
+// and is labeled undated, never given an invented date (DR-0076).
+function PropertyGallery({ rental, nasTotal = null }) {
   const [lightbox, setLightbox] = useState(null);
+  const [nas, setNas] = useState({ status: 'idle', photos: [], total: 0 });
+  const [nasLimit, setNasLimit] = useState(24);
+  const channel = chatChannelFor(rental);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasBridgeToken() || !channel) { setNas({ status: 'off', photos: [], total: 0 }); return undefined; }
+    setNas(n => ({ ...n, status: 'loading' }));
+    (async () => {
+      const res = await fetchChannelPhotos(channel, { limit: nasLimit, offset: 0 });
+      if (cancelled) return;
+      if (!res) { setNas({ status: 'error', photos: [], total: 0 }); return; }
+      setNas({ status: 'ready', photos: res.photos || [], total: res.total || (res.photos || []).length });
+    })();
+    return () => { cancelled = true; };
+  }, [rental.id, channel, nasLimit]);
+
+  // Combine the streams, de-duped (a chat photo already filed to a room keeps
+  // its room copy), then sort oldest → latest — chronological up to the latest.
+  const items = useMemo(() => {
+    const out = [];
+    for (const rm of (rental.rooms || [])) {
+      for (const p of (rm.photos || [])) {
+        out.push({ id: p.id, src: p.src, date: p.date || '', caption: p.caption || '', source: `room · ${rm.name}` });
+      }
+    }
+    for (const e of (rental.maintenanceLog || [])) {
+      (e.photos || []).forEach((src, i) => {
+        out.push({ id: `${e.id}-ph-${i}`, src, date: e.date || '', caption: e.description || '', source: 'maintenance' });
+      });
+    }
+    const seen = new Set(out.map(x => x.id));
+    for (const p of (nas.photos || [])) {
+      if (!p || !p.thumb) continue;
+      if (seen.has(`ph-chat-${p.id}`)) continue; // already filed to a room
+      out.push({ id: `nas-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '', source: 'NAS archive' });
+    }
+    return out.sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
+  }, [rental, nas.photos]);
+
+  const totalKnown = (typeof nasTotal === 'number' ? nasTotal : nas.total) || 0;
+  const nasUnloaded = Math.max(0, (nas.total || 0) - (nas.photos || []).length);
+  if (items.length === 0 && nas.status !== 'loading') {
+    return (
+      <div className="bg-white border border-[#E8E4DC] p-3">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · the story in pictures</div>
+        <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          {nas.status === 'off'
+            ? 'No photos filed yet on this device — room and maintenance photos land here, and connecting the NAS bridge (Dev/Ops → bridge token) brings this property’s whole chat archive in live.'
+            : nas.status === 'error'
+              ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
+              : 'No photos yet for this property. Room photos, maintenance shots, and the NAS chat archive all land here, oldest to latest.'}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white border border-[#E8E4DC] p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · oldest → latest{totalKnown ? ` · ${totalKnown} in the archive` : ''}</div>
+        {nas.status === 'loading' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">reading the NAS archive…</span>}
+      </div>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {items.map((p, pi) => (
+          <div key={p.id} className="w-24">
+            <button type="button" onClick={() => setLightbox({ items: items.map(x => ({ src: x.src, alt: x.caption || 'Property photo', caption: [x.caption, x.source].filter(Boolean).join(' · '), date: x.date || '' })), index: pi })} title="Open full size" className="block">
+              <img src={p.src} alt={p.caption || 'Property photo'} loading="lazy" className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" />
+            </button>
+            <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || 'undated'}</div>
+          </div>
+        ))}
+      </div>
+      {nasUnloaded > 0 && (
+        <button type="button" onClick={() => setNasLimit(l => l + 48)} disabled={nas.status === 'loading'}
+          className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Load earlier photos · {nasUnloaded} more in the archive
+        </button>
+      )}
+      <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+        Room photos, maintenance shots, and the live NAS chat archive, in time order — the property&apos;s transformation, ending at the latest picture. File any archive photo to a room in “Property Photos from Chat” below.
+      </p>
+      <Lightbox items={lightbox?.items} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
+    </div>
+  );
+}
+
+// PropertyValuation — the Market Valuation & Property Info card, split out of
+// PropertyDetails (Darrell 2026-07-08: "put the property details at the bottom
+// then from the top images then room details then tenant information etc") so
+// the records panel can mount it LAST while the work-facing blocks lead.
+function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.
   // No paid API — links pre-fill each major site's search with the address,
@@ -232,141 +333,14 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   const mortgageBalance = parseFloat(rental.mortgage?.balance) || 0;
   const estimatedEquity = currentMarketValue > 0 ? currentMarketValue - mortgageBalance : null;
 
-  // Lease + tenant — single edit form (collapsible).
-  const blankLease = () => ({
-    start: rental.lease?.start || '',
-    end: rental.lease?.end || '',
-    monthlyRent: rental.lease?.monthlyRent || rental.rent || 0,
-    deposit: rental.lease?.deposit || 0,
-    lateFeePolicy: rental.lease?.lateFeePolicy || '',
-    signedDocURL: rental.lease?.signedDocURL || '',
-  });
-  const blankTenant = () => ({
-    name: rental.tenant?.name || rental.tenantName || '',
-    phone: rental.tenant?.phone || '',
-    email: rental.tenant?.email || '',
-    moveIn: rental.tenant?.moveIn || '',
-    emergencyContactName: rental.tenant?.emergencyContactName || '',
-    emergencyContactPhone: rental.tenant?.emergencyContactPhone || '',
-  });
-  const [leaseForm, setLeaseForm] = useState(blankLease());
-  const [tenantForm, setTenantForm] = useState(blankTenant());
-  const [editingLeaseTenant, setEditingLeaseTenant] = useState(false);
-
-  const saveLeaseTenant = () => {
-    updateRental(rental.id, {
-      lease: {
-        ...leaseForm,
-        monthlyRent: parseFloat(leaseForm.monthlyRent) || 0,
-        deposit: parseFloat(leaseForm.deposit) || 0,
-      },
-      tenant: { ...tenantForm },
-      tenantName: tenantForm.name, // keep legacy field in sync so existing UI shows the name
-    });
-    setEditingLeaseTenant(false);
-  };
-
-  // Equipment list
-  const blankEquip = () => ({ category: 'HVAC', make: '', model: '', serial: '', installDate: '', warrantyEnd: '', notes: '' });
-  const [equipForm, setEquipForm] = useState(blankEquip());
-  const [showEquipForm, setShowEquipForm] = useState(false);
-  const addEquipment = () => {
-    if (!equipForm.category) return;
-    const entry = { ...equipForm, id: `eq-${Date.now()}` };
-    updateRental(rental.id, { equipment: [...(rental.equipment || []), entry] });
-    setEquipForm(blankEquip()); setShowEquipForm(false);
-  };
-  const deleteEquipment = (eqId) => {
-    if (!confirm('Remove this piece of equipment? Warranty & serial data will be lost.')) return;
-    updateRental(rental.id, { equipment: (rental.equipment || []).filter(e => e.id !== eqId) });
-  };
-
-  // Rooms & Needed Work
-  const [roomName, setRoomName] = useState('');
-  const [roomItem, setRoomItem] = useState({ roomId: '', name: '', status: 'needs-work', notes: '' });
-  const [showRoomForm, setShowRoomForm] = useState(false);
-  const addRoom = () => {
-    const name = (roomName || '').trim();
-    if (!name) return;
-    const entry = { id: `rm-${Date.now()}`, name, items: [] };
-    updateRental(rental.id, { rooms: [...(rental.rooms || []), entry] });
-    setRoomName('');
-  };
-  const deleteRoom = (rmId) => {
-    if (!confirm('Delete this room and all of its items?')) return;
-    updateRental(rental.id, { rooms: (rental.rooms || []).filter(r => r.id !== rmId) });
-  };
-  const addRoomItem = () => {
-    if (!roomItem.roomId || !roomItem.name) return;
-    const rooms = (rental.rooms || []).map(rm => rm.id === roomItem.roomId
-      ? { ...rm, items: [...(rm.items || []), { id: `it-${Date.now()}`, name: roomItem.name, status: roomItem.status, notes: roomItem.notes }] }
-      : rm);
-    updateRental(rental.id, { rooms });
-    setRoomItem({ roomId: roomItem.roomId, name: '', status: 'needs-work', notes: '' });
-    setShowRoomForm(false);
-  };
-  const updateRoomItemStatus = (rmId, itId, status) => {
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
-      ? { ...rm, items: (rm.items || []).map(it => it.id === itId ? { ...it, status } : it) }
-      : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const deleteRoomItem = (rmId, itId) => {
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
-      ? { ...rm, items: (rm.items || []).filter(it => it.id !== itId) }
-      : rm);
-    updateRental(rental.id, { rooms });
-  };
-  // Room photos + room note — PROPERTY memory, not tenant memory. These ride
-  // on the room record and PERSIST across tenancies (turnover never clears
-  // them), so the transformation of a room over years stays visible and the
-  // factual history of "what this room/bathroom is" is always remembered.
-  const addRoomPhotos = async (rmId, fileList) => {
-    if (!fileList || fileList.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const shots = [];
-    for (const file of Array.from(fileList)) {
-      try { shots.push({ id: `ph-${Date.now()}-${shots.length}`, src: await compressImageFile(file), date: today, caption: '' }); }
-      catch (e) { console.warn('Room photo compress failed', e); }
-    }
-    if (!shots.length) return;
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
-      ? { ...rm, photos: [...(rm.photos || []), ...shots] }
-      : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const setRoomPhotoCaption = (rmId, phId, caption) => {
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
-      ? { ...rm, photos: (rm.photos || []).map(p => p.id === phId ? { ...p, caption } : p) }
-      : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const deleteRoomPhoto = (rmId, phId) => {
-    if (!confirm('Delete this photo from the room history?')) return;
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
-      ? { ...rm, photos: (rm.photos || []).filter(p => p.id !== phId) }
-      : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const setRoomNote = (rmId, note) => {
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, note } : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const setRoomOccupancy = (rmId, occupants) => {
-    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, occupants } : rm);
-    updateRental(rental.id, { rooms });
-  };
-  const occ = occupancyRollup(rental.rooms || []);
-
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
 
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">🏠 Property Details</div>
-
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">🏠 Property Details · valuation &amp; characteristics</div>
       {/* MARKET VALUATION — round 8 */}
-      <details className="bg-white border border-[#E8E4DC] p-3 mb-2" open>
+      <details className="bg-white border border-[#E8E4DC] p-3">
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
           🏘 Market Valuation &amp; Property Info
           {currentMarketValue > 0 && (
@@ -503,112 +477,145 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
         </div>
       </details>
 
-      {/* LEASE + TENANT */}
-      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
-        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Lease &amp; Tenant Contact
-          {rental.lease?.end && <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
-        </summary>
-        {!editingLeaseTenant ? (
-          <div className="mt-3 space-y-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-            {!rental.lease && !rental.tenant ? (
-              <p className="text-[#5A5751] italic">No lease or tenant info saved yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div><span className="text-[#5A5751]">Lease term:</span> {rental.lease?.start || '—'} → {rental.lease?.end || '—'}</div>
-                <div><span className="text-[#5A5751]">Monthly rent (lease):</span> {rental.lease?.monthlyRent ? fmt(rental.lease.monthlyRent) : '—'}</div>
-                <div><span className="text-[#5A5751]">Deposit:</span> {rental.lease?.deposit ? fmt(rental.lease.deposit) : '—'}</div>
-                <div><span className="text-[#5A5751]">Late-fee policy:</span> {rental.lease?.lateFeePolicy || '—'}</div>
-                {rental.lease?.signedDocURL && <div className="sm:col-span-2"><span className="text-[#5A5751]">Signed lease:</span> <a href={rental.lease.signedDocURL} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">open</a></div>}
-                <div><span className="text-[#5A5751]">Tenant:</span> {rental.tenant?.name || '—'}</div>
-                <div><span className="text-[#5A5751]">Move-in:</span> {rental.tenant?.moveIn || '—'}</div>
-                <div><span className="text-[#5A5751]">Phone:</span> {rental.tenant?.phone ? <a href={`tel:${rental.tenant.phone}`} className="underline text-[#B85838]">{rental.tenant.phone}</a> : '—'}</div>
-                <div><span className="text-[#5A5751]">Email:</span> {rental.tenant?.email ? <a href={`mailto:${rental.tenant.email}`} className="underline text-[#B85838]">{rental.tenant.email}</a> : '—'}</div>
-                <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
-              </div>
-            )}
-            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
-          </div>
-        ) : (
-          <div className="mt-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <div><label htmlFor={`ls-start-${rental.id}`} className={labelCls}>Lease start</label><input id={`ls-start-${rental.id}`} type="date" className={fieldCls} value={leaseForm.start} onChange={e => setLeaseForm({ ...leaseForm, start: e.target.value })} /></div>
-              <div><label htmlFor={`ls-end-${rental.id}`} className={labelCls}>Lease end</label><input id={`ls-end-${rental.id}`} type="date" className={fieldCls} value={leaseForm.end} onChange={e => setLeaseForm({ ...leaseForm, end: e.target.value })} /></div>
-              <div><label htmlFor={`ls-rent-${rental.id}`} className={labelCls}>Monthly rent</label><input id={`ls-rent-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.monthlyRent} onChange={e => setLeaseForm({ ...leaseForm, monthlyRent: e.target.value })} /></div>
-              <div><label htmlFor={`ls-dep-${rental.id}`} className={labelCls}>Deposit held</label><input id={`ls-dep-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.deposit} onChange={e => setLeaseForm({ ...leaseForm, deposit: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label htmlFor={`ls-late-${rental.id}`} className={labelCls}>Late-fee policy</label><input id={`ls-late-${rental.id}`} className={fieldCls} placeholder="e.g., $50 after the 5th, then $10/day" value={leaseForm.lateFeePolicy} onChange={e => setLeaseForm({ ...leaseForm, lateFeePolicy: e.target.value })} /></div>
-              <div className="sm:col-span-3"><label htmlFor={`ls-url-${rental.id}`} className={labelCls}>Signed-lease URL (Google Drive, Dropbox, etc.)</label><input id={`ls-url-${rental.id}`} type="url" className={fieldCls} placeholder="https://..." value={leaseForm.signedDocURL} onChange={e => setLeaseForm({ ...leaseForm, signedDocURL: e.target.value })} /></div>
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <div><label htmlFor={`tn-name-${rental.id}`} className={labelCls}>Name</label><input id={`tn-name-${rental.id}`} className={fieldCls} value={tenantForm.name} onChange={e => setTenantForm({ ...tenantForm, name: e.target.value })} /></div>
-              <div><label htmlFor={`tn-phone-${rental.id}`} className={labelCls}>Phone</label><input id={`tn-phone-${rental.id}`} type="tel" className={fieldCls} placeholder="(217) 555-0100" value={tenantForm.phone} onChange={e => setTenantForm({ ...tenantForm, phone: e.target.value })} /></div>
-              <div><label htmlFor={`tn-email-${rental.id}`} className={labelCls}>Email</label><input id={`tn-email-${rental.id}`} type="email" className={fieldCls} value={tenantForm.email} onChange={e => setTenantForm({ ...tenantForm, email: e.target.value })} /></div>
-              <div><label htmlFor={`tn-movein-${rental.id}`} className={labelCls}>Move-in date</label><input id={`tn-movein-${rental.id}`} type="date" className={fieldCls} value={tenantForm.moveIn} onChange={e => setTenantForm({ ...tenantForm, moveIn: e.target.value })} /></div>
-              <div><label htmlFor={`tn-ec-name-${rental.id}`} className={labelCls}>Emergency contact</label><input id={`tn-ec-name-${rental.id}`} className={fieldCls} value={tenantForm.emergencyContactName} onChange={e => setTenantForm({ ...tenantForm, emergencyContactName: e.target.value })} /></div>
-              <div><label htmlFor={`tn-ec-phone-${rental.id}`} className={labelCls}>Emergency phone</label><input id={`tn-ec-phone-${rental.id}`} type="tel" className={fieldCls} value={tenantForm.emergencyContactPhone} onChange={e => setTenantForm({ ...tenantForm, emergencyContactPhone: e.target.value })} /></div>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={saveLeaseTenant} className="bg-[#1A1815] text-white py-2 px-4 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save</button>
-              <button type="button" onClick={() => setEditingLeaseTenant(false)} className="bg-white border border-[#1A1815] py-2 px-4 text-xs uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
-            </div>
-          </div>
-        )}
-      </details>
+    </div>
+  );
+}
 
-      {/* EQUIPMENT */}
-      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
-        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Mechanical &amp; Equipment <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
-        </summary>
-        <div className="mt-3 space-y-2">
-          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
-          {showEquipForm && (
-            <div className="bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div><label htmlFor={`eq-cat-${rental.id}`} className={labelCls}>Category</label><select id={`eq-cat-${rental.id}`} className={fieldCls} value={equipForm.category} onChange={e => setEquipForm({ ...equipForm, category: e.target.value })}>{EQUIPMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                <div><label htmlFor={`eq-make-${rental.id}`} className={labelCls}>Make</label><input id={`eq-make-${rental.id}`} className={fieldCls} value={equipForm.make} onChange={e => setEquipForm({ ...equipForm, make: e.target.value })} /></div>
-                <div><label htmlFor={`eq-model-${rental.id}`} className={labelCls}>Model</label><input id={`eq-model-${rental.id}`} className={fieldCls} value={equipForm.model} onChange={e => setEquipForm({ ...equipForm, model: e.target.value })} /></div>
-                <div><label htmlFor={`eq-serial-${rental.id}`} className={labelCls}>Serial</label><input id={`eq-serial-${rental.id}`} className={fieldCls} value={equipForm.serial} onChange={e => setEquipForm({ ...equipForm, serial: e.target.value })} /></div>
-                <div><label htmlFor={`eq-install-${rental.id}`} className={labelCls}>Installed</label><input id={`eq-install-${rental.id}`} type="date" className={fieldCls} value={equipForm.installDate} onChange={e => setEquipForm({ ...equipForm, installDate: e.target.value })} /></div>
-                <div><label htmlFor={`eq-warr-${rental.id}`} className={labelCls}>Warranty end</label><input id={`eq-warr-${rental.id}`} type="date" className={fieldCls} value={equipForm.warrantyEnd} onChange={e => setEquipForm({ ...equipForm, warrantyEnd: e.target.value })} /></div>
-              </div>
-              <textarea className={fieldCls} rows="2" placeholder="Notes — manual link, last service date, quirks" value={equipForm.notes} onChange={e => setEquipForm({ ...equipForm, notes: e.target.value })} />
-              <button type="button" onClick={addEquipment} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Equipment</button>
-            </div>
-          )}
-          {(rental.equipment || []).length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
-          ) : (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
-                  <th scope="col" className="py-1 pr-2">Category</th>
-                  <th scope="col" className="py-1 pr-2">Make / Model</th>
-                  <th scope="col" className="py-1 pr-2">Serial</th>
-                  <th scope="col" className="py-1 pr-2">Warranty</th>
-                  <th scope="col" className="py-1"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(rental.equipment || []).map(eq => (
-                  <tr key={eq.id} className="border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <td className="py-1 pr-2">{eq.category}</td>
-                    <td className="py-1 pr-2">{[eq.make, eq.model].filter(Boolean).join(' ') || '—'}</td>
-                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.serial || '—'}</td>
-                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.warrantyEnd || '—'}</td>
-                    <td className="py-1 text-right"><button type="button" onClick={() => deleteEquipment(eq.id)} aria-label={`Delete ${eq.category} — ${eq.make || ''} ${eq.model || ''}`.trim()} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </details>
+function PropertyDetails({ rental, updateRental }) {
+  const [lightbox, setLightbox] = useState(null);
+  // Lease + tenant — single edit form (collapsible).
+  const blankLease = () => ({
+    start: rental.lease?.start || '',
+    end: rental.lease?.end || '',
+    monthlyRent: rental.lease?.monthlyRent || rental.rent || 0,
+    deposit: rental.lease?.deposit || 0,
+    lateFeePolicy: rental.lease?.lateFeePolicy || '',
+    signedDocURL: rental.lease?.signedDocURL || '',
+  });
+  const blankTenant = () => ({
+    name: rental.tenant?.name || rental.tenantName || '',
+    phone: rental.tenant?.phone || '',
+    email: rental.tenant?.email || '',
+    moveIn: rental.tenant?.moveIn || '',
+    emergencyContactName: rental.tenant?.emergencyContactName || '',
+    emergencyContactPhone: rental.tenant?.emergencyContactPhone || '',
+  });
+  const [leaseForm, setLeaseForm] = useState(blankLease());
+  const [tenantForm, setTenantForm] = useState(blankTenant());
+  const [editingLeaseTenant, setEditingLeaseTenant] = useState(false);
 
+  const saveLeaseTenant = () => {
+    updateRental(rental.id, {
+      lease: {
+        ...leaseForm,
+        monthlyRent: parseFloat(leaseForm.monthlyRent) || 0,
+        deposit: parseFloat(leaseForm.deposit) || 0,
+      },
+      tenant: { ...tenantForm },
+      tenantName: tenantForm.name, // keep legacy field in sync so existing UI shows the name
+    });
+    setEditingLeaseTenant(false);
+  };
+
+  // Equipment list
+  const blankEquip = () => ({ category: 'HVAC', make: '', model: '', serial: '', installDate: '', warrantyEnd: '', notes: '' });
+  const [equipForm, setEquipForm] = useState(blankEquip());
+  const [showEquipForm, setShowEquipForm] = useState(false);
+  const addEquipment = () => {
+    if (!equipForm.category) return;
+    const entry = { ...equipForm, id: `eq-${Date.now()}` };
+    updateRental(rental.id, { equipment: [...(rental.equipment || []), entry] });
+    setEquipForm(blankEquip()); setShowEquipForm(false);
+  };
+  const deleteEquipment = (eqId) => {
+    if (!confirm('Remove this piece of equipment? Warranty & serial data will be lost.')) return;
+    updateRental(rental.id, { equipment: (rental.equipment || []).filter(e => e.id !== eqId) });
+  };
+
+  // Rooms & Needed Work
+  const [roomName, setRoomName] = useState('');
+  const [roomItem, setRoomItem] = useState({ roomId: '', name: '', status: 'needs-work', notes: '' });
+  const [showRoomForm, setShowRoomForm] = useState(false);
+  const addRoom = () => {
+    const name = (roomName || '').trim();
+    if (!name) return;
+    const entry = { id: `rm-${Date.now()}`, name, items: [] };
+    updateRental(rental.id, { rooms: [...(rental.rooms || []), entry] });
+    setRoomName('');
+  };
+  const deleteRoom = (rmId) => {
+    if (!confirm('Delete this room and all of its items?')) return;
+    updateRental(rental.id, { rooms: (rental.rooms || []).filter(r => r.id !== rmId) });
+  };
+  const addRoomItem = () => {
+    if (!roomItem.roomId || !roomItem.name) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === roomItem.roomId
+      ? { ...rm, items: [...(rm.items || []), { id: `it-${Date.now()}`, name: roomItem.name, status: roomItem.status, notes: roomItem.notes }] }
+      : rm);
+    updateRental(rental.id, { rooms });
+    setRoomItem({ roomId: roomItem.roomId, name: '', status: 'needs-work', notes: '' });
+    setShowRoomForm(false);
+  };
+  const updateRoomItemStatus = (rmId, itId, status) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, items: (rm.items || []).map(it => it.id === itId ? { ...it, status } : it) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const deleteRoomItem = (rmId, itId) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, items: (rm.items || []).filter(it => it.id !== itId) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  // Room photos + room note — PROPERTY memory, not tenant memory. These ride
+  // on the room record and PERSIST across tenancies (turnover never clears
+  // them), so the transformation of a room over years stays visible and the
+  // factual history of "what this room/bathroom is" is always remembered.
+  const addRoomPhotos = async (rmId, fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const shots = [];
+    for (const file of Array.from(fileList)) {
+      try { shots.push({ id: `ph-${Date.now()}-${shots.length}`, src: await compressImageFile(file), date: today, caption: '' }); }
+      catch (e) { console.warn('Room photo compress failed', e); }
+    }
+    if (!shots.length) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: [...(rm.photos || []), ...shots] }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomPhotoCaption = (rmId, phId, caption) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).map(p => p.id === phId ? { ...p, caption } : p) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const deleteRoomPhoto = (rmId, phId) => {
+    if (!confirm('Delete this photo from the room history?')) return;
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId
+      ? { ...rm, photos: (rm.photos || []).filter(p => p.id !== phId) }
+      : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomNote = (rmId, note) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, note } : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const setRoomOccupancy = (rmId, occupants) => {
+    const rooms = (rental.rooms || []).map(rm => rm.id === rmId ? { ...rm, occupants } : rm);
+    updateRental(rental.id, { rooms });
+  };
+  const occ = occupancyRollup(rental.rooms || []);
+
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+
+  return (
+    <div>
       {/* ROOMS & NEEDED WORK */}
-      <details className="bg-white border border-[#E8E4DC] p-3">
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2" open>
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
           Rooms &amp; Needed Work <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
         </summary>
@@ -750,6 +757,110 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
           )}
         </div>
       </details>
+      {/* LEASE + TENANT */}
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          Lease &amp; Tenant Contact
+          {rental.lease?.end && <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
+        </summary>
+        {!editingLeaseTenant ? (
+          <div className="mt-3 space-y-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+            {!rental.lease && !rental.tenant ? (
+              <p className="text-[#5A5751] italic">No lease or tenant info saved yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div><span className="text-[#5A5751]">Lease term:</span> {rental.lease?.start || '—'} → {rental.lease?.end || '—'}</div>
+                <div><span className="text-[#5A5751]">Monthly rent (lease):</span> {rental.lease?.monthlyRent ? fmt(rental.lease.monthlyRent) : '—'}</div>
+                <div><span className="text-[#5A5751]">Deposit:</span> {rental.lease?.deposit ? fmt(rental.lease.deposit) : '—'}</div>
+                <div><span className="text-[#5A5751]">Late-fee policy:</span> {rental.lease?.lateFeePolicy || '—'}</div>
+                {rental.lease?.signedDocURL && <div className="sm:col-span-2"><span className="text-[#5A5751]">Signed lease:</span> <a href={rental.lease.signedDocURL} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">open</a></div>}
+                <div><span className="text-[#5A5751]">Tenant:</span> {rental.tenant?.name || '—'}</div>
+                <div><span className="text-[#5A5751]">Move-in:</span> {rental.tenant?.moveIn || '—'}</div>
+                <div><span className="text-[#5A5751]">Phone:</span> {rental.tenant?.phone ? <a href={`tel:${rental.tenant.phone}`} className="underline text-[#B85838]">{rental.tenant.phone}</a> : '—'}</div>
+                <div><span className="text-[#5A5751]">Email:</span> {rental.tenant?.email ? <a href={`mailto:${rental.tenant.email}`} className="underline text-[#B85838]">{rental.tenant.email}</a> : '—'}</div>
+                <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
+              </div>
+            )}
+            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div><label htmlFor={`ls-start-${rental.id}`} className={labelCls}>Lease start</label><input id={`ls-start-${rental.id}`} type="date" className={fieldCls} value={leaseForm.start} onChange={e => setLeaseForm({ ...leaseForm, start: e.target.value })} /></div>
+              <div><label htmlFor={`ls-end-${rental.id}`} className={labelCls}>Lease end</label><input id={`ls-end-${rental.id}`} type="date" className={fieldCls} value={leaseForm.end} onChange={e => setLeaseForm({ ...leaseForm, end: e.target.value })} /></div>
+              <div><label htmlFor={`ls-rent-${rental.id}`} className={labelCls}>Monthly rent</label><input id={`ls-rent-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.monthlyRent} onChange={e => setLeaseForm({ ...leaseForm, monthlyRent: e.target.value })} /></div>
+              <div><label htmlFor={`ls-dep-${rental.id}`} className={labelCls}>Deposit held</label><input id={`ls-dep-${rental.id}`} type="number" step="0.01" min="0" className={fieldCls} value={leaseForm.deposit} onChange={e => setLeaseForm({ ...leaseForm, deposit: e.target.value })} /></div>
+              <div className="sm:col-span-2"><label htmlFor={`ls-late-${rental.id}`} className={labelCls}>Late-fee policy</label><input id={`ls-late-${rental.id}`} className={fieldCls} placeholder="e.g., $50 after the 5th, then $10/day" value={leaseForm.lateFeePolicy} onChange={e => setLeaseForm({ ...leaseForm, lateFeePolicy: e.target.value })} /></div>
+              <div className="sm:col-span-3"><label htmlFor={`ls-url-${rental.id}`} className={labelCls}>Signed-lease URL (Google Drive, Dropbox, etc.)</label><input id={`ls-url-${rental.id}`} type="url" className={fieldCls} placeholder="https://..." value={leaseForm.signedDocURL} onChange={e => setLeaseForm({ ...leaseForm, signedDocURL: e.target.value })} /></div>
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div><label htmlFor={`tn-name-${rental.id}`} className={labelCls}>Name</label><input id={`tn-name-${rental.id}`} className={fieldCls} value={tenantForm.name} onChange={e => setTenantForm({ ...tenantForm, name: e.target.value })} /></div>
+              <div><label htmlFor={`tn-phone-${rental.id}`} className={labelCls}>Phone</label><input id={`tn-phone-${rental.id}`} type="tel" className={fieldCls} placeholder="(217) 555-0100" value={tenantForm.phone} onChange={e => setTenantForm({ ...tenantForm, phone: e.target.value })} /></div>
+              <div><label htmlFor={`tn-email-${rental.id}`} className={labelCls}>Email</label><input id={`tn-email-${rental.id}`} type="email" className={fieldCls} value={tenantForm.email} onChange={e => setTenantForm({ ...tenantForm, email: e.target.value })} /></div>
+              <div><label htmlFor={`tn-movein-${rental.id}`} className={labelCls}>Move-in date</label><input id={`tn-movein-${rental.id}`} type="date" className={fieldCls} value={tenantForm.moveIn} onChange={e => setTenantForm({ ...tenantForm, moveIn: e.target.value })} /></div>
+              <div><label htmlFor={`tn-ec-name-${rental.id}`} className={labelCls}>Emergency contact</label><input id={`tn-ec-name-${rental.id}`} className={fieldCls} value={tenantForm.emergencyContactName} onChange={e => setTenantForm({ ...tenantForm, emergencyContactName: e.target.value })} /></div>
+              <div><label htmlFor={`tn-ec-phone-${rental.id}`} className={labelCls}>Emergency phone</label><input id={`tn-ec-phone-${rental.id}`} type="tel" className={fieldCls} value={tenantForm.emergencyContactPhone} onChange={e => setTenantForm({ ...tenantForm, emergencyContactPhone: e.target.value })} /></div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={saveLeaseTenant} className="bg-[#1A1815] text-white py-2 px-4 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save</button>
+              <button type="button" onClick={() => setEditingLeaseTenant(false)} className="bg-white border border-[#1A1815] py-2 px-4 text-xs uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+            </div>
+          </div>
+        )}
+      </details>
+
+      {/* EQUIPMENT */}
+      <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          Mechanical &amp; Equipment <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
+        </summary>
+        <div className="mt-3 space-y-2">
+          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
+          {showEquipForm && (
+            <div className="bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div><label htmlFor={`eq-cat-${rental.id}`} className={labelCls}>Category</label><select id={`eq-cat-${rental.id}`} className={fieldCls} value={equipForm.category} onChange={e => setEquipForm({ ...equipForm, category: e.target.value })}>{EQUIPMENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label htmlFor={`eq-make-${rental.id}`} className={labelCls}>Make</label><input id={`eq-make-${rental.id}`} className={fieldCls} value={equipForm.make} onChange={e => setEquipForm({ ...equipForm, make: e.target.value })} /></div>
+                <div><label htmlFor={`eq-model-${rental.id}`} className={labelCls}>Model</label><input id={`eq-model-${rental.id}`} className={fieldCls} value={equipForm.model} onChange={e => setEquipForm({ ...equipForm, model: e.target.value })} /></div>
+                <div><label htmlFor={`eq-serial-${rental.id}`} className={labelCls}>Serial</label><input id={`eq-serial-${rental.id}`} className={fieldCls} value={equipForm.serial} onChange={e => setEquipForm({ ...equipForm, serial: e.target.value })} /></div>
+                <div><label htmlFor={`eq-install-${rental.id}`} className={labelCls}>Installed</label><input id={`eq-install-${rental.id}`} type="date" className={fieldCls} value={equipForm.installDate} onChange={e => setEquipForm({ ...equipForm, installDate: e.target.value })} /></div>
+                <div><label htmlFor={`eq-warr-${rental.id}`} className={labelCls}>Warranty end</label><input id={`eq-warr-${rental.id}`} type="date" className={fieldCls} value={equipForm.warrantyEnd} onChange={e => setEquipForm({ ...equipForm, warrantyEnd: e.target.value })} /></div>
+              </div>
+              <textarea className={fieldCls} rows="2" placeholder="Notes — manual link, last service date, quirks" value={equipForm.notes} onChange={e => setEquipForm({ ...equipForm, notes: e.target.value })} />
+              <button type="button" onClick={addEquipment} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Equipment</button>
+            </div>
+          )}
+          {(rental.equipment || []).length === 0 ? (
+            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
+                  <th scope="col" className="py-1 pr-2">Category</th>
+                  <th scope="col" className="py-1 pr-2">Make / Model</th>
+                  <th scope="col" className="py-1 pr-2">Serial</th>
+                  <th scope="col" className="py-1 pr-2">Warranty</th>
+                  <th scope="col" className="py-1"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rental.equipment || []).map(eq => (
+                  <tr key={eq.id} className="border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <td className="py-1 pr-2">{eq.category}</td>
+                    <td className="py-1 pr-2">{[eq.make, eq.model].filter(Boolean).join(' ') || '—'}</td>
+                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.serial || '—'}</td>
+                    <td className="py-1 pr-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{eq.warrantyEnd || '—'}</td>
+                    <td className="py-1 text-right"><button type="button" onClick={() => deleteEquipment(eq.id)} aria-label={`Delete ${eq.category} — ${eq.make || ''} ${eq.model || ''}`.trim()} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </details>
+
       <Lightbox items={lightbox?.items} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
     </div>
   );
@@ -1754,7 +1865,26 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div><label htmlFor={`qe-name-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-addr-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address</label><input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => setPropForm({ ...propForm, address: e.target.value })} /></div>
+                        {/* Address pulls like every other address in the app
+                            (Darrell 2026-07-08): the same OpenStreetMap
+                            autocomplete as the full editor — picking a
+                            suggestion fills city/state/zip AND the coords, so
+                            "Set address" resolves and the lookup links + map
+                            pin light up from the one pick. */}
+                        <div className="relative">
+                          <label htmlFor={`qe-addr-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
+                          <input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+                          {suggestions.length > 0 && (
+                            <div className="absolute z-10 left-0 right-0 border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto shadow-sm">
+                              {suggestions.map((s, si) => (
+                                <button key={si} type="button" onClick={() => pickSuggestion(s)} className="block w-full text-left p-2 text-xs hover:bg-[#FAF8F4] border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {s.display_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {(propForm.city || propForm.zip) && <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[propForm.city, propForm.state, propForm.zip].filter(Boolean).join(', ')}{typeof propForm.lat === 'number' ? ' · pinned to the map' : ''}</div>}
+                        </div>
                         <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
                         <div><label htmlFor={`qe-rent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
                         <div><label htmlFor={`qe-stat-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
@@ -1775,8 +1905,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
                   {openRecordsId === r.id && (
                     <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
-                      {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
-                      <PropertyDetails rental={r} updateRental={updateRental} voiceOps={voiceOps} />
+                      {/* Records order (Darrell 2026-07-08: "from the top images
+                          then room details then tenant information etc" with
+                          property details at the bottom): the chronological
+                          photo story LEADS, the work-facing blocks follow, and
+                          the valuation card closes the panel (mounted last,
+                          below the conversations). */}
+                      <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
+                      <PropertyDetails rental={r} updateRental={updateRental} />
                       {/* Restore a collapsed multi-unit building into separate
                           doors — the fix for 805 N Prospect showing as one door.
                           Opens the same inline split panel as the card button. */}
@@ -2174,6 +2310,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+                      {/* PROPERTY DETAILS — valuation & characteristics, at the
+                          bottom by design (the work story reads first). */}
+                      <PropertyValuation rental={r} updateRental={updateRental} voiceOps={voiceOps} />
                     </div>
                   )}
                 </div>

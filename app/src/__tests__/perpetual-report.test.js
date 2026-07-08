@@ -22,6 +22,7 @@ const FIXTURE = () => buildReportRows({
     { id: 'c3', concern: 'Fixed thing', solution: 'Done', status: 'done', targetDate: '2026-06-20', source: 'manual' },
   ],
   discussions: [{ id: 'd1', kind: 'decision', title: 'We chose X', body: 'because Y', status: 'open', createdAt: '2026-07-05T00:00:00Z' }],
+  scopes: [{ id: 'sc1', title: 'PoeTech Client Build Agreement', templateType: 'client', contractorName: 'Acme LLC', status: 'active', createdAt: '2026-07-08T00:00:00Z' }],
   ledger: { ok: true, items: [{ id: 'DR-0120', title: 'Finish ripples', date: '2026-07-07', status: 'accepted', decision: 'boards ride timelines' }] },
   reviews: { ok: true, items: [{ id: 'REV-0013', title: 'Entrance review', date: '2026-07-07', type: 'ui-ux', status: 'addressed', findings: 'fixed same session', surface: 'entrance' }] },
   lessons: { ok: true, incidents: [{ date: '2026-07-06', title: 'Deploy went stale 9h' }] },

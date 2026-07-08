@@ -26,6 +26,7 @@ import {
   markCompletePatch, reschedulePatch,
 } from '../lib/project-management.js';
 import { discussionsForProject, kindMeta } from '../lib/discussions.js';
+import { CLIENT_BUILD_TEMPLATE } from '../lib/client-build-agreement.js';
 import { evaluateHandoffGate, buildHandoff } from '../lib/orchestrator-handoff.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -250,6 +251,11 @@ const SCOPE_TEMPLATES = [
     defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of the practice.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'Practice provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per state LCSW standards.', requirements: '• Active state LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet state LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
   { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing the real estate portfolio', entityId: 'e-poeprops',
     defaults: { title: 'Property Service Agreement', scopeOfWork: '[Describe specific work — what gets done, where, with what materials]', deliverables: '• Work meeting Illinois code\n• Photos of completed work\n• Final walkthrough', materials: '[Specify who provides what]', schedule: 'Start: [date]. Completion: [date].', paymentTerms: '50% deposit upon acceptance. 50% upon completion. Paid via 1099 if > $600/yr.', acceptanceCriteria: 'Work passes inspection. All systems function.', requirements: '• Active Illinois trade license\n• General liability insurance $1M+\n• W-9 on file', warranty: 'Labor warranty: 1 year. Materials per manufacturer.', terminationClause: '7 days written notice with cure opportunity.' }},
+  // The PoeTech CLIENT contract — derived from the recorded terms module
+  // (lib/client-build-agreement.js ← client-engagements.js, DR-0117/DR-0123),
+  // so the agreement, the door price-out, and the deposit gate can never
+  // disagree. Never hand-typed here (DR-0121).
+  CLIENT_BUILD_TEMPLATE,
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
@@ -329,7 +335,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
       )}
       {subView === 'report' && (
-        <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} />
+        <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} scopes={scopes} />
       )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
@@ -1658,8 +1664,8 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
   return (
     <div className="space-y-6">
       <section>
-        <SectionTitle eyebrow="Scope of Work">Contractor Agreements</SectionTitle>
-        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline.</p>
+        <SectionTitle eyebrow="Scope of Work">Contractor &amp; Client Agreements</SectionTitle>
+        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline. The PoeTech Build Client agreement derives its numbers from the recorded terms — the same source the door prices from.</p>
       </section>
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>

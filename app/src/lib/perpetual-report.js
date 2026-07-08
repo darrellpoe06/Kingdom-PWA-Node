@@ -35,6 +35,7 @@ export const REPORT_SYSTEMS = [
   ['projects', 'Projects'],
   ['boards', 'Board work'],
   ['board-events', 'Work events'],
+  ['scopes', 'Agreements'],
   ['concerns', 'Concerns'],
   ['discussions', 'Discussions'],
   ['decisions', 'Decision ledger'],
@@ -48,10 +49,26 @@ export const REPORT_SYSTEMS = [
 // as "undated") — never invented (DR-0076).
 // ---------------------------------------------------------------------------
 export function buildReportRows({
-  projects = [], tasks = [], concerns = [], discussions = [],
+  projects = [], tasks = [], concerns = [], discussions = [], scopes = [],
   ledger = null, reviews = null, lessons = null,
 } = {}) {
   const rows = [];
+
+  // Scopes / agreements (contractor + client) — a tracked record stream joins
+  // the report as it is born (DR-0122 §3; client agreements landed DR-0123).
+  for (const sc of scopes) {
+    if (!sc || !sc.id) continue;
+    rows.push({
+      id: `pr-scope-${sc.id}`,
+      date: isoDay(sc.createdAt || sc.created_at),
+      system: 'scopes',
+      kind: sc.templateType || 'scope',
+      title: sc.title || 'Agreement',
+      detail: clip([sc.contractorName || sc.clientName, sc.paymentTerms].filter(Boolean).join(' · ')),
+      status: sc.status || 'draft',
+      source: 'scopes (synced agreements)',
+    });
+  }
 
   for (const p of projects) {
     if (!p || !p.id) continue;
