@@ -32,7 +32,7 @@ export function showcaseImageUrl(imagePath) {
 
 // Steward: upload the image file, then register the piece (instance pinned
 // server-side by the RPC). Returns { ok } or a structured error.
-export async function addPiece({ instanceSlug, title, description = '', productType = 'other', file }) {
+export async function addPiece({ instanceSlug, title, description = '', productType = 'other', file, priceCents = null }) {
   if (!file || !title?.trim()) return { ok: false, error: 'title-and-image-required' };
   const slug = `sp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const ext = (file.name || 'jpg').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
@@ -42,9 +42,32 @@ export async function addPiece({ instanceSlug, title, description = '', productT
   const { error } = await supabase.rpc('add_showcase_piece', {
     p_instance_slug: instanceSlug, p_slug: slug, p_title: title,
     p_description: description, p_product_type: productType, p_image_path: path,
+    p_price_cents: priceCents,
   });
   if (error) return { ok: false, error: error.message || 'register-failed' };
   return { ok: true, slug };
+}
+
+// Edit an EXISTING piece in place — title/description/price, no re-upload
+// (Shay 2026-07-08: old pieces needed delete-and-re-add just to get a price).
+// A null priceCents honestly clears the price.
+export async function updatePiece({ instanceSlug, slug, title, description = '', priceCents = null }) {
+  if (!slug || !title?.trim()) return { ok: false, error: 'title-required' };
+  const { data, error } = await supabase.rpc('update_showcase_piece', {
+    p_instance_slug: instanceSlug, p_slug: slug, p_title: title,
+    p_description: description, p_price_cents: priceCents,
+  });
+  if (error) return { ok: false, error: error.message || 'update-failed' };
+  return { ok: data === true };
+}
+
+// Dollars-string → cents, honestly: '' / garbage → null (no price), never 0.
+export function priceInputToCents(raw) {
+  const t = String(raw ?? '').replace(/[$,\s]/g, '');
+  if (!t) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100);
 }
 
 export async function setPin(instanceSlug, slug, pinned) {

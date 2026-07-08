@@ -252,10 +252,12 @@ function Gallery({ onInspired }) {
             {url && <img src={url} alt={p.title} loading="lazy" className="aspect-square w-full object-cover" />}
             <figcaption className="p-2">
               <div className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{p.title}{p.pinned ? ' ✦' : ''}</div>
+              {/* Price shows ONLY where Shay set one (0094) — never painted. */}
+              {p.price_cents != null && <div className="text-sm font-semibold text-[#5A6E3D]">{fmt$(p.price_cents).replace(/\.00$/, '')}</div>}
               {p.description && <div className="text-xs text-[#5A5751]">{p.description}</div>}
               <button
                 type="button"
-                className="mt-1.5 w-full rounded-lg border border-[#B85838] px-2 py-1 text-xs font-semibold text-[#B85838]"
+                className="mt-1.5 w-full rounded-lg border border-[#B85838] px-2 py-2 text-xs font-semibold text-[#B85838]"
                 onClick={() => onInspired?.(p)}
               >
                 Order inspired by this

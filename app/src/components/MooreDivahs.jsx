@@ -23,7 +23,7 @@ import { useMooreInventory, addInventoryItem, adjustInventoryQty } from '../lib/
 import AddressField, { osmLink } from './AddressField.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { fetchMessages, sendMessage, groupThreads } from '../lib/business-messages.js';
-import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece } from '../lib/showcase.js';
+import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePiece, updatePiece, priceInputToCents } from '../lib/showcase.js';
 import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { MOORE_SHARE_URL, MOORE_SHARE_URL_DISPLAY } from '../lib/moore-door.js';
@@ -670,34 +670,71 @@ function ShareAppSection() {
 }
 
 // ---- Gallery manager — she uploads her historical pieces when ready (0092) --
-function GalleryManager() {
-  const [pieces, setPieces] = useState([]);
-  const [f, setF] = useState({ title: '', description: '', productType: 'custom-clothing', file: null });
+// Edit-in-place for an existing piece (Shay 2026-07-08: pricing had no spot
+// and old pieces needed delete-and-re-add — this is the fix). Prefills the
+// current values so saving without touching a field never loses anything.
+function PieceEditor({ piece, onDone }) {
+  const [e, setE] = useState({
+    title: piece.title || '',
+    description: piece.description || '',
+    price: piece.price_cents != null ? (piece.price_cents / 100).toFixed(2).replace(/\.00$/, '') : '',
+  });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const save = async () => {
+    setBusy(true); setErr('');
+    const r = await updatePiece({
+      instanceSlug: 'moore-divahs', slug: piece.slug, title: e.title,
+      description: e.description, priceCents: priceInputToCents(e.price),
+    });
+    setBusy(false);
+    if (!r.ok) { setErr('Could not save — try again in a moment.'); return; }
+    onDone();
+  };
+  return (
+    <div className="mt-1 space-y-1">
+      <input aria-label="Edit piece title" className="w-full rounded border border-[#E8E2D8] bg-white px-2 py-1" value={e.title} onChange={(ev) => setE({ ...e, title: ev.target.value })} />
+      <input aria-label="Edit piece description" placeholder="A line about it" className="w-full rounded border border-[#E8E2D8] bg-white px-2 py-1" value={e.description} onChange={(ev) => setE({ ...e, description: ev.target.value })} />
+      <input aria-label="Edit piece price dollars" placeholder="Price $ (blank = no price shown)" inputMode="decimal" className="w-full rounded border border-[#E8E2D8] bg-white px-2 py-1" value={e.price} onChange={(ev) => setE({ ...e, price: ev.target.value })} />
+      <div className="flex gap-1.5">
+        <button type="button" disabled={busy} className="rounded bg-[#5A6E3D] px-2 py-1 font-semibold text-white" onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+        <button type="button" className="rounded border border-[#E8E2D8] px-2 py-1 text-[#5A5751]" onClick={onDone}>Cancel</button>
+      </div>
+      {err && <p className="text-[#B85838]">{err}</p>}
+    </div>
+  );
+}
+
+function GalleryManager() {
+  const [pieces, setPieces] = useState([]);
+  const [f, setF] = useState({ title: '', description: '', productType: 'custom-clothing', file: null, price: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [editing, setEditing] = useState(null); // slug being edited
   const load = () => fetchShowcase('moore-divahs').then((r) => setPieces(sortPieces(r.pieces)));
   useEffect(() => { load(); }, []);
   const submit = async (e) => {
     e.preventDefault();
     setErr('');
     setBusy(true);
-    const r = await addPiece({ instanceSlug: 'moore-divahs', title: f.title, description: f.description, productType: f.productType, file: f.file });
+    const r = await addPiece({ instanceSlug: 'moore-divahs', title: f.title, description: f.description, productType: f.productType, file: f.file, priceCents: priceInputToCents(f.price) });
     setBusy(false);
     if (!r.ok) { setErr(r.error === 'title-and-image-required' ? 'A title and an image are both needed.' : `Upload failed: ${r.error}`); return; }
-    setF({ title: '', description: '', productType: 'custom-clothing', file: null });
+    setF({ title: '', description: '', productType: 'custom-clothing', file: null, price: '' });
     load();
   };
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Gallery</h2>
-      <p className="text-xs text-[#5A5751]">Your showcased pieces greet every customer who opens your app. Pin favorites to the top; each piece carries an &ldquo;order inspired by this&rdquo; button.</p>
+      <p className="text-xs text-[#5A5751]">Your showcased pieces greet every customer who opens your app. Pin favorites to the top; each piece carries an &ldquo;order inspired by this&rdquo; button. Add a price and it shows on the piece — edit any piece anytime, no re-upload.</p>
       <form onSubmit={submit} className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#E8E2D8] bg-[#FAF8F4] p-3 text-sm sm:grid-cols-4">
         <input aria-label="Piece title" required placeholder="Piece title" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
         <select aria-label="Piece type" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.productType} onChange={(e) => setF({ ...f, productType: e.target.value })}>
           {PRODUCT_TYPES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
         <input aria-label="Piece image" type="file" accept="image/*" className="text-xs" onChange={(e) => setF({ ...f, file: e.target.files?.[0] || null })} />
-        <input aria-label="Piece description" placeholder="A line about it (optional)" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <input aria-label="Piece price dollars" placeholder="Price $ (optional)" inputMode="decimal" className="rounded border border-[#E8E2D8] bg-white px-2 py-1" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} />
+        <input aria-label="Piece description" placeholder="A line about it (optional)" className="col-span-2 rounded border border-[#E8E2D8] bg-white px-2 py-1 sm:col-span-4" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         <button type="submit" disabled={busy} className="col-span-2 rounded-lg bg-[#B85838] px-3 py-1.5 font-semibold text-white sm:col-span-4">{busy ? 'Uploading…' : '+ Add to gallery'}</button>
         {err && <p className="col-span-2 text-xs text-[#B85838] sm:col-span-4">{err}</p>}
       </form>
@@ -706,11 +743,19 @@ function GalleryManager() {
           {pieces.map((p) => (
             <div key={p.slug} className="rounded-xl border border-[#E8E2D8] bg-white p-2 text-xs">
               {showcaseImageUrl(p.image_path) && <img src={showcaseImageUrl(p.image_path)} alt={p.title} loading="lazy" className="aspect-square w-full rounded-lg object-cover" />}
-              <div className="mt-1 font-semibold text-[#1A1815]">{p.title}{p.pinned ? ' ✦' : ''}</div>
-              <div className="mt-1 flex gap-1.5">
-                <button type="button" className="rounded border border-[#5A6E3D] px-1.5 py-0.5 text-[#5A6E3D]" onClick={() => setPin('moore-divahs', p.slug, !p.pinned).then(load)}>{p.pinned ? 'Unpin' : 'Pin ✦'}</button>
-                <button type="button" className="rounded border border-[#5A5751] px-1.5 py-0.5 text-[#5A5751]" onClick={() => { if (confirm(`Remove "${p.title}" from the gallery?`)) removePiece('moore-divahs', p.slug).then(load); }}>Remove</button>
-              </div>
+              {editing === p.slug ? (
+                <PieceEditor piece={p} onDone={() => { setEditing(null); load(); }} />
+              ) : (
+                <>
+                  <div className="mt-1 font-semibold text-[#1A1815]">{p.title}{p.pinned ? ' ✦' : ''}</div>
+                  {p.price_cents != null && <div className="text-[#5A6E3D]">${(p.price_cents / 100).toFixed(2).replace(/\.00$/, '')}</div>}
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <button type="button" className="rounded border border-[#2A5A8E] px-1.5 py-0.5 text-[#2A5A8E]" onClick={() => setEditing(p.slug)}>Edit</button>
+                    <button type="button" className="rounded border border-[#5A6E3D] px-1.5 py-0.5 text-[#5A6E3D]" onClick={() => setPin('moore-divahs', p.slug, !p.pinned).then(load)}>{p.pinned ? 'Unpin' : 'Pin ✦'}</button>
+                    <button type="button" className="rounded border border-[#5A5751] px-1.5 py-0.5 text-[#5A5751]" onClick={() => { if (confirm(`Remove "${p.title}" from the gallery?`)) removePiece('moore-divahs', p.slug).then(load); }}>Remove</button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
