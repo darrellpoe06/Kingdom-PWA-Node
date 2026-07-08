@@ -35,13 +35,17 @@ name: Auto-merge
 
 on:
   pull_request:
-    # `closed` (2026-07-08, DR-0107 follow-through): a native auto-merge lands
-    # with NO subsequent event this workflow used to hear — the GITHUB_TOKEN
-    # merge emits no push, main-CI doesn't run, and the deploy-freshness cron
-    # is best-effort (observed firing ~hourly, not every 5 min). Sweeping on
-    # PR-close makes the MERGE ITSELF run the deploy-if-undeployed step below,
-    # so the site advances the moment a PR lands instead of waiting on a
-    # delayed cron.
+    # `closed` (2026-07-08, DR-0107 follow-through; CORRECTED same night): a
+    # native auto-merge lands with NO subsequent event this workflow hears —
+    # the GITHUB_TOKEN merge emits no push and main-CI doesn't run. `closed`
+    # was added to make the merge run the deploy step below, but PROVED (PR
+    # #697, watched) to be suppressed for auto-merges too: the close is a
+    # GITHUB_TOKEN action, and GitHub suppresses workflow runs for every
+    # event a GITHUB_TOKEN action emits — push, closed, all of it. `closed`
+    # stays because it DOES fire for human-clicked merges/closes; for
+    # auto-merges the real catcher is the armed-PR wait loop in the deploy
+    # step (sized to span a full CI run), with the deploy-freshness cron
+    # (best-effort, observed ~hourly) as the outer net.
     types: [opened, reopened, ready_for_review, synchronize, closed]
     branches: [main]
   check_suite:
@@ -144,9 +148,20 @@ jobs:
       # exited; the merge push itself fires no event (token-suppressed), so the
       # heal never re-ran and both deploys had to be dispatched by hand. Fix:
       # when the tips match but ARMED PRs exist (auto-merge enabled, i.e. a
-      # merge may be seconds away), poll up to 2 minutes for main to advance and
-      # dispatch the moment it does. When nothing is armed, the old single check
-      # is unchanged — no idle sweeps burn wait time.
+      # merge may be seconds away), poll for main to advance and dispatch the
+      # moment it does. When nothing is armed, the old single check is
+      # unchanged — no idle sweeps burn wait time.
+      #
+      # WHY THE WINDOW IS 6 MINUTES (2026-07-08, after the THIRD miss, PR
+      # #697): the sweep that arms a fresh PR fires at PR-OPEN, when its CI
+      # has only just started — the old 2-minute poll expired a beat before
+      # the ~3-minute CI went green and the merge landed, and NO later event
+      # fired (the auto-merge close is token-suppressed; see the `closed` note
+      # at the top). 6 minutes spans a full CI run plus queue margin from the
+      # earliest moment a sweep can arm a PR. Bounded cost: the poll runs only
+      # while armed PRs exist, and a superseding sweep cancels it
+      # (concurrency). CI failures exit via the armed PR never merging; the
+      # cron remains the outer net.
       - name: Deploy main's tip if it isn't the last-deployed commit (closes the GITHUB_TOKEN push gap for CF Pages)
         if: ${{ always() }}
         env:
@@ -170,8 +185,8 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "main tip already deployed, but $armed armed PR(s) may merge momentarily — polling up to 2 minutes."
-            for i in 1 2 3 4 5 6 7 8; do
+            echo "main tip already deployed, but $armed armed PR(s) may merge momentarily — polling up to 6 minutes."
+            for i in $(seq 1 24); do
               sleep 15
               if deploy_if_stale; then exit 0; fi
             done
