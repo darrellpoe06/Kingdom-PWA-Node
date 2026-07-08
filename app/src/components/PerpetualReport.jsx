@@ -22,6 +22,7 @@ import {
   REPORT_SYSTEMS, buildReportRows, filterReport, sortReport, reportStatuses,
   reportToCsv, failureCoverage,
 } from '../lib/perpetual-report.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 
 const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
 const UIUX_REVIEWS = (typeof __UIUX_REVIEWS__ !== 'undefined') ? __UIUX_REVIEWS__ : { ok: false, count: 0, items: [] };
@@ -56,6 +57,7 @@ export default function PerpetualReport({ projects = [], concerns = [], feedback
   const rows = useMemo(() => buildReportRows({
     projects, tasks, concerns: allConcerns, discussions, scopes,
     ledger: DR_LEDGER, reviews: UIUX_REVIEWS, lessons: LESSONS,
+    courses: LEARN_CATALOG,
   }), [projects, tasks, allConcerns, discussions, scopes]);
 
   const statuses = useMemo(() => reportStatuses(rows), [rows]);

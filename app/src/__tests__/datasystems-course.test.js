@@ -269,11 +269,20 @@ describe('shared machinery (self-paced schedule, progress, export, cohort, tutor
 });
 
 describe('registered in the Learn UI (the course actually surfaces)', () => {
-  it('the host imports the course and includes it in the extraCourses array passed to ChurchLearn', () => {
+  // Since 2026-07-08 the self-paced courses ride the ONE course registry
+  // (lib/learn-catalog.js) instead of hand-built host descriptors — the host
+  // mounts buildSelfPacedDescriptors() and the registry carries the key, the
+  // helper tag, and the descriptor (learn-catalog-render.test.jsx clicks every
+  // registered course in a real render).
+  it('the course is registered in the Learn catalog and the host mounts the registry', async () => {
+    const { LEARN_CATALOG, helperTagForCourse } = await import('../lib/learn-catalog.js');
+    const entry = LEARN_CATALOG.find((c) => c.key === 'datasystems');
+    expect(entry).toBeTruthy();
+    expect(entry.wiring).toBe('self-paced');
+    expect(helperTagForCourse('datasystems')).toBe(DATASYSTEMS_HELPER_TAG);
     const hostPath = fileURLToPath(new URL('../poe-financial-mvp-v28.jsx', import.meta.url));
     const src = readFileSync(hostPath, 'utf8');
-    expect(src).toContain("from './lib/datasystems-course.js'");
-    expect(src).toMatch(/extraCourses=\{\[[^\]]*datasystemsCourse[^\]]*\]\}/);
-    expect(src).toContain("courseKey === 'datasystems'"); // helper-tag routing wired
+    expect(src).toContain("from './lib/learn-catalog.js'");
+    expect(src).toMatch(/extraCourses=\{\[[^\]]*\.\.\.selfPacedCourses[^\]]*\]\}/);
   });
 });

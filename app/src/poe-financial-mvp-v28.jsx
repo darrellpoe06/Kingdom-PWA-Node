@@ -29,53 +29,33 @@ import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassR
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
-  BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
+  BROADCAST_INTEREST_TAG, BROADCAST_TUTOR_META,
   buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown,
   resolveBroadcastCohort, SOP_SEQUENCES, SOP_CAPTURE_PIPELINE,
 } from './lib/broadcast-class.js';
 import {
   INFRA_META, INFRA_SESSION_FLOW, INFRA_PROPOSED_COHORT_START,
-  INFRA_INTEREST_TAG, INFRA_HELPER_TAG, INFRA_TUTOR_META,
+  INFRA_INTEREST_TAG, INFRA_TUTOR_META,
   buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown,
   resolveInfraCohort, INFRA_SOP_SEQUENCES,
 } from './lib/infrastructure-class.js';
 import {
   SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_PROPOSED_COHORT_START,
-  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META,
+  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_TUTOR_META,
   buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
   resolveSovereignAiCohort,
 } from './lib/sovereign-ai-class.js';
 import {
   AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START,
-  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
+  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
   buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
   resolveAiLegalBlueprintCohort,
 } from './lib/ai-legal-blueprint-class.js';
-import {
-  LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW,
-  LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
-  buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
-} from './lib/living-lessons-class.js';
-import {
-  SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
-  SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
-  buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
-} from './lib/sound-board-class.js';
-import {
-  WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW,
-  WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META,
-  buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
-} from './lib/world-issues-class.js';
-import {
-  DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW,
-  DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META,
-  buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown,
-} from './lib/datasystems-course.js';
-import {
-  SUCCESSION_META, SUCCESSION_SESSION_FLOW,
-  SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META,
-  buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown,
-} from './lib/succession-class.js';
+// SELF-PACED Learn courses (Living Lessons, Running the Board, World Issues,
+// Data Systems, Handed Forward, Kingdom Economics, Prophetic Voices) all derive
+// from the ONE course registry — a finished course can never again be built but
+// left unsurfaced (Darrell 2026-07-08; lib/learn-catalog.js).
+import { buildSelfPacedDescriptors, helperTagForCourse } from './lib/learn-catalog.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -4761,183 +4741,31 @@ ${THEME_CSS}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
-          // Living Lessons — a Word-first, SELF-PACED lesson series on the same
-          // shared engine (meta.unit renders it as "Lesson(s)" + drops the cohort
-          // clock). No cohort date setters (self-paced): setCohortStart/confirmCohort
-          // are null, and the schedule carries lesson numbers with no painted dates.
-          const submitLivingLessonsInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${LIVING_LESSONS_INTEREST_TAG} ${(name || 'A reader').trim()} wants more Living Lessons.` })
-            : null;
-          const livingLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], LIVING_LESSONS_INTEREST_TAG) : null;
-          const livingLessonsCourse = {
-            meta: { ...LIVING_LESSONS_META, key: 'living-lessons' },
-            sessionFlow: LIVING_LESSONS_SESSION_FLOW,
-            schedule: buildLivingLessonsSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => livingLessonsProgressSummary(p),
-            exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(),
-            downloadName: 'living-lessons-from-the-word.md',
-            submitInterest: submitLivingLessonsInterest,
-            roster: livingLessonsRoster,
-            interestCopy: {
-              heading: 'Want more Living Lessons?',
-              blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
-              cta: 'I’d like more',
-              sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
-            },
-            tutorCourseMeta: LIVING_LESSONS_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // Running the Board — a SELF-PACED live-sound training track for the COLG
-          // sound team, same shared engine (meta.unit renders it as "Lesson(s)", no
-          // cohort clock). Seeded to be enriched/verified by the church sound engineer
-          // via the sovereign SME pipeline; the A.I. tutor is sovereign + assistive-only.
-          const submitSoundBoardInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOUND_BOARD_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn to run the sound board.` })
-            : null;
-          const soundBoardRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOUND_BOARD_INTEREST_TAG) : null;
-          const soundBoardCourse = {
-            meta: { ...SOUND_BOARD_META, key: 'sound-board' },
-            sessionFlow: SOUND_BOARD_SESSION_FLOW,
-            schedule: buildSoundBoardSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => soundBoardProgressSummary(p),
-            exportMarkdown: () => exportSoundBoardCurriculumMarkdown(),
-            downloadName: 'running-the-board-live-sound.md',
-            submitInterest: submitSoundBoardInterest,
-            roster: soundBoardRoster,
-            interestCopy: {
-              heading: 'Want to learn the sound board?',
-              blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
-              cta: 'I want to learn',
-              sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
-            },
-            tutorCourseMeta: SOUND_BOARD_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // World Issues & Discernment — a Word-first, SELF-PACED media-literacy +
-          // biblical-discernment track on the same shared engine (meta.unit renders
-          // it as "Issue(s)", no cohort clock). Each issue's modules carry a
-          // structured `issue` (lib/discernment-track.js) that ChurchLearn renders
-          // as the five labeled stages. Safeguards (claims labeled, dated sources,
-          // steelmanned sides, no one-sided persuasion against a named person,
-          // age-appropriate) are machine-checked in the lib + asserted in tests.
-          const submitWorldIssuesInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${WORLD_ISSUES_INTEREST_TAG} ${(name || 'A learner').trim()} wants more World Issues discernment lessons.` })
-            : null;
-          const worldIssuesRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], WORLD_ISSUES_INTEREST_TAG) : null;
-          const worldIssuesCourse = {
-            meta: { ...WORLD_ISSUES_META, key: 'world-issues' },
-            sessionFlow: WORLD_ISSUES_SESSION_FLOW,
-            schedule: buildWorldIssuesSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => worldIssuesProgressSummary(p),
-            exportMarkdown: () => exportWorldIssuesCurriculumMarkdown(),
-            downloadName: 'thinking-it-through-world-issues-discernment.md',
-            submitInterest: submitWorldIssuesInterest,
-            roster: worldIssuesRoster,
-            interestCopy: {
-              heading: 'Want more discernment lessons?',
-              blurb: 'Tell Darrell which world issue you’d like thought through The Way — media literacy + Scripture, evenhanded, never a verdict on a person. Read at your own pace, at any age.',
-              cta: 'I’d like more',
-              sent: '✓ Sent — Darrell will see what to think through next. We check sources and hold truth and grace.',
-            },
-            tutorCourseMeta: WORLD_ISSUES_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // PoeTech Data Systems & Infrastructure — a SELF-PACED staff/volunteer
-          // onboarding + operating course on the same shared engine (meta.unit
-          // renders rows as "Module(s)", no cohort clock). It teaches the whole
-          // system (data layer, the loops, modules + harvest, CRM, Ari), the church
-          // tech stack (NAS, 2x RTX 4070 GPU node, LED wall + NovaStar VX1000, the
-          // service day), the operating skills, and an onboarding path — verified
-          // facts, SME items flagged. LIVING: shares material with the in-app "?"
-          // help (datasystems-course.js imports the same HELP registry).
-          const submitDatasystemsInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${DATASYSTEMS_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn the PoeTech data systems and infrastructure.` })
-            : null;
-          const datasystemsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], DATASYSTEMS_INTEREST_TAG) : null;
-          const datasystemsCourse = {
-            meta: { ...DATASYSTEMS_META, key: 'datasystems' },
-            sessionFlow: DATASYSTEMS_SESSION_FLOW,
-            schedule: buildDatasystemsSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => datasystemsProgressSummary(p),
-            exportMarkdown: () => exportDatasystemsCurriculumMarkdown(),
-            downloadName: 'poetech-data-systems-and-infrastructure.md',
-            submitInterest: submitDatasystemsInterest,
-            roster: datasystemsRoster,
-            interestCopy: {
-              heading: 'Want to learn the systems?',
-              blurb: 'Tell Darrell you want to come up to speed on the PoeTech data systems and the church tech stack — how it works, the equipment, and the skills — and he’ll get you started. Self-paced, plain language, at any experience level.',
-              cta: 'I want to learn',
-              sent: '✓ Sent — Darrell will get you onboarded. We steward the systems so the Body is equipped.',
-            },
-            tutorCourseMeta: DATASYSTEMS_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // Handed Forward — the SUCCESSION course for the heirs being raised to
-          // take over (DR-0111; Darrell 2026-07-06: "we can't expect our heirs to
-          // learn how we did... there are new issues that older people want young
-          // people to take care of"). Self-paced on the same shared engine (no
-          // cohort clock): commission-not-clone, read-before-you-rule (pairs with
-          // the read-only Successor seat), and build what we could not.
-          const submitSuccessionInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SUCCESSION_INTEREST_TAG} ${(name || 'An heir').trim()} wants to take the Handed Forward succession course.` })
-            : null;
-          const successionRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SUCCESSION_INTEREST_TAG) : null;
-          const successionCourse = {
-            meta: { ...SUCCESSION_META, key: 'handed-forward' },
-            sessionFlow: SUCCESSION_SESSION_FLOW,
-            schedule: buildSuccessionSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => successionProgressSummary(p),
-            exportMarkdown: () => exportSuccessionCurriculumMarkdown(),
-            downloadName: 'handed-forward-succession-curriculum.md',
-            submitInterest: submitSuccessionInterest,
-            roster: successionRoster,
-            interestCopy: {
-              heading: 'Being raised to take over?',
-              blurb: 'Tell Darrell you want to take Handed Forward — the succession course for the next generation. We hand you the mission, not our path: know the God of your father, learn to read the real books, and build what we could not. Self-paced, at any age.',
-              cta: 'I want to learn',
-              sent: '✓ Sent — Darrell will see you’re in. We hand it forward.',
-            },
-            tutorCourseMeta: SUCCESSION_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
+          // SELF-PACED courses — Living Lessons, Running the Board, World Issues
+          // & Discernment, PoeTech Data Systems, Handed Forward, Kingdom
+          // Economics, and Prophetic Voices — ALL derive from the one course
+          // registry (lib/learn-catalog.js). The registry is the source of
+          // truth for what finished courses exist; the render gate
+          // (learn-catalog-render.test.jsx) clicks every one and holds the
+          // >= 40-lesson floor, so a course that is built but unsurfaced (the
+          // Kingdom Economics / Prophetic Voices miss, Darrell 2026-07-08)
+          // fails CI instead of shipping. Interest + Governor rosters ride the
+          // same cross-tenant feedback pipe, tagged per course.
+          const selfPacedCourses = buildSelfPacedDescriptors({
+            submitInterestFor: authSession
+              ? (e) => (name) => addFeedback({
+                  area: 'church-learn', rating: 'love', category: 'feature-request',
+                  text: e.interestText(((name || '').trim()) || 'A learner'),
+                })
+              : null,
+            rosterFor: isGov
+              ? (e) => extractClassRoster([...(data.feedback || []), ...remoteFeedback], e.interestTag)
+              : null,
+            engagementByAge,
+          });
 
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
-          const helperTagFor = (courseKey) => (
-            courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
-              : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
-                : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
-                  : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
-                    : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
-                      : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
-                        : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
-                          : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
-                            : courseKey === 'handed-forward' ? SUCCESSION_HELPER_TAG
-                              : '[Class helper]'
-          );
+          const helperTagFor = (courseKey) => helperTagForCourse(courseKey);
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
                 area: 'church-learn', rating: 'love', category: 'feature-request',
@@ -4968,7 +4796,7 @@ ${THEME_CSS}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse, successionCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, ...selfPacedCourses]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
             learnLevel={data.learnLevel || 'auto'}

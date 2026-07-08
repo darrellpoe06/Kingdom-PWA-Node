@@ -56,6 +56,16 @@ export const ECON_META = {
   cadenceDays: 7,
   weeks: 7,
   handsOnLabel: 'Hands-on with the money tools',
+  // Self-paced label layer — the shared engine renders rows as "Session(s)"
+  // with no cohort clock ("Self-paced or 7 sessions" per the format line).
+  unit: {
+    noun: 'session',
+    nounPlural: 'sessions',
+    cap: 'Session',
+    selfPaced: true,
+    sessionLabel: 'How to lead it (class or family)',
+    countNoun: 'session',
+  },
   blurb: 'Economics taught The Way: the soul prospers first, understanding before technique, and the Body of Christ as an economic powerhouse. Grounded in Scripture AND in the documented, measured African American economic reality — ownership, circulation, group economics, the real and quantified barriers (hiring, lending, distribution), the accountability God brings on injustice, and building institutions that outlast us.',
   footer: '_Taught by Darrell Poe · The Church of the Living God + the Poe family · built on PoeTech. The soul first, then the finances. We tell the documented truth — no lies, no muting — and we know that God pleads the cause of the oppressed and judges injustice. Reconciliation comes through repentance and restitution, not around them. Built to be handed on, at every age._',
 };

@@ -49,7 +49,7 @@
 // Vocabulary — the claim labels. A claim is NEVER unlabeled (Stage 1 binding).
 // ---------------------------------------------------------------------------
 export const CLAIM_LABELS = [
-  { id: 'allegation', label: 'Allegation', hint: 'A serious assertion made AGAINST someone, not (yet) a proven verdict.' },
+  { id: 'allegation', label: 'Allegation', hint: 'A serious assertion made AGAINST someone that no court has yet judged — distinct from an adjudicated finding, which IS a verdict and is said plainly.' },
   { id: 'claim', label: 'Claim', hint: 'A factual assertion put forward — to be checked against sources, not assumed true.' },
   { id: 'opinion', label: 'Opinion', hint: 'A value judgment or interpretation — reasonable people can hold different ones.' },
   { id: 'call-to-action', label: 'Call to action', hint: 'A request to DO something (boycott, support, vote). A position, not a fact.' },
@@ -278,7 +278,7 @@ export function lintNoOneSidedPersuasion(issue) {
   ].filter(isNonEmptyStr).join(' \n ').toLowerCase();
   DIRECTIVE_PERSUASION.forEach((phrase) => {
     if (ownVoice.includes(phrase)) {
-      out.push({ code: 'persuasion/directive', severity: 'error', message: `The lesson's own voice contains a persuasive directive ("${phrase}"). The platform teaches discernment, not a verdict on a person.` });
+      out.push({ code: 'persuasion/directive', severity: 'error', message: `The lesson's own voice contains a persuasive directive ("${phrase}"). The lesson speaks the Word's verdict on documented deeds plainly, but it never campaigns against a person or pronounces on a soul.` });
     }
   });
   return out;
@@ -331,7 +331,7 @@ export function auditAllIssues(issues) {
 function buildLessonProse(i) {
   const parts = [];
   parts.push(
-    `This is a discernment lesson, not a verdict. We take one charged claim and learn HOW to think it through — checking sources and weighing it in the light of Scripture — rather than being told what to conclude.`,
+    `This lesson speaks the documented truth plainly and teaches HOW to weigh the rest — checking sources, hearing every side, and letting the Word say what it says about justice and accountability. What is proven is named; what is unproven is labeled; the verdict on a soul is left to God.`,
   );
   if (i.source.creator) {
     parts.push(
@@ -339,7 +339,7 @@ function buildLessonProse(i) {
     );
   }
   if (i.claims.length) {
-    parts.push(`STAGE 1 — THE CLAIM. ${i.claims.map((c) => `[${c.label}] ${c.text}`).join(' ')} Each is labeled and attributed; none is presented as settled fact.`);
+    parts.push(`STAGE 1 — THE CLAIM. ${i.claims.map((c) => `[${c.label}] ${c.text}`).join(' ')} Each is labeled and attributed; documented parts are named as documented, and unproven parts stay labeled unproven.`);
   }
   if (i.verifiable.length || i.interpretation.length) {
     const facts = i.verifiable.map((v) => `${v.statement} (${v.status}; see ${v.sources.map((s) => `${s.title}${s.asOf ? `, as of ${s.asOf}` : ''}`).join('; ')})`).join(' ');
@@ -378,7 +378,7 @@ export function buildDiscernmentModule(issue) {
     lesson: buildLessonProse(i),
     facilitator: {
       talkingPoints: [
-        'This is a discernment lesson, not a verdict — we teach HOW to think it through, never WHAT to conclude about a person.',
+        'We speak what is documented plainly, label what is unproven, and leave the verdict on a soul to God — proven harm is never muted as "balance."',
         'Stage 1: every claim is LABELED (allegation / claim / opinion / call-to-action) and attributed to its source. We never repeat a contested allegation as settled fact.',
         'Stage 2: separate DOCUMENTED fact (checkable against primary sources, with dates) from INTERPRETATION. Model checking a source live.',
         'Stage 3: steelman every side — state each perspective at its strongest before weighing any.',

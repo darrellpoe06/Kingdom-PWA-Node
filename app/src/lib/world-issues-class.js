@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
     sessionLabel: 'How to lead it (family or small group)',
     countNoun: 'issue',
   },
-  footer: '_Built on PoeTech · The Church of the Living God + the Poe family. This track teaches DISCERNMENT, never a verdict on a person. Word-first, evenhanded, and grace-centered — we check sources, hear every side fairly, and hold truth AND grace, for every age._',
+  footer: '_Built on PoeTech · The Church of the Living God + the Poe family. This track speaks documented truth plainly and weighs every claim by the Word — accountability for deeds as Jesus taught it, every side heard fairly (Proverbs 18:17), and the verdict on a soul left to God. Word-first and grace-centered, for every age._',
 };
 
 // A gentle rhythm mirroring the five discernment stages.
@@ -85,16 +85,20 @@ export const WORLD_ISSUES_SESSION_MINUTES = WORLD_ISSUES_SESSION_FLOW.reduce((t,
 
 // =============================================================================
 // FIRST WORKED EXAMPLE — a creator's video critiquing Elon Musk.
-// Handled evenhandedly + source-checked: the video is treated as ONE creator's
-// argument (sourced, labeled), not as truth to repeat. Documented pieces are
-// separated from interpretive ones; the boycott "call to action" is carried as
-// the creator's position alongside other views, never as the lesson's directive.
+// WORD-FIRST JUSTICE (DR-0100 + Darrell 2026-07-08): the lesson's OWN voice
+// states the documented facts plainly — a jury finding IS a verdict, and hedging
+// proven harm into "who can say" is false witness (Isaiah 5:20; Jeremiah 6:14).
+// It teaches justice and accountability the way Jesus interprets them (Luke
+// 4:18; Matthew 21:13; Luke 19:8-9; Mark 6:18). Perspectives are interpretive
+// positions on the UNRESOLVED parts only — never a vote on whether the proven
+// harm is real. The one verdict withheld is the verdict on a soul (Matthew
+// 7:1-5; Romans 14:4); that restraint never mutes the deeds.
 // =============================================================================
 const MUSK_ISSUE = {
   id: 'wi-musk-creator-critique',
   title: 'A Creator’s Video Critiquing Elon Musk — How To Think It Through',
   subject: { name: 'Elon Musk', kind: 'public-figure', isNamedRealPerson: true },
-  skill: 'Take one charged, viral critique of a powerful person and learn the discernment moves: identify and label each claim, separate documented fact from interpretation, steelman every side, and weigh it in the light of Scripture — truth AND grace, no verdict on a soul.',
+  skill: 'Take one charged, viral critique of a powerful person and learn how the Word — not the noise — judges it: state the documented facts plainly (a jury finding IS a verdict; Grok’s outputs happened; the turbines sit beside Boxtown), hear every side fairly before answering (Proverbs 18:17), and then speak the justice Jesus speaks — accountability for documented deeds, protection for the wronged, restitution where wrong was done — while the verdict on a soul stays with God.',
   source: {
     creator: 'DAT BOY WILL',
     medium: 'video',
@@ -111,7 +115,7 @@ const MUSK_ISSUE = {
       text: 'Elon Musk and his companies have a pattern of racism and discrimination against Black people.',
       label: 'allegation',
       attribution: 'DAT BOY WILL (the creator), in his video',
-      note: 'A serious assertion against a person/company. Some related matters have court findings; others are unproven lawsuits; the broad characterization of a "pattern" is the creator’s framing.',
+      note: 'The core under this framing is documented and is said plainly: a federal jury FOUND Tesla liable for racial harassment of a Black worker (a verdict, not an allegation), two civil-rights agencies have sued alleging widespread abuse (filed, unadjudicated), Grok produced racist outputs, and the polluting turbines sit beside a historically Black neighborhood. What remains the creator’s framing is the reach of the word "pattern" and any verdict on Musk’s heart — the deeds are named; the soul is God’s.',
     },
     {
       id: 'c-ai-regulation',
@@ -265,49 +269,53 @@ const MUSK_ISSUE = {
     },
   ],
 
-  // ---- STAGE 3 — PERSPECTIVES (each steelmanned) ----
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  // The documented facts are NOT up for a vote here — the lesson already stated
+  // them plainly (Stage 2, and the believer's lens below). These are positions
+  // on what remains genuinely unresolved: the unadjudicated suits, motives,
+  // policy questions, and what accountability should look like.
   perspectives: [
     {
       id: 'p-critics',
-      label: 'The creator’s / critics’ view',
+      label: 'The creator’s / critics’ view of the unresolved parts',
       heldBy: 'DAT BOY WILL and many critics',
-      steelman: 'At its strongest: there is a documented jury finding of racial harassment at Tesla, additional government lawsuits alleging more, real racist outputs from Grok, a polluting facility sited beside a historically Black neighborhood, and opposition to a civil-rights bias law. Even if no single item proves intent, the pattern is serious, it lands on Black communities, and a powerful man should be held accountable — silence can look like consent.',
+      steelman: 'The proven core is not this view’s claim — it is settled record (the jury finding, the Grok outputs, the siting). What this view adds on top: the items together form a PATTERN that reveals posture if not heart; the unadjudicated suits will likely prove more of the same; and a man this powerful must be held publicly accountable now, because for the powerful, delay IS escape — silence can look like consent.',
     },
     {
       id: 'p-defenders',
-      label: 'Musk’s / defenders’ view',
+      label: 'What the defense actually answers — and what it doesn’t',
       heldBy: 'Musk, xAI/Tesla, and defenders',
-      steelman: 'At its strongest: lawsuits are allegations, not verdicts; the one finding (Diaz) was sharply reduced and settled; the Grok outputs were errors the company corrected and apologized for; the data center followed a public permit process and brings jobs and energy; the bias-law objection is about free speech and government overreach, not a wish to discriminate; and criticizing BEE is a mainstream policy position held by many South Africans of every race. Judging a person’s heart from contested headlines is unfair.',
+      steelman: 'Heard at its strongest, the defense genuinely answers some things: the California and EEOC suits ARE still unproven allegations; the company DID correct and apologize for the Grok outputs; the permit process WAS public; the bias-law objection is argued as free speech; and criticizing BEE is a mainstream position held by many South Africans of every race. But mark what the defense does NOT answer: it cannot erase the adjudicated Diaz finding — a jury heard the evidence and found racial harassment; a reduced award and a settlement change the amount, not the finding. And "the outputs were errors" explains the mechanism, not away the harm. A fair hearing weighs what the defense covers AND names what it leaves standing.',
     },
     {
       id: 'p-community',
       label: 'The environmental-justice / community view',
       heldBy: 'Boxtown neighbors and EJ advocates',
-      steelman: 'At its strongest: regardless of anyone’s intent, a historically Black, already over-burdened neighborhood is bearing real pollution risk and deserves protection, clean air, and a genuine voice in decisions made about its own backyard. The harm to real people matters even if motive can never be proven.',
+      steelman: 'Regardless of anyone’s intent, a historically Black, already over-burdened neighborhood is bearing real pollution risk and deserves protection, clean air, and a genuine voice in decisions made about its own backyard. The harm to real people matters even if motive can never be proven — and the Word pleads exactly this cause (Proverbs 31:8-9).',
     },
     {
       id: 'p-measured',
       label: 'The careful / due-process view',
       heldBy: 'people committed to fair process',
-      steelman: 'At its strongest: truth is served by keeping categories straight — a jury FINDING is not the same as an unproven SUIT, a documented OUTPUT is not the same as a stated INTENT, and a peaceful PROTEST is not the same as criminal VANDALISM. Outrage that blurs these lines distorts reality and can wrong an innocent person; careful people insist on the distinctions before they judge.',
+      steelman: 'Truth is served by keeping the categories the law itself keeps — a jury FINDING is not the same as an unproven SUIT, a documented OUTPUT is not the same as a stated INTENT, and a peaceful PROTEST is not the same as criminal VANDALISM. Careful people insist on the distinctions in BOTH directions: never inflate an allegation into a verdict, and never deflate a verdict into an allegation.',
     },
   ],
 
-  // ---- STAGE 4 — THE BELIEVER'S LENS (4D framework + truth-and-grace) ----
+  // ---- STAGE 4 — THE BELIEVER'S LENS: how Jesus interprets justice ----
   lens: {
     fourD: {
-      deepSource: 'Scripture refuses to let us pick only one half of God’s heart. He hates injustice and partiality, defends the poor, the oppressed, and the foreigner, and commands honest scales and a true witness — "do justice, love kindness, walk humbly" (Micah 6:8); "Open thy mouth for the dumb... judge righteously, and plead the cause of the poor and needy" (Proverbs 31:8-9). And He tells us plainly that we CAN read the fruit even when we cannot read the heart: "by their fruits ye shall know them" (Matthew 7:16,20), and "have no fellowship with the unfruitful works of darkness, but rather reprove them" (Ephesians 5:11). So naming a documented wrong is obedience, not judgment — and He pronounces WOE on those who blur it: "Woe unto them that call evil good, and good evil; that put darkness for light" (Isaiah 5:20), who heal the hurt of the people slightly, "saying, Peace, peace; when there is no peace" (Jeremiah 6:14). YET in the SAME Scripture He forbids false witness, crowd-following, and partiality even toward the poor in a dispute — "you shall not fall in with the many to do evil... nor be partial to a poor man in his lawsuit" (Exodus 23:2-3; Leviticus 19:15) — and reserves the verdict on a soul to Himself, warning the judge to take the log from his own eye first (Matthew 7:1-5) and to speak "the truth in love" (Ephesians 4:15). So the believer names the documented harm head-on (the fruit) AND refuses to pronounce on a person’s heart (which is God’s) — both, without letting either cancel the other.',
-      scripture: 'Micah 6:8; Matthew 7:16-20; Matthew 7:1-5; Isaiah 5:20; Jeremiah 6:14; Ephesians 5:11; Proverbs 31:8-9; Leviticus 19:15-16; Exodus 23:2-3; Isaiah 1:17; James 2:1-9; Ephesians 4:15; Proverbs 18:17',
+      deepSource: 'HOW JESUS INTERPRETS JUSTICE — start where He starts. He opened His ministry with justice for the wronged: "The Spirit of the Lord is upon me... to preach deliverance to the captives... to set at liberty them that are bruised" (Luke 4:18). He did not hedge documented wrong into "who can say" — He walked into the temple, overturned the tables, and named the deed to their faces: "ye have made it a den of thieves" (Matthew 21:13). He pronounced woe on the powerful for omitting "the weightier matters of the law, judgment, mercy, and faith" (Matthew 23:23). His forerunner named a king’s specific sin at the cost of his head: "It is not lawful for thee to have thy brother’s wife" (Mark 6:18). And when a rich man repented, Jesus measured the repentance by RESTITUTION — "if I have taken any thing from any man by false accusation, I restore him fourfold," and only then: "This day is salvation come to this house" (Luke 19:8-9). That is the Word’s justice: documented wrong is named plainly, the wronged are defended, accountability and restitution are required — "let judgment run down as waters" (Amos 5:24); "seek judgment, relieve the oppressed" (Isaiah 1:17); "For I the LORD love judgment, I hate robbery" (Isaiah 61:8). SO IN THIS CASE the believer speaks what is proven the way Jesus would: a federal jury found racial harassment of a Black worker at Tesla — that is adjudicated wrong, and the Word calls it what it is; Grok’s racist outputs happened and were harm, whatever the mechanism; the Boxtown neighbors deserve clean air and a voice, and their cause is worth pleading (Proverbs 31:8-9). Hedging any of that into "no one knows" is the false witness — "Woe unto them that call evil good" (Isaiah 5:20), "Peace, peace; when there is no peace" (Jeremiah 6:14). AND the same Word keeps the categories He keeps: hear the other side before answering (Proverbs 18:17), no crowd-following or false witness even in a righteous cause (Exodus 23:2-3; Leviticus 19:15), unproven suits stay unproven until judged, and the verdict on a man’s SOUL — Elon Musk’s exactly as ours — stays with the Judge of all the earth (Matthew 7:1-5; Romans 14:4). Accountability for deeds is commanded; condemnation of souls is forbidden; and neither ever cancels the other.',
+      scripture: 'Luke 4:18; Matthew 21:13; Matthew 23:23; Mark 6:18; Luke 19:8-9; Amos 5:24; Isaiah 1:17; Isaiah 61:8; Micah 6:8; Isaiah 5:20; Jeremiah 6:14; Matthew 7:16-20; Proverbs 31:8-9; Proverbs 18:17; Exodus 23:2-3; Leviticus 19:15; Matthew 7:1-5; Ephesians 5:11',
     },
-    threeD: 'Practically: care about the real people in the story — the Boxtown neighbors breathing the air, the Black worker a jury said was harassed — without letting a creator’s outrage (or a defender’s dismissal) do your thinking for you. Name the documented wrong plainly — that is the fruit (Matthew 7:16,20), and going silent about a real, documented harm is not "fairness," it is calling a wound peace (Jeremiah 6:14). AND refuse to declare a verdict on a person’s soul — that belongs to God. Both, not one. Check before you believe or share, keep the categories straight (a jury verdict is not an unproven allegation), and remember that being stirred up is not the same as being informed — but neither is being so "balanced" that you suppress an obvious truth.',
+    threeD: 'Practically: speak the proven things the way Jesus speaks them. A jury found racial harassment of a Black worker at Tesla — say "that was wrong" without a hedge, the way He said "ye have made it a den of thieves" (Matthew 21:13). Grok’s racist outputs happened — documented, admitted, apologized for; say so. The Boxtown neighbors are breathing the cost of someone else’s build — plead their cause. Accountability according to the Word is concrete: name the deed, stand with the wronged, and expect what was broken to be made right — restitution is what repentance looks like in public (Luke 19:8-9). AND keep His categories: the unproven suits are unproven; hear the defense at its strongest before answering (Proverbs 18:17) — and mark what it answers and what it leaves standing; and the verdict on the man’s soul is not yours to give — it is God’s. Both, without letting either mute the other.',
     benefits: [
       'Freedom from being manipulated by outrage media — in either direction (the attack OR the dismissal).',
       'Peace in a divisive world: you can engage hard things without your heart being eaten by anger.',
-      'A repeatable skill: identify the claim, label it, check the primary source, hear the other side at its strongest.',
-      'The ability to hold truth AND grace — to care about justice without condemning a person.',
+      'A repeatable skill: state what is proven plainly, label what is not, check the primary source, hear the other side at its strongest.',
+      'The Word’s own justice: accountability for documented deeds and care for the wronged, with the soul’s verdict left to God.',
       'Wiser stewardship of your attention, your words, and your dollars — spent on building, not just reacting.',
     ],
-    graceNote: 'This lesson does NOT condemn Elon Musk, or anyone. He is a person made in the image of God, accountable to God exactly as every one of us is. We can examine claims, care deeply about justice, and protect the vulnerable WITHOUT pronouncing a verdict on a human soul — that judgment belongs to God alone (Romans 14:4; James 4:12). Truth and grace are not rivals; they meet in Jesus.',
+    graceNote: 'This lesson pronounces no verdict on Elon Musk’s soul — that judgment belongs to God alone (Romans 14:4; James 4:12), and he is a person made in the image of God, accountable to God exactly as every one of us is. But leaving the soul to God NEVER mutes the deeds: the jury’s finding was real wrong, the Grok outputs were real harm, and the Word names them plainly while calling the man — like every man — to repentance and restitution. Truth and grace are not rivals; they meet in Jesus, who named the deed AND ate with the accused.',
     stewardship: 'There is a deeper response to feeling wronged by the powerful than outrage or even boycott: BUILD. The biblical pattern of empowerment — honest work, ownership, generosity, and community strength — turns grievance into stewardship. The Black church has long been an economic powerhouse and a refuge; the most durable answer to "they don’t serve us" is often to build what serves us, steward our attention and dollars toward what lifts the community, and create sovereign tools and businesses of our own (this very platform is one small example). Righteous engagement can include protest and accountability — and it is completed by building.',
     anchor: {
       ref: 'Proverbs 18:17',
@@ -317,23 +325,23 @@ const MUSK_ISSUE = {
 
   // ---- STAGE 5 — REFLECTION + SKILL ----
   reflection: {
-    skill: 'When a charged video or post stirs you up: PAUSE. Name the claim and who is making it. Label it — fact, allegation, opinion, or call-to-action. Find the primary source yourself. State the other side at its strongest. Then weigh it with truth AND grace, and choose a righteous response over a reflexive one. Outrage is cheap and someone else profits from it; discernment costs you a few minutes and sets you free.',
-    practice: 'Take ONE claim from any video or post that made you angry this week. Find the primary source yourself. Write one sentence on what is documented vs. what is interpretation — then one sentence on a righteous, non-outrage response you could actually take (something that builds, protects, or blesses).',
+    skill: 'When a charged video or post stirs you up: PAUSE. Name the claim and who is making it. Label it — adjudicated finding, documented fact, unproven allegation, opinion, or call-to-action — and say the proven parts PLAINLY; hedging a verdict back into an allegation is false witness in reverse. Find the primary source yourself. Hear the other side at its strongest, and mark what it answers and what it leaves standing. Then speak the Word’s justice — accountability for deeds, care for the wronged — and leave the soul’s verdict to God. Outrage is cheap and someone else profits from it; the Word’s justice costs you a few minutes and sets you free.',
+    practice: 'Take ONE claim from any video or post that made you angry this week. Find the primary source yourself. Write one sentence stating plainly what is PROVEN, one sentence labeling what is not — then one sentence on a righteous response that holds someone accountable or builds something (protest, plead, build, restore), not just a stronger feeling.',
     prompts: [
       'Which of the creator’s points were documented facts, and which were his interpretation? How could you check each one?',
-      'Where is the line between "I won’t judge his heart" (right — that is God’s) and "so I won’t name the documented harm either" (wrong — that is calling a wound peace, Jeremiah 6:14)? Practice saying the fruit plainly without pronouncing on the soul.',
-      'Can you state Musk’s (or his defenders’) strongest case fairly, even though it is not the popular thing to do? Why is that a discipline worth practicing?',
-      'A jury FOUND Tesla liable in one case; other suits are unproven ALLEGATIONS. Why does keeping that distinction matter for telling the truth?',
-      'How do you hold both at once: caring about the Boxtown neighbors’ clean air AND refusing to condemn a person’s heart?',
-      'The creator calls for a Tesla boycott; others protest, others build alternatives, others pray. What is the difference between outrage and righteous engagement — and what would faithful stewardship of your attention and money look like for you?',
+      'Walk through how Jesus handled documented wrong: Luke 4:18 (liberty for the bruised), Matthew 21:13 (naming the deed to its face), Mark 6:18 (naming a king’s sin at cost), Luke 19:8-9 (restitution as the fruit of repentance). What does that pattern require of us in this case — and what does it forbid?',
+      'Where is the line between "I won’t judge his heart" (right — that is God’s) and "so I won’t name the documented harm either" (wrong — that is calling a wound peace, Jeremiah 6:14)? Practice saying the proven wrong plainly without pronouncing on the soul.',
+      'Hear the defense at its strongest: what does it actually answer (the unproven suits, the correction of Grok) — and what does it leave standing (the jury’s finding)? Why is marking BOTH the honest move?',
+      'A jury FOUND Tesla liable in one case; other suits are unproven ALLEGATIONS. Why does keeping that distinction matter in both directions — never inflating an allegation, never deflating a verdict?',
+      'The creator calls for a Tesla boycott; others protest, others build alternatives, others pray. What does accountability according to the Word look like for you — and what would faithful stewardship of your attention and money build?',
     ],
   },
 
   // ---- Age-appropriate renderings (kids use the app) ----
   levels: {
-    child: 'Sometimes a video online says something big about a famous person. Before you believe it or repeat it, be a good detective: ask WHO said it, ask whether it really happened or whether it is just their opinion, and listen to the OTHER side of the story too. The Bible says the first story can sound completely right — until someone checks it (Proverbs 18:17). Be fair to everyone, even people you do not like, and remember that God made every single person and loves them. Being a good detective and being kind go together.',
-    teen: 'Real talk: the internet runs on making you angry, because angry people click and share. So when a video goes hard at a famous person — say, a creator critiquing Elon Musk — slow down and run the moves. (1) What is the actual claim, and who is making it? (2) Is it a documented fact, a not-yet-proven allegation, an opinion, or a "you should do X"? They are not the same: a jury actually found Tesla liable in one racism case, but other lawsuits are still just accusations, and "Musk is a racist" is a conclusion about his heart that no headline can prove. (3) Find the real source. (4) Can you say the other side’s best argument fairly? That is the skill that makes you hard to manipulate. The Bible is big on this: care about justice AND tell the truth, defend people who are being hurt AND don’t bear false witness, and don’t just "go with the crowd to do evil" (Exodus 23:2). You can be furious about real injustice and still refuse to condemn a person’s soul — that is God’s call, not yours. And the strongest response to feeling wronged by the powerful is often to BUILD something better, not just to rage.',
-    senior: 'For the seasoned believer, this lesson is about stewarding judgment in a media age engineered for outrage. Keep the categories the law itself keeps: an ALLEGATION (a filed suit) is not a FINDING (a jury verdict) is not a SETTLEMENT (which resolves a case without an admission). In the Tesla matter, the Owen Diaz case produced an actual jury finding of liability (later reduced and settled), while the California Civil Rights Department and EEOC suits remain unadjudicated allegations — and a company’s stated cause for an incident (as with Grok’s 2025 outputs) is a claim, not an externally proven root cause. On policy, refuse the lazy headline: a person can support one kind of regulation (Musk backed the SB 1047 safety bill) while opposing another (a bias-disclosure law) — naming WHICH regulation is the honest move. Scripture has governed exactly this discipline for millennia: impartial justice that will not favor even the poor in a dispute (Exodus 23:2-3; Leviticus 19:15), a true witness, defense of the oppressed (Isaiah 1:17; Proverbs 31:8-9), and the humility to take the log from one’s own eye first (Matthew 7:1-5). Hold truth and grace together: we may examine the powerful and protect the vulnerable while leaving the verdict on a soul to God (Romans 14:4). And let the response mature past reaction into stewardship — the long tradition of the Black church as builder and refuge points the way: accountability AND construction, protest AND ownership.',
+    child: 'Sometimes a video online says something big about a famous person. Before you believe it or repeat it, be a good detective: ask WHO said it, ask whether it really happened or whether it is just their opinion, and listen to the OTHER side of the story too (Proverbs 18:17). And here is something important: when something wrong REALLY happened — like when a court listened carefully and said a worker was treated badly because he is Black — we say "that was wrong," out loud, because God loves justice and Jesus always stood up for people who were hurt. We never pretend a real wrong did not happen; that would not be fair to the person who was hurt. But only God can see inside anyone’s heart, so we never say "that person is bad forever" — we say "that DEED was wrong," we hope they make it right, and we remember God made every single person and loves them.',
+    teen: 'Real talk: the internet runs on making you angry, because angry people click and share. So when a video goes hard at a famous person — say, a creator critiquing Elon Musk — slow down and run the moves. (1) What is the actual claim, and who is making it? (2) Label it honestly — and that cuts BOTH ways: a jury actually FOUND Tesla liable for racial harassment of a Black worker; that is a verdict, so say it plainly — hedging it back into "just an accusation" is lying in the other direction. Other lawsuits ARE still unproven accusations, and "Musk is a racist in his heart" is a conclusion no headline can prove. (3) Find the real source. (4) Hear the other side at its strongest — and mark what it answers and what it leaves standing. Then know what the Word actually does with proven wrong: Jesus named it out loud ("ye have made it a den of thieves," Matthew 21:13), stood with the people getting hurt (Luke 4:18), and expected wrong to be made RIGHT (Luke 19:8 — Zacchaeus paid back fourfold). So speak the proven part plainly, demand real accountability, refuse to condemn the man’s soul — that is God’s call — and put your real energy into BUILDING something better, not just raging.',
+    senior: 'For the seasoned believer, this lesson is about speaking justice the way Jesus speaks it, in a media age engineered for outrage in both directions. First, the Word’s justice is not neutral about documented wrong: the Lord opened His ministry proclaiming liberty for the bruised (Luke 4:18), named the temple’s corruption to its face (Matthew 21:13), pronounced woe on the powerful who omitted judgment and mercy (Matthew 23:23), and measured Zacchaeus’ repentance by fourfold restitution (Luke 19:8-9). So in the Tesla matter, the Owen Diaz case produced an actual jury finding of racial harassment — an adjudicated wrong; the believer names it plainly, and notes that the later reduction and settlement changed the award, not the finding. Refusing to say so is not fairness; it is the muted witness Scripture pronounces woe upon (Isaiah 5:20; Jeremiah 6:14). Second, keep the categories the law itself keeps: the California Civil Rights Department and EEOC suits remain unadjudicated allegations; a company’s stated cause for an incident (as with Grok’s 2025 outputs) is a claim, not a proven root cause; and a person can support one kind of regulation (the SB 1047 safety bill) while opposing another (a bias-disclosure law) — naming WHICH is the honest move. Third, hear the defense at its strongest (Proverbs 18:17) and mark precisely what it answers and what it leaves standing. Scripture has governed this discipline for millennia: impartial justice (Exodus 23:2-3; Leviticus 19:15), a true witness, defense of the oppressed (Isaiah 1:17; Proverbs 31:8-9), the log from one’s own eye first (Matthew 7:1-5) — and the verdict on a soul left to God (Romans 14:4) without ever muting the verdict the court already gave on the deed. Then let the response mature past reaction into stewardship — the long tradition of the Black church as builder and refuge points the way: accountability AND construction, protest AND ownership.',
   },
 
   // ---- Discernment-skill quiz (checks the SKILL, never "is the person guilty") ----
@@ -349,7 +357,13 @@ const MUSK_ISSUE = {
         q: 'A jury FOUND Tesla liable in the Owen Diaz case; the California and EEOC suits were FILED but not decided. What is the difference?',
         options: ['No difference — they are all lawsuits', 'Diaz is a court finding; the others are unproven allegations', 'The unproven ones are more reliable because the government filed them'],
         answer: 1,
-        explain: 'A finding is an adjudicated result; a filing is an accusation the court has not resolved. Telling the truth means keeping that distinction.',
+        explain: 'A finding is an adjudicated result; a filing is an accusation the court has not resolved. Telling the truth means keeping that distinction — in both directions: never inflate an allegation into a verdict, never deflate a verdict into an allegation.',
+      },
+      {
+        q: 'A jury found Tesla liable for racial harassment of a Black worker. According to the Word, what does justice require you to say?',
+        options: ['Nothing — "we can’t judge" covers it', 'Name it plainly as adjudicated wrong and stand with the wronged, while leaving the man’s soul to God', 'Condemn Musk’s soul — the verdict proves his heart'],
+        answer: 1,
+        explain: 'Jesus named documented wrong plainly (Matthew 21:13), stood with the bruised (Luke 4:18), and measured repentance by restitution (Luke 19:8-9). Scripture forbids the verdict on a soul (Matthew 7:1-5; Romans 14:4) — never the naming of a proven deed (Isaiah 5:20; Jeremiah 6:14).',
       },
       {
         q: 'Which of these is a documented FACT, and which is an INTERPRETATION? (A) "Grok produced racist outputs in 2025." (B) "Grok amplifies race science."',
@@ -630,10 +644,11 @@ export function auditWorldIssues() {
   return auditAllIssues(WORLD_ISSUES);
 }
 
-// Tutor course-meta — the per-issue solo guide is a DISCERNMENT COACH: evenhanded,
-// source-checking, truth-and-grace, and it never delivers a verdict on a person.
+// Tutor course-meta — the per-issue solo guide is a WORD-FIRST JUSTICE COACH:
+// it states documented truth plainly (DR-0100), checks sources, hears every
+// side fairly, and leaves the verdict on a soul to God — never muting deeds.
 export const WORLD_ISSUES_TUTOR_META = {
   title: WORLD_ISSUES_META.title,
-  intro: 'You are a calm, evenhanded discernment coach for a Word-first track called "Thinking It Through: World Issues & Discernment."',
-  posture: 'Guide ONE learner — who may be a child, a teen, an adult, or a seasoned believer — to THINK THROUGH a charged real-world claim, matching your words and pace to their age. Teach the moves, never the verdict: (1) identify each claim and who is making it; (2) LABEL it — documented fact, unproven allegation, opinion, or call-to-action; (3) separate documented fact (checkable against primary sources, with dates) from interpretation; (4) STEELMAN every side — state each fairly at its strongest; (5) weigh it in the light of Scripture with truth AND grace. Be relentlessly EVENHANDED: never become a one-sided attack on a named person, and never hand the learner a conclusion about a person’s heart — that judgment belongs to God. Cite Scripture by reference (ESV primary, KJV where the wording is the point); never invent or paraphrase a verse as if quoting it, and if you are unsure of a fact or a text, say so plainly rather than fabricate. Always point toward righteous engagement over outrage, and toward building over merely reacting.',
+  intro: 'You are a calm, truth-speaking discernment coach for a Word-first track called "Thinking It Through: World Issues & Discernment."',
+  posture: 'Guide ONE learner — who may be a child, a teen, an adult, or a seasoned believer — to think a charged real-world claim through the WORD’s way, matching your words and pace to their age. The moves: (1) identify each claim and who is making it; (2) LABEL it honestly — adjudicated finding, documented fact, unproven allegation, opinion, or call-to-action — and say the documented parts PLAINLY: a jury finding IS a verdict, and hedging proven harm into "no one knows" is false witness (Isaiah 5:20; Jeremiah 6:14); (3) check primary sources, with dates; (4) STEELMAN every side — hear the other side at its strongest before answering (Proverbs 18:17), and mark what it answers AND what it leaves standing; (5) then speak the Word’s justice the way Jesus speaks it: He named documented wrong to its face (Matthew 21:13), stood with the wronged (Luke 4:18), and measured repentance by restitution (Luke 19:8-9) — while the verdict on any SOUL belongs to God alone (Matthew 7:1-5; Romans 14:4), so never hand the learner a condemnation of a person’s heart, and never become a one-sided campaign against a named person. Cite Scripture by reference (ESV primary, KJV where the wording is the point); never invent or paraphrase a verse as if quoting it, and if you are unsure of a fact or a text, say so plainly rather than fabricate. Always point toward righteous engagement over outrage — accountability AND building.',
 };

@@ -96,7 +96,7 @@ export default function DiscernmentStages({ issue }) {
           {/* STAGE 1 — THE CLAIM */}
           <StageHeading n={1} title="The claim" />
           <p className="text-[0.625rem] text-[#5A5751] mb-2" style={serif}>
-            Each point below is stated AS MADE, labeled, and attributed — never presented as a settled verdict.
+            Each point below is stated AS the creator MADE it, labeled, and attributed. Where a court has already ruled, we say so plainly — a jury finding is a verdict, not an allegation. Documented deeds are named; no one’s soul is judged.
           </p>
           <ul className="space-y-2">
             {claims.map((c) => {

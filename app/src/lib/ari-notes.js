@@ -91,6 +91,7 @@ export const ARI_STANDING_DUTIES = [
   { key: 'tending', duty: 'Tend the record surfaces as features land — feedback promoted or closed, concerns re-decided when a target passes, board items flipped — structurally where possible, by the tending lane where judgment is needed.', drRef: 'DR-0120' },
   { key: 'no-static', duty: 'Keep every report surface derived from live sources and keep cleaning — no hand-typed record where a live source exists.', drRef: 'DR-0121' },
   { key: 'reviews', duty: 'Report reviews where they ran — orchestration/ways reviews, entrance reviews, and post-feature alignment appended to the registry the app reads.', drRef: 'DR-0108' },
+  { key: 'learn-catalog', duty: 'Keep the Learn catalog whole and true — every finished course ships to Church → Learn through the one registry (built means surfaced; the render gate clicks every course and holds the 40-lesson floor), and every lesson speaks the Word’s justice: documented deeds named plainly, the verdict on a soul left to God.', drRef: 'DR-0129' },
   { key: 'uptime', duty: 'Watch the live site from outside — the probe measures poetech.us up + fresh every ~10 minutes, heals a stale build, and files every failing observation on the incident ledger the Ops surface reads. A down site is the worst outcome; deploy-green is never accepted as site-up.', drRef: 'DR-0125' },
 ];
 

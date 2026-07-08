@@ -26,6 +26,7 @@ const FIXTURE = () => buildReportRows({
   ledger: { ok: true, items: [{ id: 'DR-0120', title: 'Finish ripples', date: '2026-07-07', status: 'accepted', decision: 'boards ride timelines' }] },
   reviews: { ok: true, items: [{ id: 'REV-0013', title: 'Entrance review', date: '2026-07-07', type: 'ui-ux', status: 'addressed', findings: 'fixed same session', surface: 'entrance' }] },
   lessons: { ok: true, incidents: [{ date: '2026-07-06', title: 'Deploy went stale 9h' }] },
+  courses: [{ key: 'kingdom-economics', wiring: 'self-paced', meta: { title: 'Kingdom Economics', tagline: 'Prosper as your soul prospers.' }, buildScheduleRows: () => new Array(7) }],
 });
 
 describe('buildReportRows', () => {
