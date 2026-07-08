@@ -97,6 +97,15 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-07-08 — never trust a piped exit code (REV-0019)** — `npx vitest run
+  | tail` and `npm run lint | tail -1` both returned TAIL's exit 0 and masked
+  real failures (a 2-test break; the `'userTier' is not defined` lint error)
+  in one night — both surfaced only in CI. Piping a gate replaces its verdict
+  with the pipe's: DR-0076's painted-green class applied to the agent's own
+  process. The way: run gates with visible exit codes (no bare `| tail` /
+  `| head` on pass/fail commands; capture `$?` before trimming), and a piped
+  local "green" is not evidence — re-run clean before claiming it.
+
 - **2026-07-07 — derived-but-unparsed is a staleness face; report streams are
   a checked class (DR-0122)** — 28 DR files (incl. every record from DR-0116
   on) used the list-style header the build's ledger parser could not read, so
