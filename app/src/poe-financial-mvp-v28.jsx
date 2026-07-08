@@ -1190,30 +1190,28 @@ export default function PoeFinancialSystem() {
   // a stable date keeps the aspirational SAMPLE numbers from drifting between visits
   // (SEED-DATA-AS-ASPIRATION). So: anchor in demo, real today for everyone else.
   const currentDate = useMemo(() => (isAnyDemoMode ? new Date(2026, 4, 15) : new Date()), [isAnyDemoMode]);
-  // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode.
-  // Per Darrell's 2026-06-03 callout: the date in the header was still showing
-  // the snapshot anchor "May '26" on poetech.us because the prior D20 split
-  // kept the snapshot label for demo / picker / first-time-landing modes.
-  // That was wrong. The header date is the "system is alive RIGHT NOW" signal —
-  // it must ALWAYS reflect today regardless of demo state.
-  const headerDateLabel = useMemo(() => {
-    try {
-      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
-    } catch (e) {
-      return monthLabel(new Date(), 0);
-    }
-  }, []);
-
-  // Live local-time readout shown under the header date. Ticks on a light
-  // 20s interval (minute-resolution display, so per-second re-renders of this
-  // large component are wasted) and cleans up on unmount — no leak. Renders
-  // in the user's own timezone via native Intl; falls back silently if the
-  // platform lacks Intl. Ties Darrell's local-date/time-stamping principle.
+  // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode
+  // (Darrell's 2026-06-03 callout: it was showing the snapshot anchor "May '26").
+  // 2026-07-08 recurrence (Darrell: "date is stale"): the date memo computed
+  // ONCE at mount, so a PWA resumed the next day still showed yesterday's date
+  // beside a live-ticking time. Date and time now BOTH derive from the same
+  // ticking clock — the header date is the "system is alive RIGHT NOW" signal
+  // and must reflect today across a suspended overnight session, every mode.
+  // Light 20s interval (minute-resolution display, so per-second re-renders of
+  // this large component are wasted); cleans up on unmount; renders in the
+  // user's own timezone via native Intl, silent fallback if the platform lacks it.
   const [headerClockNow, setHeaderClockNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setHeaderClockNow(new Date()), 20000);
     return () => clearInterval(id);
   }, []);
+  const headerDateLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(headerClockNow);
+    } catch (e) {
+      return monthLabel(headerClockNow, 0);
+    }
+  }, [headerClockNow]);
   const headerTimeLabel = useMemo(() => {
     try {
       return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(headerClockNow);

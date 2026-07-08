@@ -30,6 +30,10 @@ Doubled blindness, verified: the cloud agent's sandbox has **no route** to poete
 3. **The incident ledger as a Perpetual Report stream** (live-fetched beside the build-parsed LESSONS incidents). Deferred deliberately: the report is synchronous over props + build-parsed records, and distilled incidents already reach it via LESSONS-LEARNED. `re-review: 2026-07-22`.
 4. **Probe the /n8n seam too.** The probe covers the static app; the same-origin `/n8n` Pages Function (the NAS seam) has its own failure modes. One more `fetch` block when the seam's health endpoint is stable. `re-review: 2026-07-22`.
 
+## The second face, same night: current-but-looking-stale
+
+Darrell's screenshot (~03:30Z) proved the site up on his own device — signed in, `BUILD 88CD712 · LATEST` green — and surfaced the opposite defect: the header date read as stale. Verified in code: `headerDateLabel` was a `useMemo(..., [])` — computed once at mount — while `headerTimeLabel` ticked on a 20s clock. A resumed PWA the next day shows yesterday's date beside a live time. D20b (2026-06-03, "the header date is the system-is-alive-RIGHT-NOW signal") had regressed into "the day the component mounted." Fixed: date and time both derive from the one ticking clock; `header-date-alive.test.js` source-pins it RED-then-GREEN. Trust runs both directions: a down site must never look up (the probe), and an up-to-date app must never look stale (this fix).
+
 ## Constraints (verified, carried)
 
 - **The sandbox cannot see the site.** Egress policy 403s poetech.us and every relay from the cloud agent's container (verified this session, twice). All observation runs on GitHub runners.
