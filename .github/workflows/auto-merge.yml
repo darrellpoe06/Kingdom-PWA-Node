@@ -35,7 +35,14 @@ name: Auto-merge
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]
+    # `closed` (2026-07-08, DR-0107 follow-through): a native auto-merge lands
+    # with NO subsequent event this workflow used to hear — the GITHUB_TOKEN
+    # merge emits no push, main-CI doesn't run, and the deploy-freshness cron
+    # is best-effort (observed firing ~hourly, not every 5 min). Sweeping on
+    # PR-close makes the MERGE ITSELF run the deploy-if-undeployed step below,
+    # so the site advances the moment a PR lands instead of waiting on a
+    # delayed cron.
+    types: [opened, reopened, ready_for_review, synchronize, closed]
     branches: [main]
   check_suite:
     types: [completed]

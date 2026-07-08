@@ -41,7 +41,7 @@
 // were the bug Darrell hit (Learn stayed small at Largest). They are now written at
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -53,6 +53,7 @@ import {
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
+import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import Presenter from './Presenter.jsx';
@@ -1385,7 +1386,14 @@ export default function ChurchLearn({
     .map((c) => buildExtra(c, 'A team member'))
     .filter(Boolean);
 
-  const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras];
+  // The Eternal Algorithms as practical processing courses (DR-0126) — one
+  // course per Godhead-Study section, every session DERIVED from the same
+  // catalog the study renders (lib/eternal-algorithms-course.js). A pattern
+  // added to the catalog joins its course on the next build; nothing here is
+  // re-typed (DR-0121).
+  const eternalCourses = useMemo(() => buildEternalProcessingCourses(), []);
+
+  const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
   const active = courses.find((c) => c.key === activeKey) || aiCourse;
 
   // Engagement-by-age: TutorPanel emits (signal, moduleId); the wrapper injects the
@@ -1428,6 +1436,23 @@ export default function ChurchLearn({
           </div>
         )}
       </div>
+
+      {/* WORD-FIRST (DR-0127): every knowledge space opens with Yahweh's
+          knowledge/perspective when we have it — derived from the course's own
+          declared lead or its first Scripture anchor, never invented. A course
+          with neither renders nothing here and the census test reports it. */}
+      {(() => {
+        const lead = wordFirstLead(active);
+        if (!lead) return null;
+        return (
+          <div className="mb-4 border-l-2 border-[#5A6E3D] bg-[#FAF8F4] px-3 py-2 print:hidden">
+            <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">Word-first · Yahweh&apos;s knowledge opens this space</div>
+            <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>{lead.ref}</strong>{lead.frame ? ` — ${lead.frame}` : ''}
+            </p>
+          </div>
+        );
+      })()}
 
       <CourseView
         key={active.key}

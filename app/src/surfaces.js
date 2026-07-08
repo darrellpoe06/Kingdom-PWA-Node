@@ -50,7 +50,7 @@ export const SURFACES = [
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
-  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
+  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor OR business tier (DR-0128)', load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
   { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
   { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
   // Admin absorbed the users/usage report (the former 'access' surface) into ONE

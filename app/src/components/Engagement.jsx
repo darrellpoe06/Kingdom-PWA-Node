@@ -406,9 +406,22 @@ function MessageThread({ signedIn }) {
             aria-label="Message thread"
             className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3 max-h-72 overflow-y-auto space-y-2"
           >
+            {/* The house's standing WELCOME opens the thread (Darrell
+                2026-07-08: "Add an initial welcome message and filler to the
+                public space"). Rendered as the house speaking — clearly ours,
+                never a painted user message (DR-0076). */}
+            <div className="border-l-2 border-[#5A6E3D] bg-white px-2.5 py-2">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">The Church of the Living God · welcome</span>
+              <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                Welcome to the family thread — we&apos;re glad you&apos;re here. This is the church family&apos;s living room: say hello, share a praise report, ask for prayer, or pass a word along. Everyone signed in sees it live.
+              </p>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                A few ways to start: introduce yourself and your house · share what Yahweh did this week · ask the family to stand with you in prayer · invite someone to Sunday.
+              </p>
+            </div>
             {messages.length === 0 ? (
               <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                No messages yet. Say hello &mdash; everyone signed in will see it live.
+                No messages from the family yet — yours can be the first. Say hello below.
               </p>
             ) : (
               messages.map((m) => (
