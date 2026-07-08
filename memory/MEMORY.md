@@ -97,6 +97,18 @@ relying on it; memories reflect what was true when written.
 
 ## Session-learned additions (append per session, newest first)
 
+- **2026-07-08 — GITHUB_TOKEN suppression covers EVERY event, not just push
+  (REV-0020)** — the `pull_request: closed` trigger added so "the merge
+  deploys itself" (DR-0128) never fires for auto-merges: the native
+  auto-merge close is itself a GITHUB_TOKEN action, and GitHub suppresses
+  workflow runs for every event a token action emits — push (P25, db-migrate
+  + deploy), closed, all of it. The real catcher for auto-merges is the
+  armed-PR wait loop in auto-merge.yml's deploy step (now 6 min — a full CI
+  run from the PR-open arming sweep; the old 2-min poll expired before
+  #697's ~3-min CI went green). Check any future lane trigger against the
+  suppression rule BEFORE trusting it; a lane change's DR-0107 watch holds
+  until the MECHANISM is confirmed, not just one lucky outcome.
+
 - **2026-07-08 — never trust a piped exit code (REV-0019)** — `npx vitest run
   | tail` and `npm run lint | tail -1` both returned TAIL's exit 0 and masked
   real failures (a 2-test break; the `'userTier' is not defined` lint error)
