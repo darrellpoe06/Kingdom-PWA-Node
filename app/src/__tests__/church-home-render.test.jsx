@@ -72,9 +72,20 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     expect(container.querySelector('#sermons-h')).toBeTruthy();
     expect(container.querySelector('#media-h')).toBeTruthy();
 
-    // SPEAK tab: One Voice front door + Yahweh Hears You + Testimony Diary door.
+    // SPEAK tab: THE ONE input surface (DR-0131 — "only have one input surface
+    // from PoeTech on any and all tabs") + Testimony Diary door. The former
+    // second widget (memory-only log + raw mailto Send that yanked the surface
+    // into the mail app) is gone; its identity lives on as the one box's title.
     clickTab('Speak');
     expect(container.textContent).toMatch(/Yahweh Hears You/);
+    // Exactly ONE input surface: one master box, one textarea.
+    expect(container.querySelectorAll('[aria-labelledby="onevoice-h"]').length).toBe(1);
+    expect(container.querySelectorAll('textarea').length).toBe(1);
+    // Nothing on this surface navigates the app into a mail client in place:
+    // any mailto is an explicit secondary link opening a NEW context.
+    for (const a of container.querySelectorAll('a[href^="mailto:"]')) {
+      expect(a.getAttribute('target')).toBe('_blank');
+    }
     expect(container.querySelector('#diary-h')).toBeTruthy();
 
     // PRAYER tab: Prayer Requests.

@@ -419,6 +419,23 @@ export const GODHEAD_ALGORITHMS = [
 
   // ── THE GOSPELS ───────────────────────────────────────────────────────────
   {
+    id: 'gh-door-christ', section: 'gospels', name: 'The Door (no way to eternity but through Christ)',
+    // Captured from Darrell's spoken word into the app, 2026-07-09: "Yahweh
+    // expects us to understand situational analysis — the only way for us to
+    // listen to Him is to analyze His algorithms, His ways... comprehend what
+    // Yahweh means when He says certain things, like when you're not going to
+    // go through His door, or if you don't come through Christ you can't get
+    // to the eternity — these are the algorithms we want to process and
+    // understand."
+    refs: ['John 10:9', 'John 14:6', 'Matthew 7:13-14', 'Acts 4:12'],
+    condition: 'Jesus IS the door and the way — entry to the Father, salvation, and eternity runs through Him and Him alone; the gate is strait and the way narrow.',
+    consequence: 'Enter by Him and you are saved, go in and out, and find pasture; refuse the door and there is no other — "neither is there salvation in any other."',
+    threeD: 'Run the situational analysis Yahweh expects: every path you are weighing — a belief, a plan, an identity, a hope of eternity — either goes through the Door or it does not. There is no side gate, no negotiated entrance, no equivalent way. Analyze His algorithm exactly as He states it: the condition is THROUGH CHRIST; the consequence is eternity or exclusion. Process it, comprehend it, and choose the Door while it stands open.',
+    outcome: 'Certainty about the one entrance — a life that stops auditioning alternate doors and walks through the only one that opens into eternity.',
+    psyche: 'Ambiguity about ultimate things breeds either anxiety or presumption; a single, stated, analyzable condition (through Christ, or not at all) replaces both with a decision that can actually be made.',
+    tags: ['door', 'salvation', 'eternity', 'the way', 'situational-analysis'],
+  },
+  {
     id: 'gh-seek-first', section: 'gospels', name: 'Seek First the Kingdom',
     refs: ['Matthew 6:33'],
     condition: 'Seek FIRST the Kingdom of God and His righteousness — priority order, not portfolio balance.',

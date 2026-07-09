@@ -37,6 +37,11 @@ export function OneVoiceInput({
   // a general voice note). This is what unifies the two old dispatch copies.
   addPrayerRequest, updateConference, conference, sendToPoeTech,
   addIncident, addInquiry, addChurchVoice, addNote,
+  // Optional: the church-office email. When set, a SENT entry offers an
+  // explicit secondary "email a copy" link — target _blank, clearly labeled —
+  // so the surface itself NEVER navigates (Darrell 2026-07-09: the old raw
+  // mailto Send yanked the app into the mail client; "humans can get dizzy").
+  officeEmail = null,
 }) {
   const cfg = resolveSurface(surface, surfaceConfig);
   const DESTS = destinations || destinationsFor(surface === 'notes' ? 'notes' : 'church');
@@ -46,6 +51,7 @@ export function OneVoiceInput({
   const [touchedRoute, setTouchedRoute] = useState(false);
   const [name, setName] = useState('');
   const [confirmation, setConfirmation] = useState(null);
+  const [lastSent, setLastSent] = useState(null); // the last delivered text — feeds the email-a-copy link
 
   const onText = (v) => {
     setText(v);
@@ -99,6 +105,7 @@ export function OneVoiceInput({
     if (!t) return;
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
+    setLastSent({ text: t, who: name.trim() });
     setText('');
     setTouchedRoute(false);
     setRoute(cfg.defaultRoute);
@@ -166,6 +173,23 @@ export function OneVoiceInput({
         <button type="button" onClick={send} disabled={!text.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">{submitLabel}</button>
       </div>
       {confirmation && <p className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirmation}</p>}
+      {confirmation && lastSent && officeEmail && (
+        <p className="text-[0.6875rem] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <a
+            href={`mailto:${officeEmail}?subject=${encodeURIComponent('Yahweh Hears You note')}&body=${encodeURIComponent(`Sent from PoeTech Family OS · Church tab.
+
+${lastSent.text}${lastSent.who ? `
+
+— ${lastSent.who}` : ''}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-[#B85838] hover:text-[#1A1815]"
+          >
+            Email a copy to the church office ↗
+          </a>
+          <span className="text-[#5A5751]"> (opens your mail app — this page stays put)</span>
+        </p>
+      )}
       {recentItems && recentItems.length > 0 && (
         <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
           <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Recently heard</div>
