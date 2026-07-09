@@ -16,7 +16,7 @@
 // ChurchOneVoice) came along untouched; COLG_DEFAULT_CHURCH moved to
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
@@ -51,111 +51,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const [diaryUnlocked, setDiaryUnlocked] = useState(false);
   const [diaryError, setDiaryError] = useState('');
 
-  // ---------------------------------------------------------------------------
-  // ADD YOUR VOICE — interactive contribution input (2026-05-25, per Darrell):
-  // parishioners speak (Web Speech API) or paste a link to drop a note about
-  // anything on the church tab — today's sermon, an article, a question for
-  // leadership, a ministry idea, a building-fund follow-up. Stored locally
-  // for now; future-state syncs to the v2.7 `interactions` table (schema
-  // already declared in infra/supabase/schema-v2.7-church.sql §11.5 area).
-  // POE binding: the user controls the mic, the link, the topic, and the
-  // moment to share. Nothing leaves the device until they tap Send.
-  // ---------------------------------------------------------------------------
-  const [contribForm, setContribForm] = useState({ topic: '', text: '', link: '' });
-  const [contribError, setContribError] = useState('');
-  // Per Darrell 2026-05-25: the contribution form is the church tab's center of
-  // gravity — open by default so the prompt is one tap away ("speak / type / link"
-  // is the action, not a hidden affordance).
-  const [showContribForm, setShowContribForm] = useState(true);
-  const [contributions, setContributions] = useState([]);  // local-only until v2.7 sync wires up
-  // Pagination — match the Queue / Feedback Log pattern: most-recent 5 on the
-  // page; older entries reachable with ← / → arrows.
-  const CONTRIB_PAGE_SIZE = 5;
-  const [contribPage, setContribPage] = useState(0);
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef(null);
-
-  // Feature detection — Web Speech API (still vendor-prefixed in some browsers)
-  const speechSupported = typeof window !== 'undefined'
-    && (window.SpeechRecognition || window.webkitSpeechRecognition);
-
-  const toggleSpeech = () => {
-    if (!speechSupported) {
-      setContribError('Voice input is not supported in this browser. Type your note or paste a link instead.');
-      return;
-    }
-    if (isListening) {
-      try { recognitionRef.current?.stop(); } catch (_) { /* ignore */ }
-      setIsListening(false);
-      return;
-    }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const r = new SR();
-    r.continuous = false;
-    r.interimResults = false;
-    r.lang = 'en-US';
-    r.onresult = (e) => {
-      const transcript = Array.from(e.results)
-        .map(res => res[0].transcript)
-        .join(' ')
-        .trim();
-      if (transcript) {
-        setContribForm(prev => ({
-          ...prev,
-          text: prev.text ? `${prev.text} ${transcript}`.trim() : transcript,
-        }));
-      }
-    };
-    r.onerror = (e) => {
-      setContribError(`Voice input error: ${e.error || 'unknown'}. Type your note instead.`);
-      setIsListening(false);
-    };
-    r.onend = () => setIsListening(false);
-    recognitionRef.current = r;
-    setContribError('');
-    try {
-      r.start();
-      setIsListening(true);
-    } catch (err) {
-      setContribError('Could not start voice input. Type your note or paste a link instead.');
-      setIsListening(false);
-    }
-  };
-
-  const submitContribution = () => {
-    const topic = (contribForm.topic || '').trim();
-    const text  = (contribForm.text  || '').trim();
-    const link  = (contribForm.link  || '').trim();
-    if (!text && !link) {
-      setContribError('Add a note (speak or type) or paste a link before saving.');
-      return;
-    }
-    // Light URL sanity check — non-blocking; the user can still save if they
-    // typed something that isn't a parseable URL.
-    if (link && !/^https?:\/\//i.test(link)) {
-      setContribError('Links should start with http:// or https://. Edit and re-save.');
-      return;
-    }
-    setContribError('');
-    const entry = {
-      id: `contrib-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      topic, text, link,
-      createdAt: new Date().toISOString(),
-      sentAt: null,
-    };
-    setContributions(prev => [entry, ...prev]);
-    setContribForm({ topic: '', text: '', link: '' });
-    setShowContribForm(false);
-  };
-
-  const markContributionSent = (id) => {
-    const at = new Date().toISOString();
-    setContributions(prev => prev.map(c => c.id === id ? { ...c, sentAt: at } : c));
-  };
-
-  const deleteContribution = (id) => {
-    setContributions(prev => prev.filter(c => c.id !== id));
-  };
 
   // Default church home (D21): COLG / The Love Corner is the platform default
   // that every user lands on until they set their own church home in Settings
@@ -230,19 +125,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     return c.links?.stayConnected || c.site || '#';
   };
 
-  // Sibling of mailtoFor above — same contactEmail/stay-connected routing for a
-  // saved contribution note. Defined AFTER `const c` (it reads c at call time;
-  // it used to sit above the declaration, a use-before-define ordering hazard).
-  const mailtoForContribution = (contrib) => {
-    const subject = `Church-tab note${contrib.topic ? ` — ${contrib.topic}` : ''}`;
-    const body =
-      `Sent from PoeTech Family OS · Church tab.\n\n` +
-      (contrib.topic ? `About: ${contrib.topic}\n\n` : '') +
-      (contrib.text  ? `Note:\n${contrib.text}\n\n` : '') +
-      (contrib.link  ? `Link: ${contrib.link}\n` : '');
-    if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    return c.links?.stayConnected || c.site || '#';
-  };
 
   // Save a one-tap event to the family calendar from a service entry.
   const saveServiceToCalendar = (svc) => {
@@ -421,6 +303,16 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       {/* ONE VOICE — the Church tab's single front door (COUNCIL-CHAMBER:
           one input, the system deduces; MODE-ROUTING: suggestion visible,
           person decides). Ordered first so speaking is always one tap away. */}
+      {/* THE ONE INPUT SURFACE (DR-0131; Darrell 2026-07-09: "only have one
+          input surface from PoeTech on any and all tabs"). The former second
+          widget below this box saved notes to MEMORY ONLY and its Send was a
+          raw mailto that yanked the whole surface into the mail app (the
+          fast shift that can make a person dizzy). Everything it promised now
+          rides THIS box, in place: every entry routes to a real persistent
+          stream (church voice, prayer, PoeTech build directives → the NAS
+          thought-inbox), the log below is the synced record, and emailing the
+          office is an explicit secondary link that never navigates this
+          surface. */}
       <ChurchOneVoice
         addPrayerRequest={addPrayerRequest}
         updateConference={updateConference}
@@ -430,198 +322,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         sendToPoeTech={sendToPoeTech}
         addIncident={addIncident}
         addInquiry={addInquiry}
+        officeEmail={c.contactEmail || null}
       />
 
       {/* CONFERENCE / EVENT CENTER moved to its own Church sub-tab (sibling to
           Learn) on 2026-06-16 — see the churchView === 'conference' branch.
           ChurchOneVoice above still carries conference RSVPs via updateConference. */}
-
-      {/* YAHWEH HEARS YOU — interactive contribution input (renamed 2026-05-25 per Darrell)
-          The church tab's spiritual-surface name for the voice + link + text
-          processing center. Per CLAUDE.md typographic theology (Yahweh always
-          capitalized) and per the Holy Spirit Integration Worldview binding —
-          this title testifies directly: the user speaks; Yahweh hears. The
-          warmer-but-secular default ("Your Voice Matters") is reserved for the
-          reusable InputCenter component (app/src/components/InputCenter.jsx)
-          for use in non-spiritual modules. Below the church-identity "ad" and
-          above the Service Times block. Speak (Web Speech API), paste a link,
-          or type. Logged locally; sent to the church office via the user's
-          email client when they tap Send. */}
-      <section aria-labelledby="contrib-h" className="bg-white border-2 border-[#B85838] p-4">
-        <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <h3 id="contrib-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Yahweh Hears You · Speak · Type · Link</h3>
-          <button type="button" onClick={() => { setShowContribForm(!showContribForm); setContribError(''); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showContribForm ? '× Cancel' : '+ Speak or share'}</button>
-        </div>
-        <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          Speak it, type it, or paste a link — about today's sermon, an article worth sharing, a question for leadership, a ministry idea, a thought you don't want to lose. Logged on your device; send to the church office when you're ready.
-        </p>
-
-        {showContribForm && (
-          <div className="mt-3 bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
-            <div>
-              <label htmlFor="contrib-topic" className={labelCls}>What's this about? (optional)</label>
-              <input
-                id="contrib-topic"
-                className={fieldCls}
-                placeholder="e.g., Today's sermon · Building fund · Ministry idea"
-                value={contribForm.topic}
-                onChange={e => setContribForm({ ...contribForm, topic: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="contrib-text" className={labelCls}>Your note (type or speak)</label>
-              <textarea
-                id="contrib-text"
-                rows="3"
-                className={fieldCls}
-                placeholder="Type here, or tap the mic to speak."
-                value={contribForm.text}
-                onChange={e => setContribForm({ ...contribForm, text: e.target.value })}
-              />
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <button
-                  type="button"
-                  onClick={toggleSpeech}
-                  aria-pressed={isListening}
-                  aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-                  disabled={!speechSupported}
-                  className={`text-xs uppercase tracking-wider px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] ${
-                    isListening
-                      ? 'bg-[#B85838] text-white border-[#B85838] animate-pulse'
-                      : speechSupported
-                        ? 'border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white'
-                        : 'border-[#E8E4DC] text-[#5A5751] opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  {isListening ? <><UiIcon name="stop" /> Stop</> : <><UiIcon name="mic" /> Speak</>}
-                </button>
-                {!speechSupported && (
-                  <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-                    Voice input not available in this browser — type your note instead.
-                  </span>
-                )}
-                {isListening && (
-                  <span className="text-[0.625rem] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    listening…
-                  </span>
-                )}
-              </div>
-            </div>
-            <div>
-              <label htmlFor="contrib-link" className={labelCls}>Or paste a link</label>
-              <input
-                id="contrib-link"
-                type="url"
-                className={fieldCls}
-                placeholder="https://…"
-                value={contribForm.link}
-                onChange={e => setContribForm({ ...contribForm, link: e.target.value })}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={submitContribution}
-              className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              Save Note
-            </button>
-            {contribError && (
-              <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
-                {contribError}
-              </p>
-            )}
-          </div>
-        )}
-
-        {contributions.length > 0 && (() => {
-          const totalPages = Math.max(1, Math.ceil(contributions.length / CONTRIB_PAGE_SIZE));
-          const safePage = Math.min(contribPage, totalPages - 1);
-          const start = safePage * CONTRIB_PAGE_SIZE;
-          const pageItems = contributions.slice(start, start + CONTRIB_PAGE_SIZE);
-          return (
-          <>
-          <div className="mt-3 border border-[#1A1815]">
-            {pageItems.map((entry, i, arr) => (
-              <div key={entry.id} className={`p-3 ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      {entry.createdAt.slice(0, 10)}{entry.topic ? ` · ${entry.topic}` : ''}
-                    </div>
-                    {entry.text && (
-                      <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}><EmojiText text={entry.text} /></div>
-                    )}
-                    {entry.link && (
-                      <div className="text-xs mt-0.5">
-                        <a
-                          href={entry.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline text-[#B85838] hover:text-[#1A1815] break-all"
-                        >
-                          {entry.link}
-                        </a>
-                      </div>
-                    )}
-                    <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#5A5751]">
-                      {entry.sentAt ? `✓ sent ${entry.sentAt.slice(0, 10)}` : 'private (on this device)'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {!entry.sentAt && (
-                      <a
-                        href={mailtoForContribution(entry)}
-                        target={c.contactEmail ? '_self' : '_blank'}
-                        rel="noopener noreferrer"
-                        onClick={() => markContributionSent(entry.id)}
-                        className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]"
-                      >
-                        Send →
-                      </a>
-                    )}
-                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
-                    <button
-                      type="button"
-                      onClick={() => { if (confirm('Delete this note?')) deleteContribution(entry.id); }}
-                      aria-label="Delete this note"
-                      className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <div className="mt-2 flex items-center justify-between gap-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              <button
-                type="button"
-                onClick={() => setContribPage(p => Math.max(0, p - 1))}
-                disabled={safePage === 0}
-                aria-label="Previous page of notes"
-                className="px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                ← prev
-              </button>
-              <div>
-                Page {safePage + 1} of {totalPages} · {contributions.length} note{contributions.length === 1 ? '' : 's'}
-              </div>
-              <button
-                type="button"
-                onClick={() => setContribPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={safePage >= totalPages - 1}
-                aria-label="Next page of notes"
-                className="px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                next →
-              </button>
-            </div>
-          )}
-          </>
-          );
-        })()}
-      </section>
 
       {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
           later (project_testimony_diary_glory_to_glory); this is the door. */}

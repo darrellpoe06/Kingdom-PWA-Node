@@ -86,7 +86,11 @@ export function buildEternalProcessingCourses({ sections = GODHEAD_SECTIONS, cat
     const meta = {
       key: `eternal-${s.key}`,
       title: `${s.label} — Deep Processing`,
-      audience: 'anyone ready to process these patterns from Yahweh slowly, honestly, and in the app',
+      // The declared purpose, in Darrell's own spoken words (into the app,
+      // 2026-07-09): "Yahweh expects us to understand situational analysis —
+      // the only way for us to listen to Him is to analyze His algorithms,
+      // His ways... these are the algorithms we want to process and understand."
+      audience: 'anyone ready to process these patterns from Yahweh slowly, honestly, and in the app — the only way to listen to Him is to analyze His algorithms, His ways',
       tagline: s.blurb,
       format: 'Self-paced · one pattern at a time · the Word first, then the practice',
       cadenceDays: 7,
