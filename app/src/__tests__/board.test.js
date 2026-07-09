@@ -95,9 +95,9 @@ describe('boardDueByMonth — the boards ARE on the timeline (honest counts)', (
   const NOW = '2026-07-07T12:00:00.000Z';
   it('counts dated, not-done items in their forecast month', () => {
     const out = boardDueByMonth([
-      T({ dueDate: '2026-07-20', status: 'in-progress' }),
-      T({ dueDate: '2026-07-25', status: 'not-started' }),
-      T({ dueDate: '2026-09-01', status: 'blocked' }),
+      T({ dueDate: '2026-07-20T12:00:00.000Z', status: 'in-progress' }),
+      T({ dueDate: '2026-07-25T12:00:00.000Z', status: 'not-started' }),
+      T({ dueDate: '2026-09-01T12:00:00.000Z', status: 'blocked' }),
     ], { now: NOW });
     expect(out['2026-06']).toBe(2);  // July = padded month INDEX 06, the forecast's key convention
     expect(out['2026-08']).toBe(1);  // September

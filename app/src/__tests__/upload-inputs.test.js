@@ -36,7 +36,7 @@ describe('file inputs never force camera-only', () => {
   const files = sourceFiles(srcRoot);
 
   it('scans the real source tree (sanity: the known upload surfaces are covered)', () => {
-    const names = files.map((f) => f.split('/').pop());
+    const names = files.map((f) => f.split(/[\\/]/).pop()); // cross-platform: Windows uses '\\'
     for (const known of ['BooksTransactions.jsx', 'ChefCorner.jsx', 'ChurchObservation.jsx', 'Rentals.jsx']) {
       expect(names).toContain(known);
     }

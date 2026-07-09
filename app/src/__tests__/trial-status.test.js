@@ -70,7 +70,7 @@ describe('trial-status — durable 90-day counter from account creation', () => 
   });
 
   it('formatEndDate renders a friendly date or empty', () => {
-    expect(formatEndDate('2026-01-01T00:00:00.000Z')).toMatch(/2026/);
+    expect(formatEndDate('2026-06-15T12:00:00.000Z')).toMatch(/2026/); // midday mid-year: TZ-stable
     expect(formatEndDate(null)).toBe('');
   });
 });
