@@ -155,6 +155,16 @@ export function normalizeIssue(issue) {
       },
       threeD: lens.threeD || '',
       benefits: arr(lens.benefits),
+      // Accountability — stated plainly, never implied (Darrell 2026-07-08:
+      // "Accountability is not being clearly stated"). Carries the two-courts
+      // doctrine: man's court is not the court of record — dismissed evidence,
+      // settled suits, and government-permitted wrongs all enter the eternal
+      // court (Ecclesiastes 12:14; Luke 12:2-3; Hebrews 4:13), and the impact
+      // on lives DURING life is seen and weighed (James 5:4).
+      accountability: {
+        statement: lens.accountability?.statement || '',
+        scripture: lens.accountability?.scripture || '',
+      },
       graceNote: lens.graceNote || '',
       stewardship: lens.stewardship || '',
       anchor: {
@@ -256,6 +266,14 @@ export function lintNoOneSidedPersuasion(issue) {
   if (!isNonEmptyStr(i.lens.graceNote)) {
     out.push({ code: 'persuasion/no-grace', severity: 'error', message: 'A named-person lesson must carry a grace-note (truth-and-grace, no condemnation of the person).' });
   }
+  // Accountability must be STATED, not implied: any named-person lesson with
+  // documented harm carries an explicit accountability statement — what the
+  // Word requires of the wrongdoer and of us, on both courts (man's and the
+  // eternal court where every dismissed or hidden thing is still evidence).
+  const hasDocumented = i.verifiable.some((v) => v.status === 'documented');
+  if (hasDocumented && !isNonEmptyStr(i.lens.accountability?.statement)) {
+    out.push({ code: 'accountability/missing', severity: 'error', message: 'A named-person lesson with documented harm must state accountability plainly (lens.accountability): what the Word requires of the wrongdoer (confession, restitution, fruits of repentance) and of us — never left implied.' });
+  }
   if (i.perspectives.filter((p) => isNonEmptyStr(p.steelman)).length < 2) {
     out.push({ code: 'persuasion/one-sided', severity: 'error', message: 'A named-person lesson must present multiple steelmanned perspectives, not one side.' });
   }
@@ -271,7 +289,7 @@ export function lintNoOneSidedPersuasion(issue) {
   // those are reported, not asserted.)
   const ownVoice = [
     i.skill, i.title,
-    i.lens.threeD, i.lens.fourD.deepSource, i.lens.graceNote, i.lens.stewardship,
+    i.lens.threeD, i.lens.fourD.deepSource, i.lens.graceNote, i.lens.stewardship, i.lens.accountability?.statement || '',
     i.reflection.skill, i.reflection.practice,
     ...i.reflection.prompts,
     ...i.lens.benefits,
@@ -350,7 +368,7 @@ function buildLessonProse(i) {
     parts.push(`STAGE 3 — PERSPECTIVES. ${i.perspectives.map((p) => `${p.label}: ${p.steelman}`).join(' ')} We state each at its strongest before we weigh any of them.`);
   }
   if (i.lens.fourD.deepSource || i.lens.threeD) {
-    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.fourD.deepSource} ${i.lens.threeD} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
+    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.fourD.deepSource} ${i.lens.threeD} ${i.lens.accountability?.statement ? `ACCOUNTABILITY — WHAT THE WORD REQUIRES. ${i.lens.accountability.statement}` : ''} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
   }
   if (i.reflection.skill) {
     parts.push(`STAGE 5 — REFLECTION + SKILL. ${i.reflection.skill}`);
@@ -382,7 +400,7 @@ export function buildDiscernmentModule(issue) {
         'Stage 1: every claim is LABELED (allegation / claim / opinion / call-to-action) and attributed to its source. We never repeat a contested allegation as settled fact.',
         'Stage 2: separate DOCUMENTED fact (checkable against primary sources, with dates) from INTERPRETATION. Model checking a source live.',
         'Stage 3: steelman every side — state each perspective at its strongest before weighing any.',
-        'Stage 4: the believer\'s lens — truth AND grace, Scripture on justice and stewardship, and NO condemnation of any person made in God\'s image.',
+        'Stage 4: the believer\'s lens — the Word\'s justice spoken plainly, and ACCOUNTABILITY stated, never implied: man\'s court is not the court of record (dismissed evidence and permitted wrongs still enter the eternal court, Ecclesiastes 12:14), the wrongdoer owes confession + restitution + fruits of repentance, and NO condemnation of any person made in God\'s image.',
         'Stage 5: name the transferable skill — check sources, choose righteous engagement over outrage, and keep your peace in a divisive world.',
       ],
       howToRun: [

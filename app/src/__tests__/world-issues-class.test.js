@@ -76,6 +76,22 @@ describe('the Musk worked example — built to the constraints', () => {
     ['racist', 'nazi', 'genocide', 'hitler'].forEach((term) => expect(low).not.toContain(term));
   });
 
+  it('states ACCOUNTABILITY plainly on the two courts — never implied (Darrell 2026-07-08)', () => {
+    for (const issue of WORLD_ISSUES) {
+      const acct = issue.lens.accountability;
+      expect(acct?.statement, `${issue.id} must state accountability`).toBeTruthy();
+      expect(acct.scripture).toMatch(/Ecclesiastes 12:14/);
+    }
+    // The named-person case carries the full doctrine: the eternal court holds
+    // what man's court dismissed or never prosecuted, restitution is owed, and
+    // hiding or minimizing another's wrong is itself in the record.
+    const a = musk.lens.accountability.statement;
+    expect(a).toMatch(/eternal court/i);
+    expect(a).toMatch(/restitution/i);
+    expect(a).toMatch(/never prosecutes|never prosecuted/i);
+    expect(a).toMatch(/Leviticus 5:1/);
+    expect(a).toMatch(/Proverbs 17:15/);
+  });
   it('quizzes the SKILL, not a verdict on the person', () => {
     expect(musk.quiz.questions.length).toBeGreaterThanOrEqual(3);
     musk.quiz.questions.forEach((q) => {
