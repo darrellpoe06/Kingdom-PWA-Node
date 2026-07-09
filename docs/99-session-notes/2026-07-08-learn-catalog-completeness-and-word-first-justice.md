@@ -35,3 +35,7 @@
 ## The Test (run against this session's output)
 
 True — every claim above traces to a file, a test run, or a verse fetched verbatim. Honorable and just — the lesson now honors both the wronged worker and the limits Scripture sets on judging a soul. Excellent — the miss classes (built-but-unsurfaced; default-course-only render tests) died as machine gates, not as memories.
+
+## Addendum (same day) — DR-0130: accountability stated on both courts
+
+Darrell's review of the shipped lesson found accountability implied, not stated — and gave the governing doctrine: the eternal 4th-dimensional court holds what man's court dismisses or never prosecutes, and the impact on lives during life is seen. Shipped same-day: `lens.accountability` as a required, audited, rendered engine field; the two-courts block authored for all three issues (with the documented visa record carried per the DR-0100 tiers in the Musk lesson); proven-to-catch test; Ari duty text sharpened. Recorded as DR-0130 + REV-0022.

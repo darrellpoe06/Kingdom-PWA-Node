@@ -1,6 +1,6 @@
-# DR-0130 — Take n8n off the reliability-critical path (Supabase-bus + self-orchestrating box)
+# DR-0132 — Take n8n off the reliability-critical path (Supabase-bus + self-orchestrating box)
 
-> **Renumbered from a provisional DR-0088** — collided with a parallel session's DR-0088 (the app-first `ops_commands` queue), which is in fact the same app-INSERT → box-outbound-poll bus this decision rides. Code comments in `llm-*.js` that cite "the DR-0088 bus" refer to that shipped ops-queue bus; this decision (n8n off the critical path) is DR-0130.
+> **Renumbered from a provisional DR-0088 → DR-0130 → DR-0132** — collided first with a parallel session's DR-0088 (the app-first `ops_commands` queue), which is in fact the same app-INSERT → box-outbound-poll bus this decision rides; then DR-0130 and DR-0131 landed on main from that same parallel session. Code comments in `llm-*.js` that cite "the DR-0088 bus" refer to that shipped ops-queue bus; this decision (n8n off the critical path) is DR-0132.
 
 - **Status:** accepted
 - **Date:** 2026-07-08

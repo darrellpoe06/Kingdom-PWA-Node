@@ -10,15 +10,16 @@
 import React from 'react';
 import OneVoiceInput from './OneVoiceInput.jsx';
 
-export function ChurchOneVoice({ addPrayerRequest, updateConference, conference, addChurchVoice, churchVoice = [], sendToPoeTech, addIncident, addInquiry }) {
+export function ChurchOneVoice({ addPrayerRequest, updateConference, conference, addChurchVoice, churchVoice = [], sendToPoeTech, addIncident, addInquiry, officeEmail = null }) {
   return (
     <OneVoiceInput
       surface="church"
-      heading="🕊 Speak — one place for everything"
-      intro="Prayer, the Assembly, the pastors, serving, a repair, counseling, even an idea for the app — just say it. We'll suggest where it goes; you always have the last word."
-      placeholder="e.g., Please pray for Sister Mae's recovery · The fellowship-hall sink is leaking · The app should show giving statements…"
+      heading="🕊 Yahweh Hears You · Speak · Type · Link"
+      intro="One place for everything — today's sermon, a teaching, a prayer, the pastors, serving, a repair, an article link, an idea for the app, a thought you don't want to lose. Speak it or type it; we'll suggest where it goes and you always have the last word. It records right here — nothing jumps you to another page."
+      placeholder="e.g., Please pray for Sister Mae's recovery · A word from today's sermon · The app should show giving statements…"
       submitLabel="Send"
       recent={churchVoice}
+      officeEmail={officeEmail}
       addPrayerRequest={addPrayerRequest}
       updateConference={updateConference}
       conference={conference}

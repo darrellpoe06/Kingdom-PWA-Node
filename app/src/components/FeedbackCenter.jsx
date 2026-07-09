@@ -156,7 +156,6 @@ export const FEEDBACK_AREAS = [
     ['church-videowall', 'Church · Video Wall (sanctuary LED capital project — budget · donations · spec)'],
     ['church-devices', 'Church · Device Inventory (staff: asset register — NAS · GPU nodes · VX1000 · LED wall · network · cameras · sound + idle-GPU compute pool)'],
     ['church-infra-plan', 'Church · Infra Plan (staff: 5x3090 sovereign rig + on-prem cameras roadmap; VISION-FAIRNESS gate)'],
-    ['church-ari', 'Church · Talk to Ari (staff: the human↔Ari channel on the bus — router answers, opportunities/constraints per thread)'],
     ['church-observe', 'Church · Observation (staff room-photo board)'],
     ['church-pulpit', "Church · The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
     ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],

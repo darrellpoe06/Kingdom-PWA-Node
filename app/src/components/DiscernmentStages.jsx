@@ -179,6 +179,15 @@ export default function DiscernmentStages({ issue }) {
             <p className="text-[0.625rem] text-[#5A6E3D] mb-2" style={mono}>{lens.fourD.scripture}</p>
           )}
           {lens.threeD && <p className="text-xs text-[#1A1815] mb-2" style={serif}>{lens.threeD}</p>}
+          {lens.accountability?.statement && (
+            <div className="border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2 mb-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold mb-1">Accountability — what the Word requires (the two courts)</div>
+              <p className="text-xs text-[#1A1815]" style={serif}>{lens.accountability.statement}</p>
+              {lens.accountability.scripture && (
+                <p className="text-[0.625rem] text-[#5A6E3D] mt-1" style={mono}>{lens.accountability.scripture}</p>
+              )}
+            </div>
+          )}
           {lens.stewardship && (
             <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2 mb-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Stewardship — build, don't just react</div>
