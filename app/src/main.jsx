@@ -74,6 +74,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('request-space') === '1'
   || __params.get('share') === '1'
   || __params.get('moore') === '1'
+  || !!__params.get('biz')
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
@@ -155,14 +156,16 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
     __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
   }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
-} else if (__params.get('moore') === '1') {
-  // The Moore Divahs public door — the branded family-of-businesses app Shay
-  // shows clients (Darrell 2026-07-07). Her brand first; PoeTech + the family
-  // businesses behind it. Public faces only; captures ride forced-safe RPCs
-  // with source='moore-divahs-app'. Lean boot like the others.
-  import('./components/MooreDoor.jsx').then(({ default: MooreDoor }) => {
-    __root.render(<React.StrictMode><ErrorBoundary><MooreDoor /></ErrorBoundary></React.StrictMode>);
-  }).catch((err) => { console.warn('moore boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('moore') === '1' || __params.get('biz')) {
+  // A registered business's public door (cf-registry, DR-0114): ?biz=<slug>
+  // resolves a BUSINESS_REGISTRY row and renders the door engine with it —
+  // a new client's door is a registry row, never a new component. ?moore=1
+  // stays as Moore Divahs' legacy alias (her printed QRs never break).
+  // Public faces only; captures ride forced-safe RPCs with the row's source
+  // attribution. Lean boot like the others.
+  import('./components/BusinessDoor.jsx').then(({ default: BusinessDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><BusinessDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('business door boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('room')) {
   // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
   // renders the big-screen board (host) or a phone controller. Lazy-imported so
