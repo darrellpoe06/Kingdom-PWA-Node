@@ -22,8 +22,15 @@ import PasswordAuth from './PasswordAuth.jsx';
 // login"). Lazy so customers never download the steward chunk.
 const StewardBoard = lazy(() => import('./MooreDivahs.jsx'));
 import { captureLead } from '../lib/crm-sync.js';
-import { MOORE_BRAND, CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
-import { DOOR_TABS, POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, DOOR_SOURCE, buildReorderNote, doorView } from '../lib/moore-door.js';
+import { CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
+import { POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, buildReorderNote, doorView } from '../lib/moore-door.js';
+import { getBusiness } from '../lib/business-registry.js';
+
+// The active registry row (cf-registry, DR-0114). Assigned by MooreDoor from
+// its prop before the subtree renders; module-level because one page load
+// serves exactly one business (the standalone-boot pattern). Defaults to
+// Moore Divahs so every existing entry keeps working unchanged.
+let BIZ = getBusiness('moore-divahs');
 import AppInterestCapture from './AppInterestCapture.jsx';
 import UiIcon from './UiIcon.jsx';
 import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
@@ -54,8 +61,8 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
     setState('sending');
     const res = await captureLead(pipeline, instanceSlug, {
       name: f.name, contactMethod: 'email', contactValue: f.contactValue,
-      source: DOOR_SOURCE, sourceDetail: 'Moore Divahs app', notes: f.notes,
-      consentOutreachOk: true, consentChannels: ['email'], consentNote: 'Asked to be contacted via the Moore Divahs app',
+      source: BIZ.captureSource, sourceDetail: `${BIZ.brand.label} app`, notes: f.notes,
+      consentOutreachOk: true, consentChannels: ['email'], consentNote: `Asked to be contacted via the ${BIZ.brand.label} app`,
     });
     setState(res && res.captured ? 'ok' : 'error');
   };
@@ -86,7 +93,7 @@ function PublicClasses() {
     let on = true;
     // publicRpc, NOT the shared client: anon read with a hard deadline — a
     // wedged auth lock in another PoeTech window can never hang this again.
-    publicRpc('moore_public_classes', { p_instance_slug: 'poe-family' })
+    publicRpc('moore_public_classes', { p_instance_slug: BIZ.doorDataInstanceSlug })
       .then(({ data, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: data || [] }); });
     return () => { on = false; };
   }, []);
@@ -185,7 +192,7 @@ function MyOrders({ onReorder = null }) {
 function MyMessages() {
   const [state, setState] = useState({ phase: 'checking', rows: [] });
   const [draft, setDraft] = useState('');
-  const load = () => fetchMessages('moore-divahs').then((r) => setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows }));
+  const load = () => fetchMessages(BIZ.instanceSlug).then((r) => setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows }));
   useEffect(() => {
     let on = true;
     supabase.auth.getSession().then(({ data }) => {
@@ -202,7 +209,7 @@ function MyMessages() {
   const send = async (e) => {
     e.preventDefault();
     if (!draft.trim()) return;
-    const r = await sendMessage('moore-divahs', draft);
+    const r = await sendMessage(BIZ.instanceSlug, draft);
     if (r.ok) { setDraft(''); load(); }
   };
   return (
@@ -232,7 +239,7 @@ function Gallery({ onInspired }) {
   const [state, setState] = useState({ phase: 'loading', pieces: [] });
   useEffect(() => {
     let on = true;
-    fetchShowcase('moore-divahs').then((r) => { if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) }); });
+    fetchShowcase(BIZ.instanceSlug).then((r) => { if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) }); });
     return () => { on = false; };
   }, []);
   if (state.phase === 'loading') return null;
@@ -298,8 +305,8 @@ function MooreTab() {
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Start an order</h3>
         <div className="mt-2">
           <ContactCaptureForm
-            pipeline="moore-orders"
-            instanceSlug="poe-family"
+            pipeline={BIZ.capturePipeline}
+            instanceSlug={BIZ.captureInstanceSlug}
             promptLabel="Send my order inquiry"
             notePlaceholder="What do you want made?"
             okMessage="Sent! Shay will reach out to talk through your piece."
@@ -462,7 +469,7 @@ function PoeTechTab() {
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Want in?</h3>
-        <div className="mt-2"><AppInterestCapture source={DOOR_SOURCE} /></div>
+        <div className="mt-2"><AppInterestCapture source={BIZ.captureSource} /></div>
       </div>
     </div>
   );
@@ -487,7 +494,7 @@ function DoorAuth({ role, onRole }) {
       if (!on) return;
       if (s?.timedOut || !s?.data?.session) { setChecking(false); onRole('signed-out'); return; }
       const r = await Promise.race([
-        supabase.rpc('my_business_role', { p_instance_slug: 'moore-divahs' }),
+        supabase.rpc('my_business_role', { p_instance_slug: BIZ.instanceSlug }),
         deadline,
       ]);
       if (!on) return;
@@ -522,7 +529,9 @@ function DoorAuth({ role, onRole }) {
 }
 
 // ---- the door ------------------------------------------------------------------
-export default function MooreDoor() {
+export default function MooreDoor({ business = null }) {
+  // Bind the registry row FIRST so every section below reads this business.
+  BIZ = business || getBusiness('moore-divahs');
   const [tab, setTab] = useState('moore'); // Moore Divahs first, always
   const [role, setRole] = useState('signed-out');
   // Comfort controls — the SAME theme + text-size the PoeTech app uses (shared
@@ -541,14 +550,14 @@ export default function MooreDoor() {
   // artwork still reuses the platform icons until Shay supplies hers (md-handles
   // sibling — an asset only she holds).
   useEffect(() => {
-    document.title = `${MOORE_BRAND.label} — ${MOORE_BRAND.tagline}`;
+    document.title = `${BIZ.brand.label} — ${BIZ.brand.tagline}`;
     let link = document.querySelector('link[rel="manifest"]');
     if (!link) {
       link = document.createElement('link');
       link.rel = 'manifest';
       document.head.appendChild(link);
     }
-    link.href = '/manifest-moore.webmanifest';
+    link.href = BIZ.manifest;
   }, []);
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
@@ -561,8 +570,8 @@ export default function MooreDoor() {
           </div>
         )}
         <header className="pt-6 text-center">
-          <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>
-          <p className="mt-1 text-sm text-[#5A5751]">{MOORE_BRAND.tagline}</p>
+          <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{BIZ.brand.label}</h1>
+          <p className="mt-1 text-sm text-[#5A5751]">{BIZ.brand.tagline}</p>
           <div className="mt-2 flex items-center justify-center gap-2" role="group" aria-label="Comfort controls">
             {/* Entrance-review 2026-07-07: the dot stays small, the HITBOX does
                 not — 36px buttons around 20px swatches, for the hands this
@@ -597,7 +606,7 @@ export default function MooreDoor() {
           </Suspense>
         )}
         <TabScroll className="mt-4 border-b border-[#E8E2D8]" label="Moore Divahs sections">
-          {DOOR_TABS.map((t) => (
+          {BIZ.tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
