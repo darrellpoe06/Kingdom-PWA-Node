@@ -34,6 +34,7 @@ function validIssue(overrides = {}) {
       threeD: 'Care about the real people affected; do not let outrage own you.',
       benefits: ['Calm in a loud world', 'Sharper source-checking'],
       graceNote: 'Name a wrong without condemning a person made in God\'s image.',
+      accountability: { statement: 'The wrongdoer owes confession and restitution; every dismissed or hidden thing still enters the eternal court.', scripture: 'Ecclesiastes 12:14; Numbers 5:7' },
       stewardship: 'Steward your attention and your dollar wisely.',
       anchor: { ref: 'Proverbs 18:17', theme: 'The one who states his case first seems right, until the other comes and examines him.' },
     },
@@ -120,6 +121,19 @@ describe('safeguard: facts must cite a dated source (Stage 2)', () => {
   it('catches a fact with no documentation status', () => {
     const v = lintSourcesCited(validIssue({ verifiable: [{ id: 'f1', statement: 'X', status: '', sources: [{ title: 'Record', asOf: '2025-01-01' }] }] }));
     expect(v.some((e) => e.code === 'facts/no-status')).toBe(true);
+  });
+});
+
+describe('safeguard: accountability stated plainly (the two courts)', () => {
+  it('catches a named-person lesson with documented harm but NO accountability statement', () => {
+    const issue = validIssue();
+    issue.lens = { ...issue.lens, accountability: { statement: '', scripture: '' } };
+    const res = auditIssue(issue);
+    expect(res.ok).toBe(false);
+    expect(res.errors.some((e) => e.code === 'accountability/missing')).toBe(true);
+  });
+  it('passes when accountability is stated', () => {
+    expect(auditIssue(validIssue()).ok).toBe(true);
   });
 });
 
