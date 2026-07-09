@@ -26,22 +26,16 @@
 import { assessLoops } from './loop-health.js';
 import { ADMIN_EMAILS } from './admin-allowlist.js';
 
-// The four backend concerns a steward actually needs, in the order they matter.
-// icon = a UiIcon name (bundled SVG — never a device emoji, per consistency-guard).
-export const ADMIN_PANELS = [
-  { id: 'access',   label: 'People & Access', icon: 'users',
-    blurb: 'Who can get into the backend, and your live role in the system.' },
-  { id: 'data',     label: 'Data & Loops',    icon: 'chart',
-    blurb: 'Is your data actually flowing? Every tracked loop’s real freshness.' },
-  { id: 'system',   label: 'System & Build',  icon: 'sliders',
-    blurb: 'The live build, whether the backend is reachable, and the checks that guard it.' },
-  { id: 'internal', label: 'Internal Surfaces', icon: 'monitor',
-    blurb: 'The family NAS surfaces you reach over Tailscale / on the home network.' },
-];
-
-export function isAdminPanel(id) {
-  return ADMIN_PANELS.some((p) => p.id === id);
-}
+// 2026-07-04 (Darrell, looking at the Admin tab): "it should be one tab... a
+// report of users like the books financial reports, just data-driven KPIs" — and
+// "why does it have all this n8n information if I'm not using that." So Admin is
+// now ONE data-driven report (it absorbs the former Access users/usage report)
+// plus the essential System & Build controls, and the n8n/NAS surfaces — the NAS
+// bridge token, the Internal Surfaces dispatch-status-page webhook, the
+// n8n-sourced Data-&-Loops rows — are OFF the UI. The old four-sub-tab panel list
+// and INTERNAL_SURFACES that drove that structure are retired. The remaining
+// exports (roster, role meaning, system facts, preview actions) still back the
+// merged surface and stay unit-tested.
 
 // Access is IDENTITY-based, not a shareable password (servant-king ontology). The
 // canonical allowlist is interest-sync's ADMIN_EMAILS (mirrored by tenancy-guard);
@@ -108,17 +102,6 @@ export function systemFacts({ isPublicHost = true, buildSha = 'dev', buildTime =
   ];
 }
 
-// The internal (NAS-hosted) surfaces, folded in from the old Admin() so nothing is
-// lost. Public identifiers only (Tailscale hostname + LAN IP are not secrets — they
-// are unreachable without being on the family network). No keys.
-export const INTERNAL_SURFACES = [
-  { key: 'dispatch',
-    label: 'Dispatch Status',
-    what: 'Live workflow reel + Code-Task snapshot + phone-alert QR. Always-on system visibility.',
-    tailscale: 'https://poetech.tail5a2f35.ts.net/webhook/dispatch-status-page',
-    lan: 'http://192.168.1.26:5678/webhook/dispatch-status-page' },
-];
-
 // Consequential / outbound actions get a PREVIEW before a deliberate execute
 // (wired-buttons + preview-then-execute rule). Each entry describes, in plain
 // language, exactly what will happen. `danger` drives the confirm styling.
@@ -132,6 +115,18 @@ export const PREVIEW_ACTIONS = {
       'The app reloads once, fetching the newest deployed build from the network.',
       'Nothing is deleted. Your saved data and sign-in are untouched.',
       'Use this when a merged fix isn’t showing yet (a stale cached build).',
+    ],
+  },
+  'review-as-user': {
+    label: 'Review as a user',
+    what: 'See this live build exactly as a signed-in user outside the family sees it — the review pass after a push to production.',
+    danger: false,
+    confirmLabel: 'Enter reviewer mode',
+    preview: [
+      'The app reloads once into Reviewer mode on THIS device: every steward surface (Admin, Center, CRM, Relationships, Inventory, Forecast, staff boards) disappears, and the books open as a fresh user’s own empty world at the user’s real tier.',
+      'Your real data is safe by construction: while reviewing, nothing writes to this device’s saved books, your saved profile, or the family cloud snapshot.',
+      'You stay signed in as yourself — anything you deliberately submit through a module (feedback, an entry) still lands in your own account, exactly as it would for any user.',
+      'A dark “Reviewer mode” strip stays pinned across the top with the one-tap Exit that brings the steward view back.',
     ],
   },
   'reset-seed': {

@@ -25,7 +25,8 @@
 // device-local like Study + the Eternal Algorithms library — never extracted.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SectionTitle } from './shared.jsx';
+import { SectionTitle, TabScroll } from './shared.jsx';
+import { FAMILY_ARTISTS, FAMILY_PICKS, LISTENING_TAGLINE } from '../lib/family-listening.js';
 import { triggerDownload, exportFilename } from '../lib/creation-workspace.js';
 import { bookStats } from '../lib/book-engine.js';
 import { toMarkdown, bookToReaderHtml, bookToEpubBytes } from '../lib/book-formats.js';
@@ -33,6 +34,7 @@ import { flywheel } from '../lib/book-flywheel.js';
 import {
   availableRecipes, buildRecipe, loadShelf, saveShelf, upsertBook, removeBook,
 } from '../lib/book-corpus.js';
+import { subscribeSermons } from '../lib/choir-sync.js';
 import { loadLibrary } from '../lib/eternal-algorithms.js';
 import { useReadingResume, anchorProps } from '../lib/reading-position.js';
 import Bookstore from './Bookstore.jsx';
@@ -237,16 +239,32 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   const [reading, setReading] = useState(null);
   const [preview, setPreview] = useState(null);
   const [toast, setToast] = useState('');
+  // Shelf windowing — no endless scroll as the shelf grows (audit:
+  // list-pagination, intuitive-ux). First pageSize books render; the rest wait
+  // behind an honest "Show more".
+  const pageSize = 12;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
 
   useEffect(() => { setShelf(loadShelf(email).books); }, [email]);
 
+  // Live sermon corpus (real choir_sermons rows, mapped by toSermonShape — the
+  // exact camelCase shape sermonToSource reads). The shell mounts this surface
+  // with sermons={[]}, which starved the "Messages from the House" recipe
+  // forever; same self-subscribe fix ScriptureLibrary got 2026-06-29.
+  const [liveSermons, setLiveSermons] = useState([]);
+  useEffect(() => {
+    const offSermons = subscribeSermons((rows) => setLiveSermons(rows || []));
+    return () => { if (typeof offSermons === 'function') offSermons(); };
+  }, []);
+
   // Real corpus the studio assembles from. Algorithms come from the device-local
-  // library (falls back to the seed catalog inside availableRecipes); sermons are
-  // passed in only when the Church > The Word tab has loaded them.
+  // library (falls back to the seed catalog inside availableRecipes); sermons
+  // come from the live stream above — live rows win, and the prop stays as the
+  // DI/test fallback for callers that inject their own corpus.
   const ctx = useMemo(() => ({
     algorithms: loadLibrary(email)?.entries || [],
-    sermons: Array.isArray(sermons) ? sermons : [],
-  }), [email, sermons]);
+    sermons: liveSermons.length ? liveSermons : (Array.isArray(sermons) ? sermons : []),
+  }), [email, sermons, liveSermons]);
 
   const persist = useCallback((books) => { setShelf(books); saveShelf(email, books); }, [email]);
 
@@ -279,9 +297,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
     return <Reader book={reading} onNavigate={onNavigate} onBack={() => setReading(null)} userKey={email} />;
   }
 
+  // KEPT as component state (not folded into SectionTabs): `mode` is WRITTEN
+  // from outside the strip — onSave jumps back to the shelf, and the empty
+  // shelf's "Open the Studio" CTA jumps to the studio — which the uncontrolled
+  // SectionTabs primitive cannot express. Harmonized instead: the strip now
+  // rides the shared <TabScroll> primitive (role=tab, nowrap) so it scrolls
+  // and feels identical to every other section row (tab-overflow-guard inv. 3).
   const tabBtn = (id, label) => (
-    <button key={id} type="button" onClick={() => setMode(id)}
-      className={`px-3 py-2 text-sm border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium' : ''}`}
+    <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}
+      className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium' : ''}`}
       style={{ borderColor: mode === id ? PALETTE.accent : 'transparent', color: mode === id ? PALETTE.ink : PALETTE.muted }}>
       {label}
     </button>
@@ -294,10 +318,13 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
         Books made from the house's own teaching — that read you straight back into the living app.
       </p>
 
-      <div className="flex gap-1 border-b mb-4" style={{ borderColor: PALETTE.line }}>
-        {tabBtn('store', 'Store')}
-        {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
-        {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
+      <div className="border-b mb-4" style={{ borderColor: PALETTE.line }}>
+        <TabScroll label="Library sections">
+          {tabBtn('store', 'Store')}
+          {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
+          {tabBtn('listening', 'Listening')}
+          {isFamilyMember && tabBtn('studio', 'Studio — build a book')}
+        </TabScroll>
       </div>
 
       {toast && <div className="mb-3 text-xs px-3 py-2 border" style={{ borderColor: PALETTE.line, background: PALETTE.panel, color: PALETTE.ink }}>{toast}</div>}
@@ -321,30 +348,88 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
             </div>
           )
           : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {shelf.map((b) => {
-                const stats = b.stats || bookStats(b);
-                return (
-                  <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
-                    <div>
-                      <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
-                      {b.subtitle && <div className="text-[11px] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
-                      <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {shelf.slice(0, visibleCount).map((b) => {
+                  const stats = b.stats || bookStats(b);
+                  return (
+                    <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
+                      <div>
+                        <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
+                        {b.subtitle && <div className="text-[11px] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
+                        <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>
+                        <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>Remove</button>
+                      </div>
+                      <DownloadRow book={b} />
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>
-                      <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>Remove</button>
-                    </div>
-                    <DownloadRow book={b} />
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              {shelf.length > visibleCount && (
+                <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
+                  className="mt-3 w-full text-xs px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+                  Show more · {shelf.length - visibleCount} remaining
+                </button>
+              )}
+            </>
           )
       )}
 
       {mode === 'studio' && isFamilyMember && (
         <Studio ctx={ctx} preview={preview} setPreview={setPreview} onSave={onSave} canPublish={isFamilyMember} />
+      )}
+
+      {/* LISTENING — the family-curated artist shelf (Darrell 2026-07-03:
+          Lecrae + the 116 crew). Links are honest YouTube SEARCHES, never a
+          guessed channel handle (DR-0076); swap in verified channel URLs per
+          artist as the family pins them (lib/family-listening.js). */}
+      {mode === 'listening' && (
+        <div>
+          <p className="text-sm mb-3" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{LISTENING_TAGLINE}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {FAMILY_ARTISTS.map((a) => (
+              <div key={a.id} className="bg-white border p-3" style={{ borderColor: PALETTE.line }}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{a.tag}</span>
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{a.note}</p>
+                <a href={a.searchUrl} target="_blank" rel="noopener noreferrer"
+                  className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Listen on YouTube ↗
+                </a>
+              </div>
+            ))}
+          </div>
+          {/* The picks — specific tracks vouched by name, with the why. */}
+          {FAMILY_PICKS.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[0.5625rem] uppercase tracking-[0.25em] font-semibold mb-1.5" style={{ color: PALETTE.muted }}>The picks · vouched by name</div>
+              <div className="space-y-2">
+                {FAMILY_PICKS.map((p) => (
+                  <div key={p.id} className="bg-white border-l-2 border p-3" style={{ borderColor: PALETTE.line, borderLeftColor: '#B85838' }}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{p.artist} · {p.album}</span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{p.why}</p>
+                    <a href={p.searchUrl} target="_blank" rel="noopener noreferrer"
+                      className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+                      Listen on YouTube ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[0.625rem] mt-3 italic" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>
+            Curated by the family — name an artist or a track and the shelf carries them.
+          </p>
+        </div>
       )}
     </div>
   );

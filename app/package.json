@@ -16,6 +16,7 @@
     "legibility": "node ../scripts/legibility-guard.mjs --check",
     "legibility:health": "node ../scripts/legibility-guard.mjs --health",
     "legibility:baseline": "node ../scripts/legibility-guard.mjs --generate",
+    "icons": "node ../scripts/gen-icons.mjs",
     "verify": "npm run lint && vitest run"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@twemoji/svg": "^15.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^10.4.0",

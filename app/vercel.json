@@ -6,6 +6,11 @@
       "main": true
     }
   },
+  "redirects": [
+    { "source": "/mooredivahs", "destination": "/moore/", "permanent": true },
+    { "source": "/mooredivahs/", "destination": "/moore/", "permanent": true },
+    { "source": "/", "destination": "/poetech-app/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/n8n/:path*", "destination": "https://poetech.tail5a2f35.ts.net/:path*" },
     { "source": "/nas-photos/:path*", "destination": "https://poetech.tail5a2f35.ts.net/nas-photos/:path*" },

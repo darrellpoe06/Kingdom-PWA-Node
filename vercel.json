@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "REPO-ROOT git config — MEASURED INEFFECTIVE (kept as documentation of the result, not as a working lever). History: the 2026-06-16 preview-churn fix (deploy main only — the preview fan-out blew Vercel's 100/day cap) was placed in app/vercel.json and measured not working; this repo-root copy was the next hypothesis (config evaluated from the default branch after merge). RESULT 2026-07-03: with this file ON main (merged in d0d2cd5), the very next branch push (PR #522, 3794094) still fired a preview deployment ('Ready' at 12:09 UTC). Both in-repo placements are now measured dead for this project. Remaining levers are DASHBOARD-side: Project Settings -> Git -> disable preview deployments / Ignored Build Step (Darrell), or the built Cloudflare Pages cutover (CF_PAGES_ENABLED). Serving config (rewrites/headers/caching) stays in app/vercel.json, which the Root Directory setting reads.",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "main": true
+    }
+  }
+}

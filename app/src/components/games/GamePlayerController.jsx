@@ -16,9 +16,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import UiIcon from '../UiIcon.jsx';
 import { currentActor, standings, TOKENS, getToken } from '../../lib/games/match.js';
-import { boardFor, computeTotals } from '../../lib/games/engine.js';
+import { boardFor, computeTotals, lastSpin } from '../../lib/games/engine.js';
 import { joinRoom } from '../../lib/games/realtime-room.js';
 import { resolveScripture } from '../../lib/games/scripture-link.js';
+import SpinnerWheel from './SpinnerWheel.jsx';
 
 const INK = '#12100E';
 const CREAM = '#FAF8F4';
@@ -78,6 +79,30 @@ export default function GamePlayerController({ def, code }) {
   // Clear any stale preview when the turn/pending changes.
   useEffect(() => { setSel(null); }, [actor?.playerId, actor?.need, myPlayer?.game?.pending]);
 
+  // ---- the actual spinner (Christyn, 2026-07-07) ----------------------------
+  // Tap SPIN -> the wheel turns (indeterminate) while the HOST resolves the
+  // authoritative spin; when the snapshot lands, the wheel decelerates onto the
+  // REAL number. Presentation over real state — never a second random.
+  const [spinFx, setSpinFx] = useState(null); // {phase:'waiting'} | {phase:'landing', value, seq}
+  const spinSeenRef = useRef(null);           // my last seen spin log index
+  useEffect(() => {
+    const g = myPlayer?.game;
+    if (!g) { spinSeenRef.current = null; return; }
+    const s = lastSpin(g);
+    const idx = s ? s.index : -1;
+    if (spinSeenRef.current == null) { spinSeenRef.current = idx; return; } // first snapshot: never replay history
+    if (idx > spinSeenRef.current) {
+      spinSeenRef.current = idx;
+      if (s && s.value != null) setSpinFx({ phase: 'landing', value: s.value, seq: idx });
+    } else if (idx < spinSeenRef.current) {
+      spinSeenRef.current = idx; // play-again started a fresh journey log
+    }
+  }, [match, myPlayer]);
+  const startSpin = useCallback(() => {
+    setSpinFx({ phase: 'waiting' });
+    roomRef.current?.sendAction({ type: 'spin', playerId: meRef.current.id });
+  }, []);
+
   function doJoin(name, token) {
     const next = { id: me.id, name, token, joined: true };
     setMe(next); persist(code, next);
@@ -101,9 +126,11 @@ export default function GamePlayerController({ def, code }) {
 
       {match.phase === 'playing' && (
         myTurn
-          ? <MyTurn def={def} actor={actor} myPlayer={myPlayer} sel={sel} setSel={setSel} send={send} />
+          ? <MyTurn def={def} actor={actor} myPlayer={myPlayer} sel={sel} setSel={setSel} send={send} onSpin={startSpin} />
           : <WaitingTurn def={def} match={match} actor={actor} myPlayer={myPlayer} />
       )}
+
+      {spinFx && <SpinOverlay fx={spinFx} onDone={() => setSpinFx(null)} />}
 
       {match.phase === 'finished' && (
         <FinishedSelf def={def} match={match} myId={me.id} isHost={isHost} onAgain={() => send({ type: 'play-again' })} />
@@ -154,10 +181,14 @@ function Header({ def, me, token }) {
 function JoinForm({ def, match, status, initialName, onJoin }) {
   const [name, setName] = useState(initialName || '');
   const [token, setToken] = useState('');
+  // Tokens held by CONNECTED players are taken; a disconnected seat's token stays
+  // pickable so a returning player can reclaim their piece (and their points).
   const taken = useMemo(() => new Set((match?.players || []).filter((p) => p.connected).map((p) => p.token)), [match]);
   const full = match && match.players.length >= match.maxPlayers;
-  const started = match && match.phase !== 'lobby';
-  const canJoin = name.trim().length > 0 && token && !taken.has(token) && !full && !started;
+  const finished = match && match.phase === 'finished';
+  const inProgress = match && match.phase === 'playing';
+  // Late joiners are welcome mid-game; only a finished or full table turns you away.
+  const canJoin = name.trim().length > 0 && token && !taken.has(token) && !full && !finished;
 
   return (
     <div className="min-h-screen px-4 py-8" style={{ background: INK, color: CREAM, fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -166,8 +197,9 @@ function JoinForm({ def, match, status, initialName, onJoin }) {
         <h1 className="text-3xl font-semibold" style={{ fontFamily: 'Fraunces, serif' }}>{def.title}</h1>
         <p className="text-sm mt-2" style={{ color: MUTE }}>Take a seat. Pick your name and a token — your piece on the big screen.</p>
 
-        {started && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>This game has already started. Ask the host for a fresh room.</p>}
-        {full && !started && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>The table is full ({match.maxPlayers} players).</p>}
+        {inProgress && !full && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#16221a', color: '#86efac' }}>This game is already underway — jump in! Pick your name and token and you&rsquo;ll join on the next round. Coming back after your phone went off? Pick the same token to get your seat and points back.</p>}
+        {finished && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>These journeys have finished. Ask the host to start a new one.</p>}
+        {full && !finished && <p className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#2a1c16', color: '#fda4af' }}>The table is full ({match.maxPlayers} players).</p>}
 
         <label className="block mt-5 text-sm" style={{ color: MUTE }}>Your name</label>
         <input
@@ -259,8 +291,43 @@ function EffectChips({ def, effects }) {
   );
 }
 
+// ---- the spin overlay ---------------------------------------------------------
+// Fills the phone while the wheel turns: indeterminate while the host resolves,
+// then the wheel lands on the real number and the overlay steps aside.
+function SpinOverlay({ fx, onDone }) {
+  const [rested, setRested] = useState(false);
+  // Watchdog: if the host never answers (dropped action / not our turn after
+  // all), the overlay must never trap the phone.
+  useEffect(() => {
+    if (fx.phase !== 'waiting') return undefined;
+    const t = setTimeout(onDone, 8000);
+    return () => clearTimeout(t);
+  }, [fx.phase, onDone]);
+  useEffect(() => {
+    if (!rested) return undefined;
+    const t = setTimeout(onDone, 1300);
+    return () => clearTimeout(t);
+  }, [rested, onDone]);
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: 'rgba(18, 16, 14, 0.95)' }}>
+      <SpinnerWheel
+        value={fx.phase === 'landing' ? fx.value : null}
+        spinSeq={fx.phase === 'landing' ? fx.seq : null}
+        spinning={fx.phase === 'waiting'}
+        animateFirst
+        size="13rem"
+        onRest={() => setRested(true)}
+      />
+      <p className="mt-6 text-2xl font-semibold" style={{ color: CREAM }} aria-live="polite">
+        {rested ? `You spun a ${fx.value}` : 'Spinning…'}
+      </p>
+      {rested && <p className="text-sm mt-1" style={{ color: '#A8A29A' }}>Watch the big screen.</p>}
+    </div>
+  );
+}
+
 // ---- my turn ----------------------------------------------------------------
-function MyTurn({ def, actor, myPlayer, sel, setSel, send }) {
+function MyTurn({ def, actor, myPlayer, sel, setSel, send, onSpin }) {
   const game = myPlayer.game;
 
   if (actor.need === 'choose-path') {
@@ -339,7 +406,7 @@ function MyTurn({ def, actor, myPlayer, sel, setSel, send }) {
     <div className="text-center">
       <h2 className="text-xl font-semibold">Your turn</h2>
       {space && <p className="text-sm mt-1" style={{ color: MUTE }}>You&rsquo;re at: <span style={{ color: CREAM }}>{space.title}</span></p>}
-      <button onClick={() => send({ type: 'spin', playerId: myPlayer.id })} className="mt-6 mx-auto rounded-full h-44 w-44 flex flex-col items-center justify-center text-2xl font-bold" style={{ backgroundColor: '#f4b740', color: INK }}>
+      <button onClick={onSpin} className="mt-6 mx-auto rounded-full h-44 w-44 flex flex-col items-center justify-center text-2xl font-bold" style={{ backgroundColor: '#f4b740', color: INK }}>
         <UiIcon name="dice" className="mb-1" />
         SPIN
       </button>

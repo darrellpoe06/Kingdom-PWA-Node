@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import { buildQualityManifest } from '../scripts/quality-manifest.mjs';
 import { buildInterconnectManifest } from '../scripts/interconnect-manifest.mjs';
 import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
+import { buildTestCensus } from '../scripts/test-census.mjs';
+import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
 // count must be a REAL number, not hand-typed. Count the actual n8n workflow
@@ -88,13 +90,33 @@ function readDecisionLedger() {
     return raw.replace(/\r\n/g, '\n');
   };
   // Lightweight YAML-frontmatter scalar reader (no dep): first --- ... --- block.
+  // FALLBACK (2026-07-07, the "no static data" cleaning pass): 28 of the DR
+  // files use the list-style header instead ("# DR-XXXX — Title" + "- **Date:**
+  // 2026-07-07" bullets) — including the newest records. Without this fallback
+  // they parsed as empty (no title, no date) and silently dropped out of every
+  // date-derived surface (the Build tab's ship story, Ari's notes, the
+  // Perpetual Report). Parse both shapes so the in-app ledger carries the
+  // whole real record.
   const frontmatter = (raw) => {
-    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
     const out = {};
-    if (!m) return out;
-    for (const line of m[1].split('\n')) {
-      const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
-      if (mm) out[mm[1]] = mm[2].trim();
+    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
+    if (m) {
+      for (const line of m[1].split('\n')) {
+        const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
+        if (mm) out[mm[1]] = mm[2].trim();
+      }
+      return out;
+    }
+    // List-style: title from the H1 ("# DR-0121 — <title>"), scalars from the
+    // "- **Field:** value" bullets near the top.
+    const h1 = /^#\s+(DR-\d{4})\s*[—-]\s*(.+)$/m.exec(raw);
+    if (h1) { out.id = h1[1]; out.title = h1[2].trim(); }
+    for (const mm of raw.matchAll(/^-\s+\*\*([A-Za-z-]+):\*\*\s*(.+)$/gm)) {
+      const key = mm[1].toLowerCase();
+      if (key === 'status') out.status = mm[2].trim();
+      else if (key === 'date') out.date = mm[2].trim().slice(0, 10);
+      else if (key === 'tier') out.tier = mm[2].trim().split(/\s/)[0];
+      else if (key === 'superseded-by') out['superseded-by'] = mm[2].trim();
     }
     return out;
   };
@@ -137,7 +159,9 @@ function readDecisionLedger() {
       tier: stripNull(meta.tier),
       supersededBy: stripNull(meta['superseded-by']),
       decision: plain(section(raw, 'Decision')),
-      rationale: plain(section(raw, 'Context')),
+      // Older records carry "## Context"; the list-style ones carry the
+      // directive quote under "## Directive" — either is the why.
+      rationale: plain(section(raw, 'Context') || section(raw, 'Directive')),
       owner: '',
       source: stripNull(meta.source),
     });
@@ -223,6 +247,20 @@ catch (e) { qualityProof = { ok: false, error: (e && e.message) || 'manifest una
 let conflictLoop;
 try { conflictLoop = buildConflictManifest(); }
 catch (e) { conflictLoop = { ok: false, error: (e && e.message) || 'manifest unavailable', eventCount: 0, hotFiles: [], contendedAreas: [], rate: { buckets: [], trend: 'baseline' }, decomposition: [], problems: [] }; }
+
+// Test census + LESSONS-LEARNED principles (DR-0091, the Quality & Throughput
+// board). The census MEASURES the verification suite's size from the real test
+// tree (any hand-typed count would be painted the moment it landed, DR-0076);
+// the lessons manifest parses the REAL foundation doc so the extracted
+// principles surface in-app beside the numbers they explain (same build-time
+// single-source pattern as the DR ledger). Best-effort: either degrades to an
+// honest empty, never a crashed build.
+let testCensus;
+try { testCensus = buildTestCensus(); }
+catch (e) { testCensus = { ok: false, files: 0, callSites: 0, eachSuites: 0, source: '', error: (e && e.message) || 'census unavailable' }; }
+let lessonsPrinciples;
+try { lessonsPrinciples = buildLessonsManifest(); }
+catch (e) { lessonsPrinciples = { ok: false, principles: [], incidents: [], source: '', error: (e && e.message) || 'manifest unavailable' }; }
 
 // Interconnection loops (Darrell, 2026-06-29: "make sure all the loops of
 // interconnected modules are actually moving LIVE data"). File-verified at build:
@@ -333,6 +371,8 @@ export default defineConfig({
     __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
     __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
     __UIUX_REVIEWS__: JSON.stringify(uiuxReviews),
+    __TEST_CENSUS__: JSON.stringify(testCensus),
+    __LESSONS_PRINCIPLES__: JSON.stringify(lessonsPrinciples),
   },
   server: {
     proxy: {

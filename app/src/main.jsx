@@ -5,7 +5,11 @@ import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
+import { showBootFallback } from './lib/boot-fallback.js';
+import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
+import { wireDatePickerTap } from './lib/date-picker-tap.js';
+import { captureInstallPrompt } from './lib/install-app.js';
 
 window.storage = storage;
 
@@ -15,11 +19,27 @@ window.storage = storage;
 // Wired before the dynamic imports below so the listener is live when they run.
 wireChunkHeal(window);
 
+// Record every uncaught error + unhandled rejection to the device-local error
+// journal (DR-0092) — the failure stays visible to the steward on the Quality &
+// Throughput board instead of dying as one console line. Watching only; the
+// handlers can never throw. Wired first so boot-time failures are captured too.
+installGlobalErrorCapture(window);
+
 // Large-print accessibility (WCAG 1.4.4): apply the per-device text-size choice
 // BEFORE React paints, so there is no flash of default text that then jumps.
 // Runs for the full app AND every standalone boot below — the conference page a
 // senior opens is already large if they set it large. See lib/text-size.js.
 initTextSize();
+
+// Tap a date field → the CALENDAR opens right away (no segment typing). One
+// delegated listener covers every date/datetime field on every surface and
+// every standalone boot, current and future. See lib/date-picker-tap.js.
+wireDatePickerTap();
+
+// Catch the browser's one-shot PWA install event at boot so any surface (the
+// PwaPrompts banner, DownloadLatest's install offer) can fire the native
+// install dialog on tap. Passive; armed in every boot mode. See lib/install-app.js.
+captureInstallPrompt(window);
 
 // Lightweight boots by URL param (outside the full app):
 //   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
@@ -52,6 +72,8 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
+  || __params.get('share') === '1'
+  || __params.get('moore') === '1'
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
@@ -76,7 +98,7 @@ if (__params.get('oauth_popup') === '1') {
   // monolith) — not on every visit via an eagerly-imported boot. See header.
   import('./components/AppInterestCapture.jsx').then(({ default: AppInterestCapture }) => {
     __root.render(<React.StrictMode><ErrorBoundary><div className="min-h-screen p-4 sm:p-8"><AppInterestCapture source="join-link" /></div></ErrorBoundary></React.StrictMode>);
-  });
+  }).catch((err) => { console.warn('join boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('invites') === '1') {
   import('./components/AppInterestAdmin.jsx').then(({ default: AppInterestAdmin }) => {
     __root.render(<React.StrictMode><ErrorBoundary><AppInterestAdmin /></ErrorBoundary></React.StrictMode>);
@@ -106,21 +128,41 @@ if (__params.get('oauth_popup') === '1') {
     __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
   });
 } else if (__params.get('login') === '1') {
-  import('./components/PasswordAuth.jsx').then(({ default: PasswordAuth }) => {
+  // P0 login-loop fix (2026-07-07): navigating the instant sign-in succeeded
+  // raced supabase's async token write to localStorage — lose the race and the
+  // reloaded app boots signed OUT, showing the sign-in wall again (the
+  // password → PIN → password loop multiple users hit). Wait for the token to
+  // be verifiably persisted before leaving; the short timeout keeps a
+  // storage-blocked webview from trapping the user (no-lockout).
+  Promise.all([import('./components/PasswordAuth.jsx'), import('./lib/session-handoff.js')]).then(([{ default: PasswordAuth }, { awaitPersistedSession }]) => {
     __root.render(
       <React.StrictMode>
         <ErrorBoundary>
           <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
-            <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
+            <PasswordAuth onSignedIn={async () => { await awaitPersistedSession(); window.location.search = ''; }} />
           </div>
         </ErrorBoundary>
       </React.StrictMode>
     );
-  });
+  }).catch((err) => { console.warn('login boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('request-space') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('share') === '1') {
+  // Full-screen "scan to get the app" poster for a projector/screen — a whole
+  // room scans one big QR. No account/data/auth; only displays the join URL.
+  import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('moore') === '1') {
+  // The Moore Divahs public door — the branded family-of-businesses app Shay
+  // shows clients (Darrell 2026-07-07). Her brand first; PoeTech + the family
+  // businesses behind it. Public faces only; captures ride forced-safe RPCs
+  // with source='moore-divahs-app'. Lean boot like the others.
+  import('./components/MooreDoor.jsx').then(({ default: MooreDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><MooreDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('moore boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('room')) {
   // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
   // renders the big-screen board (host) or a phone controller. Lazy-imported so
@@ -147,6 +189,13 @@ if (__params.get('oauth_popup') === '1') {
         </ErrorBoundary>
       </React.StrictMode>
     );
+  }).catch((err) => {
+    // The main bundle failed to load (a skewed/partial deploy the chunk-heal
+    // couldn't recover). React never mounted, so there is no ErrorBoundary —
+    // show the plain-DOM retry screen instead of a blank white page. The
+    // chunk-heal may still reload underneath us; whichever lands first wins.
+    console.warn('PoeTech main bundle failed to boot:', err);
+    showBootFallback(document.getElementById('root'), { error: err });
   });
 }
 

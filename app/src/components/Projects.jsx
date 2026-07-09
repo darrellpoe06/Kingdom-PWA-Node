@@ -7,10 +7,15 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
+import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
+import { useBoardTasks } from '../lib/use-board-tasks.js';
+import { boardDueByMonth, boardTimelineLanes, phaseCompletions } from '../lib/board.js';
+import DelayReport from './DelayReport.jsx';
+import ClientDiscovery from './ClientDiscovery.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
 import DbHealth from './DbHealth.jsx';
@@ -21,6 +26,7 @@ import {
   markCompletePatch, reschedulePatch,
 } from '../lib/project-management.js';
 import { discussionsForProject, kindMeta } from '../lib/discussions.js';
+import { CLIENT_BUILD_TEMPLATE } from '../lib/client-build-agreement.js';
 import { evaluateHandoffGate, buildHandoff } from '../lib/orchestrator-handoff.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -37,6 +43,91 @@ const safeDate = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
+
+// -----------------------------------------------------------------------------
+// BoardsOnTimeline — the work boards rendered ON the Projects timeline (DR-0120).
+// One lane per live board: the phase walk (each group / swim lane as a chip —
+// ✓ complete, ◐ current, ○ ahead), the honest done/total, and the nearest real
+// due date. Under the lanes: the timeline CONTEXT feed — every recorded
+// phase-complete moment (written by the finish ripple the instant a phase's
+// last item goes done). Derived entirely from real board_tasks rows; an empty
+// state says so honestly instead of painting lanes.
+// -----------------------------------------------------------------------------
+function BoardsOnTimeline({ tasks }) {
+  const lanes = useMemo(() => boardTimelineLanes(tasks), [tasks]);
+  const completions = useMemo(() => phaseCompletions(tasks), [tasks]);
+  const when = (iso) => {
+    const d = safeDate(iso);
+    return d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'date not recorded';
+  };
+  return (
+    <section>
+      <SectionTitle eyebrow="Coordination">Boards on the Timeline · Phase Walk</SectionTitle>
+      {lanes.length === 0 ? (
+        <div className="bg-white border border-[#E8E4DC] p-4 text-sm text-[#5A5751]">
+          No board items yet — open <span aria-hidden="true">▦</span> Boards and load a program board&apos;s real items; each board then rides this timeline as a lane.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {lanes.map((lane) => (
+            <div key={lane.slug} className="bg-white border border-[#E8E4DC] p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-sm font-medium text-[#1A1815]"><span aria-hidden="true">▦</span> {lane.title}</span>
+                <span className="text-xs text-[#5A5751]">
+                  {lane.progress.done}/{lane.progress.total} done · {lane.progress.pct}%
+                  {lane.nextDue ? ` · next due ${when(lane.nextDue)}` : ''}
+                </span>
+              </div>
+              {/* The phase walk — the board's groups (swim lanes) in order. */}
+              <div className="tab-scroll w-full overflow-x-auto overscroll-x-contain mt-2">
+                <div className="flex items-center gap-1.5 min-w-max">
+                  {lane.phases.map((ph, i) => {
+                    const state = ph.complete ? 'complete' : (ph.label === lane.currentPhase ? 'current' : 'ahead');
+                    const cls = state === 'complete'
+                      ? 'border-[#5A6E3D] text-[#5A6E3D]'
+                      : state === 'current' ? 'border-[#2A5A8E] text-[#2A5A8E]' : 'border-[#E8E4DC] text-[#5A5751]';
+                    return (
+                      <React.Fragment key={ph.label}>
+                        {i > 0 && <span aria-hidden="true" className="text-[#5A5751] text-xs shrink-0">→</span>}
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs whitespace-nowrap ${cls}`}
+                          title={`${ph.label}: ${ph.done}/${ph.total} done${ph.blocked ? ` · ${ph.blocked} blocked` : ''}`}
+                        >
+                          <span aria-hidden="true">{state === 'complete' ? '✓' : state === 'current' ? '◐' : '○'}</span>
+                          {ph.label} <span className="text-[#5A5751]">{ph.done}/{ph.total}</span>
+                          {ph.blocked > 0 && <span className="text-[#B85838]" aria-hidden="true">▲</span>}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* The timeline context feed — recorded phase completions, newest first. */}
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1">Timeline context · phases completed</div>
+            {completions.length === 0 ? (
+              <p className="text-xs text-[#5A5751]">
+                None recorded yet. From now on, the moment a phase&apos;s last item is marked done, its completion lands here on its own — with the board, the phase, and the real moment it happened.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {completions.map((c, i) => (
+                  <li key={`${c.boardSlug}-${c.phase}-${c.at || i}`} className="text-xs text-[#1A1815]">
+                    <span className="text-[#5A6E3D]" aria-hidden="true">✓</span>{' '}
+                    Phase <span className="font-medium">“{c.phase}”</span> completed — {c.boardTitle}
+                    <span className="text-[#5A5751]"> · {when(c.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Per-user project scope (Darrell, 2026-06-13): "show me my projects since I'm
 // logged in ... each user has their own list ... the whole family's projects can
@@ -160,6 +251,11 @@ const SCOPE_TEMPLATES = [
     defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of the practice.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'Practice provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per state LCSW standards.', requirements: '• Active state LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet state LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
   { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing the real estate portfolio', entityId: 'e-poeprops',
     defaults: { title: 'Property Service Agreement', scopeOfWork: '[Describe specific work — what gets done, where, with what materials]', deliverables: '• Work meeting Illinois code\n• Photos of completed work\n• Final walkthrough', materials: '[Specify who provides what]', schedule: 'Start: [date]. Completion: [date].', paymentTerms: '50% deposit upon acceptance. 50% upon completion. Paid via 1099 if > $600/yr.', acceptanceCriteria: 'Work passes inspection. All systems function.', requirements: '• Active Illinois trade license\n• General liability insurance $1M+\n• W-9 on file', warranty: 'Labor warranty: 1 year. Materials per manufacturer.', terminationClause: '7 days written notice with cure opportunity.' }},
+  // The PoeTech CLIENT contract — derived from the recorded terms module
+  // (lib/client-build-agreement.js ← client-engagements.js, DR-0117/DR-0123),
+  // so the agreement, the door price-out, and the deposit gate can never
+  // disagree. Never hand-typed here (DR-0121).
+  CLIENT_BUILD_TEMPLATE,
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
@@ -171,7 +267,10 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  // Feedback rides its OWN visible sub-tab with a live count (Darrell
+  // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
+  // below the fold of the list view). Count = real rows, shown even at zero.
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -184,6 +283,13 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // ledger (what applied / what failed / when), read from inside the app so a
   // governor never has to open a shell or Studio to confirm a migration landed.
   if (isGovernor) tabs.push(['db','DB Health']);
+  // The delay ledger (DR-0115): request-to-finish vs should-have-taken, the
+  // data-driven model-choice report Darrell ordered. Governor-only.
+  if (isGovernor) tabs.push(['delays','◔ Delays']);
+  // Recorded client discovery (cf-voice-discovery, DR-0114/0117): the review
+  // gate where extracted requirements become build-board items by a steward's
+  // hand. Governor-gated like the rest of the factory surfaces.
+  if (isGovernor) tabs.push(['clients','◈ Clients']);
   return (
     <div className="space-y-4">
       {/* App Firm-Up / Completion headline — the live rollup of the whole build.
@@ -205,11 +311,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'list' && (
         <>
           <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
-          {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
-              between All Projects (above) and the 12-Month Capital Forecast
-              (below) so the "decide what becomes a project" loop is visually
-              adjacent to the projects list itself. */}
-          {feedbackPanel}
+          {/* Feedback moved to its OWN sub-tab with a count (2026-07-07) — it
+              rendered buried below the fold here and Darrell lost his own
+              submission. See the 'feedback' branch below. */}
           {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
               bottom of the Projects list so the connection is obvious. The
               dedicated Inventory sub-tab is where the editing/adding lives. */}
@@ -219,15 +323,25 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'boards' && (
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
+      {subView === 'feedback' && (
+        <div className="space-y-4">
+          {feedbackPanel || <p className="text-sm text-[#5A5751]">No feedback submissions yet — the FEEDBACK button on any page lands here.</p>}
+        </div>
+      )}
       {subView === 'discussions' && (
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
       )}
       {subView === 'concerns' && (
         <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
       )}
+      {subView === 'report' && (
+        <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} scopes={scopes} />
+      )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
+      {subView === 'delays' && isGovernor && <DelayReport />}
+      {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
         <GovernanceQueue
           appDecisions={deriveAppDecisions({ discussions, concerns })}
@@ -697,6 +811,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return months;
   }, [scoped, now]);
 
+  // The boards ARE on the timeline (Darrell 2026-07-01 ruling; asked again
+  // 2026-07-07): dated, not-done board items count into each forecast month.
+  // HONEST count, never invented hours — a board item carries no hours/week.
+  const boardTasks = useBoardTasks();
+  const boardDue = useMemo(() => boardDueByMonth(boardTasks, { now }), [boardTasks, now]);
+
   // Preparatory scaffolding — pending "current month's committed hours" chip.
   // eslint-disable-next-line no-unused-vars
   const totalActiveHours = Object.values(monthlyWorkload).length > 0 ? Object.values(monthlyWorkload)[0].hours : 0;
@@ -772,6 +892,9 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       <div className={`h-full ${isHeavy ? 'bg-[#B85838]' : isModerate ? 'bg-[#8B6F47]' : 'bg-[#5A6E3D]'}`} style={{ width: `${Math.min(pct, 100)}%` }}></div>
                       {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
                     </div>
+                    {(boardDue[key] || 0) > 0 && (
+                      <div className="text-xs text-[#5A5751] shrink-0">▦ {boardDue[key]} due</div>
+                    )}
                   </div>
                 );
               })}
@@ -782,6 +905,16 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           </div>
         </section>
       )}
+
+      {/* Boards ON the timeline (DR-0120; Darrell 2026-07-01 + 2026-07-07: "why
+          don't the boards show up on the timelines?"). Each live board is a
+          LANE: its phase walk (the groups / swim lanes, in board order), the
+          honest roll-up, and the phase it is currently in. Below the lanes,
+          the timeline CONTEXT feed — every recorded phase completion, written
+          the moment the last item of a phase went done (the finish ripple in
+          use-board-tasks.patchTask). All derived from the real board_tasks
+          rows and real recorded moments — never an invented date (DR-0076). */}
+      <BoardsOnTimeline tasks={boardTasks} />
 
       {/* Filter + add */}
       <section>
@@ -1531,8 +1664,8 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
   return (
     <div className="space-y-6">
       <section>
-        <SectionTitle eyebrow="Scope of Work">Contractor Agreements</SectionTitle>
-        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline.</p>
+        <SectionTitle eyebrow="Scope of Work">Contractor &amp; Client Agreements</SectionTitle>
+        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline. The PoeTech Build Client agreement derives its numbers from the recorded terms — the same source the door prices from.</p>
       </section>
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>

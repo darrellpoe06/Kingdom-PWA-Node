@@ -44,6 +44,24 @@ describe('buildImportedView', () => {
     expect(v.recentOut).toBe(50);
     expect(v.recentCount).toBe(2);
   });
+  it('excludes internal transfers from the 30-day in/out (a balanced pair inflates neither side)', () => {
+    // The confirmed defect: transfer legs were summed into recentIn/recentOut.
+    // Both real markers covered: category 'transfer' and the synced-ledger isTransfer.
+    const data = {
+      accounts: DATA.accounts,
+      transactions: [
+        ...DATA.transactions,
+        { id: 'x1', accountId: 'a1', date: '2026-06-15', amount: -500, description: 'Transfer to savings', category: 'transfer' },
+        { id: 'x2', accountId: 'a2', date: '2026-06-15', amount: 500, description: 'Transfer from checking', isTransfer: true },
+      ],
+    };
+    const v = buildImportedView(data, {}, NOW);
+    expect(v.recentIn).toBe(500);  // NOT 1000
+    expect(v.recentOut).toBe(50);  // NOT 550
+    expect(v.recentCount).toBe(4); // transfers are still real recent activity
+    // The flag survives the row mapping so downstream views/reports can see it.
+    expect(v.rows.find((r) => r.id === 'x2').isTransfer).toBe(true);
+  });
   it('reports the date span', () => {
     const v = buildImportedView(DATA, {}, NOW);
     expect(v.firstDate).toBe('2026-05-01');

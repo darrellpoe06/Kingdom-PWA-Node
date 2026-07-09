@@ -25,9 +25,10 @@
 //   2. LOCK       single-flight per-loop lockdir (harness); a fire that finds the
 //                 lock held SKIPS — never stacks (lockHeld === true => no-go).
 //   3. KILL-SWITCH  a NAS file that, when present, forces every loop INERT
-//                 (one touch halts the whole fleet). PLUS the LOOPS_ARMED class
-//                 flag (ships ABSENT) — the deterministic runner ships inert and
-//                 is armed once, deliberately, by hand.
+//                 (one touch halts the whole fleet). PLUS the LOOPS_ARMED arm
+//                 PARAMETER (env/.env; ships UNSET) — the deterministic runner
+//                 ships inert and is armed once, deliberately, via one parameter
+//                 (DR-0096: governance is the parameters + humans, not two gates).
 //
 // AI loops are NOT run by this gate: kind:'ai' is refused here and delegated to
 // the full cap-resume/wake brake gate (ARMED + RESUME_ARMED + $budget + caps +
@@ -112,7 +113,7 @@ export function decideRun(input = {}) {
   }
   if (loop.enabled !== true) return { go: false, reason: 'loop disabled in registry (enabled !== true)' };
   if (killSwitch === true) return { go: false, reason: 'kill-switch engaged (panic stop; one touch halts the fleet)' };
-  if (loopsArmed !== true) return { go: false, reason: 'deterministic runner disarmed (no LOOPS_ARMED flag; ships inert)' };
+  if (loopsArmed !== true) return { go: false, reason: 'deterministic runner disarmed (LOOPS_ARMED not set; ships inert)' };
 
   const cap = Number(loop.max_calls_per_day);
   if (!(cap > 0)) return { go: false, reason: 'call-cap unset (missing budget brake)' };

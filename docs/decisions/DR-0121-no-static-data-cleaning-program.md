@@ -1,0 +1,43 @@
+# DR-0121 — "No static data": the record-surface consolidation and cleaning program, run as a tracked backlog until we like it
+
+- **Status:** accepted
+- **Tier:** B (surface consolidations ride the lane per increment; data cleanups are steward/Local-LLM actions)
+- **Scope:** every in-app surface that reports on the work or the platform (Projects hub tabs, PoeTech Build, Center reports, About); the cleaning cadence
+- **Date:** 2026-07-07
+- **Principles:** APP-IS-PRIMARY, VERIFICATION-DOCTRINE, PERPETUAL-IMPROVEMENT, WAYS-REVIEW, AI-FOUNDATION-INTERNAL-OPERATIONS, DECISION-RECORDS
+
+## Directive
+
+Darrell, 2026-07-07, after nine screenshots across the Projects hub, Build tab, Center, and About:
+
+> "Again when we add features we need to update our Ways and documentation and find the opportunities and constraints, Ari's responsibility and reports should all update to reflect as well all inside the PoeTech App. **No static data, combine what makes sense and keep cleaning until we like it. Period.**"
+
+This is an ALL-scope directive. P29 (LESSONS, 2026-07-07) is explicit about what an all-scope directive requires **at declaration time**: a DR, a per-item coverage checklist, and re-review dates — or it stalls silently at the first convenient stopping point. This DR is that registration. The sibling Way is DR-0120 (finish ripples into the record; tending assigned to the Local LLMs; staleness legible).
+
+## Decision
+
+1. **No report surface ships or remains on a hand-typed record when a live source exists.** Where the live source exists, the surface derives from it ("combine what makes sense"); where it does not yet, the hand-kept record must declare its own freshness in-surface (the P30 pattern) until the consolidation lands.
+2. **The program runs as the tracked backlog below** — each item is either shipped, or carries a why + `re-review:` date (DR-0075). The ways-review (DR-0108) checks this checklist on every pass.
+3. **Cleaning is a standing part of shipping, not an event.** "Keep cleaning until we like it" = every session that touches a surface leaves its records tenderer than it found them, and the Local-LLM tending lane (DR-0120 §3) owns the recurring pass once armed.
+
+## The coverage checklist (the P29 backlog)
+
+| # | Surface | Finding (2026-07-07 screenshots) | Action | State |
+|---|---------|----------------------------------|--------|-------|
+| 1 | Projects → Timeline | Boards absent; no phase context | Board lanes + finish ripple + context feed | **SHIPPED** (PR #687, DR-0120) |
+| 2 | Projects → Feedback | Month-old tester notes looked "fine" | In-surface freshness banner (queue-freshness.js) | **SHIPPED** (PR #687); the DRAIN itself is a steward/Local-LLM action — the empty tester notes are promote-or-delete calls only a steward should make on real data |
+| 3 | Projects → Discussions | Zero records; "should be full of Ari notes" | **Surface half SHIPPED** (2026-07-07, DR-0122): Ari's notes now DERIVE — one per dated Decision Record, rendered in Discussions from the build-parsed ledger (`lib/ari-notes.js` + AriRecord), plus his live workload (board rows owned by Ari) and standing duties (DR refs resolved live). Cannot silently stall: it updates with every build. The WRITE half (real synced reflections with Study refs) stays with the credentialed Local-LLM tending lane, three brakes, Tier C to arm | Derived feed **SHIPPED**; credentialed write-lane OPEN — `re-review: 2026-07-14` |
+| 4 | Projects → Concerns & Solutions | 4 items past target (2–6 days) | Surface already legible (PAST DUE — the binding pattern). The 4 re-decisions are steward calls; the recurring re-decision pass joins the Local-LLM lane | OPEN — `re-review: 2026-07-10` |
+| 5 | Projects → PoeTech Build | Hand-typed ROADMAP frozen at 2026-06-17 (20 days); 8 past target; copy claimed "not hand-typed" | **CONSOLIDATION SHIPPED** (2026-07-07, DR-0122): the ROADMAP constant is retired. Shipped = the decision ledger; Building/Next = the live board store (seed specs as the labeled device fallback); Gated = the open governance queue; Past Due = real due dates only (`lib/build-story.js`, fixture-tested). The ledger parser was extended to read the 28 list-style DR files (incl. DR-0116–0121) that had silently carried no date/title into the app | **SHIPPED** |
+| 6 | Projects → Inventory · Capital Forecast | Screenshot showed duplicate Mar/Apr '27 rows; stale dev-era project chips ("Untitled", "Schema v2 deployment", …) | Verified in code: the 12 months generate distinct (`new Date(y, m+i, 1)`) — the duplication is consistent with a stitched-screenshot artifact; CONFIRM on live DOM in the next entrance-review pass rather than "fixing" a phantom (P21 discipline). The dev-era/Untitled project chips are real rows — a steward data-cleaning pass, listed for the tending lane | OPEN — `re-review: 2026-07-11` |
+| 7 | Center (Command, Control & Serve) | Reports read live (test census, legibility, migrations, harvest — each measured + sourced) | No action found; stays under the standing ways-review | OK |
+| 8 | About | Free-access meter + tiers — live copy | No action found | OK |
+| 9 | Feedback image intake (the "importer") | "Couldn't upload an image last time I tried" (2026-07-07). Verified defects: one unreadable photo threw away the whole multi-pick batch; submitting while a big photo was still compressing sent the feedback with NO image, silently; Android picks with a blank MIME type were rejected as "not an image" (the receipts modal shared this) | Per-file isolation (allSettled), a visible reading state that blocks submit until the photo is in, the loosened `isLikelyImageFile` gate in BOTH the feedback and receipts paths, real decoder error messages | **SHIPPED** with this DR |
+| 10 | Requirements gathering THROUGH the app (Darrell 2026-07-07: "I should be able to do the requirements gathering process through the PoeTech App — download my thoughts and have it used as feedback to update" and "Or a user talk into the PoeTech App input to get the requirements for an MVP") | The lane exists in pieces, for clients only: the Feedback modal captures thoughts + images; the promote queue routes them; ◈ Clients (cf-voice-discovery, DR-0117) turns reviewed requirements into real board_tasks via the Whisper rails. Nothing joins them for the PLATFORM's own requirements — this session's nine screenshots had to ride chat instead of the app — and the door is steward-only, not any-user | Combine what exists ("combine what makes sense"): (a) the promote queue gains a "→ Requirements" route into the same discovery-review surface (source = in-app instead of a client recording), confirmed items landing on the build boards like any client requirement; (b) a USER can TALK into the app's input and get MVP requirements out — voice/text through the universal-input posture (COUNCIL-CHAMBER / MODE-ROUTING: the system deduces the needed process from the input) riding the DR-0117 extraction contract (source_quote on every item, steward review before anything becomes work). The speaker speaks into the app; the app carries it to the board | OPEN — the next build increment after the BuildBoard consolidation · `re-review: 2026-07-11` |
+
+## Consequences
+
+- ~~The BuildBoard consolidation (item 5) is the next build increment in this program; its landing closes the last known hand-typed work-record in the app.~~ **LANDED 2026-07-07 (DR-0122)** — the ROADMAP constant is retired; the remaining code-kept baseline is the Concerns seed list (its drain onto the DB table is a steward/tending-lane data action, item 2's sibling).
+- Items 4 and 6's data-cleaning halves, and item 3's credentialed WRITE half, land with the Local-LLM tending lane (DR-0120 §3) — arming that lane is the program's Tier-C milestone.
+- Every re-review date above is a promise (DR-0075): pulled forward by any session with idle capacity, never silently dropped.
+- The Perpetual Report (DR-0122) is this program's standing readout: the failures & fixes strip derives open/working/closed per failure stream, so "are we implementing fixes for all the failures recorded?" is answered by the surface itself, perpetually.

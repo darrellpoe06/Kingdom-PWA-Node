@@ -8,8 +8,11 @@
 //
 // THREE inputs compose on the board (the component merges them):
 //   1. SEED_CONCERNS — the dated baseline below. Platform truth, the same for
-//      everyone with access, edited in code as part of shipping — exactly like
-//      BuildBoard's ROADMAP constant. Honest status on each.
+//      everyone with access, edited in code as part of shipping. Honest status
+//      on each. (BuildBoard's own hand-typed ROADMAP was retired by DR-0121 —
+//      its ship story now derives from live sources via lib/build-story.js;
+//      this seed list remains the one code-kept baseline, and its drain onto
+//      the DB concerns table is on the DR-0121 cleaning backlog.)
 //   2. DB concerns (0039 `concerns` table, via concerns-sync) — net-new concerns
 //      the family / Governor add, edit, re-date, and re-status. Fully synced.
 //   3. feedback rows (read-through) — every submitted feedback item renders as a
@@ -155,8 +158,8 @@ export const SEED_CONCERNS = [
   {
     id: 'seed-fb-choir-add-data-loss',
     concern: 'Adding an entry under the Choir schedule discards it — a choir editor tapped "Add" and the information disappeared instead of saving.',
-    solution: 'Reproduce and fix the Choir schedule add path so a saved entry persists (and syncs). Data-loss on a real user’s input — treat as a correctness bug, not polish. Verify by adding a real entry on a real device and confirming it survives a reload.',
-    status: 'open', targetDate: '2026-07-04', area: 'Church · Choir', created: '2026-06-23',
+    solution: 'Code-side the discard path is closed: a failed save now keeps the form open with everything typed still there and an error banner saying why (the form closes ONLY on a confirmed save — regression-tested), and a skipped write is always reported instead of silent. Remaining: verify on a real device that a real entry survives a reload, then close.',
+    status: 'in-progress', targetDate: '2026-07-08', area: 'Church · Choir', created: '2026-06-23',
   },
   {
     id: 'seed-fb-church-next-sunday-date',
@@ -167,8 +170,8 @@ export const SEED_CONCERNS = [
   {
     id: 'seed-fb-choir-youtube-broken',
     concern: 'The Choir tab’s YouTube-link-to-video feature is broken — pasting a link does not process into a playable video.',
-    solution: 'Repair the Choir YouTube link → embed/processing path so a pasted link renders a playable video for the worship team. Verify with a real link end-to-end.',
-    status: 'open', targetDate: '2026-07-09', area: 'Church · Choir', created: '2026-06-23',
+    solution: 'Fixed 2026-06-23: the church livestream recording links (youtube.com/live/…) and /shorts/ + /v/ forms were falling through to a plain link instead of embedding; the embed helper now recognizes them all and a regression test pins every form. A pasted link that resolves to a real video renders a playable in-place player; anything unrecognizable still gets an honest "Open link" instead of a dead card.',
+    status: 'done', targetDate: '2026-07-09', area: 'Church · Choir', created: '2026-06-23',
   },
   {
     id: 'seed-fb-capex-tab-broken',
@@ -221,8 +224,8 @@ export const SEED_CONCERNS = [
   {
     id: 'seed-fb-choir-song-curation',
     concern: 'The choir wants to add and review song links, pick a final 10, send the rest back to the song list, and have the chosen songs populate an interactive area where all choir members can play them and leave comments.',
-    solution: 'Build choir song curation: add/review links, a "final 10" selection with the remainder returning to the pool, and a shared interactive area (play + comment) scoped to choir members. Feature for Christina’s worship-team workflow (ties to the Choir module). Reviewed by use in her hands.',
-    status: 'open', targetDate: '2026-07-18', area: 'Church · Choir', created: '2026-06-23',
+    solution: 'Shipped as the Choir → Songs workshop: any member adds a song or pastes a list; everyone plays them in-app, hearts them, and leaves comments; the director marks songs Final (or back to candidates / back to the pool) and assigns leads, with the Final set on top and the remainder in the collapsible pool. Choir-member-scoped end to end. The "final 10" count is held by the director’s hand rather than an enforced cap. In Christina’s hands — her 2026-07-04 schedule request builds on the imported songs from this tab.',
+    status: 'done', targetDate: '2026-07-18', area: 'Church · Choir', created: '2026-06-23',
   },
   {
     id: 'seed-fb-projects-historical',

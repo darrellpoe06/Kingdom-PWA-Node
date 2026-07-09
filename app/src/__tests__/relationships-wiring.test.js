@@ -26,10 +26,11 @@ describe('Relationships surface is fully wired', () => {
 
   it('is a valid route, a gated nav entry, has a render branch + a feedback area', () => {
     expect(mono).toMatch(/'relationships'/);                                  // VALID routes
-    expect(mono).toMatch(/isFamilyMember\s*\?\s*\[\['relationships'/);        // no-leak nav spread
+    expect(mono).toMatch(/\(isFamilyMember \|\| tierMeets\(data.userTier, 'business'\)\)\s*\?\s*\[\['relationships'/); // no-leak nav spread — family/governor OR Business tier (DR-0128)
     expect(mono).toMatch(/view === 'relationships'/);                          // render branch
-    expect(mono).toMatch(/<Relationships\s+isGovernor=\{isFamilyMember\}/);    // governor-gated render
-    expect(mono).toMatch(/\['relationships',/);                                // FEEDBACK_AREAS entry
+    expect(mono).toMatch(/<Relationships\s+isGovernor=\{isFamilyMember \|\| tierMeets\(data.userTier, 'business'\)\}/); // steward render — own instance on the Business tier (DR-0128)
+    // FEEDBACK_AREAS moved to components/FeedbackCenter.jsx with the extraction.
+    expect(read('components/FeedbackCenter.jsx')).toMatch(/\['relationships',/); // FEEDBACK_AREAS entry
   });
 });
 

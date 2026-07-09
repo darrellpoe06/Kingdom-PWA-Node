@@ -68,11 +68,18 @@ jobs:
           (npm run lint && echo "lint: clean") >> "$GITHUB_STEP_SUMMARY" 2>&1 || echo "lint: PROBLEMS" >> "$GITHUB_STEP_SUMMARY"
           (npx vitest run 2>&1 | grep -E "Test Files|Tests ") >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-      - name: Leverage note
+      # Leverage is now READ FROM THE MAINTAINED LIVE SURFACES, not a frozen
+      # hardcoded note (REV-0006 friction #4 / DR-0102: a review that emits stale
+      # claims is itself a freshness failure — the old note cited 2026-06-13
+      # findings + a "W1-W4" list as if current). The in-app OpsBoard, Quality &
+      # Throughput board, and the sortable re-review backlog carry the live
+      # leverage state; this step points at them instead of re-stating a snapshot
+      # that rots. Keeps ship-inactive discipline (this workflow is dispatch-only).
+      - name: Leverage pointer (live surfaces, not a frozen snapshot)
         run: |
           {
-            echo "## Leverage — getting more out of the automation"
-            echo "- **Idle but built (zero-risk, enable now):** Synthesizer (add ANTHROPIC_API_KEY) for the daily portfolio brief; fruit-scout for the coverage queue above."
-            echo "- **Biggest latent value:** the 16 inactive cron workflows (standup/digests/finance-ingest/cross-verify) — unlock by closing W1-W4 (brakes + errorWorkflow + auth + committed mounts). See docs/99-session-notes/2026-06-13-rigorous-review-findings.md."
-            echo "- **Gated on R4:** the tiered-LLM orchestrator (DR-0056) and continuous execution (DR-0057)."
+            echo "## Leverage — read live, not from a snapshot"
+            echo "- **In-app (maintained, live):** OpsBoard (delivery-lane state), Quality & Throughput board (numbers + their why), and the sortable re-review backlog (dated commitments) — all read live from the repo/DB, so they never go stale the way a hardcoded note does."
+            echo "- **The dated backlog is the leverage queue:** pull the soonest re-review item (docs/reviews/REVIEWS.md dates, surfaced in-app) and ship it through the auto-merge lane."
+            echo "- **Standing model:** ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL.md (§8 delivery lane, DR-0103) + the coverage fruit queue above."
           } >> "$GITHUB_STEP_SUMMARY"

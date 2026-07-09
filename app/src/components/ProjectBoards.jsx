@@ -26,7 +26,12 @@ import {
   BOARD_STATUS, BOARD_STATUS_ORDER, statusMeta,
   boardProgress, groupTasks, tasksForBoard, mergedBoardList,
   SEED_BOARD_BY_SLUG, HANDOFF_TARGETS, taskHistory, isAiOwner,
+  missingSeedTasks, staleSeedStatuses,
 } from '../lib/board.js';
+import {
+  FLOW_STEPS, FLOW_ORDER, hasValidationFlow, validationLanes, laneSummary,
+  outcomeOf, outcomeMeta, nextOutcome,
+} from '../lib/board-validation.js';
 import { moduleLedger } from '../lib/completion.js';
 
 // =============================================================================
@@ -215,7 +220,7 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
               label="Monolith line-count"
               value={liveMetric.ledger.monolithLines != null ? `${liveMetric.ledger.monolithLines.toLocaleString()} lines` : '—'}
               sub={liveMetric.ledger.frozenBudget != null
-                ? `frozen ${liveMetric.ledger.frozenBudget.toLocaleString()} · may only go DOWN`
+                ? `frozen ${liveMetric.ledger.frozenBudget.toLocaleString()} · may only go DOWN${liveMetric.ledger.measuredAt ? ` · measured ${new Date(liveMetric.ledger.measuredAt).toLocaleDateString()}` : ''}`
                 : 'may only go DOWN'}
             />
           </div>
@@ -229,12 +234,53 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
             {busy ? 'Loading…' : `Load the ${(spec.items || []).length} real items`}
           </button>
         )}
+        {/* Seed drift (2026-07-07): a live board that fell BEHIND its build
+            record heals by the governor's tap, never silently. Both actions
+            are upgrade-only — a human's own edits are never overwritten. */}
+        {spec && progress.total > 0 && missingSeedTasks(board.slug, tasks).length > 0 && (
+          <button
+            onClick={onLoadSeed} disabled={busy}
+            className="rounded-lg border border-[#1A1815] text-[#1A1815] px-3 py-2 text-sm disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            {busy ? 'Loading…' : `+ Load ${missingSeedTasks(board.slug, tasks).length} newly-specced item${missingSeedTasks(board.slug, tasks).length > 1 ? 's' : ''}`}
+          </button>
+        )}
+        {(() => {
+          const stale = staleSeedStatuses(board.slug, tasks);
+          if (!stale.length) return null;
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-[#B85838]">
+                ▲ {stale.length} item{stale.length > 1 ? 's' : ''} the build record marks shipped still read “Not started”.
+              </span>
+              <button
+                onClick={() => { for (const t of stale) onPatch(t, { status: 'done' }); }}
+                className="rounded-lg border border-[#5A6E3D] text-[#5A6E3D] px-3 py-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                ✓ Sync {stale.length} status{stale.length > 1 ? 'es' : ''} from the build record
+              </button>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* The validation lane — Darrell's Current → Future → Gap → Decision
+          workflow (DR-0119, from his Mosaic implementation board). Renders only
+          when this board carries flow-tagged rows; plain boards are untouched.
+          The same rows also stay listed in their group below (one data model,
+          two views) so every edit affordance is preserved. */}
+      {hasValidationFlow(tasks) && <ValidationLanes tasks={tasks} onPatch={onPatch} onCycle={onCycle} />}
 
       {groups.map((g) => (
         <div key={g.label} className="rounded-xl border border-[#E8E4DC] bg-white overflow-hidden">
-          <div className="px-4 py-2 border-b border-[#E8E4DC] bg-[#FAF8F4] font-medium text-[#1A1815] text-sm">
-            {g.label} <span className="text-[#5A5751] font-normal">· {g.tasks.length}</span>
+          <div className="px-4 py-2 border-b border-[#E8E4DC] bg-[#FAF8F4] font-medium text-[#1A1815] text-sm flex items-baseline justify-between gap-2 flex-wrap">
+            <span>{g.label} <span className="text-[#5A5751] font-normal">· {g.tasks.length}</span></span>
+            {/* Phase state (DR-0120): a group whose every item is done IS a
+                completed phase — say so where the phase lives. Derived live
+                from the real rows, never stored separately. */}
+            {g.tasks.length > 0 && g.tasks.every((t) => t.status === 'done') && (
+              <span className="text-xs font-normal text-[#5A6E3D]"><span aria-hidden="true">✓</span> Phase complete — on the Timeline</span>
+            )}
           </div>
           <ul>
             {g.tasks.map((t) => (
@@ -257,6 +303,91 @@ function BoardDetail({ board, tasks, spec, liveMetric, busy, currentUserPersona,
           onCreate={(groupName, title) => { onAddTask({ boardSlug: board.slug, boardTitle: board.title, group: groupName, title, owner: currentUserPersona }); setAddingGroup(''); }}
           onCancel={() => setAddingGroup('')}
         />
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// ValidationLanes — the sideways Current → Future → Gap → Decision walk, one
+// lane per unit, 'All units' pinned first (DR-0119; Darrell's Mosaic-board
+// workflow). Each cell: the step, the row's work status (tap = advance), and
+// its validation OUTCOME chip (tap = cycle Fit → Partial fit → Gap → Unknown).
+// A step with no row reads "not examined" — honest, never invented. The lane
+// slides sideways on a phone (the thin tab-scroll bar shows what's off-screen).
+// -----------------------------------------------------------------------------
+export function ValidationLanes({ tasks, onPatch, onCycle }) {
+  const { lanes, duplicates } = validationLanes(tasks);
+  if (!lanes.length) return null;
+  return (
+    <div className="space-y-3">
+      <div className="text-xs uppercase tracking-wider text-[#5A5751] font-semibold">
+        Validation — current → future → gap → decision
+      </div>
+      {lanes.map((lane) => {
+        const sum = laneSummary(lane);
+        const worst = outcomeMeta(sum.worst);
+        return (
+          <div key={lane.unit} className={`rounded-xl border bg-white overflow-hidden ${lane.allUnits ? 'border-[#1A1815]' : 'border-[#E8E4DC]'}`}>
+            <div className="px-4 py-2 border-b border-[#E8E4DC] bg-[#FAF8F4] flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="font-medium text-[#1A1815] text-sm">
+                {lane.allUnits ? '▦ All units impacted' : lane.unit}
+              </span>
+              <span className={`text-xs ${sum.decided ? 'text-[#5A6E3D]' : worst.text}`}>
+                {sum.decided ? '✓ decided' : `${worst.symbol} ${worst.label.toLowerCase()} — open`}
+              </span>
+            </div>
+            <div className="tab-scroll w-full overflow-x-auto overscroll-x-contain">
+              <div className="flex items-stretch min-w-full">
+                {FLOW_ORDER.map((stepKey, i) => {
+                  const t = lane.steps[stepKey];
+                  const step = FLOW_STEPS[stepKey];
+                  return (
+                    <div key={stepKey} className={`flex-1 min-w-[11rem] p-3 ${i > 0 ? 'border-l border-[#F0EDE6]' : ''}`}>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1 flex items-center gap-1">
+                        {i > 0 && <span aria-hidden="true" className="text-[#C9BFA8]">→</span>}
+                        {step.label}
+                      </div>
+                      {t ? (
+                        <div className="space-y-1.5">
+                          <button
+                            onClick={() => onCycle(t)}
+                            title={`${statusMeta(t.status).label} — tap to advance`}
+                            className={`inline-flex items-center gap-1 text-xs ${statusMeta(t.status).text} focus:outline focus:outline-2 focus:outline-[#B85838] rounded`}
+                          >
+                            <span aria-hidden="true">{statusMeta(t.status).symbol}</span>
+                            <span className="text-[#1A1815] text-left">{t.title}</span>
+                          </button>
+                          {(() => {
+                            const o = outcomeOf(t);
+                            const m = outcomeMeta(o);
+                            return (
+                              <button
+                                onClick={() => onPatch(t, { links: { ...(t.links || {}), outcome: nextOutcome(o) } })}
+                                title={`${m.blurb} — tap to change`}
+                                className={`inline-flex items-center gap-1 rounded-full border ${m.border} ${m.text} px-2 py-0.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838]`}
+                              >
+                                <span aria-hidden="true">{m.symbol}</span>{m.label}
+                              </button>
+                            );
+                          })()}
+                          {t.notes && <div className="text-[0.6875rem] text-[#5A5751] leading-snug">{t.notes}</div>}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-[#5A5751] italic">— not examined</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {duplicates.length > 0 && (
+        <p className="text-[0.6875rem] text-[#B85838]">
+          ▲ {duplicates.length} duplicate step row{duplicates.length > 1 ? 's' : ''} on this lane view (kept the first of each; tidy the extras in the group list below).
+        </p>
       )}
     </div>
   );
@@ -348,6 +479,12 @@ function TaskRow({ task, currentUserPersona, onPatch, onRemove, onCycle, onPush 
             rows={2}
             className="w-full rounded border border-[#E8E4DC] px-2 py-1 text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
           />
+          {/* ANXIETY-CLARITY (Darrell 2026-07-04: "obvious issues like save
+              buttons"): edits DO save on every change — say so, so nobody hunts
+              for a Save button or fears losing work. */}
+          <p className="text-[0.6875rem] text-[#5A6E3D]" role="status">
+            ✓ Saves as you type — every change above is stored the moment you make it. No save button needed.
+          </p>
 
           <Handoff task={task} currentUserPersona={currentUserPersona} onPush={onPush} />
           <HandoffHistory task={task} />
@@ -431,7 +568,10 @@ function Handoff({ task, currentUserPersona, onPush }) {
 // so both sides see the same trail on every device.
 // -----------------------------------------------------------------------------
 function HandoffHistory({ task }) {
-  const entries = taskHistory(task);
+  // Only ownership pushes render here; kind='phase-complete' entries (the
+  // finish ripple, DR-0120) ride the same links.history but surface on the
+  // Timeline's context feed and the group header, not as a handoff row.
+  const entries = taskHistory(task).filter((e) => e && (e.kind === 'handoff' || e.kind === 'default'));
   if (!entries.length) return null;
   const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
   const when = (iso) => {

@@ -19,6 +19,10 @@ import { SectionTitle, TabScroll } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
+import AssetAllocator from './games/AssetAllocator.jsx';
+import { START_CASH } from '../lib/games/asset-allocation.js';
+import { FamilyPortrait } from './games/GameArt.jsx';
+import { GAME_LEVELS, levelMeta } from '../lib/games/difficulty.js';
 import { listGames, getGame } from '../lib/games/registry.js';
 import { createGame, computeTotals } from '../lib/games/engine.js';
 import { codeFromSeed, buildBoardUrl } from '../lib/games/room-code.js';
@@ -51,6 +55,8 @@ const TABS = [
 export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
   const [tab, setTab] = useState('play');
   const [activeSaveId, setActiveSaveId] = useState(null);
+  const [mini, setMini] = useState(null); // an open mini-game ('steward' | null)
+  const [level, setLevel] = useState('child'); // age/difficulty, young -> old
 
   const games = listGames();
   const activeSave = useMemo(() => saves.find((s) => s.id === activeSaveId) || null, [saves, activeSaveId]);
@@ -76,7 +82,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
     const def = getGame(gameId);
     if (!def || !addSave) return;
     const now = new Date().toISOString();
-    const id = addSave({ gameId, state: createGame(def, { seed: freshSeed() }), createdAt: now, updatedAt: now });
+    const id = addSave({ gameId, state: createGame(def, { seed: freshSeed(), level }), createdAt: now, updatedAt: now });
     if (id) { setActiveSaveId(id); setTab('play'); }
   }
 
@@ -93,6 +99,24 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
   function handleChange(newState) {
     if (!activeSave || !updateSave) return;
     updateSave(activeSave.id, { state: newState, updatedAt: new Date().toISOString() });
+  }
+
+  // ---- an open mini-game takes over the Play tab ----------------------------
+  if (tab === 'play' && mini === 'steward') {
+    return (
+      <div className="mx-auto max-w-2xl px-1 sm:px-0 py-2">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <SectionTitle eyebrow="A money mini-game">The Steward&rsquo;s Challenge</SectionTitle>
+          <TextSizeControl />
+        </div>
+        <p className={`text-sm leading-relaxed ${T_MUTE} mb-4`}>
+          Christiana has <span className={T_INK}>{'$' + START_CASH.toLocaleString('en-US')}</span>. Buy wisely &mdash; put a little down on the houses you
+          want (as low as 5%), spread it across a few, and keep a reserve for when a furnace breaks. It isn&rsquo;t
+          about the most doors; it&rsquo;s about stewarding what you were given.
+        </p>
+        <AssetAllocator onExit={() => setMini(null)} />
+      </div>
+    );
   }
 
   // ---- the open game takes over the Play tab --------------------------------
@@ -118,6 +142,7 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
         <SectionTitle eyebrow="Our games">Games</SectionTitle>
         <TextSizeControl />
       </div>
+      <FamilyPortrait className="mb-3 border border-[#E8E4DC]" />
       <p className={`text-sm leading-relaxed ${T_MUTE} mb-3`}>
         Games that form as they entertain &mdash; built for the whole family, the children most of all
         (train up a child in the way they should go). The first walks an African American life&rsquo;s real
@@ -140,6 +165,24 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
 
       {tab === 'play' && (
         <div className="space-y-3">
+          {/* Age / difficulty — young to old, like the Learn tab's levels. Higher
+              levels reveal less, so the choices are a real decision, not obvious. */}
+          <div className={`${BG_CREAM} border ${BORDER} rounded-lg p-3`}>
+            <div className="flex items-center gap-1.5 mb-2"><UiIcon name="chart" className={T_MUTE} /><Eyebrow>Choose a level</Eyebrow></div>
+            <div className="flex flex-wrap gap-1.5">
+              {GAME_LEVELS.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => setLevel(l.id)}
+                  className={`text-sm rounded-full px-3 py-1.5 border ${level === l.id ? `${BG_INK} text-[#FAF8F4] border-[#1A1815]` : `${BG_CARD} ${T_INK} ${BORDER}`}`}
+                >
+                  {l.label} <span className={level === l.id ? 'text-[#D8D2C6]' : T_MUTE}>· {l.age}</span>
+                </button>
+              ))}
+            </div>
+            <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>{levelMeta(level).hint}</p>
+          </div>
+
           {games.map((g) => {
             const resume = inProgressByGame[g.id];
             return (
@@ -189,6 +232,26 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
               </div>
             );
           })}
+
+          {/* Mini-game: the money / asset-stewarding challenge */}
+          <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4`}>
+            <div className="flex items-center gap-2">
+              <UiIcon name="chart" className={T_ACCENT} />
+              <h3 className={`text-lg font-semibold ${T_INK}`} style={{ fontFamily: 'Fraunces, serif' }}>The Steward&rsquo;s Challenge</h3>
+              <span className={`text-[0.625rem] uppercase tracking-wide ${T_ACCENT} ${BG_CREAM} px-1.5 py-0.5 rounded`}>money</span>
+            </div>
+            <p className={`text-sm ${T_ACCENT} mt-1`}>Real dollars, real houses &mdash; steward $30,000.</p>
+            <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>
+              Christiana has {'$' + START_CASH.toLocaleString('en-US')}. Buy houses with as little as 5% down, split it across a few, watch each
+              door&rsquo;s cash flow, and keep a contingency reserve. See how you stewarded it &mdash; measured the way
+              Yahweh measures.
+            </p>
+            <div className="mt-4">
+              <button onClick={() => setMini('steward')} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
+                <UiIcon name="chart" /> Take the challenge
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

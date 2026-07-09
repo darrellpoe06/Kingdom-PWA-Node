@@ -48,7 +48,7 @@ export function deviceToRow(device, { tenantId, userId }) {
 }
 
 export function deviceFromRow(row) {
-  return makeDevice({
+  const device = makeDevice({
     id:                 row.slug ?? `dev-remote-${row.id}`,
     name:               row.name,
     deviceType:         row.device_type,
@@ -68,6 +68,10 @@ export function deviceFromRow(row) {
     authorPersona:      row.author_persona,
     sortOrder:          row.sort_order,
   });
+  // The DB row uuid rides along (makeDevice strips fields it doesn't know) so a
+  // steward edit UPDATEs the existing row via saveDevice's remoteUuid branch
+  // instead of INSERTing a slug-duplicate. deviceToRow never writes it back.
+  return { ...device, remoteUuid: row.id };
 }
 
 // Local field -> column, for the surface's update patch builder. instance_id /

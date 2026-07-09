@@ -31,6 +31,7 @@
 import React, { useMemo, useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   decorateItems, filterItems, summarizeInventory, onHandByItemLocation,
   onHandFor, validateMovement, buildTransfer, lowStockItems, dedupeBySku,
@@ -347,31 +348,30 @@ function AddItemForm({ onAdd, onCancel, existingSkus }) {
 // ItemDetail — record a movement, edit the item, and read its full history.
 // ---------------------------------------------------------------------------
 function ItemDetail({ item, movements, recordEvents, byLoc, onPostMovement, onTransfer, onEditItem, currentUserPersona }) {
-  const [tab, setTab] = useState('move');
   const ledger = useMemo(() => itemHistoryFromMovements(movements, item.id), [movements, item.id]);
   const timeline = useMemo(() => versionTimeline(recordEvents, 'inventory_item', item.id), [recordEvents, item.id]);
   const locEntries = Object.entries(byLoc).filter(([, v]) => v !== 0);
 
-  return (
-    <div className="border border-[#E8E4DC] bg-white">
-      <div className="flex gap-1 border-b border-[#E8E4DC] text-xs">
-        {[['move', 'Record movement'], ['edit', 'Edit item'], ['ledger', `Stock ledger (${ledger.length})`], ['history', `Edit history (${timeline.length})`]].map(([k, label]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`px-3 py-2 ${tab === k ? 'border-b-2 border-[#B85838] text-[#1A1815] font-medium' : 'text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </div>
+  // Harmonized to the shared SectionTabs primitive (Darrell 2026-07-04: "sliding
+  // tabs for all tabs"): the hand-rolled move/edit/ledger/history strip is now
+  // the same guarded, keyboard-navigable tablist every other surface slides on.
+  // Nothing outside the strip read the old tab state, so the strip + state fold
+  // straight into sections; each panel still mounts lazily, on open.
+  const sections = [
+    { id: 'move', label: 'Record movement', render: () => <MovementForm item={item} onPost={onPostMovement} onTransfer={onTransfer} /> },
+    { id: 'edit', label: 'Edit item', render: () => <EditItemForm item={item} onSave={onEditItem} /> },
+    { id: 'ledger', label: `Stock ledger (${ledger.length})`, render: () => <LedgerView ledger={ledger} unit={item.unit} /> },
+    { id: 'history', label: `Edit history (${timeline.length})`, render: () => <HistoryView timeline={timeline} /> },
+  ];
 
+  return (
+    <div className="border border-[#E8E4DC] bg-white p-3">
       {locEntries.length > 1 && (
-        <div className="px-3 pt-2 text-[0.625rem] text-[#5A5751]">
+        <div className="pb-2 text-[0.625rem] text-[#5A5751]">
           By location: {locEntries.map(([loc, v]) => `${loc}: ${qtyFmt(v)}`).join(' · ')}
         </div>
       )}
-
-      <div className="p-3">
-        {tab === 'move' && <MovementForm item={item} onPost={onPostMovement} onTransfer={onTransfer} />}
-        {tab === 'edit' && <EditItemForm item={item} onSave={onEditItem} />}
-        {tab === 'ledger' && <LedgerView ledger={ledger} unit={item.unit} />}
-        {tab === 'history' && <HistoryView timeline={timeline} />}
-      </div>
+      <SectionTabs sections={sections} ariaLabel="Item detail sections" idBase="invdetail" defaultId="move" />
     </div>
   );
 }

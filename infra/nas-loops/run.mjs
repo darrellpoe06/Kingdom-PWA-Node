@@ -15,23 +15,31 @@
 //   2. LOCK       per-loop single-flight lockdir (state/<loop>.lock via atomic
 //                 mkdir). A second fire that finds it held SKIPS — never stacks.
 //   3. KILL-SWITCH  state/KILL_SWITCH present => INERT (panic stop, fleet-wide).
-//                 PLUS state/LOOPS_ARMED (the deterministic-class arm; ships
-//                 ABSENT) — the runner ships inert and is armed once, by hand.
+//                 PLUS the LOOPS_ARMED arm PARAMETER (env or .env; ships UNSET) —
+//                 the one deliberate arm. The runner ships inert; arming is a
+//                 single parameter, not a ceremony (DR-0096).
 // Plus OBSERVABILITY: one JSONL line per run appended to the event reel (the same
 // _reel.jsonl the Dispatch Status surface reads) + the bundle events log; ntfy on
 // failure. The decision authority is the PURE core (scripts/lib/nas-loops.mjs),
 // unit-tested proven-to-catch; this harness only does I/O around it.
 //
-// SHIPS INERT. Default is PLAN-ONLY: it loads, brake-checks, and logs exactly what
-// it WOULD run — but executes no loop. A live run requires BOTH --run on the CLI
-// AND every brake GO (kill-switch clear, LOOPS_ARMED, under the call cap, lock
-// free). Missing any one => it refuses and stays plan-only. kind:'ai' loops are
-// REFUSED here and pointed at the cap-resume gate (a strict superset of brakes).
+// SHIPS INERT, GOVERNED BY PARAMETERS (DR-0096, Darrell 2026-07-04: "governance in
+// the code and humans... we don't need two stops just the parameters"). Governance
+// is the CODED PARAMETERS (the registry: enabled + caps + timeouts) PLUS the humans
+// we have (who review the registry and hold the kill-switch) — not a manual double-
+// ceremony. There is ONE arm: the LOOPS_ARMED parameter (env or infra/nas-loops/.env),
+// which ships UNSET so the runner is inert on deploy. Once armed, invoking a loop
+// RUNS it, bounded by the three brakes (cap, lock, kill-switch + wall-clock timeout).
+// There is NO separate --run gate; --dry-run previews the decision and runs nothing.
+// Disarmed (LOOPS_ARMED unset) => decideRun HOLDs, so a bare invocation can never
+// run by accident. The three brakes are unchanged; only the redundant --run gate is
+// removed. kind:'ai' loops are REFUSED here and pointed at the cap-resume gate.
 //
 // Usage (from the NAS repo checkout):
-//   node infra/nas-loops/run.mjs --loop=health-check            # plan-only
-//   node infra/nas-loops/run.mjs --loop=health-check --run      # LIVE (needs brakes GO)
-//   node infra/nas-loops/run.mjs --list                         # show the registry + brake state
+//   LOOPS_ARMED=1 node infra/nas-loops/run.mjs --loop=health-check   # LIVE (armed; brakes govern)
+//   node infra/nas-loops/run.mjs --loop=health-check --dry-run       # preview the decision, run nothing
+//   node infra/nas-loops/run.mjs --list                              # show the registry + brake state
+// Persistent arm for scheduling: put LOOPS_ARMED=1 in infra/nas-loops/.env (gitignored).
 //
 // Env (read from infra/nas-loops/.env + process env):
 //   LOOPS_DIR          runner root (default infra/nas-loops)
@@ -87,7 +95,14 @@ const KILL_SWITCH_FILE = env.KILL_SWITCH_FILE
 const NODE_NAME = env.NODE_NAME || 'nas-loops';
 
 function killSwitchEngaged() { return existsSync(KILL_SWITCH_FILE); }
-function loopsArmed() { return existsSync(join(STATE_DIR, 'LOOPS_ARMED')); }
+// The single ARM (DR-0096): the LOOPS_ARMED parameter (env or infra/nas-loops/.env),
+// truthy => armed. Ships UNSET => inert. The legacy state/LOOPS_ARMED file is still
+// honored so an existing hand-armed NAS keeps working — one arm, parameter-first.
+function loopsArmed() {
+  const v = String(env.LOOPS_ARMED ?? '').trim().toLowerCase();
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
+  return existsSync(join(STATE_DIR, 'LOOPS_ARMED')); // legacy file arm, still honored
+}
 
 // --- Call accounting (per loop, per UTC day) ----------------------------------
 function dayStamp() { return new Date().toISOString().slice(0, 10); }
@@ -224,14 +239,17 @@ async function main() {
     return;
   }
 
-  const wantRun = hasFlag('run');
+  const dryRun = hasFlag('dry-run') || hasFlag('plan');
   const used = callsToday(name);
   const decision = decideRun({ loop, killSwitch: killSwitchEngaged(), loopsArmed: loopsArmed(), lockHeld: lockHeld(name), callsToday: used });
   const head = `loop=${name} kind=${loop.kind} cap=${loop.max_calls_per_day}/day usedToday=${used} timeout=${loop.timeout_seconds}s decision=${decision.go ? 'GO' : 'HOLD'}(${decision.reason})`;
 
-  // --- Plan-only (default): no --run, or any brake holds -----------------------
-  if (!wantRun) { logEvent('loops_plan', `PLAN-ONLY (no --run): ${head}`); console.log(`[plan-only] ${head}\n(add --run to execute, once armed)`); return; }
-  if (!decision.go) { logEvent('loops_inert', `--run but brakes HOLD: ${head}`); console.log(`[inert] ${decision.reason}\n${head}`); return; }
+  // Governance = the PARAMETERS (registry caps + LOOPS_ARMED) plus the human kill-
+  // switch; no separate --run ceremony (DR-0096). --dry-run previews and runs
+  // nothing; otherwise the decision governs. Disarmed (LOOPS_ARMED unset) makes
+  // decision.go false, so a bare invocation can never run by accident.
+  if (dryRun) { logEvent('loops_plan', `DRY-RUN (preview only): ${head}`); console.log(`[dry-run] ${head}\n(remove --dry-run to execute; arm with LOOPS_ARMED=1)`); return; }
+  if (!decision.go) { logEvent('loops_inert', `brakes HOLD: ${head}`); console.log(`[inert] ${decision.reason}\n${head}`); return; }
 
   // --- Single-flight: acquire the lock; a second fire that loses it SKIPS ------
   if (!acquireLock(name)) { logEvent('loops_locked', `lock held for '${name}'; skipping`); console.log(`[skip] another run of '${name}' is in progress (single-flight lock held)`); return; }

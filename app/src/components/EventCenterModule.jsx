@@ -42,6 +42,7 @@ import {
   aggregateRegistrationMeals, totalHeads,
 } from '../lib/conference-register.js';
 import SectionBoundary from './SectionBoundary.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ConferenceSetupChecklist from './ConferenceSetupChecklist.jsx';
 import Presenter from './Presenter.jsx';
 import { conferencePresentable } from '../lib/presentable.js';
@@ -384,38 +385,16 @@ function EventCenterModuleInner() {
     return <Presenter presentable={presentable} onClose={() => setPresenting(false)} />;
   }
 
-  return (
-    <section className={card} aria-labelledby="eventcenter-h">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center · Rooms &amp; Breakouts</div>
-          <h2 id="eventcenter-h" className="text-lg sm:text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
-            {conference ? conference.name : 'Multi-attendee conference system'}
-          </h2>
-          <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-            {mode === 'synced'
-              ? 'Shared live — every leader and attendee sees the same rooms, sessions, and registrations.'
-              : 'On this device — sign in with your church account to share it with everyone.'}
-          </p>
-        </div>
-        <KpiDot
-          status={mode === 'synced' ? 'good' : 'idle'}
-          label={mode === 'synced' ? 'Shared / live' : 'This device'}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0"
-        />
-      </div>
-
-      {mode === 'local' && (
-        <p className="text-[11px] text-[#8A6E1F] bg-[#FBF7EC] border border-[#E8D9A8] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          {access.signedIn
-            ? 'Your account isn’t linked to a church yet — ask to be added, then this becomes the shared system. For now it saves on this device.'
-            : 'Sign in to make this the shared, live conference system. Until then your changes stay on this device.'}
-        </p>
-      )}
-      {flash && (
-        <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
-      )}
-
+  // The long operational surface, broken into swipeable sections (Darrell
+  // 2026-07-04: "sliding tabs instead of a long scroll"). Each section renders only
+  // when opened. The module header + status banners stay pinned above the strip.
+  const sections = [
+    {
+      id: 'setup',
+      label: 'Setup',
+      icon: 'sliders',
+      render: () => (
+        <>
       {/* SETUP CHECKLIST (config skeleton) — what's configured vs still blank,
           driven by real state. The KNOWN facts (South Campus + rooms) show done;
           the BLANKS (dates / schedule) show amber with a hint. */}
@@ -429,7 +408,15 @@ function EventCenterModuleInner() {
           headCount={regHeads}
         />
       </div>
-
+        </>
+      ),
+    },
+    {
+      id: 'registrations',
+      label: 'Registrations',
+      icon: 'users',
+      render: () => (
+        <>
       {/* CONGREGATION REGISTRATIONS — the OPEN, no-login sign-ups (the real
           headcount + meal counts). Organizer-only; RLS gates the read. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
@@ -468,7 +455,15 @@ function EventCenterModuleInner() {
           </>
         )}
       </div>
-
+        </>
+      ),
+    },
+    {
+      id: 'venues',
+      label: 'Venues & Rooms',
+      icon: 'home',
+      render: () => (
+        <>
       {/* VENUES — the buildings. Pick one to manage/book it, or see all. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -558,7 +553,15 @@ function EventCenterModuleInner() {
           </ul>
         )}
       </div>
-
+        </>
+      ),
+    },
+    {
+      id: 'sessions',
+      label: 'Sessions',
+      icon: 'calendar',
+      render: () => (
+        <>
       {/* SESSIONS — type / room / capacity vs registration */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -681,7 +684,15 @@ function EventCenterModuleInner() {
           </ul>
         </div>
       )}
-
+        </>
+      ),
+    },
+    {
+      id: 'walkin',
+      label: 'Walk-in',
+      icon: 'pencil',
+      render: () => (
+        <>
       {/* WALK-IN / SESSION REGISTRATION — the organizer's on-site + per-session
           roll (event_participants, with capacity). Separate from the open
           congregation registrations above (those are the public sign-ups). */}
@@ -736,6 +747,46 @@ function EventCenterModuleInner() {
             ))}
           </ul>
         )}
+      </div>
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <section className={card} aria-labelledby="eventcenter-h">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center · Rooms &amp; Breakouts</div>
+          <h2 id="eventcenter-h" className="text-lg sm:text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+            {conference ? conference.name : 'Multi-attendee conference system'}
+          </h2>
+          <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {mode === 'synced'
+              ? 'Shared live — every leader and attendee sees the same rooms, sessions, and registrations.'
+              : 'On this device — sign in with your church account to share it with everyone.'}
+          </p>
+        </div>
+        <KpiDot
+          status={mode === 'synced' ? 'good' : 'idle'}
+          label={mode === 'synced' ? 'Shared / live' : 'This device'}
+          className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0"
+        />
+      </div>
+
+      {mode === 'local' && (
+        <p className="text-[11px] text-[#8A6E1F] bg-[#FBF7EC] border border-[#E8D9A8] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          {access.signedIn
+            ? 'Your account isn’t linked to a church yet — ask to be added, then this becomes the shared system. For now it saves on this device.'
+            : 'Sign in to make this the shared, live conference system. Until then your changes stay on this device.'}
+        </p>
+      )}
+      {flash && (
+        <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
+      )}
+
+      <div className="mt-4">
+        <SectionTabs sections={sections} ariaLabel="Event Center" idBase="events" defaultId="setup" />
       </div>
     </section>
   );

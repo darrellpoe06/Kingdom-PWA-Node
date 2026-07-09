@@ -16,8 +16,9 @@
 // Accessibility: white cards / #1A1815 body (>= 16:1), #5A5751 secondary (~7:1),
 // labelled inputs, visible #B85838 focus outline, aria-live on the thread.
 // =============================================================================
-import React, { useEffect, useRef, useState } from 'react';
-import { SectionTitle, TabScroll } from './shared.jsx';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
 import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
@@ -26,12 +27,13 @@ import {
   sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
-  saveSong, deleteSong, reuseSong, saveService, deleteService, addMember, removeMember, sendChoirMessage,
+  saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
-  inviteToChurch,
+  inviteToChurch, classifyUpload,
 } from '../lib/choir-sync.js';
 import { serviceDayLabel } from '../lib/service-day.js';
+import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
 const roleLabel = (r) => (ROLE_OPTS.find(([k]) => k === r)?.[1]) || r;
@@ -78,7 +80,12 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
           {!embed && song.youtubeUrl && (
             <a href={youtubeTimedUrl(song.youtubeUrl, song.startSeconds)} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel.replace('Watch', 'Link')}</a>
           )}
-          {song.lyrics && <button type="button" onClick={() => setWordsOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={wordsOpen}>{wordsOpen ? '▾ Hide words' : '🎵 Words'}</button>}
+          {song.lyrics
+            ? <button type="button" onClick={() => setWordsOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={wordsOpen}>{wordsOpen ? '▾ Hide words' : '🎵 Words'}</button>
+            /* No lyrics yet: give stewards a PLACE to add them (Darrell 2026-07-03:
+               "most spots don't have a place to add words") — opens the edit form
+               wherever Edit itself is available. */
+            : (canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Words</button>)}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
@@ -125,9 +132,26 @@ function SongForm({ initial, onSave, onCancel, busy }) {
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const save = () => onSave({ ...f, startSeconds: parseTimecode(f.startTime) });
+  // The form comes to the USER as an overlay on a still screen — the page must
+  // never jump or scroll out from under the tap (Darrell 2026-07-03: "I hate
+  // when the whole screen moves after one click"). Escape or a backdrop tap
+  // cancels, same as the Cancel button.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onCancel]);
   return (
-    <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit song' : 'Add song'}</div>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={f.id ? 'Edit song' : 'Add song'}
+      style={{ background: 'rgba(26,24,21,0.6)' }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 w-full overflow-y-auto" style={{ maxWidth: '42rem', maxHeight: '85vh' }}>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? `Edit song${f.title ? ` — ${f.title}` : ''}` : 'Add song'}</div>
       <div><label className={LABEL} htmlFor="cs-title">Title</label><input id="cs-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Song title" /></div>
       <div><label className={LABEL} htmlFor="cs-yt">YouTube link (the video the choir learns from)</label><input id="cs-yt" className={FIELD} value={f.youtubeUrl} onChange={set('youtubeUrl')} placeholder="https://youtu.be/…" /></div>
       <div className="grid grid-cols-3 gap-2">
@@ -148,6 +172,7 @@ function SongForm({ initial, onSave, onCancel, busy }) {
       <div className="flex gap-2 flex-wrap pt-1">
         <button type="button" disabled={busy || !f.title.trim()} onClick={save} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save song'}</button>
         <button type="button" onClick={onCancel} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
+      </div>
       </div>
     </div>
   );
@@ -174,6 +199,7 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
         <div><label className={LABEL} htmlFor="cv-type">Type</label>
           <select id="cv-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
             <option value="sunday">Sunday service</option>
+            <option value="wednesday">Wednesday</option>
             <option value="rehearsal">Thursday rehearsal</option>
           </select>
         </div>
@@ -192,6 +218,35 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
 // Panels
 // -----------------------------------------------------------------------------
 const WEEK_GROUPS = [['this', 'This week'], ['next', 'Next week'], ['later', 'Coming up']];
+
+// Pick a song already imported under the Songs tab and add it to THIS date —
+// "so you are not doing double duty" (Christina 2026-07-04). Uses the existing
+// reuseSong pipeline (onReuse), so the chosen song is scheduled with its video,
+// lyrics, and scripture intact. No retyping.
+function SongPicker({ songs, onPick }) {
+  const [open, setOpen] = useState(false);
+  const [pick, setPick] = useState('');
+  const catalog = useMemo(() => distinctSongCatalog(songs), [songs]);
+  if (!catalog.length) return null;
+  if (!open) {
+    return <button type="button" onClick={() => setOpen(true)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Choose from imported songs</button>;
+  }
+  return (
+    <div className="mt-2 flex items-end gap-2 flex-wrap bg-[#FAF8F4] border border-[#5A6E3D] p-2">
+      <div className="min-w-[12rem]">
+        <label className={LABEL} htmlFor="pick-song">Choose an imported song</label>
+        <select id="pick-song" className={FIELD} value={pick} onChange={(e) => setPick(e.target.value)}>
+          <option value="">Select a song…</option>
+          {catalog.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+        </select>
+      </div>
+      <button type="button" disabled={!pick}
+        onClick={() => { const s = catalog.find((x) => String(x.id) === String(pick)); if (s) onPick(s); setPick(''); setOpen(false); }}
+        className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Add to this date</button>
+      <button type="button" onClick={() => { setOpen(false); setPick(''); }} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:bg-white`}>Cancel</button>
+    </div>
+  );
+}
 
 function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, past }) {
   const list = songsForService(songs, svc.serviceDate, svc.serviceType);
@@ -214,6 +269,9 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
           onReuse={onReuse} />
       ))
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
+      {canEdit && !past && onReuse && (
+        <div className="mt-1"><SongPicker songs={songs} onPick={(s) => onReuse(s, svc.serviceDate, svc.serviceType)} /></div>
+      )}
       {!past && out.length > 0 && (
         <p className="text-[0.6875rem] text-[#991B1B] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Out this day: {out.map((a) => a.memberName + (a.backupName ? ` (backup: ${a.backupName}${a.backupStatus === 'confirmed' ? ' ✓' : ''})` : '')).join(', ')}
@@ -276,23 +334,24 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
   );
 }
 
-function SchedulePanel({ schedule, canEdit, onAdd, onEdit, onDelete }) {
+// The schedule: each date shows its SONG LIST right inside it (Christina 2026-07-04:
+// "inside the date… a place for each song we are singing"), where songs are added
+// new OR chosen from the already-imported Songs. Edit/Delete manage the date itself.
+function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse }) {
   const ordered = sortServices(schedule, todayIso());
   return (
     <div>
       {canEdit && <button type="button" onClick={onAdd} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add date</button>}
       {ordered.length ? (
-        <div className="bg-white border border-[#1A1815]">
+        <div className="space-y-3">
           {ordered.map((svc) => (
-            <div key={svc.id} className="flex items-baseline justify-between gap-2 flex-wrap p-3 border-b border-[#E8E4DC]">
-              <div>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtDate(svc.serviceDate)}</span>
-                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{serviceDayLabel(svc.serviceType, svc.serviceDate)}{svc.title ? ` · ${svc.title}` : ''}</span>
-              </div>
+            <div key={svc.id}>
+              <ServiceCard svc={svc} songs={songs} absences={absences} canEdit={canEdit}
+                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
               {canEdit && (
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>
-                  <button type="button" onClick={() => onDelete(svc)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>
+                <div className="flex justify-end gap-3 px-1 pt-1">
+                  <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit date</button>
+                  <button type="button" onClick={() => onDelete(svc)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete date</button>
                 </div>
               )}
             </div>
@@ -536,8 +595,31 @@ const teamTypeLabel = (t) => (TEAM_TYPES.find(([k]) => k === t)?.[1]) || t;
 
 function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [adding, setAdding] = useState(false);
-  const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' });
+  const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' });
+  const [uploadErr, setUploadErr] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
   const open = async (d) => { const u = await openTeamDocument(d.documentUrl); if (u) window.open(u, '_blank', 'noopener'); };
+  // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
+  // other files ride as a data URL under a size cap. Either becomes documentUrl.
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // let the same file be re-picked
+    if (!file) return;
+    const c = classifyUpload(file);
+    if (!c.ok) {
+      setUploadErr(c.reason === 'too-large' ? 'That file is over 3 MB — paste a link instead, or upload an image.'
+        : c.reason === 'unsupported-type' ? 'Please choose an image or a PDF / doc / text file.'
+          : 'Could not read that file.');
+      return;
+    }
+    setUploadErr(''); setUploading(true);
+    try {
+      const dataUrl = c.kind === 'image' ? await compressImageFile(file) : await fileToDataUrl(file);
+      setF((p) => ({ ...p, documentUrl: dataUrl, documentSource: 'upload', fileName: file.name, title: p.title || file.name }));
+    } catch { setUploadErr('Could not read that file.'); }
+    finally { setUploading(false); }
+  };
   return (
     <div>
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
@@ -552,10 +634,26 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
             </div>
           </div>
           <div><label className={LABEL} htmlFor="td-title">Title</label><input id="td-title" className={FIELD} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. 06-14 Order of Service" /></div>
-          <div><label className={LABEL} htmlFor="td-url">Document link</label><input id="td-url" className={FIELD} value={f.documentUrl} onChange={(e) => setF((p) => ({ ...p, documentUrl: e.target.value }))} placeholder="https://…" /></div>
+          {/* Upload a picture or document — or paste a link. (Christina 2026-07-04) */}
+          <div>
+            <span className={LABEL}>Upload a picture or document</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#FAF8F4] cursor-pointer`}>
+                {uploading ? 'Reading…' : 'Choose file'}
+                <input type="file" accept="image/*,.pdf,.doc,.docx,.txt,application/pdf" className="sr-only" onChange={onFile} disabled={uploading} />
+              </label>
+              {f.documentSource === 'upload' && f.fileName && (
+                <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>✓ {f.fileName} attached
+                  <button type="button" onClick={() => setF((p) => ({ ...p, documentUrl: '', documentSource: 'manual', fileName: '' }))} className="ml-2 text-[#991B1B] hover:underline">remove</button>
+                </span>
+              )}
+            </div>
+            {uploadErr && <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{uploadErr}</p>}
+          </div>
+          <div><label className={LABEL} htmlFor="td-url">…or paste a document link</label><input id="td-url" className={FIELD} value={f.documentSource === 'upload' ? '' : f.documentUrl} disabled={f.documentSource === 'upload'} onChange={(e) => setF((p) => ({ ...p, documentUrl: e.target.value, documentSource: 'manual', fileName: '' }))} placeholder="https://…" /></div>
           <div className="flex gap-2">
-            <button type="button" disabled={!f.title.trim()} onClick={() => { onAdd(f); setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '' }); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add</button>
-            <button type="button" onClick={() => setAdding(false)} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
+            <button type="button" disabled={!f.title.trim() || !f.documentUrl || uploading} onClick={() => { onAdd(f); resetForm(); setAdding(false); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add</button>
+            <button type="button" onClick={() => { resetForm(); setAdding(false); }} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
           </div>
         </div>
       ) : <button type="button" onClick={() => setAdding(true)} className={`${BTN} text-[#B85838] hover:text-[#1A1815] mb-2`}>+ Add document</button>)}
@@ -588,7 +686,6 @@ const TABS = [['week', 'This week'], ['songs', 'Songs'], ['songbook', 'Songbook'
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ canSee: false, canEdit: false });
-  const [tab, setTab] = useState('week');
   const [songs, setSongs] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [sermons, setSermons] = useState([]);
@@ -629,8 +726,11 @@ export default function Choir() {
 
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
-  const onSaveSong = async (f) => { setBusy(true); reportSkip(await saveSong(f)); setBusy(false); setSongForm(null); };
-  const onSaveService = async (f) => { setBusy(true); reportSkip(await saveService(f)); setBusy(false); setServiceForm(null); };
+  // A failed save must never discard what was typed (feedback bf8ad82f: "tapped
+  // Add and the information disappeared"). Close the form ONLY on a confirmed
+  // save; otherwise the entry stays on screen with the error banner saying why.
+  const onSaveSong = async (f) => { setBusy(true); const r = await saveSong(f); reportSkip(r); setBusy(false); if (r?.saved) setSongForm(null); };
+  const onSaveService = async (f) => { setBusy(true); const r = await saveService(f); reportSkip(r); setBusy(false); if (r?.saved) setServiceForm(null); };
 
   if (!signedIn) {
     return (
@@ -653,84 +753,89 @@ export default function Choir() {
     );
   }
 
+  // One panel per tab id — plain closures over the top-level state (SectionTabs
+  // mounts only the active one, same lazy behavior the hand-rolled strip had).
+  // Keyed off `const TABS` above, which scripts/feedback-area-guard.mjs scrapes:
+  // the ids must keep matching the `choir-<id>` FEEDBACK_AREAS keys.
+  const PANELS = {
+    week: () => (
+      <>
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <ThisWeekPanel
+          schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+        />
+      </>
+    ),
+    songs: () => <ChoirSongWorkshop access={access} />,
+    songbook: () => <ChoirSongbook songs={songs} access={access} />,
+    schedule: () => (
+      <>
+        {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <SchedulePanel
+          schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAdd={() => setServiceForm({ initial: null })}
+          onEdit={(svc) => setServiceForm({ initial: svc })}
+          onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+        />
+      </>
+    ),
+    teamdocs: () => (
+      <TeamDocsPanel
+        docs={teamDocs} canEdit={access.canEdit}
+        onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
+        onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
+      />
+    ),
+    availability: () => (
+      <AvailabilityPanel
+        absences={absences} members={members} canEdit={access.canEdit}
+        onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
+        onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
+        onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
+      />
+    ),
+    messages: () => (
+      <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
+    ),
+    resources: () => (
+      <ResourcesPanel
+        resources={resources} canEdit={access.canEdit}
+        onAdd={async (r) => { reportSkip(await saveResource(r)); }}
+        onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
+      />
+    ),
+    roster: () => (
+      <RosterPanel
+        members={members} canEdit={access.canEdit}
+        onAdd={async (m) => { reportSkip(await addMember(m)); }}
+        onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
+        onInvite={(email, role) => inviteToChurch(email, role)}
+      />
+    ),
+  };
+
+  // The sliding section row is the shared SectionTabs primitive ("sliding tabs
+  // instead of a long scroll", Darrell 2026-07-04) — same TabScroll motion the
+  // old strip had, now with the real tablist a11y. The error banner stays PINNED
+  // above the strip so a failed save is visible from any tab.
+  const sections = TABS.map(([id, label]) => ({ id, label, render: PANELS[id] }));
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
-      <TabScroll className="mb-3">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </TabScroll>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
 
-      {tab === 'week' && (
-        <>
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <ThisWeekPanel
-            schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
-            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
-            onEditSong={(s) => setSongForm({ initial: s })}
-            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
-            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
-          />
-        </>
-      )}
-
-      {tab === 'songs' && <ChoirSongWorkshop access={access} />}
-
-      {tab === 'songbook' && <ChoirSongbook songs={songs} access={access} />}
-
-      {tab === 'schedule' && (
-        <>
-          {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <SchedulePanel
-            schedule={schedule} canEdit={access.canEdit}
-            onAdd={() => setServiceForm({ initial: null })}
-            onEdit={(svc) => setServiceForm({ initial: svc })}
-            onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
-          />
-        </>
-      )}
-
-      {tab === 'teamdocs' && (
-        <TeamDocsPanel
-          docs={teamDocs} canEdit={access.canEdit}
-          onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
-          onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
-        />
-      )}
-
-      {tab === 'resources' && (
-        <ResourcesPanel
-          resources={resources} canEdit={access.canEdit}
-          onAdd={async (r) => { reportSkip(await saveResource(r)); }}
-          onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
-        />
-      )}
-
-      {tab === 'availability' && (
-        <AvailabilityPanel
-          absences={absences} members={members} canEdit={access.canEdit}
-          onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
-          onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
-          onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
-        />
-      )}
-
-      {tab === 'messages' && (
-        <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
-      )}
-
-      {tab === 'roster' && (
-        <RosterPanel
-          members={members} canEdit={access.canEdit}
-          onAdd={async (m) => { reportSkip(await addMember(m)); }}
-          onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
-          onInvite={(email, role) => inviteToChurch(email, role)}
-        />
-      )}
+      <SectionTabs sections={sections} ariaLabel="Choir sections" idBase="choir" defaultId="week" />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { kjvText } from '../lib/scriptures.js';
 import { GENERATIONS, withStudyDeck } from '../lib/games/generations.js';
 import {
   SERIES, listStudies, getStudy, allScriptureRefs,
-  studyToGameCards, scoreRound, AXES,
+  studyToGameCards, algorithmsToGameCards, scoreRound, AXES,
   loadResponses, saveResponses, respKey,
 } from '../lib/eternal-algorithms-studies.js';
 
@@ -134,5 +134,63 @@ describe('the reader\'s answers are device-local + fail soft', () => {
   it('returns {} when storage is missing, never throws', () => {
     expect(() => loadResponses('a@b.com')).not.toThrow();
     expect(loadResponses('a@b.com')).toEqual({});
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Published algorithms -> the game (Darrell 2026-07-03: "All eternal algorithms
+// going into the game so they can be further aware of the Word. Real study is
+// fun and exploration.") — every forge framework becomes a playable card on the
+// SAME eight axes; the deck injects into the real Generations def alongside the
+// study cards; an empty forge yields an empty deck, never a painted card.
+// -----------------------------------------------------------------------------
+describe('published algorithms become playable cards (the Word travels with the play)', () => {
+  const forge = [
+    { id: 'p1', name: 'Seedtime and Harvest', outcome: 'Compounding returns', threeD: 'Small disciplined deposits.', fourD: null, scripture: 'Galatians 6:7-9; Genesis 8:22', tags: [], publishedAt: null },
+    { id: 'p2', name: 'Joy Is the Strength', outcome: 'Strength that does not flicker', threeD: '', fourD: 'The joy of the LORD is your strength.', scripture: 'Nehemiah 8:10', tags: [], publishedAt: null },
+  ];
+
+  it('every published framework maps to one card with its Scripture + three choices', () => {
+    const cards = algorithmsToGameCards(forge);
+    expect(cards).toHaveLength(2);
+    for (const c of cards) {
+      expect(c.id).toMatch(/^eaforge-/);
+      expect(c.title).toBeTruthy();
+      expect(c.choices).toHaveLength(3);
+      expect(c.choices.some((ch) => ch.redemption)).toBe(true); // doing-the-word is the redemption choice
+    }
+    expect(cards[0].scripture.ref).toBe('Galatians 6:7-9'); // first anchor carries into the game
+    expect(cards[1].lens).toMatch(/joy of the LORD/i);       // the published deep layer is the lens
+  });
+
+  it('cards score on the SAME Generations axes (no second scoring system)', () => {
+    const cards = algorithmsToGameCards(forge);
+    const axisKeys = new Set(AXES.map((a) => a.key));
+    for (const c of cards) {
+      for (const ch of c.choices) {
+        for (const k of Object.keys(ch.effects)) {
+          expect(axisKeys.has(k), `unknown axis '${k}' on ${c.id}`).toBe(true);
+        }
+      }
+    }
+    // running the algorithm beats admiring it, via the real scorer
+    const pick = { [cards[0].id]: 0 };
+    const admire = { [cards[0].id]: 1 };
+    expect(scoreRound([cards[0]], pick).totals.weighted)
+      .toBeGreaterThan(scoreRound([cards[0]], admire).totals.weighted);
+  });
+
+  it('the combined study + forge deck injects into a REAL Generations def', () => {
+    const study = getStudy(listStudies()[0].id);
+    const combined = [...studyToGameCards(study), ...algorithmsToGameCards(forge)];
+    const def = withStudyDeck(null, combined);
+    expect(def.decks.study).toHaveLength(combined.length);
+    expect(def.decks.study.some((c) => c.id.startsWith('eaforge-'))).toBe(true);
+    expect(def.decks.life?.length).toBeGreaterThan(0); // the base game is intact
+  });
+
+  it('an empty forge yields an empty deck — nothing painted', () => {
+    expect(algorithmsToGameCards([])).toEqual([]);
+    expect(algorithmsToGameCards(null)).toEqual([]);
   });
 });

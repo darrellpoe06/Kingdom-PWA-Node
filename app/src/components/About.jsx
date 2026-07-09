@@ -3,6 +3,7 @@
 // Receives VIEW_TIER_REQUIREMENTS as a prop so this module has no main-file dep.
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
+import TrialStatus from './TrialStatus.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
 import { ARI } from '../lib/ari.js';
@@ -11,7 +12,7 @@ import { ARI } from '../lib/ari.js';
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
 // section (trusted-device list/revoke + change PIN). Both are optional, so the
 // public/demo/anonymous About view is unchanged when they are absent.
-function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, onChangePin = null }) {
+function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, authCreatedAt = null, onChangePin = null }) {
   // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
   // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
@@ -95,8 +96,21 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
   };
   return (
     <div className="space-y-10 w-full">
+      {authCreatedAt && (
+        <div className="-mb-4"><TrialStatus createdAt={authCreatedAt} /></div>
+      )}
       <section>
         <SectionTitle>What you actually get</SectionTitle>
+        {/* The purpose, in the Governor's own words (Darrell 2026-07-03):
+            "Family Operating System... PoeTech App... for the purpose of
+            building the Family Of Yahweh The Kingdom Of Yahweh Jesus's Father
+            and My Yahweh." The what below serves this why. */}
+        <div className="bg-[#1A1815] text-[#FAF8F4] p-4 sm:p-5 mb-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B89838] mb-2 font-semibold">The purpose · a Family Operating System</div>
+          <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+            PoeTech is a <strong>Family Operating System</strong> — built for the purpose of building the Family of Yahweh, the Kingdom of Yahweh: Jesus&rsquo;s Father, and ours. The tools below — the finances, the portals, the studies, the church rails — are how a household gets ordered; the Kingdom is why.
+          </p>
+        </div>
         <div className="bg-white border-2 border-[#1A1815] p-4 sm:p-5 mb-4">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-semibold">Why people switch</div>
           <p className="text-base leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -264,15 +278,16 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section>
         <SectionTitle>Modules</SectionTitle>
         <p className="text-sm text-[#5A5751] leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Live modules ship to all subscribers. Planned and Vision modules accept early interest signals — tap <strong>Notify me · vote on priority</strong> to register and weigh in on what gets built next. The aggregate of family priority votes shapes the roadmap.
+          Live modules ship to all subscribers. Planned and Vision modules accept early interest signals — tap <strong>Notify me · vote on priority</strong> to register and weigh in on what gets built next. Signed in, votes pool across the family (module_interest) and that real aggregate shapes the roadmap; signed out, votes stay on this device until you sign in.
         </p>
-        <CommunityPriorities moduleInterest={moduleInterest} />
+        <CommunityPriorities moduleInterest={moduleInterest} familyModuleInterest={familyModuleInterest} />
         <div className="space-y-3">
           <ModuleCard moduleKey="financial" status="active" title="Financial Control System" desc="Multi-entity bookkeeping with debt avalanche, rental snowball, pressure slider, tax calendar, 1099 tracking, scope-of-work agreements, event reminders." features={['4-entity book separation','Debt avalanche · rental snowball','7-year Sabbath payoff goal','Tax & compliance calendar','Events with browser notifications','Scope of work templates & agreements','1099 tracking · both directions']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="home-command" status="planned" title="Home Command Center" repo="poe-trust-command-center" desc="BAS-level intelligence for the residential home. Enterprise building-automation thinking applied to family stewardship." features={['IoT sensor integration','F&S-level alarms (leak, intrusion, HVAC failure)','Seasonal maintenance calendar','Floor plan mapping & inventory','Per-property dashboards']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="health-wellness" status="planned" title="Health & Wellness · PoeTech-PWA" repo="poetech.us" desc="Public-facing health stewardship. IoT and sensor data for big-picture private health visibility." features={['IoT health data aggregation','Big-picture private health dashboard','Comprehensive measurement incl. water sensors','Facial recognition AI trained for Black families (NIST-documented accuracy gaps — opt-in correction)','Open-source where possible']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="marketplace" status="vision" title="PoeTech Marketplace · Scope & Contractors" desc="Vendor marketplace where PoeTech mediates the scope agreement itself — protecting both customer and contractor from unfair disputes." features={['Vendor onboarding with paid positions','Scope-mediated agreements (the differentiator)','Reviews anchored to agreed scope','Trade-specific templates','Trust & safety verification']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="practice-ops" status="active" title="Practice Operations · TLC" desc="Non-PHI tooling around Christina's clinical practice. Inquiry capture, source attribution, and pre-patient lead tracking — running in the app today. Acuity remains the system of record for client scheduling and intake." features={['Inquiry capture form (pre-patient, no PHI)','Status workflow: new → contacted → moved to Acuity','Source attribution (organic / FB / referral / church)','Conversion rate tracking','Per-provider routing (Christina + MSW contractors)','MSW contractor onboarding (uses scope tool)','Acuity API integration (planned)','Revenue-per-session reconciliation (planned)']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
+          <ModuleCard moduleKey="media-production" status="vision" title="AI Media Production · Movies & Series" desc="The long arc: sovereign AI-driven film and series production using the family's own models — life-like movies with persistent characters the audience knows; a character can carry a film and spin into a series, and vice versa. Coming when we can: gated on real capability, family curation, and the theological review pipeline — never hype." features={['Sovereign generation (the LLMs we build, on our own hardware)','Persistent characters across movies and series (and vice versa)','Family-curated library as the creative seed','Theological review pipeline — every frame passes the Test','Distribution sovereignty + audience consent','Built on the existing harvest/voice/workflow rails']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="marketing-growth" status="vision" title="Marketing & Growth" desc="Help PoeTech subscribers grow their own ministry, practice, or business through integrated social media management, ad attribution, and SEO tools — all under the local-first privacy posture." features={['Facebook + Instagram (Meta) ads attribution','Google Ads tracking','Content calendar across social channels','Email + SMS campaigns (where lawful)','Google My Business + local SEO health','Lead source data into Practice Operations','Audience insights without surveillance capitalism']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="education" status="vision" title="Education & Children · Literacy Justice" desc="&quot;From us for us&quot; — designed by Black families, for Black families. Children not reading proficiently by 3rd grade are 4-8x more likely to drop out of high school. 30-50% of incarcerated individuals have dyslexia (vs 5-15% general population). Technology can help break this pattern through early screening, dyslexia-aware design, and family-supervised AI literacy." features={['AI literacy curriculum for kids (age-appropriate prompt engineering, AI safety, fact-checking AI output)','Dyslexia-aware interface (OpenDyslexic / Lexend fonts, color overlays, line tracking)','Voice-to-text and text-to-speech throughout','Early literacy screening · intervention tracking before 3rd grade','Per-child reading proficiency dashboard','Apprenticeship curriculum tracking','Goal-setting & review cycles','Pricing: Family of 3: $19/mo · Family of 5+: $29/mo · Included in Premium tier']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="tutors" status="vision" title="PoeTech Tutors · Educator Marketplace" desc="Credentialed teachers and school principals earn meaningful income teaching online — specifically serving parents who pulled their kids into homeschooling because of bullying, special needs, or simply because the local school wasn't the right fit. From us, for us. Real educators, real outcomes, real freedom for the parents." features={['Marketplace for vetted teachers and principals to list availability + rates','Booking + scheduling integrated with PoeTech calendar','Specializations: special needs, dyslexia support, IEP advocacy, college-prep, bullied-kids homeschool transitions','Curriculum alignment with state homeschool requirements','Per-student progress tracking shared with parents','Standard split: 80% to educator · 20% to PoeTech (platform fee)','Or: revenue-share partnership for teachers building a full online practice','Free marketplace access for Premium subscribers · session pricing set by educator','Community-tier families receive subsidized sessions through underwriting','Pre-launch interest welcome — vote on priority']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
@@ -435,7 +450,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Quarterly newsletter co-branding</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 2 active Foundation Sponsors at any time</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Foundation Sponsor', tagline: 'Featured placement · max 2 active', monthly: '25000', annual: '25000', features: ['Featured "Brought to you by..." placement on Foundation tier','Prominent "PoeTech Picks" directory listing','Sponsor of a specific module\'s free-tier content','Quarterly newsletter co-branding'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -448,7 +463,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual co-branded educational content</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 3 active Module Sponsors at any time</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Module Sponsor', tagline: 'Standard placement · max 3 active', monthly: '10000', annual: '10000', features: ['Standard placement on Foundation tier','Directory listing in "PoeTech Picks"','Annual co-branded educational content'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
@@ -460,7 +475,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Annual mission-alignment review</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">·</span><span>Maximum 5 active Directory Partners</span></li>
             </ul>
-            <button type="button" onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Pay first, vet in parallel →</button>
+            <button type="button" onClick={() => openCart({ name: 'Directory Partner', tagline: 'Directory listing · max 5 active', monthly: '3000', annual: '3000', features: ['"PoeTech Picks" directory listing','Annual mission-alignment review'], isSponsor: true })} className="mt-3 w-full bg-[#B85838] text-white text-xs uppercase tracking-wider py-2 font-semibold hover:bg-[#1A1815]">Sponsor · Reserve a slot (email) →</button>
           </div>
         </div>
         <div className="mt-4 p-3 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
@@ -512,7 +527,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section className="bg-white border-2 border-[#B85838] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Pick a tier above and click <strong>Sponsor</strong>. Payment authorizes the slot reservation; vetting against the 8-criterion framework runs in parallel and typically completes in <strong>15 business days</strong>. If your sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
+          Pick a tier above and click <strong>Sponsor</strong> — today that opens a pre-filled email that reserves your slot request (in-app payment is not wired yet; terms are settled in the handshake). Vetting against the 8-criterion framework typically completes in <strong>15 business days</strong>, and once payments open: if a sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
         </p>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           Read the 8-criterion framework above and the never-allowed list before sponsoring — if your business doesn't fit, the vetting will return your money. Saves everyone time.
@@ -525,7 +540,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
         <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Every module shares data with every other. When the home module detects an HVAC failure, the financial module sees the incident in the cash flow. When the health module measures stress, the financial module shows correlation with pressure. When the spiritual module marks a fast week, the financial module sees the grocery spend pattern.
+          Every module is being built to share data with every other. As each one ships: the home module detecting an HVAC failure will land the incident in the cash flow; the health module measuring stress will show its correlation with pressure; the spiritual module marking a fast week will show up in the grocery spend pattern. The church and financial modules already run this way today.
         </p>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           One family. One picture. All the granular detail when you need it.
@@ -582,7 +597,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
                       <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${(parseFloat(cartTier.annual) || 0).toLocaleString()}<span className="text-sm text-[#5A5751]">/yr</span></div>
                     </div>
                     <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-                      <strong>Pay first, vet after.</strong> Vetting against the 8 PoeTech criteria runs in parallel — typically 15 business days. If your sponsorship doesn't pass vetting, <strong>full refund within 5 business days</strong>. Limited slots; placement begins after vetting clears.
+                      <strong>Reserve first, vet in parallel.</strong> This sends your reservation by email (no payment is taken in-app today). Vetting against the 8 PoeTech criteria typically takes 15 business days; limited slots; placement begins after vetting clears and terms are settled.
                     </p>
                   </div>
                 </>
@@ -627,7 +642,7 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
 
               {cartError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{cartError}</div>}
               <button onClick={() => submitCart(cartTier.isSponsor ? 'sponsor' : cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
-                {cartTier.isSponsor ? 'Sponsor · Pay now, vet in parallel' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
+                {cartTier.isSponsor ? 'Sponsor · Reserve via email' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
               </button>
               <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Opens your email client to finish the request. Logged locally in Checkout Intents below.
@@ -636,6 +651,12 @@ function About({ moduleInterest, toggleModuleInterest, theme, setTheme, feedback
           </div>
         </div>
       )}
+
+      {/* Credits — the borrowed artwork is named (CC-BY 4.0 requires it, and
+          honesty does anyway). Self-hosted: no CDN is called at runtime. */}
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-6 pt-3 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+        Emoji artwork from the Twemoji project (CC-BY 4.0), self-hosted so your notes render the same on every device. Scripture text shown in-app is King James Version (Public Domain); other translations are linked, never reproduced.
+      </p>
     </div>
   );
 }

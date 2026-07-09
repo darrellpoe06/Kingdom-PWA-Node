@@ -280,6 +280,49 @@ export function allScriptureRefs(study) {
   return [...new Set(refs)];
 }
 
+// --- Published algorithms -> game deck (Darrell 2026-07-03: "All eternal
+// algorithms going into the game so they can be further aware of the Word.
+// Real study is fun and exploration.") ----------------------------------------
+// Every framework PUBLISHED from the family forge becomes a playable card on
+// the SAME eight Yahweh axes (no second scoring system). The three choices
+// mirror the belief-vs-action triple, framed for a framework: RUN it this week
+// (doing-the-word, the redemption choice), ADMIRE it and change nothing
+// (hearers-not-doers, James 1:22), or TEACH it to someone (the Word multiplied
+// — family/souls/service). Input shape = fetchPublishedAlgorithms() entries;
+// pure + total, so an empty forge yields an empty deck, never a painted card.
+export function algorithmsToGameCards(published = []) {
+  return (Array.isArray(published) ? published : [])
+    .filter((alg) => alg && alg.name)
+    .map((alg) => ({
+      id: `eaforge-${alg.id}`,
+      type: 'card',
+      title: alg.name,
+      body: alg.outcome
+        ? `The outcome you win with it: ${alg.outcome}${alg.threeD ? ` — In practice: ${alg.threeD}` : ''}`
+        : (alg.threeD || alg.name),
+      lens: alg.fourD || `An eternal algorithm — it runs the same in the eternal and in this-world life (Ecclesiastes 3:14).`,
+      scripture: { ref: String(alg.scripture || '').split(';')[0].trim() || undefined },
+      choices: [
+        {
+          label: 'Run the algorithm this week',
+          body: 'Pick one real place it applies and do it — the Word done, not admired.',
+          effects: { faith: 2, wisdom: 1, provision: 1 },
+          redemption: true,
+        },
+        {
+          label: 'Admire it and change nothing',
+          body: 'A hearer only — the framework stays on the shelf (James 1:22).',
+          effects: { faith: -1, wisdom: -1 },
+        },
+        {
+          label: 'Teach it to someone this week',
+          body: 'The Word multiplied — walk someone through the framework and its Scripture.',
+          effects: { family: 1, souls: 2, service: 1 },
+        },
+      ],
+    }));
+}
+
 // --- Study -> game deck (the belief-vs-action hook) --------------------------
 // Turns the study's self-examination items into a Generations-compatible deck
 // (see lib/games/generations.js LIFE_DECK shape). Each card carries a Scripture

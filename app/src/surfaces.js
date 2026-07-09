@@ -21,6 +21,7 @@
 // modules never import each other — they talk via core sync + the Events spine.
 
 import { lazy } from 'react';
+import { withSurfaceBoundary } from './lib/surface-boundary.jsx';
 
 // Adapt a module whose component is a NAMED export to the default-shaped module
 // React.lazy expects. `name` omitted ⇒ the module's default export is used.
@@ -49,18 +50,20 @@ export const SURFACES = [
   { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
   { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
   { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
-  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
+  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor OR business tier (DR-0128)', load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
   { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
   { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  // Admin absorbed the users/usage report (the former 'access' surface) into ONE
+  // report and retired the separate Access tab (Darrell 2026-07-04). AdminConsole
+  // now renders AccessUsageMetrics directly; there is no standalone 'access' route.
   { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
-  { id: 'access',       label: 'Access',           nav: 'top', view: 'access',       sub: null,          gate: 'family/governor',                            load: () => import('./components/AccessUsageMetrics.jsx') },
+  { id: 'moore',        label: 'Moore Divahs',     nav: 'top', view: 'moore',        sub: null,          gate: 'family/governor',                            load: () => import('./components/MooreDivahs.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
+  { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
-  // NOTE: church 'home' (the inline `Church` composer) is NOT in this registry
-  // yet — it is still defined inline in the shell and is a Stage 3 extraction
-  // candidate. Only genuinely lazy-loaded surfaces are registered here.
+  { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
   { id: 'engagement',       label: 'Engagement',    nav: 'church', view: 'church', sub: 'engagement', load: () => import('./components/Engagement.jsx') },
   { id: 'choir',            label: 'Choir',         nav: 'church', view: 'church', sub: 'choir',      load: () => import('./components/Choir.jsx') },
   { id: 'program',          label: 'Service Program', nav: 'church', view: 'church', sub: 'program',  load: () => import('./components/ServiceProgram.jsx') },
@@ -88,7 +91,11 @@ export const SURFACES = [
 // Derive each lazy component ONCE from its loader and hang it on the entry.
 // `lazy(s.load)` is referentially stable across renders because SURFACES is a
 // module-level constant (same identity every render — no remount thrash).
-for (const s of SURFACES) s.component = lazy(s.load);
+// Every surface is wrapped in a per-surface error boundary at the mount layer
+// (lib/surface-boundary.jsx): one broken surface degrades to one inline card
+// and records to the error journal — it can never white-screen the app
+// (DR-0092; the 2026-06-25 Books>Tx class, contained structurally).
+for (const s of SURFACES) s.component = withSurfaceBoundary(lazy(s.load), s.label);
 
 // Lookup by id (for the shell + future data-driven render).
 export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
@@ -113,9 +120,11 @@ export const Relationships    = surfaceById['relationships'].component;
 export const Inventory        = surfaceById['inventory'].component;
 export const Forecast         = surfaceById['forecast'].component;
 export const AdminConsole     = surfaceById['admin'].component;
-export const AccessUsageMetrics = surfaceById['access'].component;
+export const MooreDivahs      = surfaceById['moore'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
+export const TVTime           = surfaceById['tvtime'].component;
+export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
 export const ServiceProgram   = surfaceById['program'].component;

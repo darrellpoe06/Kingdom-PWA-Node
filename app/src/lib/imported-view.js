@@ -18,6 +18,27 @@
 
 const DAY_MS = 86400000;
 
+// Round to cents. Displayed rollups are money; float drift (0.1 + 0.2) must
+// never leak into an In/Out/Net tile or report total (DR-0076: measure the real
+// artifact — a total that prints 0.30000000000000004 is not the real number).
+const round2 = (n) => Math.round(n * 100) / 100;
+
+// True when a transaction/row is an INTERNAL TRANSFER — money moving between
+// the family's own accounts, not money entering or leaving. Rows mark this two
+// real ways, and both must be honored:
+//   · category === 'transfer' — seed rows, BooksTransactions' transfer pairs,
+//     and lib/categorize.js all use the 'transfer' category;
+//   · isTransfer === true — the synced verified ledger (transactions-sync.js
+//     maps the DB's is_transfer to isTransfer).
+// Shared by totals() here, buildImportedView's 30-day summary (Imported.jsx),
+// and incomeVsExpenseModel (finance-reports.js) so all three exclude the same
+// rows the same way.
+export function isTransferTxn(t) {
+  if (!t) return false;
+  if (t.isTransfer === true) return true;
+  return String(t.category || '').toLowerCase() === 'transfer';
+}
+
 // Parse a transaction's posted date to epoch ms. Accepts 'YYYY-MM-DD' (treated
 // as local midnight, matching the component's formatDate) or a full ISO string.
 // Returns null when unparseable so undated rows are handled honestly, never
@@ -32,14 +53,23 @@ export function postedMs(t) {
 
 // In / Out / Net / count for a set of rows. Out is the magnitude of money
 // leaving (negative amounts); In is money arriving (positive). Net = In - Out.
+//
+// Internal transfers (isTransferTxn) are excluded from In, Out, AND Net: a
+// transfer is the family's own money changing accounts, not income or spend,
+// and summing its legs inflated gross In/Out (the 2026-07-05 audit defect).
+// Excluding transfers from Net too keeps all three internally consistent
+// (In - Out === Net always); wherever both legs of a balanced pair are in view
+// they cancel, so Net is unchanged there. count still counts every row in the
+// set — transfers are real rows the register shows.
 export function totals(txns) {
   let inSum = 0, outSum = 0;
   for (const t of txns) {
+    if (isTransferTxn(t)) continue;
     const a = typeof t.amount === 'number' ? t.amount : Number(t.amount);
     if (!Number.isFinite(a)) continue;
     if (a < 0) outSum += -a; else inSum += a;
   }
-  return { in: inSum, out: outSum, net: inSum - outSum, count: txns.length };
+  return { in: round2(inSum), out: round2(outSum), net: round2(inSum - outSum), count: txns.length };
 }
 
 // Stable sort by posted date. 'desc' (newest first) is the default; 'asc' is the

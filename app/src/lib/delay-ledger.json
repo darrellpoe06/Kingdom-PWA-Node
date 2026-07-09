@@ -1,0 +1,41 @@
+{
+  "schema": "delay-ledger v1 — every entry: when the governor asked, when work actually started, when it finished, the execution time vs the WALL-CLOCK cost to the family, and the categorized reason for any gap. Darrell 2026-07-07: 'keep recording the time it would have taken if you did what was requested when I asked and the difference... categorize each reason for our data-driven reasons to use this model AI or that one.' Request/finish times are the report metric — not the agent's execution time.",
+  "categories": {
+    "agent-self-deferral": "The agent parked authorized work without the governor saying stop (P28 / DR-0115).",
+    "incomplete-verification": "Partial local verification let CI catch what the full suite would have caught before push.",
+    "re-ask": "The agent asked a question already answered instead of executing (DR-0111).",
+    "premise-error": "Work built on a wrong premise had to be redone.",
+    "external-wait": "Genuine external dependency (CI runtime, deploy, third-party).",
+    "governor-hold": "The governor deliberately held or re-scoped the work (never counted as unnecessary)."
+  },
+  "entries": [
+    {
+      "id": "dl-2026-07-07-door-shell",
+      "request": "Her app changes colors and resizes text like PoeTech (+ unified Admin/User door)",
+      "model": "claude-fable-5",
+      "requestedAt": "2026-07-07T05:55:00Z",
+      "startedAt": "2026-07-07T12:03:00Z",
+      "finishedAt": "2026-07-07T12:17:00Z",
+      "executionMinutes": 45,
+      "directEstimateMinutes": 45,
+      "wallClockHours": 6.4,
+      "unnecessaryDelayHours": 5.6,
+      "category": "agent-self-deferral",
+      "notes": "The agent had the full build map and 'we need that asap', and still parked the increment overnight citing its own session length. Execution took ~45 min once started; the family's wall-clock cost was the whole night. LESSONS 2026-07-07 / P28 / DR-0115."
+    },
+    {
+      "id": "dl-2026-07-07-extraction-ci-red",
+      "request": "The same increment's CI pass",
+      "model": "claude-fable-5",
+      "requestedAt": "2026-07-07T12:05:00Z",
+      "startedAt": "2026-07-07T12:09:00Z",
+      "finishedAt": "2026-07-07T12:17:00Z",
+      "executionMinutes": 8,
+      "directEstimateMinutes": 2,
+      "wallClockHours": 0.2,
+      "unnecessaryDelayHours": 0.15,
+      "category": "incomplete-verification",
+      "notes": "Targeted tests instead of the full suite before push; CI caught two remaining monolith-readers (legibility guard themes, persistent-share ledger). Full suite is the pre-push bar for extraction-class changes."
+    }
+  ]
+}

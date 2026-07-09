@@ -5,12 +5,12 @@
     "midnight"
   ],
   "summary": {
-    "pages": 138,
-    "passing": 122,
+    "pages": 168,
+    "passing": 152,
     "trackedDebtPages": 16,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 123
+    "debtViolations": 122
   },
   "pages": [
     {
@@ -52,7 +52,7 @@
     {
       "page": "components/HarvestLedger.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 7,
+      "violations": 8,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -71,15 +71,6 @@
       "page": "components/Pulpit.jsx",
       "status": "TRACKED-DEBT",
       "violations": 5,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "poe-financial-mvp-v28.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 3,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -150,6 +141,15 @@
     },
     {
       "page": "components/Projects.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 1,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "poe-financial-mvp-v28.jsx",
       "status": "TRACKED-DEBT",
       "violations": 1,
       "regressions": 0,

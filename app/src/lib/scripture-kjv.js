@@ -211,4 +211,42 @@ export const KJV = {
   "Romans 8:17": "And if children, then heirs; heirs of God, and joint-heirs with Christ; if so be that we suffer with him, that we may be also glorified together.",
   "Romans 8:18": "For I reckon that the sufferings of this present time are not worthy to be compared with the glory which shall be revealed in us.",
   "Romans 8:28": "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.",
+
+  // --- Appended 2026-07-06 for "The Way Up" game (wilderness -> the table) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
+  // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
+  "Deuteronomy 8:2": "And thou shalt remember all the way which the LORD thy God led thee these forty years in the wilderness, to humble thee, and to prove thee, to know what was in thine heart, whether thou wouldest keep his commandments, or no.",
+  "Deuteronomy 8:3": "And he humbled thee, and suffered thee to hunger, and fed thee with manna, which thou knewest not, neither did thy fathers know; that he might make thee know that man doth not live by bread only, but by every word that proceedeth out of the mouth of the LORD doth man live.",
+  "Deuteronomy 8:18": "But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth, that he may establish his covenant which he sware unto thy fathers, as it is this day.",
+  "Genesis 39:2": "And the LORD was with Joseph, and he was a prosperous man; and he was in the house of his master the Egyptian.",
+  "Genesis 39:9": "There is none greater in this house than I; neither hath he kept back any thing from me but thee, because thou art his wife: how then can I do this great wickedness, and sin against God?",
+  "James 4:10": "Humble yourselves in the sight of the Lord, and he shall lift you up.",
+  "1 Peter 5:6": "Humble yourselves therefore under the mighty hand of God, that he may exalt you in due time:",
+  "Matthew 23:12": "And whosoever shall exalt himself shall be abased; and he that shall humble himself shall be exalted.",
+  "Proverbs 22:7": "The rich ruleth over the poor, and the borrower is servant to the lender.",
+  "Proverbs 21:20": "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up.",
+  "3 John 1:2": "Beloved, I wish above all things that thou mayest prosper and be in health, even as thy soul prospereth.",
+  "Joshua 1:8": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success.",
+  "Psalm 1:3": "And he shall be like a tree planted by the rivers of water, that bringeth forth his fruit in his season; his leaf also shall not wither; and whatsoever he doeth shall prosper.",
+  "Deuteronomy 28:1": "And it shall come to pass, if thou shalt hearken diligently unto the voice of the LORD thy God, to observe and to do all his commandments which I command thee this day, that the LORD thy God will set thee on high above all nations of the earth:",
+  "Deuteronomy 28:10": "And all people of the earth shall see that thou art called by the name of the LORD; and they shall be afraid of thee.",
+  "Deuteronomy 28:13": "And the LORD shall make thee the head, and not the tail; and thou shalt be above only, and thou shalt not be beneath; if that thou hearken unto the commandments of the LORD thy God, which I command thee this day, to observe and to do them:",
+  "Psalm 23:5": "Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over.",
+  "Psalm 110:1": "The LORD said unto my Lord, Sit thou at my right hand, until I make thine enemies thy footstool.",
+  "Matthew 5:5": "Blessed are the meek: for they shall inherit the earth.",
+  "Genesis 50:20": "But as for you, ye thought evil against me; but God meant it unto good, to bring to pass, as it is this day, to save much people alive.",
+  "Job 42:10": "And the LORD turned the captivity of Job, when he prayed for his friends: also the LORD gave Job twice as much as he had before.",
+  "Job 42:12": "So the LORD blessed the latter end of Job more than his beginning: for he had fourteen thousand sheep, and six thousand camels, and a thousand yoke of oxen, and a thousand she asses.",
+  "2 Timothy 1:7": "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.",
+  "Romans 8:37": "Nay, in all these things we are more than conquerors through him that loved us.",
+  "Revelation 3:21": "To him that overcometh will I grant to sit with me in my throne, even as I also overcame, and am set down with my Father in his throne.",
+  "Luke 6:38": "Give, and it shall be given unto you; good measure, pressed down, and shaken together, and running over, shall men give into your bosom. For with the same measure that ye mete withal it shall be measured to you again.",
+
+  // --- Appended 2026-07-08 for the games' Heritage foundation (lib/games/heritage.js) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
+  // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
+  "Psalm 16:6": "The lines are fallen unto me in pleasant places; yea, I have a goodly heritage.",
+  "Psalm 145:4": "One generation shall praise thy works to another, and shall declare thy mighty acts.",
+  "Psalm 127:1": "Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.",
+  "Proverbs 13:22": "A good man leaveth an inheritance to his children’s children: and the wealth of the sinner is laid up for the just.",
 };

@@ -104,20 +104,50 @@ export function maskEmail(email) {
   return `${first}…${domain}`;
 }
 
+// The account's EFFECTIVE last-active time: the later of "last authenticated"
+// (auth.users.last_sign_in_at, the auth stamp) and "last seen in the app"
+// (member_presence.last_seen_at, the real activity heartbeat). The RPC (0079)
+// already computes this as last_active_at; we still fall back here so an older
+// payload — or a row with only the auth stamp — degrades honestly instead of
+// reading "never". Returns an ISO string or null (never fabricated).
+//
+// WHY THIS MATTERS: a persistent PWA session refreshes its token silently and
+// does NOT bump last_sign_in_at, so a user active daily can carry a two-week-old
+// sign-in stamp. last_active_at reflects real use; last_sign_in_at alone did not.
+export function lastActiveAt(row) {
+  const r = row || {};
+  return r.last_active_at || r.last_sign_in_at || null;
+}
+
 // Has this account come back at least once since creating it? (returned vs.
-// signed-up-and-vanished). Real timestamps only — null last_sign_in => false.
+// signed-up-and-vanished). Measured against the effective last-active, so a
+// silently-refreshed session still counts as returned. Real timestamps only.
 export function hasReturned(row) {
-  if (!row || !row.last_sign_in_at || !row.created_at) return false;
-  const last = Date.parse(row.last_sign_in_at);
+  if (!row || !row.created_at) return false;
+  const activeIso = lastActiveAt(row);
+  if (!activeIso) return false;
+  const last = Date.parse(activeIso);
   const made = Date.parse(row.created_at);
   if (Number.isNaN(last) || Number.isNaN(made)) return false;
   return last - made > 5 * 60 * 1000; // > 5 min after creation
+}
+
+// Active within the last few minutes — "using the app right now". Drives the
+// "active now" readout so a signed-in-this-minute member never reads as absent.
+const ACTIVE_NOW_MS = 10 * 60 * 1000; // 10 min heartbeat-freshness window
+export function isActiveNow(row, nowMs) {
+  const activeIso = lastActiveAt(row);
+  if (!activeIso) return false;
+  const last = Date.parse(activeIso);
+  if (Number.isNaN(last)) return false;
+  return (nowMs - last) <= ACTIVE_NOW_MS && (nowMs - last) >= -ACTIVE_NOW_MS;
 }
 
 // Shape one RPC signup row into the fields the list renders. `mask` toggles
 // email masking; `nowMs` stamps relative times once per render.
 export function signupRowView(row, nowMs, mask = false) {
   const r = row || {};
+  const activeIso = lastActiveAt(r);
   return {
     userId: r.user_id || null,
     name: (r.display_name && String(r.display_name).trim()) || null,
@@ -129,7 +159,9 @@ export function signupRowView(row, nowMs, mask = false) {
     instanceType: r.instance_type || null,
     role: r.role || null,
     joined: relativeTime(r.created_at, nowMs),
-    lastSeen: r.last_sign_in_at ? relativeTime(r.last_sign_in_at, nowMs) : 'never',
+    // "last active" = effective last-active (auth stamp OR live heartbeat).
+    lastSeen: activeIso ? relativeTime(activeIso, nowMs) : 'never',
+    activeNow: isActiveNow(r, nowMs),
     returned: hasReturned(r),
     emailConfirmed: !!r.email_confirmed,
   };

@@ -130,6 +130,30 @@ export function canonicalSeedOwner(boardSlug, slug) {
 }
 
 // -----------------------------------------------------------------------------
+// Seed drift — a live board can fall BEHIND its own build record (2026-07-07,
+// Darrell's screenshot: the Moore board read "1/13 done" while the seed spec —
+// the build's verifiable record — carried 14/16 SHIPPED). Two pure detectors
+// drive two explicit one-tap board actions; nothing self-mutates silently:
+//   * missingSeedTasks — spec items whose slug has no live row (the board was
+//     seeded before the spec grew). loadSeed() already fills only gaps.
+//   * staleSeedStatuses — live seed rows still 'not-started' while the spec
+//     marks them 'done' (verifiably shipped, per the spec's notes). Upgrade
+//     only, never a downgrade; a row a human moved past not-started is left
+//     alone (their edit outranks the heal).
+// -----------------------------------------------------------------------------
+export function missingSeedTasks(boardSlug, tasks) {
+  const have = new Set((Array.isArray(tasks) ? tasks : []).map((t) => t && t.slug).filter(Boolean));
+  return seedTasksForBoard(boardSlug).filter((r) => !have.has(r.slug));
+}
+export function staleSeedStatuses(boardSlug, tasks) {
+  const bySlug = new Map(seedTasksForBoard(boardSlug).map((r) => [r.slug, r]));
+  return (Array.isArray(tasks) ? tasks : []).filter((t) => {
+    const spec = t && bySlug.get(t.slug);
+    return spec && spec.status === 'done' && t.status === 'not-started';
+  });
+}
+
+// -----------------------------------------------------------------------------
 // boardProgress — the honest roll-up that drives the per-board progress bar and
 // the board-selector pills. Pure tally of the REAL rows passed in (already
 // instance/role-scoped by the caller). pct = done / total, rounded. When a board
@@ -233,6 +257,31 @@ export function tasksForBoard(tasks, boardSlug) {
 }
 
 // -----------------------------------------------------------------------------
+// boardDueByMonth — dated, not-done board items per forecast month. Feeds the
+// 12-Month Workload Forecast so the boards ARE on the timeline (Darrell
+// 2026-07-01: "the boards timeline IS the timeline"; asked again 2026-07-07 —
+// "why don't the boards go into the timelines?"). HONEST: a COUNT of real due
+// items, never invented hours (a board item carries no hours/week — DR-0076).
+// Keys match the forecast's `${year}-${paddedMonthIndex}` convention.
+// -----------------------------------------------------------------------------
+export function boardDueByMonth(tasks, { now = null } = {}) {
+  const base = now ? new Date(now) : new Date();
+  const out = {};
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+    out[`${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`] = 0;
+  }
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (!t || t.status === 'done' || !t.dueDate) continue;
+    const d = new Date(t.dueDate);
+    if (Number.isNaN(d.getTime())) continue;
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+    if (key in out) out[key] += 1;
+  }
+  return out;
+}
+
+// -----------------------------------------------------------------------------
 // slug helpers. New tasks get a non-UUID local id ('bt-...') so the sync
 // substrate's unionPreservingLocal keeps them until their INSERT lands. Seed
 // items carry a STABLE slug so re-seeding is idempotent (the 0059 unique index on
@@ -281,16 +330,42 @@ export const SEED_BOARDS = [
     title: 'Church LED wall + infrastructure',
     domain: 'church',
     blurb: 'COLG sanctuary build: the Mirackle P1.99mm LED video wall and the sovereign church compute/AV stack. Grounded in the church-infra program + the LED signal-chain record.',
-    groupOrder: ['LED video wall', 'Compute + AV stack'],
+    groupOrder: ['LED video wall', 'Compute + AV stack', 'Network project'],
     items: [
-      { key: 'led-layout', group: 'LED video wall', title: 'Confirm 8 columns × 6 rows = 48 Mirackle P1.99mm panels', status: 'done', owner: 'Darrell', notes: 'Layout recorded in-app (led-wall-signal-chain.js) + SVG on the wall record. PRs #407/#418/#453.' },
-      { key: 'led-signal', group: 'LED video wall', title: 'LED data path — 8 lines per COLUMN, direct (no switch)', status: 'done', owner: 'Darrell', notes: 'Recorded: LED data = 8 lines per column direct; ATEM = production, VX1000 = source switch.' },
-      { key: 'led-videoin', group: 'LED video wall', title: 'Video-in via owned KEQINX HDMI-over-Cat6', status: 'in-progress', owner: 'Darrell', notes: 'Owned KEQINX HDMI-over-Cat6 for video-in. Confirm runs + terminations on the finish checklist.' },
-      { key: 'led-finish', group: 'LED video wall', title: 'Finish checklist — mounting, alignment, calibration', status: 'not-started', owner: 'Darrell', notes: 'In-app finish-checklist on the video-wall record; walk it on-site.' },
-      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Ari', notes: 'In-app doc + teaching card shipped with the signal-chain record.' },
+      { key: 'led-layout', group: 'LED video wall', title: 'Confirm 8 columns × 6 rows = 48 Mirackle P1.99mm panels', status: 'done', owner: 'Darrell', notes: 'Layout recorded in-app (led-wall-signal-chain.js) + SVG on the wall record. PRs #407/#418/#453. Pixel map MEASURED 2026-07-03: 320x240/cabinet, wall 2560x1440.' },
+      { key: 'led-signal', group: 'LED video wall', title: 'LED data path — 8 lines per COLUMN, direct (no switch)', status: 'done', owner: 'Darrell', notes: 'CONFIRMED AS BUILT 2026-07-03: 8 of 10 VX1000 Pro ports, one per column, cable enters the TOP cabinet, chains down.' },
+      { key: 'led-videoin', group: 'LED video wall', title: 'Video-in — booth laptop on VX HDMI-3, one layer Full Screen', status: 'done', owner: 'Darrell', notes: 'COMMISSIONED 2026-07-03: first light + live sermon video full-wall same night. Screen saved to receiving cards; Preset 1 = service state. Runbook: 2026-07-03-led-wall-commissioning.md.' },
+      { key: 'led-finish', group: 'LED video wall', title: 'Punch list — warranty modules + EDID 2560x1440 + NovaLCT backup to NAS', status: 'in-progress', owner: 'Darrell', notes: 'A few dark modules (vendor warranty swap, positions photographed); input EDID nicety for 1:1 pixels; copy the NovaLCT config export to the NAS share.' },
+      { key: 'led-teach', group: 'LED video wall', title: 'Teaching card so staff can run the wall', status: 'done', owner: 'Ari', notes: 'In-app doc + teaching card with the signal-chain record; booth CLAUDE.md carries the full runbook. Sunday = PRESET 1, one button.' },
       { key: 'inf-nas', group: 'Compute + AV stack', title: 'Church NAS — the brain + barn (storage, services, backup)', status: 'in-progress', owner: 'Darrell', notes: 'Sovereign church stack. 3-2-1 backup incl. encrypted sealed-blob offsite. Ties infrastructure-class.js.' },
-      { key: 'inf-towers', group: 'Compute + AV stack', title: 'Two compute towers next to the NovaStar (Ollama / XTTS / whisper, LAN-only)', status: 'not-started', owner: 'Darrell', notes: 'TWO tower PCs, specs SME/TBD; compose local AI + voice + transcription, LAN-only. Parallel sovereign local-coder workers (mesh nodes.json).' },
-      { key: 'inf-network', group: 'Compute + AV stack', title: 'UniFi gateway + VLAN walls (family · COLG · TLC · Properties · PoeTech)', status: 'not-started', owner: 'Darrell', notes: 'One door to the internet; separate walled VLAN rooms per domain.' },
+      { key: 'inf-towers', group: 'Compute + AV stack', title: 'Two compute towers (RTX 4070 pair) — Claude residents + Python pipelines', status: 'in-progress', owner: 'Darrell', notes: 'Tower 1 VERIFIED 2026-07-03: livestream-main-pc, RTX 4070 12GB, driver 595.95, Claude Code resident (Claude Max), faster-whisper install in flight, RustDesk-over-Tailscale chosen (Win11 Home = no native RDP host). Tower 2: repeat the recipe (~1 hr); it runs Proclaim + ATEM control Sundays, AI batch in the quiet window.' },
+      { key: 'inf-tailnet', group: 'Network project', title: 'Tailnet verified — the sovereign overlay is live', status: 'done', owner: 'Ari', notes: 'Verified 2026-07-03 from the tower: livestream-main-pc 100.72.5.90, poetech (NAS), kingdom-home, z-fold7, tlcrackstation (offline 23d). Seed doc: 2026-07-03-network-infrastructure-seed.md.' },
+      { key: 'inf-walkthrough', group: 'Network project', title: 'Walk-through inventory — rack/closet photos, switches, APs, ISP/modem', status: 'not-started', owner: 'Darrell', notes: 'Photos of the rack/closet + switch make/models feed the device register; the network-map command on each machine fills the subnet/ARP picture.' },
+      { key: 'inf-rmm', group: 'Network project', title: 'Identify the Tactical RMM agent operator (found on tower 1)', status: 'not-started', owner: 'Darrell', notes: 'Third-party remote-management agent on livestream-main-pc (observed updating Tailscale via winget). Who operates it? Security-posture answer required before the VLAN design.' },
+      { key: 'inf-network', group: 'Network project', title: 'UniFi gateway + VLAN walls (family · COLG · TLC · Properties · PoeTech)', status: 'not-started', owner: 'Darrell', notes: 'One door to the internet; separate walled VLAN rooms per domain. Designed AFTER the walk-through inventory.' },
+    ],
+  },
+
+  // ── 2b. Church media go-live (weekly) ──────────────────────────────────────
+  // Declared by Darrell 2026-07-04: "start the project for the church
+  // infrastructure and this media scripts for our go lives each week - add it
+  // to the PoeTech App build so we can run these projects as a team."
+  {
+    slug: 'board-media-golive',
+    title: 'Church media go-live — weekly pipeline',
+    domain: 'church',
+    blurb: 'The weekly rhythm as braked Python (DR-0083 — no n8n): BG\'s Wednesday PROCLAIM email into the app; Sunday pre-service checks + wall Preset 1; the YouTube program feed (the exact camera switches) into whisper harvest on the towers. Scripts live in infra/church-media-golive/.',
+    groupOrder: ['Ingest (Wednesday)', 'Go-live (Sunday)', 'Harvest (after service)'],
+    items: [
+      { key: 'med-docx', group: 'Ingest (Wednesday)', title: 'Index the local Proclaim docx archive (tower 2)', status: 'not-started', owner: 'Darrell', notes: 'proclaim_docx_index.py — stdlib-only; reads the docx folder the Proclaim team already keeps; extracts date/title/scripture/preacher + segments into proclaim-index.json. One instruction to tower 2\'s Claude runs it.' },
+      { key: 'med-gmail', group: 'Ingest (Wednesday)', title: 'Gmail ingest — BG\'s weekly PROCLAIM email + .docx attachments (NAS Python)', status: 'not-started', owner: 'Ari', notes: 'gmail_ingest.py per DR-0083: full-history pagination (200+ threads verified in the mailbox 2026-07-03), attachment scope, three brakes, run-state to the Loops surface. The one human piece is the Gmail OAuth credential only Darrell holds.' },
+      { key: 'med-oos', group: 'Ingest (Wednesday)', title: 'Order of Service tab — wire to the real BG format', status: 'not-started', owner: 'Ari', notes: 'The tab exists and waits (church-program). The first indexed docx defines the standard-order template; the ingest keeps it fresh weekly.' },
+      { key: 'med-precheck', group: 'Go-live (Sunday)', title: 'Pre-service check — GO/NO-GO an hour before service', status: 'not-started', owner: 'Ari', notes: 'preservice_check.py on booth/tower: disk, GPU, tailnet peers, targets reachable. Problems surface at 9am, not 10:05. A human runs it; the script only reports.' },
+      { key: 'med-preset', group: 'Go-live (Sunday)', title: 'Wall go-live = PRESET 1 (one button) — staff-runnable', status: 'done', owner: 'Darrell', notes: 'Saved during commissioning 2026-07-03: one layer, HDMI-3, Full Screen, brightness standard. Teaching card + booth CLAUDE.md carry it.' },
+      { key: 'med-atem', group: 'Go-live (Sunday)', title: 'ATEM CLI tools — scripted switcher controls, weekday-tested, human-pressed', status: 'not-started', owner: 'Ari', notes: 'The ATEM speaks a network protocol with solid libraries; build cut/macro/stream CLI per AI-FOUNDATION (a click today = an API call tomorrow). ASSISTIVE only — never autonomous during live service (three brakes; human hands on Sunday).' },
+      { key: 'med-youtube', group: 'Harvest (after service)', title: 'YouTube channel index → whisper queue (the videos ARE the camera switches)', status: 'not-started', owner: 'Ari', notes: 'youtube_index.py lists the channel uploads into the tower whisper queue. The published program output is also the switching ground truth for future assistive-ATEM training.' },
+      { key: 'med-whisper', group: 'Harvest (after service)', title: 'faster-whisper transcription on the towers — no video lost', status: 'in-progress', owner: 'Darrell', notes: 'Pipeline install started on tower 1 (2026-07-03): Python 3.12 + ffmpeg + faster-whisper (no PyTorch needed — CTranslate2 wheel). Paused at an approval prompt; resumes on next touch. Then the back-catalog becomes a batch job.' },
+      { key: 'med-library', group: 'Harvest (after service)', title: 'One linked record per sermon: video + transcript + points + order', status: 'not-started', owner: 'Ari', notes: 'The rails exist (sermon-points, sermon-library-sync, harvest-ledger). This task is the join once ingest + harvest both land.' },
     ],
   },
 
@@ -338,6 +413,84 @@ export const SEED_BOARDS = [
       { key: 'suc-docs', group: 'Succession', title: 'Governing documents + access handoff plan', status: 'not-started', owner: 'Darrell', notes: 'DB primary → home hardware (~Jul–Aug 2026); sealed-blob backup at church. Access handoff on the same arc.' },
     ],
   },
+
+  // ── 6. Moore Divahs — Shay's fashion business system ──────────────────────
+  // Declared by Darrell 2026-07-07 ("Add this to our Ways" → DR-0113): the build
+  // is watchable in-app from day one. Spec: docs/99-session-notes/
+  // 2026-07-07-moore-divahs-business-system-discovery.md. Statuses HONEST —
+  // discovery is the only shipped piece at kickoff.
+  {
+    slug: 'board-moore-divahs',
+    title: 'Moore Divahs — business system',
+    domain: 'business-moore-divahs',
+    blurb: 'Shay\'s fashion business (custom clothing, scrub caps, custom shoes + sewing classes) built INTO the app: order pipeline with the 3-week clock, the structured bulk-apparel form, seat-held classes, inventory→margin, KPIs, and a branded customer front door. One backbone, two doors (steward tab + /moore).',
+    groupOrder: ['Foundation', 'Orders', 'Classes', 'Money + KPIs', 'Front door'],
+    items: [
+      { key: 'md-discovery', group: 'Foundation', title: 'Discovery spec captured from Shay + Darrell (living doc)', status: 'done', owner: 'Ari', notes: 'docs/99-session-notes/2026-07-07-moore-divahs-business-system-discovery.md — both service lines, pricing ($45 group cap 10 / $75 one-on-one 2.5hr), 3-week turnaround, change-order ladder (50% floor, Shay-variable), inventory, KPIs, channels.' },
+      { key: 'md-brand', group: 'Foundation', title: 'Brand record seam — Moore Divahs as data, not hardcoded', status: 'done', owner: 'Ari', notes: 'SHIPPED: MOORE_BRAND record (moore-divahs.js) drives the tab AND the /moore door + manifest-moore.webmanifest. The reusable white-label template for the next QC business.' },
+      { key: 'md-crm', group: 'Foundation', title: 'Leads ride the ONE-CRM (business + pipeline config, no fork)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#648): moore business + moore-orders pipeline as CONFIG on the one engine (DR-0081); sources tiktok / whats-going-on-qc / partner-business / moore-divahs-app; anon captures via crm_capture_lead only.' },
+      { key: 'md-engine', group: 'Orders', title: 'Order engine — pipeline, 3-week clock, change-order ladder', status: 'done', owner: 'Ari', notes: 'SHIPPED: lib/moore-divahs.js + 22 pinned tests (moore-divahs.test.js). Clock starts at paid; 50%-floor Shay-variable change fee with fault attribution; card/bank fields structurally stripped.' },
+      { key: 'md-table', group: 'Orders', title: 'custom_orders migration — instance RLS + realtime', status: 'done', owner: 'Ari', notes: 'SHIPPED: 0083-moore-divahs-orders.sql (0059 recipe: instance_id, GRANT authenticated, no anon, 4 policies, realtime) + moore-orders-sync.js round-trip pinned. Passes tenancy/grant/ONE-CRM guards.' },
+      { key: 'md-tab', group: 'Orders', title: 'Moore Divahs tab — the Order Board surface, live in nav', status: 'done', owner: 'Ari', notes: 'SHIPPED: components/MooreDivahs.jsx via surfaces.js + family-gated nav/render (no-leak spread). One screen: who paid, the clock, ship/pickup, follow-up ask, change-order fee preview.' },
+      { key: 'md-bulk', group: 'Orders', title: 'Structured bulk-apparel form (qty × cut × size × color + name roster)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#646/#648 era): line-item editor in the add-order form + pick-list on the card ("6 × adult M · blue — names"). The Google-Doc intake is dead.' },
+      { key: 'md-classes', group: 'Classes', title: 'Classes board — sessions, paid seat holds (group cap 10 / 1-on-1)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#647): class_sessions + class_signups (0084), Classes section in the tab, paid-only seat holds, real seats-left; public listings via moore_public_classes RPC (0085) on the /moore door.' },
+      { key: 'md-inventory', group: 'Money + KPIs', title: 'shop_inventory — materials on hand + spend feeding margin', status: 'done', owner: 'Ari', notes: 'SHIPPED: shop_inventory (0086) + Materials section in the tab (on-hand, unit cost, +/- use, derived value). Margin reads real material spend.' },
+      { key: 'md-kpi', group: 'Money + KPIs', title: 'KPI history + revenue-goal planner', status: 'done', owner: 'Ari', notes: 'SHIPPED: "The numbers" section — revenue by channel, classes group-vs-1:1 + fill, repeat rate, change count, and the goal input ranking lanes by REAL per-unit earnings. Optimize-toward language.' },
+      { key: 'md-door', group: 'Front door', title: 'Branded customer door — /moore standalone boot (PWA installable)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#648): ?moore=1 lean boot — Moore Divahs first, family-of-businesses tabs, pricing + price-out, captures via forced-safe RPCs w/ source=moore-divahs-app; manifest-moore.webmanifest installs under HER name (icon artwork still awaits her asset).' },
+      { key: 'md-customer-view', group: 'Front door', title: 'View as customer — Shay inspects her own app as her customers meet it', status: 'done', owner: 'Ari', notes: 'SHIPPED: 👁 toggle on her in-door steward board → the exact customer view (board hidden, auth line masked, pinned exit strip). Strictly narrowing (doorView, moore-door.js) — can only HIDE privilege, never grant; RLS + my_business_role stay the real gates; session-only so a reload always returns her board. Generalizes with the registry door (cf-registry).' },
+      { key: 'md-share-link', group: 'Front door', title: 'Her-name share link — poetech.us/moore previews as Moore Divahs', status: 'done', owner: 'Ari', notes: 'SHIPPED: static entry page public/moore/index.html carries HER og/title tags (texted links preview "Moore Divahs", not "PoeTech Family OS") then meta-refreshes into the door; /mooredivahs alias in _redirects + vercel.json. Preview ICON still the platform P until Shay\'s artwork lands (md-brand sibling). Full her-name URL = md-dns custom domain.' },
+      { key: 'md-family-tabs', group: 'Front door', title: 'Family-of-businesses tabs carry REAL content — therapists + live service', status: 'done', owner: 'Ari', notes: 'SHIPPED (Darrell 2026-07-07): Practice tab renders the real TLC clinical team (shared lib/tlc-practice.js — same record as the main app, no drift; public marketing facts only, capture stays contact-info-only) + insurance line; Church tab plays the live service in-window / latest message otherwise (church-live.js no-key embeds) + service times. PoeTech tab as-is per Darrell.' },
+      { key: 'md-qr', group: 'Front door', title: 'Share-your-app QR on her board — customers install + keep their history', status: 'done', owner: 'Ari', notes: 'SHIPPED (Darrell 2026-07-07): "Share your app" card on her steward board (in-door, so it lives on her phone) — QR encoding poetech.us/moore + copy link + native Send… sheet. Scanned link opens her-name entry page, installs under HER name (manifest-moore); a signed-in customer\'s orders/class seats ride the 0087 read-own lane on their phone.' },
+      { key: 'md-dns', group: 'Front door', title: 'Custom domain DNS (mooredivahs)', status: 'not-started', owner: 'Darrell', notes: 'Real-world step only Darrell can do: buy the domain + point DNS at the Cloudflare Pages project. Not blocking — poetech.us/moore is the her-name link until then.' },
+      { key: 'md-handles', group: 'Front door', title: 'Shay\'s real social handles (IG / FB / TikTok)', status: 'not-started', owner: 'Darrell', notes: 'Values only Shay holds; wire into the intake link + follow-ups. Email confirmed: mooredivahs1@yahoo.com.' },
+    ],
+  },
+
+  // ── 7. Client-business factory (DR-0114) — the all-clients machinery ──────
+  // Declared by Darrell 2026-07-07: "run this like I will need to moving
+  // forward with all clients... asap." Moore Divahs is the prototype; this
+  // board carries the factory machinery + the P0 entrance overhaul (the login
+  // loop hitting multiple users, and the unified admin/user front door).
+  {
+    slug: 'board-client-factory',
+    title: 'Client-business factory',
+    domain: 'business-poetech',
+    blurb: 'The repeatable client-onboarding machinery (CLIENT-BUSINESS-FACTORY / DR-0114): one generic branded door driven by a business registry, per-client tenants, ONE-CRM pipelines — plus the P0 entrance overhaul so every login is clean.',
+    groupOrder: ['Entrance (P0)', 'Registry', 'Provisioning', 'Commercial', 'Discovery validation (Moore)'],
+    items: [
+      { key: 'cf-loop', group: 'Entrance (P0)', title: 'Kill the login loop (password → PIN → password)', status: 'done', owner: 'Ari', notes: 'SHIPPED (#656): awaitPersistedSession() closes the ?login=1 reload race; isInAppBrowser() warns IG/FB webview users (their browsers drop sign-ins). Regression-pinned (session-handoff.test.js).' },
+      { key: 'cf-door-roles', group: 'Entrance (P0)', title: 'Unified door: Admin login + User login, role-decided', status: 'done', owner: 'Ari', notes: 'SHIPPED (#657): Admin/User login on her front screen, in-place sign-in, my_business_role RPC (0090) decides — owner/admin renders the steward board IN-DOOR; customers get My Orders. Door also gained PoeTech themes + text-size (theme-css extraction; monolith shrank 5932→5447).' },
+      { key: 'cf-registry', group: 'Registry', title: 'Business registry — one generic door at ?biz=<slug>', status: 'not-started', owner: 'Ari', notes: 'Brand/tabs/pipeline/policies/door-slug as DATA; one BusinessDoor renders any registered business; Moore converts to the first row (?moore=1 stays as alias). New client door = a registry row, never a new component. HELD (DR-0075) while Shay\'s demo day is live — converting her front door mid-demo risks the surface she is showing; Tier B/C soak applies. re-review: 2026-07-09.' },
+      { key: 'cf-instance', group: 'Provisioning', title: 'moore-divahs instance + Shay\'s admin seat', status: 'done', owner: 'Ari', notes: 'SHIPPED (#656, 0089): moore-divahs instance provisioned; Shay owner (mooredivahs1@yahoo.com; invite auto-consumes on first sign-in if her account was not yet created); Darrell admin oversight. Row re-point of legacy poe-family moore data rides the next data increment.' },
+      { key: 'cf-runbook', group: 'Provisioning', title: 'Per-client provisioning runbook (instance + seats + registry row)', status: 'done', owner: 'Ari', notes: 'SHIPPED: docs/templates/client-provisioning-runbook.md — factory steps 4-6 as an executable per-client checklist, every step citing its Moore-proven artifact (0089 tenant pattern, ONE-CRM config, forced-safe door RPCs 0088/0090-0092, 0087 read-own lane, DR-0107 deploy proof, DR-0104 live review). Target clock: same day.' },
+      { key: 'cf-relay', group: 'Provisioning', title: 'Inquiry email relay per business (owner notified, address never public)', status: 'not-started', owner: 'Darrell', notes: 'NAS-side sender (three brakes); the credential is Darrell\'s hand. Until then each owner\'s inbox is their CRM pipeline view.' },
+      { key: 'cf-pricing', group: 'Commercial', title: 'Business-build pricing — DECLARED (DR-0117): $2,000 min, 90 days same as cash, $150/mo support', status: 'done', owner: 'Darrell', notes: 'SET by Darrell 2026-07-07 (small no-overhead segment): $500 deposit / $500 at MVP / balance over the rest of the 90 days, or full upfront; $150/mo Feedback-portal support, beyond-scope re-enters at the minimum. Door price-out upgraded from "custom quote" to the figures (moore-door.js reads client-engagements.js). Larger builds still quote UP by Darrell\'s word.' },
+      { key: 'cf-deposit-gate', group: 'Commercial', title: 'The deposit gate — no deposit recorded, no build starts (structural)', status: 'done', owner: 'Ari', notes: 'SHIPPED: lib/client-engagements.js canStartBuild() + derived stages (awaiting-deposit → cleared-to-build → mvp-review → in-term/past-due → complete) + the 90-day clock from the first recorded payment; pinned by client-engagements.test.js. Payments recorded, never processed (Moore §7). Steward surface for engagements rides a next increment.' },
+      { key: 'cf-voice-discovery', group: 'Commercial', title: 'Recorded discovery — voice notes / LLM conversation → reviewed requirements → MVP', status: 'in-progress', owner: 'Ari', notes: 'Parser + extraction contract SHIPPED; the in-app review/import surface SHIPPED (Projects → ◈ Clients: paste requirements.json → preview → save extracted (discovery_items, 0093) → confirm/edit/reject with the client\'s source_quote as the receipt → confirmed requirements import as REAL board_tasks rows). Remaining: the NAS transcription ride (existing Whisper rails) feeding the paste box automatically.' },
+
+      // ── Discovery validation (Moore) — the Current → Future → Gap → Decision
+      //    lane (DR-0119; Darrell's Mosaic-board workflow applied to the first
+      //    client). Every outcome below is grounded in a shipped PR or a
+      //    recorded decision — never a painted Fit (DR-0076).
+      { key: 'cfv-all-current', group: 'Discovery validation (Moore)', title: 'Her business data lived inside the shared poe-family instance', status: 'done', owner: 'Ari', notes: 'The pre-factory state: no tenant of her own, steward access only through the family.', links: { flow: 'current-state', unit: 'All units', outcome: 'gap' } },
+      { key: 'cfv-all-future', group: 'Discovery validation (Moore)', title: 'Her own tenant: moore-divahs instance + Shay\'s owner seat', status: 'done', owner: 'Ari', notes: 'SHIPPED (#656, 0089): instance provisioned; Shay owner (invite auto-consumes on first sign-in); Darrell admin oversight; RLS isolation (0083).', links: { flow: 'future-state', unit: 'All units', outcome: 'fit' } },
+      { key: 'cfv-all-decision', group: 'Discovery validation (Moore)', title: 'One generic registry-driven door (?biz=slug) — Moore converts to the first row', status: 'not-started', owner: 'Ari', notes: 'cf-registry: a new client door = a registry row, never a new component. Until it lands, the outcome here stays honestly unknown.', links: { flow: 'decision', unit: 'All units', outcome: 'unknown' } },
+
+      { key: 'cfv-ord-current', group: 'Discovery validation (Moore)', title: 'Five DM inboxes re-read to know who paid, who is in week two, ship vs pickup', status: 'done', owner: 'Ari', notes: 'The inbox-digging killer named in discovery 2026-07-07 — the reason the order board exists.', links: { flow: 'current-state', unit: 'Orders', outcome: 'gap' } },
+      { key: 'cfv-ord-future', group: 'Discovery validation (Moore)', title: 'One order board: stages, the 3-week clock, paid state, honest KPIs', status: 'done', owner: 'Ari', notes: 'SHIPPED: MooreDivahs order board (stages + orderClock + KPI tiles; seeds excluded from stats).', links: { flow: 'future-state', unit: 'Orders', outcome: 'fit' } },
+      { key: 'cfv-ord-gap', group: 'Discovery validation (Moore)', title: 'Past DM orders and customers were not in the system', status: 'done', owner: 'Ari', notes: 'CLOSED (#666): history backfill (paste her past customers in) + CSV export (her data out, always).', links: { flow: 'gap', unit: 'Orders', outcome: 'fit' } },
+      { key: 'cfv-ord-decision', group: 'Discovery validation (Moore)', title: 'Money is recorded, never processed — the board records Square / Venmo / Apple Pay', status: 'done', owner: 'Darrell', notes: 'DELIBERATE boundary (Moore §7): payment stays the owner\'s hand; partial fit by design, the uncovered part is processing and it stays uncovered on purpose.', links: { flow: 'decision', unit: 'Orders', outcome: 'partial-fit' } },
+
+      { key: 'cfv-door-current', group: 'Discovery validation (Moore)', title: 'Word of mouth + IG DMs; no page of her own to send people to', status: 'done', owner: 'Ari', notes: 'Pre-door state from discovery.', links: { flow: 'current-state', unit: 'Storefront & sharing', outcome: 'gap' } },
+      { key: 'cfv-door-future', group: 'Discovery validation (Moore)', title: 'Branded door at poetech.us/moore: showcase gallery, view-as-customer, share QR', status: 'done', owner: 'Ari', notes: 'SHIPPED (#665 showcase, #669 customer lens + her-name link, #672 share QR on her board).', links: { flow: 'future-state', unit: 'Storefront & sharing', outcome: 'fit' } },
+      { key: 'cfv-door-gap', group: 'Discovery validation (Moore)', title: 'Link previews still show the platform icon, not her artwork', status: 'in-progress', owner: 'Darrell', notes: 'Texted links preview "Moore Divahs" (her og/title tags), but the preview ICON is the platform P until her artwork lands (md-brand). Her artwork is her hand.', links: { flow: 'gap', unit: 'Storefront & sharing', outcome: 'partial-fit' } },
+      { key: 'cfv-door-decision', group: 'Discovery validation (Moore)', title: 'Ship the her-name share link now; the custom domain rides md-dns', status: 'done', owner: 'Darrell', notes: 'poetech.us/moore + /mooredivahs alias live; full her-name URL waits on the domain (Governor\'s hand — DNS).', links: { flow: 'decision', unit: 'Storefront & sharing', outcome: 'partial-fit' } },
+
+      { key: 'cfv-cls-current', group: 'Discovery validation (Moore)', title: 'Class signups lived in texts and paper lists', status: 'done', owner: 'Ari', notes: 'Pre-board state from discovery.', links: { flow: 'current-state', unit: 'Classes', outcome: 'gap' } },
+      { key: 'cfv-cls-future', group: 'Discovery validation (Moore)', title: 'Sessions, paid signups, and seat caps on her board', status: 'done', owner: 'Ari', notes: 'SHIPPED: classes on the steward board (sessions + paid signups + seatsLeft/canBook caps).', links: { flow: 'future-state', unit: 'Classes', outcome: 'fit' } },
+      { key: 'cfv-cls-decision', group: 'Discovery validation (Moore)', title: 'Classes ride the same board as orders — one seat for her whole week', status: 'done', owner: 'Ari', notes: 'Classes tab shipped in the Moore section tabs; the gap step of this lane is honestly not-yet-examined.', links: { flow: 'decision', unit: 'Classes', outcome: 'fit' } },
+    ],
+  },
 ];
 
 export const SEED_BOARD_BY_SLUG = Object.fromEntries(SEED_BOARDS.map((b) => [b.slug, b]));
@@ -365,6 +518,105 @@ export function seedTasksForBoard(boardSlug) {
     notes: it.notes || null,
     links: it.links || {},
   }));
+}
+
+// =============================================================================
+// PHASES ON THE TIMELINE — the finish ripple (DR-0120)
+// =============================================================================
+// Darrell 2026-07-07: "Why don't the boards show up on the timelines and why
+// aren't we adding the context to the Timelines and updating the boards after
+// we finish each faze or swim?" The gap: the boards' only timeline presence was
+// the dated-item count chip (boardDueByMonth) — and almost no board item
+// carries a date — and finishing a phase (a board group / swim lane) recorded
+// NOTHING. These helpers close both, honestly (DR-0076: derived from the real
+// rows and the real recorded moment, never an invented date).
+//
+//   * boardPhases       — the per-group roll-up: each group is a PHASE with an
+//                         honest done/total and a complete flag.
+//   * withPhaseCompletion — the ripple. When a status patch moves the LAST open
+//                         item of a group to done, the patch gains an append-only
+//                         kind='phase-complete' entry on links.history — the
+//                         same synced jsonb the handoff record already rides
+//                         (no migration; every device sees it live).
+//   * phaseCompletions  — the derived timeline-context feed: every recorded
+//                         phase completion across all boards, newest first.
+//   * boardTimelineLanes — one lane per live board for the Projects Timeline:
+//                         title + progress + the phase walk + the current phase
+//                         + the nearest real due date. Boards ARE on the
+//                         timeline as lanes, not only as a count chip.
+// -----------------------------------------------------------------------------
+export function boardPhases(tasks, groupOrder = []) {
+  return groupTasks(tasks, groupOrder).map((g) => {
+    const p = boardProgress(g.tasks);
+    return { label: g.label, ...p, complete: p.total > 0 && p.done === p.total };
+  });
+}
+
+export function withPhaseCompletion(allTasks, task, patch, { at = null } = {}) {
+  if (!patch || patch.status !== 'done' || !task || task.status === 'done') return patch;
+  const group = groupLabelOf(task);
+  const peers = tasksForBoard(allTasks, task.boardSlug).filter((t) => groupLabelOf(t) === group);
+  if (!peers.length) return patch;
+  const othersDone = peers.every((t) => t.slug === task.slug || t.status === 'done');
+  if (!othersDone) return patch;
+  const entry = {
+    at: at || null,
+    kind: 'phase-complete',
+    phase: group,
+    board: task.boardSlug,
+    boardTitle: task.boardTitle || null,
+    note: `Phase "${group}" completed — every item done.`,
+  };
+  // Respect a links patch already in flight (e.g. a handoff in the same write);
+  // otherwise append onto the task's current links.
+  return { ...patch, links: appendHistory(patch.links !== undefined ? patch.links : task.links, entry) };
+}
+
+export function phaseCompletions(tasks) {
+  const out = [];
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    for (const e of taskHistory(t)) {
+      if (e && e.kind === 'phase-complete') {
+        out.push({
+          at: e.at || null,
+          phase: e.phase || groupLabelOf(t),
+          boardSlug: e.board || t.boardSlug,
+          boardTitle: e.boardTitle || t.boardTitle || t.boardSlug,
+        });
+      }
+    }
+  }
+  return out.sort((a, b) => (Date.parse(b.at || '') || 0) - (Date.parse(a.at || '') || 0));
+}
+
+export function boardTimelineLanes(tasks) {
+  const bySlug = new Map();
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (!t || !t.boardSlug) continue;
+    if (!bySlug.has(t.boardSlug)) bySlug.set(t.boardSlug, []);
+    bySlug.get(t.boardSlug).push(t);
+  }
+  const lanes = [];
+  for (const [slug, rows] of bySlug) {
+    const spec = SEED_BOARD_BY_SLUG[slug];
+    const phases = boardPhases(rows, spec?.groupOrder || []);
+    let nextDue = null;
+    for (const t of rows) {
+      if (t.status === 'done' || !t.dueDate) continue;
+      const v = Date.parse(t.dueDate);
+      if (!Number.isNaN(v) && (nextDue == null || v < nextDue)) nextDue = v;
+    }
+    lanes.push({
+      slug,
+      title: rows.find((r) => r && r.boardTitle)?.boardTitle || spec?.title || slug,
+      progress: boardProgress(rows),
+      phases,
+      currentPhase: phases.find((p) => !p.complete)?.label || null,
+      nextDue: nextDue != null ? new Date(nextDue).toISOString().slice(0, 10) : null,
+    });
+  }
+  const order = new Map(SEED_BOARDS.map((b, i) => [b.slug, i]));
+  return lanes.sort((a, b) => (order.get(a.slug) ?? Infinity) - (order.get(b.slug) ?? Infinity) || a.title.localeCompare(b.title));
 }
 
 // mergedBoardList — the full set of boards to show: every SEED_BOARD (so an

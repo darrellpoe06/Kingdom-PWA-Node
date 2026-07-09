@@ -3,6 +3,7 @@
 // monolith-side data ownership (OPPORTUNITY_LIBRARY lives there).
 import React, { useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -90,17 +91,13 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
     if (setView) setView('projects');
   };
 
-  return (
-    <div className="space-y-10">
-      {/* HERO — orient the user */}
-      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Dev/Ops · Your Entrepreneurial Options</div>
-        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Your skills · what's working for people like you · how PoeTech wraps it.</h2>
-        <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
-          Add the skills, hours, and situation of each person in your household. We match them against curated entrepreneurial paths that real people run today, with what PoeTech can build to wrap that path in tech. <strong>You're seeing {optionsPerProfile} option{optionsPerProfile === 1 ? '' : 's'} per person at your tier.</strong>
-        </p>
-      </section>
-
+  const sections = [
+    {
+      id: 'options',
+      label: 'My options',
+      icon: 'sliders',
+      render: () => (
+        <>
       {/* SKILL PROFILES — editor */}
       <section aria-labelledby="profiles-h">
         <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
@@ -197,12 +194,20 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
         </p>
       </section>
 
-      {/* MY ACTIVE PIPELINE — kept from prior version */}
+      {/* MY ACTIVE PIPELINE — kept from prior version. Seed rows (ids o1..oN)
+          are the SEED-DATA-AS-ASPIRATION starter picture; the 2026-07-03 claims
+          audit found them rendering unlabeled under "actively in motion" — a
+          painted list. They now carry the sample banner until real rows exist. */}
       <section aria-labelledby="pipeline-h">
         <SectionTitle eyebrow="Pipeline">My Active Pipeline · Near-term opportunities</SectionTitle>
         <p id="pipeline-h" className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           What's actively in motion this year. Each row compounds into the household projection. Active conversations get priority.
         </p>
+        {opportunities.length > 0 && opportunities.every((o) => /^o\d+$/.test(String(o.id))) && (
+          <p className="text-xs text-[#B85838] border border-[#B85838] bg-[#FAF8F4] px-3 py-2 mb-3 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>Sample pipeline.</strong> These rows are the starter picture of what a working pipeline looks like — not your live deals. They&apos;re replaced as your real opportunities land.
+          </p>
+        )}
         {Object.entries(grouped).map(([person, items]) => (
           <section key={person} className="mb-4">
             <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3>
@@ -228,7 +233,15 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
           </section>
         ))}
       </section>
-
+        </>
+      ),
+    },
+    {
+      id: 'help',
+      label: 'How we help',
+      icon: 'tools',
+      render: () => (
+        <>
       {/* DEMOTED — was the lead, now the answer to "I picked one, who builds it?" */}
       <section className="bg-[#FAF8F4] border border-[#1A1815] p-4 sm:p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Picked one? Here's how PoeTech wraps it.</div>
@@ -236,10 +249,45 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
           The four engagement models below are how PoeTech actually builds the technology around an option you pick — from a Saturday hobbyist setup up through full enterprise transformation.
         </p>
       </section>
+      <PoeTechDifferentiation />
+        </>
+      ),
+    },
+    {
+      id: 'pricing',
+      label: 'Pricing & why us',
+      icon: 'coins',
+      render: () => (
+        <>
       <PoeTechServicesPortfolio />
+        </>
+      ),
+    },
+    {
+      id: 'outlook',
+      label: 'Outlook',
+      icon: 'chart',
+      render: () => (
+        <>
       <PoeTechProjections />
       <LowHangingFruit />
-      <PoeTechDifferentiation />
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-10">
+      {/* HERO — orient the user */}
+      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Dev/Ops · Your Entrepreneurial Options</div>
+        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Your skills · what's working for people like you · how PoeTech wraps it.</h2>
+        <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+          Add the skills, hours, and situation of each person in your household. We match them against curated entrepreneurial paths that real people run today, with what PoeTech can build to wrap that path in tech. <strong>You're seeing {optionsPerProfile} option{optionsPerProfile === 1 ? '' : 's'} per person at your tier.</strong>
+        </p>
+      </section>
+
+      <SectionTabs sections={sections} ariaLabel="Opportunities" idBase="opps" defaultId="options" />
     </div>
   );
 }

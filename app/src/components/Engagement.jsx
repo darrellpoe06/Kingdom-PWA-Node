@@ -3,9 +3,11 @@
 // two-way message thread, both on the existing Supabase feedback/realtime
 // pattern (RLS-scoped per instance; INSERT-streamed via postgres_changes).
 //
-// Trivia questions are seeded here as NON-SENSITIVE demo content (the DB only
-// stores answers, never the prompts). The message thread is bound to
-// subscribeMessages() so every signed-in family member sees the same lane live.
+// Trivia renders the LIVE trivia_questions row when one exists (BG's own
+// questions via engagement-sync.getActiveQuestion, live by default, gated only
+// by the deterministic fidelity check); otherwise the authored John-18 anchor
+// set below, dated honestly. The message thread is bound to subscribeMessages()
+// so every signed-in family member sees the same lane live.
 //
 // Accessibility: white cards / #1A1815 body text (>= 16:1), #5A5751 secondary
 // (~7:1), green #166534 + red #991B1B verdicts (>= 6:1), all interactive
@@ -15,20 +17,24 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
-import { uploadTriviaAnswer, sendMessage, subscribeMessages } from '../lib/engagement-sync.js';
+import {
+  uploadTriviaAnswer, sendMessage, subscribeMessages,
+  getActiveQuestion, getRecentQuestions, chooseTriviaSource,
+} from '../lib/engagement-sync.js';
 
 // -----------------------------------------------------------------------------
-// Featured trivia + sermon anchor. This is a FIXED anchor set from a specific
+// FALLBACK trivia + sermon anchor. This is a FIXED anchor set from a specific
 // message (John 18 / I Peter 5), NOT freshly-generated daily content — so the UI
 // shows its real date and does not claim "today" (Darrell 2026-06-15: reports must
-// be real, never painted freshness). Fresh daily questions begin when the church
-// inbox pipeline is connected (BG's weekly message → extract → LIVE BY DEFAULT —
-// these are BG's OWN questions, so there is no human-approval gate; only a
-// verifiable extraction-fidelity check stands between the message and the card,
-// per engagement-sync.checkQuestionFidelity). That pipeline is blocked on
-// Christina's one-time Gmail OAuth, the same consent that opens the banking
-// import. Until then this anchor set is honest about being an anchor set.
+// be real, never painted freshness). It renders ONLY when no live trivia_questions
+// row exists for the church instance: TriviaCard fetches the live source first
+// (engagement-sync.getActiveQuestion — BG's OWN questions, live by default, no
+// human-approval gate; the deterministic chooseTriviaSource/checkQuestionFidelity
+// pair is the only thing between the row and the card). A live question renders
+// with its OWN real date + provenance from the row; this anchor set stays honest
+// about being an anchor set whenever it's what shows.
 // -----------------------------------------------------------------------------
 const ANCHOR_ISO = '2026-06-10';
 const TODAY_ISO = ANCHOR_ISO; // kept so the question ids below stay stable
@@ -76,9 +82,157 @@ const TRIVIA = [
 ];
 
 // -----------------------------------------------------------------------------
-// Trivia card
+// Trivia card — live-source switch. Fetches the active trivia_questions row (and
+// the recent history) on mount and whenever auth flips, the same signedIn keying
+// MessageThread uses for its subscription. The pure chooseTriviaSource decides:
+// a real, fidelity-passing row renders live; anything else falls back to the
+// authored anchor set with its honest dating. Both paths write answers through
+// the same uploadTriviaAnswer lane.
 // -----------------------------------------------------------------------------
 function TriviaCard({ signedIn }) {
+  const [liveQuestion, setLiveQuestion] = useState(null);
+  const [recentQuestions, setRecentQuestions] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn) {
+      // Signed out there is no instance to read from — the anchor set shows.
+      setLiveQuestion(null);
+      setRecentQuestions([]);
+      return undefined;
+    }
+    getActiveQuestion().then((q) => { if (alive) setLiveQuestion(q); });
+    getRecentQuestions(6).then((qs) => { if (alive) setRecentQuestions(qs); });
+    return () => { alive = false; };
+  }, [signedIn]);
+
+  const source = chooseTriviaSource(liveQuestion);
+  if (source.mode === 'live') {
+    return <LiveTriviaCard question={source.question} recent={recentQuestions} />;
+  }
+  return <AnchorTriviaCard signedIn={signedIn} />;
+}
+
+// -----------------------------------------------------------------------------
+// Live trivia card — renders one real trivia_questions row: BG's own question,
+// its own scripture ref, and its own real message date/provenance (never the
+// anchor's copy). Multiple choice (the row shape carries labeled choices);
+// grading is app-side against correct_choice, answers flow through the same
+// uploadTriviaAnswer path with question_uuid tying the answer to the row.
+// -----------------------------------------------------------------------------
+const SOURCE_LABELS = {
+  'bg-email': "Bishop Gwin's own question",
+  youtube: 'from the message broadcast',
+};
+
+function LiveTriviaCard({ question, recent }) {
+  // result: { key, correct } for the picked choice; resets when the row changes.
+  const [result, setResult] = useState(null);
+  useEffect(() => { setResult(null); }, [question.id]);
+
+  const correctChoice = (question.choices || []).find(
+    (ch) => String(ch.key) === String(question.correctChoice)
+  );
+  const dateIso = question.messageDate || question.activeDate;
+  const sourceLabel = SOURCE_LABELS[question.source];
+  const history = (recent || []).filter((q) => q.id !== question.id);
+
+  function pick(choice) {
+    const correct = String(choice.key) === String(question.correctChoice);
+    setResult({ key: choice.key, correct });
+    // Best-effort write; question_uuid ties the answer to the stored row.
+    uploadTriviaAnswer({
+      questionId: String(question.id),
+      questionUuid: question.id,
+      answer: choice.label,
+      isCorrect: correct,
+    });
+  }
+
+  return (
+    <section aria-labelledby="trivia-heading" className="bg-white border border-[#1A1815] p-5 mb-6">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+        Featured Trivia{question.scriptureRef ? <> &middot; {question.scriptureRef}</> : null}
+      </div>
+      <h3
+        id="trivia-heading"
+        className="text-xl mb-1"
+        style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}
+      >
+        {question.prompt}
+      </h3>
+      {/* Real provenance from the row — no date is painted when the row has none. */}
+      {(dateIso || sourceLabel) && (
+        <p className="text-[0.6875rem] text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          {dateIso ? `From the message of ${fmtAnchor(dateIso)}` : 'From the pastor’s message'}
+          {sourceLabel ? ` · ${sourceLabel}` : ''}.
+        </p>
+      )}
+
+      <ul className="space-y-2">
+        {(question.choices || []).map((choice) => {
+          const picked = result && String(result.key) === String(choice.key);
+          return (
+            <li key={choice.key}>
+              <button
+                type="button"
+                onClick={() => pick(choice)}
+                aria-pressed={!!picked}
+                className={`w-full text-left border px-3 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                  picked
+                    ? 'bg-[#1A1815] text-white border-[#1A1815]'
+                    : 'border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]'
+                }`}
+                style={{ fontFamily: '"Fraunces", serif' }}
+              >
+                <span className="text-[0.6875rem] uppercase tracking-wider mr-2">{String(choice.key)}.</span>
+                {choice.label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {result && (
+        <div role="status" className="mt-3 text-sm" style={{ fontFamily: '"Fraunces", serif' }}>
+          {result.correct ? (
+            <p className="text-[#166534] font-semibold">
+              &#10003; Correct &mdash; {correctChoice ? correctChoice.label : String(question.correctChoice)}
+              {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
+            </p>
+          ) : (
+            <p className="text-[#991B1B] font-semibold">
+              Not quite. The answer is {correctChoice ? correctChoice.label : String(question.correctChoice)}
+              {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
+            </p>
+          )}
+          {question.note && <p className="text-[#5A5751] mt-1">{question.note}</p>}
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-[#E8E4DC]">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">
+            Recent questions
+          </div>
+          <ul className="space-y-1">
+            {history.map((q) => (
+              <li key={q.id} className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                {q.prompt}
+                {q.messageDate ? ` — ${fmtAnchor(q.messageDate)}` : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Anchor trivia card — the honest fallback (see the anchor-set note above).
+// -----------------------------------------------------------------------------
+function AnchorTriviaCard({ signedIn }) {
   // answers: { [questionId]: { text, correct } }
   const [answers, setAnswers] = useState({});
   const [drafts, setDrafts] = useState({});
@@ -191,6 +345,7 @@ function MessageThread({ signedIn }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -214,14 +369,21 @@ function MessageThread({ signedIn }) {
     if (!text || sending) return;
     setSending(true);
     const result = await sendMessage(text);
-    if (result?.uploaded || result?.skipped) setDraft('');
+    // Clear the draft ONLY on a real upload. The old `|| result?.skipped`
+    // branch also cleared on insert-error/no-church, silently swallowing the
+    // person's words (2026-07-03 claims audit). A signed-out skip keeps the
+    // draft too — the sign-in note below the box already explains why.
+    if (result?.uploaded) { setDraft(''); setSendError(null); }
+    else setSendError(result?.skipped === 'signed-out'
+      ? 'Sign in with your church account to send — your message is still here.'
+      : `Could not send (${result?.skipped || 'error'}) — your message is still here.`);
     setSending(false);
   }
 
   return (
     <section aria-labelledby="thread-heading" className="bg-white border border-[#1A1815] p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
-        Family Thread &middot; Live
+        Church Family Thread &middot; Live
       </div>
       <h3
         id="thread-heading"
@@ -244,9 +406,22 @@ function MessageThread({ signedIn }) {
             aria-label="Message thread"
             className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3 max-h-72 overflow-y-auto space-y-2"
           >
+            {/* The house's standing WELCOME opens the thread (Darrell
+                2026-07-08: "Add an initial welcome message and filler to the
+                public space"). Rendered as the house speaking — clearly ours,
+                never a painted user message (DR-0076). */}
+            <div className="border-l-2 border-[#5A6E3D] bg-white px-2.5 py-2">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">The Church of the Living God · welcome</span>
+              <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                Welcome to the family thread — we&apos;re glad you&apos;re here. This is the church family&apos;s living room: say hello, share a praise report, ask for prayer, or pass a word along. Everyone signed in sees it live.
+              </p>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                A few ways to start: introduce yourself and your house · share what Yahweh did this week · ask the family to stand with you in prayer · invite someone to Sunday.
+              </p>
+            </div>
             {messages.length === 0 ? (
               <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                No messages yet. Say hello &mdash; everyone signed in will see it live.
+                No messages from the family yet — yours can be the first. Say hello below.
               </p>
             ) : (
               messages.map((m) => (
@@ -295,6 +470,9 @@ function MessageThread({ signedIn }) {
               {sending ? 'Sending…' : 'Send'}
             </button>
           </form>
+          {sendError && (
+            <p role="status" className="mt-2 text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{sendError}</p>
+          )}
         </>
       )}
     </section>
@@ -317,11 +495,19 @@ export default function Engagement() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
+  // Two swipeable sections instead of a stacked scroll (Darrell 2026-07-04:
+  // "sliding tabs for all tabs instead of a long scroll"). The title stays
+  // pinned above the strip. Each card mounts lazily — the thread's realtime
+  // subscription starts only when its tab is actually opened.
+  const sections = [
+    { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
+    { id: 'thread', label: 'Messages', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+  ];
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
-      <TriviaCard signedIn={signedIn} />
-      <MessageThread signedIn={signedIn} />
+      <SectionTabs sections={sections} ariaLabel="Engagement sections" idBase="engage" defaultId="trivia" />
     </div>
   );
 }

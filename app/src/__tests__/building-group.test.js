@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildingKeyOf, unitLabelOf, buildingRollup, groupDoorsByBuilding,
-  doorCountOf, buildRestoreUnits,
+  doorCountOf, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels,
 } from '../lib/building-group.js';
 
 // REGRESSION GUARD (805 N Prospect, 2026-07-01): a four-plex must stay FOUR
@@ -106,6 +106,76 @@ describe('buildRestoreUnits — the in-app restore control', () => {
     expect(doors.map((d) => d.unitLabel)).toEqual(['Apt 2', 'Apt 3', 'Apt 4']);
     // With the base kept as Apt 1, the building would read 4 doors total.
     expect(1 + doorCountOf(doors)).toBe(4);
+  });
+});
+
+describe('defaultUnitLabels', () => {
+  it('seeds Apt 1..N for the door-count dropdown', () => {
+    expect(defaultUnitLabels(4)).toEqual(['Apt 1', 'Apt 2', 'Apt 3', 'Apt 4']);
+    expect(defaultUnitLabels(0)).toEqual([]);
+    expect(defaultUnitLabels('')).toEqual([]);
+  });
+});
+
+describe('buildNewBuildingDoors — the multi-unit ADD flow', () => {
+  const formPayload = () => ({
+    name: '805 N Prospect',
+    address: '805 N Prospect', city: 'Champaign', state: 'IL', zip: '61820',
+    tenantName: 'Tracy Williams',
+    lat: 40.123, lon: -88.258,
+    propertyType: 'multi-family',
+    units: 4,
+    building: '',
+    unitLabel: '',
+    rent: 850, actual: 850,
+    status: 'paying', entityId: 'e-poeprops',
+    purchasePrice: 120000, purchaseDate: '2026-01-15', estimatedValue: 180000,
+    mortgage: { balance: 70000, rate: 6.5, monthlyPI: 442, escrow: 120, estimated: false },
+    notes: 'major rehab per channel',
+  });
+
+  it('one save = one door PER unit, all sharing the address under one building', () => {
+    const doors = buildNewBuildingDoors(formPayload(), defaultUnitLabels(4));
+    expect(doors).toHaveLength(4);
+    expect(doors.map((d) => d.name)).toEqual([
+      '805 N Prospect Apt 1', '805 N Prospect Apt 2', '805 N Prospect Apt 3', '805 N Prospect Apt 4',
+    ]);
+    for (const d of doors) {
+      expect(d.building).toBe('805 N Prospect');
+      expect(d.address).toBe('805 N Prospect');
+      expect(d.city).toBe('Champaign');
+      expect(d.units).toBe(1);           // each is its own door — never a units:N counter
+      expect(d.rent).toBe(850);          // rent is per door
+      expect(d.entityId).toBe('e-poeprops');
+    }
+    // The grouped display reads as ONE building with FOUR doors.
+    const entries = groupDoorsByBuilding(doors.map((d, i) => ({ ...d, id: `r-${i}` })));
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe('building');
+    expect(entries[0].rollup.doorCount).toBe(4);
+  });
+
+  it('building-level figures land on the FIRST door only, so totals count them once', () => {
+    const doors = buildNewBuildingDoors(formPayload(), defaultUnitLabels(3));
+    expect(doors[0].tenantName).toBe('Tracy Williams');
+    expect(doors[0].mortgage.balance).toBe(70000);
+    expect(doors[0].purchasePrice).toBe(120000);
+    expect(doors[0].notes).toBe('major rehab per channel');
+    for (const d of doors.slice(1)) {
+      expect(d.tenantName).toBe('');
+      expect(d.mortgage.balance).toBe(0);
+      expect(d.mortgage.rate).toBe(6.5); // the building's rate carries as an estimate
+      expect(d.purchasePrice).toBe(0);
+      expect(d.notes).toBe('');
+    }
+    // Portfolio mortgage total = the real building mortgage, not N× it.
+    expect(doors.reduce((s, d) => s + d.mortgage.balance, 0)).toBe(70000);
+  });
+
+  it('respects edited labels and an explicit building name', () => {
+    const doors = buildNewBuildingDoors({ ...formPayload(), building: 'Prospect Fourplex' }, ['Unit A', 'Unit B']);
+    expect(doors.map((d) => d.unitLabel)).toEqual(['Unit A', 'Unit B']);
+    expect(doors.every((d) => d.building === 'Prospect Fourplex')).toBe(true);
   });
 });
 

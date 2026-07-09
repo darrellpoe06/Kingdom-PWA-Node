@@ -2,10 +2,39 @@
 // per EDITABLE-EVERYWHERE.md + IDENTITY-ROLES-AUDIT.md. The original was a
 // read-only one-liner; this version supports Add / Edit / Delete with
 // lifecycle log entries written on every save.
-import React, { useState } from 'react';
+//
+// WORKER MANAGER + WORKER VOICE (2026-07-05, Darrell: "we need the system to
+// be our 1099 workers managers and also hear their perspectives on
+// operations"). Two additions, both on existing rails:
+//   - Manager state per outbound worker: their open work orders (from the
+//     OPTIONAL `incidents` prop — the shell mount doesn't pass it yet, so an
+//     honest note shows until it does; nothing is painted), YTD paid (already
+//     real), and one-tap follow-up (tel:/sms:/mailto: from the real contact).
+//   - Worker voice: the family records what a worker said about the operation
+//     after a job. It ships through the EXISTING feedback rail
+//     (uploadFeedback, tagged 'worker-ops') so it lands in the live
+//     cross-device stream and the Concerns board read-through. Recent entries
+//     render below via subscribeFeedback — the same self-subscribe pattern
+//     Engagement's MessageThread proves out.
+import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
+import { smsHref } from '../lib/dispatch.js';
+import { uploadFeedback, subscribeFeedback } from '../lib/feedback-sync.js';
+import { onAuthChange } from '../lib/supabase.js';
+import {
+  WORKER_VOICE_AREA, workerOpenIncidents, buildFollowUpMessage,
+  buildWorkerVoiceRecord, isWorkerVoice, voiceEntries,
+} from '../lib/worker-ops.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
+
+// Real timestamp, human-readable. Unparseable input renders as-is (honest)
+// rather than inventing a date.
+const fmtWhen = (iso) => {
+  const t = Date.parse(iso || '');
+  return Number.isNaN(t) ? (iso || '') : new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+};
 
 // Union vocab with the contractors_1099 status CHECK (v2.13) — the app's
 // values and the schema's lifecycle states are both real; nothing flattens.
@@ -34,7 +63,7 @@ const BLANK_CONTRACTOR = {
   notes: '',
 };
 
-function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel }) {
+function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork }) {
   const value = c.direction === 'outbound' ? c.ytdPaid : c.ytdReceived;
   const rateLabel = c.direction === 'outbound' ? 'YTD paid' : `YTD received · ${fmt(c.monthlyExpected)}/mo expected`;
   return (
@@ -46,11 +75,40 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
           {(c.phone || c.email) && (
             <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {c.phone && <a href={`tel:${c.phone.replace(/[^\d+]/g, '')}`} className="hover:text-[#1A1815] underline">{c.phone}</a>}
+              {c.phone && <> · <a href={smsHref(c.phone)} aria-label={`Text ${c.name}`} className="hover:text-[#1A1815] underline">text</a></>}
               {c.phone && c.email && ' · '}
               {c.email && <a href={`mailto:${c.email}`} className="hover:text-[#1A1815] underline">{c.email}</a>}
             </div>
           )}
           {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+          {/* Manager state: this worker's open work orders. Renders ONLY when the
+              shell provides incidents (openWork is an array) — never painted. The
+              assignment slice is theirs, so "their piece done, order still open"
+              reads as exactly that. rem sizes on purpose: the consistency guard
+              freezes this file's fixed-px count at its baseline. */}
+          {c.direction === 'outbound' && Array.isArray(openWork) && (
+            <div className="mt-2 pt-2 border-t border-dashed border-[#E8E4DC]">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Open work orders · {openWork.length}</div>
+              {openWork.length === 0 ? (
+                <div className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None open right now.</div>
+              ) : openWork.map(({ incident, assignment }) => (
+                <div key={assignment.id || incident.id} className="flex items-baseline justify-between gap-2 flex-wrap mt-1">
+                  <div className="text-[0.6875rem] text-[#1A1815] min-w-0">
+                    {incident.description || 'Work order'}
+                    <span className="text-[#5A5751]">
+                      {incident.dueDate ? ` · due ${incident.dueDate}` : ''}
+                      {assignment.status === 'done'
+                        ? ` · their piece done ✓${assignment.doneAt ? ` ${String(assignment.doneAt).slice(0, 10)}` : ''} (order still open)`
+                        : (assignment.dispatchedAt ? ` · dispatched ${String(assignment.dispatchedAt).slice(0, 10)}` : ' · assigned')}
+                    </span>
+                  </div>
+                  {c.phone && assignment.status !== 'done' && (
+                    <a href={smsHref(c.phone, buildFollowUpMessage(incident))} className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">Text about this job</a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="text-right shrink-0">
           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(value)}</div>
@@ -115,7 +173,137 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
   );
 }
 
-export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor }) {
+// -----------------------------------------------------------------------------
+// Worker voice — hear their perspectives on operations. The family member
+// records what the worker said after a job; it ships through uploadFeedback
+// tagged 'worker-ops' (same rail, same live stream, read by the Concerns
+// board's feedback read-through). Recent entries merge this session's own
+// submissions with other devices' via subscribeFeedback (which returns OTHER
+// users' rows only — our own are echoed locally on a confirmed upload, with
+// the same author name feedback-sync writes to the row). Words are never
+// swallowed: the draft clears ONLY on a confirmed upload (the Engagement
+// MessageThread rule from the 2026-07-03 claims audit).
+// -----------------------------------------------------------------------------
+function WorkerVoice({ workers = [], incidents }) {
+  const incidentsProvided = Array.isArray(incidents);
+  const [signedIn, setSignedIn] = useState(false);
+  const [me, setMe] = useState(null);
+  const [remote, setRemote] = useState([]);
+  const [localEntries, setLocalEntries] = useState([]);
+  const [workerId, setWorkerId] = useState('');
+  const [said, setSaid] = useState('');
+  const [incidentId, setIncidentId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => onAuthChange((s) => {
+    setSignedIn(!!s);
+    // Mirror the author name feedback-sync writes to the row (display_name =
+    // email prefix), so the local echo shows the same real author the stream will.
+    setMe(s?.user?.email?.split('@')[0] || null);
+  }), []);
+
+  useEffect(() => {
+    if (!signedIn) { setRemote([]); return undefined; }
+    return subscribeFeedback((items) => setRemote(items.filter(isWorkerVoice)));
+  }, [signedIn]);
+
+  const entries = voiceEntries([...localEntries, ...remote]);
+  const openIncidents = incidentsProvided ? incidents.filter(i => i && i.status !== 'resolved') : [];
+
+  const submit = async () => {
+    const contractor = workers.find(w => w.id === workerId);
+    const incident = openIncidents.find(i => i.id === incidentId) || null;
+    const record = buildWorkerVoiceRecord({ contractor, said, incident });
+    if (!record) { setError('Pick the worker and write what they said.'); return; }
+    setSubmitting(true);
+    setError('');
+    const result = await uploadFeedback(record, { activeTab: WORKER_VOICE_AREA });
+    setSubmitting(false);
+    if (result && result.uploaded) {
+      setLocalEntries(prev => [{ ...record, displayName: me || 'Member' }, ...prev]);
+      setSaid('');
+      setIncidentId('');
+    } else {
+      // Draft stays put; the reason is stated honestly.
+      setError(result && result.skipped === 'signed-out'
+        ? 'Sign in (top of the page) to record this — the words are still here.'
+        : `Could not record (${(result && result.skipped) || 'error'}) — the words are still here.`);
+    }
+  };
+
+  return (
+    <section>
+      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Worker voice · operations</h3>
+      <div className="bg-white border border-[#1A1815] p-4 space-y-2">
+        <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          After a job, record what the worker said about the operation. It lands in the live feedback stream (tagged worker-ops) and the Projects · Concerns board reads it through.
+        </div>
+        {workers.length === 0 ? (
+          <div className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add an outbound contractor above first — the voice entry names who said it.</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="wv-worker" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Worker</label>
+                <select id="wv-worker" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={workerId} onChange={e => setWorkerId(e.target.value)}>
+                  <option value="">Who said it?</option>
+                  {workers.map(w => <option key={w.id} value={w.id}>{w.name}{w.role ? ` · ${w.role}` : ''}</option>)}
+                </select>
+              </div>
+              {incidentsProvided && openIncidents.length > 0 && (
+                <div>
+                  <label htmlFor="wv-incident" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Link to a work order (optional)</label>
+                  <select id="wv-incident" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={incidentId} onChange={e => setIncidentId(e.target.value)}>
+                    <option value="">No specific job</option>
+                    {openIncidents.map(i => <option key={i.id} value={i.id}>{i.description || i.id}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div>
+              <label htmlFor="wv-said" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">What did they say about the operation?</label>
+              <textarea id="wv-said" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder={'Their words, e.g. "the lockbox codes keep changing on us"'} value={said} onChange={e => setSaid(e.target.value)} />
+            </div>
+            {error && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert">{error}</div>}
+            <button type="button" onClick={submit} disabled={submitting} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838] disabled:opacity-60">
+              {submitting ? 'Recording…' : 'Record worker voice'}
+            </button>
+            {!signedIn && (
+              <div className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Sign in (top of the page) to record — entries sync across devices through the feedback stream.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Recent worker voice</div>
+        {entries.length === 0 ? (
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            {signedIn
+              ? 'No worker perspectives recorded yet.'
+              : 'No worker perspectives on this device — sign in to see entries recorded on other devices.'}
+          </div>
+        ) : (
+          <div className="bg-white border border-[#1A1815]">
+            {entries.map((f, i) => (
+              <div key={f.id} className={`p-3 ${i < entries.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                <div className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{f.text}</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
+                  {f.displayName || 'Member'} · {fmtWhen(f.submittedAt || f.createdAt)}{f.remote ? ' · from another device' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents }) {
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ ...BLANK_CONTRACTOR, entityId: entities[0]?.id || 'e-personal' });
   const [addError, setAddError] = useState('');
@@ -152,6 +340,11 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
 
   const outbound = contractors.filter(c => c.direction === 'outbound');
   const inbound = contractors.filter(c => c.direction === 'inbound');
+  // Manager state is derived ONLY from real, provided data. The shell mount
+  // does not pass `incidents` today (poe-financial-mvp-v28.jsx k1099 mount),
+  // so this stays undefined and the rows show an honest note instead of a
+  // painted zero (Reality-Trace / DR-0076).
+  const incidentsProvided = Array.isArray(incidents);
 
   return (
     <div className="space-y-6">
@@ -200,19 +393,45 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         )}
       </section>
 
+      {/* The three stacked lists now flow as sliding section tabs ("sliding
+          tabs for all tabs instead of a long scroll", Darrell 2026-07-04). The
+          header + Add form above stay PINNED; each block below moved verbatim.
+          Hooks all live at the top level (or inside WorkerVoice itself) — the
+          render thunks are plain closures over that state. */}
+      <SectionTabs
+        ariaLabel="1099 Relationships sections"
+        idBase="k1099"
+        defaultId="outbound"
+        sections={[
+          {
+            id: 'outbound',
+            label: 'Outbound',
+            icon: 'users',
+            render: () => (
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound · {outbound.length}</h3>
+        {!incidentsProvided && outbound.length > 0 && (
+          <div className="text-[0.6875rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Open work orders per worker aren&apos;t shown here yet — this tab isn&apos;t passed the incidents list. Dispatch and track work orders from Real Estate · Maintenance or the Big Picture Action Queue; when the shell passes incidents to this tab, each worker&apos;s open orders appear on their row automatically.
+          </div>
+        )}
         {outbound.length === 0 ? (
-          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None yet. Add a contractor above to track YTD payments and tax-doc readiness.</div>
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None yet. Add a contractor above to keep their contact, role, and the YTD amounts you record here in one place.</div>
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {outbound.map((c, i) => (
-              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} />
+              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} openWork={incidentsProvided ? workerOpenIncidents(c.id, incidents) : undefined} />
             ))}
           </div>
         )}
       </section>
-
+            ),
+          },
+          {
+            id: 'inbound',
+            label: 'Inbound',
+            icon: 'coins',
+            render: () => (
       <section>
         <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Inbound · {inbound.length}</h3>
         {inbound.length === 0 ? (
@@ -225,6 +444,16 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
           </div>
         )}
       </section>
+            ),
+          },
+          {
+            id: 'voice',
+            label: 'Worker voice',
+            icon: 'mic',
+            render: () => <WorkerVoice workers={outbound} incidents={incidents} />,
+          },
+        ]}
+      />
     </div>
   );
 }

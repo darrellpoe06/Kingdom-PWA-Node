@@ -7,7 +7,7 @@ import {
   formatFeedbackMessage, formatProjectCreatedMessage,
   formatChangeRequestMessage, formatCycleItemCompletedMessage,
 } from '../lib/synology-chat.js';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { N8N_BASE, n8nAuthHeaders, resolveN8nBearer, N8N_DEVICE_TOKEN_KEY } from '../lib/n8n-base.js';
 
 describe('synology-chat formatters', () => {
   it('feedback message: leads with first name, encodes sentiment + tab', () => {
@@ -37,15 +37,34 @@ describe('synology-chat transport (unconfigured in test env)', () => {
 });
 
 describe('n8n base resolver', () => {
-  it('defaults to the Tailscale Funnel directly when no override is set', () => {
-    // 2026-06-17: the "/n8n" Vercel rewrite was removed (Vercel's router cannot
-    // TLS-handshake to *.ts.net Funnel targets -> 502). The browser now calls
-    // the Funnel directly, which serves correct CORS for poetech.us.
-    expect(N8N_BASE).toBe('https://poetech.tail5a2f35.ts.net');
+  it('defaults to the same-origin /n8n proxy when no override is set', () => {
+    // 2026-07-05: production moved to Cloudflare Pages, whose Pages Function
+    // (app/functions/n8n/[[path]].js) proxies the Funnel same-origin. The
+    // browser must NEVER call the Funnel cross-origin — it throttles those
+    // with 503s before the request reaches n8n. (The 2026-06-17 Funnel-direct
+    // era existed only because Vercel's router couldn't TLS-handshake to
+    // *.ts.net; that constraint left with Vercel.)
+    expect(N8N_BASE).toBe('/n8n');
   });
 
   it('n8nAuthHeaders sends nothing when unauthorized or no bearer is configured', () => {
     expect(n8nAuthHeaders(false)).toEqual({});
     expect(n8nAuthHeaders(true)).toEqual({}); // no VITE_N8N_BEARER in the test env -> deny
+  });
+
+  // 2026-07-03: the bearer's PRIMARY source is the per-device bridge token
+  // (never in the public bundle); the VITE_ var is a transition fallback only.
+  it('the per-device bridge token authorizes, and unauthorized callers still send nothing', () => {
+    const win = { localStorage: { getItem: (k) => (k === N8N_DEVICE_TOKEN_KEY ? '  device-tok-9  ' : null) } };
+    expect(resolveN8nBearer(win)).toBe('device-tok-9'); // trimmed
+    expect(n8nAuthHeaders(true, win)).toEqual({ Authorization: 'Bearer device-tok-9' });
+    expect(n8nAuthHeaders(false, win)).toEqual({}); // authorization gate still holds
+  });
+
+  it('a blocked/absent localStorage falls back honestly (no token in the test env -> deny)', () => {
+    const blocked = { localStorage: { getItem() { throw new Error('private mode'); } } };
+    expect(resolveN8nBearer(blocked)).toBe('');
+    expect(n8nAuthHeaders(true, blocked)).toEqual({});
+    expect(resolveN8nBearer({ localStorage: { getItem: () => null } })).toBe('');
   });
 });

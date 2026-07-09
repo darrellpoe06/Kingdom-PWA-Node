@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   boardProgress, groupTasks, sortTasks, nextStatus, boardsFromTasks,
   seedTasksForBoard, mergedBoardList, SEED_BOARDS, seedTaskSlug,
-  BOARD_STATUS_ORDER,
+  BOARD_STATUS_ORDER, boardDueByMonth,
 } from '../lib/board.js';
 
 const T = (over = {}) => ({ slug: over.slug || Math.random().toString(36), status: 'not-started', boardSlug: 'b', boardTitle: 'B', title: 'x', ...over });
@@ -88,6 +88,31 @@ describe('boardsFromTasks — derive live boards', () => {
     const x = boards.find((b) => b.slug === 'x');
     expect(x.progress.total).toBe(2);
     expect(x.progress.pct).toBe(50);
+  });
+});
+
+describe('boardDueByMonth — the boards ARE on the timeline (honest counts)', () => {
+  const NOW = '2026-07-07T12:00:00.000Z';
+  it('counts dated, not-done items in their forecast month', () => {
+    const out = boardDueByMonth([
+      T({ dueDate: '2026-07-20T12:00:00.000Z', status: 'in-progress' }),
+      T({ dueDate: '2026-07-25T12:00:00.000Z', status: 'not-started' }),
+      T({ dueDate: '2026-09-01T12:00:00.000Z', status: 'blocked' }),
+    ], { now: NOW });
+    expect(out['2026-06']).toBe(2);  // July = padded month INDEX 06, the forecast's key convention
+    expect(out['2026-08']).toBe(1);  // September
+  });
+  it('done items and undated items never count — no painted urgency', () => {
+    const out = boardDueByMonth([
+      T({ dueDate: '2026-07-20', status: 'done' }),
+      T({ status: 'in-progress' }),                 // undated
+      T({ dueDate: 'garbage', status: 'blocked' }), // unparseable
+    ], { now: NOW });
+    expect(Object.values(out).reduce((s, n) => s + n, 0)).toBe(0);
+  });
+  it('items outside the 12-month window are ignored', () => {
+    const out = boardDueByMonth([T({ dueDate: '2031-01-01', status: 'not-started' })], { now: NOW });
+    expect(Object.values(out).reduce((s, n) => s + n, 0)).toBe(0);
   });
 });
 

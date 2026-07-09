@@ -1,0 +1,81 @@
+# Deploy freshness — the SAFEGUARD that heals a missed production deploy.
+#
+# WHY THIS EXISTS (2026-07-06, DR-0107 / DR-0109; LESSONS P25/P26). The
+# auto-merge lane merges via GITHUB_TOKEN, and GitHub does NOT fire push- /
+# CI- / workflow_run-triggered workflows for a GITHUB_TOKEN push (anti-recursion).
+# So the deploy (deploy-cloudflare-pages.yml, on: push:main) does not fire on an
+# auto-merged commit. auto-merge.yml dispatches the deploy itself as a partial
+# fix — but it runs on PR *events*, and the LAST merge in a quiet stretch has no
+# following event, so that final commit can sit undeployed until the next merge
+# or a manual dispatch. A down/stale site is the worst outcome (DR-0107), so this
+# closes the gap the only reliable way GitHub allows after a GITHUB_TOKEN merge:
+# a SCHEDULE. It compares main's tip to the last successful deploy and dispatches
+# the deploy iff they differ. Idempotent: a fresh site is a no-op.
+#
+# THE THREE BRAKES (CLAUDE.md "Autonomous Automation Requires Three Brakes").
+# This is timer-driven, so it carries all three even though it cannot run away
+# (it dispatches at most ONE already-safe, single-flight deploy per fire — it
+# spawns no Claude, no compute loop, no fan-out):
+#   1. BUDGET   — one cheap SHA check + at most one deploy dispatch per run; the
+#                 dispatched deploy is itself wall-clock-bounded and single-flight.
+#   2. LOCK     — concurrency: deploy-freshness (this workflow is single-instance)
+#                 AND the deploy's own cf-pages-deploy group. Deploys never stack.
+#   3. KILL     — SHIPS ACTIVE (DR-0110), because a bounded, idempotent,
+#                 non-spawning deploy-healer is not the runaway class P11/three-
+#                 brakes gates (it is operationally the same as the db-migrate and
+#                 auto-merge deploy dispatches, which already ship active). The
+#                 kill-switch is retained: set the repo variable
+#                 DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the
+#                 Actions UI) to pause instantly. Unset ⇒ runs.
+#
+# PAUSE: GitHub → Settings → Secrets and variables → Actions → Variables →
+# add DEPLOY_FRESHNESS_ENABLED = false (delete it, or set anything but 'false', to
+# resume). Activation requires no action — it heals main from its first fire.
+
+name: Deploy freshness (heal a missed deploy)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every 5 min (public repo — Actions minutes are free)
+  workflow_dispatch: {}
+
+# LOCK: single-instance. A new fire while one runs is queued, never stacked.
+concurrency:
+  group: deploy-freshness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # to dispatch deploy-cloudflare-pages.yml
+
+jobs:
+  heal:
+    # KILL-SWITCH: ships ACTIVE (DR-0110). Runs by default; set the repo variable
+    # DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the Actions UI)
+    # to pause instantly. A bounded, non-spawning deploy-healer is not the
+    # runaway class P11 gates, so it ships on — matching db-migrate/auto-merge.
+    if: ${{ vars.DEPLOY_FRESHNESS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy main's tip if the served build has fallen behind
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+          # The commit the last SUCCESSFUL production deploy actually ran on.
+          last_deployed=$(gh api \
+            "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+          if [ -z "$main_sha" ]; then
+            echo "::warning::could not resolve main HEAD; skipping this fire."
+            exit 0
+          fi
+          if [ "$main_sha" != "$last_deployed" ]; then
+            echo "STALE: main $main_sha != last-deployed ${last_deployed:-<none>} — dispatching deploy."
+            gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch deploy (it can be run manually)."
+          else
+            echo "FRESH: main $main_sha is already the served build; nothing to do."
+          fi

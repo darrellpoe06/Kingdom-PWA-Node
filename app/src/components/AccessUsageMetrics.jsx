@@ -22,6 +22,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
+import AppShareQR from './AppShareQR.jsx';
+import FamilyInvitePanel from './FamilyInvitePanel.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -30,6 +33,19 @@ import {
 import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
+import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
+
+// Friendly names for the raw view ids the usage stream records.
+const VIEW_LABELS = {
+  overview: 'Big Picture', books: 'Books', tvtime: 'TV Time', church: 'Church',
+  practice: 'Practice', library: 'Library', games: 'Games', voice: 'Voice',
+  create: 'Create', recipes: 'Recipes', markets: 'Markets', notes: 'Notes',
+  crm: 'CRM', relationships: 'Relationships', inventory: 'Inventory',
+  forecast: 'Forecast', rentals: 'Rentals', projects: 'Projects',
+  opportunities: 'Opportunities', about: 'Pricing', center: 'Command Center',
+  inbound: 'Inbound', admin: 'Admin',
+};
+const viewLabel = (id) => VIEW_LABELS[id] || (id ? id.charAt(0).toUpperCase() + id.slice(1) : 'Unknown');
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
@@ -121,10 +137,18 @@ function PlatformSignups() {
 
       {res.status === 'loading' && !data ? (
         <p className={note}>Loading platform signups…</p>
-      ) : res.status === 'unavailable' ? (
+      ) : res.status === 'unauthorized' ? (
         <p className={note + ' italic'}>
-          Couldn't load platform signups right now — the admin_signup_metrics function may not be on
-          the cloud database yet (the migration applies it). The rest of this surface is unaffected.
+          Only poe-family governors can see platform signups. If this should be you, your sign-in
+          isn't in the poe-family circle at the database level (not just the UI).
+        </p>
+      ) : res.status === 'unavailable' ? (
+        // Show the REAL error, not a guess (DR-0076) — so the exact cause is
+        // visible: "function does not exist" (migration not applied) vs a SQL /
+        // permission error. The rest of this surface is unaffected.
+        <p className={note + ' italic'}>
+          Couldn't load platform signups: {(res.error && res.error.message) || 'unknown error'}
+          {res.error && res.error.code ? ` (code ${res.error.code})` : ''}.
         </p>
       ) : (
         <>
@@ -144,8 +168,16 @@ function PlatformSignups() {
                         {r.name || r.email}
                         {r.name ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
                       </div>
+                      {/* Two different clocks, named plainly (DR-0100): "account
+                          created" is when the account was provisioned — family
+                          accounts are allowlisted ahead of first use, so this is
+                          NOT days of active use. "last active" is the EFFECTIVE
+                          recency (0079): the later of the auth stamp and the real
+                          member_presence heartbeat, so a silently-refreshed
+                          session that is signed in right now reads "active now" —
+                          not a stale weeks-old sign-in stamp. */}
                       <div className="text-[0.625rem] text-[#5A5751]">
-                        joined {r.joined} · {r.returned ? `active, last seen ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last seen ${r.lastSeen}`)}
+                        account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
                     </div>
                     <CategoryPill label={r.categoryLabel} />
@@ -159,9 +191,57 @@ function PlatformSignups() {
           ) : null}
           <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
             Each public signup lands in their OWN private space — they cannot see family, business, or
-            church data, and this view shows only their account (email, when they joined, when they last
-            signed in), never anything inside their space.
+            church data, and this view shows only their account (email, when the account was created,
+            when they were last active), never anything inside their space.
           </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// What's getting used — the governor's AGGREGATE flow (Darrell 2026-07-04: "most
+// used tab etc"). Reads usage_flow_metrics (poe-family gated, aggregate-only —
+// never a person's rows). Real data from the usage stream; honest empty state
+// until events accumulate. Degrades silently when signed-out / unauthorized.
+function UsageFlow() {
+  const [flow, setFlow] = useState(undefined); // undefined loading, null unavailable, {} data
+  const load = useCallback(async () => { setFlow(await fetchUsageFlow(30)); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  if (flow === null) return null;                 // unavailable / unauthorized — say nothing
+  const rows = flow ? topViews(flow, 12) : [];
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+        <div className={sectionH}>What&apos;s getting used — most-used tabs (30d)</div>
+        <button type="button" onClick={load} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline">
+          {flow === undefined ? 'Loading…' : 'Refresh'}
+        </button>
+      </div>
+      {flow === undefined ? (
+        <p className={note}>Loading usage…</p>
+      ) : rows.length === 0 ? (
+        <p className={note + ' italic'}>No usage recorded yet — as people move through the app, the most-used tabs show here. Aggregate only; never any one person&apos;s activity.</p>
+      ) : (
+        <>
+          <p className={note + ' mb-2'}>{flow.active_users || 0} {(flow.active_users === 1) ? 'person' : 'people'} active · {flow.total_views || 0} tab opens</p>
+          <div className="border border-[#E8E4DC] divide-y divide-[#F2EEE6]">
+            {rows.map((r) => {
+              const pct = Math.round(viewShare(r, flow) * 100);
+              return (
+                <div key={r.name} className="px-2.5 py-1.5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[0.8125rem] text-[#1A1815] truncate">{viewLabel(r.name)}</span>
+                    <span className="text-[0.6875rem] text-[#5A5751] shrink-0">{r.count} · {r.users} {r.users === 1 ? 'person' : 'people'}</span>
+                  </div>
+                  <div className="h-2 border border-[#E8E4DC]" aria-hidden="true">
+                    <div className="h-full bg-[#5A6E3D]" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </>
       )}
     </div>
@@ -244,134 +324,178 @@ export default function AccessUsageMetrics() {
         </div>
       </div>
 
-      {/* ── PLATFORM SIGNUPS (cross-instance; the RLS-blind view above can't show this) ── */}
-      <PlatformSignups />
-
-      {/* ── WHO HAS ACCESS ─────────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Who has access</div>
-      {(!v.scopes || v.scopes.length === 0) ? (
-        <p className={note + ' italic mb-4'}>No access records yet — no one has joined an instance you steward.</p>
-      ) : (
-        <div className="space-y-3 mb-4">
-          {v.scopes.map((g) => (
-            <div key={g.instanceId} className="border border-[#E8E4DC]">
-              <div className="flex items-center justify-between gap-2 bg-[#FAF8F4] px-2.5 py-1.5 border-b border-[#E8E4DC]">
-                <span className="text-[0.6875rem] font-semibold text-[#1A1815]">
-                  {g.name} <span className="text-[#5A5751] font-normal">· {g.scopeLabel}</span>
-                </span>
-                <span className={labelCls}>{g.count} {g.count === 1 ? 'person' : 'people'}</span>
-              </div>
-              <ul>
-                {g.members.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-                    <span className="text-[0.8125rem] text-[#1A1815] truncate">
-                      {m.displayName || 'Member'}
-                      {m.title ? <span className="text-[#5A5751]"> · {m.title}</span> : null}
+      {/* THIRD-ROW sub-tabs (Darrell 2026-07-05: "a 3rd row of sliding tabs if the
+          tab scrolls really long"). This report was still 5 long sections stacked;
+          each is now one chip away, and each fetch-heavy piece (signups, usage)
+          only runs when its chip opens. */}
+      <SectionTabs
+        variant="sub"
+        ariaLabel="Users and usage sections"
+        idBase="usage"
+        defaultId="signups"
+        sections={[
+          {
+            id: 'signups',
+            label: 'Signups',
+            render: () => <PlatformSignups />,
+          },
+          {
+            id: 'used',
+            label: "What's used",
+            render: () => <UsageFlow />,
+          },
+          {
+            id: 'access',
+            label: 'Who has access',
+            render: () => (
+              (!v.scopes || v.scopes.length === 0) ? (
+                <p className={note + ' italic'}>No access records yet — no one has joined an instance you steward.</p>
+              ) : (
+                <div className="space-y-3">
+                  {v.scopes.map((g) => (
+                    <div key={g.instanceId} className="border border-[#E8E4DC]">
+                      <div className="flex items-center justify-between gap-2 bg-[#FAF8F4] px-2.5 py-1.5 border-b border-[#E8E4DC]">
+                        <span className="text-[0.6875rem] font-semibold text-[#1A1815]">
+                          {g.name} <span className="text-[#5A5751] font-normal">· {g.scopeLabel}</span>
+                        </span>
+                        <span className={labelCls}>{g.count} {g.count === 1 ? 'person' : 'people'}</span>
+                      </div>
+                      <ul>
+                        {g.members.map((m) => (
+                          <li key={m.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                            <span className="text-[0.8125rem] text-[#1A1815] truncate">
+                              {m.displayName || 'Member'}
+                              {m.title ? <span className="text-[#5A5751]"> · {m.title}</span> : null}
+                            </span>
+                            <RolePill role={m.role} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )
+            ),
+          },
+          {
+            id: 'activity',
+            label: 'Counts & activity',
+            render: () => (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  <Tile label="People" value={(v.totals && v.totals.totalPeople) || 0} sub={`${(v.totals && v.totals.totalMemberships) || 0} memberships`} />
+                  <Tile
+                    label="Active (7d)"
+                    value={hasPresence ? v.activity.active : '—'}
+                    sub={hasPresence ? `${v.activity.idle} idle · ${v.activity.dormant} dormant` : 'no sessions yet'}
+                  />
+                  <Tile label="New (30d)" value={(v.nvr && v.nvr.newCount) || 0} sub={`${(v.nvr && v.nvr.returningCount) || 0} returning`} />
+                  <Tile label="Reporting" value={hasPresence ? v.activity.reporting : '—'} sub="sessions checked in" />
+                </div>
+                {v.byRole && v.byRole.length > 0 ? (
+                  <ul className="border border-[#E8E4DC]">
+                    {v.byRole.map((r) => (
+                      <li key={r.role} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                        <span className="text-[0.75rem] text-[#1A1815]">{r.label}</span>
+                        <span className="text-[0.75rem] font-semibold tabular-nums text-[#1A1815]">{r.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            id: 'builds',
+            label: 'Update signals',
+            render: () => (
+              <>
+                <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 mb-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className={note}>
+                      You're viewing on build <span className="font-semibold text-[#1A1815]">{build.sha}</span>
                     </span>
-                    <RolePill role={m.role} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── COUNTS + ACTIVITY ──────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Counts &amp; activity</div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-        <Tile label="People" value={(v.totals && v.totals.totalPeople) || 0} sub={`${(v.totals && v.totals.totalMemberships) || 0} memberships`} />
-        <Tile
-          label="Active (7d)"
-          value={hasPresence ? v.activity.active : '—'}
-          sub={hasPresence ? `${v.activity.idle} idle · ${v.activity.dormant} dormant` : 'no sessions yet'}
-        />
-        <Tile label="New (30d)" value={(v.nvr && v.nvr.newCount) || 0} sub={`${(v.nvr && v.nvr.returningCount) || 0} returning`} />
-        <Tile label="Reporting" value={hasPresence ? v.activity.reporting : '—'} sub="sessions checked in" />
-      </div>
-      {v.byRole && v.byRole.length > 0 ? (
-        <ul className="border border-[#E8E4DC] mb-4">
-          {v.byRole.map((r) => (
-            <li key={r.role} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-              <span className="text-[0.75rem] text-[#1A1815]">{r.label}</span>
-              <span className="text-[0.75rem] font-semibold tabular-nums text-[#1A1815]">{r.count}</span>
-            </li>
-          ))}
-        </ul>
-      ) : <div className="mb-4" />}
-
-      {/* ── UPDATE SIGNALS (build-freshness) ───────────────────────────── */}
-      <div className={sectionH + ' mb-2'}>Update signals — build freshness</div>
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 mb-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className={note}>
-            You're viewing on build <span className="font-semibold text-[#1A1815]">{build.sha}</span>
-          </span>
-          {hasPresence && v.fresh.latestSha ? (
-            <span className={labelCls}>
-              latest seen: <span className="font-semibold text-[#1A1815]">{v.fresh.latestSha}</span>
-              {v.fresh.latestAt ? ` · ${relativeTime(v.fresh.latestAt, v.nowMs)}` : ''}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      {!hasPresence ? (
-        <p className={note + ' italic mb-4'}>
-          {presenceUnavailable
-            ? 'Build-freshness will appear once the presence migration (0055) is applied — then each session reports the version it runs.'
-            : 'No sessions have reported a build yet. Build-freshness appears once people open the app on a signed-in device.'}
-        </p>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2 mb-2">
-            <Tile label="On latest" value={v.fresh.onLatestCount} />
-            <Tile label="Behind" value={v.fresh.behindCount} />
-            <Tile label="Unknown" value={v.noPresence.length} sub="never reported" />
-          </div>
-          {v.fresh.behind.length > 0 ? (
-            <ul className="border border-[#E8E4DC] mb-2">
-              {v.fresh.behind.map((b) => (
-                <li key={b.userId} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-                  <span className="text-[0.75rem] text-[#1A1815] truncate">{b.displayName || 'Member'}</span>
-                  <span className="text-[0.625rem] text-[#B85838]">
-                    build {b.buildSha || '—'} · {b.lastSeenAt ? relativeTime(b.lastSeenAt, v.nowMs) : 'unknown'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={note + ' mb-2'}>Everyone who has reported a session is on the latest build.</p>
-          )}
-        </>
-      )}
-
-      {/* ── ADMIN ACTIONS ──────────────────────────────────────────────── */}
-      <div className={sectionH + ' mb-2 mt-2'}>Admin — invites &amp; access</div>
-      {invitesUnavailable ? (
-        <p className={note + ' italic'}>Couldn't load invites right now.</p>
-      ) : (v.invitesPending && v.invitesPending.length > 0) ? (
-        <ul className="border border-[#E8E4DC] mb-2">
-          {v.invitesPending.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
-              <span className="text-[0.75rem] text-[#1A1815] truncate">
-                {i.displayName}{i.type ? <span className="text-[#5A5751]"> · {i.type}</span> : null}
-              </span>
-              <span className="text-[0.625rem] text-[#B85838] inline-flex items-center gap-1">
-                <KpiDot status="attention" label="invited — pending" />
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className={note + ' mb-2'}>No invites are waiting to be accepted.</p>
-      )}
-      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
-        <p className={note}>
-          <span className="font-semibold text-[#1A1815]">Granting, adjusting, or revoking access is a deliberate steward action.</span>{' '}
-          This surface shows the picture; it never changes someone's access on its own. Make access
-          changes yourself so the decision — and the moment — is always a human's.
-        </p>
-      </div>
+                    {hasPresence && v.fresh.latestSha ? (
+                      <span className={labelCls}>
+                        latest seen: <span className="font-semibold text-[#1A1815]">{v.fresh.latestSha}</span>
+                        {v.fresh.latestAt ? ` · ${relativeTime(v.fresh.latestAt, v.nowMs)}` : ''}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {!hasPresence ? (
+                  <p className={note + ' italic'}>
+                    {presenceUnavailable
+                      ? 'Build-freshness will appear once the presence migration (0055) is applied — then each session reports the version it runs.'
+                      : 'No sessions have reported a build yet. Build-freshness appears once people open the app on a signed-in device.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <Tile label="On latest" value={v.fresh.onLatestCount} />
+                      <Tile label="Behind" value={v.fresh.behindCount} />
+                      <Tile label="Unknown" value={v.noPresence.length} sub="never reported" />
+                    </div>
+                    {v.fresh.behind.length > 0 ? (
+                      <ul className="border border-[#E8E4DC]">
+                        {v.fresh.behind.map((b) => (
+                          <li key={b.userId} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                            <span className="text-[0.75rem] text-[#1A1815] truncate">{b.displayName || 'Member'}</span>
+                            <span className="text-[0.625rem] text-[#B85838]">
+                              build {b.buildSha || '—'} · {b.lastSeenAt ? relativeTime(b.lastSeenAt, v.nowMs) : 'unknown'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={note}>Everyone who has reported a session is on the latest build.</p>
+                    )}
+                  </>
+                )}
+              </>
+            ),
+          },
+          {
+            id: 'invites',
+            label: 'Invites & access',
+            render: () => (
+              <>
+                <div className="mb-3">
+                  <FamilyInvitePanel />
+                </div>
+                {invitesUnavailable ? (
+                  <p className={note + ' italic'}>Couldn't load invites right now.</p>
+                ) : (v.invitesPending && v.invitesPending.length > 0) ? (
+                  <ul className="border border-[#E8E4DC] mb-2">
+                    {v.invitesPending.map((i) => (
+                      <li key={i.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
+                        <span className="text-[0.75rem] text-[#1A1815] truncate">
+                          {i.displayName}{i.type ? <span className="text-[#5A5751]"> · {i.type}</span> : null}
+                        </span>
+                        <span className="text-[0.625rem] text-[#B85838] inline-flex items-center gap-1">
+                          <KpiDot status="attention" label="invited — pending" />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={note + ' mb-2'}>No invites are waiting to be accepted.</p>
+                )}
+                <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
+                  <p className={note}>
+                    <span className="font-semibold text-[#1A1815]">Granting access is a deliberate steward action.</span>{' '}
+                    Inviting above creates an invitation — the person becomes a member only when they sign in
+                    and accept. Nothing changes access on its own; the decision, and the moment, are always a human's.
+                  </p>
+                </div>
+                <div className="mt-3">
+                  <AppShareQR />
+                </div>
+              </>
+            ),
+          },
+        ]}
+      />
 
       {/* ── PRIVACY FOOTER ─────────────────────────────────────────────── */}
       <p className="text-[0.5625rem] text-[#5A5751] italic mt-3 leading-relaxed">

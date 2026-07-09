@@ -23,7 +23,7 @@ on:
     # main, plus the release lanes — a push to a lane runs CI on that commit so
     # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
     # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
-    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**']
+    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**']
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
@@ -46,6 +46,11 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
+      # Python is here for the transcript-loader unit tests below (stdlib only —
+      # the pure caption-grace / verdict logic imports without youtube-transcript-api).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - run: npm ci
       - run: npm run lint
       # Hybrid-modular boundary gate (DR-0078 §4.1 / DR-0076): the surface-mount
@@ -76,6 +81,14 @@ jobs:
       # (only one platform declared).
       - run: node ../scripts/source-adapter-guard.mjs
       - run: npx vitest run
+      # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
+      # classification — a fresh upload's missing captions are TRANSIENT (YouTube
+      # is still processing them), not a durable no-caption verdict. Proven-to-catch:
+      # this fails if within_caption_grace regresses to marking a day-old sermon
+      # permanently caption-less. Runs inside this required job so it gates merge.
+      - name: transcript loader unit tests
+        working-directory: infra/nas-sme-pipeline
+        run: python3 -m unittest test_load_transcripts -v
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

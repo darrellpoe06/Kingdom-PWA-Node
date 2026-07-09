@@ -14,6 +14,7 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import EternalAlgorithmsStudy from '../components/EternalAlgorithmsStudy.jsx';
 import { kjvText } from '../lib/scriptures.js';
+import { GODHEAD_ALGORITHMS } from '../lib/godhead-study.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -74,8 +75,38 @@ describe('EternalAlgorithmsStudy — the public series surface renders faithfull
     expect(container.textContent).toMatch(/looking without forgetting|gap named/i);
   });
 
+  it('the Godhead study shows the OUTCOME first — the end from the beginning (collapsed, before the mechanism)', async () => {
+    await mount();
+    const godheadTab = btn(/The Godhead Study/);
+    expect(godheadTab).toBeTruthy();
+    await clickEl(godheadTab);
+    const text = container.textContent || '';
+    const first = GODHEAD_ALGORITHMS[0];
+    // The win is surfaced up front — visible WITHOUT expanding any entry (Darrell
+    // 2026-07-04: "shows the outcome first... like Yahweh shows the end from the beginning").
+    expect(text).toMatch(/Outcome — you win with it/);
+    expect(text).toContain(first.outcome.slice(0, 40));
+    // ...while the IF/THEN mechanism (the consequence) stays folded until opened.
+    expect(text).not.toContain(first.consequence.slice(0, 40));
+  });
+
+  it('the eternal covenant review renders inside the Godhead room (Darrell 2026-07-05)', async () => {
+    await mount();
+    await clickEl(btn(/The Godhead Study/));
+    expect(container.textContent).toMatch(/All Judgment Committed unto the Son/);
+    await clickEl(btn(/Open the covenant review/));
+    const text = container.textContent || '';
+    // the declared word, the abiding checklist, and the verbatim Word on screen
+    expect(text).toMatch(/gives judging the souls on earth over to His Son Jesus Christ/);
+    expect(text).toMatch(/Abiding by the covenant/);
+    expect(text).toMatch(/hath committed all judgment unto the Son/);
+  });
+
   it('runs the belief-vs-action round and shows the Yahweh-axis mirror', async () => {
     await mount();
+    // The game hook is its own sliding section now ("sliding tabs instead of a
+    // long scroll", Darrell 2026-07-04) — open its tab before running the round.
+    await clickEl(btn(/Take it to the game/));
     await clickEl(btn(/Run the belief-vs-action round/));
     const text0 = container.textContent || '';
     expect(text0).toMatch(/I do the word/);                     // the redemption choice is offered

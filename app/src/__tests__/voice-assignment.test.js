@@ -144,6 +144,22 @@ describe('Phone-default voice (the Android male path)', () => {
     const got = resolveVoiceURIForId('voice-dp', { assignments: {}, overrides, available: FEMALE_ONLY });
     expect(got).toBe(PHONE_DEFAULT_VOICE);
   });
+  it('AUTO-routes a MALE person to the OS default when the device has NO male voice (Darrell 2026-07-04: "the male voices never worked")', () => {
+    // Android Chrome exposes only gender-ambiguous Google voices → no male voice.
+    const assignments = buildStandInAssignments(CATALOG, FEMALE_ONLY);
+    // The men (Darrell, Bishop Gwin) must NOT get a female-sounding web voice — they
+    // read in the OS default, which the user can set to male in Android TTS settings.
+    expect(standInVoiceURI(assignments, 'voice-dp')).toBe(PHONE_DEFAULT_VOICE);
+    expect(standInVoiceURI(assignments, 'voice-bg')).toBe(PHONE_DEFAULT_VOICE);
+    // …and the real play-path resolver agrees (no pin set → the auto mapping).
+    expect(resolveVoiceURIForId('voice-dp', { assignments, overrides: {}, available: FEMALE_ONLY })).toBe(PHONE_DEFAULT_VOICE);
+    // A woman can still use a neutral (female-sounding) web voice — she is NOT forced
+    // to the OS default, so she never inherits a male OS voice.
+    expect(standInVoiceURI(assignments, 'voice-cp')).not.toBe(PHONE_DEFAULT_VOICE);
+    // When a real male voice DOES exist, the man gets it (no regression).
+    const withMale = buildStandInAssignments(CATALOG, [...FEMALE_ONLY, { name: 'Daniel', voiceURI: 'dan', lang: 'en-GB' }]);
+    expect(standInVoiceURI(withMale, 'voice-dp')).toBe('dan');
+  });
 });
 
 describe('deviceVoiceOptions + hasVoiceOfGender — the picker + honest male-availability', () => {

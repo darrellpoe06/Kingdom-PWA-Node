@@ -9,7 +9,8 @@ import {
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
   weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
-  selectNewSermonImports, isValidInviteEmail, isExternalUrl,
+  selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
+  isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -371,5 +372,73 @@ describe('toSongShape carries the timestamp + lyrics', () => {
     const out = toSongShape({ id: 's', title: 'x', start_seconds: 740, lyrics: 'Holy, holy, holy' });
     expect(out.startSeconds).toBe(740);
     expect(out.lyrics).toBe('Holy, holy, holy');
+  });
+});
+
+describe('distinctSongCatalog (pick from imported songs — no double duty)', () => {
+  it('dedupes by title (case-insensitive), keeps the richest record, sorts by title', () => {
+    const songs = [
+      { id: '1', title: 'way maker', youtubeUrl: 'y' },                    // sparser dup
+      { id: '2', title: 'Way Maker', lyrics: 'Words', youtubeUrl: 'y2' },  // richer (has lyrics) → wins
+      { id: '3', title: 'Amazing Grace' },
+      { id: '4', title: '' },        // no title → dropped
+      { id: '5', title: 'Goodness of God', lyrics: 'L' },
+    ];
+    const cat = distinctSongCatalog(songs);
+    expect(cat.map((s) => s.title)).toEqual(['Amazing Grace', 'Goodness of God', 'Way Maker']);
+    // the richer "Way Maker" (with lyrics) is the one kept
+    expect(cat.find((s) => /way maker/i.test(s.title)).id).toBe('2');
+  });
+  it('is safe on empty / non-array input', () => {
+    expect(distinctSongCatalog([])).toEqual([]);
+    expect(distinctSongCatalog(null)).toEqual([]);
+    expect(distinctSongCatalog(undefined)).toEqual([]);
+  });
+});
+
+describe('team-doc uploads (pictures/documents, not just a link)', () => {
+  it('isInlineDocument: external links and uploaded data: URLs open inline; storage keys do not', () => {
+    expect(isInlineDocument('https://example.com/doc.pdf')).toBe(true);
+    expect(isInlineDocument('data:image/jpeg;base64,abc')).toBe(true);
+    expect(isInlineDocument('data:application/pdf;base64,xyz')).toBe(true);
+    expect(isInlineDocument('church/2026/order.pdf')).toBe(false); // storage key -> needs signed URL
+    expect(isInlineDocument(null)).toBe(false);
+  });
+  it('classifyUpload: accepts images (no cap) and docs under the cap; rejects junk + oversized', () => {
+    expect(classifyUpload({ type: 'image/png', name: 'a.png', size: 9_000_000 })).toEqual({ ok: true, kind: 'image' });
+    expect(classifyUpload({ type: 'application/pdf', name: 'a.pdf', size: 1_000 })).toEqual({ ok: true, kind: 'document' });
+    expect(classifyUpload({ type: '', name: 'notes.txt', size: 10 })).toEqual({ ok: true, kind: 'document' }); // by extension
+    expect(classifyUpload({ type: 'application/zip', name: 'a.zip', size: 10 }).ok).toBe(false);
+    expect(classifyUpload({ type: 'application/pdf', name: 'big.pdf', size: TEAM_DOC_MAX_BYTES + 1 }))
+      .toEqual({ ok: false, reason: 'too-large' });
+    expect(classifyUpload(null).ok).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A failed save never discards the typed entry (feedback bf8ad82f: "adding an
+// entry under the Choir schedule discards it"). The song/service forms close
+// ONLY on a confirmed save — on a skip/error the form stays open with the
+// values intact and the error banner saying why.
+// ---------------------------------------------------------------------------
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+describe('choir forms survive a failed save (no data loss)', () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/Choir.jsx'), 'utf8');
+  it('closes the service form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setServiceForm\(null\)/);
+    expect(src).not.toMatch(/reportSkip\(await saveService\(f\)\); setBusy\(false\); setServiceForm\(null\)/);
+  });
+  it('closes the song form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setSongForm\(null\)/);
+  });
+  it('schedule form offers every service type the table allows (incl. Wednesday)', () => {
+    const formStart = src.indexOf('function ServiceForm');
+    const form = src.slice(formStart, src.indexOf('function ', formStart + 10));
+    for (const v of ['sunday', 'wednesday', 'rehearsal']) {
+      expect(form).toContain(`<option value="${v}">`);
+    }
   });
 });

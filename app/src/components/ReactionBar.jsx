@@ -18,12 +18,53 @@
 // item is a button with a full title; Escape + outside-tap close the popover; the
 // chosen reaction is aria-pressed. No emoji (device-independent SVG via
 // ReactionIcon), rem font sizes (the global large-print control scales it).
+//
+// TEXTING-APP FEEL (Darrell 2026-07-03: "long hold gives options not a touch
+// the choose... it's clunky... makes it feel cheap"): the interaction is now
+// the one every messaging app trained the world on —
+//   TAP the chip   -> react instantly (Love by default; tap again removes);
+//   HOLD the chip  -> the full palette opens under your finger;
+//   TAP a tile     -> picks it, one touch, done;
+//   HOLD a tile    -> previews its meaning + Scripture without reacting.
+// Every tile still shows its NAME under the icon (meaning never hides behind
+// hover), and the ▾ affordance beside the chip opens the palette on plain
+// click — the discoverable + keyboard-first route to the same options.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactionIcon from './ReactionIcon.jsx';
 import {
   REACTION_GROUPS, reactionsInGroup, reactionDef, reactionSummary, EMPTY_REACTIONS,
 } from '../lib/reactions.js';
+import { usePressHold } from '../lib/use-press-hold.js';
+
+// The one-tap default — the reaction a quick tap applies when you haven't
+// reacted yet (the texting-app convention; hold for the full palette).
+const DEFAULT_REACTION = 'love';
+
+// One palette tile: TAP picks (one touch, done); HOLD previews the meaning +
+// Scripture in the detail strip without reacting. Hover/focus preview stays for
+// mouse/keyboard. A component (not inline) because usePressHold is a hook.
+function PaletteTile({ reaction: r, mine, onPick, onPreview }) {
+  const gesture = usePressHold({ onTap: onPick, onHold: onPreview });
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      {...gesture}
+      onMouseEnter={onPreview}
+      onFocus={onPreview}
+      aria-pressed={mine}
+      title={`${r.label}${r.scripture ? ` — ${r.scripture.ref}` : ''}`}
+      className={`flex flex-col items-center justify-start gap-0.5 px-1 pt-1.5 pb-1 border touch-none select-none focus:outline focus:outline-2 focus:outline-[#B85838] ${
+        mine ? 'bg-[#B85838] text-white border-[#B85838]'
+        : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
+    >
+      <span className="text-[1.05rem] leading-none"><ReactionIcon name={r.icon} title={r.label} /></span>
+      {/* The name is always VISIBLE — meaning never hides behind hover. */}
+      <span className="text-[0.5625rem] leading-tight text-center">{r.label}</span>
+    </button>
+  );
+}
 
 // Move one vote from oldKey -> newKey in a counts map (optimistic display).
 function adjustCounts(base = {}, oldKey, newKey) {
@@ -60,6 +101,9 @@ export default function ReactionBar({
   const total = summary.reduce((a, s) => a + s.count, 0);
   const myDef = myKey ? reactionDef(myKey) : null;
 
+  // Opening fresh or closing resets the preview strip.
+  useEffect(() => { setDetail(null); }, [open]);
+
   // Close on outside tap / Escape.
   useEffect(() => {
     if (!open) return undefined;
@@ -85,6 +129,13 @@ export default function ReactionBar({
     }
   };
 
+  // The chip: TAP reacts instantly (toggle my reaction, or apply the default);
+  // HOLD opens the palette under the finger (texting-app convention).
+  const chipGesture = usePressHold({
+    onTap: () => react(myKey || DEFAULT_REACTION),
+    onHold: () => setOpen(true),
+  });
+
   const showWho = async () => {
     if (!onShowWho) return;
     if (who) { setWho(null); return; }
@@ -97,19 +148,28 @@ export default function ReactionBar({
   return (
     <div ref={rootRef} className={`relative ${className}`} style={{ fontFamily: '"Fraunces", serif' }}>
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Trigger — my reaction, or a "React" affordance. TAP opens the palette. */}
+        {/* The chip — TAP reacts instantly (Love, or removes yours); HOLD opens
+            the palette (texting-app convention). The ▾ beside it is the same
+            palette on a plain click — discoverable + keyboard-first. */}
+        <button
+          type="button"
+          {...chipGesture}
+          aria-pressed={!!myKey}
+          className={`${CHIP} touch-none select-none ${myKey ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+          title={myDef ? `You reacted: ${myDef.label}${myDef.scripture ? ` — ${myDef.scripture.ref}` : ''}. Tap to remove · hold for all reactions` : `React to ${contentLabel} — tap for Love · hold for all reactions`}
+        >
+          <ReactionIcon name={myDef ? myDef.icon : 'love'} />
+          <span>{myDef ? myDef.label : 'React'}</span>
+        </button>
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-pressed={!!myKey}
-          className={`${CHIP} ${myKey ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-          title={myDef ? `You reacted: ${myDef.label}${myDef.scripture ? ` — ${myDef.scripture.ref}` : ''}` : `React to ${contentLabel}`}
-        >
-          <ReactionIcon name={myDef ? myDef.icon : 'love'} />
-          <span>{myDef ? myDef.label : 'React'}</span>
-        </button>
+          aria-label={`All reactions for ${contentLabel}`}
+          title="All reactions"
+          className={`${CHIP} border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] px-1`}
+        >▾</button>
 
         {/* Compact per-reaction counts. Tap to see who (community-default). */}
         {summary.length > 0 && (
@@ -168,21 +228,15 @@ export default function ReactionBar({
             return (
               <div key={g.key} className="mb-1.5 last:mb-0">
                 <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1">{g.label}</div>
-                <div className="flex flex-wrap gap-1">
+                <div className="grid grid-cols-4 gap-1">
                   {items.map((r) => (
-                    <button
+                    <PaletteTile
                       key={r.key}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => react(r.key)}
-                      onMouseEnter={() => setDetail(r)}
-                      onFocus={() => setDetail(r)}
-                      aria-pressed={myKey === r.key}
-                      title={`${r.label}${r.scripture ? ` — ${r.scripture.ref}` : ''}`}
-                      className={`w-8 h-8 flex items-center justify-center text-[1.05rem] border focus:outline focus:outline-2 focus:outline-[#B85838] ${myKey === r.key ? 'bg-[#B85838] text-white border-[#B85838]' : 'bg-[#FAF8F4] text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] hover:bg-white'}`}
-                    >
-                      <ReactionIcon name={r.icon} title={r.label} />
-                    </button>
+                      reaction={r}
+                      mine={myKey === r.key}
+                      onPick={() => react(r.key)}
+                      onPreview={() => setDetail(r)}
+                    />
                   ))}
                 </div>
               </div>
@@ -207,7 +261,9 @@ export default function ReactionBar({
                 )}
               </div>
             ) : (
-              <p className="text-[0.625rem] text-[#5A5751] italic">Hover a reaction to see its meaning and Scripture. Tap to react.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic">
+                Tap a reaction to react. Hold one to see its meaning and Scripture first.
+              </p>
             )}
           </div>
         </div>

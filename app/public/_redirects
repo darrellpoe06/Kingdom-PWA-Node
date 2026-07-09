@@ -10,4 +10,19 @@
 # Vercel rewrite "/poetech-app/(.*) -> /$1". A 200 (rewrite, not redirect) keeps
 # the URL bar on /poetech-app/ so the service-worker scope + Supabase auth
 # redirect URLs (both pinned to /poetech-app/) stay correct.
+# Her-name share links: /moore serves the static Moore Divahs entry page (its
+# own og tags so a texted link previews as HER shop, then meta-refresh into the
+# door). /mooredivahs is a spelled-out alias. public/moore/index.html is served
+# automatically at /moore/; only the alias needs a rule.
+/mooredivahs   /moore/  301
+/mooredivahs/  /moore/  301
+
+# The bare root must land INSIDE the manifest scope (/poetech-app/), or the
+# page a phone naturally opens (poetech.us) is out of scope and Chrome refuses
+# to install the PWA entirely — no prompt, no "Install app" menu entry
+# (2026-07-07, Darrell's phone). 302 on purpose: a 301 gets cached hard by
+# browsers and would fight any future distinct root landing page. Query strings
+# pass through, so shared ?join=1 / ?register links keep working.
+/  /poetech-app/  302
+
 /poetech-app/*  /:splat  200

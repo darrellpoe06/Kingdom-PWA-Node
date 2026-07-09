@@ -37,6 +37,7 @@ import {
 } from '../lib/voice-reference.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { supabase } from '../lib/supabase.js';
+import SectionTabs from './SectionTabs.jsx';
 
 const SAMPLE = 'Welcome. This is your chosen reading voice. Paste any message, lesson, or passage below and press Read to hear it aloud in this voice.';
 const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I shall not want.';
@@ -245,86 +246,80 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
 
   const showRecorder = !!(personaKey && PERSONA_NAME[personaKey]);
 
-  return (
-    <div className="max-w-3xl">
-      <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
-      <h1 className="text-2xl font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Listen to anything</h1>
-      <p className="text-sm text-[#5A5751] mb-5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-        Pick a voice, then paste any message, lesson, or passage to hear it read aloud. On a reading
-        page (Scripture, The Word, a lesson) the floating 🔊 button reads the whole page.
-      </p>
-
-      {/* The honesty banner — never hidden while the studio is not live. */}
-      {!sovereignVoiceReady && (
-        <div className="mb-5 border-l-4 border-[#B85838] bg-[#FAF8F4] p-3 text-[12px] text-[#5A5751] leading-relaxed">
-          <strong>How personal voices work today:</strong> a personal voice is clearly marked
-          <em> AI-generated</em> and currently plays a <strong>stand-in</strong> voice that you can hear right
-          now. The real cloned voice activates when the local voice studio (sovereign, on our own
-          hardware) is live — nothing here pretends a stand-in is the person’s real voice.
+  // Swipeable sections instead of a stacked scroll (Darrell 2026-07-04: "sliding
+  // tabs for all tabs instead of a long scroll"). Every hook stays at the top
+  // level above — these render thunks are plain closures over that state, so
+  // playback (tts / audioRef) keeps running across section switches. The header,
+  // the honesty banner, and the live status notice stay PINNED above the strip
+  // so an action's result is visible no matter which section set it.
+  const sections = [
+    {
+      id: 'listen',
+      label: 'Listen',
+      icon: 'volume',
+      render: () => (
+      /* Listen to anything */
+      <div className="border border-[#E8E4DC] bg-white p-4">
+        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">
+          Reading with: <span className="text-[#1A1815] font-semibold">{selected?.name}</span>
+          {selected && aiVoiceLabel(selected) ? ' (AI-generated voice — stand-in)' : ''}
         </div>
-      )}
+        <label htmlFor="vs-text" className="sr-only">Text to read aloud</label>
+        <textarea
+          id="vs-text" value={text} onChange={(e) => setText(e.target.value)} rows={4}
+          placeholder="Paste any message, lesson, or passage…"
+          className="w-full text-sm border border-[#E8E4DC] p-2 text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+        />
 
-      {/* RECORD YOUR VOICE — the primary enrollment: clean audio + explicit consent
-          in one gesture. The recorded sample IS the clone reference. */}
-      {showRecorder && (
-        <div className="mb-6 border border-[#1A1815] bg-white p-4">
-          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-            <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {PERSONA_NAME[personaKey]}</div>
-            <span className="text-[9px] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
+        {/* Highlight-as-it-reads: the active sentence lights up while reading. */}
+        {isReading && segments.length > 0 && !cloudPlaying && (
+          <div aria-hidden="true" className="mt-2 text-sm leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 max-h-40 overflow-auto">
+            {segments.map((s, i) => (
+              <span key={i} className={i === activeSeg ? 'bg-[#1A1815] text-white px-0.5' : 'text-[#5A5751]'}>{s}{' '}</span>
+            ))}
           </div>
-          <p className="text-[12px] text-[#5A5751] leading-relaxed mb-3">
-            Read the lines below aloud (about 30 seconds). This becomes <strong>your</strong> voice for
-            reading app text — clean audio, and recording it <strong>is</strong> your consent. It stays on
-            this device; it’s only ever sent to your own voice endpoint to read text you choose.
-          </p>
+        )}
 
-          {!recorder.supported ? (
-            <p className="text-[11px] text-[#B85838]">Recording isn’t supported in this browser — try Chrome or Safari on your phone.</p>
-          ) : (
-            <>
-              <div className="text-[12px] text-[#1A1815] leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3">
-                {RECORD_SCRIPT.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
-              </div>
-
-              {myRefExists && !recorder.blob && !recorder.recording && (
-                <div className="text-[11px] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
-                  <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 flex-wrap">
-                {!recorder.recording && !recorder.blob && (
-                  <button type="button" onClick={recorder.start} disabled={busy}
-                    className="bg-[#B85838] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">● Record</button>
+        {!tts.supported ? (
+          <p className="text-[11px] text-[#B85838] mt-2">This device can’t read aloud — try a different browser.</p>
+        ) : (
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            {!isReading ? (
+              <button type="button" onClick={readNow} disabled={busy}
+                className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{busy ? '…' : '▶ Read'}</button>
+            ) : (
+              <>
+                {!cloudPlaying && (
+                  <button type="button" onClick={tts.isPaused ? tts.resume : tts.pause}
+                    className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{tts.isPaused ? '▶ Resume' : '⏸ Pause'}</button>
                 )}
-                {recorder.recording && (
-                  <>
-                    <span className="text-sm font-mono text-[#B85838]" role="status" aria-live="polite">● {formatDuration(recorder.seconds)}</span>
-                    <button type="button" onClick={recorder.stop}
-                      className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">■ Stop</button>
-                    <span className={`text-[11px] ${durationQuality(recorder.seconds).tone === 'short' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{durationQuality(recorder.seconds).label}</span>
-                  </>
-                )}
-                {recorder.blob && !recorder.recording && (
-                  <>
-                    <audio src={recorder.url} controls className="h-8 max-w-[200px]" />
-                    <button type="button" onClick={saveRecording} disabled={busy || !meetsMinDuration(recorder.seconds)}
-                      className="bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">✓ Save my voice</button>
-                    <button type="button" onClick={recorder.reset}
-                      className="border border-[#1A1815] text-[#1A1815] px-3 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↺ Re-record</button>
-                  </>
-                )}
-              </div>
-              {recorder.error && <p className="text-[11px] text-[#B85838] mt-2">{recorder.error}</p>}
-              {!sovereignVoiceReady && (
-                <p className="text-[10px] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Voice picker */}
+                <button type="button" onClick={stopAll}
+                  className="border border-[#1A1815] text-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+              </>
+            )}
+            <div className="flex items-center gap-1 ml-auto" role="group" aria-label="Reading speed">
+              {RATE_STEPS.map((s) => {
+                const on = Math.abs(tts.rate - s.value) < 0.001;
+                return (
+                  <button key={s.value} type="button" onClick={() => tts.setRate(s.value)} aria-pressed={on} title={s.name}
+                    className={`px-2 py-1.5 text-[10px] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {tts.supported && tts.voices.length === 0 && (
+          <p className="text-[10px] text-[#5A5751] mt-2">Your device is still loading its voices — give it a moment, then press Read again.</p>
+        )}
+      </div>
+      ),
+    },
+    {
+      id: 'voices',
+      label: 'Voices',
+      icon: 'users',
+      render: () => (
+      /* Voice picker */
       <div className="grid gap-2 mb-6">
         {voices.map((v) => {
           const selectable = isVoiceSelectable(v, ctx);
@@ -414,63 +409,101 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           );
         })}
       </div>
+      ),
+    },
+    // RECORD YOUR VOICE — the primary enrollment: clean audio + explicit consent
+    // in one gesture. The recorded sample IS the clone reference. Gated exactly
+    // as before (showRecorder); SectionTabs filters the null so the tab never
+    // leaks for a visitor with no persona.
+    showRecorder ? {
+      id: 'record',
+      label: 'Record',
+      icon: 'mic',
+      render: () => (
+        <div className="mb-6 border border-[#1A1815] bg-white p-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+            <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {PERSONA_NAME[personaKey]}</div>
+            <span className="text-[9px] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
+          </div>
+          <p className="text-[12px] text-[#5A5751] leading-relaxed mb-3">
+            Read the lines below aloud (about 30 seconds). This becomes <strong>your</strong> voice for
+            reading app text — clean audio, and recording it <strong>is</strong> your consent. It stays on
+            this device; it’s only ever sent to your own voice endpoint to read text you choose.
+          </p>
 
+          {!recorder.supported ? (
+            <p className="text-[11px] text-[#B85838]">Recording isn’t supported in this browser — try Chrome or Safari on your phone.</p>
+          ) : (
+            <>
+              <div className="text-[12px] text-[#1A1815] leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3">
+                {RECORD_SCRIPT.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
+              </div>
+
+              {myRefExists && !recorder.blob && !recorder.recording && (
+                <div className="text-[11px] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
+                  <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {!recorder.recording && !recorder.blob && (
+                  <button type="button" onClick={recorder.start} disabled={busy}
+                    className="bg-[#B85838] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">● Record</button>
+                )}
+                {recorder.recording && (
+                  <>
+                    <span className="text-sm font-mono text-[#B85838]" role="status" aria-live="polite">● {formatDuration(recorder.seconds)}</span>
+                    <button type="button" onClick={recorder.stop}
+                      className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">■ Stop</button>
+                    <span className={`text-[11px] ${durationQuality(recorder.seconds).tone === 'short' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{durationQuality(recorder.seconds).label}</span>
+                  </>
+                )}
+                {recorder.blob && !recorder.recording && (
+                  <>
+                    <audio src={recorder.url} controls className="h-8 max-w-[200px]" />
+                    <button type="button" onClick={saveRecording} disabled={busy || !meetsMinDuration(recorder.seconds)}
+                      className="bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">✓ Save my voice</button>
+                    <button type="button" onClick={recorder.reset}
+                      className="border border-[#1A1815] text-[#1A1815] px-3 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↺ Re-record</button>
+                  </>
+                )}
+              </div>
+              {recorder.error && <p className="text-[11px] text-[#B85838] mt-2">{recorder.error}</p>}
+              {!sovereignVoiceReady && (
+                <p className="text-[10px] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
+              )}
+            </>
+          )}
+        </div>
+      ),
+    } : null,
+  ];
+
+  return (
+    <div className="max-w-3xl">
+      <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
+      <h1 className="text-2xl font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Listen to anything</h1>
+      <p className="text-sm text-[#5A5751] mb-5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+        Pick a voice, then paste any message, lesson, or passage to hear it read aloud. On a reading
+        page (Scripture, The Word, a lesson) the floating 🔊 button reads the whole page.
+      </p>
+
+      {/* The honesty banner — never hidden while the studio is not live. Pinned above the strip. */}
+      {!sovereignVoiceReady && (
+        <div className="mb-5 border-l-4 border-[#B85838] bg-[#FAF8F4] p-3 text-[12px] text-[#5A5751] leading-relaxed">
+          <strong>How personal voices work today:</strong> a personal voice is clearly marked
+          <em> AI-generated</em> and currently plays a <strong>stand-in</strong> voice that you can hear right
+          now. The real cloned voice activates when the local voice studio (sovereign, on our own
+          hardware) is live — nothing here pretends a stand-in is the person’s real voice.
+        </div>
+      )}
+
+      {/* Status notice — pinned above the strip so a result set from ANY section
+          (enroll, save a recording, a playback fallback) stays visible no matter
+          which section is open. */}
       {notice && <div role="status" aria-live="polite" className="mb-4 text-[12px] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2">{notice}</div>}
 
-      {/* Listen to anything */}
-      <div className="border border-[#E8E4DC] bg-white p-4">
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">
-          Reading with: <span className="text-[#1A1815] font-semibold">{selected?.name}</span>
-          {selected && aiVoiceLabel(selected) ? ' (AI-generated voice — stand-in)' : ''}
-        </div>
-        <label htmlFor="vs-text" className="sr-only">Text to read aloud</label>
-        <textarea
-          id="vs-text" value={text} onChange={(e) => setText(e.target.value)} rows={4}
-          placeholder="Paste any message, lesson, or passage…"
-          className="w-full text-sm border border-[#E8E4DC] p-2 text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
-        />
-
-        {/* Highlight-as-it-reads: the active sentence lights up while reading. */}
-        {isReading && segments.length > 0 && !cloudPlaying && (
-          <div aria-hidden="true" className="mt-2 text-sm leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 max-h-40 overflow-auto">
-            {segments.map((s, i) => (
-              <span key={i} className={i === activeSeg ? 'bg-[#1A1815] text-white px-0.5' : 'text-[#5A5751]'}>{s}{' '}</span>
-            ))}
-          </div>
-        )}
-
-        {!tts.supported ? (
-          <p className="text-[11px] text-[#B85838] mt-2">This device can’t read aloud — try a different browser.</p>
-        ) : (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            {!isReading ? (
-              <button type="button" onClick={readNow} disabled={busy}
-                className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{busy ? '…' : '▶ Read'}</button>
-            ) : (
-              <>
-                {!cloudPlaying && (
-                  <button type="button" onClick={tts.isPaused ? tts.resume : tts.pause}
-                    className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{tts.isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                )}
-                <button type="button" onClick={stopAll}
-                  className="border border-[#1A1815] text-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
-              </>
-            )}
-            <div className="flex items-center gap-1 ml-auto" role="group" aria-label="Reading speed">
-              {RATE_STEPS.map((s) => {
-                const on = Math.abs(tts.rate - s.value) < 0.001;
-                return (
-                  <button key={s.value} type="button" onClick={() => tts.setRate(s.value)} aria-pressed={on} title={s.name}
-                    className={`px-2 py-1.5 text-[10px] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {tts.supported && tts.voices.length === 0 && (
-          <p className="text-[10px] text-[#5A5751] mt-2">Your device is still loading its voices — give it a moment, then press Read again.</p>
-        )}
-      </div>
+      <SectionTabs sections={sections} ariaLabel="Voice sections" idBase="voice" defaultId="listen" />
 
       <p className="text-[11px] text-[#5A5751] mt-4 leading-relaxed">
         Voice cloning is consent-only: a real person’s voice is never used until that person enrolls

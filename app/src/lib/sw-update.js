@@ -293,6 +293,36 @@ export function wireUpdates(registration, nav, win) {
   return { state, hadController, loopRisk };
 }
 
+// -----------------------------------------------------------------------------
+// checkForLatest — the ACTIVE half of the update system ("Download the latest",
+// Darrell 2026-07-07). Everything above reacts to a worker the browser already
+// discovered; this asks RIGHT NOW: force registration.update() (re-fetch sw.js),
+// then poll briefly for a pending worker. Honest tri-state result:
+//   'update-found' — a newer build exists; `pending` is the worker to apply.
+//   'latest'       — the check completed and nothing newer is deployed.
+//   'no-sw'        — no live registration (dev / unsupported): updates arrive
+//                    with the site itself, nothing to download.
+// Injectable polls/sleep so the suite drives it deterministically.
+// -----------------------------------------------------------------------------
+export const CHECK_POLLS = 8;      // 8 × 500ms ≈ a 4s ceiling on "Checking…"
+export const CHECK_POLL_MS = 500;
+export async function checkForLatest(registration, opts = {}) {
+  if (!registration || typeof registration.update !== 'function') {
+    return { result: 'no-sw', pending: null };
+  }
+  try { await registration.update(); } catch (_) { /* offline / fetch fail — read state anyway */ }
+  const polls = typeof opts.polls === 'number' ? opts.polls : CHECK_POLLS;
+  const delay = typeof opts.pollMs === 'number' ? opts.pollMs : CHECK_POLL_MS;
+  const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  for (let i = 0; i <= polls; i++) {
+    let pending = null;
+    try { pending = registration.waiting || registration.installing; } catch (_) { /* stays null */ }
+    if (pending) return { result: 'update-found', pending };
+    if (i < polls) await sleep(delay);
+  }
+  return { result: 'latest', pending: null };
+}
+
 // Proactively ask the browser to re-check for a new worker. The browser only
 // checks on navigation / ~24h by default, so a long-lived installed PWA (iOS
 // home-screen especially) can sit on an old build for days without this. Safe

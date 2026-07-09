@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   summaryTiles, categoryLabel, categoryTone, maskEmail,
-  hasReturned, signupRowView, sortSignups,
+  hasReturned, signupRowView, sortSignups, lastActiveAt, isActiveNow,
 } from '../lib/signup-metrics.js';
 
 // A fixed "now" so relative-time output is deterministic.
@@ -63,9 +63,29 @@ describe('maskEmail', () => {
   });
 });
 
+describe('lastActiveAt', () => {
+  it('prefers the effective last_active_at from the RPC', () => {
+    expect(lastActiveAt({ last_active_at: iso(0), last_sign_in_at: iso(14 * DAY) })).toBe(iso(0));
+  });
+  it('falls back to the auth stamp when there is no presence-backed value', () => {
+    expect(lastActiveAt({ last_sign_in_at: iso(3 * DAY) })).toBe(iso(3 * DAY));
+  });
+  it('is null when neither clock is present (never fabricated)', () => {
+    expect(lastActiveAt({})).toBe(null);
+    expect(lastActiveAt(null)).toBe(null);
+  });
+});
+
 describe('hasReturned', () => {
-  it('true when last sign-in is well after creation', () => {
+  it('true when last activity is well after creation', () => {
     expect(hasReturned({ created_at: iso(10 * DAY), last_sign_in_at: iso(1 * DAY) })).toBe(true);
+  });
+  it('true when the auth stamp is stale but the presence heartbeat is fresh (the bug)', () => {
+    // Signed up a month ago; auth stamp frozen 2w ago by silent token refresh;
+    // but active in the app today per member_presence. Must read as returned.
+    expect(hasReturned({
+      created_at: iso(30 * DAY), last_sign_in_at: iso(14 * DAY), last_active_at: iso(0),
+    })).toBe(true);
   });
   it('false when never signed in, or only the creation sign-in', () => {
     expect(hasReturned({ created_at: iso(DAY), last_sign_in_at: null })).toBe(false);
@@ -76,6 +96,19 @@ describe('hasReturned', () => {
   it('false on missing/garbage timestamps', () => {
     expect(hasReturned(null)).toBe(false);
     expect(hasReturned({ created_at: 'x', last_sign_in_at: 'y' })).toBe(false);
+  });
+});
+
+describe('isActiveNow', () => {
+  it('true within the heartbeat-freshness window', () => {
+    expect(isActiveNow({ last_active_at: iso(2 * 60 * 1000) }, NOW)).toBe(true); // 2 min ago
+  });
+  it('false once activity is older than the window', () => {
+    expect(isActiveNow({ last_active_at: iso(30 * 60 * 1000) }, NOW)).toBe(false); // 30 min ago
+  });
+  it('false with no activity timestamp', () => {
+    expect(isActiveNow({ last_sign_in_at: null }, NOW)).toBe(false);
+    expect(isActiveNow(null, NOW)).toBe(false);
   });
 });
 
@@ -94,7 +127,20 @@ describe('signupRowView', () => {
     expect(v.joined).toBe('3d ago');
     expect(v.lastSeen).toBe('yesterday');
     expect(v.returned).toBe(true);
+    expect(v.activeNow).toBe(false);
     expect(v.emailConfirmed).toBe(true);
+  });
+
+  it('drives "last active" from the live heartbeat, not the stale auth stamp', () => {
+    // The exact reported bug: created 1mo ago, auth stamp 2w old (silent refresh),
+    // but a presence heartbeat from this minute. Must read active now, not "2w ago".
+    const v = signupRowView(
+      { ...row, created_at: iso(30 * DAY), last_sign_in_at: iso(14 * DAY), last_active_at: iso(60 * 1000) },
+      NOW,
+    );
+    expect(v.lastSeen).toBe('today');
+    expect(v.activeNow).toBe(true);
+    expect(v.returned).toBe(true);
   });
 
   it('masks email when asked, keeping the raw for actions', () => {

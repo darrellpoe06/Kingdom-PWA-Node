@@ -67,6 +67,13 @@ const ICONS = {
       <circle cx="15.4" cy="8.6" r="1" fill="currentColor" stroke="none" />
     </>
   ),
+  // open eye — the "view as customer" reviewer lens on business doors (was 👁)
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
   // phone handset — Inbound (was 📞)
   phone: (
     <path d="M6.6 3.5h3l1.4 3.8-2 1.4a11 11 0 0 0 4.9 4.9l1.4-2 3.8 1.4v3a2 2 0 0 1-2.1 2A15.8 15.8 0 0 1 4.4 5.6 2 2 0 0 1 6.6 3.5Z" />
@@ -184,6 +191,97 @@ const ICONS = {
   ),
   heartFilled: (
     <path d="M12 20.3l-1.2-1.1C6.3 15.1 3.5 12.6 3.5 9.5 3.5 7.1 5.4 5.2 7.8 5.2c1.4 0 2.8.7 3.6 1.8l.6.8.6-.8c.8-1.1 2.2-1.8 3.6-1.8 2.4 0 4.3 1.9 4.3 4.3 0 3.1-2.8 5.6-7.3 9.7L12 20.3Z" fill="currentColor" stroke="none" />
+  ),
+  // microphone — voice-input buttons (was 🎤; ChurchHome speak/type/link)
+  mic: (
+    <>
+      <rect x="9.5" y="3.5" width="5" height="10" rx="2.5" />
+      <path d="M6 11.5a6 6 0 0 0 12 0" />
+      <line x1="12" y1="17.5" x2="12" y2="20.5" />
+      <line x1="9" y1="20.5" x2="15" y2="20.5" />
+    </>
+  ),
+  // stop square — stop-recording state (was ⏹)
+  stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />,
+  // calendar page — save-to-calendar + calendar links (was 📅)
+  calendar: (
+    <>
+      <rect x="4" y="5.5" width="16" height="15" rx="1.5" />
+      <line x1="4" y1="10" x2="20" y2="10" />
+      <line x1="8.5" y1="3.5" x2="8.5" y2="7" />
+      <line x1="15.5" y1="3.5" x2="15.5" y2="7" />
+    </>
+  ),
+  // radio set — broadcast link tile (was 📻)
+  radio: (
+    <>
+      <rect x="4" y="9" width="16" height="11" rx="1.5" />
+      <path d="M7 9l10-5" />
+      <circle cx="15.5" cy="14.5" r="2.5" />
+      <line x1="7" y1="13" x2="10.5" y2="13" />
+      <line x1="7" y1="16" x2="10.5" y2="16" />
+    </>
+  ),
+  // pencil — class points / edit (was ✏️)
+  pencil: (
+    <>
+      <path d="M14.5 5.5l4 4L8 20l-4.5 1L4.5 16.5 15 6Z" />
+      <line x1="13" y1="7.5" x2="16.5" y2="11" />
+    </>
+  ),
+  // envelope — letters / mail links (was ✉️)
+  mail: (
+    <>
+      <rect x="3.5" y="6" width="17" height="13" rx="1.5" />
+      <path d="M4.5 7.5L12 13l7.5-5.5" />
+    </>
+  ),
+  // columned civic building — assembly / institution links (was 🏛)
+  landmark: (
+    <>
+      <path d="M4 8.5L12 4l8 4.5" />
+      <line x1="5" y1="9" x2="5" y2="17" />
+      <line x1="9.7" y1="9" x2="9.7" y2="17" />
+      <line x1="14.3" y1="9" x2="14.3" y2="17" />
+      <line x1="19" y1="9" x2="19" y2="17" />
+      <line x1="3.5" y1="19.5" x2="20.5" y2="19.5" />
+    </>
+  ),
+  // chain link — stay-connected links (was 🔗)
+  link: (
+    <>
+      <path d="M10 7.5l1.8-1.8a4 4 0 0 1 5.6 5.6L15.6 13" />
+      <path d="M14 16.5l-1.8 1.8a4 4 0 0 1-5.6-5.6L8.4 11" />
+      <line x1="9.8" y1="14.2" x2="14.2" y2="9.8" />
+    </>
+  ),
+  // stacked coins — money/debt motion (was 💸)
+  coins: (
+    <>
+      <ellipse cx="12" cy="6.5" rx="7" ry="2.8" />
+      <path d="M5 6.5v5c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-5" />
+      <path d="M5 11.5v5c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-5" />
+    </>
+  ),
+  // house — home/rentals (was 🏠)
+  home: (
+    <>
+      <path d="M4 11.5L12 4.5l8 7" />
+      <path d="M6 10v9.5h12V10" />
+      <path d="M10 19.5v-5h4v5" />
+    </>
+  ),
+  // speech bubble — feedback/chat (was 💬)
+  chat: (
+    <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-7Z" />
+  ),
+  // warning triangle — overdue/attention (was ⚠)
+  alert: (
+    <>
+      <path d="M12 4.5L21 19.5H3L12 4.5Z" />
+      <line x1="12" y1="10" x2="12" y2="14.5" />
+      <circle cx="12" cy="17" r="0.4" fill="currentColor" stroke="none" />
+    </>
   ),
 };
 

@@ -570,6 +570,24 @@ export async function reuseSong(song, newDate, newType, displayName) {
   return saveSong(buildReusedSong(song, newDate, newType), displayName);
 }
 
+// The distinct song CATALOG for the "pick from imported songs" picker (Christina
+// 2026-07-04: "link it to songs and be able to choose from the songs that have
+// already been imported... so you are not doing double duty"). Dedupes the full
+// song list by title (case-insensitive), keeping the richest record (one with
+// lyrics, then a video), sorted by title. Pure — the picker maps over it and the
+// existing reuseSong pipeline schedules the chosen song onto a date.
+export function distinctSongCatalog(songs) {
+  const byTitle = new Map();
+  const score = (x) => (x && x.lyrics ? 2 : 0) + (x && x.youtubeUrl ? 1 : 0);
+  for (const s of (Array.isArray(songs) ? songs : [])) {
+    const key = String((s && s.title) || '').trim().toLowerCase();
+    if (!key) continue;
+    const prev = byTitle.get(key);
+    if (!prev || score(s) > score(prev)) byTitle.set(key, s);
+  }
+  return [...byTitle.values()].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+}
+
 export async function saveService(item, displayName) {
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
@@ -803,11 +821,35 @@ export function isExternalUrl(u) {
   return typeof u === 'string' && /^https?:\/\//i.test(u.trim());
 }
 
-// Resolve an openable URL for a document in a given bucket. External links pass
-// through; Storage paths get a short-lived signed URL (RLS gates who succeeds).
+// A stored document opens inline (no signed URL needed) when it's an external link
+// OR an UPLOADED data: URL (Christina 2026-07-04 — "I need to be able to upload
+// pictures or documents"). Uploads ride the app's proven data-URL pattern
+// (lib/image.js), so an uploaded file opens straight from its data URL.
+export function isInlineDocument(u) {
+  return isExternalUrl(u) || (typeof u === 'string' && /^data:/i.test(u.trim()));
+}
+
+// A team-doc UPLOAD is validated before it becomes a data URL: images are
+// compressed client-side (so no size cap), other files (PDF/doc/txt) must fit the
+// cap because they ride in the row as a data URL. Pure — unit-tested.
+export const TEAM_DOC_MAX_BYTES = 3 * 1024 * 1024; // 3 MB for a non-image upload
+export function classifyUpload(file, maxBytes = TEAM_DOC_MAX_BYTES) {
+  if (!file) return { ok: false, reason: 'no-file' };
+  const type = String(file.type || '');
+  const name = String(file.name || '');
+  const isImage = /^image\//i.test(type);
+  const isDoc = /pdf|msword|officedocument|text\/plain/i.test(type) || /\.(pdf|docx?|txt)$/i.test(name);
+  if (!isImage && !isDoc) return { ok: false, reason: 'unsupported-type' };
+  if (!isImage && Number(file.size) > maxBytes) return { ok: false, reason: 'too-large' };
+  return { ok: true, kind: isImage ? 'image' : 'document' };
+}
+
+// Resolve an openable URL for a document in a given bucket. External links and
+// uploaded data: URLs pass through; Storage paths get a short-lived signed URL
+// (RLS gates who succeeds).
 async function openDocument(bucket, documentUrl) {
   if (!documentUrl) return null;
-  if (isExternalUrl(documentUrl)) return documentUrl;
+  if (isInlineDocument(documentUrl)) return documentUrl;
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(documentUrl, 300);
   if (error) { console.warn(`[choir-sync] signed url (${bucket}) failed:`, error); return null; }
   return data?.signedUrl || null;

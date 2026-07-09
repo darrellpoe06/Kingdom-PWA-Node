@@ -1,0 +1,260 @@
+# Live-data tabs audit + timeline — 2026-07-05
+
+**Mandate (Darrell):** "Review each of the PoeTech App tabs for static data, review
+loops and ensure that the current state of them are working live data driven
+information flowing throughout the PoeTech App … and a timeline for all of the data
+being live … work until it is comprehensively complete." Follow-up the same session:
+"we want this app unbreakable and usable today" — and the live TV Time screenshot
+showing the stale "live group sync is coming next" copy still on screen.
+
+**Method.** Six parallel audit passes covered ALL 39 registry surfaces
+(`app/src/surfaces.js`) plus every shell-mounted view outside the registry (Big
+Picture, Inbound, Projects sub-views incl. Build board / Concerns / Loop Health /
+Quality Proof, the non-registry Books sub-views, and the shell chrome). Every
+rendered collection was traced to its source (file:line) and classified
+adversarially per DR-0076: LIVE / LOCAL-ONLY / STATIC (painted) / STATIC-BY-DESIGN /
+BUILDING. Builds on the 2026-06-29 interconnection-loops audit and extends it from
+6 flagship loops to the whole tab surface.
+
+## The verdict map (all tabs)
+
+**LIVE — verified wired, no action needed (26):** Study, CRM, Inventory, Forecast,
+Create, Practice (all three collections), Rentals (core), Chef's Corner, TV Time
+(owner sync 0072 + circle sharing 0074), Books→Transactions (ledger), Books→1099,
+Choir (8 realtime streams), Service Program, Pulpit, Harvest (reference-quality,
+incl. the ops-command seam), Conference, Conference Variance, Event Center, Events,
+Scripture appearances, Admin (load-based reads + real RPCs), Concerns board, Loop
+Health, Quality Proof, Big Picture (derived + number-traced), Feedback.
+
+**Painted signals found (3) — ALL FIXED THIS SESSION:**
+1. Command & Serve faculty readiness chips — hardcoded 'live'/'partial' rendered as
+   if computed → now carry explicit **declared** provenance ('Wired · declared' +
+   tooltip; `declaredReadiness()` + `READINESS_PROVENANCE`), pinned by test.
+2. About "aggregate of family priority votes shapes the roadmap" — the aggregate
+   was one device's localStorage → **made TRUE**: votes now pool per
+   (instance, user, module) on the `module_interest` rail (0077) and About renders
+   the real cross-member Family Priority Votes count; copy states the signed-out
+   fallback honestly.
+3. AppFirmUp persistent-share % / module ledger / trend — a committed snapshot that
+   read as a live gauge → now stamped **"measured {date}"** from the artifact's own
+   `generatedAt` (falls back to "snapshot — regenerate" wording, never invents).
+
+**Static-with-a-live-seam (3) — ALL WIRED THIS SESSION:**
+4. Engagement trivia — the UI rendered the fixed anchor set while
+   `getActiveQuestion`/`getRecentQuestions` over `trivia_questions` sat unused →
+   the surface now reads the live table first and falls back to the authored
+   anchor set honestly (producer still pending, see timeline).
+5. Library — mounted with `sermons={[]}`, permanently starving sermon-based book
+   recipes → Library now self-subscribes the live `choir_sermons` stream (the
+   proven ScriptureLibrary pattern); field contract verified before wiring.
+6. Device register — live-subscribed but nothing could WRITE `church_devices` (no
+   editor existed) → steward add/edit controls now call the existing `saveDevice`,
+   so the register can hold real state instead of only the bundled seed.
+
+**Bugs / staleness fixed (4):**
+7. ChurchHome contribution mailto builder referenced its record before definition.
+8. TV Time / TVCircle stale "gated off / live group sync is coming next" copy —
+   scrubbed everywhere (component copy, lib comments, monolith mount comment,
+   pinned test flipped); the trending label now says truthfully that it ranks YOUR
+   list and points to the live circle surface.
+9. Relationships landlord/tenant was load-once — Refresh button + focus/visibility
+   refetch added (load-based remains the pattern; staleness is now user-recoverable).
+10. `SEED_CIRCLE` painted roster removed from TV Time intro copy.
+
+**LOCAL-ONLY promoted to the family instance — migration 0077 (7 rails, shipped
+fail-soft this session):** Games saves (`game_saves`), Books→Subscriptions
+(`family_subscriptions`), Dev/Ops skill profiles (`skill_profiles`), prayer
+requests (`prayer_requests`), One Voice notes (`church_voice`), Markets watchlist
+(`market_watchlist`), About module votes (`module_interest`). Five ride the new
+jsonb-doc rail (`lib/doc-sync.js` — the doc IS the record; column drift is
+structurally impossible, P13), two are hand-shaped (string set / keyed vote). All
+reducers push, the tables loop / dedicated effects subscribe realtime, and until
+0077 is applied every call fails soft and the device keeps working — sync
+self-heals the moment the tables exist.
+
+**STATIC-BY-DESIGN — correct as-is, no change (named so the why is recorded,
+DR-0075):** Learn/class curricula, Scripture themes + Study Edition + KJV text,
+Eternal Algorithms study content, Games catalog, Dev/Ops business-plan content
+(library/models/moats/projections), Video Wall engineering runbook + specs, Events
+campus catalog, Chef Mario canonical recipes, Listening picks, Help content,
+BuildBoard roadmap (labeled hand-maintained), admin steward allowlist, Notes
+(sovereign device-local diary by declared design).
+
+## Timeline — everything not yet live, each with its why + re-review date
+
+| # | Item | Why it isn't live yet (awaiting) | Owner / lane | Re-review |
+|---|------|----------------------------------|--------------|-----------|
+| 1 | **Apply migration 0077** (unlocks all seven new rails) | Applied by Darrell's hand in Supabase Studio (db-migrate gap); code already shipped fail-soft | Darrell (5 min, PowerShell + SQL below) | **2026-07-06** |
+| 2 | Trivia producer (Wednesday message → `trivia_questions`) | Extraction of Bishop Gwin's end-of-message questions blocked on the church-inbox / Whisper pipeline (Christina's Gmail OAuth) | NAS pipeline | 2026-07-19 |
+| 3 | Trivia answers read-back (leaderboard/aggregate) | `trivia_answers` writes land but nothing reads them; needs a consumer surface decision | app | 2026-07-19 |
+| 4 | Observation photos off-device | Photos are deliberately stripped from snapshot-sync; need the NAS write-path (or family Supabase storage bucket) + a `church_observation` table — LAN-side work (P18: local agent) | NAS + app | 2026-07-26 |
+| 5 | Books→Transactions retired ingest/reconcile UI | wf18 overlay retired 2026-07-01; the reconcile pills + mark-noise seam are invisible when empty but dead weight — either re-point at a live producer or remove the UI | decision: Darrell | 2026-07-26 |
+| 6 | Bookstore checkout seam | `CHECKOUT_CONFIG.enabled=false` — no payment processor wired; honestly labeled | business decision | 2026-08-15 |
+| 7 | Opportunities "My Active Pipeline" CRUD | Seed pipeline is honestly labeled "sample" but no add/edit path exists for real deals; needs reducers + a rail (candidate for the doc rail) | app | 2026-07-26 |
+| 8 | Purchasing → Forecast | `buildProjection` ingests cash/salaries/rentals only; purchasing spend never reaches it (Chef Mario P4; tracked in manifest) | app | 2026-08-15 |
+| 9 | Presenter worship set list | Built + tested, mounted by no component (tracked in manifest) | app | 2026-08-15 |
+| 10 | Learn cohort publish | Publishing a cohort date to ALL learners still requires a code edit to the lib constant; needs a DB-backed published-cohort row | app | 2026-08-15 |
+| 11 | Learn per-learner progress | `classProgress`/`classQuiz` ride snapshot-sync (account-scoped LWW) — fine single-account; a per-learner synced table is the multi-user upgrade | app | 2026-08-15 |
+| 12 | Library shelf + Bookstore catalog sync | Device-local; candidate for the owner-only doc rail (0070/0072 pattern) | app | 2026-08-15 |
+| 13 | Checkout intents + voiceOps config sync | Low-traffic config/capture lists; voiceOps carries a bearer token — syncing credentials needs a deliberate decision, not a default | decision: Darrell | 2026-08-15 |
+| 14 | WakeOrchestrator / RentCast / property-photo n8n seams | Real seams, inert until the NAS bundle / API keys are configured; all degrade honestly | NAS | 2026-07-26 |
+| 15 | Trivia loop-health row + the new rails in Loop Health | The interconnect manifest now guards the wiring; adding freshness rows for the new rails is deliberately deferred until real usage exists to measure (a freshness row over an empty table reads 'never' and shouts falsely) | app | 2026-07-26 |
+
+Rows 2–15 stay honest in-app today: every one renders as *building*/inert/labeled,
+never green (DR-0076).
+
+## Step 1 for Darrell — apply 0077 (from anywhere)
+
+Plain steps: open Supabase Studio on the NAS → SQL editor → paste the contents of
+`infra/supabase/migrations-auto/0077-live-data-rails.sql` → Run. Idempotent; safe
+to re-run. Then sign into the app on one device, add a watchlist ticker or a prayer
+request, and watch it appear on a second signed-in device.
+
+```powershell
+cd C:\Users\dpoe\Kingdom-PWA-Node
+git pull origin main
+notepad infra\supabase\migrations-auto\0077-live-data-rails.sql
+Start-Process "http://192.168.1.26:8000"
+```
+
+(Notepad opens the SQL to copy; the browser opens the NAS Supabase Studio. Paste
+into the SQL editor and Run. Verify: the editor reports success and
+`select tablename from pg_tables where tablename in ('game_saves','family_subscriptions','skill_profiles','prayer_requests','church_voice','market_watchlist','module_interest');`
+returns 7 rows.)
+
+## How this is guarded (never silently static again)
+
+- Every new rail is registered in `scripts/interconnect-manifest.mjs` — the seven
+  0077 rails as **building** (honest until the migration is applied and verified
+  live; the wiring tokens are already declared so flipping to `live` enforces them),
+  and the session's re-wired loops (Library sermons, Engagement trivia read,
+  device-register writer) with their real tokens. `interconnect-guard` + vitest
+  fail the build if any declared wiring is ripped out.
+- Gates run this session: eslint 0-warnings, full vitest, interconnect-guard,
+  production build (results in the PR).
+
+## Addendum — financial-math accuracy audit (same session, Darrell's question)
+
+Darrell: "is the numbers in the financial system processing at the highest accuracy
+levels in each of their sequences and sound wholeisticly?" Adversarial audit of the
+money engines answered with evidence; four confirmed defects, ALL FIXED this session
+with proven-to-catch tests (each new test was verified failing against the old code):
+
+1. **Transfers inflated gross IN/OUT and mislabeled income/expense reports** —
+   `imported-view.totals`, `Imported recentIn/Out`, and `finance-reports
+   incomeVsExpenseModel` summed internal transfers (a transfer credit reported as
+   Income). Fixed via shared `isTransferTxn` (keys off the real `isTransfer` /
+   `category==='transfer'` markers rows already carry); cents rounding added to the
+   one unrounded rollup. NET was and stays correct; the gross presentation now is too.
+2. **The headline debt-free date disagreed with the Debt Snowball tab for the same
+   debts** — `projectDebt` netted minimum payments out of the extra pool, but the
+   pool (computePressure.extraAvailable) starts from netCashFlow whose outflows
+   ALREADY include debtService — minimums were double-counted and no freed-minimum
+   cascade ran. Aligned to the snowball engine's semantics (minimums always paid,
+   full extra on the highest-rate debt, freed minimums cascade same-month); a pin
+   now asserts both engines return the same debt-free month.
+3. **The 7-year target could silently return the $50k/mo search ceiling as if
+   achievable** — `findExtraForTarget` now returns `{ extra, achievable, cap }` and
+   the Rentals feasibility card says "not reachable" plainly (DR-0100).
+4. **`traceCashOnHand` sources were static `a.balance` while the headline is
+   ledger-derived** — the trace's own line items could fail to sum to the number
+   they explain. Sources now use the same `deriveAccountBalances` derivation.
+
+**Verified sound (no change needed):** integer-cent reconciliation equality
+(`reconciliation.js`), FITID + content-key dedupe (the 2026-07-02 double-count fix
+holds), avalanche/snowball orderings, projection month-stepping, per-step `round2`
+discipline, Big Picture inflow/outflow (transfer-clean by construction). **Known,
+documented approximation:** interest accrues nominal-monthly, not daily (FLAG-1) —
+bounded, re-review with the CALC-INVENTORY pass. **Low-priority residuals for the
+timeline:** `txn-dedupe` UUID-id convention reliance.
+
+## Money tie-in map (Darrell: "when a dollar moves, does everything move?")
+
+What genuinely moves together today (one ledger, derived views): transactions →
+`deriveAccountBalances` → account balances, cash on hand, Big Picture KPIs,
+Forecast projection, Debts (deriveDebts live view), reconciliation — a cleared
+transaction moves ALL of these in lockstep. What is DECLARED state that does NOT
+auto-move when a ledger dollar moves: rentals `actual` (hand-kept vs rent
+transactions), `outflows` buckets (declared monthly figures), contractor YTD
+(hand-entered), subscriptions amounts. Those are honest declared inputs, not
+painted numbers — but auto-reconciling them against the ledger (e.g. rent income
+transactions updating rental `actual`) is the next interdependence build:
+**re-review 2026-07-26** alongside the Books ingest decision (timeline row 5).
+
+## Money tie-in map (Darrell: "anything that has financing on the page must tie into the financial process")
+
+Full sweep of every dollar on every surface, classified against the spine
+(transactions → deriveAccountBalances → totals/forecast; accounts/entities/debts;
+inflows/outflows):
+
+**TIED-IN (verified):** Books (all four tabs), Big Picture totals, Rentals
+(rent/actual/mortgage → flows + debts), Forecast, Budget Planner.
+
+**ORPHANED — money on screen that never reaches the ledger/forecast (6):**
+1. Venue "booked revenue" (EventManagement/venue-rental — quoted prices sum,
+   UI says "counts as income" but lands nowhere). Tie-in needs a DECISION:
+   church-venue money is church-instance data — does it post to a family entity
+   or await a church-books spine? (decision: Darrell)
+2. Subscriptions monthly bleed (Cart) — never folds into outflows/forecast.
+   ⚠ double-count risk: the declared `outflows.household` bucket may already
+   cover it — reconcile the bucket before wiring (same class as rentals-actual).
+3. Inventory value $ — real on-hand asset value, invisible to net worth.
+4. Practice projected revenue — converted leads never become e-tlc inflow lines.
+5. Incident amounts — a resolved $850 incident never posts the expense.
+6. Capex "purchased" — the buy never posts to the ledger.
+
+**The tie-in architecture (one pattern for all):** each money event offers a
+one-tap "record in Books" that posts a REAL prefilled transaction via
+addTransaction (never auto-posted — money stays the owner's hand), with the
+source record linking the tx id. Items 4/5/6 are unambiguous; 2/3 need the
+double-count reconcile; 1 needs the church-books decision. This is the next
+named build (Tier B, own PR — it passes props through the frozen shell and
+deserves its own soak): **re-review 2026-07-12.**
+
+**BY-DESIGN-SEPARATE (verified documented):** Video Wall capital (server-side,
+RLS owner/admin), Church Giving (links to the church's own secure page — no
+payment data in-app), recipe costing + purchasing (display-only; owner's hand),
+Bookstore/checkout (processor off), opportunity pipeline $ (aspirational,
+deliberately NEVER summed into real cash flow — folding it in would overstate).
+
+## Declared next church project — campus security blind-spot visibility (Darrell, 2026-07-05)
+
+> "for church security the men want access to see security blind spots all over
+> this 33000 square foot campus. next project after the infrastructure project
+> for the church."
+
+Sequenced AFTER the church infrastructure project. Scope sketch (captured now so
+the word is not lost; design begins when infrastructure closes):
+- **The ask:** the men's security team sees, on one surface, where the campus
+  IS and IS NOT covered — a blind-spot map over the 33,000 sq ft campus.
+- **Foundation already landing this session:** the Observation tab's camera
+  registry (spaces + registered Wyze/IP cameras + location + "what to watch"
+  notes) is the coverage dataset a blind-spot view derives from: a space with
+  no camera, or a noted watch-area no camera points at, IS a blind spot.
+- **Build shape (v1):** per-space coverage status derived from the real camera
+  register (covered / partial / uncovered — derived, never painted); a campus
+  checklist by zone (sanctuary, foyer, halls, exterior corners, parking,
+  entrances) the security team walks and marks; blind-spot list with notes and
+  photos (the walk IS the observation flow that tab already does).
+- **Access:** a security-team gate (the men) — likely a role alongside
+  isChurchStaff; identity gated on verified membership per P20, never
+  presence-of-session.
+- **Live view dependency:** in-app live streams for RTSP/Wyze cams require the
+  NAS restream bridge (go2rtc-class, LAN-side per P18) — shared dependency with
+  the camera registry; VISION-FAIRNESS-STANDARD applies before any recognition
+  model ever rides on these cameras.
+- **Re-review:** 2026-07-26 (or at infrastructure-project close, whichever
+  comes first).
+
+## Standards check (the "mistakes of the past" review requested mid-session)
+
+- **P13** — no new sync code maps hand-picked columns; the doc rail makes column
+  drift impossible, and nothing was marked live against an unverified cloud shape.
+- **P15/P16** — every fix names its real table/feed; the three painted signals were
+  fixed by making them true or dated, never by re-painting.
+- **P22/P23** — "live" in the manifest stays `building` until rows are verified on
+  the applied database; a pending migration is a runner-state, not a data-fact.
+- **DR-0075** — everything not improved carries its why + re-review date (table
+  above). **DR-0076** — no green without evidence. **Release tier:** code-only
+  wiring + fail-soft rails through the established lane (Tier B soak on the PR
+  preview); no timer-driven automation shipped (the three-brakes rule untouched).

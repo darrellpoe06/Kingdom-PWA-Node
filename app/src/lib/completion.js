@@ -73,6 +73,10 @@ export function trendOf(current, previous) {
 
 // persistentShare — the committed, script-measured persistent-layer metric with
 // its baseline, target, and since-last-run trend. Pure read of the JSON.
+// measuredAt: the JSON's own generation stamp, carried alongside the % so the
+// surface can date the snapshot — a real number that is only as fresh as the
+// last `python3 scripts/persistent-share.py` run must SAY when it was measured,
+// not read as a live gauge (DR-0076 rule 8; same fix as moduleLedger below).
 export function persistentShare() {
   const current = SHARE.persistentPct;
   const t = trendOf(current, SHARE.previousPct);
@@ -88,6 +92,7 @@ export function persistentShare() {
     configDocsPct: SHARE.configDocsPct,
     totalLines: SHARE.totalLines,
     totalFiles: SHARE.totalFiles,
+    measuredAt: SHARE.generatedAt ?? null,
   };
 }
 
@@ -101,5 +106,9 @@ export function moduleLedger() {
   // `surfaces` = the registry size, counted by the deterministic script and read
   // from the JSON — feature modules must NOT import surfaces.js (shell-only,
   // module-boundary-guard / DR-0076), so the count arrives via this measured JSON.
-  return { monolithLines, frozenBudget: frozen, delta, surfaces: ml.surfaces ?? null };
+  // measuredAt: the JSON's own generation stamp — surfaces SHOW it, so a stale
+  // measurement is visible instead of masquerading as current (2026-07-04,
+  // caught live: the tile said 8,403 for three days). Pairs with the
+  // completion.test.js freshness cross-pin.
+  return { monolithLines, frozenBudget: frozen, delta, surfaces: ml.surfaces ?? null, measuredAt: SHARE.generatedAt ?? null };
 }

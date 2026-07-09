@@ -7,32 +7,15 @@
 // carries a preview (preview-then-execute). Grounds DR-0061 / DR-0076.
 import { describe, it, expect } from 'vitest';
 import {
-  ADMIN_PANELS,
-  isAdminPanel,
   accessRoster,
   roleMeaning,
   ROLE_MEANING,
   dataHealthSummary,
   systemFacts,
-  INTERNAL_SURFACES,
   previewAction,
   PREVIEW_ACTIONS,
 } from '../lib/admin-console.js';
 import { ADMIN_EMAILS } from '../lib/admin-allowlist.js';
-
-describe('panels', () => {
-  it('exposes the four backend concerns, each with an icon + blurb', () => {
-    expect(ADMIN_PANELS.map((p) => p.id)).toEqual(['access', 'data', 'system', 'internal']);
-    for (const p of ADMIN_PANELS) {
-      expect(p.icon, `${p.id} needs a UiIcon name`).toBeTruthy();
-      expect(p.blurb.length).toBeGreaterThan(10);
-    }
-  });
-  it('isAdminPanel recognizes real ids and rejects others', () => {
-    expect(isAdminPanel('access')).toBe(true);
-    expect(isAdminPanel('nope')).toBe(false);
-  });
-});
 
 describe('access roster is identity-based and marks the current user', () => {
   it('mirrors the canonical ADMIN_EMAILS allowlist (one source of truth)', () => {
@@ -105,20 +88,6 @@ describe('system facts are plain-language and carry no secrets', () => {
     const blob = JSON.stringify(systemFacts({ isPublicHost: true, buildSha: 'x', buildTime: null, backendReachable: true })).toLowerCase();
     for (const forbidden of ['key', 'token', 'secret', 'bearer', 'password', 'anon']) {
       expect(blob.includes(forbidden), `system facts must not mention "${forbidden}"`).toBe(false);
-    }
-  });
-});
-
-describe('internal surfaces carry no credentials', () => {
-  it('lists real NAS surfaces with public identifiers only', () => {
-    expect(INTERNAL_SURFACES.length).toBeGreaterThan(0);
-    for (const s of INTERNAL_SURFACES) {
-      expect(s.tailscale).toMatch(/^https?:\/\//);
-      expect(s.lan).toMatch(/^https?:\/\//);
-      const blob = JSON.stringify(s).toLowerCase();
-      for (const forbidden of ['bearer', 'apikey', 'api_key', 'secret', 'password', 'token=']) {
-        expect(blob.includes(forbidden), `${s.key} must not embed "${forbidden}"`).toBe(false);
-      }
     }
   });
 });

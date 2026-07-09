@@ -4,6 +4,13 @@
 # The app/ subproject has its own .gitignore for node_modules, dist, .vite.
 # This file covers the repo root.
 
+# A root-level node_modules was never covered here (only app/'s), so a vitest
+# .vite results cache leaked into a 2026-07-03 commit. Closed for good:
+node_modules/
+# The .vite cache itself can also land at the repo root when vitest is run from
+# here (not app/) — ignore it at root too, closing the same leak fully.
+.vite/
+
 # ----------------------------------------------------------------------------
 # Sensitive / PII / PHI material — never commit
 # ----------------------------------------------------------------------------
@@ -105,3 +112,7 @@ infra/supabase/seeds/
 # YouTube-caption transcript corpus (sourced on the NAS; not committed — sovereign,
 # rebuilt incrementally by youtube-captions.py).
 infra/nas-sme-pipeline/out/
+
+# Python bytecode (left behind by any run/import of the pipeline scripts)
+__pycache__/
+*.pyc

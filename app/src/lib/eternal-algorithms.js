@@ -70,6 +70,12 @@ export function normalizeAlgorithm(raw = {}, nowMs = 0, salt = 0) {
       summary: String(threeD.summary || '').trim(),
     },
     outcome: String(raw.outcome || '').trim(),
+    // Browsing facets (Darrell 2026-07-07: "a sort based on the theme or subject
+    // ... or the character it is describing"). Optional + additive: `theme` is the
+    // subject/domain, `character` the biblical figure the pattern is drawn through
+    // (empty when it isn't about one). The catalog view sorts/filters on these.
+    theme: String(raw.theme || '').trim(),
+    character: String(raw.character || '').trim(),
     tags: Array.isArray(raw.tags)
       ? raw.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean)
       : [],
@@ -87,6 +93,14 @@ export function normalizeAlgorithm(raw = {}, nowMs = 0, salt = 0) {
     source: raw.source === 'study' || raw.source === 'manual' ? raw.source : null,
     sourceId: raw.sourceId ? String(raw.sourceId) : null,
     promotedAt: raw.promotedAt || null,
+    // The forge→pulpit bridge (2026-07-03): publish state is part of the entry
+    // so it survives every load/save/merge. published = visible in the public
+    // church series (through the DB's eternal_algorithms_public window ONLY);
+    // publish4D = the owner chose to include the deep layer (DR-0094 — the
+    // owner decides what's shared, per entry, per layer).
+    published: !!raw.published,
+    publish4D: !!raw.publish4D,
+    publishedAt: raw.publishedAt || null,
     createdAt: iso,
     updatedAt: raw.updatedAt || iso,
   };
@@ -373,6 +387,26 @@ export const SEED_ALGORITHMS = [
     ],
   },
   {
+    // Darrell 2026-07-03 (spoken; distilled faithfully from his own words):
+    // Yahweh's table is eternal; the Word is the meal; eating it is what seats
+    // you. Crumbs treated as the meal is the counterfeit. Scripture fetched
+    // verbatim (KJV, public domain) — never from memory (DR-0076).
+    name: "Yahweh's Table (eat the Word, stay at the table)",
+    fourD: {
+      summary: 'Yahweh\'s table is eternal, and the meal is the Word — the Bread of Life Himself. "Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God" (Mt 4:4, KJV). To sit at the table IS to eat: dissecting the meal, enjoying it, understanding it, comprehending it. If you are not eating the Word, you are not sitting at the table — and crumbs that fall from it get treated as if they were the meal. There is no dual seating: "ye cannot be partakers of the Lord\'s table, and of the table of devils" (1 Cor 10:21, KJV) — the world sets other tables, and the adversary\'s table is one of them. Even suffering at His table is not a catastrophe but "your reasonable service" (Rom 12:1), because you know what is at stake — your soul, everybody\'s soul — and you know a crown is coming. So: "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth" (2 Tim 2:15, KJV). Why? Because we want to stay at HIS table.',
+      scripture: '1 Corinthians 10:21; 2 Timothy 2:15; Matthew 4:4; Romans 12:1',
+    },
+    threeD: {
+      summary: 'Eat the Word like meals, not crumbs: read whole passages and dissect them until you actually understand and enjoy them — do not let secondhand snippets, entertainment tables, or the culture\'s tables stand in for the meal. Watch which table you are seated at; the headlines make sense once you see whose table the world eats from. Stay low, stay humble, stay planted where the Eternal King says stay — and when suffering comes, it does not move you, because you know what is at stake and what is ahead.',
+    },
+    outcome: 'You stay seated at His table — fed and steady. Crumb-sized substitutes cannot pass as the meal anymore, other tables lose their pull, suffering re-orders as reasonable service because the crown is known, and your soul stays where the Eternal King says stay.',
+    tags: ['table', 'word', 'eat', 'study', 'crumbs', 'humility', 'discernment', 'crown'],
+    links: [
+      { label: 'Sister framework: The Table Before the Enemy', where: 'Eternal Algorithms' },
+      { label: 'The Word — Migdal (the meal served weekly)', where: 'Church › The Word' },
+    ],
+  },
+  {
     name: 'The Finish Is Guaranteed (Author and Finisher)',
     fourD: {
       summary: 'You run toward a finish already secured. "Looking to Jesus, the founder and perfecter of our faith" (Heb 12:2, ESV; KJV: "the author and finisher of our faith"). "He who began a good work in you will bring it to completion at the day of Jesus Christ" (Phil 1:6). The One who starts it is the One who finishes it.',
@@ -447,6 +481,31 @@ export const SEED_ALGORITHMS = [
     links: [
       { label: 'The Perfect You Were Made For (Learn lesson)', where: 'Church › Learn › Living Lessons' },
       { label: 'Verified: teleios G5046 (from telos) / tamim H8549', where: 'Strong\'s lexicon' },
+    ],
+  },
+  {
+    // Darrell 2026-07-07: use the 3rd/4th-dimensional frame — Yahweh's perspective
+    // and science ALIGNING — to explain Flesh & Spirit, the Seen & Unseen realms,
+    // humans & spirits, and the Godhead. This is the cornerstone that names the
+    // 4D/3D vocabulary the whole platform already runs on. Scripture is quoted
+    // VERBATIM from the verified KJV set (lib/scripture-kjv.js), never from memory
+    // (DR-0076). DOCTRINE/FRAMING is Darrell + Bishop's to govern — flagged.
+    name: 'The Two Dimensions (3D & 4D — Seen and Unseen)',
+    theme: 'The Unseen Realm',
+    character: '',
+    fourD: {
+      summary: 'The 4th dimension is the higher, senior reality: Spirit, not flesh; unseen, not seen; eternal, not temporal. "God is a Spirit" (Jn 4:24, KJV) — the Godhead lives and rules there, and frames and holds the seen world from outside it: "he is before all things, and by him all things consist" (Col 1:17); "in him we live, and move, and have our being" (Acts 17:28). It is a populated realm, and our real contest is in it, not in the flesh: "we wrestle not against flesh and blood, but against principalities, against powers... against spiritual wickedness in high places" (Eph 6:12). Man was made by the Godhead FOR both dimensions — "Let us make man in our image" (Gen 1:26) — a body in the 3rd, a spirit reaching the 4th. And the 4th entered the 3rd in Christ: "in him dwelleth all the fulness of the Godhead bodily" (Col 2:9).',
+      scripture: 'John 4:24; Colossians 1:17; Acts 17:27-28; Ephesians 6:12; Genesis 1:26; Colossians 2:9',
+    },
+    threeD: {
+      summary: 'The 3rd dimension is the flesh, the physical, the measurable — what humans and science can see and touch. It is real, but it is not the whole; it is the LOWER dimension, framed by the higher. And here science and Scripture ALIGN rather than argue: a true 4th dimension would contain and see all of the 3rd at once — exactly how Scripture describes the unseen holding the seen — and creation itself points past itself to its Author. "The invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead" (Rom 1:20, KJV). The science that keeps reaching for a higher dimension and an "outside agent" is feeling after the very realm the Word already named.',
+    },
+    outcome: 'You read reality on BOTH dimensions at once — you stop mistaking the 3rd-dimensional (flesh, seen, temporal) for all that is, and you weigh the 4th-dimensional (Spirit, unseen, eternal, the Godhead) as the senior reality that frames it. Flesh vs. Spirit, seen vs. unseen, human vs. spirit stop being vague religious words and become a working map; and science and Scripture stop being rivals — two windows on one truth.',
+    tags: ['3d-4d', 'seen-unseen', 'flesh-spirit', 'godhead', 'spirit-realm', 'science', 'dimensions', 'worldview'],
+    links: [
+      { label: 'The Word — the 4th-dimensional frame (Layer 0)', where: 'CLAUDE.md' },
+      { label: 'THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md', where: 'docs/00-foundations' },
+      { label: 'The 4D/3D spine (this whole library reads on two sides)', where: 'Eternal Algorithms' },
     ],
   },
 ];

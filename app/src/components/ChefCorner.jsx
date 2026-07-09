@@ -22,7 +22,8 @@
 // contrast gate can actually verify).
 // =============================================================================
 import React, { useState, useMemo, Suspense } from 'react';
-import { SectionTitle, TabScroll } from './shared.jsx';
+import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import {
@@ -71,11 +72,7 @@ export default function ChefCorner({
   const [mode, setMode] = useState('browse'); // 'browse' | 'detail' | 'add'
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState('');
-  const [section, setSection] = useState('recipes'); // 'recipes' | 'kitchen' | 'costing'
   const canManageInventory = !!(inventory && inventory.canManage);
-  // Steward-only sections are absent from the DOM for everyone else (no-leak);
-  // force back to Recipes if the gate isn't held.
-  const activeSection = canManageInventory ? section : 'recipes';
 
   // Canonical content ∪ cloud-synced additions, deduped by id (canonical wins).
   const allRecipes = useMemo(() => {
@@ -108,77 +105,68 @@ export default function ChefCorner({
 
   const collection = COLLECTIONS[DEFAULT_COLLECTION];
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <SectionTitle eyebrow="Chef's Corner">{collection.name}</SectionTitle>
-        <TextSizeControl variant="panel" />
-      </div>
-
-      {/* Section tabs — Recipes is always here; Kitchen (the inventory module) +
-          Costing are steward-only, so the strip only appears for stewards and is
-          absent from the DOM otherwise (no-leak). Recipes + inventory live
-          together: this is Kitchen Inventory's home. */}
-      {canManageInventory && (
-        <TabScroll chrome={false} label="Chef's Corner sections">
-          {[['recipes', 'Recipes'], ['kitchen', 'Kitchen Inventory'], ['costing', 'Recipe Costing']].map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setSection(k)}
-              className={`whitespace-nowrap px-3 py-2 text-xs uppercase tracking-wider border-b-2 ${FOCUS} ${activeSection === k ? `${BD_ACCENT} ${T_INK} font-medium` : `border-transparent ${T_MUTE}`}`}
-            >
-              {label}
-            </button>
-          ))}
-        </TabScroll>
+  // The Recipes flow (browse → detail → add). `mode` is a navigation flow, not a
+  // tab axis — it stays exactly as it was, just rendered from a plain closure so
+  // the same JSX serves both the steward SectionTabs panel and the direct
+  // member view. All hooks/state stay at the component top level.
+  const renderRecipes = () => (
+    <>
+      {mode === 'browse' && (
+        <BrowseView
+          collection={collection}
+          recipes={filtered}
+          total={allRecipes.length}
+          query={query}
+          setQuery={setQuery}
+          onOpen={openDetail}
+          onAdd={() => setMode('add')}
+        />
       )}
 
-      {activeSection === 'recipes' && (
-        <>
-          {mode === 'browse' && (
-            <BrowseView
-              collection={collection}
-              recipes={filtered}
-              total={allRecipes.length}
-              query={query}
-              setQuery={setQuery}
-              onOpen={openDetail}
-              onAdd={() => setMode('add')}
-            />
-          )}
-
-          {mode === 'detail' && selected && (
-            <DetailView
-              recipe={selected}
-              editable={!canonicalIds.has(selected.id)}
-              onBack={backToBrowse}
-              onDelete={
-                deleteRecipe && !canonicalIds.has(selected.id)
-                  ? () => { deleteRecipe(selected.id); backToBrowse(); }
-                  : null
-              }
-            />
-          )}
-
-          {mode === 'add' && (
-            <AddView
-              collection={collection}
-              currentUserPersona={currentUserPersona}
-              onCancel={backToBrowse}
-              onSave={(recipe) => {
-                if (addRecipe) {
-                  const id = addRecipe(recipe);
-                  if (id) { setSelectedId(id); setMode('detail'); return; }
-                }
-                backToBrowse();
-              }}
-            />
-          )}
-        </>
+      {mode === 'detail' && selected && (
+        <DetailView
+          recipe={selected}
+          editable={!canonicalIds.has(selected.id)}
+          onBack={backToBrowse}
+          onDelete={
+            deleteRecipe && !canonicalIds.has(selected.id)
+              ? () => { deleteRecipe(selected.id); backToBrowse(); }
+              : null
+          }
+        />
       )}
 
-      {activeSection === 'kitchen' && canManageInventory && (
+      {mode === 'add' && (
+        <AddView
+          collection={collection}
+          currentUserPersona={currentUserPersona}
+          onCancel={backToBrowse}
+          onSave={(recipe) => {
+            if (addRecipe) {
+              const id = addRecipe(recipe);
+              if (id) { setSelectedId(id); setMode('detail'); return; }
+            }
+            backToBrowse();
+          }}
+        />
+      )}
+    </>
+  );
+
+  // Section tabs — the shared SectionTabs primitive ("sliding tabs instead of a
+  // long scroll", Darrell 2026-07-04). Recipes is always here; Kitchen (the
+  // inventory module) + Costing are steward-only: null sections are filtered
+  // out, and for non-stewards no strip renders at all, so the steward tabs stay
+  // absent from the DOM (no-leak). Recipes + inventory live together: this is
+  // Kitchen Inventory's home. Only the active panel mounts, so the Kitchen
+  // chunk still lazy-loads only when its tab opens.
+  const sections = [
+    { id: 'recipes', label: 'Recipes', icon: 'chefHat', render: renderRecipes },
+    canManageInventory ? {
+      id: 'kitchen',
+      label: 'Kitchen Inventory',
+      icon: 'tools',
+      render: () => (
         <Suspense fallback={<div className={`py-10 text-center text-sm ${T_MUTE}`}>Loading kitchen inventory…</div>}>
           <KitchenInventory
             items={inventory.items || []}
@@ -200,11 +188,26 @@ export default function ChefCorner({
             currentUserPersona={currentUserPersona}
           />
         </Suspense>
-      )}
+      ),
+    } : null,
+    canManageInventory ? {
+      id: 'costing',
+      label: 'Recipe Costing',
+      icon: 'coins',
+      render: () => <CostingView recipes={allRecipes} items={inventory.items || []} />,
+    } : null,
+  ];
 
-      {activeSection === 'costing' && canManageInventory && (
-        <CostingView recipes={allRecipes} items={inventory.items || []} />
-      )}
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <SectionTitle eyebrow="Chef's Corner">{collection.name}</SectionTitle>
+        <TextSizeControl variant="panel" />
+      </div>
+
+      {canManageInventory ? (
+        <SectionTabs sections={sections} ariaLabel="Chef's Corner sections" idBase="chef" defaultId="recipes" />
+      ) : renderRecipes()}
     </div>
   );
 }
@@ -670,7 +673,6 @@ function AddView({ collection, currentUserPersona, onCancel, onSave }) {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               disabled={ocrBusy}
               className="hidden"
               onChange={(e) => { handlePhoto(e.target.files && e.target.files[0]); e.target.value = ''; }}
