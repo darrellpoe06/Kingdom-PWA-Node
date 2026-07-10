@@ -86,6 +86,7 @@ export function buildEternalProcessingCourses({ sections = GODHEAD_SECTIONS, cat
     const meta = {
       key: `eternal-${s.key}`,
       title: `${s.label} — Deep Processing`,
+      category: 'The Eternal Algorithms',
       // The declared purpose, in Darrell's own spoken words (into the app,
       // 2026-07-09): "Yahweh expects us to understand situational analysis —
       // the only way for us to listen to Him is to analyze His algorithms,

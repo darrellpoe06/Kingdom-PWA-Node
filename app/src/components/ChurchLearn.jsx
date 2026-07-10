@@ -1350,7 +1350,7 @@ export default function ChurchLearn({
 
   const aiCourse = {
     key: 'ai',
-    meta: { ...CLASS_META, key: 'ai' },
+    meta: { ...CLASS_META, key: 'ai', category: 'A.I. The Way' },
     sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
@@ -1430,24 +1430,44 @@ export default function ChurchLearn({
           </p>
         )}
 
-        {/* Course picker — only shown when there's more than one course */}
+        {/* Course picker — GROUPED by category so every course is easy to
+            locate (Darrell 2026-07-10: "clean up and organize all the courses").
+            The groups DERIVE from each course meta's category (set in the
+            registry / the eternal builder) — never hand-sorted here (DR-0121).
+            Group order = first appearance in the catalog order. */}
         {courses.length > 1 && (
-          <div role="tablist" aria-label="Choose a course" className="flex flex-wrap gap-2 mb-5 border-b border-[#E8E4DC] pb-3">
-            {courses.map((c) => {
-              const selected = c.key === activeKey;
-              return (
-                <button
-                  key={c.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setActiveKey(c.key)}
-                  className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-                >
-                  {c.meta.title}
-                </button>
-              );
-            })}
+          <div role="tablist" aria-label="Choose a course" className="mb-5 border-b border-[#E8E4DC] pb-3">
+            {(() => {
+              const groups = [];
+              const byCat = new Map();
+              for (const c of courses) {
+                const cat = c.meta.category || 'More study';
+                if (!byCat.has(cat)) { byCat.set(cat, []); groups.push(cat); }
+                byCat.get(cat).push(c);
+              }
+              return groups.map((cat) => (
+                <div key={cat} className="mb-2">
+                  <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">{cat}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {byCat.get(cat).map((c) => {
+                      const selected = c.key === activeKey;
+                      return (
+                        <button
+                          key={c.key}
+                          type="button"
+                          role="tab"
+                          aria-selected={selected}
+                          onClick={() => setActiveKey(c.key)}
+                          className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+                        >
+                          {c.meta.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         )}
       </div>

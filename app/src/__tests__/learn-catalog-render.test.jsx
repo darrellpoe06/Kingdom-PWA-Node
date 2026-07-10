@@ -68,6 +68,16 @@ describe('Learn catalog — every finished course renders in the picker', () => 
     expect(keys).toContain('world-issues');
   });
 
+  it('every course carries a category so the picker can group it (nothing falls to "More study")', async () => {
+    for (const entry of LEARN_CATALOG) {
+      expect(entry.meta.category, `${entry.key} needs a category`).toBeTruthy();
+    }
+    const { buildEternalProcessingCourses } = await import('../lib/eternal-algorithms-course.js');
+    for (const c of buildEternalProcessingCourses()) {
+      expect(c.meta.category, `${c.meta.key} needs a category`).toBeTruthy();
+    }
+  });
+
   it('the derived lesson floor holds: at least 40 finished lessons across the catalog', () => {
     const { courses, lessons } = learnCatalogSummary();
     expect(courses).toBeGreaterThanOrEqual(12);
