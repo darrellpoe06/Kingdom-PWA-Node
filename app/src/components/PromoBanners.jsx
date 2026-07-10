@@ -14,6 +14,7 @@
 //     (COLG, TLC, Poe Properties …) shown to Foundation (free) tier only.
 // =============================================================================
 import React, { useState, useEffect } from 'react';
+import { FAMILY_MINISTRIES, tlcClinicianLine, tlcInsurersLine, poePropertiesLine } from '../lib/family-ministries.js';
 
 // =============================================================================
 // Preparatory scaffolding — per MVP-1-HARDENING-PLAN.md step 2.3 this re-wires
@@ -99,7 +100,7 @@ export function TherapyReminder() {
           Money stress. Family stress. Marriage stress. Grief. Parenting hard seasons. You don't have to carry it alone — and you don't have to wait until it's a crisis to reach out.
         </p>
         <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Faith-integrated therapy · 7-clinician team · accepts BCBS, Aetna, UHC, VA, Cigna · online and in-person.
+          Faith-integrated therapy · {tlcClinicianLine()} · {tlcInsurersLine().replace('Accepts', 'accepts')} · {FAMILY_MINISTRIES.tlc.modes}.
         </p>
         <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">Book a session →</div>
       </a>
@@ -111,20 +112,20 @@ export function AdvisementBanner() {
   const [index, setIndex] = useState(0);
   const advisements = [
     {
-      brand: 'The Church of the Living God',
+      brand: FAMILY_MINISTRIES.colg.name,
       tagline: 'RESET! Reviving Faith · Restoring Hope · Rebuilding Communities',
-      detail: 'Sunday Worship 11AM · Wed Bible Study 1PM & 6PM · 312 E. Bradley Ave, Champaign IL',
+      detail: `${FAMILY_MINISTRIES.colg.schedule} · ${FAMILY_MINISTRIES.colg.address}`,
       cta: 'Visit thechurchofthelivinggod.com',
-      url: 'https://thechurchofthelivinggod.com',
+      url: FAMILY_MINISTRIES.colg.siteUrl,
       tag: 'Faith Community',
       accent: '#B85838',
     },
     {
-      brand: 'TLC Therapy Solutions',
-      tagline: 'Real Solutions for Real Life · Faith-integrated therapy',
-      detail: 'Online & in-person · Accepts BCBS, Aetna, UHC, VA, Cigna · 7-clinician team',
+      brand: FAMILY_MINISTRIES.tlc.name,
+      tagline: FAMILY_MINISTRIES.tlc.tagline,
+      detail: `Online & in-person · ${tlcInsurersLine()} · ${tlcClinicianLine()}`,
       cta: 'Book a Session →',
-      url: 'https://tlctherapysolutions-scheduleappointment.as.me/',
+      url: FAMILY_MINISTRIES.tlc.bookingUrl,
       tag: 'Mental Health',
       accent: '#5A6E3D',
     },
@@ -133,25 +134,25 @@ export function AdvisementBanner() {
       tagline: 'Worship from anywhere · The Love Corner experience',
       detail: 'Sunday service streams live · Subscribe to be notified',
       cta: 'Watch on YouTube →',
-      url: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
+      url: FAMILY_MINISTRIES.colg.youtubeUrl,
       tag: 'Live Worship',
       accent: '#B85838',
     },
     {
-      brand: 'Poe Properties LLC',
-      tagline: 'Quality rentals in Champaign-Urbana · Owner-managed',
-      detail: '11 rental homes · Faith-led ownership · Community-rooted',
+      brand: FAMILY_MINISTRIES.poeProperties.name,
+      tagline: FAMILY_MINISTRIES.poeProperties.tagline,
+      detail: poePropertiesLine(),
       cta: 'Inquire about availability',
-      url: 'mailto:contact@poetech.us?subject=Poe Properties Rental Inquiry',
+      url: FAMILY_MINISTRIES.poeProperties.contact,
       tag: 'Housing',
       accent: '#5A6E3D',
     },
     {
-      brand: 'COLG · 77th National Assembly',
+      brand: `COLG · ${FAMILY_MINISTRIES.assembly.name}`,
       tagline: 'Annual gathering · Faith, fellowship, growth',
       detail: 'Find dates and registration on the church site',
       cta: 'Learn more →',
-      url: 'https://www.thechurchofthelivinggod.com/77th-national-assembly.html',
+      url: FAMILY_MINISTRIES.assembly.infoUrl,
       tag: 'Event',
       accent: '#B85838',
     },

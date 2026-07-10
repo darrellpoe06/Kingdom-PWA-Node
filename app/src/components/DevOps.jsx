@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -322,7 +323,7 @@ function PoeTechDifferentiation() {
     {
       kind: 'Authenticity',
       title: 'Vertical integration with real businesses',
-      detail: 'Poe Properties (11 rentals · real management), TLC Therapy Solutions (real clinical practice · 7 clinicians), Church of the Living God (real ministry · Tech Director). Every workflow tested on actual family businesses before shipped. Competitors would need to start parallel businesses to match this provenance.',
+      detail: `Poe Properties (${FAMILY_MINISTRIES.poeProperties.rentals} rentals · real management), TLC Therapy Solutions (real clinical practice · ${FAMILY_MINISTRIES.tlc.clinicians} clinicians), Church of the Living God (real ministry · Tech Director). Every workflow tested on actual family businesses before shipped. Competitors would need to start parallel businesses to match this provenance.`,
       strength: 'Strong'
     },
     {
@@ -710,7 +711,7 @@ function PoeTechProjections() {
   const milestones = [
     { customers: 100,       year: 1,  context: 'Warm market · Loved Ones tier · Church + family network', poeFamily: 'Still paying down personal debt' },
     { customers: 1000,      year: 2,  context: 'Word of mouth from first 100 · early product-led growth', poeFamily: 'Consumer debt-free path clearly working' },
-    { customers: 10000,     year: 4,  context: 'Crossed into mainstream awareness · Marketing module live', poeFamily: '~7 of 11 rentals paid off · Real income from PoeTech' },
+    { customers: 10000,     year: 4,  context: 'Crossed into mainstream awareness · Marketing module live', poeFamily: `~7 of ${FAMILY_MINISTRIES.poeProperties.rentals} rentals paid off · Real income from PoeTech` },
     { customers: 100000,    year: 7,  context: 'Calendly was here at year 7 · PoeTech hardware DTC viable', poeFamily: 'All rentals owned free · Compounding from PoeTech equity' },
     { customers: 1000000,   year: 10, context: 'Major SaaS scale · Mission-level impact across families', poeFamily: 'Generational wealth · Full Sabbath rest possible' },
   ];
