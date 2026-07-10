@@ -85,7 +85,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * Caller is responsible for the email format (basic check) and for
  * surfacing the returned error to the user.
  */
-export async function sendRoyaltyLink(email) {
+export async function sendRoyaltyLink(email, { name } = {}) {
   const trimmed = (email || '').trim();
   if (!trimmed || !trimmed.includes('@')) {
     return { error: { message: 'Please enter a valid email address.' } };
@@ -97,9 +97,15 @@ export async function sendRoyaltyLink(email) {
   // on the Synology PWA URL, localhost dev, and any future church host.
   const redirectTo = window.location.origin + window.location.pathname;
 
+  // A first-time signer-up via the link still gets their NAME on the account
+  // (user metadata) — the link-first door collects it up front (DR: sign-in
+  // your way), so the passwordless path is never a nameless profile.
+  const options = { emailRedirectTo: redirectTo };
+  const cleanName = (name || '').trim();
+  if (cleanName) options.data = { full_name: cleanName };
   const { data, error } = await supabase.auth.signInWithOtp({
     email: trimmed,
-    options: { emailRedirectTo: redirectTo },
+    options,
   });
   return { data, error };
 }
