@@ -14,9 +14,12 @@
 // PLAYWRIGHT_CHROMIUM_PATH when set (the sandbox's /opt/pw-browsers build).
 import { chromium } from 'playwright-core';
 
-// The app's own disclaimer bar — rendered by the mounted shell on every entry
-// surface (signed-in or welcome). The recovery screens never contain it.
-const MOUNT_MARKER = 'PROJECTIONS, NOT PROMISES';
+// A healthy front door renders ONE of these (incident #715 taught us the hard
+// way that production shows the ACCESS GATE to a fresh visitor, not the
+// marketing welcome — the gate IS a healthy mount):
+//   - the disclaimer bar (signed-in and welcome views)
+//   - the profile-creation / sign-in wall (fresh visitor on production)
+const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS'];
 // Recovery-screen headlines = the app did NOT boot.
 const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest version'];
 
@@ -50,12 +53,12 @@ async function checkOnce(browser, url) {
     // Wait until the page RESOLVES — mounted, recovery screen, or real content —
     // instead of judging at a fixed instant (slow is not down).
     await page.waitForFunction(
-      ({ mount, fails, alone }) => {
+      ({ mounts, fails, alone }) => {
         const t = document.body ? document.body.innerText || '' : '';
         if (fails.some((m) => t.includes(m))) return true;
-        return alone ? t.trim().length >= 400 : t.includes(mount);
+        return alone ? t.trim().length >= 400 : mounts.some((m) => t.includes(m));
       },
-      { mount: MOUNT_MARKER, fails: FAIL_MARKERS, alone: standalone },
+      { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
       { timeout: MOUNT_TIMEOUT_MS },
     ).catch(() => { /* judged below on the final state */ });
     const text = await page.evaluate(() => document.body.innerText || '');
@@ -65,8 +68,8 @@ async function checkOnce(browser, url) {
       if (text.trim().length < 400) return { ok: false, why: `standalone surface did not mount (body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       return { ok: true, errors };
     }
-    if (!text.includes(MOUNT_MARKER)) {
-      return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (marker "${MOUNT_MARKER}" absent; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
+    if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
+      return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (no mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
     }
     return { ok: true, errors };
   } finally {
