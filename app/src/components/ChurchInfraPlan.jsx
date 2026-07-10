@@ -19,6 +19,15 @@ import {
   statusTone, statusLabel, workstreamLabel,
   verifiedComputeNodes, milestonesByWorkstream, summarizePlan, fairnessGateViolations,
 } from '../lib/church-infra-plan.js';
+import {
+  DOOR_PLAN_RECORDED, DOOR_DOMAIN, SITE_FACTS, MISSION_RAILS,
+  DOOR_PHASES, DOOR_OPPORTUNITIES, DOOR_CONSTRAINTS,
+  doorHardwareReadiness, resolveDoorPlan,
+} from '../lib/church-own-door.js';
+
+// The build-parsed Decision-Record ledger (docs/decisions/) — the door plan's DR
+// refs resolve against it live, so nothing here stands on a dead ref (DR-0076).
+const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -53,6 +62,121 @@ function MilestoneRow({ m }) {
       )}
       {m.notes && <p className="mt-1.5 text-[0.6875rem] text-[#5A5751]">{m.notes}</p>}
     </div>
+  );
+}
+
+const TIER_NOTE = { A: 'Tier A', B: 'Tier B', C: 'Tier C — governor gate' };
+
+function DoorPhaseRow({ p }) {
+  return (
+    <div className="border border-[#E8E4DC] p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-sm text-[#1A1815]" style={serif}>{p.title}</span>
+        <StatusBadge status={p.status} />
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        <span className={chip}>{TIER_NOTE[p.tier] || `Tier ${p.tier}`}</span>
+        {p.drRefs.map((r) => <span key={r} className={chip}>{r}</span>)}
+      </div>
+      {p.detail && <p className="mt-2 text-[0.75rem] text-[#5A5751]">{p.detail}</p>}
+      {p.gate && (
+        <p className="mt-1.5 text-[0.6875rem] text-[#B85838]">
+          <span className="mr-1" aria-hidden="true"><UiIcon name="lock" /></span>{p.gate}
+        </p>
+      )}
+      {p.evidence && (
+        <p className="mt-1.5 text-[0.6875rem] text-[#5A5751]"><span className={labelCls}>Evidence</span> — {p.evidence}</p>
+      )}
+    </div>
+  );
+}
+
+// COLG's own app at thechurchofthelivinggod.com — the door plan (DR-0133).
+// Facts carry provenance, opportunities carry re-review dates, Tier C phases name
+// their governor gate, hardware readiness derives from the register, and every DR
+// ref resolves against the live ledger.
+function OwnDoorPlan() {
+  const readiness = doorHardwareReadiness(SEED_DEVICES);
+  const resolution = resolveDoorPlan(DR_LEDGER, DOOR_PHASES);
+  const missing = resolution.filter((r) => !r.found);
+
+  return (
+    <section className="space-y-4">
+      <header className={card}>
+        <h3 className="text-base sm:text-lg text-[#1A1815]" style={serif}>
+          The Church&rsquo;s Own Door — {DOOR_DOMAIN}
+        </h3>
+        <p className="mt-1 text-sm text-[#5A5751]">
+          Like Moore Divahs, the church gets its own app on the one door engine — its own name on the
+          member&rsquo;s home screen, its own domain, the church&rsquo;s hardware behind it. The public door and
+          the domain cutover are Tier C: Bishop Gwin governs what publishes on the church&rsquo;s name.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className={chip}>plan recorded {DOOR_PLAN_RECORDED}</span>
+          <span className={chip}>{readiness.gpuNodes.length} GPU node(s) · {readiness.broadcast.length} broadcast device(s) · {readiness.storage.length} NAS — from the device register</span>
+          {missing.length === 0
+            ? <span className={chip}><KpiDot status="good" /> all {resolution.length} decision refs resolve in the ledger</span>
+            : <span className={chip}><KpiDot status="problem" /> {missing.map((m) => m.drRef).join(', ')} not in the ledger</span>}
+        </div>
+      </header>
+
+      <div className={card}>
+        <div className={labelCls}>What is true today (each fact carries its provenance)</div>
+        <div className="mt-2 space-y-2">
+          {SITE_FACTS.map((f) => (
+            <div key={f.id} className="border border-[#E8E4DC] p-3">
+              <p className="text-[0.8125rem] text-[#1A1815]">{f.fact}</p>
+              <p className="mt-1 text-[0.6875rem] text-[#5A5751]"><span className={labelCls}>Provenance</span> — {f.provenance}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={card}>
+        <div className={labelCls}>The mission rails the door runs on (binding)</div>
+        <ul className="mt-2 space-y-1.5">
+          {MISSION_RAILS.map((r) => (
+            <li key={r.id} className="text-[0.75rem] text-[#5A5751]">
+              · {r.rail} <span className="text-[0.6875rem]">({r.source})</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className={card}>
+        <div className={labelCls}>The phases</div>
+        <div className="mt-2 space-y-2">
+          {DOOR_PHASES.map((p) => <DoorPhaseRow key={p.id} p={p} />)}
+        </div>
+      </div>
+
+      <div className={card}>
+        <div className={labelCls}>Opportunities (ranked; every one carries its re-review date)</div>
+        <div className="mt-2 space-y-2">
+          {DOOR_OPPORTUNITIES.map((o) => (
+            <div key={o.id} className="border border-[#E8E4DC] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm text-[#1A1815]" style={serif}>{o.rank}. {o.title}</span>
+                <span className={chip}>re-review {o.reReview}</span>
+              </div>
+              <p className="mt-1.5 text-[0.75rem] text-[#5A5751]">{o.detail}</p>
+              <p className="mt-1 text-[0.6875rem] text-[#5A5751]"><span className={labelCls}>Pairs with</span> — {o.pairsWith}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={card}>
+        <div className={labelCls}>Constraints (verified, carried)</div>
+        <ul className="mt-2 space-y-1.5">
+          {DOOR_CONSTRAINTS.map((c) => (
+            <li key={c.id} className="text-[0.75rem] text-[#5A5751]">
+              · {c.constraint} <span className="text-[0.6875rem]">({c.source})</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
@@ -135,6 +259,9 @@ export default function ChurchInfraPlan() {
           </div>
         </section>
       ))}
+
+      {/* COLG's own app — thechurchofthelivinggod.com (DR-0133) */}
+      <OwnDoorPlan />
     </div>
   );
 }
