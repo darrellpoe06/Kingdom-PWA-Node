@@ -22,7 +22,11 @@ const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest versi
 
 const ATTEMPTS = 3;          // deploy propagation can take a beat; retry before failing
 const RETRY_DELAY_MS = 20000;
-const SETTLE_MS = 6000;      // give the monolith chunk time to evaluate + mount
+// How long a cold boot may take before we call it failed: the monolith is ~3.2MB
+// and the shell makes real auth roundtrips before first paint. A fixed short
+// settle read "slow" as "down" (the 04:51Z f41e619 run — the serve was healthy,
+// the instrument was impatient). We now WAIT FOR the mount/fail marker.
+const MOUNT_TIMEOUT_MS = 30000;
 
 async function checkOnce(browser, url) {
   const page = await browser.newPage();
@@ -40,19 +44,29 @@ async function checkOnce(browser, url) {
   });
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForTimeout(SETTLE_MS);
-    const text = await page.evaluate(() => document.body.innerText || '');
-    const failHit = FAIL_MARKERS.find((m) => text.includes(m));
-    if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
     // Standalone boots (?moore=1, ?register=1, …) render their own surface, not
     // the app shell — for those, "no recovery screen + real content" is the bar.
     const standalone = url.includes('?');
+    // Wait until the page RESOLVES — mounted, recovery screen, or real content —
+    // instead of judging at a fixed instant (slow is not down).
+    await page.waitForFunction(
+      ({ mount, fails, alone }) => {
+        const t = document.body ? document.body.innerText || '' : '';
+        if (fails.some((m) => t.includes(m))) return true;
+        return alone ? t.trim().length >= 400 : t.includes(mount);
+      },
+      { mount: MOUNT_MARKER, fails: FAIL_MARKERS, alone: standalone },
+      { timeout: MOUNT_TIMEOUT_MS },
+    ).catch(() => { /* judged below on the final state */ });
+    const text = await page.evaluate(() => document.body.innerText || '');
+    const failHit = FAIL_MARKERS.find((m) => text.includes(m));
+    if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
     if (standalone) {
-      if (text.trim().length < 400) return { ok: false, why: `standalone surface did not mount (body ${text.length} chars)`, errors };
+      if (text.trim().length < 400) return { ok: false, why: `standalone surface did not mount (body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       return { ok: true, errors };
     }
     if (!text.includes(MOUNT_MARKER)) {
-      return { ok: false, why: `app did not mount (marker "${MOUNT_MARKER}" absent; body ${text.length} chars)`, errors };
+      return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (marker "${MOUNT_MARKER}" absent; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
     }
     return { ok: true, errors };
   } finally {
