@@ -33,6 +33,7 @@ import {
   marketplaceBalance, CADENCE_DEFAULT, evaluateCadenceGate, cadenceStatusLabel,
   screenMarketingClaim, flagPotentialPhi, LEAD_SOURCES, FUNNEL_STAGE_META,
   GUARDRAILS, PRACTICE_GROWTH_WEBHOOK, sensitivityFor,
+  GROWTH_FRAMEWORKS,
   // cockpit + observability + brakes + report
   runStatusLabel, runPhase, runProgress,
   stepRationale, rationaleText, pushRunEvent,
@@ -300,6 +301,9 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
 
       {/* THE CONTRACT — what should it do, automated vs you-approve (answers "what should it do") */}
       <ContractStrip />
+
+      {/* ADOPTED GROWTH PLAYS — DR-0140; the same playbook Kingdom Economics session 8 teaches */}
+      <GrowthPlaysStrip />
 
       {/* APPROVE-OUTBOUND-ONLY queue — the one human gate */}
       <section>
@@ -587,6 +591,48 @@ function ContractStrip() {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// GROWTH PLAYS STRIP — the adopted frameworks (DR-0140), rendered from the same
+// GROWTH_FRAMEWORKS data the stage prompts weave in (one source, no drift).
+// Collapsed by default; each play shows its honesty bend + attribution so the
+// heuristics stay named as heuristics on the surface the family actually uses.
+// -----------------------------------------------------------------------------
+function GrowthPlaysStrip() {
+  const [open, setOpen] = useState(false);
+  const stageOf = (key) => ACQUISITION_STAGES.find((s) => s.key === key);
+  return (
+    <section className="bg-white border border-[#E8E4DC] p-4">
+      <button type="button" onClick={() => setOpen(!open)} className="w-full text-left flex items-center justify-between gap-2" aria-expanded={open}>
+        <div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Adopted growth plays · DR-0140</div>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            {GROWTH_FRAMEWORKS.length} plays adopted 2026-07-10, tested against the Word — woven into the stage prompts above and taught as Kingdom Economics session 8. Heuristics stay named as heuristics.
+          </p>
+        </div>
+        <span className="text-[#5A5751] text-sm shrink-0" aria-hidden="true">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2.5">
+          {GROWTH_FRAMEWORKS.map((f) => {
+            const stage = stageOf(f.stageKey);
+            return (
+              <div key={f.key} className="border border-[#E8E4DC] p-2.5">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <div className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{f.label}</div>
+                  {stage && <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">rides stage {stage.n} · {stage.role}</div>}
+                </div>
+                <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{f.play}</p>
+                <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>Honesty bend: {f.honestyBend}</p>
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1.5">{f.attribution}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
