@@ -26,6 +26,7 @@
 // =============================================================================
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
+import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
 import {
   getConferenceAccess,
   subscribeVenues, subscribeConferences, subscribeRooms, subscribeSessions, subscribeParticipants,
@@ -268,7 +269,7 @@ function EventCenterModuleInner() {
   const ensureConference = useCallback(async () => {
     if (conference) return conference;
     // Create the conference shell so rooms/sessions have a home.
-    const seed = { name: '77th National Assembly', theme: 'Reviving Faith, Restoring Hope, Rebuilding Communities', host: 'The Church of the Living God', status: 'active' };
+    const seed = { name: FAMILY_MINISTRIES.assembly.name, theme: FAMILY_MINISTRIES.assembly.theme, host: FAMILY_MINISTRIES.assembly.host, status: 'active' };
     if (mode === 'synced') {
       const res = await saveConference(seed);
       if (res.skipped) { showFlash(`Couldn't create the conference (${res.skipped}).`); return null; }
