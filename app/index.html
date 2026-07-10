@@ -48,6 +48,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- The watchdog is the only script that survives a build whose assets
+         can't load (deploy window, LESSONS P32): stable unhashed path, CSP
+         'self' (inline scripts are blocked — measured 2026-07-10). It retries
+         once with a cache-bust if main.jsx never sets __PT_BOOTED, then says
+         something honest instead of staying blank. -->
+    <script defer src="/poetech-app/watchdog.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

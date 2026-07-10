@@ -2,7 +2,7 @@
 // workflow-registry — Ari's workflow expertise, DERIVED from the stored exports
 // =============================================================================
 // "Ari should be an expert on each workflow PoeTech stores — why we use it."
-// (Darrell, 2026-07-10 — DR-0157.) The registry is measured at build time from
+// (Darrell, 2026-07-10 — DR-0158.) The registry is measured at build time from
 // the REAL workflow exports in the repo (docs/00-foundations/n8n-workflows/ +
 // infra/n8n/ — vite.config.js buildWorkflowRegistry): name, active flag,
 // webhook doors, node count, and the recorded WHY (the paired README's first
@@ -43,5 +43,5 @@ export function workflowWhyLine(row) {
   if (!row) return '';
   const why = String(row.why || '').trim();
   if (why) return why;
-  return 'Why-we-use-it not yet recorded for this stored workflow — an open expertise gap Ari owns (DR-0157); the record grows by pairing a README beside the export, never by inventing a description.';
+  return 'Why-we-use-it not yet recorded for this stored workflow — an open expertise gap Ari owns (DR-0158); the record grows by pairing a README beside the export, never by inventing a description.';
 }

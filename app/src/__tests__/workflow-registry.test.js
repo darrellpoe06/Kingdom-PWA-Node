@@ -1,5 +1,5 @@
 // =============================================================================
-// workflow-registry — Ari's derived workflow expertise (DR-0157)
+// workflow-registry — Ari's derived workflow expertise (DR-0158)
 // =============================================================================
 // Locks: (1) the build-time extractor finds the REAL stored exports and pairs
 // the ops-announce README why; (2) the bench readout names undocumented
@@ -46,7 +46,7 @@ describe('workflowWhyLine — never fabricates', () => {
   it('a missing why is an honest, named gap — not a blank, not an invented description', () => {
     const line = workflowWhyLine({ why: '' });
     expect(line).toMatch(/not yet recorded/i);
-    expect(line).toMatch(/DR-0157/);
+    expect(line).toMatch(/DR-0158/);
   });
 });
 

@@ -35,7 +35,7 @@ function countWorkflowFiles() {
 }
 const workflowStats = countWorkflowFiles();
 
-// DR-0157 (Ari is the expert on each workflow PoeTech stores — why we use it):
+// DR-0158 (Ari is the expert on each workflow PoeTech stores — why we use it):
 // the full registry, one row per STORED workflow export, everything measured
 // from the file itself. The WHY comes from the workflow's paired README
 // (README-<slug>.md beside wf-<slug>.json — first real paragraph) when one
@@ -346,7 +346,24 @@ const swVersionStamp = () => ({
     if (!src.includes("'__SW_VERSION__'")) {
       throw new Error('sw-version-stamp: __SW_VERSION__ placeholder missing from dist/sw.js');
     }
-    writeFileSync(swPath, src.replace("'__SW_VERSION__'", JSON.stringify(swVersion)));
+    // Stamp the FULL hashed asset list of this build so the worker precaches
+    // the whole build at install ("stay on the previous build until you
+    // download it" — Darrell 2026-07-10; LESSONS P32). Every file under
+    // dist/assets is content-hashed, so the list is exact per build.
+    if (!src.includes('/*__PRECACHE_ASSETS__*/[]')) {
+      throw new Error('sw-version-stamp: __PRECACHE_ASSETS__ placeholder missing from dist/sw.js');
+    }
+    const assetsDir = fileURLToPath(new URL('./dist/assets', import.meta.url));
+    let assetList = [];
+    try {
+      assetList = readdirSync(assetsDir).map((f) => '/poetech-app/assets/' + f);
+    } catch (e) {
+      throw new Error('sw-version-stamp: could not read dist/assets — ' + e.message);
+    }
+    if (!assetList.length) throw new Error('sw-version-stamp: dist/assets is empty — a build with no assets is not a build');
+    writeFileSync(swPath, src
+      .replace("'__SW_VERSION__'", JSON.stringify(swVersion))
+      .replace('/*__PRECACHE_ASSETS__*/[]', JSON.stringify(assetList)));
   },
 });
 

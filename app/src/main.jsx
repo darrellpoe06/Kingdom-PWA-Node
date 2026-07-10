@@ -11,6 +11,11 @@ import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
 
+// The entry module is ALIVE — public/watchdog.js watches for this flag and
+// retries the load once (cache-busted) if it never appears (LESSONS P32:
+// a deploy-window 404 on the entry chunk used to leave a dead blank page).
+window.__PT_BOOTED = true;
+
 window.storage = storage;
 
 // Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer

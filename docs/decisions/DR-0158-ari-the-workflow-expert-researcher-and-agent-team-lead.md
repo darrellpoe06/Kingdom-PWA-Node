@@ -1,4 +1,4 @@
-# DR-0157 — Ari is the workflow expert, the researcher, and the agent-team lead — and every fix updates the Ways
+# DR-0158 — Ari is the workflow expert, the researcher, and the agent-team lead — and every fix updates the Ways
 
 - **Status:** accepted
 - **Tier:** A shipped through the lane (derived duties + a derived registry; no schema, no money; anything autonomous inside it stays behind the three brakes)

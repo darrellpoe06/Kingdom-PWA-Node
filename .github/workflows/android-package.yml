@@ -88,7 +88,10 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
-        run: npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+        # `yes |` answers Bubblewrap's interactive prompts (run 2 died on
+        # "have you run bubblewrap update? (Y/n)" — CI has no stdin; Y is
+        # correct: generate the Android project from the manifest).
+        run: yes | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
 
       - name: Name what was built
         run: |

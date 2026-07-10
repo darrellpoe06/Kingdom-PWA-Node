@@ -123,13 +123,34 @@ describe('sw.js — hashed assets are cached-first and populated on miss', () =>
     }
   });
 
-  it('does NOT asset-cache a navigation (shell stays network-first no-store)', async () => {
+  it('an in-app navigation serves the PRECACHED shell with NO network (stay on the previous build — 2026-07-10)', async () => {
+    // Drive the install handler so the shell lands in the per-build cache,
+    // exactly as a real install does.
+    await new Promise((resolve, reject) => {
+      sw.listeners.install({ waitUntil: (p) => p.then(resolve, reject) });
+    });
+    const nav = { url: `${ORIGIN}${BASE}/?view=church`, mode: 'navigate' };
+    const res = await handleFetch(sw, nav);
+    expect(res.tag).toBe('precache');                        // the device's own complete build
+    expect(sw.fetchCalls.length, 'no network for a cached shell').toBe(0);
+  });
+
+  it('an in-app navigation BEFORE any install falls back to network no-store (first visit)', async () => {
     const nav = { url: `${ORIGIN}${BASE}/`, mode: 'navigate' };
     await handleFetch(sw, nav);
     const call = sw.fetchCalls.find((c) => c.url === nav.url);
     expect(call, 'navigation went to network').toBeTruthy();
-    expect(call.opts && call.opts.cache).toBe('no-store'); // never a cached shell
-    expect(await sw.cachesApi.match(nav)).toBeFalsy();      // shell not asset-cached
+    expect(call.opts && call.opts.cache).toBe('no-store');
+  });
+
+  it('an OUT-of-scope navigation (/moore/) never gets the app shell from cache', async () => {
+    await new Promise((resolve, reject) => {
+      sw.listeners.install({ waitUntil: (p) => p.then(resolve, reject) });
+    });
+    const nav = { url: `${ORIGIN}/moore/`, mode: 'navigate' };
+    const res = await handleFetch(sw, nav);
+    expect(res.tag).toBe('net');                              // the real static page, not our shell
+    expect(sw.fetchCalls.some((c) => c.url === nav.url)).toBe(true);
   });
 
   it('does NOT cache a non-asset (e.g. an API) response', async () => {

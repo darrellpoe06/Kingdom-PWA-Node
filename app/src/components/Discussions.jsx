@@ -54,7 +54,7 @@ function AriRecord() {
   const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
   const work = useMemo(() => ariAssignments(tasks), [tasks]);
   const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
-  // The workflow bench (DR-0157): documented whys first, gaps visible after.
+  // The workflow bench (DR-0158): documented whys first, gaps visible after.
   const wfRows = useMemo(() => {
     const rows = storedWorkflowRegistry();
     return [...rows].sort((a, b) => (String(b.why || '').trim() ? 1 : 0) - (String(a.why || '').trim() ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
@@ -134,7 +134,7 @@ function AriRecord() {
         )}
       </div>
 
-      {/* The workflow bench (DR-0157) — Ari's expertise on every workflow the
+      {/* The workflow bench (DR-0158) — Ari's expertise on every workflow the
           house stores, derived at build from the REAL exports in the repo.
           A workflow with no recorded why is a NAMED gap, never a painted
           description (NO-STATIC-DATA). */}
