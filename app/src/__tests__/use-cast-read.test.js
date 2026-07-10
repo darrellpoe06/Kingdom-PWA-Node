@@ -1,28 +1,34 @@
 // @vitest-environment node
 //
-// use-cast-read — the dramatized-reading PLAYER (Darrell 2026-07-04). Proves the
-// injectable engine queues one utterance per script line, in order, each in its
-// speaker's assigned voice, and that stop()/a new play() supersede cleanly. The
-// synth + Utterance are mocked, so the queueing + voice assignment are verified
-// without a browser.
+// use-cast-read — the dramatized-reading PLAYER (Darrell 2026-07-04; hardened
+// per DR-0138). Proves the injectable engine speaks SEQUENTIALLY (one utterance
+// in flight, the next from onend — never bulk-queued, which iOS truncates),
+// segments long lines, casts each speaker's voice, cancels only when the synth
+// is actually busy (the "tap Read, nothing happens" race fix), survives a bad
+// line via onerror, and supersedes cleanly on stop()/a new play(). The synth +
+// Utterance are mocked so all of it verifies without a browser.
 import { describe, it, expect } from 'vitest';
 import { createCastPlayer } from '../lib/use-cast-read.js';
 import { buildCast, castVoiceURI } from '../lib/scripture-voice-cast.js';
 
-// A mock speech engine that records utterances and fires onend synchronously, so
-// the whole queue "plays" instantly in the test.
+// A mock speech engine that records utterances and fires onend synchronously,
+// so the whole chain "plays" instantly. `speaking` is settable to simulate a
+// busy synth for the cancel-guard assertions.
 function mockSynth() {
   const spoken = [];
   let canceled = 0;
   return {
     spoken,
+    speaking: false,
+    pending: false,
     canceledCount: () => canceled,
     cancel() { canceled += 1; },
+    resume() { /* the Chrome paused-start kick — a no-op here */ },
     speak(u) { spoken.push(u); if (typeof u.onend === 'function') u.onend(); },
   };
 }
 class MockUtterance {
-  constructor(text) { this.text = text; this.voice = null; this.onend = null; }
+  constructor(text) { this.text = text; this.voice = null; this.onend = null; this.onerror = null; }
 }
 
 const DEVICE = [
@@ -37,8 +43,8 @@ const voiceForKey = (key) => {
   return uri ? DEVICE.find((v) => v.voiceURI === uri) || null : null;
 };
 
-describe('the dramatized player queues each line in its speaker voice', () => {
-  it('speaks every line in order, casting characters and leaving narrator default', () => {
+describe('the dramatized player speaks each line in its speaker voice, sequentially', () => {
+  it('speaks every line in order (trimmed), casting characters and leaving narrator default', () => {
     const synth = mockSynth();
     const player = createCastPlayer({ synth, Utterance: MockUtterance });
     let done = false;
@@ -48,33 +54,66 @@ describe('the dramatized player queues each line in its speaker voice', () => {
       { ref: 'Matthew 4:4', voice: 'jesus', text: 'It is written, Man shall not live by bread alone...' },
     ];
     player.play(script, voiceForKey, () => { done = true; });
-    // one utterance per line, in order
-    expect(synth.spoken.map((u) => u.text)).toEqual(script.map((l) => l.text));
-    // the narrator line has no forced voice; the character lines do
-    expect(synth.spoken[0].voice).toBeNull();
+    expect(synth.spoken.map((u) => u.text)).toEqual(script.map((l) => l.text.trim()));
+    expect(synth.spoken[0].voice).toBeNull();            // narrator: reader's default
     expect(synth.spoken[1].voice).toBeTruthy();          // the adversary is cast
     expect(synth.spoken[2].voice).toBeTruthy();          // Jesus is cast
-    // Jesus (male) and the tempter get real device voices, and they differ
     expect(synth.spoken[2].voice.voiceURI).not.toBe(synth.spoken[1].voice.voiceURI);
-    expect(done).toBe(true);                              // onDone fired after the last line
-    expect(player.isPlaying()).toBe(false);
-  });
-
-  it('a fresh play() cancels the prior queue; empty script finishes immediately', () => {
-    const synth = mockSynth();
-    const player = createCastPlayer({ synth, Utterance: MockUtterance });
-    player.play([{ voice: 'jesus', text: 'I am the way' }], voiceForKey);
-    player.play([{ voice: 'jesus', text: 'the truth' }], voiceForKey);
-    expect(synth.canceledCount()).toBeGreaterThanOrEqual(2);   // cancel before each play
-    let done = false;
-    player.play([], voiceForKey, () => { done = true; });
     expect(done).toBe(true);
     expect(player.isPlaying()).toBe(false);
   });
 
-  it('stop() halts playback and cancels the engine', () => {
+  it('the WOMEN are cast to female voices, distinct from the men (DR-0138)', () => {
     const synth = mockSynth();
     const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    player.play([
+      { ref: 'Luke 1:38', voice: 'mary', text: 'Behold the handmaid of the Lord; be it unto me according to thy word.' },
+      { ref: 'John 14:6', voice: 'jesus', text: 'I am the way, the truth, and the life.' },
+    ], voiceForKey);
+    expect(synth.spoken[0].voice).toBeTruthy();          // Mary is cast, not default
+    expect(synth.spoken[0].voice.voiceURI).not.toBe(synth.spoken[1].voice.voiceURI); // she differs from Jesus
+  });
+
+  it('segments a long line so no single utterance exceeds the engine cutoff, all in the same voice', () => {
+    const synth = mockSynth();
+    const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    const long = Array.from({ length: 40 }, () => 'and the word continued without a sentence break').join(' ');
+    player.play([{ voice: 'jesus', text: long }], voiceForKey);
+    expect(synth.spoken.length).toBeGreaterThan(1);       // segmented, never one giant utterance
+    for (const u of synth.spoken) {
+      expect(u.text.length).toBeLessThanOrEqual(180);
+      expect(u.voice && u.voice.voiceURI).toBe(synth.spoken[0].voice.voiceURI); // voice held across segments
+    }
+  });
+
+  it('cancels ONLY when the synth is busy — never a bare pre-cancel (the tap race fix)', () => {
+    const synth = mockSynth();
+    const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    player.play([{ voice: 'jesus', text: 'I am the way' }], voiceForKey);
+    expect(synth.canceledCount()).toBe(0);                // idle synth: no swallowed first speak
+    synth.speaking = true;                                // now simulate a busy synth
+    player.play([{ voice: 'jesus', text: 'the truth' }], voiceForKey);
+    expect(synth.canceledCount()).toBe(1);                // busy: the prior read is cancelled
+  });
+
+  it('a line whose speak() throws advances to the next line instead of dying silently', () => {
+    const synth = mockSynth();
+    let first = true;
+    const throwingSpeak = synth.speak.bind(synth);
+    synth.speak = (u) => { if (first) { first = false; throw new Error('engine hiccup'); } throwingSpeak(u); };
+    const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    let done = false;
+    player.play([{ voice: 'jesus', text: 'line one' }, { voice: 'jesus', text: 'line two' }], voiceForKey, () => { done = true; });
+    expect(synth.spoken.map((u) => u.text)).toEqual(['line two']); // the reading survived
+    expect(done).toBe(true);
+  });
+
+  it('an empty script finishes immediately; stop() halts and cancels', () => {
+    const synth = mockSynth();
+    const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    let done = false;
+    player.play([], voiceForKey, () => { done = true; });
+    expect(done).toBe(true);
     player.stop();
     expect(synth.canceledCount()).toBe(1);
     expect(player.isPlaying()).toBe(false);

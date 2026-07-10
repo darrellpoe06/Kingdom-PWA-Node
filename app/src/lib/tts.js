@@ -86,6 +86,29 @@ export function isTTSSupported(win = (typeof window !== 'undefined' ? window : u
 }
 
 /**
+ * Wait (briefly) for the device voice list to populate. Mobile engines fill
+ * getVoices() a beat after load — a read started inside that window resolves NO
+ * voice and falls to the raw OS default (a top "my voice never worked" cause,
+ * DR-0138). Resolves with the voices found, or [] at the timeout — the caller
+ * proceeds either way, so this can only help, never hang a read. Pure enough to
+ * test with a mock synth.
+ */
+export function waitForVoices(synth, { timeoutMs = 1200, stepMs = 100 } = {}) {
+  return new Promise((resolve) => {
+    let got;
+    try { got = synth.getVoices() || []; } catch (_) { got = []; }
+    if (got.length) { resolve(got); return; }
+    let waited = 0;
+    const timer = setInterval(() => {
+      waited += stepMs;
+      let v;
+      try { v = synth.getVoices() || []; } catch (_) { v = []; }
+      if (v.length || waited >= timeoutMs) { clearInterval(timer); resolve(v); }
+    }, stepMs);
+  });
+}
+
+/**
  * Split text into short, sentence-sized segments. Pure + unit-tested. Each
  * segment becomes its own utterance so (a) a rate change can restart the CURRENT
  * segment at the new speed, and (b) we avoid Chrome's long-utterance cutoff and

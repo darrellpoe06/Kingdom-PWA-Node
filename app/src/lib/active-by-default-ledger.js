@@ -150,11 +150,11 @@ export const LEDGER = [
     reason: 'Prevents accidental PHI exchange; Acuity stays the PHI system of record. A deliberate privacy default, not a hedge.',
   },
   {
-    id: 'external-config-integrations', label: 'Voice bridge · Review feed · YouTube · Synology chat · n8n ingest · CF Pages · Bookstore checkout',
+    id: 'external-config-integrations', label: 'Voice (sovereign studio / recorded vendor gap) · Review feed · YouTube · Synology chat · n8n ingest · CF Pages · Bookstore checkout',
     ref: 'voice-service.js / ReviewFeed.jsx / choir-sync.js / synology-chat.js / poe-financial-mvp-v28.jsx / concerns.js / Bookstore.jsx',
     bucket: BUCKET.SAFETY, active: false,
-    gate: 'VITE_VOICE_BRIDGE · VITE_REVIEW_TOKEN · VITE_YOUTUBE_API_KEY · VITE_SYNOLOGY_CHAT_BOT_URL · VITE_N8N_WEBHOOK_BASE · CF_PAGES_ENABLED · CHECKOUT_CONFIG.enabled',
-    reason: 'Each needs an external resource only Darrell can provide (an API key, a NAS/Funnel URL, a payment processor, DNS cutover). They degrade gracefully to a status message; there is nothing to "turn on" until the resource exists. Not a hedge — an unmet precondition.',
+    gate: 'VITE_VOICE_SERVICE_URL (sovereign, outranks) · VITE_VOICE_BRIDGE (vendor, recorded gap) · VITE_REVIEW_TOKEN · VITE_YOUTUBE_API_KEY · VITE_SYNOLOGY_CHAT_BOT_URL · VITE_N8N_WEBHOOK_BASE · CF_PAGES_ENABLED · CHECKOUT_CONFIG.enabled',
+    reason: 'Each needs a resource only Darrell can provide (the studio URL on the 4070, an API key, a NAS/Funnel URL, a payment processor, DNS cutover). They degrade gracefully to a status message; there is nothing to "turn on" until the resource exists. Voice is SOVEREIGN-FIRST per DR-0137: the local studio always outranks the vendor bridge, and any vendor use is a recorded sovereignty gap (lib/sovereignty-gaps.js) carrying its build/purchase path home.',
   },
 
   // ── Bucket 4 — BROKEN / half-built. On the FIX LIST. Honestly surfaced as

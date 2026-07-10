@@ -28,6 +28,7 @@ import {
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
+import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
   useVoiceRecorder, RECORD_SCRIPT, formatDuration, durationQuality, meetsMinDuration,
@@ -497,6 +498,24 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           hardware) is live — nothing here pretends a stand-in is the person’s real voice.
         </div>
       )}
+
+      {/* The sovereignty ledger (DR-0138) — sovereign first; any vendor need is a
+          RECORDED gap with its build/purchase path home. Live path derives from
+          the real endpoint config; the ledger validates itself in CI. */}
+      <div className="mb-5 border border-[#E8E4DC] bg-white p-3">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sovereign first — the vendor ledger (recorded {GAPS_RECORDED})</div>
+        <p className="text-[0.75rem] text-[#1A1815] mb-2">Speaking path right now: <strong>{liveVoicePath().label}</strong></p>
+        <ul className="space-y-2">
+          {SOVEREIGNTY_GAPS.map((g) => (
+            <li key={g.id} className="text-[0.6875rem] text-[#5A5751] leading-relaxed border-l-2 border-[#C9C2B6] pl-2">
+              <span className="text-[#1A1815] font-semibold">{g.capability}</span>
+              {' '}<span className="uppercase text-[0.625rem] tracking-wider">({g.status} · needed since {g.neededSince} · re-review {g.reReview})</span>
+              <br />Local today: {g.localToday}
+              <br />Build path home: {g.buildPath} {g.purchasePath && g.purchasePath !== 'None — the device is already owned.' ? `· Purchase: ${g.purchasePath}` : '· No purchase needed'}
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* Status notice — pinned above the strip so a result set from ANY section
           (enroll, save a recording, a playback fallback) stays visible no matter

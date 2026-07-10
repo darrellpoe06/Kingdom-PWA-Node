@@ -15,14 +15,14 @@
 // read(text) never fails silently: any clone error falls back to a browser voice;
 // the System voice always works.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTextToSpeech } from './tts.js';
+import { useTextToSpeech, waitForVoices } from './tts.js';
 import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { supabase } from './supabase.js';
@@ -143,6 +143,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
           const referenceDataUri = await blobToDataUri(refBlob);
           const { url, error } = await synthesizeSpeech({ text: clean, voiceId: voice.id, personKey, referenceDataUri });
           if (!error && url) {
+            // Vendor use is never silent (DR-0138): when the bridge (not the
+            // sovereign studio) carried this voice, say so — it is a recorded
+            // sovereignty gap with a build path home.
+            const ep = activeVoiceEndpoint();
+            if (ep && ep.kind === 'bridge') {
+              setNotice('Read in your voice via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
+            }
             try {
               const a = new Audio(url); audioRef.current = a; setCloudPlaying(true);
               a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
@@ -156,12 +163,35 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
           setNotice('Record a voice sample first — then this reads in that voice.');
         }
       }
-      // Stand-in until the endpoint/reference is live: a gender-correct browser voice.
+      // Stand-in until the sovereign studio is live: a gender-correct browser voice —
+      // and SAY so (DR-0138), instead of silently sounding like "it never worked".
+      if (!sovereignVoiceReady) {
+        setNotice('Reading in a stand-in voice — your real voice turns on when the church’s own voice studio is armed (sovereign, no vendor).');
+      }
     }
 
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
-    tts.speak(clean, resolveSpeakURI(voiceId));
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI]);
+    // Close the cold-start gap: on a fresh mobile load the device voice list can
+    // still be empty at the tap; a read resolved then falls to the raw OS default
+    // (the wrong gender / "never worked" report — DR-0138). Wait briefly for the
+    // list and resolve against what ACTUALLY arrived — the memoized assignments
+    // were built from the empty list and can't be trusted for this first read.
+    let uri = resolveSpeakURI(voiceId);
+    if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
+      const fresh = await waitForVoices(window.speechSynthesis);
+      if (fresh.length) {
+        const freshAssignments = buildStandInAssignments(fullCatalog, fresh);
+        const overrides = loadPersonaVoiceMap();
+        if (isSystemVoiceId(voiceId)) {
+          uri = resolveVoiceURIForId(SYSTEM_VOICE.id, { assignments: freshAssignments, overrides, available: fresh });
+        } else if (isPersonVoiceId(voiceId)) {
+          const c = fullCatalog.find((x) => x.personKey === personKeyOf(voiceId));
+          uri = c ? resolveVoiceURIForId(c.id, { assignments: freshAssignments, overrides, available: fresh }) : uri;
+        }
+      }
+    }
+    tts.speak(clean, uri);
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog]);
 
   return {
     supported: tts.supported,
