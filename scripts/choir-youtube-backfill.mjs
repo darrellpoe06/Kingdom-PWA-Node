@@ -65,23 +65,43 @@ for (const line of lines) {
 }
 
 const withDate = rows.filter((r) => r.serviceDate);
+const undated = rows.filter((r) => !r.serviceDate);
 mkdirSync('scripts/out', { recursive: true });
 writeFileSync('scripts/out/choir-sermons-backfill.json', JSON.stringify(rows, null, 2));
 
-// Migration-ready: resolves the church instance by slug (seeded by 0012), so
-// the generated SQL applies through the lane with no instance_id to fill in.
+// EVERY video lands (DR-0135 — the 2026-07-10 corpus-gap heal). The original
+// generator emitted only the dated rows; the 0013 seed therefore carried 125 of
+// 335 videos and the other 210 were silently "left for manual entry" — the gap
+// Darrell photographed in every tab. Undated rows now insert with a NULL
+// service_date (the schema allows it; the app labels undated as undated,
+// DR-0124) instead of being dropped. Idempotent either way.
 const CHURCH = "(SELECT id FROM instances WHERE slug = 'colg')";
+const insertRow = (r) =>
+  `INSERT INTO choir_sermons (instance_id, video_id, youtube_url, service_date, service_type, title, speaker, source) ` +
+  `VALUES (${CHURCH}, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
+  `ON CONFLICT (instance_id, video_id) WHERE video_id IS NOT NULL DO NOTHING;`;
 const sql = [
-  '-- choir_sermons backfill from @thelovecorner (generated; metadata only, no downloads).',
-  ...withDate.map((r) =>
-    `INSERT INTO choir_sermons (instance_id, video_id, youtube_url, service_date, service_type, title, speaker, source) ` +
-    `VALUES (${CHURCH}, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
-    `ON CONFLICT (instance_id, video_id) WHERE video_id IS NOT NULL DO NOTHING;`,
-  ),
+  '-- choir_sermons FULL backfill from @thelovecorner (generated; metadata only, no downloads).',
+  `-- ${rows.length} videos: ${withDate.length} dated + ${undated.length} undated (undated insert with NULL service_date — labeled undated in-app, never dropped).`,
+  ...withDate.map(insertRow),
+  ...undated.map(insertRow),
 ].join('\n');
 writeFileSync('scripts/out/choir-sermons-backfill.sql', sql + '\n');
 
-console.log(`Parsed ${rows.length} videos (${withDate.length} with a parseable date).`);
+// The committed corpus manifest — the app's coverage readout compares the LIVE
+// choir_sermons rows against this expected list (corpus-coverage.js), so a
+// partial backfill can never again hide as "that's all there is."
+const manifest = {
+  generatedAt: new Date().toISOString().slice(0, 10),
+  channel,
+  total: rows.length,
+  dated: withDate.length,
+  undated: undated.length,
+  videos: rows.map((r) => ({ videoId: r.videoId, serviceDate: r.serviceDate, title: r.title || r.rawTitle })),
+};
+writeFileSync('app/src/lib/corpus-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+
+console.log(`Parsed ${rows.length} videos (${withDate.length} dated, ${undated.length} undated — ALL emitted).`);
 console.log(`Sunday: ${withDate.filter((r) => r.serviceType === 'sunday').length} · Wednesday: ${withDate.filter((r) => r.serviceType === 'wednesday').length}`);
-console.log('Wrote scripts/out/choir-sermons-backfill.json and .sql');
+console.log('Wrote scripts/out/choir-sermons-backfill.{json,sql} and app/src/lib/corpus-manifest.json');
 if (rows.length) console.log('Sample:', JSON.stringify(rows[0], null, 2));

@@ -30,8 +30,11 @@
 //   - Keyboard: Escape closes; focus moves to the panel on open; the overlay
 //     click and an explicit Close button both dismiss.
 // =============================================================================
-import React, { useEffect, useRef } from 'react';
-import { resolveGiveDestination, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import React, { useEffect, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { resolveGiveDestination, GIVING_CHANNELS, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
+import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
 
 // Inline gift icon — wrapped box + ribbon + bow. 24x24 grid, stroke currentColor
 // so it inherits the surrounding text color (contrast-correct in every theme)
@@ -59,6 +62,86 @@ function GiftIcon({ className = '', strokeWidth = 1.9 }) {
       <path d="M12 6.5S10.6 3.2 8.4 4c-1.6.6-1.1 2.9.8 2.5 1-.2 2.8 0 2.8 0Z" />
       <path d="M12 6.5S13.4 3.2 15.6 4c1.6.6 1.1 2.9-.8 2.5-1-.2-2.8 0-2.8 0Z" />
     </svg>
+  );
+}
+
+// CallToGiveArchive — the church's own Call to Give, sourced from OUR services
+// (DR-0134). Derived live: the same choir_sermons corpus + the same
+// video_transcripts rows the sermon library reads; detected segments always
+// carry needs-review until the church confirms them. Signed-out visitors (RLS)
+// get the honest signed-in note, never a painted archive.
+function CallToGiveArchive() {
+  const [state, setState] = useState({ loading: true, archive: [] });
+  useEffect(() => {
+    let alive = true;
+    fetchCallToGiveArchive()
+      .then(({ archive }) => { if (alive) setState({ loading: false, archive }); })
+      .catch(() => { if (alive) setState({ loading: false, archive: [] }); });
+    return () => { alive = false; };
+  }, []);
+
+  const cov = callToGiveCoverage(state.archive);
+  const detected = state.archive.filter((r) => r.segment).slice(0, 5);
+
+  return (
+    <div className="mt-6 pt-5 border-t border-[#E8E4DC]">
+      <h4 className="text-base sm:text-lg text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+        The Call to Give — from our own services
+      </h4>
+      <p className="text-xs text-[#5A5751] leading-relaxed mb-2">
+        Sourced from the same service videos and transcripts the sermon library reads — measured, never assumed.
+        {' '}{TRANSCRIPT_PIPELINE_NOTE.answer}
+      </p>
+
+      {state.loading ? (
+        <p className="text-xs text-[#5A5751]" role="status">Reading the service archive…</p>
+      ) : state.archive.length === 0 ? (
+        <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3" role="status">
+          <p className="text-xs text-[#5A5751] leading-relaxed">
+            No service rows are readable from here — sign in as a church member to see the archive. Nothing is shown that isn&rsquo;t real.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.corpus} service videos</span>
+            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.withTranscript} transcribed</span>
+            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.detected} Call-to-Give segments found</span>
+            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#5A5751]">{cov.awaiting} awaiting transcript (NAS trickle loader)</span>
+          </div>
+          {detected.length === 0 ? (
+            <p className="text-xs text-[#5A5751] leading-relaxed">
+              No giving-appeal segments detected in the transcribed services yet — detection only runs where a real transcript exists, and it proposes; the church confirms.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {detected.map((r) => (
+                <li key={r.videoId} className="border-l-2 border-[#5A6E3D] pl-3">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                    {r.serviceDate || 'undated'}{r.title ? ` — ${r.title}` : ''}
+                  </div>
+                  <p className="text-sm text-[#1A1815] leading-relaxed italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                    “{r.segment.excerpt}”
+                  </p>
+                  <p className="text-[0.6875rem] text-[#5A5751] mt-1">
+                    confidence: {r.segment.confidence} · needs church review ·{' '}
+                    <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#1A1815]">watch the service</a>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <p className="text-[0.6875rem] text-[#5A5751] mt-3 leading-relaxed">
+        Latest linked service:{' '}
+        <a href={LINKED_SERVICE_VIDEO.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#1A1815]">
+          youtube.com/live/{LINKED_SERVICE_VIDEO.videoId}
+        </a>
+        {' '}— {LINKED_SERVICE_VIDEO.provenance}.
+      </p>
+    </div>
   );
 }
 
@@ -102,7 +185,36 @@ export function ChurchGivePanel({ church, onClose }) {
             <button type="button" onClick={onClose} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">× Close</button>
           </div>
 
-          {/* PRIMARY CTA — link OUT to the church's own confirmed giving page.
+          {/* THE CHURCH'S OWN GIVING CHANNELS (DR-0136) — decoded verbatim from
+              the church's GIVE ONLINE slide. One tap on a phone opens the
+              channel; the QR is there for a second device to scan. Slide order
+              kept: Zelle, Cash App, Givelify, PayPal. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+            {GIVING_CHANNELS.map((ch) => (
+              <a
+                key={ch.id}
+                href={ch.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 border-2 border-[#5A6E3D] bg-[#FAF8F4] p-3 min-h-[64px] hover:bg-white focus:outline focus:outline-2 focus:outline-[#1A1815]"
+              >
+                <span className="shrink-0 bg-white p-1 border border-[#E8E4DC]" aria-hidden="true">
+                  <QRCodeSVG value={ch.url} size={52} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[#1A1815]">{ch.label}</span>
+                  <span className="block text-[0.6875rem] text-[#5A6E3D] truncate">{ch.display}</span>
+                  <span className="block text-[0.6875rem] text-[#5A5751] leading-snug">{ch.how}</span>
+                </span>
+              </a>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-3 leading-relaxed">
+            These are the church&rsquo;s own published channels, taken exactly from its GIVE ONLINE slide.
+            The app only opens them — no payment information is collected here.
+          </p>
+
+          {/* SECONDARY — the church's website, where giving is also published.
               Never an invented URL; if none is configured, a flagged state. */}
           {dest.url ? (
             <>
@@ -112,7 +224,7 @@ export function ChurchGivePanel({ church, onClose }) {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#5A6E3D] text-white text-sm uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] min-h-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815]"
               >
-                <GiftIcon /> Give now
+                <GiftIcon /> More ways to give — church website
               </a>
               <p className="text-[11px] text-[#5A5751] mt-2 leading-relaxed">{dest.note}</p>
               {!dest.confirmed && (
@@ -155,6 +267,9 @@ export function ChurchGivePanel({ church, onClose }) {
               ))}
             </ul>
           </div>
+
+          {/* The Call to Give, sourced from our own services (DR-0134) */}
+          <CallToGiveArchive />
         </div>
       </div>
     </div>
