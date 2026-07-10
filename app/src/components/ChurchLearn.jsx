@@ -64,9 +64,13 @@ import SectionTabs from './SectionTabs.jsx';
 const fmtDate = formatClassDate;
 
 // A friendly label for a launch target so the button reads in plain words.
-const launchLabel = (t) => {
+// The Council Chamber is the church home's SPEAK section, not the home itself —
+// labeling plain home as the Chamber sent learners to the Worship video
+// (Darrell 2026-07-10, DR-0142). Exported so the mapping is pinned by a test.
+export const launchLabel = (t) => {
   if (!t) return null;
-  if (t.view === 'church' && t.churchView === 'home') return 'Open the Council Chamber';
+  if (t.view === 'church' && t.churchView === 'home' && t.churchSection === 'speak') return 'Open the Council Chamber';
+  if (t.view === 'church' && t.churchView === 'home') return 'Open the church home';
   if (t.view === 'notes') return 'Open Thinking Space';
   if (t.view === 'about') return 'Open your privacy & settings';
   return 'Open the app surface';

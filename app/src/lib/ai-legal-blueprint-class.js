@@ -96,7 +96,7 @@ export const AI_LEGAL_BLUEPRINT_MODULES = [
     bigIdea: 'A vendor chatbot (ChatGPT, Gemini, Copilot, the free Claude app) is not your friend and it is not private. It runs on a company’s computers far away. What you type can be stored, read by a human reviewer, and used to train the model — and as courts have shown, it can be kept even after you press delete. So the whole course fits in one rule: if you would not be okay seeing it on a billboard, do not paste it into a chatbot.',
     inApp: 'Open our own A.I. (the Council Chamber / input center) and notice the reminder that it runs on OUR machine. Then picture the difference: when you type into a vendor chatbot, your words leave your house; when you type into ours, they do not.',
     anchor: { ref: 'Luke 12:2–3; Proverbs 22:3', theme: 'What is whispered in secret can be shouted from the rooftops; the prudent see danger and take refuge. Treat anything you type into a stranger’s system as something that could be made public.' },
-    launch: { view: 'church', churchView: 'home' },
+    launch: { view: 'church', churchView: 'home', churchSection: 'speak' },
     rpe: {
       research: 'Name the chatbots you (or your family) actually use, and ask: whose computer does each one run on?',
       plan: 'Decide your personal billboard test — "would I be fine if this showed up in public?"',
@@ -302,7 +302,7 @@ export const AI_LEGAL_BLUEPRINT_MODULES = [
     bigIdea: 'Here is the whole blueprint on one card. Redact before you paste (names to "Person A," numbers to "XXXX"). Never paste live secrets — and if you did, change them. Match the tool to the sensitivity: public and general is fine on any chatbot; regulated or confidential needs a contracted tier — or best of all, an A.I. that never leaves your own hardware. That last line is exactly why PoeTech runs SOVEREIGN, local A.I.: your sensitive data stays on machines you own. You own this lesson when you can teach the one rule to one person.',
     inApp: 'Open our own A.I. and do one real sensitive task on it that you would never do on a vendor chatbot — a family or ministry note with real details. Feel the difference: it never left the house.',
     anchor: { ref: 'Matthew 10:16; 2 Timothy 2:2', theme: 'Be wise as serpents and innocent as doves; entrust what you have learned to faithful people who can teach others. Wisdom plus the safe place, handed on.' },
-    launch: { view: 'church', churchView: 'home' },
+    launch: { view: 'church', churchView: 'home', churchSection: 'speak' },
     rpe: {
       research: 'Pick the one idea from this course that changed how you will use A.I.',
       plan: 'Write its plain, one-sentence version a newcomer could remember.',
