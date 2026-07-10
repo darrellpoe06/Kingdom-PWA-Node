@@ -39,42 +39,42 @@ import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvC
 export const LEARN_CATALOG = [
   {
     key: 'ai', wiring: 'component', unitCap: 'Week',
-    meta: { ...CLASS_META, key: 'ai' }, sessionFlow: SESSION_FLOW,
+    meta: { ...CLASS_META, key: 'ai', category: 'A.I. The Way' }, sessionFlow: SESSION_FLOW,
     buildScheduleRows: () => buildSchedule(null), progressSummary: (p) => progressSummary(p),
     exportMarkdown: () => exportCurriculumMarkdown(null), downloadName: 'learning-ai-the-way-curriculum.md',
     interestTag: CLASS_INTEREST_TAG, helperTag: '[Class helper]', tutorCourseMeta: null,
   },
   {
     key: 'broadcast', wiring: 'cohort', unitCap: 'Week',
-    meta: { ...BROADCAST_META, key: 'broadcast' }, sessionFlow: BROADCAST_SESSION_FLOW,
+    meta: { ...BROADCAST_META, key: 'broadcast', category: 'Serve the House' }, sessionFlow: BROADCAST_SESSION_FLOW,
     buildScheduleRows: () => buildBroadcastSchedule(null), progressSummary: (p) => broadcastProgressSummary(p),
     exportMarkdown: () => exportBroadcastCurriculumMarkdown(null), downloadName: 'the-broadcast-how-it-all-works-curriculum.md',
     interestTag: BROADCAST_INTEREST_TAG, helperTag: BROADCAST_HELPER_TAG, tutorCourseMeta: BROADCAST_TUTOR_META,
   },
   {
     key: 'infrastructure', wiring: 'cohort', unitCap: 'Week',
-    meta: { ...INFRA_META, key: 'infrastructure' }, sessionFlow: INFRA_SESSION_FLOW,
+    meta: { ...INFRA_META, key: 'infrastructure', category: 'Serve the House' }, sessionFlow: INFRA_SESSION_FLOW,
     buildScheduleRows: () => buildInfraSchedule(null), progressSummary: (p) => infraProgressSummary(p),
     exportMarkdown: () => exportInfraCurriculumMarkdown(null), downloadName: 'the-infrastructure-how-we-build-it-sovereign-curriculum.md',
     interestTag: INFRA_INTEREST_TAG, helperTag: INFRA_HELPER_TAG, tutorCourseMeta: INFRA_TUTOR_META,
   },
   {
     key: 'sovereign-ai', wiring: 'cohort', unitCap: 'Week',
-    meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' }, sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
+    meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai', category: 'A.I. The Way' }, sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
     buildScheduleRows: () => buildSovereignAiSchedule(null), progressSummary: (p) => sovereignAiProgressSummary(p),
     exportMarkdown: () => exportSovereignAiCurriculumMarkdown(null), downloadName: 'sovereign-ai-why-we-build-local-curriculum.md',
     interestTag: SOVEREIGN_AI_INTEREST_TAG, helperTag: SOVEREIGN_AI_HELPER_TAG, tutorCourseMeta: SOVEREIGN_AI_TUTOR_META,
   },
   {
     key: 'ai-legal-blueprint', wiring: 'cohort', unitCap: 'Week',
-    meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint' }, sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
+    meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint', category: 'A.I. The Way' }, sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
     buildScheduleRows: () => buildAiLegalBlueprintSchedule(null), progressSummary: (p) => aiLegalBlueprintProgressSummary(p),
     exportMarkdown: () => exportAiLegalBlueprintCurriculumMarkdown(null), downloadName: 'ai-legal-blueprint-what-never-to-tell-a-chatbot-curriculum.md',
     interestTag: AI_LEGAL_BLUEPRINT_INTEREST_TAG, helperTag: AI_LEGAL_BLUEPRINT_HELPER_TAG, tutorCourseMeta: AI_LEGAL_BLUEPRINT_TUTOR_META,
   },
   {
     key: 'living-lessons', wiring: 'self-paced', unitCap: 'Lesson',
-    meta: { ...LIVING_LESSONS_META, key: 'living-lessons' }, sessionFlow: LIVING_LESSONS_SESSION_FLOW,
+    meta: { ...LIVING_LESSONS_META, key: 'living-lessons', category: 'The Word & The Way' }, sessionFlow: LIVING_LESSONS_SESSION_FLOW,
     buildScheduleRows: () => buildLivingLessonsSchedule(), progressSummary: (p) => livingLessonsProgressSummary(p),
     exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(), downloadName: 'living-lessons-from-the-word.md',
     interestTag: LIVING_LESSONS_INTEREST_TAG, helperTag: LIVING_LESSONS_HELPER_TAG, tutorCourseMeta: LIVING_LESSONS_TUTOR_META,
@@ -88,7 +88,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'sound-board', wiring: 'self-paced', unitCap: 'Lesson',
-    meta: { ...SOUND_BOARD_META, key: 'sound-board' }, sessionFlow: SOUND_BOARD_SESSION_FLOW,
+    meta: { ...SOUND_BOARD_META, key: 'sound-board', category: 'Serve the House' }, sessionFlow: SOUND_BOARD_SESSION_FLOW,
     buildScheduleRows: () => buildSoundBoardSchedule(), progressSummary: (p) => soundBoardProgressSummary(p),
     exportMarkdown: () => exportSoundBoardCurriculumMarkdown(), downloadName: 'running-the-board-live-sound.md',
     interestTag: SOUND_BOARD_INTEREST_TAG, helperTag: SOUND_BOARD_HELPER_TAG, tutorCourseMeta: SOUND_BOARD_TUTOR_META,
@@ -102,7 +102,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'world-issues', wiring: 'self-paced', unitCap: 'Issue',
-    meta: { ...WORLD_ISSUES_META, key: 'world-issues' }, sessionFlow: WORLD_ISSUES_SESSION_FLOW,
+    meta: { ...WORLD_ISSUES_META, key: 'world-issues', category: 'The Word & The Way' }, sessionFlow: WORLD_ISSUES_SESSION_FLOW,
     buildScheduleRows: () => buildWorldIssuesSchedule(), progressSummary: (p) => worldIssuesProgressSummary(p),
     exportMarkdown: () => exportWorldIssuesCurriculumMarkdown(), downloadName: 'thinking-it-through-world-issues-discernment.md',
     interestTag: WORLD_ISSUES_INTEREST_TAG, helperTag: WORLD_ISSUES_HELPER_TAG, tutorCourseMeta: WORLD_ISSUES_TUTOR_META,
@@ -116,7 +116,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'datasystems', wiring: 'self-paced', unitCap: 'Module',
-    meta: { ...DATASYSTEMS_META, key: 'datasystems' }, sessionFlow: DATASYSTEMS_SESSION_FLOW,
+    meta: { ...DATASYSTEMS_META, key: 'datasystems', category: 'Serve the House' }, sessionFlow: DATASYSTEMS_SESSION_FLOW,
     buildScheduleRows: () => buildDatasystemsSchedule(), progressSummary: (p) => datasystemsProgressSummary(p),
     exportMarkdown: () => exportDatasystemsCurriculumMarkdown(), downloadName: 'poetech-data-systems-and-infrastructure.md',
     interestTag: DATASYSTEMS_INTEREST_TAG, helperTag: DATASYSTEMS_HELPER_TAG, tutorCourseMeta: DATASYSTEMS_TUTOR_META,
@@ -130,7 +130,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'handed-forward', wiring: 'self-paced', unitCap: 'Week',
-    meta: { ...SUCCESSION_META, key: 'handed-forward' }, sessionFlow: SUCCESSION_SESSION_FLOW,
+    meta: { ...SUCCESSION_META, key: 'handed-forward', category: 'Kingdom Life & Stewardship' }, sessionFlow: SUCCESSION_SESSION_FLOW,
     buildScheduleRows: () => buildSuccessionSchedule(null), progressSummary: (p) => successionProgressSummary(p),
     exportMarkdown: () => exportSuccessionCurriculumMarkdown(), downloadName: 'handed-forward-succession-curriculum.md',
     interestTag: SUCCESSION_INTEREST_TAG, helperTag: SUCCESSION_HELPER_TAG, tutorCourseMeta: SUCCESSION_TUTOR_META,
@@ -144,7 +144,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'kingdom-economics', wiring: 'self-paced', unitCap: 'Session',
-    meta: { ...ECON_META, key: 'kingdom-economics' }, sessionFlow: ECON_SESSION_FLOW,
+    meta: { ...ECON_META, key: 'kingdom-economics', category: 'Kingdom Life & Stewardship' }, sessionFlow: ECON_SESSION_FLOW,
     buildScheduleRows: () => buildEconSchedule(null), progressSummary: (p) => econProgressSummary(p),
     exportMarkdown: () => exportEconCurriculumMarkdown(null), downloadName: 'kingdom-economics-curriculum.md',
     interestTag: ECON_INTEREST_TAG, helperTag: ECON_HELPER_TAG, tutorCourseMeta: ECON_TUTOR_META,
@@ -158,7 +158,7 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'prophetic-voices', wiring: 'self-paced', unitCap: 'Voice',
-    meta: { ...PV_META, key: 'prophetic-voices' }, sessionFlow: PV_SESSION_FLOW,
+    meta: { ...PV_META, key: 'prophetic-voices', category: 'The Word & The Way' }, sessionFlow: PV_SESSION_FLOW,
     buildScheduleRows: () => buildPvSchedule(null), progressSummary: (p) => pvProgressSummary(p),
     exportMarkdown: () => exportPvCurriculumMarkdown(null), downloadName: 'prophetic-voices-study.md',
     interestTag: PV_INTEREST_TAG, helperTag: PV_HELPER_TAG, tutorCourseMeta: PV_TUTOR_META,
