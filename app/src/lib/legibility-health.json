@@ -6,11 +6,11 @@
   ],
   "summary": {
     "pages": 168,
-    "passing": 152,
-    "trackedDebtPages": 16,
+    "passing": 153,
+    "trackedDebtPages": 15,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 122
+    "debtViolations": 105
   },
   "pages": [
     {
@@ -25,25 +25,7 @@
     {
       "page": "components/CreationWorkspace.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 29,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/Imported.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 13,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/Forecast.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 9,
+      "violations": 28,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -53,6 +35,15 @@
       "page": "components/HarvestLedger.jsx",
       "status": "TRACKED-DEBT",
       "violations": 8,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Forecast.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 7,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -71,15 +62,6 @@
       "page": "components/Pulpit.jsx",
       "status": "TRACKED-DEBT",
       "violations": 5,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/Bookstore.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 2,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -123,6 +105,15 @@
     },
     {
       "page": "components/BooksAccounts.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 1,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/Bookstore.jsx",
       "status": "TRACKED-DEBT",
       "violations": 1,
       "regressions": 0,

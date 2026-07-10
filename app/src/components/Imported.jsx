@@ -319,7 +319,7 @@ export default function Imported({ data = {} }) {
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net · {periodLabel(activePeriod)}</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace', color: grouped.windowTotals.net < 0 ? '#B85838' : '#166534' }}>{fmtMoney(grouped.windowTotals.net)}</div>
+              <div className={`text-lg font-medium ${grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.net)}</div>
             </div>
           </div>
 
@@ -432,9 +432,9 @@ export default function Imported({ data = {} }) {
 
           <div className="text-[0.625rem] text-[#5A5751]">
             Showing {grouped.matched.toLocaleString()} of {view.total.toLocaleString()} transactions
-            {' · '}<span style={{ color: '#166534' }}>in {fmtMoney(grouped.windowTotals.in)}</span>
-            {' · '}<span style={{ color: '#B85838' }}>out {fmtMoney(grouped.windowTotals.out)}</span>
-            {' · '}<span style={{ color: grouped.windowTotals.net < 0 ? '#B85838' : '#166534' }}>net {fmtMoney(grouped.windowTotals.net)}</span>
+            {' · '}<span className="text-[#166534]">in {fmtMoney(grouped.windowTotals.in)}</span>
+            {' · '}<span className="text-[#B85838]">out {fmtMoney(grouped.windowTotals.out)}</span>
+            {' · '}<span className={grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(grouped.windowTotals.net)}</span>
             {view.firstDate ? ` · ledger spans ${formatDate(view.firstDate)} – ${formatDate(view.lastDate)}` : ''}
           </div>
 
@@ -462,9 +462,9 @@ export default function Imported({ data = {} }) {
                       <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} tx</span>
                     </span>
                     <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <span style={{ color: '#166534' }}>in {fmtMoney(g.totals.in)}</span>
-                      <span style={{ color: '#B85838' }}>out {fmtMoney(g.totals.out)}</span>
-                      <span style={{ color: g.totals.net < 0 ? '#B85838' : '#166534' }}>net {fmtMoney(g.totals.net)}</span>
+                      <span className="text-[#166534]">in {fmtMoney(g.totals.in)}</span>
+                      <span className="text-[#B85838]">out {fmtMoney(g.totals.out)}</span>
+                      <span className={g.totals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(g.totals.net)}</span>
                     </span>
                   </button>
                   {!isCollapsed && (
@@ -495,7 +495,7 @@ export default function Imported({ data = {} }) {
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
                             </td>
                             <td className="px-2 py-1.5 text-[#5A5751] capitalize">{t.category || '—'}</td>
-                            <td className="px-2 py-1.5 text-right font-mono" style={{ color: t.amount < 0 ? '#B85838' : '#16A34A' }}>{formatAmount(t.amount)}</td>
+                            <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
                             {showBalance && (
                               <td className="px-2 py-1.5 text-right font-mono text-[#5A5751]">
                                 {balByRow.has(t.id) ? formatAmount(balByRow.get(t.id)) : '—'}
@@ -510,7 +510,7 @@ export default function Imported({ data = {} }) {
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815] capitalize">{t.category || '—'}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className="font-mono" style={{ color: t.amount < 0 ? '#B85838' : '#166534' }}>{formatAmount(t.amount)}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className={`font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`}>{formatAmount(t.amount)}</div></div>
                                   <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
                                   <div className="col-span-2 sm:col-span-4 border-t border-[#E8E4DC] pt-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Receipt</div><div className="text-[#5A5751] italic">No receipt on file — bank-imported rows carry no receipt image. Attach one from the Tx tab when receipt capture lands.</div></div>
