@@ -99,8 +99,20 @@ jobs:
               echo "| #$NUM | $BR | ${HOURS}h | stale DRAFT — reported, never closed |" >> "$GITHUB_STEP_SUMMARY"; continue
             fi
             # The evidence step: is the branch's every commit already in main?
+            # NOTE (REV-0046): in a squash-merge repo a three-dot diff is
+            # essentially never empty — merged work lands as new squash commits,
+            # not the branch's own — so this gate closes only literal
+            # already-in-history branches. That makes the janitor a CONSERVATIVE
+            # guard by construction; stale-with-real-changes PRs are a human
+            # triage list, never automation's. And an ERROR is not a verdict:
+            # a missing merge base (shallow view, unrelated history) must read
+            # "could not judge", never "empty" and never "has changes" — the
+            # 2026-07-10 shallow-sandbox misread taught this the hard way.
             if ! git fetch --quiet origin "refs/heads/$BR:refs/janitor/$BR" 2>/dev/null; then
               echo "| #$NUM | $BR | ${HOURS}h | branch unfetchable — reported only |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            if ! git merge-base "origin/main" "refs/janitor/$BR" >/dev/null 2>&1; then
+              echo "| #$NUM | $BR | ${HOURS}h | no merge base — could not judge, reported only |" >> "$GITHUB_STEP_SUMMARY"; continue
             fi
             if git diff --quiet "origin/main...refs/janitor/$BR"; then
               if [ "$CLOSED" -ge "$MAX_CLOSE" ]; then
