@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** A/B (a heal-ladder fix proven by tests, a sign-in PRESENTATION reordering over existing audited machinery, a one-line secret-hygiene fix; no new auth backend, no new data class)
-- **Scope:** `lib/boot-fallback.js` (+`bustReload`) and its tests, `components/PasswordAuth.jsx` (link-first door), `lib/supabase.js` (`sendRoyaltyLink` carries the name), `.github/workflows/corpus-reconcile.yml` (secret whitespace hygiene)
+- **Scope:** `lib/voice-assignment.js` (standInPitch — the prosody diversifier) + `lib/tts.js` (per-read pitch) + `lib/scripture-voice-cast.js`/`use-cast-read.js` (cast pitch) + `lib/use-read-aloud.js`, `lib/boot-fallback.js` (+`bustReload`) and its tests, `components/PasswordAuth.jsx` (link-first door), `lib/supabase.js` (`sendRoyaltyLink` carries the name), `.github/workflows/corpus-reconcile.yml` (secret whitespace hygiene)
 - **Date:** 2026-07-10
 - **Principles:** COMMUNITY-FIRST (commitment 2 — no required password-typing), VERIFICATION-DOCTRINE (DR-0076), ANXIETY-CLARITY, PERPETUAL-IMPROVEMENT (DR-0075), APP-IS-PRIMARY, WAYS-REVIEW
 

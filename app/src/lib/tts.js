@@ -485,7 +485,11 @@ export function useTextToSpeech() {
   // this is how a gendered stand-in (a male system voice for a male person, a
   // different voice per person) is honored per-play without clobbering the user's
   // chosen browser-voice pref. Passing voiceURI null/'' forces the device default.
-  const speak = useCallback((text, voiceURI) => {
+  // speak(text, voiceURI, pitch) additionally speaks at a per-read PITCH — the
+  // prosody diversifier for devices whose voice list is one-female-voice-only
+  // (DR-0143 follow-through: a man reads low, two people read distinct, on ANY
+  // device). Transient: the next pitch-less speak reverts to the saved pref.
+  const speak = useCallback((text, voiceURI, pitch) => {
     const eng = engineRef.current;
     if (!eng) return;
     if (voiceURI !== undefined) {
@@ -498,9 +502,12 @@ export function useTextToSpeech() {
         : ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null);
       eng.setVoice(v); // transient — does not touch saved prefs
     }
+    eng.pitch = Number.isFinite(Number(pitch))
+      ? Number(pitch)
+      : (Number.isFinite(Number(prefs.pitch)) ? Number(prefs.pitch) : DEFAULT_PITCH);
     eng.load(text);
     eng.play();
-  }, []);
+  }, [prefs.pitch]);
 
   const pause = useCallback(() => { engineRef.current && engineRef.current.pause(); }, []);
   const resume = useCallback(() => { engineRef.current && engineRef.current.resume(); }, []);
