@@ -13,9 +13,10 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
+import { readFromPoint } from '../lib/read-from-here.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
@@ -42,6 +43,34 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     catalog, voiceId, setVoiceId, currentItem,
   } = useReadAloud({ isOwner });
 
+  // START WHERE I TAP (DR-0144): "if Ari could start right at wherever users
+  // want it to start... whatever word on the page" (Darrell, 2026-07-10). Arm a
+  // one-shot capture listener; the next tap on the page becomes the reading
+  // start — mapped to the exact word via lib/read-from-here, falling back to the
+  // top of the page (never silence) when the device can't resolve the tap.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed || typeof document === 'undefined') return undefined;
+    const main = document.querySelector('main') || document.body;
+    const onTap = (e) => {
+      const inControls = e.target && e.target.closest && e.target.closest('.tts-controls');
+      if (inControls) return; // panel taps (incl. Cancel) keep working normally
+      e.preventDefault();
+      e.stopPropagation();
+      setArmed(false);
+      const hit = readFromPoint(main, e.clientX, e.clientY);
+      const text = (hit && hit.text) || readablePageText();
+      if (text) read(text);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
+    document.addEventListener('click', onTap, true);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('click', onTap, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [armed, read]);
+
   if (!supported) return null; // graceful: device can't speak — show nothing
 
   const start = () => { const text = readablePageText(); if (text) read(text); };
@@ -62,7 +91,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (text) read(text);
   };
 
-  const close = () => { stop(); setIsOpen(false); };
+  const close = () => { stop(); setArmed(false); setIsOpen(false); };
 
   // Grouped voice options (System / Your voices / Voices & accents) — same global
   // preference the header picker and Voice tab write.
@@ -78,7 +107,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <div className="flex items-baseline justify-between mb-3">
             <div>
               <div className="text-[9px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[10px] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel)}</div>
+              <div className="text-[10px] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
             </div>
             <button type="button" onClick={close} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
           </div>
@@ -87,6 +116,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             {!isReading ? (
               <>
                 <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
+                {/* START WHERE I TAP — arm, then the next tap on the page picks
+                    the word reading begins from (Esc or Cancel to stand down). */}
+                {!armed ? (
+                  <button type="button" onClick={() => setArmed(true)} className="col-span-3 flex items-center justify-center gap-1.5 border border-[#1A1815] text-[#1A1815] px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="pin" /> Start where I tap</button>
+                ) : (
+                  <button type="button" onClick={() => setArmed(false)} className="col-span-3 bg-[#B85838] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#1A1815]">Now tap the word to start from — or Cancel</button>
+                )}
                 {/* TALK ABOUT THIS — Ari explains the current screen (its real
                     numbers, or what the tab is), spoken in the chosen voice. */}
                 <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
@@ -142,7 +178,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           ) : null}
 
           <p className="text-[9px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            Read this page recites it; Talk about this has Ari explain what is on it — both in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
+            Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
         </div>
       ) : (
