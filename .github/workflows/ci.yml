@@ -99,7 +99,18 @@ jobs:
       - run: node ../scripts/surface-audit.mjs --fail-on=critical --fail-on-new
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.
+      #
+      # STUB env (2026-07-10, the gate-tested-an-unbootable-build finding): an
+      # env-less build inlines undefined into createClient (lib/supabase.js),
+      # which THROWS at module scope — so the dist this job built could NEVER
+      # boot, and the SW gate below was judging the heal ladder, not the
+      # worker. Same rationale as vitest.config.js's stub (the header comment
+      # above): the gate tests the WORKER and the boot chain, not Supabase.
+      # These are the vitest stub values; they are not secrets.
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
       # Service-worker-controlled navigation gate (DR-0076 / 2026-07-10 outage):
       # a fresh browser's FIRST visit is never SW-controlled, so a broken worker
       # fetch handler passes lint, vitest, the build, verify-boot, AND

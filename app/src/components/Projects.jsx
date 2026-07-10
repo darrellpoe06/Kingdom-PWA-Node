@@ -1766,6 +1766,18 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
 
 function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   const entity = entities.find(e => e.id === scope.entityId);
+  // Print ONLY the agreement sheet (DR-0123): body.print-scope + .print-sheet
+  // (index.css) isolate the sheet for the dialog; afterprint (with a timeout
+  // fallback for browsers that never fire it) removes the class.
+  const printScope = () => {
+    try {
+      document.body.classList.add('print-scope');
+      const done = () => { try { document.body.classList.remove('print-scope'); window.removeEventListener('afterprint', done); } catch (e) { /* no-op */ } };
+      window.addEventListener('afterprint', done);
+      setTimeout(done, 3000);
+      window.print();
+    } catch (e) { /* no-op */ }
+  };
   // Preparatory scaffolding — pending "Linked to: <project>" header in this view.
   // eslint-disable-next-line no-unused-vars
   const linkedProject = projects.find(p => p.id === scope.projectId);
@@ -1773,9 +1785,9 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
     <div className="space-y-4 max-w-3xl">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
         <button type="button" onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
-        <div className="flex gap-3"><button type="button" onClick={() => window.print()} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
+        <div className="flex gap-3"><button type="button" onClick={printScope} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print / Save as PDF</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
       </section>
-      <div className="bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
+      <div className="print-sheet bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
         <div className="text-center mb-6 pb-6 border-b border-[#E8E4DC]">
           <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
           <h1 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{scope.title}</h1>

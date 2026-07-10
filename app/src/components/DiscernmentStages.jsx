@@ -157,8 +157,14 @@ export default function DiscernmentStages({ issue }) {
             </>
           )}
 
-          {/* STAGE 3 — PERSPECTIVES */}
+          {/* STAGE 3 — PERSPECTIVES. The sharpened preamble (DR-0129/DR-0130,
+              routed 2026-07-15) rides the ENGINE so every issue carries it:
+              documented facts were stated plainly in Stage 2 and are not up
+              for a vote — perspectives judge only the unresolved parts. */}
           <StageHeading n={3} title="Perspectives — every side, at its strongest" />
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={serif}>
+            The documented facts are not up for a vote here — Stage 2 already stated them plainly. These perspectives judge only what remains genuinely unresolved: the unadjudicated claims, motives, and what should happen next.
+          </p>
           <ul className="space-y-2">
             {perspectives.map((p) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">

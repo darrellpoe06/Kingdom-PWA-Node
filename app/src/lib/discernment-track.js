@@ -399,7 +399,7 @@ export function buildDiscernmentModule(issue) {
         'We speak what is documented plainly, label what is unproven, and leave the verdict on a soul to God — proven harm is never muted as "balance."',
         'Stage 1: every claim is LABELED (allegation / claim / opinion / call-to-action) and attributed to its source. We never repeat a contested allegation as settled fact.',
         'Stage 2: separate DOCUMENTED fact (checkable against primary sources, with dates) from INTERPRETATION. Model checking a source live.',
-        'Stage 3: steelman every side — state each perspective at its strongest before weighing any.',
+        'Stage 3: steelman every side — state each perspective at its strongest before weighing any. Perspectives judge ONLY the unresolved parts: the documented facts were stated plainly in Stage 2 and are not up for a vote.',
         'Stage 4: the believer\'s lens — the Word\'s justice spoken plainly, and ACCOUNTABILITY stated, never implied: man\'s court is not the court of record (dismissed evidence and permitted wrongs still enter the eternal court, Ecclesiastes 12:14), the wrongdoer owes confession + restitution + fruits of repentance, and NO condemnation of any person made in God\'s image.',
         'Stage 5: name the transferable skill — check sources, choose righteous engagement over outrage, and keep your peace in a divisive world.',
       ],
