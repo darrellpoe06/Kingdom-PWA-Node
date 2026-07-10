@@ -241,10 +241,13 @@ export function songsForService(songs, serviceDate, serviceType) {
 
 // The past-services list for the Choir "This week" panel. HISTORY is the real
 // service corpus, not just the planning calendar: a card shows for any past
-// service that has a planned schedule row OR at least one song on it (manual OR a
-// harvested draft). This is why a service the worship-song harvester wrote drafts
-// for (keyed by its choir_sermons date/type) now appears with its setlist instead
-// of being invisible — the schedule table only ever holds the few planned dates.
+// service that has a planned schedule row, OR at least one song on it (manual OR
+// a harvested draft), OR a service RECORDING to watch. The watchable rule is the
+// 2026-07-10 fix (DR-0137): the history read only 7 services because the corpus's
+// recorded-but-songless services were filtered out as "empty cards" — but to the
+// choir a recorded service IS history (Darrell: "the Choir tab still only has 7
+// videos in the history"). Only a row with none of the three — no plan, no
+// setlist, no video — stays hidden as noise.
 // Deduped by date|type, newest-first. Pure + channel-agnostic (callers pass the
 // already tenant-scoped rows). Each entry is a service-card shape:
 //   { id, serviceDate, serviceType, title, youtubeUrl }
@@ -269,12 +272,12 @@ export function buildPastServices(schedule, sermons, songs, todayIso) {
   };
   for (const s of schedule || []) consider(s, true);
   for (const s of sermons || []) consider(s, false);
-  // Keep a service only if it was planned OR actually has a setlist (a card with
-  // neither is just noise — the corpus has 130+ services with no songs yet).
+  // Keep a service if it was planned, has a setlist, or is WATCHABLE (carries the
+  // service recording). A card with none of the three is just noise.
   const out = [];
   for (const svc of byKey.values()) {
     const hasSongs = songsForService(songs, svc.serviceDate, svc.serviceType).length > 0;
-    if (svc._scheduled || hasSongs) {
+    if (svc._scheduled || hasSongs || svc.youtubeUrl) {
       const { _scheduled, ...clean } = svc;
       out.push(clean);
     }

@@ -117,8 +117,9 @@ describe('buildPastServices', () => {
   ];
   const sermons = [
     { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' },
-    { videoId: 'v2', serviceDate: '2026-06-15', serviceType: 'sunday', title: 'Msg 15', youtubeUrl: 'y15' }, // no songs -> excluded
+    { videoId: 'v2', serviceDate: '2026-06-15', serviceType: 'sunday', title: 'Msg 15', youtubeUrl: 'y15' }, // recorded, no songs -> WATCHABLE history (DR-0137)
     { videoId: 'v3', serviceDate: '2026-06-28', serviceType: 'sunday', title: 'Sermon dup' }, // dup of sch1
+    { serviceDate: '2026-06-08', serviceType: 'sunday', title: 'Draft notes' }, // no video, no songs, no plan -> noise, excluded
   ];
   const songs = [
     { id: 's1', title: 'My Worship', serviceDate: '2026-06-29', serviceType: 'sunday', status: 'active' },
@@ -130,9 +131,15 @@ describe('buildPastServices', () => {
     expect(dates).toContain('2026-06-29'); // has a song
     expect(dates).toContain('2026-06-28'); // scheduled
   });
-  it('excludes past sermons with no setlist and no schedule row (avoids 130 empty cards)', () => {
+  it('includes a RECORDED past service with no setlist — the watchable corpus IS the history (DR-0137)', () => {
     const past = buildPastServices(schedule, sermons, songs, today);
-    expect(past.map((s) => s.serviceDate)).not.toContain('2026-06-15');
+    const hit = past.find((s) => s.serviceDate === '2026-06-15');
+    expect(hit).toBeTruthy();
+    expect(hit.youtubeUrl).toBe('y15'); // the Watch-service link rides the card
+  });
+  it('still excludes a past row with no plan, no setlist, AND no video (pure noise)', () => {
+    const past = buildPastServices(schedule, sermons, songs, today);
+    expect(past.map((s) => s.serviceDate)).not.toContain('2026-06-08');
   });
   it('excludes future services and dedupes schedule+sermon on the same date/type', () => {
     const past = buildPastServices(schedule, sermons, songs, today);

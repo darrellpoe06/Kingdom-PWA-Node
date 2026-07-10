@@ -285,14 +285,20 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
 // Christina can plan songs as far out as she wants; a collapsible history lets
 // her browse past Sundays and reuse old songs onto a future date (Darrell
 // 2026-06-14).
+// The history renders in derived pages, not a cap: every watchable service in
+// the corpus (300+) is reachable via "Show more", while a phone only mounts a
+// batch at a time. The count on the toggle is the WHOLE corpus, always.
+const PAST_PAGE_SIZE = 15;
+
 function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse }) {
   const today = todayIso();
   const [showPast, setShowPast] = useState(false);
+  const [pastShown, setPastShown] = useState(PAST_PAGE_SIZE);
   const ordered = sortServices(schedule, today);
   const upcoming = ordered.filter((s) => s.serviceDate >= today);
-  // Past history is the REAL service corpus (sermons + any service that has a
-  // setlist), not just the planning calendar — so a service the worship-song
-  // harvester drafted songs for shows up with its setlist instead of vanishing.
+  // Past history is the REAL service corpus — every past service with a plan, a
+  // setlist, OR a recording to watch (DR-0137: a recorded service IS history;
+  // the old planned-or-songs filter is why only 7 of 300+ videos showed).
   const past = buildPastServices(schedule, sermons, songs, today);
   return (
     <div className="space-y-5">
@@ -323,9 +329,15 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
           {showPast && (
             <div className="space-y-3 mt-2">
               <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
-              {past.map((svc) => (
+              {past.slice(0, pastShown).map((svc) => (
                 <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} past />
               ))}
+              {past.length > pastShown && (
+                <button type="button" onClick={() => setPastShown((n) => n + PAST_PAGE_SIZE)}
+                  className={`${BTN} w-full border border-[#5A6E3D] text-[#5A6E3D] hover:bg-white`}>
+                  Show more services ({past.length - pastShown} more)
+                </button>
+              )}
             </div>
           )}
         </div>
