@@ -21,7 +21,26 @@ ever ring the family's own bell — never spray arbitrary topics. Caller supplie
 
 The runner authenticates with the SAME bearer the CI already holds
 (`VITE_N8N_BEARER`), so no new GitHub secret is needed. The NAS side needs the
-workflow imported and the credential bound — from your desktop:
+workflow imported, activated, and the credential matching.
+
+### Path A — from the NAS shell (SSH / ConnectBot; lesson of 2026-07-10:
+### the machine in hand was the NAS, and the runbook only spoke PowerShell)
+
+```
+curl -sL https://raw.githubusercontent.com/darrellpoe06/Kingdom-PWA-Node/main/infra/n8n/wf-ops-announce.json -o /tmp/wf-ops-announce.json
+sudo docker cp /tmp/wf-ops-announce.json n8n:/tmp/wf-ops-announce.json
+sudo docker exec n8n n8n import:workflow --input=/tmp/wf-ops-announce.json
+sudo docker exec n8n n8n update:workflow --id=wfOpsAnnounce001 --active=true
+sudo docker restart n8n
+```
+
+The import binds the header-auth credential by id (`property-history bridge
+token`) when it exists; the proof call below tells the truth either way — a
+403 means the bound credential's value is not `Bearer <the VITE_N8N_BEARER
+value>`, fixed with one visit to the Webhook node's credential picker in the
+n8n UI (`http://192.168.1.26:5678`).
+
+### Path B — from the Windows desktop (browser import)
 
 ```powershell
 cd C:\Users\dpoe\Kingdom-PWA-Node
@@ -43,7 +62,7 @@ $token = Read-Host "paste the n8n bearer token"
 Invoke-RestMethod -Method Post -Uri "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" -Headers @{ Authorization = "Bearer $token" } -ContentType "application/json" -Body '{"title":"PoeTech announce test","message":"If you can read this on your phone, the incident push is live.","url":"https://poetech.us/poetech-app/","priority":"3"}'
 ```
 
-From your phone instead (ConnectBot into the NAS — DR-0108):
+From the NAS shell (SSH or ConnectBot — DR-0108):
 
 ```
 curl -s -X POST "http://localhost:5678/webhook/ops-announce" -H "Authorization: Bearer PASTE_TOKEN_HERE" -H "content-type: application/json" -d '{"title":"PoeTech announce test","message":"Phone-side proof.","priority":"3"}'
