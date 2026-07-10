@@ -66,7 +66,7 @@ export const LIVING_LESSONS_META = {
   tagline: 'You were never made to be flawless. You were made to be whole.',
   format: 'Self-paced · read it alone, as a family, or in a group · paced to your age',
   cadenceDays: 7,
-  weeks: 13, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made · L12 If One Member Suffers · L13 A Sound Mind; grows as Darrell teaches more
+  weeks: 14, // L1 Perfect · L2 Energy · L3 Bodybuilding Christ · L4 Dying to Live · L5 Take No Thought · L6 Think on These Things · L7 Let Peace Be the Umpire · L8 Not by Might · L9 The LORD Looks on the Heart · L10 Strength and Honour Are Her Clothing · L11 Fearfully and Wonderfully Made · L12 If One Member Suffers · L13 A Sound Mind · L14 Ten Healed, One Made Whole; grows as the house teaches more
   handsOnLabel: 'Take it with you',
   // The label layer that lets the shared engine render this honestly as a
   // self-paced lesson series rather than a weekly cohort class.
@@ -1305,6 +1305,55 @@ export const LIVING_LESSONS_MODULES = [
       ],
     },
   },
+  {
+    id: 'll14-ten-healed-one-whole',
+    title: 'Ten Healed, One Made Whole',
+    // Harvested from Bishop Lloyd E. Gwin's "Celebration" message at The Church
+    // of the Living God (the Love Corner), 2026-07 — Joshua's posture of
+    // celebration + the ten lepers of Luke 17:11-19: ten were cleansed on the
+    // way, and the one who turned back to glorify God heard a word the other
+    // nine never heard — "thy faith hath made thee whole."
+    anchor: { ref: 'Luke 17:15-19; Psalm 34:1; 1 Thessalonians 5:18', theme: 'Ten were cleansed; one turned back, fell at His feet, and gave thanks — and only that one heard "thy faith hath made thee whole." Praise is not the receipt for the blessing; it is the doorway to wholeness. Bless the LORD at ALL times; in every thing give thanks.' },
+    bigIdea: 'Ten lepers cried for mercy, and Jesus healed all ten — "as they went, they were cleansed" (Luke 17:14). But only one, "when he saw that he was healed, turned back, and with a loud voice glorified God, and fell down on his face at his feet, giving him thanks" (Luke 17:15-16). Jesus asked the question heaven is still asking: "Were there not ten cleansed? but where are the nine?" (Luke 17:17). And to the one who returned He said something He said to no one else that day: "thy faith hath made thee WHOLE" (Luke 17:19). Bishop Gwin\u2019s charge from this text: all ten got the blessing, but the celebrator got the Blesser. Healing touched their skin; wholeness touched the whole man. The difference between the nine and the one was not the miracle — it was the POSTURE: a life that turns back, falls down, and celebrates God\u2019s provision regardless of circumstances. "I will bless the LORD at all times: his praise shall continually be in my mouth" (Psalm 34:1) — at ALL times, not at convenient ones; "In every thing give thanks: for this is the will of God in Christ Jesus concerning you" (1 Thessalonians 5:18) — in every thing, not just the ones that went our way. And the guard for the forgetful heart: "Bless the LORD, O my soul, and forget not all his benefits" (Psalm 103:2) — the nine did not lose their healing; they lost the encounter.',
+    inApp: 'Turn back on purpose this week. Take the one answered prayer, provision, or healing you have been treating as normal — name it out loud, thank God for it specifically, and tell one other person what He did. Then check your posture: is your praise circumstantial (the nine) or continual (the one)? "I will bless the LORD at ALL times" (Psalm 34:1).',
+    benefits: [
+      'The healed/whole distinction — you stop settling for the blessing while missing the Blesser.',
+      'A praise posture that does not depend on circumstances — "at all times" (Psalm 34:1), "in every thing" (1 Thessalonians 5:18).',
+      'Guard against the nine\u2019s forgetfulness — "forget not all his benefits" (Psalm 103:2); gratitude keeps the encounter, not just the outcome.',
+      'Celebration as spiritual warfare — a house that celebrates God\u2019s provision is a house the enemy cannot talk into despair.',
+      'The lesson of the "stranger" — the one who returned was a Samaritan (Luke 17:16): the outsider often out-worships the insider; entitlement kills thanksgiving.',
+    ],
+    levels: {
+      child: 'One day Jesus met ten men who were very sick with a skin sickness called leprosy. They shouted, "Jesus, Master, have mercy on us!" — and Jesus healed ALL TEN while they were walking away. But guess how many came back to say thank You? Just ONE! He ran back, fell down at Jesus\u2019 feet, and thanked Him with a loud, happy voice. Jesus asked, "Were there not ten cleansed? but where are the nine?" (Luke 17:17). Then He told the thankful one something special: "thy faith hath made thee whole" (Luke 17:19) — that means ALL of him was made well, inside and out! Saying thank You to God is not just good manners — it brings you close to Him. So be the ONE, not the nine: when God does something good for you, run back and tell Him thank You right away, and keep praising Him every single day (Psalm 34:1)!',
+      senior: 'For the seasoned believer, this text carries a distinction easy to miss after decades of answered prayer: the difference between iaomai and sozo — between the cleansing all ten received and the wholeness pronounced over the one. "As they went, they were cleansed" (Luke 17:14): obedience released the miracle for all ten, and nine kept walking toward the priests, toward reinstatement, toward normal life — carrying the blessing away from the Blesser. One "turned back, and with a loud voice glorified God, and fell down on his face at his feet" (Luke 17:15-16) — and Luke will not let us miss that "he was a Samaritan," the outsider whose worship shamed the entitled. To him alone: "Arise, go thy way: thy faith hath made thee whole" (Luke 17:19). Bishop Gwin\u2019s charge stands on the whole counsel: a posture of praise regardless of circumstances is not temperament, it is covenant discipline — "I will bless the LORD at all times" (Psalm 34:1); "In every thing give thanks: for this is the will of God" (1 Thessalonians 5:18); "forget not all his benefits" (Psalm 103:2). The seasoned danger is the nine\u2019s: not unbelief but ingratitude — receiving on schedule what we once received on our faces. Examine the returns: how many of your healings did you carry off without turning back? The invitation is still open — the feet of Jesus still receive latecomers, and wholeness is still spoken over the ones who come back to celebrate.',
+    },
+    quiz: {
+      questions: [
+        { q: 'Ten lepers were cleansed. What did the ONE who returned receive that the nine did not?', options: ['A second healing', 'The word "thy faith hath made thee whole" — wholeness, not just cleansing (Luke 17:19)', 'Money for the priests'], answer: 1, explain: 'All ten were healed; the one who turned back to glorify God heard "whole." The blessing reached ten bodies; wholeness reached one man — the celebrator got the Blesser.' },
+        { q: 'When does Psalm 34:1 say to bless the LORD?', options: ['When things go well', 'At all times — His praise continually', 'On Sundays'], answer: 1, explain: '"I will bless the LORD at all times: his praise shall continually be in my mouth" — praise is a posture, not a reaction to circumstances.' },
+        { q: 'Who was the one leper who returned?', options: ['A priest', 'A Samaritan — the outsider (Luke 17:16-18)', 'One of the disciples'], answer: 1, explain: 'Jesus called him "this stranger." The outsider out-worshiped the insiders — entitlement kills thanksgiving; gratitude has no pedigree.' },
+      ],
+    },
+    lesson: 'Bishop Gwin took the house to a road between Samaria and Galilee, where ten men with leprosy stood far off — the law kept them at a distance — and lifted up their voices: "Jesus, Master, have mercy on us" (Luke 17:13). Watch the mechanics of this miracle, because they preach. Jesus did not touch them. He did not pronounce healing over them where they stood. He said, "Go shew yourselves unto the priests" — a command that only made sense AFTER a healing they had not yet received — "And it came to pass, that, as they went, they were cleansed" (Luke 17:14). Ten obeyed; ten were healed; the blessing hit every one of them on the road of obedience. And then the story splits in two. Nine kept walking — toward the priests, toward certification, toward getting their lives back. You cannot even fault their itinerary; they were doing what Jesus said. But one of them, "when he saw that he was healed, turned back, and with a loud voice glorified God, and fell down on his face at his feet, giving him thanks: and he was a Samaritan" (Luke 17:15-16). The outsider. The one with the least religious standing came back with the loudest praise. And Jesus asked the question that still searches every congregation: "Were there not ten cleansed? but where are the nine?" (Luke 17:17). Heaven counts the returns. Then, to the one at His feet, a word the nine never heard: "Arise, go thy way: thy faith hath made thee whole" (Luke 17:19). Ten got healed; one got WHOLE. The skin of ten men was cleansed; the whole man — body, soul, and standing before God — was restored in the one who came back to celebrate. That is the charge: celebration is not the receipt you issue when circumstances cooperate; it is the posture that turns a blessing into an encounter. "I will bless the LORD at all times: his praise shall continually be in my mouth" (Psalm 34:1). "In every thing give thanks: for this is the will of God in Christ Jesus concerning you" (1 Thessalonians 5:18). And because blessed people forget fastest: "Bless the LORD, O my soul, and forget not all his benefits" (Psalm 103:2). The nine did not lose their healing when they failed to return — grace is not that stingy — but they walked away from the wholeness that was standing in the road behind them. Be the one. Turn back. Fall down. Say thank You with a loud voice. The Blesser is better than the blessing, and wholeness is still spoken over celebrators.',
+    facilitator: {
+      talkingPoints: [
+        'The mechanics: healed "as they went" (Luke 17:14) — obedience released the miracle for all ten.',
+        'The split: nine kept the blessing and left the Blesser; one turned back, glorified God loudly, fell at His feet (17:15-16).',
+        'The question heaven still asks: "Where are the nine?" (17:17) — the returns are counted.',
+        'The distinction: cleansed (all ten) vs WHOLE (the one, 17:19) — celebration turns a blessing into an encounter.',
+        'The stranger: the Samaritan out-worshiped the insiders — entitlement kills thanksgiving.',
+        'The posture: at ALL times (Psalm 34:1), in EVERY thing (1 Thessalonians 5:18), forget NOT (Psalm 103:2).',
+      ],
+      howToRun: 'Open in prayer + read the Scripture (3): read Luke 17:11-19 aloud, slowly. | The big idea (10): ten healed, one whole — what made the difference? | Go deeper (10): the Samaritan detail; Psalm 34:1 and 1 Thessalonians 5:18 as posture, not reaction. | Reflect together (10): use the prompts; make room for anyone in a hard season — praise "at all times" includes now. | Take it with you (2): each person names ONE benefit out loud and thanks God for it before leaving.',
+      discussionPrompts: [
+        'Which healing, provision, or answered prayer have you carried off without ever really turning back for? What would turning back look like this week?',
+        'The nine were obedient but not grateful. Where does duty without celebration show up in your walk?',
+        'Why do you think the one who returned was the Samaritan — the outsider? What does entitlement do to thanksgiving?',
+        'What is the difference in your own life between being blessed and being WHOLE?',
+        'Bishop Gwin preached praise "regardless of circumstances." What circumstance is testing that posture in you right now — and what does Psalm 34:1 answer?',
+      ],
+    },
+  }
 ];
 
 // ---------------------------------------------------------------------------

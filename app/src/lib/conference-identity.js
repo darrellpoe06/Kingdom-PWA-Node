@@ -6,12 +6,14 @@
 // can edit the live conference record in-app; this is the default/fallback face.
 export const CONFERENCE_IDENTITY = {
   name: '77th National Assembly',
-  theme: 'Reviving Faith, Restoring Hope, Rebuilding Communities',
+  // Theme + dates announced from the pulpit in the 2026-07 "Celebration"
+  // service (community announcements) — the church's own published word.
+  theme: 'Positioned for Purpose',
   host: 'The Church of the Living God',
   // South Campus Event Center is the named venue for the Assembly (1109 N 4th St);
   // the Main Campus (312 E. Bradley) is the church home.
   location: '1109 N 4th Street, Champaign, IL',
-  dates: '', // not yet published — leaders fill in when confirmed
+  dates: 'July 14–16, 2026', // announced in the 2026-07 service
   livestreamUrl: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
   siteUrl: 'https://www.thechurchofthelivinggod.com/77th-national-assembly',
 };

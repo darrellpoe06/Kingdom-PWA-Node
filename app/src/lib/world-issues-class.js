@@ -60,7 +60,7 @@ export const WORLD_ISSUES_META = {
   tagline: 'Don’t be told what to think. Learn how to think it through.',
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 3, // three published issues (Musk critique · beauty-supply boycott · The Game Changers); the track grows as issues are added
+  weeks: 4, // four published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -631,7 +631,218 @@ const GAME_CHANGERS_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE];
+
+// =============================================================================
+// FOURTH WORKED EXAMPLE — a creator reading Elon Musk through an end-times
+// prophetic lens (Nick Jones video; harvested from Darrell 2026-07-10). The
+// discernment challenge here is DIFFERENT from Issue 1: not "is the documented
+// harm real" but "how do I weigh PROPHETIC and FEAR-FRAMED claims about
+// technology by the Word?" DR-0100 tiers run both ways: Musk's own alarming
+// statements ARE documented and said plainly; an alleged DELETED interview
+// segment is unfalsifiable and labeled so; and the Word — not the fear —
+// governs the response (no date-setting, Matthew 24:36; try the spirits,
+// 1 John 4:1; a sound mind, 2 Timothy 1:7). Sources verified by live web
+// search 2026-07-10 (DR-0076), cited with as-of dates.
+// =============================================================================
+const PROPHETIC_LENS_ISSUE = {
+  id: 'wi-musk-prophetic-lens',
+  title: 'A Creator Reading Musk Through End-Times Prophecy — How To Think It Through',
+  subject: { name: 'Elon Musk', kind: 'public-figure', isNamedRealPerson: true },
+  skill: 'Take a video that reads a tech billionaire through an end-times prophetic lens and learn the discernment moves for PROPHETIC and FEAR-FRAMED content: state what the man actually, documentably said (his own words are evidence — say them plainly), label the unverifiable (a claim about a DELETED recording can never be checked — that is a red flag, not a revelation), test every spiritual interpretation by the Word (1 John 4:1), refuse date-setting the Lord Himself refused (Matthew 24:36), and let watchfulness produce a sound mind and building — never panic.',
+  source: {
+    creator: 'Nick Jones',
+    medium: 'video',
+    title: 'a video examining Elon Musk\u2019s statements through a biblical / end-times prophetic lens',
+    url: 'https://www.youtube.com/',
+    asOf: '2026-07-10',
+    note: 'A prophecy-focused commentary creator. We examine this as ONE creator\u2019s argument — sourced and labeled — not as truth to repeat. The lesson holds regardless of which creator made it: prophetic-lens tech commentary is a whole genre.',
+  },
+
+  claims: [
+    {
+      id: 'c-legion',
+      text: 'Musk wants to father a "legion" of children via surrogates before an "apocalypse."',
+      label: 'claim',
+      attribution: 'Nick Jones (the creator), reporting the Wall Street Journal investigation',
+      note: 'The core is documented REPORTING: the WSJ (April 2025) published his reported text — "To reach legion-level before the apocalypse, we will need to use surrogates." His own word choice; the creator repeats it accurately. What the "apocalypse" means to Musk (population collapse, which he has warned about publicly, vs. biblical apocalypse) is interpretation.',
+    },
+    {
+      id: 'c-demon',
+      text: 'Musk warned that developing advanced AI is "summoning the demon."',
+      label: 'claim',
+      attribution: 'Nick Jones (the creator), in his video',
+      note: 'Documented — on video, MIT AeroAstro centennial, October 2014. He said it; say it plainly.',
+    },
+    {
+      id: 'c-nukes',
+      text: 'Musk compared AI danger to nuclear weapons.',
+      label: 'claim',
+      attribution: 'Nick Jones (the creator), in his video',
+      note: 'Documented — his own August 2014 post: AI is "potentially more dangerous than nukes."',
+    },
+    {
+      id: 'c-2027',
+      text: 'In a DELETED segment of a Lex Fridman interview, Musk predicted a major societal shift after 2027.',
+      label: 'allegation',
+      attribution: 'Nick Jones (the creator), in his video',
+      note: 'UNVERIFIABLE by construction: a claim about content that was allegedly deleted cannot be checked by anyone. Live search (2026-07-10) found no evidence the segment exists. This label is the whole lesson: an uncheckable claim is not evidence, however confidently narrated.',
+    },
+    {
+      id: 'c-solutions',
+      text: 'Musk\u2019s answers to the threats he names are Neuralink (brain-AI "symbiosis") and SpaceX (a multi-planetary "escape plan").',
+      label: 'claim',
+      attribution: 'Nick Jones (the creator), characterizing Musk\u2019s stated company missions',
+      note: 'That Musk states these purposes (symbiosis with AI; making life multi-planetary as a hedge against earth-bound catastrophe) is his own public framing. "Escape plan" as a spiritual indictment is the creator\u2019s interpretation layered on top.',
+    },
+    {
+      id: 'c-ai-gospel',
+      text: 'Tech companies are creating their own "gospel" — an all-knowing AI companion that substitutes for spiritual fulfillment; Christians must stay vigilant.',
+      label: 'opinion',
+      attribution: 'Nick Jones (the creator), his spiritual conclusion',
+      note: 'A theological interpretation and a call to vigilance — to be TESTED by the Word (1 John 4:1), not swallowed because it is scary or dismissed because it is dramatic. Parts of it the Word plainly supports; the lesson works that out below.',
+    },
+  ],
+
+  verifiable: [
+    {
+      id: 'f-demon-nukes',
+      statement: 'Musk\u2019s alarm-language about AI is documented in his own words: at MIT\u2019s AeroAstro centennial (October 2014) he said "With artificial intelligence we are summoning the demon," and in August 2014 he posted that AI is "potentially more dangerous than nukes."',
+      status: 'documented',
+      sources: [
+        { title: 'Elon Musk: \u2018With artificial intelligence we are summoning the demon.\u2019', publisher: 'The Washington Post', url: 'https://www.washingtonpost.com/news/innovations/wp/2014/10/24/elon-musk-with-artificial-intelligence-we-are-summoning-the-demon/', asOf: '2014-10-24' },
+        { title: 'Elon Musk says artificial intelligence is like "summoning the demon"', publisher: 'CBS News', url: 'https://www.cbsnews.com/news/elon-musk-artificial-intelligence-is-like-summoning-the-demon/', asOf: '2014-10-27' },
+      ],
+      note: 'Re-verified by live web search 2026-07-10. His words, on the record — stated plainly (DR-0100 tier 1). What the words MEAN spiritually is a separate, interpretive question.',
+    },
+    {
+      id: 'f-legion',
+      statement: 'The Wall Street Journal (April 2025) reported, from records and interviews, that Musk has fathered at least 14 children and texted that "To reach legion-level before the apocalypse, we will need to use surrogates" — widely corroborated coverage of the reported texts followed (Forbes, Axios).',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Musk\u2019s \u2018Legion\u2019: Report Details Richest Man\u2019s Multiple Children And \u2018Harem Drama\u2019', publisher: 'Forbes', url: 'https://www.forbes.com/sites/saradorn/2025/04/16/musks-legion-report-details-richest-mans-multiple-children-and-harem-drama/', asOf: '2025-04-16' },
+        { title: 'Musk\u2019s baby machine: Inside his mission to spike the birth rate', publisher: 'Axios', url: 'https://www.axios.com/2025/04/17/elon-musk-babies-ashley-st-clair', asOf: '2025-04-17' },
+      ],
+      note: 'The REPORTING and the quoted texts are documented; the underlying private exchanges are the WSJ\u2019s sourced account, not court-tested. His public warnings about population collapse are on the record; whether his "apocalypse" is demographic or eschatological is not established.',
+    },
+    {
+      id: 'f-2027-unverified',
+      statement: 'The "deleted Lex Fridman segment where Musk predicts a post-2027 shift": live search (2026-07-10) finds NO evidence such a segment existed — no archived copy, no contemporaneous reporting, no statement from either party. A claim about deleted content is unfalsifiable: it cannot be proven false, which is precisely why it carries no evidential weight.',
+      status: 'disputed',
+      sources: [
+        { title: 'No corroborating record found (negative search result, live web search)', publisher: 'PoeTech verification pass', url: 'https://lexfridman.com/elon-musk-transcript', asOf: '2026-07-10' },
+      ],
+      note: 'The honest label is the teaching: "you can\u2019t disprove it" is not a point in a claim\u2019s favor — it is the signature of a claim built to evade checking (Proverbs 18:17 cannot even be applied, because there is nothing to examine).',
+    },
+  ],
+
+  interpretation: [
+    { id: 'n-words-vs-meaning', statement: 'Musk\u2019s documented words ("summoning the demon," "more dangerous than nukes," "legion... before the apocalypse") are evidence of what he SAID and how he frames his own work — said plainly. Reading them as literal end-times testimony, hidden knowledge, or prophecy fulfillment is the creator\u2019s interpretation; a man\u2019s metaphors are not oracles, and his fears are not revelations.', restsOn: ['f-demon-nukes', 'f-legion'] },
+    { id: 'n-unfalsifiable', statement: 'Building an argument on an allegedly DELETED recording is an interpretive move that removes the claim from every court — no source, no witness, no text to examine. Whatever else is true, that piece carries zero evidential weight, and content that leans on it should be weighed accordingly.', restsOn: ['f-2027-unverified'] },
+    { id: 'n-vigilance-real', statement: 'The creator\u2019s CORE spiritual caution — that an always-available, all-knowing-seeming AI companion can function as a counterfeit source of guidance and comfort — is an interpretation the Word itself substantiates (test the spirits; no substitute for the Spirit of truth). That part is not dismissed with the video\u2019s weak pieces; DR-0100 runs both ways.', restsOn: ['f-demon-nukes'] },
+  ],
+
+  perspectives: [
+    {
+      id: 'p-prophetic',
+      label: 'The prophetic-watchman view of the unresolved parts',
+      heldBy: 'Nick Jones and many prophecy-focused believers',
+      steelman: 'The documented record is not this view\u2019s claim — Musk\u2019s own words are on the record. What this view adds: when the world\u2019s most resourced technologist describes his own field as "summoning the demon" and races to wire brains to it anyway, believers should read the times (the Lord rebuked those who could not, Matthew 16:3); Scripture does foretell deception at scale in the last days; and a generation discipled by machine companions is a spiritual battleground whether or not any date is right. Watchfulness is commanded, not optional.',
+    },
+    {
+      id: 'p-skeptic',
+      label: 'What the careful reading answers — and what it leaves standing',
+      heldBy: 'believers committed to sober verification',
+      steelman: 'Heard at its strongest, careful reading answers real problems in the video: the 2027 "deleted segment" is unfalsifiable and should carry no weight; metaphors ("demon," "legion") are being read as confessions; and fear-framed prophecy content is itself an attention economy — outrage and dread click just like rage does. But it does NOT answer everything: Musk really did say these things, the AI-companion discipleship concern is real and biblical, and "calm down, it\u2019s just marketing" can be its own form of sleep. Sobriety and watchfulness are the same command ("watch and be sober," 1 Thessalonians 5:6) — not rivals.',
+    },
+    {
+      id: 'p-builder',
+      label: 'The sovereign-builder view',
+      heldBy: 'believers building alternatives (this platform among them)',
+      steelman: 'The durable response to "their AI will disciple your children" is not a video or a panic — it is to BUILD: sovereign tools where the Word is the source of answers, where the family owns the data, and where the technology serves The Way instead of substituting for it. Watchfulness that only consumes warnings changes nothing; watchfulness that builds changes the defaults a household lives inside.',
+    },
+  ],
+
+  lens: {
+    fourD: {
+      deepSource: 'The Word governs BOTH errors this genre invites — the sleep that ignores the times and the panic that pretends to know them. First, watchfulness is commanded: "Take heed that no man deceive you" (Matthew 24:4) is the Lord\u2019s own first word about the end times — and it cuts at the video AND at the technologies the video fears; deception can arrive as a machine companion or as a confident narrator. "Beloved, believe not every spirit, but try the spirits whether they are of God" (1 John 4:1) — every prophetic interpretation submits to testing, no matter how urgent it sounds. Second, date-setting is forbidden territory: "But of that day and hour knoweth no man, no, not the angels of heaven, but my Father only" (Matthew 24:36) — a "2027 shift" sourced to a recording no one can produce fails twice, as evidence and as doctrine. Third, the Word names the PATTERN under the tech without needing any hidden segment: Babel — "let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name" (Genesis 11:4) — humanity engineering its own transcendence, its own name, its own escape; and the Psalmist\u2019s verdict on engineered security: "Some trust in chariots, and some in horses: but we will remember the name of the LORD our God" (Psalm 20:7); "Except the LORD build the house, they labour in vain that build it" (Psalm 127:1). A brain implant cannot democratize wisdom and a second planet cannot outrun the Judge of all the earth. Fourth, the counterfeit the creator warns of is real and the Word already named the original: guidance belongs to "the Spirit of truth... he will guide you into all truth" (John 16:13) — an AI companion that answers everything, remembers everything, and is always available is a plausible counterfeit of exactly that, and the household that lets it disciple its children has traded the Voice for an echo. And fifth, the believer\u2019s posture in every apocalypse-shaped conversation is neither dread nor scoffing: "then look up, and lift up your heads; for your redemption draweth nigh" (Luke 21:28) — "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind" (2 Timothy 1:7).',
+      scripture: 'Matthew 24:4; Matthew 24:36; 1 John 4:1; Genesis 11:4; Psalm 20:7; Psalm 127:1; John 16:13; Luke 21:28; 2 Timothy 1:7; 1 Thessalonians 5:6; Proverbs 18:17; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically: say the documented parts plainly — Musk DID call AI "summoning the demon," DID compare it to nukes, and the WSJ DID report his "legion before the apocalypse" texts; do not soften his own words to make the story smaller. Then keep the categories: the "deleted 2027 segment" is unverifiable and carries no weight — a claim you cannot check is not a secret, it is a red flag. Test the spiritual reading by the Word: the AI-companion-as-counterfeit-shepherd concern is biblical and serious (John 16:13 names the real Guide); the date-shaped dread is not (Matthew 24:36). And put the energy where the Word puts it: guard what disciples your household, build sovereign alternatives, and keep a sound mind — watchful, unafraid, building.',
+    accountability: {
+      statement: 'THE TWO COURTS, applied to prophets and platforms alike. The CREATOR is accountable for his testimony: presenting an unverifiable "deleted segment" as evidence is bearing witness that cannot be examined — and "every idle word that men shall speak, they shall give account thereof in the day of judgment" (Matthew 12:36); fear, like outrage, is a product, and those who sell it answer for it. MUSK is accountable for his own recorded words and for what he builds: no earthly regulator has ruled on "summoning the demon" while racing to build it, on wiring human minds to the thing he compared to a demon, or on fathering a "legion" through reported surrogate arrangements — man\u2019s courts have no docket for most of this, and that is the point: what the governments never rule on still enters the eternal court, where "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), and the shaping of millions of minds and a generation\u2019s attention is weighed as impact on life DURING life. THE PLATFORMS are accountable for the counterfeit: building companions designed to be trusted like counselors while engineered like slot machines is a false balance (Proverbs 11:1). And WE are accountable for what we repeat: passing along an uncheckable claim because it thrills us is joining the false witness (Exodus 23:2 — nor follow a crowd into it); and going silent about the REAL discipleship threat because the messenger overreached is muting a true warning (Isaiah 5:20 runs both ways). No one gets away — "Be not deceived; God is not mocked" (Galatians 6:7).',
+      scripture: 'Ecclesiastes 12:14; Matthew 12:36; Proverbs 11:1; Exodus 23:2; Isaiah 5:20; Galatians 6:7; 2 Corinthians 5:10',
+    },
+    benefits: [
+      'Freedom from apocalypse-content whiplash — neither swallowing the dread nor scoffing at the watchfulness.',
+      'A repeatable test for prophetic media: documented words said plainly, unverifiable claims weighed at zero, every interpretation tried by the Word (1 John 4:1).',
+      'The Babel lens — you can name the ancient pattern under new technology without needing hidden knowledge.',
+      'A guarded household — clear eyes about what an always-available AI companion is, and is not, allowed to disciple.',
+      'A sound mind in end-times conversations: watchful, unafraid, and building (2 Timothy 1:7; Luke 21:28).',
+    ],
+    graceNote: 'This lesson pronounces no verdict on Elon Musk\u2019s soul, nor on Nick Jones\u2019s — that judgment belongs to God alone (Romans 14:4; James 4:12). A man who says "we are summoning the demon" is a man who knows something is at stake; the believer\u2019s prayer for him is not smaller than the believer\u2019s concern about his works. Deeds are named; warnings are tested; souls are left with God — and the Door stands open to every one of them (John 10:9).',
+    stewardship: 'The deeper response to "their AI is becoming a counterfeit shepherd" is to build under the true One: sovereign tools where the Word is the source of answers, family-owned data, technology that serves The Way instead of substituting for it — this platform is one small act of exactly that. Watch, test, and build; do not merely subscribe to warnings.',
+    anchor: {
+      ref: 'Matthew 24:4',
+      theme: 'Take heed that no man deceive you — the Lord\u2019s first end-times command covers the machine AND the messenger. Watchfulness tests everything by the Word; it never outsources the watching to fear.',
+    },
+  },
+
+  reflection: {
+    skill: 'When end-times content about technology stirs you: PAUSE. Separate the man\u2019s DOCUMENTED words (say them plainly) from the narrator\u2019s INTERPRETATION (test it by the Word) from the UNVERIFIABLE (weigh it at zero — a deleted-recording claim cannot be examined). Refuse date-setting (Matthew 24:36). Keep the true warning even when the messenger overreaches. Then respond the way the Word directs: guard your household\u2019s discipleship, build alternatives, keep a sound mind.',
+    practice: 'Take ONE claim from any prophetic or end-times video you have seen this month. Sort it into the three bins: documented (find the primary source), interpretation (write the verse that tests it), or unverifiable (note why it cannot be checked). Then write one sentence on a watchful, building response — something you will guard or build, not just a feeling.',
+    prompts: [
+      'Musk really said "with artificial intelligence we are summoning the demon." What is the difference between taking a man\u2019s words seriously and taking them as prophecy?',
+      'Why does a claim about a DELETED interview segment carry zero evidential weight — and why is "well, you can\u2019t disprove it" a red flag rather than a defense?',
+      'The Lord said no man knows the day or hour (Matthew 24:36). How do you honor watchfulness without slipping into date-shaped dread?',
+      'Where is the Babel pattern (Genesis 11:4 — our own tower, our own name, our own escape) visible in Neuralink\u2019s and SpaceX\u2019s stated missions — and where would that reading overreach?',
+      'The creator\u2019s core warning — an AI companion as counterfeit shepherd — what does your household currently let answer its questions first, and what would putting the Spirit of truth (John 16:13) back in that seat look like?',
+      'What is one thing you will BUILD or GUARD this month in response — rather than one more warning you subscribe to?',
+    ],
+  },
+
+  levels: {
+    child: 'Sometimes videos say scary things about the future — about robots, computers, or the end of the world. Here is how to be a wise detective AND keep a happy heart. First: did the person really say the words the video says? Sometimes yes — a famous inventor really did say that making super-smart computers is like "summoning a demon." That is a real quote! But second: if a video says "he said something in a SECRET video that got DELETED" — be careful! Nobody can check a deleted video, so nobody knows if it is true. And third, the most important: Jesus said NOBODY knows the day the world ends — only Father God knows (Matthew 24:36). So when someone says they figured out the date, they are guessing. God did not give us a spirit of being scared — He gave us power, love, and a calm, strong mind (2 Timothy 1:7). So do not be afraid of robots or the future. Trust God, ask your parents your questions, and remember: computers can be helpful tools, but only God gets to be God.',
+    teen: 'Real talk: end-times tech content is its own genre, and it runs on the same fuel as outrage content — except the click is dread instead of anger. Run the moves. (1) Documented or not? Musk actually said AI is like "summoning the demon" (MIT, 2014, on video) and "potentially more dangerous than nukes" (his own post). The WSJ actually reported his "legion before the apocalypse" texts. Real quotes — say them plainly; his own words matter. (2) Spot the unfalsifiable: "a DELETED segment where he predicts 2027" — stop. Nobody can check a deleted recording. A claim built so it CAN\u2019T be checked isn\u2019t secret knowledge; it\u2019s a red flag. (3) No date-setting, ever: Jesus said flat out that no man knows the day or hour (Matthew 24:36) — anyone selling you a year is selling. (4) BUT don\u2019t throw out the true warning with the weak evidence: an AI "companion" that answers everything, never sleeps, and learns exactly what you want to hear really can become a counterfeit voice in your life — and the Word already named the real Guide (John 16:13). So: take Musk\u2019s words seriously without treating them as prophecy, weigh uncheckable claims at zero, keep your peace (2 Timothy 1:7), and put your energy into what you build and who disciples you — not into a countdown.',
+    senior: 'For the seasoned believer, this genre demands the double discipline of 1 Thessalonians 5:6 — "watch and be sober" — held as one command, not two camps. Sobriety first: the documented record is stated plainly (DR-0100) — Musk\u2019s "summoning the demon" (MIT, October 2014), his "more dangerous than nukes" post (August 2014), and the WSJ\u2019s April 2025 reporting of the "legion... before the apocalypse" texts are real; a discerning teacher neither softens them nor gilds them. The alleged deleted 2027 segment is weighed at zero — unfalsifiable testimony has no standing in any court, man\u2019s or the Word\u2019s (even Proverbs 18:17\u2019s cross-examination cannot reach a recording no one can produce), and date-shaped foreboding trespasses on Matthew 24:36. Watchfulness second: the creator\u2019s core concern survives his weakest evidence. The Babel pattern (Genesis 11:4) — engineered transcendence, a made name, an escape from the consequences of earth — is legible in "symbiosis" and multi-planetary hedging without any hidden knowledge; and the counterfeit-shepherd concern is the serious one: a generation discipled by an always-available, all-knowing-seeming companion is a catechesis question, and the Word names the only Guide into all truth (John 16:13). The seasoned failure modes are symmetrical: the scoffer who hears nothing because the messenger overreached, and the watchman who repeats everything because it is vivid. Hold the line of the fathers: test all things, hold fast the good, keep a sound mind (2 Timothy 1:7), look up rather than down (Luke 21:28) — and answer counterfeit shepherds the old way: build true folds.',
+  },
+
+  quiz: {
+    questions: [
+      {
+        q: 'The video quotes Musk saying AI is like "summoning the demon." Is that documented?',
+        options: ['No — it\u2019s a rumor', 'Yes — on video at MIT in October 2014; say it plainly', 'Only in a deleted interview'],
+        answer: 1,
+        explain: 'His own words, on the record (Washington Post/CBS, October 2014). Documented words are stated plainly — the interpretive question is what they MEAN, not whether he said them.',
+      },
+      {
+        q: 'The video cites a DELETED Lex Fridman segment where Musk allegedly predicts a 2027 shift. How much evidential weight does that carry?',
+        options: ['A lot — deletion proves it was important', 'Zero — a claim about deleted content cannot be checked by anyone; unfalsifiable claims are a red flag, not hidden knowledge', 'Some — if the narrator sounds confident'],
+        answer: 1,
+        explain: 'Nothing can examine it — no archive, no witness, no text. "You can\u2019t disprove it" is the signature of a claim built to evade checking, not a point in its favor.',
+      },
+      {
+        q: 'Someone tells you the big shift comes after 2027. What does the Word say about that kind of claim?',
+        options: ['Study it — the date might be right', '"Of that day and hour knoweth no man" (Matthew 24:36) — date-setting is forbidden territory, however watchful we are commanded to be', 'Dates are fine if the trend lines support them'],
+        answer: 1,
+        explain: 'Watchfulness is commanded (Matthew 24:4); the calendar is withheld (Matthew 24:36). Any teacher selling a year has left the text.',
+      },
+      {
+        q: 'The creator warns that AI companions could become a substitute "gospel." What is the discerning response?',
+        options: ['Dismiss it — the video also used weak evidence', 'Test it by the Word and keep what stands: the counterfeit-shepherd concern is real (John 16:13 names the true Guide), even though the date-claims fail', 'Believe the whole video since part of it is right'],
+        answer: 1,
+        explain: 'DR-0100 runs both ways: weak evidence does not sink a true warning, and a true warning does not float weak evidence. Each claim is weighed on its own.',
+      },
+      {
+        q: 'What is the believer\u2019s posture after watching end-times tech content?',
+        options: ['Dread — the end is close', 'Scoffing — it\u2019s all clickbait', 'A sound mind: watchful, tested by the Word, unafraid, and BUILDING what guards the household (2 Timothy 1:7; Luke 21:28)'],
+        answer: 2,
+        explain: 'Neither sleep nor panic. Watch and be sober are one command (1 Thessalonians 5:6) — and watchfulness that builds changes what a household lives inside.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
