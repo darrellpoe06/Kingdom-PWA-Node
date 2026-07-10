@@ -19,7 +19,12 @@ import { chromium } from 'playwright-core';
 // marketing welcome — the gate IS a healthy mount):
 //   - the disclaimer bar (signed-in and welcome views)
 //   - the profile-creation / sign-in wall (fresh visitor on production)
-const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS'];
+// NOTE innerText reflects CSS text-transform in Chrome — the gate's submit
+// button reads 'CREATE PROFILE & ENTER' as rendered, and an EMBEDDED gate
+// (?moore=1, ?view=church for a signed-out visitor) renders the form WITHOUT
+// the 'Create your profile' heading. The 2026-07-10 daad4f3 run failed on
+// exactly that: a healthy gate under 400 chars on a standalone URL.
+const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS', 'CREATE PROFILE & ENTER', 'Welcome back'];
 // Recovery-screen headlines = the app did NOT boot.
 const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest version'];
 
@@ -56,7 +61,10 @@ async function checkOnce(browser, url) {
       ({ mounts, fails, alone }) => {
         const t = document.body ? document.body.innerText || '' : '';
         if (fails.some((m) => t.includes(m))) return true;
-        return alone ? t.trim().length >= 400 : mounts.some((m) => t.includes(m));
+        // A standalone URL is healthy on real content OR on any recognized
+        // mount (a signed-out visitor gets the ACCESS GATE there — the gate
+        // IS a healthy mount, incident #715 / the daad4f3 false alarm).
+        return (alone && t.trim().length >= 400) || mounts.some((m) => t.includes(m));
       },
       { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
       { timeout: MOUNT_TIMEOUT_MS },
@@ -65,7 +73,9 @@ async function checkOnce(browser, url) {
     const failHit = FAIL_MARKERS.find((m) => text.includes(m));
     if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
     if (standalone) {
-      if (text.trim().length < 400) return { ok: false, why: `standalone surface did not mount (body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
+      if (text.trim().length < 400 && !MOUNT_MARKERS.some((m) => text.includes(m))) {
+        return { ok: false, why: `standalone surface did not mount (body ${text.length} chars, no mount marker): "${text.trim().slice(0, 200)}"`, errors };
+      }
       return { ok: true, errors };
     }
     if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
