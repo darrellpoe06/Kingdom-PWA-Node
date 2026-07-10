@@ -15,6 +15,8 @@
   "maskableIconUrl": "https://poetech.us/poetech-app/icon-maskable.svg",
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
+  "_splashNote": "splashScreenFadeOutDuration is REQUIRED when bubblewrap builds from an existing twa-manifest.json: TwaManifest.js line 137 reads it with NO default (the default only applies when generating from a web manifest), and a missing value lands as an empty Gradle map entry - run 3's exact syntax error.",
+  "splashScreenFadeOutDuration": 300,
   "shortcuts": [],
   "fallbackType": "customtabs",
   "enableNotifications": false,
