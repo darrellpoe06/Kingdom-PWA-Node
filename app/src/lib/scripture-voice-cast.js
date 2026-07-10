@@ -33,6 +33,8 @@ export const CAST = [
   { id: 'spirit', kind: KIND.PERSONAL, gender: 'unknown', label: 'The Holy Spirit' },
   { id: 'prophet', kind: KIND.PERSONAL, gender: 'male', label: 'Prophet / apostle' },
   { id: 'wisdom', kind: KIND.PERSONAL, gender: 'unknown', label: 'Wise counsel' },
+  { id: 'mary', kind: KIND.PERSONAL, gender: 'female', label: 'Mary' },
+  { id: 'woman', kind: KIND.PERSONAL, gender: 'female', label: 'A faithful woman' },
   { id: 'adversary', kind: KIND.PERSONAL, gender: 'unknown', label: 'the adversary' },
 ];
 
