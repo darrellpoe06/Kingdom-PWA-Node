@@ -235,7 +235,12 @@ function SongCard({ entry, rows, renditionLoves, sermons, canEdit, today, onLove
         {canEdit && entry.needsReview && <button type="button" disabled={busy} onClick={() => onConfirmArchive(entry)} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>✓ Confirm song</button>}
         {canEdit && <button type="button" onClick={() => setOpen(open === 'add' ? null : 'add')} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Add to service</button>}
         {canEdit && <button type="button" onClick={() => setOpen(open === 'meta' ? null : 'meta')} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>✎ Cross-reference</button>}
+        {entry.lyrics && <button type="button" onClick={() => setOpen(open === 'words' ? null : 'words')} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`} aria-expanded={open === 'words'}>{open === 'words' ? '▾ Hide words' : 'Words'}</button>}
       </div>
+
+      {open === 'words' && entry.lyrics && (
+        <pre className="mt-2 p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{entry.lyrics}</pre>
+      )}
 
       {open === 'ways' && (
         <ChoirRenditions

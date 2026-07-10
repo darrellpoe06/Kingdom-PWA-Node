@@ -274,12 +274,17 @@ export function buildPastServices(schedule, sermons, songs, todayIso) {
   };
   for (const s of schedule || []) consider(s, true);
   for (const s of sermons || []) consider(s, false);
-  // Keep a service if it was planned, has a setlist, or is WATCHABLE (carries the
-  // service recording). A card with none of the three is just noise.
+  // Keep a service if it was planned, has a setlist, or is a WATCHABLE SUNDAY.
+  // The choir sings on Sunday (Darrell 2026-07-10): a video-only row on any
+  // other real weekday (Wednesday Bible study, Monday-posted revival nights) is
+  // the sermon library's history, not the choir's — it only earns a card here
+  // by being planned or actually carrying songs. The weekday comes from the
+  // DATE (service-day.js), never asserted from the stored type.
   const out = [];
   for (const svc of byKey.values()) {
     const hasSongs = songsForService(songs, svc.serviceDate, svc.serviceType).length > 0;
-    if (svc._scheduled || hasSongs || svc.youtubeUrl) {
+    const watchableSunday = !!svc.youtubeUrl && weekdayName(svc.serviceDate) === 'Sunday';
+    if (svc._scheduled || hasSongs || watchableSunday) {
       const { _scheduled, ...clean } = svc;
       out.push(clean);
     }
@@ -363,6 +368,7 @@ export function youtubeTimedUrl(url, startSeconds) {
 // The YouTube title parser lives in a dependency-free module so the local
 // backfill script can share it. Re-exported here for the app + tests.
 import { parseServiceTitle as _parseTitle, decodeHtmlEntities } from './youtube-title-parse.js';
+import { weekdayName } from './service-day.js';
 export { parseServiceTitle, extractYoutubeId, decodeHtmlEntities } from './youtube-title-parse.js';
 
 // Pure: turn raw {videoId, title} channel items into NEW choir_sermons rows —
