@@ -11,6 +11,14 @@
 
 // Detect the visitor's platform from a user-agent string (defaults to the live
 // navigator). Returns 'ios' | 'android' | 'desktop' | 'other'.
+//
+// Darrell's Fold, 2026-07-10 (screenshot): Chrome in tablet/desktop posture
+// reports a LINUX DESKTOP user-agent (no "Android" anywhere), so the install
+// helper handed him "on a computer, look at the right of the address bar" —
+// steps his phone does not have. A desktop-shaped UA with a real touch screen
+// is a phone/tablet, not a computer: classify it android so the person gets
+// the menu path their device actually shows. (A touch-screen Linux laptop is
+// the rare miss this accepts — its Chrome menu carries Install too.)
 export function detectPlatform(ua) {
   const s = (ua != null
     ? ua
@@ -19,6 +27,13 @@ export function detectPlatform(ua) {
   // iPadOS 13+ reports as Mac; treat a touch-capable "Mac" as iOS-style install.
   if (/Macintosh/i.test(s) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1) return 'ios';
   if (/Android/i.test(s)) return 'android';
+  if (typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 1) {
+    // Chrome's UA-Client-Hints call a phone-postured browser "mobile" even
+    // when the UA string is desktop-shaped; a touch screen on a Linux UA is
+    // the Fold/tablet desktop-site posture.
+    if (navigator.userAgentData && navigator.userAgentData.mobile) return 'android';
+    if (/X11|Linux/i.test(s) && !/CrOS/i.test(s)) return 'android';
+  }
   if (/Windows|Macintosh|Linux|CrOS/i.test(s)) return 'desktop';
   return 'other';
 }
@@ -58,7 +73,8 @@ export function installSteps(platform, canPrompt = false) {
         steps: [
           'Open this page in Chrome.',
           'Tap the ⋮ menu (top-right).',
-          'Tap “Install app” or “Add to Home screen,” then confirm.',
+          'Scroll the menu down and tap “Add to Home screen” (it may say “Install app”), then confirm — on some phones it sits below “Share.”',
+          'If the menu says “Open PoeTech” instead, the app is ALREADY installed on this phone — find PoeTech in your app drawer or home screen.',
         ],
       };
     case 'desktop':
