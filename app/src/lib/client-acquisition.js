@@ -119,6 +119,57 @@ export const ACQUISITION_STAGES = [
 export const STAGE_KEYS = ACQUISITION_STAGES.map((s) => s.key);
 export function getStage(stageKey) { return ACQUISITION_STAGES.find((s) => s.key === stageKey) || null; }
 
+// =============================================================================
+// GROWTH_FRAMEWORKS — the adopted growth plays (DR-0140), tested against the
+// Word before adoption.
+// =============================================================================
+// Studied 2026-07-10 from the long-form Daniel Priestley interview Darrell
+// brought as build input (entrepreneur; author of "Key Person of Influence" and
+// "Oversubscribed" — book attribution from training data, flagged per DR-0076;
+// this sandbox's network policy blocks live URL verification, so no source URLs
+// are asserted). Each play ships ONLY as bent to this house's bright lines:
+// honest tests (no fake scarcity — 'no-deceptive-funnel'), genuinely valuable
+// content (served, not harvested), and a good name stewarded (Proverbs 22:1) —
+// never manufactured intimacy. The 7-11-4 numbers are a practitioner HEURISTIC
+// and every surface that carries them says so. The teaching half of this same
+// playbook is Kingdom Economics session 8 (econ8-test-build-multiply) — the
+// lesson and the operation stay one playbook, updated together.
+export const GROWTH_FRAMEWORKS = [
+  {
+    key: 'demand-proof', label: 'Prove demand before you build', stageKey: 'market-signal',
+    play: 'Run the smallest honest test that produces real names: a real waiting list, a discussion group of the people you hope to serve, or a customer-needs analysis offered as genuine first value — BEFORE real capital is spent.',
+    honestyBend: 'The test must be real — a waiting list that exists, scarcity that is true. Never manufactured counts or countdowns (verification applied to commerce, DR-0076).',
+    attribution: 'Daniel Priestley — waiting-list / discussion-group demand testing', drRef: 'DR-0140',
+  },
+  {
+    key: 'trust-touch', label: 'Trust is earned in touches (the 7-11-4 heuristic)', stageKey: 'content-angle',
+    play: 'Plan content as ACCUMULATED genuine value: roughly 7 hours of real teaching, across ~11 touchpoints, on ~4 platforms, before a stranger trusts you like a colleague. Long-form, unscripted formats build that trust fastest.',
+    honestyBend: 'An attributed heuristic, not research we verified — the biblical constant beneath it is faithful sowing over time (Galatians 6:9). What is made familiar must be genuinely good and true.',
+    attribution: 'Daniel Priestley — the 7-11-4 rule of thumb', drRef: 'DR-0140',
+  },
+  {
+    key: 'certain-sound', label: 'Introduce with a certain sound', stageKey: 'content-angle',
+    play: 'Frame every introduction Name-Same-Fame-Aim-Game: who you are, what you are like (so people can place you), what genuinely distinguishes you, the near aim, and the long game — in plain words.',
+    honestyBend: 'Clarity is kindness (1 Corinthians 14:8) — the distinctness claimed must be true and specific; the claim linter still screens every superlative.',
+    attribution: 'Daniel Priestley — Name / Same / Fame / Aim / Game', drRef: 'DR-0140',
+  },
+  {
+    key: 'leverage-ladder', label: 'Climb the leverage ladder', stageKey: 'conversion-system',
+    play: 'Move value up the ladder: skill → intellectual property (write and teach it) → media (distribute it) → data + software (systems that serve at scale). Supporting lessons offered as lead magnets ARE the IP rung working.',
+    honestyBend: 'The ladder serves people at scale — serve-not-extract. PoeTech itself is the worked example: skills → teaching → media → the app.',
+    attribution: 'Daniel Priestley — the entrepreneurial leverage ladder (IP → media → data/software)', drRef: 'DR-0140',
+  },
+  {
+    key: 'environment', label: 'Change the room', stageKey: 'market-signal',
+    play: 'Progress compounds around people already doing the work — put the builder in rooms where the aim is normal: the church network, practitioner circles, honest peer groups.',
+    honestyBend: 'The God-given room comes first: the Body pooling its strength (Ecclesiastes 4:9-12). Environment is stewardship, never status-seeking.',
+    attribution: 'Daniel Priestley — environment over willpower', drRef: 'DR-0140',
+  },
+];
+export function growthPlaysForStage(stageKey) {
+  return GROWTH_FRAMEWORKS.filter((f) => f.stageKey === stageKey);
+}
+
 // -----------------------------------------------------------------------------
 // Guardrails — the binding list, referenced by key from each stage + each side.
 // -----------------------------------------------------------------------------
@@ -286,7 +337,9 @@ export function buildStagePrompt(stageKey, config = TLC_DEFAULT_CONFIG, context 
   const body = fillTemplate(stage.promptTemplate, vars);
   const priorLine = context.priorSummary ? `\n\nContext from approved prior stages:\n${context.priorSummary}` : '';
   const guardLines = guardrailsForStage(stageKey, config).map((g) => `- ${g.label}: ${g.detail}`).join('\n');
-  return `${body}${priorLine}\n\nNon-negotiable guardrails for this output:\n${guardLines}\n\nReturn a DRAFT for human review. Mark any factual claim UNVERIFIED if you cannot cite a source.`;
+  const plays = growthPlaysForStage(stageKey).map((f) => `- ${f.label}: ${f.play} Honesty bend: ${f.honestyBend}`).join('\n');
+  const playLines = plays ? `\n\nAdopted growth plays to apply at this stage (DR-0140 — always inside the guardrails above):\n${plays}` : '';
+  return `${body}${priorLine}\n\nNon-negotiable guardrails for this output:\n${guardLines}${playLines}\n\nReturn a DRAFT for human review. Mark any factual claim UNVERIFIED if you cannot cite a source.`;
 }
 
 // =============================================================================

@@ -21,9 +21,9 @@ import { defaultCourses } from '../lib/book-corpus.js';
 import { resolveForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has a 7-module set, each with the shared fields', () => {
-    expect(ECON_MODULES).toHaveLength(7);
-    expect(ECON_META.weeks).toBe(7);
+  it('has an 8-module set, each with the shared fields', () => {
+    expect(ECON_MODULES).toHaveLength(8);
+    expect(ECON_META.weeks).toBe(8);
     expect(ECON_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref && m.anchor?.theme)).toBe(true);
   });
   it('module ids are unique, prefixed econ*, and cover the full arc', () => {
@@ -33,6 +33,7 @@ describe('curriculum shape', () => {
       'econ1-soul-first', 'econ2-ownership-vs-consumption', 'econ3-circulation',
       'econ4-group-economics', 'econ5-the-real-barriers',
       'econ6-accountability-and-judgment', 'econ7-build-institutions',
+      'econ8-test-build-multiply',
     ]);
   });
   it('session flow sums to 75 minutes with the money-tools hands-on label', () => {
@@ -141,6 +142,63 @@ describe('the accountability + judgment spine (no one gets away with anything)',
     expect(price.url).toMatch(/^https?:\/\//);
     expect(acc.lesson).toMatch(/Frederick K\.?C\.? Price/);
     expect(acc.lesson.toLowerCase()).toMatch(/consent of the church/);
+  });
+});
+
+describe('the builder’s road (module 8) — frameworks tested against the Word (DR-0140)', () => {
+  const road = ECON_MODULES.find((m) => m.id === 'econ8-test-build-multiply');
+  it('exists, teaches test-before-build, and points at the live Client Growth engine', () => {
+    expect(road).toBeTruthy();
+    expect(road.anchor.ref).toMatch(/Proverbs 24:27/);
+    expect(road.anchor.ref).toMatch(/Luke 14:28/);
+    const blob = `${road.bigIdea} ${road.lesson} ${road.levels.senior}`.toLowerCase();
+    expect(blob).toMatch(/waiting list|discussion group|needs analysis/);
+    expect(blob).toMatch(/count the cost/);
+    expect(road.inApp).toMatch(/Client Growth/);
+  });
+  it('names the 7-11-4 rule as an attributed HEURISTIC — never Scripture or verified research', () => {
+    const blob = `${road.lesson} ${road.levels.senior} ${JSON.stringify(road.quiz)}`;
+    expect(blob).toMatch(/7-11-4/);
+    expect(blob.toLowerCase()).toMatch(/heuristic|rule of thumb/);
+    expect(blob).toMatch(/Priestley/);
+    expect(blob.toLowerCase()).toMatch(/not (settled science|scripture)|never .*(scripture|verified research)/);
+  });
+  it('corrects the over-reach: identity in Christ, the brand is a good NAME stewarded', () => {
+    const blob = `${road.lesson} ${road.levels.senior}`;
+    expect(blob).toMatch(/Proverbs 22:1/);
+    expect(blob).toMatch(/Proverbs 27:2|another man praise thee/);
+    expect(blob.toLowerCase()).toMatch(/identity is (settled )?in christ|identity stays in christ/);
+  });
+  it('keeps the governing guards: James 4 ("if the Lord will"), soul-first, serve-not-extract', () => {
+    const blob = `${road.bigIdea} ${road.lesson} ${road.levels.senior}`;
+    expect(blob).toMatch(/If the Lord will/);
+    expect(blob.toLowerCase()).toMatch(/soul (still comes|first)/);
+    expect(blob.toLowerCase()).toMatch(/serve|scattereth/);
+  });
+  it('carries NO fabricated source URLs — attribution rides honestly in prose (sandbox cannot live-verify URLs)', () => {
+    expect(econSources().filter((s) => s.moduleId === 'econ8-test-build-multiply')).toHaveLength(0);
+    expect(road.lesson).toMatch(/Daniel Priestley/);
+  });
+  it('every KJV fragment quoted in the module is VERBATIM from the shipped KJV (proven-to-catch)', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const kjv = (file) => JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../public/bible/kjv/${file}.json`), 'utf8'));
+    const verse = (file, ch, v) => kjv(file).chapters[ch - 1][v - 1];
+    const blob = `${road.bigIdea} ${road.lesson} ${road.levels.senior} ${road.levels.child} ${road.anchor.theme}`;
+    const fragments = [
+      [verse('Proverbs', 24, 27), /Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house/],
+      [verse('Proverbs', 22, 29), /Seest thou a man diligent in his business\? he shall stand before kings/],
+      [verse('Galatians', 6, 9), /in due season we shall reap, if we faint not/],
+      [verse('1Corinthians', 14, 8), /if the trumpet give an uncertain sound, who shall prepare himself to the battle\?/],
+      [verse('Proverbs', 27, 2), /Let another man praise thee, and not thine own mouth/],
+      [verse('James', 4, 15), /If the Lord will/],
+      [verse('Ecclesiastes', 11, 6), /In the morning sow thy seed, and in the evening withhold not thine hand/],
+      [verse('Proverbs', 13, 20), /He that walketh with wise men shall be wise/],
+    ];
+    for (const [shipped, quoted] of fragments) {
+      expect(blob, `quoted in module: ${quoted}`).toMatch(quoted);
+      expect(shipped, `verbatim in shipped KJV: ${quoted}`).toMatch(quoted);
+    }
   });
 });
 

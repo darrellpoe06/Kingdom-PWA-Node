@@ -26,7 +26,7 @@ Darrell, 2026-07-10: *"Can we look over the whole PoeTech comprehensively for UI
 5. **Titles render as words, not entities.** `decodeHtmlEntities` (dependency-free, shared with the backfill script) decodes harvested titles at the parser AND at the choir mappers, so rows already stored with `&QUOT;…&QUOT;` heal at render — the photographed Choir sighting.
 6. **Derived counts replace the two already-wrong literals.** The Feedback catalog's "~46 entries" (registry holds 49) now renders `OPPORTUNITY_LIBRARY.length`; Rentals' "All 11" renders `rentals.length`.
 
-## The comprehensive review — routed (three agents, findings on the record in REV-0030)
+## The comprehensive review — routed (three agents, findings on the record in REV-0031, renumbered from a REV-0030 collision)
 
 - **UI/UX systemic classes (25 findings):** (a) the shared BTN/FIELD/palette tokens have forked per-file (36px tap targets, drifted border hexes, a games surface off the design system); (b) native `alert()`/`confirm()` is the de-facto feedback layer on ~10 surfaces, leaking raw `e.message` to church members; (c) ~600 frozen-pixel text sizes silently defeat the A+++ large-print control. Each is a class fix (shared tokens module; in-app alert/confirm primitives; a px-text lint rule). `re-review: 2026-07-17`.
 - **Static data (15 findings):** ChurchVideoWall's hand-typed timeline/status/dates, PromoBanners' "77th National Assembly" + duplicated "7-clinician" counts, DevOps provenance counts, BigPictureDashboard tour counts, the hand-kept SURFACE_CATALOG. `re-review: 2026-07-17`.
