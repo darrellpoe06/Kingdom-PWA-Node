@@ -65,11 +65,22 @@ jobs:
           ' store/twa-manifest.template.json > twa-build/twa-manifest.json
           cat twa-build/twa-manifest.json
 
-      - name: Point Bubblewrap at the runner's JDK + Android SDK (no prompts)
+      - name: Stage Bubblewrap's own Android cmdline-tools (measured requirement)
+        # Bubblewrap's AndroidSdkTools.validatePath requires the given path to
+        # contain `tools/` or `bin/` (the cmdline-tools layout) — the runner's
+        # SDK ROOT has neither, which is exactly how run 1 died ("the provided
+        # androidSdk isn't correct"; verified in @bubblewrap/core 1.24 source).
+        # Bubblewrap then uses that same path as its own --sdk_root and installs
+        # the build-tools it wants into it, so stage a private, writable copy
+        # and pre-accept the licenses non-interactively.
         run: |
           set -euo pipefail
+          curl -sSLo "$RUNNER_TEMP/clt.zip" https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q "$RUNNER_TEMP/clt.zip" -d "$RUNNER_TEMP/bwsdk"
+          SDK_DIR="$RUNNER_TEMP/bwsdk/cmdline-tools"
+          yes | "$SDK_DIR/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" > /dev/null || true
           mkdir -p ~/.bubblewrap
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK_DIR" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
 
       - name: Build the package (Bubblewrap -> Gradle -> signed .apk + .aab)
