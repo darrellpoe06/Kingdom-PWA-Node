@@ -33,6 +33,9 @@ import {
   inviteToChurch, classifyUpload,
 } from '../lib/choir-sync.js';
 import { serviceDayLabel } from '../lib/service-day.js';
+import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
+import { isAutoDraft } from '../lib/ari-words-training.js';
+import { fetchTranscriptsByVideo } from '../lib/sermon-library-sync.js';
 import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -52,12 +55,23 @@ const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb
 // -----------------------------------------------------------------------------
 // Song display (link + collapsible embedded video)
 // -----------------------------------------------------------------------------
-function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
+function SongRow({ song, canEdit, onEdit, onDelete, onReuse, onDraftWords }) {
   const [open, setOpen] = useState(false);
   const [wordsOpen, setWordsOpen] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reuseDate, setReuseDate] = useState(todayIso());
   const [reuseType, setReuseType] = useState('sunday');
+  // Draft-words flow (DR: choir starting point) — status shown inline, never a
+  // native alert (the 2026-07-10 UI/UX review's alert class).
+  const [draftMsg, setDraftMsg] = useState('');
+  const draftWords = async () => {
+    setDraftMsg('Reading the recording…');
+    const r = await onDraftWords(song);
+    if (r?.ok) { setDraftMsg(''); return; }
+    setDraftMsg(r?.reason === 'no-transcript'
+      ? 'No transcript for this recording yet — the loader fills these in; check back, or add words by hand with Edit.'
+      : 'Could not locate this song in the recording — add the words by hand with Edit.');
+  };
   const baseEmbed = youtubeEmbedUrl(song.youtubeUrl);
   const embed = baseEmbed && song.startSeconds ? `${baseEmbed}?start=${Math.floor(song.startSeconds)}` : baseEmbed;
   const watchLabel = song.startSeconds ? `▶ Watch @ ${formatTimecode(song.startSeconds)}` : '▶ Watch';
@@ -86,14 +100,24 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
                "most spots don't have a place to add words") — opens the edit form
                wherever Edit itself is available. */
             : (canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Words</button>)}
+          {!song.lyrics && canEdit && onDraftWords && song.videoId && (
+            <button type="button" onClick={draftWords} title="Pull a starting draft of the words from this service's transcript — then trim it to what the choir sings."
+              className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Draft words from the recording</button>
+          )}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
         </div>
       </div>
       {song.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{song.notes}</p>}
+      {draftMsg && <p role="status" className="text-[0.6875rem] text-[#B85838] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{draftMsg}</p>}
       {wordsOpen && song.lyrics && (
-        <pre className="mt-2 p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
+        <div className="mt-2">
+          {isAutoDraft(song.lyrics) && (
+            <p className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] mb-1">Auto-draft from the recording — Edit to trim it to the sung words; the confirmed sheet becomes Ari's next lesson</p>
+          )}
+          <pre className="p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
+        </div>
       )}
       {reuseOpen && onReuse && (
         <div className="mt-2 flex items-end gap-2 flex-wrap bg-[#FAF8F4] border border-[#5A6E3D] p-2">
@@ -248,7 +272,7 @@ function SongPicker({ songs, onPick }) {
   );
 }
 
-function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, past }) {
+function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords, past }) {
   const list = songsForService(songs, svc.serviceDate, svc.serviceType);
   const out = (absences || []).filter((a) => isOutOnDate(a, svc.serviceDate));
   return (
@@ -266,7 +290,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
         <SongRow key={s.id} song={s} canEdit={canEdit}
           onEdit={(!past || s.needsReview) ? onEditSong : null}
           onDelete={(!past || s.needsReview) ? onDeleteSong : null}
-          onReuse={onReuse} />
+          onReuse={onReuse} onDraftWords={onDraftWords} />
       ))
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
       {canEdit && !past && onReuse && (
@@ -290,7 +314,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
 // batch at a time. The count on the toggle is the WHOLE corpus, always.
 const PAST_PAGE_SIZE = 15;
 
-function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse }) {
+function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords }) {
   const today = todayIso();
   const [showPast, setShowPast] = useState(false);
   const [pastShown, setPastShown] = useState(PAST_PAGE_SIZE);
@@ -310,7 +334,7 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-2">{label}</div>
             <div className="space-y-3">
               {group.map((svc) => (
-                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} />
               ))}
             </div>
           </div>
@@ -330,7 +354,7 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
             <div className="space-y-3 mt-2">
               <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
               {past.slice(0, pastShown).map((svc) => (
-                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} past />
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} past />
               ))}
               {past.length > pastShown && (
                 <button type="button" onClick={() => setPastShown((n) => n + PAST_PAGE_SIZE)}
@@ -349,7 +373,7 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
 // The schedule: each date shows its SONG LIST right inside it (Christina 2026-07-04:
 // "inside the date… a place for each song we are singing"), where songs are added
 // new OR chosen from the already-imported Songs. Edit/Delete manage the date itself.
-function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse }) {
+function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords }) {
   const ordered = sortServices(schedule, todayIso());
   return (
     <div>
@@ -359,7 +383,7 @@ function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDe
           {ordered.map((svc) => (
             <div key={svc.id}>
               <ServiceCard svc={svc} songs={songs} absences={absences} canEdit={canEdit}
-                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
+                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} />
               {canEdit && (
                 <div className="flex justify-end gap-3 px-1 pt-1">
                   <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit date</button>
@@ -742,6 +766,22 @@ export default function Choir() {
   // Add and the information disappeared"). Close the form ONLY on a confirmed
   // save; otherwise the entry stays on screen with the error banner saying why.
   const onSaveSong = async (f) => { setBusy(true); const r = await saveSong(f); reportSkip(r); setBusy(false); if (r?.saved) setSongForm(null); };
+  // Draft a STARTING POINT of words from the service transcript (Darrell
+  // 2026-07-10: "we don't have the words for each one so the choir can have a
+  // starting point"). One transcript source, many harvests (DR-0134's recipe);
+  // the draft lands in the song's lyrics clearly labeled auto-draft for
+  // trimming. Transcripts are fetched once per visit and cached.
+  const transcriptsRef = useRef(null);
+  const onDraftWords = async (song) => {
+    if (!song?.videoId) return { ok: false, reason: 'no-video' };
+    if (!transcriptsRef.current) transcriptsRef.current = await fetchTranscriptsByVideo();
+    const t = transcriptsRef.current[song.videoId];
+    const r = draftWordsFromTranscript({ transcriptText: t && t.text, heardQuote: extractHeardQuote(song.notes), title: song.title });
+    if (!r.ok) return r;
+    const saved = await saveSong({ ...song, lyrics: r.draft });
+    reportSkip(saved);
+    return saved?.saved ? { ok: true } : { ok: false, reason: 'save-failed' };
+  };
   const onSaveService = async (f) => { setBusy(true); const r = await saveService(f); reportSkip(r); setBusy(false); if (r?.saved) setServiceForm(null); };
 
   if (!signedIn) {
@@ -779,6 +819,7 @@ export default function Choir() {
           onEditSong={(s) => setSongForm({ initial: s })}
           onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
           onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+          onDraftWords={onDraftWords}
         />
       </>
     ),
@@ -797,6 +838,7 @@ export default function Choir() {
           onEditSong={(s) => setSongForm({ initial: s })}
           onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
           onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+          onDraftWords={onDraftWords}
         />
       </>
     ),
