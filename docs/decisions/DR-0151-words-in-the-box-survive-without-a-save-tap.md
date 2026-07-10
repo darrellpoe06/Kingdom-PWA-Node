@@ -21,6 +21,10 @@ The Thinking Space (and every tab's input) is the ONE primitive — OneVoiceInpu
 3. **A successful Send clears it.** Delivered words are not a draft.
 4. **Sovereign by construction:** drafts are localStorage on the writer's own device — nothing leaves until they choose a destination and send (the DR-0131 routing contract unchanged).
 
+## Extension (same day)
+
+Darrell's follow-up — *"Will the notes sections in the app auto save notes for return to keep editing?"* — extended the contract to EDITING an existing note (Thinking Space): the in-progress edit drafts itself per note (`notes-edit:<id>`), reopening the note restores the unsaved edit, Save commits and clears, and Cancel abandons the draft on purpose (an explicit Cancel is a decision, not a stall-out). Pinned in draft-autosave.test.js.
+
 ## Opportunities and constraints
 
 - **Opportunity:** the same draft contract for the other long-form editors (song words/lyrics form, sermon notes, feedback composer) — the store is surface-keyed and ready. `re-review: 2026-07-17`.
