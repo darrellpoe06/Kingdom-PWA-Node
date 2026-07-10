@@ -72,3 +72,64 @@ describe('OneVoiceInput — the words survive without a Save tap', () => {
     expect(readDraft('notes')).toBeNull();
   });
 });
+
+// --- Editing an EXISTING note keeps the contract (Darrell 2026-07-10 follow-up:
+// "will the notes sections auto save notes for return to keep editing?") -----
+import { ThinkingSpace } from '../components/ThinkingSpace.jsx';
+
+describe('ThinkingSpace — an in-progress EDIT survives leaving and returning', () => {
+  let container, root;
+  beforeEach(() => {
+    localStorage.clear();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+  afterEach(() => { act(() => root.unmount()); container.remove(); });
+  const NOTES = [{ id: 'n1', text: 'original words', at: '2026-07-10T00:00:00Z' }];
+  const mount = (props = {}) => act(() => root.render(createElement(ThinkingSpace, {
+    notes: NOTES, addNote: () => {}, updateNote: () => {}, deleteNote: () => {}, ...props,
+  })));
+  // LAST match: the compose box's own Save renders first; the edit row's
+  // Save/Cancel render beneath the note being edited.
+  const clickByText = (re) => act(() => {
+    const b = [...container.querySelectorAll('button')].filter((x) => re.test(x.textContent || '')).pop();
+    if (!b) throw new Error(`button not found: ${re}`);
+    b.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+  const typeEdit = (value) => act(() => {
+    const ta = [...container.querySelectorAll('textarea')].pop();
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+    setter.call(ta, value);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  it('typing in Edit drafts per note; reopening the note restores the unsaved edit', () => {
+    mount();
+    clickByText(/^Edit$/i);
+    typeEdit('original words plus the new thought');
+    expect(readDraft('notes-edit:n1')).toMatchObject({ text: 'original words plus the new thought' });
+
+    act(() => root.unmount()); // walked away mid-edit
+    root = createRoot(container);
+    mount();
+    clickByText(/^Edit$/i);
+    const ta = [...container.querySelectorAll('textarea')].pop();
+    expect(ta.value).toBe('original words plus the new thought');
+  });
+
+  it('Save clears the edit draft; Cancel abandons it on purpose', () => {
+    let updated = null;
+    mount({ updateNote: (id, t) => { updated = { id, t }; } });
+    clickByText(/^Edit$/i);
+    typeEdit('kept words');
+    clickByText(/^Save$/i);
+    expect(updated).toMatchObject({ id: 'n1', t: 'kept words' });
+    expect(readDraft('notes-edit:n1')).toBeNull();
+
+    clickByText(/^Edit$/i);
+    typeEdit('changed my mind');
+    clickByText(/^Cancel$/i);
+    expect(readDraft('notes-edit:n1')).toBeNull();
+  });
+});

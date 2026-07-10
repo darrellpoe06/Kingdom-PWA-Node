@@ -15,6 +15,7 @@
 // Philippians 4:8 "examine it" tool, and the PoeTech directives roll-up.
 // Consolidated onto OneVoiceInput 2026-06-15.
 import React, { useState } from 'react';
+import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import OneVoiceInput from './OneVoiceInput.jsx';
 
 const THE_TEST = [
@@ -37,8 +38,29 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const [testForId, setTestForId] = useState(null);
   const [query, setQuery] = useState('');
 
-  const startEdit = (n) => { setEditingId(n.id); setEditText(n.text); };
-  const commitEdit = () => { if (editingId && updateNote) updateNote(editingId, editText); setEditingId(null); };
+  // Editing an existing note keeps the Google-Doc contract too (DR-0151,
+  // Darrell 2026-07-10: "will the notes sections auto save notes for return to
+  // keep editing?"): the in-progress edit drafts itself per note; reopening the
+  // note offers the unsaved edit; Save or Cancel settles it.
+  const editDraftKey = (id) => `notes-edit:${id}`;
+  const startEdit = (n) => {
+    const pending = readDraft(editDraftKey(n.id));
+    setEditingId(n.id);
+    setEditText(pending ? pending.text : n.text);
+  };
+  const onEditText = (v) => {
+    setEditText(v);
+    if (editingId) writeDraft(editDraftKey(editingId), { text: v });
+  };
+  const commitEdit = () => {
+    if (editingId && updateNote) updateNote(editingId, editText);
+    if (editingId) clearDraft(editDraftKey(editingId));
+    setEditingId(null);
+  };
+  const cancelEdit = () => {
+    if (editingId) clearDraft(editDraftKey(editingId)); // an abandoned edit is abandoned on purpose
+    setEditingId(null);
+  };
 
   const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   const queryFiltered = query.trim() ? sorted.filter(n => (n.text || '').toLowerCase().includes(query.toLowerCase())) : sorted;
@@ -86,10 +108,10 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
               <div key={n.id} className={`bg-white border p-3 ${n.pinned ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}>
                 {editingId === n.id ? (
                   <>
-                    <textarea className={fieldCls} rows="3" value={editText} onChange={e => setEditText(e.target.value)} />
+                    <textarea className={fieldCls} rows="3" value={editText} onChange={e => onEditText(e.target.value)} />
                     <div className="flex gap-2 mt-1.5">
                       <button type="button" onClick={commitEdit} className="bg-[#1A1815] text-white px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#B85838]">Save</button>
-                      <button type="button" onClick={() => setEditingId(null)} className="border border-[#1A1815] px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                      <button type="button" onClick={cancelEdit} className="border border-[#1A1815] px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
                     </div>
                   </>
                 ) : (
