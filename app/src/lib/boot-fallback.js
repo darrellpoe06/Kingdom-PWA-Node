@@ -29,6 +29,8 @@
 // injectable side-effects (now/reload/clear/win/delay) so a node test locks the
 // ladder without a browser.
 
+import { recordError } from './error-journal.js';
+
 // sessionStorage key holding JSON { ts, stage } of the last auto-heal attempt.
 export const BOOT_HEAL_KEY = 'poetech:boot-heal';
 // A failure within this window after an attempt escalates to the next rung; an
@@ -130,6 +132,23 @@ export function showBootFallback(rootEl, opts = {}) {
   const win = opts.win !== undefined ? opts.win : (typeof window !== 'undefined' ? window : null);
   const now = typeof opts.now === 'function' ? opts.now() : Date.now();
   const stage = decideBootHeal(win, now);
+
+  // Journal the rung taken (DR-0139) — localStorage writes are synchronous, so
+  // the entry survives the reload and the quality board shows the family "the
+  // door healed itself N times" instead of the healing staying invisible. The
+  // exhausted ladder journals as a runtime error: at that point the heal did
+  // NOT work and a human is looking at the manual screen.
+  try {
+    if (stage === 'manual') {
+      recordError({ source: 'boot-heal', kind: 'runtime', message: 'boot failed after auto reload + cache-clear — manual retry screen shown' }, win);
+    } else {
+      recordError({
+        source: 'boot-heal',
+        kind: 'heal',
+        message: stage === 'clear' ? 'stale shell — cleared caches + reloaded automatically' : 'boot failed once — auto-reloaded to the current shell',
+      }, win);
+    }
+  } catch (_) { /* watcher never blocks the heal */ }
 
   if (stage === 'reload' || stage === 'clear') {
     try { el.innerHTML = bootHealingHtml(); } catch (_) { return false; }

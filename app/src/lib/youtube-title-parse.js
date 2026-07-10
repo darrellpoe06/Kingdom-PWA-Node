@@ -8,8 +8,24 @@
 //   '6 -3 - 2026 Bishop Lloyd Gwin Wednesday Bible Study  "THANK YOU..."' -> Wednesday
 //   '5 - 6 - 26 Bishop Lloyd E. Gwin Wednesday Bible Study "NEED ANSWERS..."'
 
+// Decode the HTML entities YouTube leaves in titles (&quot; &amp; &#39; …) so a
+// service card never prints '&QUOT;' literally (the 2026-07-10 Choir sighting —
+// harvested titles arrive entity-encoded, sometimes uppercased). Decodes one
+// level (&amp; last, so double-encoded text unescapes one honest step). Pure,
+// dependency-free, case-insensitive; safe on null.
+export function decodeHtmlEntities(text) {
+  if (text == null || typeof text !== 'string') return text ?? null;
+  return text
+    .replace(/&(?:quot|#0*34);/gi, '"')
+    .replace(/&(?:apos|#0*39);/gi, "'")
+    .replace(/&(?:lt|#0*60);/gi, '<')
+    .replace(/&(?:gt|#0*62);/gi, '>')
+    .replace(/&(?:nbsp|#0*160);/gi, ' ')
+    .replace(/&(?:amp|#0*38);/gi, '&');
+}
+
 export function parseServiceTitle(rawTitle) {
-  const title = String(rawTitle || '');
+  const title = decodeHtmlEntities(String(rawTitle || ''));
   // Dash or slash separators anywhere (e.g. '6 -10 - 2026', '3/5/2025', '1- 7 -26').
   let dm = title.match(/(\d{1,2})\s*[-/]\s*(\d{1,2})\s*[-/]\s*(\d{2,4})/);
   // Fallback: space-separated date at the START of the title ('3 26 25 Bishop...').

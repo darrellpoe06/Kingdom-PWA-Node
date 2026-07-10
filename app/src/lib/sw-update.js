@@ -50,6 +50,8 @@
 // "extract the critical decision into a pure module + lock it with an exhaustive
 // test" pattern (lib/multi-point-auth.js).
 
+import { recordError } from './error-journal.js';
+
 export const UPDATE_EVENT = 'poetech:update-available';
 export const UPDATED_EVENT = 'poetech:updated';
 // Dispatched when an update could not be applied automatically AND a prior reload
@@ -238,9 +240,12 @@ export function wireUpdates(registration, nav, win) {
   };
 
   // Quiet, non-blocking confirmation AFTER a successful update reload. Most users
-  // only ever see THIS — the seamless apply means they never saw a prompt.
+  // only ever see THIS — the seamless apply means they never saw a prompt. The
+  // landed update is journaled as a heal (DR-0139) so the quality board counts
+  // it — this is the point that PROVES the zero-click update stuck.
   if (justReloaded && !loopRisk) {
     state.updatedShown += 1;
+    try { recordError({ source: 'sw-update', kind: 'heal', message: 'new version applied automatically (zero-click update reload landed)' }, win); } catch (_) { /* watcher never throws */ }
     dispatch(win, UPDATED_EVENT, {});
   }
 

@@ -32,7 +32,7 @@ function resolveDisplayName(session, explicit) {
 export function toSongShape(row) {
   return {
     id: row.id,
-    title: row.title,
+    title: decodeHtmlEntities(row.title),
     youtubeUrl: row.youtube_url ?? null,
     scriptureRef: row.scripture_ref ?? null,
     notes: row.notes ?? null,
@@ -71,7 +71,9 @@ export function toSermonShape(row) {
     id: row.id,
     serviceDate: row.service_date ?? null,
     serviceType: row.service_type ?? 'sunday',
-    title: row.title,
+    // Decoded at the mapper (DR-0139): harvested titles arrive entity-encoded
+    // ('&QUOT;DON'T…'), and rows already stored that way heal at render.
+    title: decodeHtmlEntities(row.title),
     speaker: row.speaker ?? null,
     speakerId: row.speaker_id ?? null,   // canonical speaker entity (0037); null on the public RPC path
     scriptureRef: row.scripture_ref ?? null,
@@ -137,7 +139,7 @@ export function toScheduleShape(row) {
     id: row.id,
     serviceDate: row.service_date,
     serviceType: row.service_type,
-    title: row.title ?? null,
+    title: decodeHtmlEntities(row.title) ?? null,
     youtubeUrl: row.youtube_url ?? null,
     notes: row.notes ?? null,
   };
@@ -360,8 +362,8 @@ export function youtubeTimedUrl(url, startSeconds) {
 
 // The YouTube title parser lives in a dependency-free module so the local
 // backfill script can share it. Re-exported here for the app + tests.
-import { parseServiceTitle as _parseTitle } from './youtube-title-parse.js';
-export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
+import { parseServiceTitle as _parseTitle, decodeHtmlEntities } from './youtube-title-parse.js';
+export { parseServiceTitle, extractYoutubeId, decodeHtmlEntities } from './youtube-title-parse.js';
 
 // Pure: turn raw {videoId, title} channel items into NEW choir_sermons rows —
 // parse the title, keep only dated ones, drop any whose video is already stored
