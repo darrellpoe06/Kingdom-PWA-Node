@@ -7,6 +7,7 @@ import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/s
 import HelpButton from './components/HelpButton.jsx';
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
+import InstallAppButton from './components/InstallAppButton.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
@@ -4261,6 +4262,11 @@ ${THEME_CSS}
               <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
+              {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
+                  the space that is on each tab top space"). One tap fires the
+                  browser's native install when available; otherwise it opens
+                  this phone's exact steps. Hides itself once installed. */}
+              <InstallAppButton />
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
