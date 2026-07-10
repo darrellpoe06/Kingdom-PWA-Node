@@ -160,6 +160,7 @@ jobs:
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
           SERVED: ${{ steps.probe.outputs.served_sha }}
           MAIN: ${{ steps.probe.outputs.main_sha }}
+          N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
         run: |
           set -uo pipefail
           title="site-health: poetech.us failing the outside-in probe"
@@ -170,6 +171,20 @@ jobs:
           else
             gh label create incident --repo "$REPO" --color B60205 --description "Live-site downtime record (site-health probe)" 2>/dev/null || true
             gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
+          fi
+          # Announce, not only record (DR-0155): push the incident to the
+          # family's phones via the NAS relay (Funnel -> n8n -> ntfy). Fail-soft
+          # by design — the ledger above is the record; this is the bell.
+          if [ -n "${N8N_BEARER:-}" ]; then
+            payload=$(printf '{"title":"poetech.us is failing the probe","message":%s,"url":"%s","priority":"5"}' \
+              "$(printf '%s' "$REASONS" | head -c 800 | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" \
+              "${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}")
+            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
+              -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
+              --max-time 15 -d "$payload" \
+              || echo "::warning::announce relay unreachable — incident recorded on the ledger, phone push skipped"
+          else
+            echo "::warning::VITE_N8N_BEARER not set — announce skipped"
           fi
           exit 1 # a failing probe is a failing run — visible in the Actions list
 

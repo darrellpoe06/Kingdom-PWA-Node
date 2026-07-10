@@ -1,0 +1,53 @@
+{
+  "id": "wfOpsAnnounce001",
+  "name": "23 · Ops announce (incident push to the family, DR-0155)",
+  "nodes": [
+    {
+      "id": "oaWebhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "7f3d2c81-9a45-4e6b-8c02-d15e7ab4f920",
+      "position": [0, 0],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ops-announce",
+        "responseMode": "onReceived",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "phbridgetoken1",
+          "name": "property-history bridge token"
+        }
+      }
+    },
+    {
+      "id": "oaPush1",
+      "name": "Push to ntfy (darrell topic)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "jsCode": "// Ops announce relay (DR-0155): a GitHub runner filed an incident on the\n// ledger; this pushes it to the family's phones via the NAS ntfy container.\n// The TOPIC IS PINNED server-side ('darrell' — the topic the family phones\n// already subscribe to) so a caller can never spray arbitrary topics; the\n// caller supplies only title/message/url/priority, each capped/validated.\n// this.helpers.httpRequest per LESSONS P17 (Code nodes have no global fetch).\nconst out = [];\nfor (const item of items) {\n  const b = (item.json && (item.json.body || item.json)) || {};\n  const title = String(b.title || 'PoeTech ops').replace(/[\\r\\n]/g, ' ').slice(0, 120);\n  const message = String(b.message || 'ops event').slice(0, 900);\n  const rawUrl = String(b.url || '');\n  const click = /^https:\\/\\/(github\\.com|poetech\\.us)\\//.test(rawUrl) ? rawUrl.slice(0, 500) : '';\n  const priority = ['1', '2', '3', '4', '5'].includes(String(b.priority)) ? String(b.priority) : '4';\n  let delivered = false;\n  let detail = '';\n  try {\n    const headers = { 'x-title': title, 'x-priority': priority, 'x-tags': 'rotating_light' };\n    if (click) headers['x-click'] = click;\n    await this.helpers.httpRequest({\n      url: 'http://ntfy:80/darrell',\n      method: 'POST',\n      body: message,\n      timeout: 10000,\n      headers,\n    });\n    delivered = true;\n  } catch (e) {\n    // Best-effort by design: the incident is already on the GitHub ledger —\n    // the record — so a push failure must never error the webhook.\n    detail = String((e && e.message) || e).slice(0, 200);\n  }\n  out.push({ json: { delivered, detail } });\n}\nreturn out;"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Push to ntfy (darrell topic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

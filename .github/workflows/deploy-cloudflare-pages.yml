@@ -45,6 +45,11 @@ jobs:
     # Gate: stays skipped until Darrell flips the variable on (post-research,
     # credentials in place). Keeps the live Vercel serving untouched until then.
     if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    outputs:
+      # This build's entry chunk path — the propagation sentinel verify-boot
+      # polls for on the domain (incident #722: the domain can serve the new
+      # shell minutes before the shell's own assets are reachable).
+      entry: ${{ steps.sentinel.outputs.entry }}
     defaults:
       run:
         working-directory: app
@@ -77,6 +82,10 @@ jobs:
           # NOTE: VITE_N8N_WEBHOOK_BASE is intentionally NOT set — it defaults to
           # the same-origin "/n8n" path served by the Pages Function. Setting it
           # to the bare Funnel URL would re-open the cross-origin 503 throttle.
+
+      - name: Name this build's entry chunk (the propagation sentinel)
+        id: sentinel
+        run: echo "entry=$(grep -o 'assets/index-[^\"]*\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
 
       # Create the Direct-Upload Pages project on the FIRST run so no one has to
       # click through the dashboard's flaky "Connect to Git" flow (which we do not
@@ -127,6 +136,38 @@ jobs:
           node-version: 22
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
+      # ------------------------------------------------------------------------
+      # Propagation gate (incident #722, DR-0153 §2): for minutes after an
+      # upload the domain can serve the NEW shell while its hashed chunks are
+      # not yet reachable — the family's measured blank windows. Wait (bounded)
+      # until the domain serves THIS deploy's entry chunk as JavaScript, and put
+      # the measured window on the record every deploy. On timeout, fail — after
+      # 15 minutes a domain still not serving the deploy IS an incident, and the
+      # failure path below files it on the ledger.
+      # ------------------------------------------------------------------------
+      - name: Wait for the domain to serve this deploy (measured propagation window)
+        env:
+          ENTRY: ${{ needs.deploy.outputs.entry }}
+        run: |
+          if [ -z "$ENTRY" ]; then
+            echo "no entry-chunk sentinel from the build — skipping the gate (boot-check below is still the judge)" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          url="https://poetech.us/poetech-app/${ENTRY}"
+          start=$(date +%s)
+          for i in $(seq 1 90); do
+            ctype=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "$url" || echo "unreachable")
+            now=$(date +%s); elapsed=$(( now - start ))
+            case "$ctype" in
+              *javascript*)
+                echo "domain served ${ENTRY} as JavaScript after ${elapsed}s" | tee -a "$GITHUB_STEP_SUMMARY"
+                exit 0 ;;
+            esac
+            echo "t+${elapsed}s: ${url} answered content-type '${ctype}' — still propagating"
+            sleep 10
+          done
+          echo "domain did NOT serve ${ENTRY} within 15 minutes — propagation stuck (this is an incident)" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
       - name: Boot-check production (domain + pages.dev origin + the Moore door + the Church tab)
         # ?view=church added 2026-07-10 after the family photographed a white
         # screen on the Church tab during a deploy window — the tab the church
@@ -136,6 +177,7 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
+          N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
         run: |
           body="boot-check FAILED: the deployed app did not BOOT in a real browser after ${GITHUB_SHA} — recovery screen or blank mount on production. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (DR-0139; probe-green is not boot-green)."
           num=$(gh issue list --repo "$GITHUB_REPOSITORY" --label incident --state open --limit 1 --json number --jq '.[0].number // empty')
@@ -143,4 +185,13 @@ jobs:
             gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "incident: deployed app failed the real-browser boot-check" --label incident --body "$body"
+          fi
+          # Announce, not only record (DR-0155): fail-soft phone push via the
+          # NAS relay — the ledger above stays the record either way.
+          if [ -n "${N8N_BEARER:-}" ]; then
+            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
+              -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
+              --max-time 15 \
+              -d "{\"title\":\"deploy failed the real-browser boot-check\",\"message\":\"The deployed app did not boot after ${GITHUB_SHA}. Details on the incident ledger.\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"priority\":\"5\"}" \
+              || echo "::warning::announce relay unreachable — incident recorded on the ledger, phone push skipped"
           fi
