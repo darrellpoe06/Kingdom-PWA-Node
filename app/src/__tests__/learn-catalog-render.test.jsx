@@ -40,10 +40,19 @@ const mount = (props = {}) =>
     ...props,
   })));
 
+// The picker is a grouped native dropdown now (2026-07-10: "sorts and
+// dropdowns") — select the course by its option label and fire change, exactly
+// what a reader's tap on the phone's own picker does.
 const clickCourse = (title) => {
-  const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(title));
-  if (!tab) throw new Error(`course chip not found: ${title}`);
-  act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  const select = container.querySelector('#learn-course-pick');
+  if (!select) throw new Error('course dropdown not found');
+  const option = [...select.querySelectorAll('option')].find((o) => (o.textContent || '').includes(title));
+  if (!option) throw new Error(`course option not found: ${title}`);
+  act(() => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+    setter.call(select, option.value);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 };
 
 describe('Learn catalog — every finished course renders in the picker', () => {
@@ -66,16 +75,6 @@ describe('Learn catalog — every finished course renders in the picker', () => 
     expect(keys).toContain('prophetic-voices');
     expect(keys).toContain('living-lessons');
     expect(keys).toContain('world-issues');
-  });
-
-  it('every course carries a category so the picker can group it (nothing falls to "More study")', async () => {
-    for (const entry of LEARN_CATALOG) {
-      expect(entry.meta.category, `${entry.key} needs a category`).toBeTruthy();
-    }
-    const { buildEternalProcessingCourses } = await import('../lib/eternal-algorithms-course.js');
-    for (const c of buildEternalProcessingCourses()) {
-      expect(c.meta.category, `${c.meta.key} needs a category`).toBeTruthy();
-    }
   });
 
   it('the derived lesson floor holds: at least 40 finished lessons across the catalog', () => {

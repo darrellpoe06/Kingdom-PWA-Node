@@ -60,6 +60,7 @@ import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 import SectionTabs from './SectionTabs.jsx';
+import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
 
 const fmtDate = formatClassDate;
 
@@ -1076,18 +1077,23 @@ function CourseView({
         <div className="border border-[#E8E4DC] p-4 mb-5">
           <div className="flex items-baseline justify-between gap-2 mb-2">
             <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Who wants in</h3>
-            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{roster.length} interested</span>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{roster.filter((r) => r && typeof r === 'object').length} interested</span>
           </div>
-          {roster.length === 0 ? (
+          {/* Real rows, defensively: ONE malformed interest row (a null, a
+              non-object, a numeric timestamp) must never kill the whole Learn
+              tab — this Governor-only panel is exactly why only the Governor's
+              device saw "learn tab is dead" (2026-07-10) while every clean-props
+              gate stayed green. Caught by church-learn-hostile-data.test.jsx. */}
+          {roster.filter((r) => r && typeof r === 'object').length === 0 ? (
             <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               No one has tapped “{interestCopy.cta}” yet. When they do — from any device, on any instance — they appear here.
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {roster.map((r, i) => (
+              {roster.filter((r) => r && typeof r === 'object').map((r, i) => (
                 <li key={r.id || i} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <span>{r.who || r.displayName || 'A parishioner'}</span>
-                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(r.at || r.createdAt || '').slice(0, 10)}</span>
+                  <span>{String(r.who || r.displayName || 'A parishioner')}</span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(r.at || r.createdAt || '').slice(0, 10)}</span>
                 </li>
               ))}
             </ul>
@@ -1329,6 +1335,7 @@ export default function ChurchLearn({
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
   const [activeKey, setActiveKey] = useState('ai');
+  const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
 
   // The youth A.I. course, assembled from this component's existing flat props so
   // nothing about its wiring changes — it just becomes one entry in the picker.
@@ -1350,7 +1357,7 @@ export default function ChurchLearn({
 
   const aiCourse = {
     key: 'ai',
-    meta: { ...CLASS_META, key: 'ai', category: 'A.I. The Way' },
+    meta: { ...CLASS_META, key: 'ai' },
     sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
@@ -1430,44 +1437,44 @@ export default function ChurchLearn({
           </p>
         )}
 
-        {/* Course picker — GROUPED by category so every course is easy to
-            locate (Darrell 2026-07-10: "clean up and organize all the courses").
-            The groups DERIVE from each course meta's category (set in the
-            registry / the eternal builder) — never hand-sorted here (DR-0121).
-            Group order = first appearance in the catalog order. */}
+        {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
+            with sorts and dropdowns") — 18 courses as a wall of buttons made the
+            reader scroll past everything; a grouped NATIVE select opens the
+            phone's own picker in one tap, with the Deep-Processing family in its
+            own group and a sort control. Groups + counts derive live from the
+            mounted courses (lib/learn-organize.js, DR-0121). */}
         {courses.length > 1 && (
-          <div role="tablist" aria-label="Choose a course" className="mb-5 border-b border-[#E8E4DC] pb-3">
-            {(() => {
-              const groups = [];
-              const byCat = new Map();
-              for (const c of courses) {
-                const cat = c.meta.category || 'More study';
-                if (!byCat.has(cat)) { byCat.set(cat, []); groups.push(cat); }
-                byCat.get(cat).push(c);
-              }
-              return groups.map((cat) => (
-                <div key={cat} className="mb-2">
-                  <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">{cat}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {byCat.get(cat).map((c) => {
-                      const selected = c.key === activeKey;
-                      return (
-                        <button
-                          key={c.key}
-                          type="button"
-                          role="tab"
-                          aria-selected={selected}
-                          onClick={() => setActiveKey(c.key)}
-                          className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
-                        >
-                          {c.meta.title}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ));
-            })()}
+          <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
+            <div className="grow min-w-[14rem]">
+              <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Choose a course</label>
+              <select
+                id="learn-course-pick"
+                value={active.key}
+                onChange={(e) => setActiveKey(e.target.value)}
+                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
+              >
+                {organizeCourses(courses, courseSort).map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.courses.map((c) => (
+                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
+              <select
+                id="learn-course-sort"
+                value={courseSort}
+                onChange={(e) => setCourseSort(e.target.value)}
+                className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
+              >
+                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
+              </select>
+            </div>
           </div>
         )}
       </div>
