@@ -186,7 +186,7 @@ jobs:
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "incident: deployed app failed the real-browser boot-check" --label incident --body "$body"
           fi
-          # Announce, not only record (DR-0155): fail-soft phone push via the
+          # Announce, not only record (DR-0156): fail-soft phone push via the
           # NAS relay — the ledger above stays the record either way.
           if [ -n "${N8N_BEARER:-}" ]; then
             curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \

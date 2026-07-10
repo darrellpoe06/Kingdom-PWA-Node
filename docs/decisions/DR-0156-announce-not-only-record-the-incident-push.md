@@ -1,4 +1,4 @@
-# DR-0155 — Announce, not only record: an incident rings the family's phones through the sovereign relay
+# DR-0156 — Announce, not only record: an incident rings the family's phones through the sovereign relay
 
 - **Status:** accepted
 - **Tier:** A shipped through the lane (a fail-soft notification added to existing instruments; no schema, no money; the NAS import is the one hands-on step and it is Darrell's by nature — a credential binding)
@@ -28,4 +28,4 @@ Deterministic tests can't reach the NAS from CI; the proof is the runbook's end-
 
 ## Supersedes / pairs
 
-Closes the announce follow-up in DR-0125 (`re-review: 2026-07-15`) and the same line in DR-0135/DR-0139. Pairs with DR-0154 (same lane, same PR — the window fix and its bell), P31 (the probe is the witness; now it speaks), and the governance ntfy-topic registry in `pre-authorized-policies.yaml`. No supersession.
+Closes the announce follow-up in DR-0125 (`re-review: 2026-07-15`) and the same line in DR-0135/DR-0139. Pairs with DR-0155 (same lane, same PR — the window fix and its bell), P31 (the probe is the witness; now it speaks), and the governance ntfy-topic registry in `pre-authorized-policies.yaml`. No supersession.

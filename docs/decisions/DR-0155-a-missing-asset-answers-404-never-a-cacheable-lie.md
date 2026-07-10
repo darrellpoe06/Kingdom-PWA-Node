@@ -1,4 +1,4 @@
-# DR-0154 — A missing asset answers 404, never a cacheable lie: the asset guard closes the deploy blank-window class
+# DR-0155 — A missing asset answers 404, never a cacheable lie: the asset guard closes the deploy blank-window class
 
 - **Status:** accepted
 - **Tier:** A shipped through the lane (a serve-layer correctness fix for a measured outage class; no schema, no money, no identity surface)
