@@ -127,8 +127,11 @@ jobs:
           node-version: 22
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
-      - name: Boot-check production (domain + pages.dev origin + the Moore door)
-        run: node scripts/boot-check.mjs https://poetech.us/poetech-app/ https://poetech-app.pages.dev/poetech-app/ "https://poetech.us/poetech-app/?moore=1"
+      - name: Boot-check production (domain + pages.dev origin + the Moore door + the Church tab)
+        # ?view=church added 2026-07-10 after the family photographed a white
+        # screen on the Church tab during a deploy window — the tab the church
+        # actually lives in is now proven booting on every deploy, not assumed.
+        run: node scripts/boot-check.mjs https://poetech.us/poetech-app/ https://poetech-app.pages.dev/poetech-app/ "https://poetech.us/poetech-app/?moore=1" "https://poetech.us/poetech-app/?view=church"
       - name: File the failing observation on the incident ledger
         if: failure()
         env:
