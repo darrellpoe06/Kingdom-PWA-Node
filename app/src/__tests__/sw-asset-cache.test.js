@@ -21,9 +21,13 @@ const SW_SRC = readSw();
 const ORIGIN = 'https://poetech.us';
 const BASE = '/poetech-app';
 
-// A tiny mock Response with the fields sw.js reads (ok, type, clone).
+// A tiny mock Response with the fields sw.js reads (ok, type, clone, blob).
 function mockResponse({ ok = true, type = 'basic', tag = 'net' } = {}) {
-  return { ok, type, tag, clone() { return { ok, type, tag: tag + ':clone' }; } };
+  return {
+    ok, type, tag, status: 200, headers: {},
+    blob: async () => `${tag}-bytes`,
+    clone() { return { ok, type, tag: tag + ':clone' }; },
+  };
 }
 
 // Load sw.js into a fresh mocked SW global; return the captured handlers + spies.
@@ -125,14 +129,31 @@ describe('sw.js — hashed assets are cached-first and populated on miss', () =>
 
   it('an in-app navigation serves the PRECACHED shell with NO network (stay on the previous build — 2026-07-10)', async () => {
     // Drive the install handler so the shell lands in the per-build cache,
-    // exactly as a real install does.
+    // exactly as a real install does (fetch -> clean-identity copy -> put).
     await new Promise((resolve, reject) => {
       sw.listeners.install({ waitUntil: (p) => p.then(resolve, reject) });
     });
+    const installFetches = sw.fetchCalls.length;
     const nav = { url: `${ORIGIN}${BASE}/?view=church`, mode: 'navigate' };
     const res = await handleFetch(sw, nav);
-    expect(res.tag).toBe('precache');                        // the device's own complete build
-    expect(sw.fetchCalls.length, 'no network for a cached shell').toBe(0);
+    expect(res.status).toBe(200);                            // the device's own complete build
+    expect(res.redirected, 'the stored shell must carry no redirect identity').toBeFalsy();
+    expect(sw.fetchCalls.length, 'no network for a cached shell').toBe(installFetches);
+  });
+
+  it('a cached shell carrying redirect identity is served CLEAN — never refused by the browser (2026-07-10 ERR_FAILED incident)', async () => {
+    // Seed the per-build cache with a shell response that says redirected=true
+    // (Cloudflare 308-normalizes /index.html to /, so a followed fetch stores
+    // exactly this). Serving it raw bricked every navigation with ERR_FAILED.
+    const cacheName = [...(await sw.cachesApi.keys()), 'poetech-__SW_VERSION__'][0] || 'poetech-__SW_VERSION__';
+    const c = await sw.cachesApi.open(cacheName);
+    await c.put(`${BASE}/index.html`, {
+      ok: true, type: 'basic', tag: 'poisoned', redirected: true, headers: {},
+      blob: async () => 'shell-bytes',
+    });
+    const res = await handleFetch(sw, { url: `${ORIGIN}${BASE}/`, mode: 'navigate' });
+    expect(res.redirected, 'a navigation must never be handed a redirected response').toBeFalsy();
+    expect(res.status).toBe(200);
   });
 
   it('an in-app navigation BEFORE any install falls back to network no-store (first visit)', async () => {
@@ -179,7 +200,6 @@ describe('sw.js — navigation redirect guard (the /moore ERR_FAILED fix)', () =
   it('a direct (non-redirected) navigation response is served untouched', async () => {
     const sw = loadSw();
     const res = await handleFetch(sw, { url: `${ORIGIN}${BASE}/`, mode: 'navigate' });
-    expect(res.tag).toBe('net');
-    expect(res.status).toBeUndefined(); // the mock response passed straight through
+    expect(res.tag).toBe('net'); // the mock response passed straight through, not rewrapped
   });
 });

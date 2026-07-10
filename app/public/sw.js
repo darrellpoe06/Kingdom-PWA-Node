@@ -28,6 +28,17 @@ const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifes
 // `vite dev` (empty array) — dev needs no cross-deploy resilience.
 const PRECACHE_ASSETS = /*__PRECACHE_ASSETS__*/[];
 
+// Store a CLEAN-IDENTITY copy of a response. INCIDENT 2026-07-10 (~13:45Z):
+// Cloudflare Pages 308-normalizes /index.html to /, so cache.add stored the
+// shell with redirected=true — and a browser REFUSES a redirected response for
+// a navigation (the /moore ERR_FAILED class). Every device that installed that
+// worker got ERR_FAILED on every page while the no-worker probes read green.
+// Rebuilding the Response drops the redirect identity for good.
+function cleanCopy(res) {
+  if (!res.ok) throw new Error('precache got HTTP ' + res.status);
+  return res.blob().then((body) => new Response(body, { status: 200, headers: res.headers }));
+}
+
 self.addEventListener('install', (event) => {
   // Prime the offline shell with { cache: 'reload' } so the precached copy is
   // fetched fresh from the network at install — never a stale shell pulled from
@@ -35,13 +46,19 @@ self.addEventListener('install', (event) => {
   // fallback at an old asset bundle.) Hashed assets need no reload (immutable
   // per content hash). ALL-OR-NOTHING on purpose: any missing piece rejects the
   // install, so a mid-deploy window can never produce a half-cached build.
+  //
+  // skipWaiting: a worker that PASSED its all-or-nothing install owns the swap
+  // immediately — and, critically, it is how devices bricked by the redirected
+  // -shell worker heal on their next open without hunting for a hidden tab.
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
       Promise.all([
-        ...PRECACHE.map((url) => cache.add(new Request(url, { cache: 'reload' }))),
+        ...PRECACHE.map((url) => fetch(new Request(url, { cache: 'reload' }))
+          .then(cleanCopy)
+          .then((clean) => cache.put(url, clean))),
         ...PRECACHE_ASSETS.map((url) => cache.add(new Request(url))),
       ])
-    )
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -91,8 +108,19 @@ self.addEventListener('fetch', (event) => {
     } catch (_) { /* fall through to the network path */ }
     event.respondWith(
       (inAppScope ? caches.open(CACHE).then((c) => c.match(BASE + '/index.html')) : Promise.resolve(undefined))
-        .then((cached) => cached || fetch(event.request.url, { cache: 'no-store' })
-          .then((res) => (res.redirected ? Response.redirect(res.url, 301) : res)))
+        .then((cached) => {
+          if (cached) {
+            // Defense-in-depth for the 2026-07-10 ERR_FAILED incident: a cached
+            // shell stored with redirect identity would be refused by the
+            // browser for a navigation — always serve a clean-identity copy.
+            if (cached.redirected && cached.blob) {
+              return cached.blob().then((body) => new Response(body, { status: 200, headers: cached.headers }));
+            }
+            return cached;
+          }
+          return fetch(event.request.url, { cache: 'no-store' })
+            .then((res) => (res.redirected ? Response.redirect(res.url, 301) : res));
+        })
         .catch(() => caches.match(BASE + '/index.html'))
     );
     return;
