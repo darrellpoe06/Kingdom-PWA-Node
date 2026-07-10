@@ -1112,6 +1112,9 @@ export default function PoeFinancialSystem() {
   };
   const [booksView, setBooksView] = useState('calendar');
   const [churchView, setChurchView] = useState(getInitialChurchView());
+  // Which SECTION the church home opens on when a launch target names one —
+  // the Council Chamber is the 'speak' section (DR-0142); null = Worship default.
+  const [churchHomeSection, setChurchHomeSection] = useState(null);
   // Real browser BACK / FORWARD (lib/nav-history.js). Every top tab + Books/
   // Church sub-tab flows through this triple, so the device Back button, the
   // in-app NavControls, and deep-links all work app-wide without a router. The
@@ -3634,7 +3637,7 @@ export default function PoeFinancialSystem() {
           view switch so tab changes never stop the stream. Self-gates to real
           service windows; publishes --lwb-h (read by this root's padding-top and
           the sticky header's `top`, below, so the nav pins under it). */}
-      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} />
+      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4557,7 +4560,7 @@ ${THEME_CSS}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && churchView === 'home' && <ChurchHome church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives
@@ -4797,7 +4800,7 @@ ${THEME_CSS}
             classRoster={classRoster}
             isGovernor={isGov}
             currentUserName={authSession?.user?.email || ''}
-            onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
+            onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) { setChurchView(t.churchView); if (t.churchView === 'home') setChurchHomeSection(t.churchSection || null); } }}
             broadcast={broadcastCourse}
             extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, ...selfPacedCourses]}
             quizState={data.classQuiz || {}}
@@ -4921,6 +4924,7 @@ ${THEME_CSS}
               sermons={[]}
               setView={setView}
               setChurchView={setChurchView}
+              setChurchHomeSection={setChurchHomeSection}
               setBooksView={setBooksView}
             />
           </SectionBoundary>

@@ -265,7 +265,7 @@ export const SOVEREIGN_AI_MODULES = [
     bigIdea: 'SKOS runs local models with Ollama, routes each task to the right tier (small local first; a vendor only for heavy lifting), grounds answers in our own corpus with a RAG pipeline, and keeps every autonomous step behind the Cage — the brakes. Sovereign-walled work (private/family/clinical) is local-only, always.',
     inApp: 'Open the A.I. health card and confirm the local model is served by Ollama on our box. Notice the reminder on every tutor reply: it runs on our own A.I., and you should still verify what matters.',
     anchor: { ref: 'Proverbs 25:28; Luke 12:42', theme: 'A person without self-control is like a city with broken walls; who then is the faithful manager? Brakes and walls are what make power safe to wield.' },
-    launch: { view: 'church', churchView: 'home' },
+    launch: { view: 'church', churchView: 'home', churchSection: 'speak' },
     rpe: {
       research: 'How does a task get from the app to a model today, and what decides which model?',
       plan: 'Decide the routing rule: what stays local, what may escalate, what may NEVER leave.',

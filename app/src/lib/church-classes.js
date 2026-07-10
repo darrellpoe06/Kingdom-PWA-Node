@@ -112,7 +112,7 @@ export const MODULES = [
     bigIdea: 'An LLM is a very well-read helper that guesses the next word. It can sound completely sure and still be wrong. It is a tool — not a source of truth.',
     inApp: 'Send your very first prompt in the app’s Council Chamber. Notice what it does well, and catch one thing it gets wrong.',
     anchor: { ref: '1 Thessalonians 5:21', theme: 'Test everything; hold on to what is good. That is the whole class in one verse.' },
-    launch: { view: 'church', churchView: 'home' },
+    launch: { view: 'church', churchView: 'home', churchSection: 'speak' },
     quiz: {
       questions: [
         { q: 'What is an LLM really doing when it answers you?', options: ['Looking up the true answer', 'Guessing the next word from patterns — it can be sure and still wrong', 'Remembering your life'], answer: 1, explain: 'It predicts the next word; it has no ground truth and can be confidently wrong. It is a tool, not an oracle.' },

@@ -24,7 +24,10 @@ import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
 import SectionTabs from './SectionTabs.jsx';
 
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry }) {
+// initialSection (DR-0142): a launch target may open a SPECIFIC section — the
+// Council Chamber is the Speak section of this surface, and "Open the Council
+// Chamber" landing on the Worship video was the 2026-07-10 premise miss.
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -614,7 +617,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </p>
       )}
 
-      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId="worship" />
+      <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} />
     </div>
   );
 }
