@@ -1,6 +1,6 @@
 # The door opens itself, and opens your way — three live reports, and self-healing part 2
 
-> Layer 4 working artifact. Companion to **DR-0143** and REV-0031. Triggers, Darrell 2026-07-10 (live, from his devices): *"The one tap refresh doesn't work... I can't even download the PoeTech App unless I have a password... I only use my PIN — can I do that only and/or my fingerprint?"* — *"Why do we only have 135 videos or whatever and not 335 for every area needing data from YouTube?"* — and, for the second time in one day: *"Why doesn't the PoeTech App seem like it's self-healing yet?"*
+> Layer 4 working artifact. Companion to **DR-0143** and REV-0035. Triggers, Darrell 2026-07-10 (live, from his devices): *"The one tap refresh doesn't work... I can't even download the PoeTech App unless I have a password... I only use my PIN — can I do that only and/or my fingerprint?"* — *"Why do we only have 135 videos or whatever and not 335 for every area needing data from YouTube?"* — and, for the second time in one day: *"Why doesn't the PoeTech App seem like it's self-healing yet?"*
 
 ## The three reports, each verified before fixing
 
