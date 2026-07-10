@@ -113,10 +113,37 @@ async function checkOnce(browser, url) {
       if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
         return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (no mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       }
-      return { ok: true, errors };
+      // `await` is load-bearing: a bare `return` would let this function's
+      // finally-block close the page while the controlled pass still runs.
+      return await swControlledPass(page, url, errors);
     }
   } finally {
     await page.close().catch(() => {});
+  }
+}
+
+// Second visit, WORKER-CONTROLLED (2026-07-10, the #750 outage): the first
+// visit above is never service-worker-controlled, so a worker whose fetch
+// handler kills navigations passes the mount check while every INSTALLED
+// device gets ERR_FAILED on every visit. After a healthy mount, wait (bounded)
+// for the app's worker to take control of this very page, then navigate again
+// — the navigation every family phone actually makes — and judge it. Standalone
+// windows (?moore=1 etc.) opt out of SW registration on purpose (main.jsx), so
+// a page that never becomes controlled is skipped, not failed; the plain app
+// URLs always register, and CI's sw-nav-check gate is the pre-merge brake.
+async function swControlledPass(page, url, errors) {
+  const controlled = await page
+    .waitForFunction(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller), null, { timeout: 15000 })
+    .then(() => true, () => false);
+  if (!controlled) return { ok: true, errors }; // standalone opt-out or SW still installing — first-visit judgment stands
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const text = await page.evaluate(() => (document.body ? document.body.innerText : '')).catch(() => '');
+    const failHit = FAIL_MARKERS.find((m) => text.includes(m));
+    if (failHit) return { ok: false, why: `SW-controlled navigation landed on a recovery screen ("${failHit}")`, errors };
+    return { ok: true, errors };
+  } catch (e) {
+    return { ok: false, why: `SW-controlled navigation DIED (${String(e.message).split('\n')[0]}) — every installed device hits this on every visit`, errors };
   }
 }
 

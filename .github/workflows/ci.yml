@@ -100,6 +100,23 @@ jobs:
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.
       - run: npm run build
+      # Service-worker-controlled navigation gate (DR-0076 / 2026-07-10 outage):
+      # a fresh browser's FIRST visit is never SW-controlled, so a broken worker
+      # fetch handler passes lint, vitest, the build, verify-boot, AND
+      # site-health while ERR_FAILING every INSTALLED device on every visit
+      # (PR #750's cache-first shell did exactly that to the whole family
+      # fleet). This serves the freshly built dist the way Cloudflare Pages
+      # serves poetech.us (root files, /poetech-app alias, /index.html 301,
+      # sw.js no-store) and proves the SECOND — worker-controlled — navigation
+      # still answers. Proven-to-catch: exits 1 against the #750 worker
+      # (net::ERR_FAILED), passes the network-first worker, and fails loudly
+      # if the worker never takes control (no vacuous green).
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+        working-directory: ${{ github.workspace }}
+      - name: SW-controlled navigation gate
+        run: node scripts/sw-nav-check.mjs
+        working-directory: ${{ github.workspace }}
 
   workflows:
     name: n8n workflows — wf36 gatekeeper harness
