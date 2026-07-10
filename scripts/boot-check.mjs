@@ -29,6 +29,15 @@ async function checkOnce(browser, url) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text().slice(0, 300)}`); });
+  // Name the exact failing file (issue #715: "module answered as text/html"
+  // told us the class but not WHICH asset — the fix hunt needs the URL).
+  page.on('requestfailed', (r) => errors.push(`requestfailed: ${r.url()} — ${r.failure()?.errorText}`));
+  page.on('response', (r) => {
+    if (r.status() >= 400) errors.push(`http ${r.status()}: ${r.url()}`);
+    else if (/\/assets\/.*\.js/.test(r.url()) && !(r.headers()['content-type'] || '').includes('javascript')) {
+      errors.push(`wrong mime (${r.headers()['content-type'] || 'none'}): ${r.url()}`);
+    }
+  });
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(SETTLE_MS);

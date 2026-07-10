@@ -347,6 +347,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Per-BUILD banner on every JS chunk (DR-0139 incident, 2026-07-10).
+        // Cloudflare Pages' wrangler upload DEDUPES by content hash: a chunk
+        // whose bytes never change (react-vendor, by design below) is never
+        // re-uploaded — so when its stored blob went bad, four consecutive
+        // fresh deploys all served a module answered as text/html and the app
+        // failed to BOOT everywhere (probe-green, boot-red; issue #715). The
+        // stamp makes every chunk byte-unique per build → new hashed filename
+        // → a fresh upload every deploy; a poisoned stored blob can never be
+        // reused. Costs cross-deploy cache reuse on the vendor chunk (~50KB gz
+        // per deploy per device) — uptime outranks that (DR-0107). Executable
+        // code, not a comment: the minifier strips comments (verified — a
+        // banner left the hash unchanged), but keeps a side-effecting stamp.
+        intro: `globalThis.__PT_BUILD__ = ${JSON.stringify(`${buildSha || 'dev'}.${buildTime}`)};`,
         // Vendor chunk split (PERFORMANCE-REVIEW §5 #2). Pin React + ReactDOM
         // (and their runtime deps) into a stable `react-vendor` chunk so the
         // ~50KB gz of framework code stays cache-warm across deploys instead of
