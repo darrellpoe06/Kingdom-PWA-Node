@@ -246,8 +246,8 @@ function Scenarios({ data, currentDate, scope, months }) {
       <div className={card}>
         <h3 className="text-sm font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>What-if comparison · {months} months</h3>
         <p className="text-[11px] text-[#5A5751] mb-3">
-          The future ranges from <strong style={{ color: '#9B2C2C' }}>{cmp.worst ? money(cmp.worst.endingCash) : '—'}</strong> (worst) to
-          {' '}<strong style={{ color: '#2F6B3A' }}>{cmp.best ? money(cmp.best.endingCash) : '—'}</strong> (best) — a spread of {money(cmp.spread)}. Assumptions are explicit and editable below.
+          The future ranges from <strong className="text-[#9B2C2C]">{cmp.worst ? money(cmp.worst.endingCash) : '—'}</strong> (worst) to
+          {' '}<strong className="text-[#2F6B3A]">{cmp.best ? money(cmp.best.endingCash) : '—'}</strong> (best) — a spread of {money(cmp.spread)}. Assumptions are explicit and editable below.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -331,9 +331,9 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
     <div className="space-y-2">
       {sorted.map((s) => {
         const v = actualVsProjected(s, data, currentDate);
-        const tone = !v.reached ? '#5A5751'
-          : v.accuracyLabel === 'on-target' ? '#2F6B3A'
-            : v.accuracyLabel === 'close' ? '#946A00' : '#9B2C2C';
+        const tone = !v.reached ? 'text-[#5A5751] border-[#5A5751]'
+          : v.accuracyLabel === 'on-target' ? 'text-[#2F6B3A] border-[#2F6B3A]'
+            : v.accuracyLabel === 'close' ? 'text-[#946A00] border-[#946A00]' : 'text-[#9B2C2C] border-[#9B2C2C]';
         return (
           <div key={s.id} className={card}>
             <div className="flex justify-between items-start gap-3">
@@ -341,7 +341,7 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
                 <div className="text-sm font-semibold text-[#1A1815]">{scopeName(s.scope)} · {s.horizonMonths}-mo</div>
                 <div className="text-[10px] text-[#5A5751]">Recorded {s.baseDate} → horizon {s.horizonDate}</div>
               </div>
-              <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 border" style={{ color: tone, borderColor: tone }}>
+              <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 border ${tone}`}>
                 {v.reached ? v.accuracyLabel : 'pending'}
               </span>
             </div>
@@ -352,11 +352,11 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
               </div>
               <div>
                 <div className={labelCls}>Actual</div>
-                <div className="tabular-nums font-semibold" style={{ color: tone }}>{v.reached ? money(v.actualEndCash) : '—'}</div>
+                <div className={`tabular-nums font-semibold ${tone}`}>{v.reached ? money(v.actualEndCash) : '—'}</div>
               </div>
               <div>
                 <div className={labelCls}>Variance</div>
-                <div className="tabular-nums font-semibold" style={{ color: tone }}>
+                <div className={`tabular-nums font-semibold ${tone}`}>
                   {v.reached ? `${v.variance >= 0 ? '+' : ''}${money(v.variance)}${v.variancePct != null ? ` (${v.variancePct}%)` : ''}` : '—'}
                 </div>
               </div>

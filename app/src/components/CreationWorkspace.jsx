@@ -361,8 +361,8 @@ export default function CreationWorkspace({
               <button
                 type="button"
                 onClick={presentDoc}
-                className="px-4 py-2 text-sm font-medium border focus:outline focus:outline-2"
-                style={{ borderColor: '#5A6E3D', color: '#5A6E3D', outlineColor: ink }}
+                className="px-4 py-2 text-sm font-medium border border-[#5A6E3D] text-[#5A6E3D] focus:outline focus:outline-2"
+                style={{ outlineColor: ink }}
                 title="Put this document on a screen, one section at a time"
               >
                 ▶ Present

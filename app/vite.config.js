@@ -35,6 +35,48 @@ function countWorkflowFiles() {
 }
 const workflowStats = countWorkflowFiles();
 
+// DR-0157 (Ari is the expert on each workflow PoeTech stores — why we use it):
+// the full registry, one row per STORED workflow export, everything measured
+// from the file itself. The WHY comes from the workflow's paired README
+// (README-<slug>.md beside wf-<slug>.json — first real paragraph) when one
+// exists; a workflow with no recorded why carries why:'' and the app names it
+// as a GAP Ari owns closing — an honest debt, never a painted description
+// (NO-STATIC-DATA). Best-effort: unreadable dirs/files degrade a row, never
+// crash the build.
+function buildWorkflowRegistry() {
+  const dirs = ['../docs/00-foundations/n8n-workflows/', '../infra/n8n/'];
+  const rows = [];
+  for (const rel of dirs) {
+    let names = [];
+    try { names = readdirSync(fileURLToPath(new URL(rel, import.meta.url))); } catch { continue; }
+    for (const f of names.sort()) {
+      if (!f.endsWith('.json')) continue;
+      const row = { file: f, dir: rel.replace(/^\.\.\/|\/$/g, ''), name: f, active: false, webhooks: [], nodes: 0, why: '' };
+      try {
+        let raw = readFileSync(fileURLToPath(new URL(rel + f, import.meta.url)), 'utf8');
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        const wf = JSON.parse(raw);
+        if (typeof wf.name === 'string' && wf.name.trim()) row.name = wf.name.trim();
+        row.active = wf.active === true;
+        const nodes = Array.isArray(wf.nodes) ? wf.nodes : [];
+        row.nodes = nodes.length;
+        row.webhooks = nodes
+          .filter((n) => typeof n?.type === 'string' && n.type.endsWith('.webhook') && n.parameters?.path)
+          .map((n) => String(n.parameters.path));
+      } catch { /* identity degrades to the filename; still listed */ }
+      try {
+        const slug = f.replace(/^wf-/, '').replace(/\.json$/, '');
+        const readme = readFileSync(fileURLToPath(new URL(`${rel}README-${slug}.md`, import.meta.url)), 'utf8');
+        const para = readme.split(/\n\s*\n/).map((p) => p.replace(/^#.*$/m, '').replace(/\s+/g, ' ').trim()).find((p) => p.length > 40);
+        if (para) row.why = para.slice(0, 400);
+      } catch { /* no paired README — the why stays an honest gap */ }
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+const workflowRegistry = buildWorkflowRegistry();
+
 // Governance decision queue (Darrell, 2026-06-13: "built inside and outside of
 // the app ... for comprehensive review and continuity of work"). The repo file
 // docs/governance/decision-queue.md is the single source of truth; this parses
@@ -378,6 +420,7 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),
     __WORKFLOW_STATS__: JSON.stringify(workflowStats),
+    __WORKFLOW_REGISTRY__: JSON.stringify(workflowRegistry),
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
     __QUALITY_PROOF__: JSON.stringify(qualityProof),

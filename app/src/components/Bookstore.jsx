@@ -134,7 +134,7 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
         {product.status !== 'published' && publishableProduct(product).ok && (
           <button type="button" onClick={() => onPublish(product)} className={`${btn} text-white`} style={{ background: P.ink, borderColor: P.ink }}>Preview → publish</button>
         )}
-        {product.status === 'published' && <span className="text-[11px]" style={{ color: '#216E39' }}>● published</span>}
+        {product.status === 'published' && <span className="text-[11px] text-[#216E39]">● published</span>}
       </div>
     </div>
   );

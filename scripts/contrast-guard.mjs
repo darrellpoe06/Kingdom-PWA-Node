@@ -49,6 +49,15 @@ const DEFAULTS = {
 const GUARDED_INLINE_FILES = [
   'CommandServeCenter.jsx',
   'BuildBoard.jsx',
+  // Promoted 2026-07-10 (the decision-queue 2026-07-15 follow-up named these
+  // two): every literal AND ternary inline color converted to themeable
+  // classes (with midnight remaps added in theme-css.js), so the dark-on-dark
+  // class is machine-dead here. TeachMode had already been cleaned by its
+  // owning lane. Bookstore/Forecast/CreationWorkspace stay WARN-tier: their
+  // remaining inline colors ride palette-object styling (P.ink etc.) — a
+  // whole-file conversion routed in the decision queue with its own date.
+  'Imported.jsx',
+  'TeachMode.jsx',
 ];
 
 // Midnight surfaces an inline (un-themeable) text color would have to clear.

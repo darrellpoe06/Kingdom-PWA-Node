@@ -151,16 +151,21 @@ export const THEME_CSS = `
 [data-theme="midnight"] .text-\\[\\#991B1B\\]{color:#FCA5A5!important}
 [data-theme="midnight"] .text-\\[\\#9A3412\\]{color:#FCA5A5!important}
 [data-theme="midnight"] .text-\\[\\#DC2626\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#9B2C2C\\]{color:#FCA5A5!important}
 /* success / green text -> bright mint (matches the #5A6E3D accent remap) */
 [data-theme="midnight"] .text-\\[\\#15803D\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#166534\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#3F5226\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#3F5A2A\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#216E39\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#2F6B3A\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#16A34A\\]{color:#86EFAC!important}
 /* gold / amber / brown text -> bright amber */
 [data-theme="midnight"] .text-\\[\\#8A6E1F\\]{color:#FCD34D!important}
 [data-theme="midnight"] .text-\\[\\#8B6F47\\]{color:#FCD34D!important}
 [data-theme="midnight"] .text-\\[\\#B45309\\]{color:#FCD34D!important}
 [data-theme="midnight"] .text-\\[\\#5A4A2E\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#946A00\\]{color:#FCD34D!important}
 /* blue text -> bright blue */
 [data-theme="midnight"] .text-\\[\\#1F6FEB\\]{color:#93C5FD!important}
 /* purple text -> bright lavender */
