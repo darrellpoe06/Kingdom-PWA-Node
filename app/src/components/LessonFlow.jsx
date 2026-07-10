@@ -45,7 +45,7 @@ function StageRail({ segments, current = -1, onJump = null }) {
       {segments.map((s, i) => {
         const on = i === current;
         const done = current > -1 && i < current;
-        const base = 'flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+        const base = 'flex items-center gap-1 text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
         const tone = on
           ? 'border-[#1A1815] bg-[#1A1815] text-white'
           : done
@@ -108,11 +108,11 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
           <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
             <span aria-hidden="true">{seg.icon}</span> {seg.title} <span className="text-[#5A5751] font-normal">· {seg.subtitle}</span>
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={MONO}>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO}>
             {clamped + 1} / {segments.length}{seg.minutes > 0 ? ` · ~${seg.minutes} min` : ''}
           </span>
         </div>
-        <p className="text-[11px] text-[#5A5751] mb-2" style={SERIF}>{seg.blurb}</p>
+        <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>{seg.blurb}</p>
 
         <div>{renderStage(seg, clamped)}</div>
 
@@ -121,18 +121,18 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
             type="button"
             onClick={() => goTo(clamped - 1)}
             disabled={atFirst}
-            className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             ◀ Previous part
           </button>
-          <span className="text-[10px] text-[#5A5751] uppercase tracking-wider" style={SERIF}>
+          <span className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider" style={SERIF}>
             {atLast ? `End of this ${unitNoun}` : seg.cue}
           </span>
           <button
             type="button"
             onClick={() => goTo(clamped + 1)}
             disabled={atLast}
-            className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white opacity-60' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white opacity-60' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
           >
             {atLast ? 'Done ✓' : 'Next part ▶'}
           </button>
@@ -170,13 +170,13 @@ export function LessonRunOfShow({
   return (
     <div className="mt-3 border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3">
       <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">{sessionLabel}</div>
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={MONO}>{arc.totalMinutes} min total</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">{sessionLabel}</div>
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO}>{arc.totalMinutes} min total</div>
       </div>
 
       {/* Time-adaptive reflow — re-time the whole plan to any length (#309). */}
       <div className="mb-3">
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Fit the time you have</div>
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Fit the time you have</div>
         <div role="group" aria-label="Reflow the session length" className="flex flex-wrap gap-1.5 items-center">
           {REFLOW_PRESETS.map((p) => {
             const on = p === target;
@@ -186,7 +186,7 @@ export function LessonRunOfShow({
                 type="button"
                 aria-pressed={on}
                 onClick={() => setTarget(p)}
-                className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
+                className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
               >
                 {p}m
               </button>
@@ -197,13 +197,13 @@ export function LessonRunOfShow({
               type="button"
               onClick={() => setTarget((t) => Math.max(5, t - 5))}
               aria-label="Five minutes shorter"
-              className="text-[11px] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
             >−</button>
             <button
               type="button"
               onClick={() => setTarget((t) => Math.min(240, t + 5))}
               aria-label="Five minutes longer"
-              className="text-[11px] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
             >+</button>
           </span>
         </div>
@@ -218,25 +218,25 @@ export function LessonRunOfShow({
               <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
                 <span aria-hidden="true">{s.icon}</span> {s.title} <span className="text-[#5A5751] font-normal">· {s.subtitle}</span>
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]" style={MONO}>~{s.minutes} min</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" style={MONO}>~{s.minutes} min</span>
             </div>
 
             {/* What the audience sees this stage (so the leader has context) */}
             {s.kind === 'open' && (s.audience.anchorRef || s.audience.bigIdea) && (
-              <p className="text-[11px] text-[#5A5751] mb-1" style={SERIF}>
+              <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
                 {s.audience.anchorRef && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> {s.audience.anchorTheme} </>}
               </p>
             )}
             {s.kind === 'apply' && s.audience.inApp && (
-              <p className="text-[11px] text-[#5A5751] mb-1" style={SERIF}><strong className="text-[#1A1815]">{s.audience.handsOnLabel}:</strong> {s.audience.inApp}</p>
+              <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}><strong className="text-[#1A1815]">{s.audience.handsOnLabel}:</strong> {s.audience.inApp}</p>
             )}
 
             {/* SAY */}
             {Array.isArray(s.facilitator.say) && s.facilitator.say.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Say</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Say</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.say.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.say.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
@@ -244,9 +244,9 @@ export function LessonRunOfShow({
             {/* DO */}
             {Array.isArray(s.facilitator.do) && s.facilitator.do.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Do</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Do</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.do.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.do.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
@@ -254,18 +254,18 @@ export function LessonRunOfShow({
             {/* Discussion prompts surface on the engage stage */}
             {s.kind === 'engage' && Array.isArray(s.facilitator.prompts) && s.facilitator.prompts.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Prompts</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Prompts</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.prompts.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.prompts.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
 
             {s.kind === 'apply' && s.facilitator.watchFor && (
-              <p className="text-[11px] text-[#7A1F1F] mb-1" style={SERIF}><strong>Watch for:</strong> {s.facilitator.watchFor}</p>
+              <p className="text-[0.6875rem] text-[#7A1F1F] mb-1" style={SERIF}><strong>Watch for:</strong> {s.facilitator.watchFor}</p>
             )}
 
-            <p className="text-[10px] text-[#5A5751] uppercase tracking-wider mt-1" style={SERIF}>→ {s.cue}</p>
+            <p className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider mt-1" style={SERIF}>→ {s.cue}</p>
           </li>
         ))}
       </ol>
