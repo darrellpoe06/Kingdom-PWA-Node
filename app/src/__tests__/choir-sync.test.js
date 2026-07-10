@@ -116,9 +116,11 @@ describe('buildPastServices', () => {
     { id: 'sch2', serviceDate: '2026-07-13', serviceType: 'sunday', title: 'Future' }, // future -> excluded
   ];
   const sermons = [
-    { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' },
-    { videoId: 'v2', serviceDate: '2026-06-15', serviceType: 'sunday', title: 'Msg 15', youtubeUrl: 'y15' }, // recorded, no songs -> WATCHABLE history (DR-0137)
+    { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' }, // Monday date, but HAS a song -> stays
+    { videoId: 'v2', serviceDate: '2026-06-21', serviceType: 'sunday', title: 'Msg 21', youtubeUrl: 'y21' }, // a real SUNDAY recording, no songs -> WATCHABLE history (DR-0137)
     { videoId: 'v3', serviceDate: '2026-06-28', serviceType: 'sunday', title: 'Sermon dup' }, // dup of sch1
+    { videoId: 'v4', serviceDate: '2026-06-24', serviceType: 'wednesday', title: 'Bible study', youtubeUrl: 'y24' }, // Wednesday video-only -> the sermon library's, not the choir's
+    { videoId: 'v5', serviceDate: '2026-06-22', serviceType: 'sunday', title: 'Monday-posted', youtubeUrl: 'y22' }, // Monday video-only -> not a choir Sunday
     { serviceDate: '2026-06-08', serviceType: 'sunday', title: 'Draft notes' }, // no video, no songs, no plan -> noise, excluded
   ];
   const songs = [
@@ -131,11 +133,17 @@ describe('buildPastServices', () => {
     expect(dates).toContain('2026-06-29'); // has a song
     expect(dates).toContain('2026-06-28'); // scheduled
   });
-  it('includes a RECORDED past service with no setlist — the watchable corpus IS the history (DR-0137)', () => {
+  it('includes a RECORDED past SUNDAY with no setlist — the watchable Sunday corpus IS the choir history (DR-0137)', () => {
     const past = buildPastServices(schedule, sermons, songs, today);
-    const hit = past.find((s) => s.serviceDate === '2026-06-15');
+    const hit = past.find((s) => s.serviceDate === '2026-06-21');
     expect(hit).toBeTruthy();
-    expect(hit.youtubeUrl).toBe('y15'); // the Watch-service link rides the card
+    expect(hit.youtubeUrl).toBe('y21'); // the Watch-service link rides the card
+  });
+  it('the choir sings on Sunday: video-only rows on other real weekdays leave the choir room (Darrell 2026-07-10)', () => {
+    const dates = buildPastServices(schedule, sermons, songs, today).map((s) => s.serviceDate);
+    expect(dates).not.toContain('2026-06-24'); // Wednesday Bible study video
+    expect(dates).not.toContain('2026-06-22'); // Monday-posted video, no songs, not planned
+    expect(dates).toContain('2026-06-29');     // Monday date but the harvester found its songs -> stays
   });
   it('still excludes a past row with no plan, no setlist, AND no video (pure noise)', () => {
     const past = buildPastServices(schedule, sermons, songs, today);

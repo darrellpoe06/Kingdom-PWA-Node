@@ -40,7 +40,7 @@ const STORAGE_KEY = 'poe-text-size';
 // Multipliers: Largest = 2x root — WCAG 1.4.4's 200% applied DIRECTLY to the
 // content scale, not reached only via the reading bodies' own headroom. Raised
 // from 1.5x on 2026-07-10 after Darrell, at A+++ on a small phone: "The largest
-// size text is still very small on a small cellphone" (DR-0143). The chrome cap
+// size text is still very small on a small cellphone" (DR-0145). The chrome cap
 // (below) keeps headers/tabs bounded (~1.25x at Largest) so the layout holds
 // while CONTENT truly doubles. Big, plain labels for non-technical readers.
 export const TEXT_SIZE_STEPS = [

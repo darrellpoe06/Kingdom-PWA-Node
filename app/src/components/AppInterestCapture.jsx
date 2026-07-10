@@ -11,14 +11,48 @@
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F /
 // #5A6E3D accents, labelled inputs, #B85838 focus ring, >=44px targets, aria-live
 // on the result + errors.
-import React, { useMemo, useRef, useState } from 'react';
+//
+// One-tap install (2026-07-10, Darrell: "it should be easy — why can't I just
+// push a button to download?"): the old `canPrompt` prop was NEVER passed by any
+// caller, so this page showed manual menu-steps even while the browser was
+// holding a captured beforeinstallprompt that could fire the native install
+// dialog in one tap. Now the component asks install-app.js directly: when the
+// one-tap is possible it leads with a real INSTALL BUTTON; the manual steps
+// remain the fallback for iOS and for browsers that never handed the event over.
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { detectPlatform, installSteps, validateInterest, isStandalone } from '../lib/install-help.js';
+import { canPromptInstall, promptInstall } from '../lib/install-app.js';
+import UiIcon from './UiIcon.jsx';
 import { submitInterest } from '../lib/interest-sync.js';
 import { FIELD_CAPS, looksLikeBot } from '../lib/sanitize-input.js';
 
-export default function AppInterestCapture({ onClose = null, source = 'app', canPrompt = false }) {
+export default function AppInterestCapture({ onClose = null, source = 'app' }) {
   const platform = useMemo(() => detectPlatform(), []);
-  const help = useMemo(() => installSteps(platform, canPrompt), [platform, canPrompt]);
+  const [canTap, setCanTap] = useState(() => canPromptInstall());
+  const [install, setInstall] = useState('idle'); // idle | installing | accepted
+  useEffect(() => {
+    // Chrome may hand beforeinstallprompt over AFTER this page mounts — arm the
+    // one-tap button the moment it lands instead of missing it by a beat.
+    if (canTap || typeof window === 'undefined') return undefined;
+    const onPrompt = () => setCanTap(true);
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, [canTap]);
+  const help = useMemo(() => installSteps(platform, canTap), [platform, canTap]);
+
+  const doInstall = async () => {
+    if (install === 'installing') return;
+    setInstall('installing');
+    const outcome = await promptInstall();
+    if (outcome === 'accepted') {
+      setInstall('accepted');
+    } else {
+      // Declined or the event was already spent — fall back honestly to the
+      // manual steps (canPromptInstall is false now that the event is used).
+      setInstall('idle');
+      setCanTap(canPromptInstall());
+    }
+  };
   const [form, setForm] = useState({ name: '', email: '', phone: '', issue: '', isMinor: false, parentConfirmed: false });
   const [errors, setErrors] = useState({});
   const [state, setState] = useState('idle'); // idle | sending | sent | error
@@ -52,6 +86,7 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
         <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Darrell or Christina will reach out with your invite and help you get PoeTech set up. In the meantime, the steps for your device are below.
         </p>
+        <OneTapInstall canTap={canTap} install={install} onInstall={doInstall} />
         <InstallSteps help={help} />
         {onClose && (
           <button type="button" onClick={onClose} className="mt-4 text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Done</button>
@@ -71,6 +106,7 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
       </p>
 
       <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-4">
+        <OneTapInstall canTap={canTap} install={install} onInstall={doInstall} />
         <InstallSteps help={help} />
       </div>
 
@@ -129,6 +165,32 @@ export default function AppInterestCapture({ onClose = null, source = 'app', can
         </div>
       </form>
     </div>
+  );
+}
+
+// The button Darrell asked for: when the browser handed us its install event,
+// ONE TAP fires the native install dialog right here. Hidden when the app is
+// already installed (standalone) or the event isn't available (steps carry it).
+function OneTapInstall({ canTap, install, onInstall }) {
+  if (isStandalone()) return null;
+  if (install === 'accepted') {
+    return (
+      <p className="text-sm font-semibold text-[#5A6E3D] mb-2" role="status" aria-live="polite">
+        ✓ Installing — PoeTech is landing on your home screen.
+      </p>
+    );
+  }
+  if (!canTap) return null;
+  return (
+    <button
+      type="button"
+      onClick={onInstall}
+      disabled={install === 'installing'}
+      className="w-full mb-3 inline-flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider px-4 py-3 min-h-[44px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#B85838] disabled:opacity-60 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+    >
+      <UiIcon name="phone" />
+      {install === 'installing' ? 'Opening the install…' : 'Install PoeTech on this device'}
+    </button>
   );
 }
 

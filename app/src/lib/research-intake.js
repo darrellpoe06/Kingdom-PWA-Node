@@ -1,0 +1,294 @@
+// =============================================================================
+// research-intake — the sourcing bench, the intake, and the Research Day (DR-0143)
+// =============================================================================
+// "Ari should be able to source my gemini and chatgpt $20 accounts for certain
+// skills claude doesnt have... Keep researching certain day/s to keep
+// researching upgrades and features from GitHub... Ari's responsibility and
+// reports should all update to reflect as well all inside the PoeTech App. No
+// static data." (Darrell, 2026-07-10 — DR-0143.)
+//
+// This module is the ONE SOURCE (DR-0121) for three things:
+//
+//   1. THE SOURCING BENCH — the whole team's AI instruments, each with the
+//      skills it actually has, the constraints that actually bind it, and how
+//      its output ENTERS the house. The ways-review rule (DR-0108) is encoded
+//      here structurally: the agent accounts for the TEAM's capabilities —
+//      Darrell's Gemini/NotebookLM and ChatGPT, the NAS lanes, the runners —
+//      never only its own. Every instrument carries a real constraint; a bench
+//      entry with no named limit would be a painted claim (DR-0076).
+//
+//   2. THE INTAKE — the worked pattern for outside capability entering the
+//      house, proven on the Priestley pass (DR-0140/REV-0032) and hardened by
+//      the 2026-07-10 catch: a hand-carried Gemini briefing asserted an
+//      architecture this repo does not have (an "existing llm-worker.js",
+//      Next.js, WebLLM — the dead vanilla scaffold and two fictions). The
+//      premise-verify step exists because that catch was real.
+//
+//   3. THE RESEARCH DAY — the weekly upgrade/feature research cadence,
+//      MEASURED from the live review registry (__UIUX_REVIEWS__), never
+//      promised: a pass counts only when a REV record carrying the marker is
+//      filed, and no record on file reads OVERDUE, never fresh (DR-0076 /
+//      DR-0125's freshness posture).
+//
+// Pure + dependency-free (Node + browser + tests). The cadence takes `nowMs`
+// injected — deterministic in tests, same discipline as re-reviews.js.
+// =============================================================================
+
+const MS_DAY = 86400000;
+
+// The cadence contract. A research pass is REAL when a review-registry record
+// carries this marker in its Surface (or title) line — the same file the
+// Quality panel reads, so the cadence can only go green by actually filing the
+// pass (docs/reviews/REVIEWS.md → __UIUX_REVIEWS__, re-parsed every build).
+export const RESEARCH_DAY = Object.freeze({
+  marker: 'Research Day',
+  dayName: 'Monday',
+  intervalDays: 7,
+});
+
+const MARKER_RE = /research day/i;
+
+// -----------------------------------------------------------------------------
+// The sourcing bench — every instrument the TEAM holds, with honest limits.
+// `entry` names how that instrument's output enters the repo/app: nothing on
+// this bench writes to the house without passing the intake below.
+// -----------------------------------------------------------------------------
+export const SOURCING_BENCH = Object.freeze([
+  {
+    key: 'principal',
+    name: 'Darrell (the Governor)',
+    skills: 'Decisions and bright lines; values only he holds; fires the consumer AI tools by hand; SSH to the NAS from his phone (ConnectBot); the lived context no model has.',
+    constraint: 'The most expensive instrument on the bench — ask for the smallest possible piece of his time (Drive-Don’t-Delegate), never for what another instrument can do.',
+    entry: 'Speaks or pastes into the session; a spoken word is build input and never lands in a dead end (DR-0131).',
+  },
+  {
+    key: 'claude-code',
+    name: 'Claude Code (cloud + CLI sessions)',
+    skills: 'Builds, verifies, and ships in this repo: tests, deterministic gates, the auto-merge lane, decision/review records, the app itself.',
+    constraint: 'The cloud sandbox has no route to the LAN, the NAS, or poetech.us, and no native video ingestion — the runners are its eyes on production and the bench covers the rest.',
+    entry: 'Direct: branch → gates → PR → auto-merge on green (DR-0103).',
+  },
+  {
+    key: 'gemini',
+    name: 'Gemini Pro + NotebookLM (Darrell’s subscription)',
+    skills: 'Native YouTube/video ingestion; NotebookLM source curation, studio outputs (slides, infographics, video), sandboxed code execution over sources; deep research.',
+    constraint: 'The consumer subscription carries no API — output is hand-carried, and every briefing is premise-verified before anything is built on it (proven 2026-07-10: a briefing asserted a Next.js/WebLLM architecture this repo does not have). Foreign project framing rides along and is stripped at the door.',
+    entry: 'Hand-carried by Darrell (paste/screenshot) → the intake’s premise-verify step.',
+  },
+  {
+    key: 'chatgpt',
+    name: 'ChatGPT (Darrell’s $20 plan)',
+    skills: 'Second-opinion reasoning, an independent research voice, image generation.',
+    constraint: 'No API on the consumer tier and no free-key equivalent exists (unlike Gemini’s AI Studio path) — hand-carried output only, same premise-verify gate.',
+    entry: 'Hand-carried by Darrell → the intake’s premise-verify step.',
+  },
+  {
+    key: 'nas',
+    name: 'The sovereign lane (Supabase-bus + church boxes + NAS Whisper/Ollama)',
+    skills: 'Sovereign automation the DR-0132 way: the app writes task rows to Supabase, the self-orchestrating box polls outbound and runs local models; transcription (Whisper) and the dispatch/status surfaces stay in the house.',
+    constraint: 'The LAN is unreachable from the cloud sandbox — box/NAS-side steps run as paste-ready runbooks by Darrell’s hand (ConnectBot); n8n is OFF the critical path by the house’s own experience (DR-0132, LESSONS P17–P19) and returns only by a governance case; timer-driven work ships under the three brakes, inactive.',
+    entry: 'Supabase rows the box polls outbound (no inbound hop); runbooks executed by the principal.',
+  },
+  {
+    key: 'runners',
+    name: 'GitHub Actions runners',
+    skills: 'The outside-in eyes: site-health and boot-check probes against production, the CI gates, scheduled workflows.',
+    constraint: 'Tokens stay narrow; event/timer automation is still automation — the three brakes govern anything that spawns compute on a clock.',
+    entry: 'Workflow runs filing issues/ledgers the app reads; gates failing the build.',
+  },
+]);
+
+// -----------------------------------------------------------------------------
+// The intake — how ANY outside capability, briefing, or teaching enters the
+// house. Order is binding: premise-verify precedes everything built on the
+// input, and the record steps close the loop the same session (DR-0120/0121).
+// -----------------------------------------------------------------------------
+export const INTAKE_STEPS = Object.freeze([
+  { key: 'capture', step: 'Capture the input whole — spoken word, pasted briefing, screenshot; nothing brought is dropped silently.', ref: 'DR-0089' },
+  { key: 'premise-verify', step: 'Verify every claim the input makes about OUR system against the repo before building on it; strip foreign project framing. An asserted "we have X" is checked, not believed.', ref: 'DR-0076' },
+  { key: 'house-first', step: 'Check the house before the market: what do our own Ways, documentation, and LESSONS-LEARNED already hold on this? A capability we already run is reused, not replaced — new data must name, specifically, what it improves over the house’s proven way. RECORDED EXPERIENCE IS SENIOR: a finding that contradicts a standing decision or the Governor’s recorded experience is DECLINED by default (the n8n catch, 2026-07-10 — the ecosystem staged what DR-0132 had already judged); it reopens only when Ari brings a justified case to governance on real tests and outcomes.', ref: 'DR-0132' },
+  { key: 'tier', step: 'Tier the substance (established fact stated plainly; genuinely-open flagged narrowly; over-reach corrected by the Word — the true data beneath still stands).', ref: 'DR-0100' },
+  { key: 'verdict', step: 'Adopt, stage, watch, or decline — each with a written why. ADOPTED requires evidence from real use here, measured, on file; agreement without testing is not adoption, and "new" is never by itself a reason to change. A decline or deferral carries a re-review date, never a silent drop.', ref: 'DR-0075' },
+  { key: 'one-source', step: 'Ship what is adopted as ONE source that both teaches and operates — no static copies to drift.', ref: 'DR-0121' },
+  { key: 'record', step: 'File the pass: Decision Record + REV entry + session note, so the ledger the app reads carries it.', ref: 'DR-0102' },
+  { key: 'reflect', step: 'Ari’s duties, derived notes, and reports update with the feature in the same session — inside the app.', ref: 'DR-0120' },
+  { key: 'schedule', step: 'Route the opportunities with re-review dates into the backlog the app sorts; the next Research Day is measured from the registry, never promised.', ref: 'DR-0108' },
+]);
+
+// -----------------------------------------------------------------------------
+// The findings registry — the 2026-07-10 pass (NotebookLM 2.0 + the
+// orchestration briefing + the GitHub/ecosystem scan), each with its verdict,
+// its why, its binding constraint, and a re-review date where work remains.
+// Star/adoption numbers are stated only at the confidence they were verified
+// (DR-0100): "verified 2026-07-10" means read from the source page that day;
+// otherwise the count is reported secondhand and said so.
+// -----------------------------------------------------------------------------
+// The verdicts, with the evidence rule made explicit (Darrell 2026-07-10:
+// "test and see, not agree without testing... evidence based evaluations then
+// adoption of what actually works, not change just because"). Promotion runs
+// one way: watch → staged → adopted, and the LAST step is crossed only by a
+// measured result from real use in this house — never by agreement alone.
+export const FINDING_VERDICTS = Object.freeze(['adopted', 'staged', 'watch', 'declined']);
+export const VERDICT_MEANING = Object.freeze({
+  adopted: 'proven in real use here — the evidence is named in the why',
+  staged: 'named for a real trial; promoted to adopted only by a measured result, never by agreement',
+  watch: 'worth tracking; no trial until a named need exists (no change just because)',
+  declined: 'not taken, with the why held and a re-review date — never a silent drop',
+});
+
+export const RESEARCH_FINDINGS = Object.freeze([
+  {
+    key: 'notebooklm-instrument',
+    name: 'NotebookLM 2.0 as a research instrument',
+    source: 'NotebookLM 2.0 walkthrough (Gemini-carried, 2026-07-10)',
+    verdict: 'adopted',
+    why: 'Evidence from real use, not agreement: this very pass ran on it — the two video briefings entered the house through Gemini/NotebookLM ingestion, skills (native video ingestion, source curation, studio outputs, sandboxed code-execution) the house verifiably lacks. It joins the bench as an instrument Darrell fires.',
+    constraint: 'No API and no official MCP server — output enters hand-carried through the intake; it never becomes a dependency of an automated lane.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'director-not-doer',
+    name: 'Orchestrator paradigm (director, not doer)',
+    source: 'AI-orchestration video briefing (Gemini-carried, 2026-07-10)',
+    verdict: 'adopted',
+    why: 'House-first check: nothing new to adopt — the delivery loop (DR-0103), do-don’t-re-ask (DR-0111), and Drive-Don’t-Delegate ARE the director posture, already proven in this house’s own record. The briefing’s value was the confirmation, not a change.',
+    constraint: 'The same briefing asserted architecture this repo does not have (an "existing llm-worker.js", Next.js, WebLLM) — the proven-to-catch case for the premise-verify step; hand-carried briefings are never built on unverified.',
+    reReview: null,
+  },
+  {
+    key: 'portable-skills',
+    name: 'Reusable skills / playbooks (Agent Skills standard)',
+    source: 'Orchestration briefing + ecosystem scan (anthropics/skills ~160k stars verified 2026-07-10; Superpowers adoption top-tier, exact count conflicting across sources)',
+    verdict: 'staged',
+    why: 'Packaging this repo’s proven playbooks — this intake, the verse-verification harness, the O&C pass — as portable skills makes every future session (and other agents) run them without re-teaching; the document skills cover slide/handout generation for teaching material.',
+    constraint: 'Anthropic’s document skills are source-available, not open source; Superpowers’ exact adoption numbers conflict between its page and secondary posts — treated as strong-signal, not fact.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'passive-connectors',
+    name: 'Calendar/email connectors as telemetry',
+    source: 'Orchestration briefing + ecosystem scan (Google Workspace MCP; Google now ships first-party remote MCP servers)',
+    verdict: 'staged',
+    why: 'Workspace APIs are reachable from consumer Google accounts (unlike Gemini-the-subscription), and Gmail/Calendar MCP already runs in build sessions — a church calendar + email digest surface can ride the Supabase-bus + box lane sovereignly (the DR-0132 path, not n8n).',
+    constraint: 'DATA-AS-EMPOWERMENT governs: opt-in per stream, no always-on watcher without Tier C review; any scheduled audit is timer-driven automation under the three brakes.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'nas-agent-node',
+    name: 'n8n AI Agent node + self-hosted AI starter kit',
+    source: 'Ecosystem scan (n8n ~150k stars reported secondhand) — corrected by the house record the same day',
+    verdict: 'declined',
+    why: 'The house-first check overrules the ecosystem signal: the house’s OWN experience already judged this — DR-0132 took n8n off every reliability-critical path (the HTTP 530 night, silent Code-node failures, "Succeeded" ≠ correct, a webhook down a day; LESSONS P17/P18/P19; DR-0083 before it), and Darrell 2026-07-10: "I don’t like n8n... from experience." Popularity elsewhere is not evidence here. The sovereign agent lane is the Supabase-bus + self-orchestrating box DR-0132 built instead.',
+    constraint: 'Reopening this takes a governance case, not a trend: Ari brings it to the Governor ONLY if a real test and measured outcome justify it — never because the ecosystem likes it.',
+    reReview: '2026-10-08',
+  },
+  {
+    key: 'open-notebook',
+    name: 'Open Notebook (sovereign NotebookLM on the NAS)',
+    source: 'Ecosystem scan (lfnovo/open-notebook, 35.4k stars + v1.10.0 verified 2026-07-10, MIT)',
+    verdict: 'staged',
+    why: 'NotebookLM’s core value — source curation, insights, multi-speaker audio — without sending foundation-doc material to Google; a research/teaching library that lives in the house.',
+    constraint: 'Needs LLM keys or NAS Ollama; deployment is a NAS-side job by the principal’s hand (ConnectBot runbook), Tier B soak before the family leans on it.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'youtube-ingestion',
+    name: 'YouTube transcript ingestion (MCP servers)',
+    source: 'Ecosystem scan (kimtaeyoon83/mcp-server-youtube-transcript, ergut/youtube-transcript-mcp; star counts unverified)',
+    verdict: 'staged',
+    why: 'Removes the hand-carry for video input: a sermon or teaching published to YouTube becomes build input directly, pairing with the NAS Whisper lane instead of waiting on a Gemini paste.',
+    constraint: 'Transcript scraping is fragile against YouTube changes and sits in ToS gray area; the Gemini-API-backed variant needs the AI Studio key first.',
+    reReview: '2026-07-24',
+  },
+  {
+    key: 'ai-studio-key',
+    name: 'Google AI Studio free-tier Gemini API key',
+    source: 'Ecosystem scan (the recurring unlock across findings)',
+    verdict: 'staged',
+    why: 'THE honest programmatic-Gemini path: the consumer Gemini Pro subscription carries no API, but AI Studio issues free-tier keys independent of it — unlocking the NAS agent node, Open Notebook, and API-backed video ingestion without new spend.',
+    constraint: 'Quotas unverified — verify current limits before any lane depends on it; issuing the key is a value only Darrell holds (his Google account).',
+    reReview: '2026-07-24',
+  },
+  {
+    key: 'multi-model-routing',
+    name: 'Multi-model routing (claude-code-router class)',
+    source: 'Ecosystem scan (musistudio/claude-code-router, ~33k stars reported secondhand)',
+    verdict: 'watch',
+    why: 'Routing long-context/cheap subtasks to other providers cuts cost — but it only matters once a real key exists (AI Studio) and a real workload demands it; adopting infrastructure ahead of need is the inversion of demand-testing (DR-0140).',
+    constraint: 'No ChatGPT path at all on the $20 plan (no API, no free-key equivalent) — routing can never assume that instrument.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'on-device-ai',
+    name: 'On-device browser AI (whisper-web, Transformers.js, Prompt API)',
+    source: 'Ecosystem scan (star counts unverified; Chrome built-in AI docs)',
+    verdict: 'watch',
+    why: 'DATA-AS-EMPOWERMENT made literal — voice input and summarization where nothing leaves the family’s phone, at zero per-token cost; the natural fit is Council Chamber voice.',
+    constraint: 'Hundreds of MB to ~2GB model downloads on family phones and WebGPU variability — needs a named target surface and a graceful fallback before it is more than a watch item.',
+    reReview: '2026-08-07',
+  },
+  {
+    key: 'ci-claude-action',
+    name: 'Claude agents inside CI (claude-code-action)',
+    source: 'Ecosystem scan (official Anthropic action; Microsoft security case study, June 2026)',
+    verdict: 'declined',
+    why: '"File an issue from the phone, the agent ships the fix" is already covered by the remote-session lane; adding autonomous agent compute INSIDE CI buys little here today.',
+    constraint: 'It is event-driven autonomous compute with documented prompt-injection risk in CI — Tier C + three brakes if ever revisited, with narrowly-scoped tokens.',
+    reReview: '2026-08-07',
+  },
+]);
+
+// -----------------------------------------------------------------------------
+// The Research Day cadence — measured, never promised.
+// -----------------------------------------------------------------------------
+
+// Every registry record that IS a research pass: carries the marker in its
+// Surface (or title) line and a real date. Newest first.
+export function researchPasses(reviews) {
+  const items = (reviews && Array.isArray(reviews.items)) ? reviews.items
+    : (Array.isArray(reviews) ? reviews : []);
+  return items
+    .filter((r) => r
+      && MARKER_RE.test(`${r.surface || ''} ${r.title || ''}`)
+      && /^\d{4}-\d{2}-\d{2}/.test(String(r.date || '')))
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+/**
+ * The cadence state, derived from the live registry. `nowMs` is injected
+ * (Date.now() at the surface; a fixed value in tests). No record on file
+ * reads OVERDUE — unknown freshness never reads as fresh (DR-0076).
+ * @param {{items: Array}|Array|null} reviews - __UIUX_REVIEWS__ shape
+ * @param {number|null} nowMs
+ */
+export function researchCadence(reviews, nowMs = null) {
+  const passes = researchPasses(reviews);
+  const base = {
+    marker: RESEARCH_DAY.marker,
+    dayName: RESEARCH_DAY.dayName,
+    intervalDays: RESEARCH_DAY.intervalDays,
+    passCount: passes.length,
+  };
+  const last = passes[0];
+  if (!last) {
+    return { ...base, hasRecord: false, lastPass: null, daysSince: null, nextDue: null, overdue: true };
+  }
+  const lastDate = String(last.date).slice(0, 10);
+  const lastMs = Date.parse(`${lastDate}T00:00:00Z`);
+  const nextMs = lastMs + RESEARCH_DAY.intervalDays * MS_DAY;
+  const nextDue = new Date(nextMs).toISOString().slice(0, 10);
+  let daysSince = null;
+  let overdue = false;
+  if (nowMs != null && Number.isFinite(lastMs)) {
+    daysSince = Math.floor((nowMs - lastMs) / MS_DAY);
+    overdue = nowMs > nextMs;
+  }
+  return {
+    ...base,
+    hasRecord: true,
+    lastPass: { id: last.id || '', date: lastDate, title: last.title || '' },
+    daysSince,
+    nextDue,
+    overdue,
+  };
+}

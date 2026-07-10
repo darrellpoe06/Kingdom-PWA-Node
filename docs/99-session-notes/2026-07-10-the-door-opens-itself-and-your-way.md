@@ -1,6 +1,6 @@
 # The door opens itself, and opens your way — three live reports, and self-healing part 2
 
-> Layer 4 working artifact. Companion to **DR-0143** and REV-0035. Triggers, Darrell 2026-07-10 (live, from his devices): *"The one tap refresh doesn't work... I can't even download the PoeTech App unless I have a password... I only use my PIN — can I do that only and/or my fingerprint?"* — *"Why do we only have 135 videos or whatever and not 335 for every area needing data from YouTube?"* — and, for the second time in one day: *"Why doesn't the PoeTech App seem like it's self-healing yet?"*
+> Layer 4 working artifact. Companion to **DR-0145** and REV-0037. Triggers, Darrell 2026-07-10 (live, from his devices): *"The one tap refresh doesn't work... I can't even download the PoeTech App unless I have a password... I only use my PIN — can I do that only and/or my fingerprint?"* — *"Why do we only have 135 videos or whatever and not 335 for every area needing data from YouTube?"* — and, for the second time in one day: *"Why doesn't the PoeTech App seem like it's self-healing yet?"*
 
 ## The three reports, each verified before fixing
 
@@ -17,4 +17,4 @@ The DR-0135 review built probes, readouts, and actuators — but every actuator 
 
 ## Also in this batch
 
-The deploy verify now boots **the Church tab** (`?view=church`) in a real browser on every deploy (merged as #721) — the white-screen class from tonight's first screenshot is machine-watched. Ari's record carries all of it by construction: DR-0143 lands in his derived notes this build.
+The deploy verify now boots **the Church tab** (`?view=church`) in a real browser on every deploy (merged as #721) — the white-screen class from tonight's first screenshot is machine-watched. Ari's record carries all of it by construction: DR-0145 lands in his derived notes this build.

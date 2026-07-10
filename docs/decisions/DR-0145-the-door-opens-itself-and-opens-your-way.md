@@ -1,4 +1,4 @@
-# DR-0143 — The door opens itself, and it opens YOUR way: the one tap is the strongest heal, and no one needs a password
+# DR-0145 — The door opens itself, and it opens YOUR way: the one tap is the strongest heal, and no one needs a password
 
 - **Status:** accepted
 - **Tier:** A/B (a heal-ladder fix proven by tests, a sign-in PRESENTATION reordering over existing audited machinery, a one-line secret-hygiene fix; no new auth backend, no new data class)

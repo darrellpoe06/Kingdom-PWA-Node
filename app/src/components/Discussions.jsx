@@ -25,10 +25,14 @@ import {
 import { handoffSummary } from '../lib/orchestrator-handoff.js';
 import { ARI } from '../lib/ari.js';
 import { ariNotesFromLedger, ariAssignments, resolveDuties } from '../lib/ari-notes.js';
+import { RESEARCH_DAY, SOURCING_BENCH, RESEARCH_FINDINGS, researchCadence } from '../lib/research-intake.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 
 // The decision ledger — Ari's derived note source (re-parsed every build).
 const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
+// The review registry — the Research Day cadence derives from it (DR-0143):
+// a pass counts only when a REV record carrying the marker is filed.
+const UIUX_REVIEWS = (typeof __UIUX_REVIEWS__ !== 'undefined') ? __UIUX_REVIEWS__ : { ok: false, count: 0, items: [] };
 
 // -----------------------------------------------------------------------------
 // AriRecord — Ari's notes + responsibilities, DERIVED (DR-0120/DR-0121 item 3).
@@ -44,9 +48,13 @@ const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok:
 function AriRecord() {
   const tasks = useBoardTasks();
   const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleFindings, setVisibleFindings] = useState(4);
   const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
   const work = useMemo(() => ariAssignments(tasks), [tasks]);
   const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
+  // The Research Day cadence — measured from the same review registry the
+  // Quality panel reads; a pass exists only when its REV record is filed.
+  const cadence = useMemo(() => researchCadence(UIUX_REVIEWS, Date.now()), []);
   return (
     <section className="bg-white border border-[#5A4A2E] p-4">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -70,6 +78,52 @@ function AriRecord() {
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* The sourcing bench + Research Day (DR-0143) — the whole team's
+          instruments with honest limits, the evidence-based findings registry,
+          and the weekly research cadence MEASURED from the review registry. */}
+      <div className="mt-3">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Sourcing bench · Research Day (weekly, {RESEARCH_DAY.dayName}s)</div>
+          {cadence.hasRecord ? (
+            <span className={`text-[0.625rem] ${cadence.overdue ? 'text-[#DC2626]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              last pass {cadence.lastPass.date}{cadence.daysSince != null ? ` · ${cadence.daysSince}d ago` : ''} · next due {cadence.nextDue}{cadence.overdue ? ' · OVERDUE' : ''}
+            </span>
+          ) : (
+            <span className="text-[0.625rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>no pass on record — overdue (nothing invented)</span>
+          )}
+        </div>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Every capability routes to the instrument that actually has it — the whole team&apos;s bench, not only the agent&apos;s. Outside input runs the intake house-first, and adoption takes evidence from real use here — tested, never agreed to untested. The cadence above derives from the review registry: a pass counts only when its record is filed.
+        </p>
+        <ul className="mt-1.5 space-y-0.5">
+          {SOURCING_BENCH.map((b) => (
+            <li key={b.key} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>
+              <span style={{ fontWeight: 600 }}>{b.name}</span> — {b.skills}{' '}
+              <span className="text-[#5A5751]">Limit: {b.constraint}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mt-2 mb-1">Research findings — evidence-based verdicts (adopt only what actually works)</div>
+        <div className="space-y-1.5">
+          {RESEARCH_FINDINGS.slice(0, visibleFindings).map((f) => (
+            <div key={f.key} className="border-l-2 border-[#5A4A2E] bg-[#FAF8F4] px-2.5 py-1.5">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{f.name}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.verdict}{f.reReview ? ` · re-review ${f.reReview}` : ''}</span>
+              </div>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{f.why} <span className="italic">Constraint: {f.constraint}</span></p>
+            </div>
+          ))}
+        </div>
+        {RESEARCH_FINDINGS.length > visibleFindings && (
+          <button type="button" onClick={() => setVisibleFindings((c) => c + 7)}
+            className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            Show more findings · {RESEARCH_FINDINGS.length - visibleFindings} remaining
+          </button>
+        )}
       </div>
 
       {/* Live workload — the real board rows pushed to Ari. */}

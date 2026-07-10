@@ -78,7 +78,7 @@ describe('applyTextSize root scaling', () => {
   it('writes the root font-size as a percentage and stamps the attribute', () => {
     const doc = makeDoc();
     const step = applyTextSize('largest', doc);
-    expect(doc.documentElement.style.fontSize).toBe('200%'); // Largest = the WCAG 200% target, directly (DR-0143)
+    expect(doc.documentElement.style.fontSize).toBe('200%'); // Largest = the WCAG 200% target, directly (DR-0145)
     expect(doc.documentElement._attrs['data-text-size']).toBe('largest');
     expect(step.key).toBe('largest');
   });
@@ -111,7 +111,7 @@ describe('content-vs-chrome scope split', () => {
   });
 
   it('chromeMultFor grows far slower than content — capped, never ballooned', () => {
-    // At Largest, content is 2x but chrome must stay bounded (~1.25x — DR-0143).
+    // At Largest, content is 2x but chrome must stay bounded (~1.25x — DR-0145).
     expect(chromeMultFor(2)).toBeCloseTo(1.25, 6);
     // The cap must always be strictly between "no growth" and "full growth".
     for (const s of TEXT_SIZE_STEPS) {
@@ -137,7 +137,7 @@ describe('content-vs-chrome scope split', () => {
       // Above Normal the region zooms OUT (<1) to undo most of the root growth.
       if (s.mult > 1) expect(zoom).toBeLessThan(1);
     }
-    expect(chromeScaleFor(2)).toBeCloseTo(0.625, 6); // 1.25 chrome cap / 2 root (DR-0143)
+    expect(chromeScaleFor(2)).toBeCloseTo(0.625, 6); // 1.25 chrome cap / 2 root (DR-0145)
   });
 
   it('chrome math degrades to identity for bad input, never throws', () => {
