@@ -28,6 +28,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
 import {
+  ASSEMBLY_PROGRAM_2026, ASSEMBLY_PROGRAM_SOURCE, ASSEMBLY_DAY3_DATE_NOTE,
+  missingProgramSessions, matchRoomId,
+} from '../lib/assembly-program-2026.js';
+import {
   getConferenceAccess,
   subscribeVenues, subscribeConferences, subscribeRooms, subscribeSessions, subscribeParticipants,
   saveVenue, saveConference, saveRoom, deleteRoom, saveSession, deleteSession,
@@ -320,6 +324,34 @@ function EventCenterModuleInner() {
   const removeSession = async (id) => {
     if (!window.confirm('Remove this session?')) return;
     await runWrite(() => deleteSession(id), (l) => { l.sessions = (l.sessions || []).filter((s) => s.id !== id); });
+  };
+
+  // The PRINTED 77th Assembly program, one tap (Darrell 2026-07-10: "Next
+  // week's conference program add this where it makes sense"). The program is
+  // transcribed in lib/assembly-program-2026.js (source + the Day-3 date-typo
+  // receipt live there); this loads ONLY the sessions not already present
+  // (idempotent by day+title), matches printed room names to real rooms, and
+  // writes through the same dual-mode path as a hand-added session — so the
+  // rows ARE ordinary session rows the steward can edit or remove.
+  const loadPrintedProgram = async () => {
+    const conf = await ensureConference();
+    if (!conf) return;
+    const missing = missingProgramSessions(confSessions);
+    if (!missing.length) { showFlash('The printed program is already loaded — nothing to add.'); return; }
+    for (const p of missing) {
+      const base = {
+        conferenceId: conf.id, day: p.day, sessionDate: p.sessionDate, time: p.time,
+        title: p.title, speaker: p.speaker || '', sessionType: p.sessionType,
+        venueId: defaultVenueId || null, roomResourceId: matchRoomId(rooms, p.room),
+        capacity: null, sermonRef: null, musicSet: [],
+      };
+      // Sequential on purpose: keeps sortOrder stable in local mode.
+      await runWrite(
+        () => saveSession(base),
+        (l) => { l.sessions = [...(l.sessions || []), { ...base, id: localId('sess'), status: 'active', sortOrder: (l.sessions || []).length }]; },
+      );
+    }
+    showFlash(`Loaded ${missing.length} of ${ASSEMBLY_PROGRAM_2026.length} printed-program sessions (${ASSEMBLY_PROGRAM_SOURCE}).`);
   };
 
   const addRsvp = async () => {
@@ -631,6 +663,7 @@ function EventCenterModuleInner() {
               </div>
             )}
             <button type="button" onClick={addSession} className={`${btnDark} col-span-2 sm:col-span-6`}>Add session</button>
+            <button type="button" onClick={loadPrintedProgram} className="col-span-2 sm:col-span-6 border border-[#5A4A2E] text-[#5A4A2E] px-4 py-2 text-[0.6875rem] uppercase tracking-wider hover:bg-[#FAF8F4]" title={ASSEMBLY_DAY3_DATE_NOTE}>⎙ Load the printed 77th Assembly program (Jul 15–16)</button>
           </div>
         )}
         {confSessions.length === 0 ? (
