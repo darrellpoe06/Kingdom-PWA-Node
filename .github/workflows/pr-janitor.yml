@@ -15,8 +15,13 @@
 #        - provably empty: `git diff --quiet origin/main...branch` on the
 #          runner — every commit it carries is already in main, AND
 #        - not labeled `hold` (the governor's hand is senior), AND
-#        - not a draft (a draft states intent; it is reported, never closed), AND
-#        - auto-merge not armed (an armed PR is live by definition).
+#        - not a draft (a draft states intent; it is reported, never closed).
+#      ARMED IS NOT ALIVE (DR-0148, learned from the first sweep): this repo's
+#      delivery lane arms auto-merge on every auto-opened PR, so the zombies are
+#      all armed-but-dead — an "auto-merge armed = live" guard skips every one
+#      of them and the sweep runs green while doing nothing (the exact gate
+#      theater DR-0076 forbids). Idleness + the runner-verified empty diff are
+#      the evidence; armed status is reported, never trusted.
 #   3. Candidates are closed with a preserving comment; the BRANCH IS KEPT —
 #      nothing is deleted, reopen or push to revive.
 #   4. Stale-but-NON-EMPTY PRs are REPORTED in the job summary and left open —
@@ -87,9 +92,6 @@ jobs:
             if [ "$HOLD" = "true" ]; then
               echo "| #$NUM | $BR | ${HOURS}h | held by the governor — untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
             fi
-            if [ "$ARMED" = "true" ]; then
-              echo "| #$NUM | $BR | ${HOURS}h | auto-merge armed — live, untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
-            fi
             if [ "$AGE" -lt "$CUTOFF" ]; then
               echo "| #$NUM | $BR | ${HOURS}h | active — untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
             fi
@@ -109,7 +111,8 @@ jobs:
               fi
               gh pr close "$NUM" --comment "Closed by pr-janitor: idle for ${HOURS}h and the branch carries no changes beyond main (empty diff, verified on the runner this run). Nothing is deleted — the branch remains; push a commit or reopen to revive. (DR-0146)"
               CLOSED=$(( CLOSED + 1 ))
-              echo "| #$NUM | $BR | ${HOURS}h | CLOSED — proven empty vs main |" >> "$GITHUB_STEP_SUMMARY"
+              ARMNOTE=$([ "$ARMED" = "true" ] && echo " (auto-merge was armed but dead — DR-0148)" || echo "")
+              echo "| #$NUM | $BR | ${HOURS}h | CLOSED — proven empty vs main$ARMNOTE |" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "| #$NUM | $BR | ${HOURS}h | stale but CARRIES REAL CHANGES — left open for a human |" >> "$GITHUB_STEP_SUMMARY"
             fi

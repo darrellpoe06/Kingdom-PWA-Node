@@ -25,6 +25,19 @@ const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest versi
 
 const ATTEMPTS = 3;          // deploy propagation can take a beat; retry before failing
 const RETRY_DELAY_MS = 20000;
+// The app HEALS ITSELF by navigating (the stale-build ladder: reload, then
+// cache-clear + cache-busted fresh URL — DR-0137/DR-0145). Right after a deploy
+// the edge can still serve the previous index for a few minutes, so the ladder
+// fires exactly while this check watches — and a judge that dies on "Execution
+// context was destroyed by a navigation" FAILS the very behavior we shipped
+// (the 10:04Z run after #724: pages.dev green, every poetech.us URL killed
+// mid-heal). Follow the ladder's navigations, bounded, and judge the page it
+// LANDS on: a mounted app after a self-heal is BOOT OK; the manual recovery
+// screen is still an honest FAIL. A ladder that never converges runs out of
+// follows and fails loudly.
+const NAV_FOLLOWS = 4;
+const isNavTornDown = (e) => /Execution context was destroyed|frame was detached|Target closed|navigation/i
+  .test(String((e && e.message) || e || ''));
 // How long a cold boot may take before we call it failed: the monolith is ~3.2MB
 // and the shell makes real auth roundtrips before first paint. A fixed short
 // settle read "slow" as "down" (the 04:51Z f41e619 run — the serve was healthy,
@@ -54,31 +67,54 @@ async function checkOnce(browser, url) {
     // perfectly and the >=400-chars-only bar called it a failure). So: a mount
     // marker OR real content passes; only the recovery screen / a thin blank fails.
     const standalone = url.includes('?');
-    // Wait until the page RESOLVES — mounted, recovery screen, or real content —
-    // instead of judging at a fixed instant (slow is not down).
-    await page.waitForFunction(
-      ({ mounts, fails, alone }) => {
-        const t = document.body ? document.body.innerText || '' : '';
-        if (fails.some((m) => t.includes(m))) return true;
-        if (mounts.some((m) => t.includes(m))) return true;
-        return alone ? t.trim().length >= 400 : false;
-      },
-      { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
-      { timeout: MOUNT_TIMEOUT_MS },
-    ).catch(() => { /* judged below on the final state */ });
-    const text = await page.evaluate(() => document.body.innerText || '');
-    const failHit = FAIL_MARKERS.find((m) => text.includes(m));
-    if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
-    if (standalone) {
-      if (!MOUNT_MARKERS.some((m) => text.includes(m)) && text.trim().length < 400) {
-        return { ok: false, why: `standalone surface did not mount (no gate/mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
+    // Judge in a follow-the-heal loop: wait until the page RESOLVES — mounted,
+    // recovery screen, or real content — instead of judging at a fixed instant
+    // (slow is not down), and when the app's own ladder navigates mid-judgment,
+    // settle on the new document and judge THAT (healed is not down either).
+    for (let follow = 0; ; follow += 1) {
+      try {
+        await page.waitForFunction(
+          ({ mounts, fails, alone }) => {
+            const t = document.body ? document.body.innerText || '' : '';
+            if (fails.some((m) => t.includes(m))) return true;
+            if (mounts.some((m) => t.includes(m))) return true;
+            return alone ? t.trim().length >= 400 : false;
+          },
+          { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
+          { timeout: MOUNT_TIMEOUT_MS },
+        );
+      } catch (e) {
+        if (isNavTornDown(e) && follow < NAV_FOLLOWS) {
+          await page.waitForLoadState('domcontentloaded', { timeout: 45000 }).catch(() => {});
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        // A plain timeout falls through — judged below on the final state.
+      }
+      let text;
+      try {
+        text = await page.evaluate(() => document.body.innerText || '');
+      } catch (e) {
+        if (isNavTornDown(e) && follow < NAV_FOLLOWS) {
+          await page.waitForLoadState('domcontentloaded', { timeout: 45000 }).catch(() => {});
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        throw e;
+      }
+      const failHit = FAIL_MARKERS.find((m) => text.includes(m));
+      if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
+      if (standalone) {
+        if (!MOUNT_MARKERS.some((m) => text.includes(m)) && text.trim().length < 400) {
+          return { ok: false, why: `standalone surface did not mount (no gate/mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
+        }
+        return { ok: true, errors };
+      }
+      if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
+        return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (no mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       }
       return { ok: true, errors };
     }
-    if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
-      return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (no mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
-    }
-    return { ok: true, errors };
   } finally {
     await page.close().catch(() => {});
   }
