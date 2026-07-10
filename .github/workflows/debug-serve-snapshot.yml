@@ -1,0 +1,37 @@
+# One-shot serve-layer snapshot (DR-0139 incident #715 debugging). Dispatch-only,
+# runs from this branch: prints the response headers + the first bytes of the
+# served HTML and entry assets from BOTH origins, so the sandbox (which has no
+# route to production) can see exactly what a device receives. Read-only; makes
+# no changes anywhere. Delete after the incident closes.
+name: debug-serve-snapshot
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Snapshot served HTML + assets
+        run: |
+          for u in "https://poetech.us/poetech-app/" "https://poetech-app.pages.dev/poetech-app/"; do
+            echo "================ $u"
+            echo "---- headers"
+            curl -sSI --max-time 20 "$u" | head -25
+            echo "---- first 2500 bytes of HTML"
+            curl -sS --max-time 20 "$u" | head -c 2500
+            echo
+            echo "---- module script srcs found"
+            html=$(curl -sS --max-time 20 "$u")
+            echo "$html" | grep -oE '(src|href)="[^"]*\.(js|css)[^"]*"' | head -10
+            entry=$(echo "$html" | grep -oE '/poetech-app/assets/index-[^"]*\.js' | head -1)
+            echo "---- entry: $entry"
+            if [ -n "$entry" ]; then
+              base=$(echo "$u" | sed -E 's|(https://[^/]+).*|\1|')
+              echo "---- entry response headers"
+              curl -sSI --max-time 20 "$base$entry" | head -12
+              echo "---- entry first 200 bytes"
+              curl -sS --max-time 20 "$base$entry" | head -c 200
+              echo
+            fi
+          done
