@@ -449,3 +449,27 @@ describe('choir forms survive a failed save (no data loss)', () => {
     }
   });
 });
+
+// --- HTML-entity decode (DR-0139) — '&QUOT;' never prints on a service card ---
+import { decodeHtmlEntities } from '../lib/choir-sync.js';
+
+describe('decodeHtmlEntities — harvested titles render as words, not entities', () => {
+  it('decodes the live sighting: uppercased &QUOT; from a harvested title', () => {
+    expect(decodeHtmlEntities("&QUOT;DON'T ALLOW ANY STRUGGLE TO DISTRACT YOU FROM YOUR DOUBLE!&QUOT; - Pastor Ken McCray"))
+      .toBe("\"DON'T ALLOW ANY STRUGGLE TO DISTRACT YOU FROM YOUR DOUBLE!\" - Pastor Ken McCray");
+  });
+  it('decodes the common entities, one honest level', () => {
+    expect(decodeHtmlEntities('Praise &amp; Worship &#39;Night&#39; &lt;live&gt;')).toBe("Praise & Worship 'Night' <live>");
+    expect(decodeHtmlEntities('&amp;quot;')).toBe('&quot;'); // double-encoded unescapes ONE step
+  });
+  it('is safe on null / non-strings', () => {
+    expect(decodeHtmlEntities(null)).toBeNull();
+    expect(decodeHtmlEntities(undefined)).toBeNull();
+    expect(decodeHtmlEntities('plain title')).toBe('plain title');
+  });
+  it('the sermon/schedule/song mappers decode stored titles at render', () => {
+    expect(toSermonShape({ id: 'x', title: '&quot;MY WORSHIP&quot;' }).title).toBe('"MY WORSHIP"');
+    expect(toScheduleShape({ id: 'y', service_date: 'd', service_type: 'sunday', title: 'A &amp; B' }).title).toBe('A & B');
+    expect(toSongShape({ id: 'z', title: '&#39;Tis So Sweet' }).title).toBe("'Tis So Sweet");
+  });
+});

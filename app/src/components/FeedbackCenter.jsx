@@ -13,6 +13,9 @@ import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
+// The library count derives from the registry itself (DR-0121 — the hand-typed
+// "~46" was already stale at 49 when the 2026-07-10 static-data hunt found it).
+import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
 import UiIcon from './UiIcon.jsx';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
@@ -96,7 +99,7 @@ export const FEEDBACK_AREAS = [
   { group: 'Practice · Dev/Ops', items: [
     ['practice', 'Practice · inquiry capture & conversion'],
     ['opportunities', 'Dev/Ops · personalized options engine'],
-    ['opportunities-library', '└ Curated opportunity library (~46 entries)'],
+    ['opportunities-library', `└ Curated opportunity library (${OPPORTUNITY_LIBRARY.length} entries)`],
     ['opportunities-wrap', '└ "Wrap me with the tech" handoff'],
     ['opportunities-pipeline', '└ Active pipeline'],
     ['services-portfolio', '└ PoeTech Services Portfolio'],

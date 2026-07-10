@@ -102,3 +102,42 @@ jobs:
           # /n8n Pages Function alongside the static dist. --branch=main marks
           # this a PRODUCTION deployment (the custom domain serves production).
           command: pages deploy dist --project-name=poetech-app --branch=main
+
+  # ---------------------------------------------------------------------------
+  # The deploy is not done until the served app BOOTS (DR-0139). CI-green and
+  # the curl probe both missed the 2026-07-10 class: the shell + assets served
+  # 200 while the family photographed recovery screens — nothing ever EXECUTED
+  # the JavaScript. This job loads the real production URL in headless Chrome
+  # (preinstalled on the runner) and fails loudly — filing the incident ledger —
+  # if the app shows a recovery screen instead of mounting. Non-required check:
+  # it never blocks the merge lane; it makes a broken serve VISIBLE in minutes.
+  # ---------------------------------------------------------------------------
+  verify-boot:
+    name: verify the served app boots (real browser)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Boot-check production (domain + pages.dev origin + the Moore door)
+        run: node scripts/boot-check.mjs https://poetech.us/poetech-app/ https://poetech-app.pages.dev/poetech-app/ "https://poetech.us/poetech-app/?moore=1"
+      - name: File the failing observation on the incident ledger
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          body="boot-check FAILED: the deployed app did not BOOT in a real browser after ${GITHUB_SHA} — recovery screen or blank mount on production. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (DR-0139; probe-green is not boot-green)."
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --label incident --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "incident: deployed app failed the real-browser boot-check" --label incident --body "$body"
+          fi

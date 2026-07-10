@@ -50,9 +50,9 @@ describe('decideChunkHeal', () => {
     expect(decideChunkHeal(win, 1000 + HEAL_WINDOW_MS + 1)).toBe('reload');
   });
 
-  it('is null-safe with no storage (still heals, never throws)', () => {
+  it('gives up with no storage — cannot count attempts, must not loop (DR-0139)', () => {
     expect(() => decideChunkHeal({}, 5)).not.toThrow();
-    expect(decideChunkHeal({}, 5)).toBe('reload');
+    expect(decideChunkHeal({}, 5)).toBe('gave-up');
   });
 });
 
@@ -72,6 +72,37 @@ describe('wireChunkHeal — vite:preloadError recovery', () => {
     t = 1000 + 5000;                            // 5s later, still broken
     win.dispatch('vite:preloadError', { preventDefault() {} });
     expect(reloads).toBe(1);                     // did NOT reload again (loop guard)
+  });
+
+  it('does NOT preventDefault on gave-up — the import must REJECT with the real error (DR-0139)', () => {
+    // Root-caused live 2026-07-10: Vite's preload helper swallows the rejection
+    // when the event is defaultPrevented, so the import RESOLVES UNDEFINED and
+    // main.jsx dies on "Cannot destructure property 'default' of 'undefined'" —
+    // the real cause (a 404'd chunk, a module that threw) is destroyed. On the
+    // gave-up rung the error must propagate untouched.
+    const ss = makeSession();
+    const win = makeWin(ss);
+    let reloads = 0;
+    let t = 1000;
+    wireChunkHeal(win, { now: () => t, reload: () => { reloads += 1; } });
+    win.dispatch('vite:preloadError', { preventDefault: vi.fn() }); // heals (reload #1)
+
+    t = 1000 + 5000; // within the window → gave-up
+    const evt2 = { preventDefault: vi.fn() };
+    win.dispatch('vite:preloadError', evt2);
+    expect(reloads).toBe(1);
+    expect(evt2.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('journals the heal so the recovery is visible on the quality board (DR-0139)', () => {
+    const ls = makeSession(); // same map-backed shape works for localStorage
+    const win = makeWin(makeSession());
+    win.localStorage = ls;
+    wireChunkHeal(win, { now: () => 1000, reload: () => {} });
+    win.dispatch('vite:preloadError', { preventDefault() {} });
+    const journal = JSON.parse(ls.getItem('poe-error-journal') || '[]');
+    expect(journal.length).toBe(1);
+    expect(journal[0]).toMatchObject({ source: 'chunk-heal', kind: 'heal' });
   });
 
   it('unsubscribe stops further handling', () => {

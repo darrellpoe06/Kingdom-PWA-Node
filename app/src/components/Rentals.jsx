@@ -2503,7 +2503,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           </div>
           {allRatesEqual && (
             <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+              All {rentals.length} rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
             </p>
           )}
         </div>
