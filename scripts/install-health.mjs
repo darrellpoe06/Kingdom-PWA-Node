@@ -48,11 +48,22 @@ try {
 } catch (e) {
   console.log(`NOTE          Page.getInstallabilityErrors unavailable (${e.message}) — falling back to artifact checks only`);
 }
+// Errors caused by the PROBE's own environment, not the site: a fresh
+// headless/automation profile reports `in-incognito`, which no real phone
+// browsing poetech.us ever hits. Measured on run 29080848009 (2026-07-10):
+// every site-side criterion passed and this was the sole error. Filtering it
+// keeps the instrument honest instead of permanently red (anti-theater,
+// DR-0076 rule 3 — a check that always fails is as meaningless as one that
+// always passes).
+const ENV_ARTIFACTS = new Set(['in-incognito']);
 if (verdict) {
-  if (!verdict.installabilityErrors.length) {
-    ok('Chrome reports ZERO installability errors for this page');
+  const real = verdict.installabilityErrors.filter((e) => !ENV_ARTIFACTS.has(e.errorId));
+  const skipped = verdict.installabilityErrors.filter((e) => ENV_ARTIFACTS.has(e.errorId));
+  for (const err of skipped) console.log(`NOTE          Chrome reported "${err.errorId}" — an artifact of the headless probe context, not the site`);
+  if (!real.length) {
+    ok('Chrome reports ZERO site-side installability errors for this page');
   } else {
-    for (const err of verdict.installabilityErrors) {
+    for (const err of real) {
       const args = (err.errorArguments || []).map((a) => `${a.name}=${a.value}`).join(' ');
       fail(`Chrome installability error: ${err.errorId}${args ? ` (${args})` : ''}`);
     }
