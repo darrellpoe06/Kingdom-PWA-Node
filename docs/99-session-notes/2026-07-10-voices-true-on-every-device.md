@@ -1,6 +1,6 @@
 # The voices made true — why "my AI voice never worked," and the Word heard in men's and women's voices
 
-> Layer 4 working artifact. Companion to **DR-0138** and REV-0028. Triggers, Darrell 2026-07-10: *"Can we make sure the AI voices and the TTS work no matter the device with local llms or local voices for men and women — so when the Bible reader reads it actually sounds like a man or woman based on who is speaking? My AI voice never worked."* Sharpened mid-session: *"We want to not need any vendor llm if possible... use it outside of vendor time allotment or when offline"* — then: *"source the vendor AI for things we can't do, with a record of when we need to and what we need to build and/or purchase, including building to get a local device capable of whatever we need."*
+> Layer 4 working artifact. Companion to **DR-0138** and REV-0030. Triggers, Darrell 2026-07-10: *"Can we make sure the AI voices and the TTS work no matter the device with local llms or local voices for men and women — so when the Bible reader reads it actually sounds like a man or woman based on who is speaking? My AI voice never worked."* Sharpened mid-session: *"We want to not need any vendor llm if possible... use it outside of vendor time allotment or when offline"* — then: *"source the vendor AI for things we can't do, with a record of when we need to and what we need to build and/or purchase, including building to get a local device capable of whatever we need."*
 
 ## The diagnosis (verified)
 
