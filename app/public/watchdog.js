@@ -32,8 +32,28 @@
         + '</div>';
     } catch (e) { /* never throw from the watchdog */ }
   }
+  // Free a WAITING worker before retrying (2026-07-10, the pinned-device
+  // trap): when a broken active worker serves a blank-but-live page, that
+  // live client blocks the FIXED worker from activating, and the in-bundle
+  // update tap can never render — the device stays down until a human clears
+  // it by hand. This file runs even when the bundle can't; a boot that
+  // stalled with a waiting worker frees it (sw.js honors SKIP_WAITING), so
+  // the retry navigates under the fixed worker. Bounded: one message per
+  // firing, and retryOnce() already runs at most once (the pt-retry param).
+  function freeWaitingWorker() {
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.waiting) {
+            try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch (e) { /* best-effort */ }
+          }
+        }).catch(function () { /* best-effort */ });
+      }
+    } catch (e) { /* never throw from the watchdog */ }
+  }
   setTimeout(function () {
     if (window.__PT_BOOTED) return;
+    freeWaitingWorker();
     if (retried()) { saySomething(); return; }
     retryOnce();
   }, WAIT_MS);

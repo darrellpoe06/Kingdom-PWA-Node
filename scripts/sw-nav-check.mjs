@@ -122,7 +122,28 @@ try {
         console.error(`SW-NAV FAIL ${url} — controlled navigation landed on a recovery screen ("${failHit}")`);
         failed = true;
       } else {
-        console.log(`SW-NAV OK  ${url} — worker-controlled navigation serves (status ${res ? res.status() : '??'})`);
+        // POSITIVE mount proof (2026-07-10, the false-green found the day the
+        // gate shipped): "no fail marker + status 200" also describes a BLANK
+        // page — the heal ladder's 800ms pre-reload beat has an empty body,
+        // and one CI run passed exactly that way while the same build failed
+        // every honest run. A gate must prove the app MOUNTED, not merely
+        // that no error screen was on stage when the photo was taken: wait
+        // for real rendered text (or the access gate — a healthy resolution
+        // for signed-out standalone views, the #715/#722 lesson).
+        const mounted = await page.waitForFunction(() => {
+          const t = document.body ? document.body.innerText : '';
+          if (t.includes('Almost there — one more tap') || t.includes('Getting the latest version')) return 'fail';
+          if (t.trim().length >= 400) return 'ok';
+          if (t.includes('CREATE PROFILE & ENTER') || t.includes('Welcome back')) return 'ok';
+          return false;
+        }, null, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => 'timeout');
+        if (mounted !== 'ok') {
+          const text = await page.evaluate(() => (document.body ? document.body.innerText.trim().slice(0, 160) : '')).catch(() => '');
+          console.error(`SW-NAV FAIL ${url} — controlled navigation never MOUNTED (${mounted}; body starts: "${text}")`);
+          failed = true;
+        } else {
+          console.log(`SW-NAV OK  ${url} — worker-controlled navigation serves AND mounts (status ${res ? res.status() : '??'})`);
+        }
       }
     } catch (e) {
       console.error(`SW-NAV FAIL ${url} — worker-controlled navigation DIED: ${String(e.message).split('\n')[0]}`);
