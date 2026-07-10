@@ -48,6 +48,14 @@ export const TEXT_SIZE_STEPS = [
   { key: 'large',   mult: 1.2,  label: 'A+',   name: 'Large'   },
   { key: 'larger',  mult: 1.5,  label: 'A++',  name: 'Larger'  },
   { key: 'largest', mult: 2,    label: 'A+++', name: 'Largest' },
+  // "Can we get up to 44 big print for our users if needed and still make it
+  // look good and not overcrowded" (Darrell, 2026-07-10 — DR-0147, atop the
+  // same day's DR-0145 doubling of Largest). One step above the doubled top,
+  // for elders and for children learning to learn: Big Print 44 lands 16px
+  // body text at exactly 44px — true large-print territory. The chrome cap
+  // below keeps the nav and page titles from ballooning with it, so the WORDS
+  // grow, not the frame.
+  { key: 'bigprint', mult: 2.75, label: 'A44', name: 'Big Print 44' },
 ];
 
 export const DEFAULT_TEXT_SIZE = 'normal';

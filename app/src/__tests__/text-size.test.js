@@ -39,9 +39,14 @@ function makeDoc() {
 }
 
 describe('TEXT_SIZE_STEPS shape', () => {
-  it('has four stepped options with the plain A/A+/A++/A+++ affordance', () => {
-    expect(TEXT_SIZE_STEPS.map((s) => s.label)).toEqual(['A', 'A+', 'A++', 'A+++']);
-    expect(TEXT_SIZE_STEPS.map((s) => s.key)).toEqual(['normal', 'large', 'larger', 'largest']);
+  it('has five stepped options — the plain plusses, then Big Print 44 (DR-0145 + DR-0147)', () => {
+    expect(TEXT_SIZE_STEPS.map((s) => s.label)).toEqual(['A', 'A+', 'A++', 'A+++', 'A44']);
+    expect(TEXT_SIZE_STEPS.map((s) => s.key)).toEqual(['normal', 'large', 'larger', 'largest', 'bigprint']);
+  });
+
+  it('Big Print 44 lands 16px body text at exactly 44px ("up to 44 big print" — Darrell 2026-07-10)', () => {
+    expect(stepFor('bigprint').mult * 16).toBe(44);
+    expect(stepFor('largest').mult).toBe(2); // DR-0145's doubled top holds beneath it
   });
 
   it('multipliers increase monotonically from 1x', () => {
