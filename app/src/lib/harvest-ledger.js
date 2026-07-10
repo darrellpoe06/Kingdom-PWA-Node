@@ -14,6 +14,7 @@ import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
 import { toSermonShape, toSongShape } from './choir-sync.js';
 import { buildLedger, HARVEST_KEYS } from './video-harvest.js';
+import { captionsCoverage } from './captions-coverage.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -94,7 +95,25 @@ export async function fetchLedger() {
   // Corpus-wide transcript coverage — the observable stall signal (how many
   // videos still owe a transcript). Never a silent hang: the surface shows it.
   const transcribedVideos = Object.keys(transcripts).length;
-  return { ...summary, rawByVideo, transcribedVideos };
+
+  // Sovereign captions coverage (0095) — a SEPARATE, degrade-safe select so a
+  // not-yet-migrated cloud (no vtt/cue_count columns) can NEVER disturb the
+  // harvest % above: on error we simply report 0 captioned (the honest gap). Only
+  // a real timed track (cue_count > 0) counts as captioned (DR-0076).
+  let capByVideo = {};
+  try {
+    const capRes = await supabase.from('video_transcripts').select('video_id,cue_count,source');
+    if (!capRes.error) {
+      for (const r of capRes.data || []) {
+        if (r && r.video_id && Number.isFinite(r.cue_count) && r.cue_count > 0) {
+          capByVideo[r.video_id] = { cueCount: r.cue_count, source: r.source || 'youtube-asr' };
+        }
+      }
+    }
+  } catch { capByVideo = {}; }
+  const captions = captionsCoverage(sermons.map((s) => s.videoId), capByVideo);
+
+  return { ...summary, rawByVideo, transcribedVideos, captions };
 }
 
 // Subscribe to the ledger: initial load + a live recompute whenever any of the

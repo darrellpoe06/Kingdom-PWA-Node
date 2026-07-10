@@ -68,14 +68,87 @@ def ids_from_file(path):
         return [ln.strip() for ln in raw.splitlines() if ln.strip()]
 
 
+def _vtt_timestamp(seconds):
+    """HH:MM:SS.mmm — the WebVTT canonical form. Mirrors app captions.js vttTimestamp."""
+    total = seconds if (seconds and seconds > 0) else 0.0
+    whole = int(total)
+    millis = int(round((total - whole) * 1000))
+    if millis >= 1000:  # carry rounding into seconds
+        whole += 1
+        millis -= 1000
+    hh = whole // 3600
+    mm = (whole % 3600) // 60
+    ss = whole % 60
+    return "%02d:%02d:%02d.%03d" % (hh, mm, ss, millis)
+
+
+def _clean_cue_text(text):
+    """Strip ">>" speaker carets, collapse whitespace; keep [Music]/[Applause] cues."""
+    t = str(text or "").replace(">>", " ").replace("\r", " ").replace("\n", " ")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def cues_from_segments(segs):
+    """
+    Turn youtube-transcript-api snippets ({text,start,duration}) into normalized,
+    sorted, non-overlapping {start,end,text} cues. Mirrors app captions.js
+    cuesFromSegments so the sovereign (Whisper) path and this path emit identical
+    VTT. A cue's end is clamped to the next cue's start (no double-render).
+    """
+    default_hold = 4.0
+    raw = []
+    for s in segs:
+        text = _clean_cue_text(getattr(s, "text", ""))
+        if not text:
+            continue
+        start = float(getattr(s, "start", 0.0) or 0.0)
+        dur = getattr(s, "duration", None)
+        dur = float(dur) if (dur is not None and float(dur) > 0) else default_hold
+        raw.append({"start": start, "end": start + dur, "text": text})
+    raw.sort(key=lambda c: (c["start"], c["end"]))
+    for i in range(len(raw) - 1):
+        if raw[i]["end"] > raw[i + 1]["start"]:
+            raw[i]["end"] = raw[i + 1]["start"]
+        if raw[i]["end"] < raw[i]["start"]:
+            raw[i]["end"] = raw[i]["start"]
+    return raw
+
+
+def build_vtt(cues):
+    """Serialize cues to a valid WebVTT document. Mirrors app captions.js buildVtt."""
+    lines = ["WEBVTT", ""]
+    n = 0
+    for cue in cues:
+        text = _clean_cue_text(cue["text"])
+        if not text:
+            continue
+        start = cue["start"] if cue["start"] > 0 else 0.0
+        end = cue["end"]
+        if end <= start:
+            end = start + 0.001
+        n += 1
+        lines.append(str(n))
+        lines.append("%s --> %s" % (_vtt_timestamp(start), _vtt_timestamp(end)))
+        lines.append(text)
+        lines.append("")
+    return "\n".join(lines)
+
+
 def fetch_one(api, vid):
-    """Return (text, error). text is '' when captions are unavailable."""
+    """
+    Return (text, vtt, cue_count, error). On success `text` is the joined
+    transcript (kept for the existing harvest extractors), `vtt` is the
+    timestamped WebVTT caption track (NEW — the sovereign caption), and
+    `cue_count` is the number of timed cues. On failure all are empty/0.
+    """
     try:
         segs = list(api.fetch(vid, languages=["en"]))
-        text = " ".join(s.text.replace("\n", " ").strip() for s in segs if s.text.strip())
-        return text, None
+        text = " ".join(_clean_cue_text(s.text) for s in segs if _clean_cue_text(getattr(s, "text", "")))
+        cues = cues_from_segments(segs)
+        vtt = build_vtt(cues) if cues else ""
+        return text, vtt, len(cues), None
     except Exception as e:  # noqa: BLE001 — any failure = no usable caption; record it
-        return "", f"{type(e).__name__}: {str(e)[:160]}"
+        return "", "", 0, f"{type(e).__name__}: {str(e)[:160]}"
 
 
 def main():
@@ -130,13 +203,18 @@ def main():
         if args.max and fetched + no_caption >= args.max:
             log(f"--max {args.max} reached; stopping (re-run to continue).")
             break
-        text, err = fetch_one(api, vid)
+        text, vtt, cue_count, err = fetch_one(api, vid)
         if text:
-            existing[vid] = {"text": text, "source": "youtube-asr", "lang": "en", "words": len(text.split())}
+            existing[vid] = {
+                "text": text, "source": "youtube-asr", "lang": "en",
+                "words": len(text.split()),
+                "vtt": vtt, "cue_count": cue_count,   # NEW: the sovereign caption track
+            }
             fetched += 1
-            log(f"  ok   {vid}  {len(text.split())} words")
+            log(f"  ok   {vid}  {len(text.split())} words, {cue_count} caption cues")
         else:
-            existing[vid] = {"text": "", "error": err or "no-captions", "source": "youtube-asr"}
+            existing[vid] = {"text": "", "error": err or "no-captions", "source": "youtube-asr",
+                             "vtt": "", "cue_count": 0}
             no_caption += 1
             log(f"  MISS {vid}  ({err}) -> Whisper-on-NAS fallback")
         # RESUMABLE: persist after every video.

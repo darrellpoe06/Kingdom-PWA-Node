@@ -28,6 +28,7 @@
 import { monthCoverage } from './transaction-analysis.js';
 import { groupDoorsByBuilding } from './building-group.js';
 import { unitsOf, isPersonalProp } from './rental-portfolio.js';
+import { CAPTIONS_COVERAGE_CONCERN_PCT } from './captions-coverage.js';
 
 // Today, YYYY-MM-DD — the day the process flagged it (app runtime; Date is fine).
 function today() {
@@ -137,15 +138,45 @@ export function shapeMismatchConcerns({ debts = [] } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// captionCoverageConcerns — ACCESSIBILITY reflex over the caption pipeline. The
+// harvest ledger measures how many service videos carry a sovereign, timestamped
+// caption track (captions-coverage.js, DR-0137). Captioning is an obligation
+// (WCAG / COMMUNITY-FIRST — COLG's congregation skews elderly + HOH), not a
+// nicety, so a corpus below the bar surfaces ONE concern naming the gap. It
+// auto-resolves the moment coverage climbs past the bar (the detector stops
+// finding it) — a live view of a real gap, never a painted list.
+// ---------------------------------------------------------------------------
+export function captionCoverageConcerns(captions = null) {
+  const cov = captions && typeof captions === 'object' ? captions : null;
+  // Need a real corpus and a real measured shortfall; below the bar AND with at
+  // least one gap. No corpus yet -> nothing to caption -> no concern (honest).
+  if (!cov || !cov.total || cov.gaps <= 0) return [];
+  if (cov.pct >= CAPTIONS_COVERAGE_CONCERN_PCT) return [];
+  return [{
+    id: 'derived-captions-coverage',
+    concern: `Sovereign captions cover only ${cov.captioned}/${cov.total} service videos (${cov.pct}%) — ${cov.gaps} still owe our OWN timestamped caption track. YouTube's captions don't reach the app, the in-room screens, or a re-post; captioning is a WCAG / COMMUNITY-FIRST obligation for a congregation that skews elderly and hard-of-hearing.`,
+    solution: `Run the caption backfill (infra/nas-sme-pipeline/load-transcripts.py — it now emits vtt + cue_count) until coverage clears ${CAPTIONS_COVERAGE_CONCERN_PCT}%; route any no-caption videos to the Whisper-on-NAS fallback. Verify on the Harvest Ledger captions strip.`,
+    status: 'open',
+    area: 'Church · captions',
+    whenNote: 'auto-detected · captions coverage check (captionsCoverage)',
+    source: 'coverage',
+    readOnly: true,
+    detectedBy: 'captionsCoverage',
+    created: today(),
+  }];
+}
+
+// ---------------------------------------------------------------------------
 // deriveDataConcerns — run every process detector over the live app data and
 // return the flat list of read-through concern cards. Defensive: any detector
 // throwing (bad row shape) is isolated so one bad record never blanks the board.
 // ---------------------------------------------------------------------------
-export function deriveDataConcerns({ transactions = [], rentals = [], debts = [] } = {}) {
+export function deriveDataConcerns({ transactions = [], rentals = [], debts = [], captions = null } = {}) {
   const safe = (fn) => { try { return fn() || []; } catch (e) { console.warn('[derive-concerns] detector failed', e); return []; } };
   return [
     ...safe(() => coverageConcerns(transactions)),
     ...safe(() => doorCollapseConcerns(rentals)),
     ...safe(() => shapeMismatchConcerns({ debts })),
+    ...safe(() => captionCoverageConcerns(captions)),
   ];
 }

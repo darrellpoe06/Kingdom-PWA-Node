@@ -251,18 +251,81 @@ def ids_from_file(path):
         return [ln.strip() for ln in raw.splitlines() if ln.strip()]
 
 
+# --- caption cues -> WebVTT (mirrors app captions.js so both paths match) ----
+# The sovereign caption track: the SAME timestamped cues YouTube generates,
+# stored as WebVTT so OUR surfaces (the app follow-along panel, the Presenter
+# overlay) can render captions without the YouTube player. The `text` blob we
+# already store is the UNtimed transcript; `vtt` + `cue_count` are what make it a
+# caption (migration 0095). build_vtt/cues_from_segments are byte-for-byte the
+# same algorithm as youtube-captions.py and app/src/lib/captions.js.
+
+def _vtt_timestamp(seconds):
+    total = seconds if (seconds and seconds > 0) else 0.0
+    whole = int(total)
+    millis = int(round((total - whole) * 1000))
+    if millis >= 1000:
+        whole += 1
+        millis -= 1000
+    return "%02d:%02d:%02d.%03d" % (whole // 3600, (whole % 3600) // 60, whole % 60, millis)
+
+
+def _clean_cue_text(text):
+    t = str(text or "").replace(">>", " ").replace("\r", " ").replace("\n", " ")
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def cues_from_segments(segs):
+    default_hold = 4.0
+    raw = []
+    for s in segs:
+        text = _clean_cue_text(getattr(s, "text", ""))
+        if not text:
+            continue
+        start = float(getattr(s, "start", 0.0) or 0.0)
+        dur = getattr(s, "duration", None)
+        dur = float(dur) if (dur is not None and float(dur) > 0) else default_hold
+        raw.append({"start": start, "end": start + dur, "text": text})
+    raw.sort(key=lambda c: (c["start"], c["end"]))
+    for i in range(len(raw) - 1):
+        if raw[i]["end"] > raw[i + 1]["start"]:
+            raw[i]["end"] = raw[i + 1]["start"]
+        if raw[i]["end"] < raw[i]["start"]:
+            raw[i]["end"] = raw[i]["start"]
+    return raw
+
+
+def build_vtt(cues):
+    lines = ["WEBVTT", ""]
+    n = 0
+    for cue in cues:
+        text = _clean_cue_text(cue["text"])
+        if not text:
+            continue
+        start = cue["start"] if cue["start"] > 0 else 0.0
+        end = cue["end"] if cue["end"] > start else start + 0.001
+        n += 1
+        lines.append(str(n))
+        lines.append("%s --> %s" % (_vtt_timestamp(start), _vtt_timestamp(end)))
+        lines.append(text)
+        lines.append("")
+    return "\n".join(lines)
+
+
 # --- caption fetch (YouTube auto-captions; no GPU) --------------------------
 
 def fetch_caption(api, vid):
-    """Return (text, words, error). text='' when captions are unavailable."""
+    """Return (text, words, vtt, cue_count, error). text='' + vtt='' when
+    captions are unavailable. `vtt` is the timestamped WebVTT caption track built
+    from the SAME segments the joined `text` comes from (migration 0095)."""
     try:
         segs = list(api.fetch(vid, languages=["en"]))
-        text = " ".join(s.text.replace("\n", " ").strip() for s in segs if s.text.strip())
+        text = " ".join(_clean_cue_text(s.text) for s in segs if _clean_cue_text(getattr(s, "text", "")))
         if not text:  # fetch succeeded but the track is empty: a durable verdict
-            return "", 0, "NoTranscriptFound: empty caption track"
-        return text, len(text.split()), None
+            return "", 0, "", 0, "NoTranscriptFound: empty caption track"
+        cues = cues_from_segments(segs)
+        return text, len(text.split()), build_vtt(cues), len(cues), None
     except Exception as e:  # noqa: BLE001 -- classified verdict-vs-transient by caller
-        return "", 0, f"{type(e).__name__}: {str(e)[:180]}"
+        return "", 0, "", 0, f"{type(e).__name__}: {str(e)[:180]}"
 
 
 def _isonow():
@@ -416,13 +479,14 @@ def main():
                 log(f"--max {args.max} reached; stopping (re-run to continue).")
                 break
             log(f"[{i}/{total}] fetching captions for {vid} ...")
-            text, words, err = fetch_caption(api, vid)
+            text, words, vtt, cue_count, err = fetch_caption(api, vid)
             if text:
                 upsert_transcript(url, key, instance_id, vid,
                                   {"text": text, "words": words, "source": "youtube-asr",
-                                   "lang": "en", "error": None}, args.dry_run)
+                                   "lang": "en", "error": None,
+                                   "vtt": vtt, "cue_count": cue_count}, args.dry_run)
                 fetched += 1
-                log(f"    ok  {words} words -> video_transcripts")
+                log(f"    ok  {words} words, {cue_count} caption cues -> video_transcripts")
             elif is_verdict(err) and recent:
                 # No caption track YET, but the upload is new enough that YouTube is
                 # very likely still processing it (Darrell 2026-07-06). Treat like a

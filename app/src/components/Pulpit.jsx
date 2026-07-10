@@ -44,7 +44,8 @@ import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reacti
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
-import { fetchPointsData, fetchVideoStats } from '../lib/sermon-library-sync.js';
+import { fetchPointsData, fetchVideoStats, fetchCaptionsByVideo } from '../lib/sermon-library-sync.js';
+import CaptionedVideo from './CaptionedVideo.jsx';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
@@ -294,9 +295,12 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
         </div>
       </div>
       {playing && embed && (
-        <div className="mt-2 aspect-video">
-          <iframe src={embed} title={`${sermon.title} — service video`} className="w-full h-full border border-[#1A1815]" allow="encrypted-media; picture-in-picture" allowFullScreen loading="lazy" />
-        </div>
+        <CaptionedVideo
+          embed={embed}
+          title={`${sermon.title} — service video`}
+          videoId={vid}
+          captionTrack={points && points.captions ? points.captions : null}
+        />
       )}
     </div>
   );
@@ -558,6 +562,7 @@ export default function Pulpit() {
   const [pointsData, setPointsData] = useState({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); // points sources
   const [reactionMap, setReactionMap] = useState({}); // { [videoId]: { counts, myKey, score, top } } — PRIMARY signal
   const [statsMap, setStatsMap] = useState({});        // { [videoId]: { ytViews, ytLikes } } — SECONDARY (YouTube)
+  const [captionsByVideo, setCaptionsByVideo] = useState({}); // { [videoId]: { vtt, cueCount, source, lang } } — sovereign captions (0095)
   const [churchInstId, setChurchInstId] = useState(null); // resolved church instance for keying reactions
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -597,12 +602,13 @@ export default function Pulpit() {
   useEffect(() => {
     if (!signedIn) {
       setPointsData({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} });
-      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
+      setReactionMap({}); setStatsMap({}); setCaptionsByVideo({}); setChurchInstId(null);
       return undefined;
     }
     let alive = true;
     fetchPointsData().then((d) => { if (alive) setPointsData(d || { prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); });
     fetchVideoStats().then((m) => { if (alive) setStatsMap(m || {}); });
+    fetchCaptionsByVideo().then((m) => { if (alive) setCaptionsByVideo(m || {}); });
     let unsub = null;
     churchInstanceId(email).then((id) => {
       if (!alive) return;
@@ -645,15 +651,20 @@ export default function Pulpit() {
     const out = {};
     for (const s of libraryItems) {
       const vid = videoIdOf(s);
-      out[s.id] = pointsForVideo({
-        sermon: s,
-        prep: prepBySermon[s.id] || null,
-        harvestRow: (vid && harvestsByVideo[vid]) || null,
-        transcript: (vid && transcriptsByVideo[vid]) || null,
-      });
+      out[s.id] = {
+        ...pointsForVideo({
+          sermon: s,
+          prep: prepBySermon[s.id] || null,
+          harvestRow: (vid && harvestsByVideo[vid]) || null,
+          transcript: (vid && transcriptsByVideo[vid]) || null,
+        }),
+        // Sovereign caption track (0095) rides on the bundle; PointsBlock ignores
+        // it, CaptionedVideo reads it. null when this video has no timed track.
+        captions: (vid && captionsByVideo[vid]) || null,
+      };
     }
     return out;
-  }, [libraryItems, pointsData]);
+  }, [libraryItems, pointsData, captionsByVideo]);
 
   // React to a message (single-pick, self-scoped). ReactionBar handles optimistic
   // feedback; the realtime subscription refreshes the real counts. Returns the

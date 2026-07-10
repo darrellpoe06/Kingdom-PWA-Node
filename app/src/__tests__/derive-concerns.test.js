@@ -7,9 +7,10 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  coverageConcerns, doorCollapseConcerns, shapeMismatchConcerns, deriveDataConcerns,
+  coverageConcerns, doorCollapseConcerns, shapeMismatchConcerns, captionCoverageConcerns, deriveDataConcerns,
 } from '../lib/derive-concerns.js';
 import { composeConcerns } from '../lib/concerns.js';
+import { captionsCoverage } from '../lib/captions-coverage.js';
 
 // A ledger with five healthy months (~10 tx each) and one thin month (April, 1 tx)
 // — the "April showed 2 of 296" shape.
@@ -92,6 +93,27 @@ describe('shapeMismatchConcerns — mortgage-scale balance mislabeled Vehicle', 
   it('stays SILENT on a normal mortgage labeled as a mortgage', () => {
     const debts = [{ id: 'd4', name: 'Home mortgage', type: 'mortgage', balance: -240000 }];
     expect(shapeMismatchConcerns({ debts })).toHaveLength(0);
+  });
+});
+
+describe('captionCoverageConcerns — accessibility reflex (DR-0133)', () => {
+  it('fires ONE concern when caption coverage is below the bar', () => {
+    const cov = captionsCoverage(['a', 'b', 'c', 'd'], { a: { cueCount: 5 } }); // 25%
+    const cards = captionCoverageConcerns(cov);
+    expect(cards).toHaveLength(1);
+    expect(cards[0].concern).toMatch(/1\/4 service videos.*25%/);
+    expect(cards[0].area).toMatch(/captions/i);
+    expect(cards[0].readOnly).toBe(true);
+  });
+
+  it('is silent at/above the bar (auto-resolves as coverage climbs)', () => {
+    const full = captionsCoverage(['a', 'b'], { a: { cueCount: 5 }, b: { cueCount: 5 } }); // 100%
+    expect(captionCoverageConcerns(full)).toEqual([]);
+  });
+
+  it('is silent with no corpus and on a null snapshot (never painted)', () => {
+    expect(captionCoverageConcerns(captionsCoverage([], {}))).toEqual([]);
+    expect(captionCoverageConcerns(null)).toEqual([]);
   });
 });
 

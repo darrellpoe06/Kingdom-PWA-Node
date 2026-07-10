@@ -17,12 +17,13 @@
 // color on the rendered chip — the per-[data-theme] contrast remap applies),
 // SVG-free glyphs reused from BuildBoard, 36px tap targets, focus rings.
 // =============================================================================
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   CONCERN_STATUS, CONCERN_STATUS_ORDER, statusMeta,
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
 import { deriveDataConcerns } from '../lib/derive-concerns.js';
+import { subscribeLedger } from '../lib/harvest-ledger.js';
 
 // Auto-triage severity chip styling — reuses the board's themeable palette (no
 // new color, so the per-theme contrast guard keeps holding). Critical is a
@@ -182,11 +183,25 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
 
   const canEdit = !!(isGovernor || currentUserId);
 
+  // Sovereign captions coverage (DR-0133) — a real accessibility gap surfaces here
+  // the moment it drops below the bar. Read live from the harvest ledger; degrades
+  // to null (no caption concern) when the ledger is unreachable — never painted.
+  const [captionsCov, setCaptionsCov] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const unsub = subscribeLedger((l) => { if (alive) setCaptionsCov((l && l.captions) || null); });
+    return () => { alive = false; try { unsub && unsub(); } catch { /* noop */ } };
+  }, []);
+
   // The app's own processes flag real-data gaps (coverage / reconciliation /
-  // shape) deterministically from the live ledger, portfolio, and debts — so a
-  // concern like a thin-import month or a collapsed multi-unit door appears the
-  // moment the process finds it, with no one naming it (lib/derive-concerns.js).
-  const derived = useMemo(() => deriveDataConcerns({ transactions, rentals, debts }), [transactions, rentals, debts]);
+  // shape / captions) deterministically from the live ledger, portfolio, debts,
+  // and caption pipeline — so a concern like a thin-import month, a collapsed
+  // multi-unit door, or an uncaptioned corpus appears the moment the process
+  // finds it, with no one naming it (lib/derive-concerns.js).
+  const derived = useMemo(
+    () => deriveDataConcerns({ transactions, rentals, debts, captions: captionsCov }),
+    [transactions, rentals, debts, captionsCov],
+  );
 
   // The full board list: curated (DB concerns supersede same-id seeds) + the
   // dated baseline + feedback read-through + the process-derived cards.

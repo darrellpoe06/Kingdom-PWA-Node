@@ -95,5 +95,47 @@ class VerdictClassifyTest(unittest.TestCase):
         self.assertFalse(lt.is_verdict("IpBlocked: ..."))
 
 
+class _Seg:
+    """Stub for a youtube-transcript-api snippet ({text,start,duration})."""
+    def __init__(self, text, start, duration):
+        self.text = text
+        self.start = start
+        self.duration = duration
+
+
+class CaptionVttTest(unittest.TestCase):
+    """The sovereign caption track: cues -> WebVTT (migration 0095). This is the
+    Python side of the same algorithm proven in app/src/__tests__/captions.test.js;
+    both paths MUST emit identical VTT so YouTube-sourced and Whisper-sourced
+    captions render the same."""
+
+    def test_vtt_timestamp_is_canonical_hhmmssmmm(self):
+        self.assertEqual(lt._vtt_timestamp(0), "00:00:00.000")
+        self.assertEqual(lt._vtt_timestamp(65.25), "00:01:05.250")
+        self.assertEqual(lt._vtt_timestamp(3661.001), "01:01:01.001")
+        self.assertEqual(lt._vtt_timestamp(0.9999), "00:00:01.000")  # rounding carries
+        self.assertEqual(lt._vtt_timestamp(-5), "00:00:00.000")      # clamp negative
+
+    def test_cues_are_sorted_cleaned_and_non_overlapping(self):
+        cues = lt.cues_from_segments([
+            _Seg("have mercy on us", 5, 3),
+            _Seg(">> Jesus Master", 2, 2),
+        ])
+        self.assertEqual(cues, [
+            {"start": 2, "end": 4, "text": "Jesus Master"},
+            {"start": 5, "end": 8, "text": "have mercy on us"},
+        ])
+
+    def test_overrunning_cue_end_is_clamped_to_next_start(self):
+        cues = lt.cues_from_segments([_Seg("one", 0, 10), _Seg("two", 4, 2)])
+        self.assertEqual(cues[0]["end"], 4)
+
+    def test_build_vtt_is_valid_and_carries_the_cue(self):
+        vtt = lt.build_vtt([{"start": 2, "end": 4, "text": "thy faith hath made thee whole"}])
+        self.assertTrue(vtt.startswith("WEBVTT"))
+        self.assertIn("00:00:02.000 --> 00:00:04.000", vtt)
+        self.assertIn("thy faith hath made thee whole", vtt)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -42,6 +42,8 @@ const HARVEST_ABOUT = aboutFor('church:harvest');
 const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
 import { corpusCoverage } from '../lib/corpus-coverage.js';
+import { captionsCoverageLine } from '../lib/captions-coverage.js';
+import { captionSourceLabel } from '../lib/captions.js';
 import { OPS_JOBS, queueCommand, cancelCommand, subscribeOpsCommands, runnerHint } from '../lib/ops-commands.js';
 
 const fmtDate = (d) => {
@@ -387,6 +389,28 @@ export default function HarvestLedger() {
               <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
             </p>
           </div>
+
+          {/* Sovereign captions coverage (DR-0137): a MEASURED accessibility
+              number — service videos carrying our OWN timestamped caption track
+              (video_transcripts.vtt), not YouTube's borrowed one. Reads live from
+              the ledger; 0 when the corpus has none (an honest gap, never painted). */}
+          {l.captions && (
+            <div className="mb-3 p-2 rounded border" style={{ borderColor: l.captions.fullyCaptioned ? '#166534' : '#B85838', background: l.captions.fullyCaptioned ? '#F0FAF1' : '#FFF7F2' }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">Sovereign captions</span>
+                <span className="text-[11px] font-semibold text-[#1A1815]">{captionsCoverageLine(l.captions)}</span>
+              </div>
+              <div className="flex-1 h-2 rounded mt-1" style={{ background: '#EFEBE3' }}>
+                <div className="h-2 rounded" style={{ width: `${l.captions.pct}%`, background: l.captions.fullyCaptioned ? '#166534' : '#B85838' }} />
+              </div>
+              {l.captions.captioned > 0 && (
+                <p className="text-[9px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {Object.entries(l.captions.bySource).map(([src, n]) => `${n} ${captionSourceLabel(src)}`).join(' · ')} · owned by us, on every surface
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1">
             {HARVEST_TYPES.map((t) => {
               // count a partial harvest as progress too, so an auto type that
