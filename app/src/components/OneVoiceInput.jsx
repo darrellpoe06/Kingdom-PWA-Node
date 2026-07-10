@@ -15,10 +15,11 @@
 // editing this file. Consolidates the previously copy-pasted send()/save()
 // dispatch in ChurchOneVoice + ThinkingSpace (Darrell 2026-06-15: "consolidate
 // the inputs to make a master multiinput").
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch } from '../lib/one-voice-routing.js';
 import { resolveSurface } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
+import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 
 export function OneVoiceInput({
   surface = 'church',
@@ -46,10 +47,16 @@ export function OneVoiceInput({
   const cfg = resolveSurface(surface, surfaceConfig);
   const DESTS = destinations || destinationsFor(surface === 'notes' ? 'notes' : 'church');
 
-  const [text, setText] = useState('');
-  const [route, setRoute] = useState(cfg.defaultRoute);
-  const [touchedRoute, setTouchedRoute] = useState(false);
-  const [name, setName] = useState('');
+  // Google-Doc-style autosave (Christina 2026-07-10: "when you stall out with
+  // time or forget and come back, your information is still there"). The box
+  // opens holding the device-local draft; every edit re-saves it; a successful
+  // Send clears it. All device-local (lib/draft-autosave.js).
+  const draft = readDraft(surface);
+  const [text, setText] = useState(draft ? draft.text : '');
+  const [route, setRoute] = useState(draft && draft.route ? draft.route : cfg.defaultRoute);
+  const [touchedRoute, setTouchedRoute] = useState(!!(draft && draft.route && draft.route !== cfg.defaultRoute));
+  const [name, setName] = useState(draft ? draft.name : '');
+  const [restoredDraft, setRestoredDraft] = useState(!!draft);
   const [confirmation, setConfirmation] = useState(null);
   const [lastSent, setLastSent] = useState(null); // the last delivered text — feeds the email-a-copy link
 
@@ -66,6 +73,12 @@ export function OneVoiceInput({
   const mic = useVoiceDictation({
     onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
   });
+
+  // Persist the draft as they type (lightly debounced); an emptied box clears it.
+  useEffect(() => {
+    const timer = setTimeout(() => { writeDraft(surface, { text, route, name }); }, 350);
+    return () => clearTimeout(timer);
+  }, [surface, text, route, name]);
 
   // The routing→action DECISION is the pure planDispatch (testable matrix); the
   // component only performs the side-effect the plan names. Same behavior as the
@@ -109,6 +122,8 @@ export function OneVoiceInput({
     setText('');
     setTouchedRoute(false);
     setRoute(cfg.defaultRoute);
+    setRestoredDraft(false);
+    clearDraft(surface); // delivered — the draft's job is done
   };
 
   const active = DESTS.find(d => d.key === route) || DESTS[0];
@@ -127,6 +142,11 @@ export function OneVoiceInput({
         value={text}
         onChange={e => onText(e.target.value)}
       />
+      {restoredDraft && (
+        <p role="status" className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Your unsent words were kept — everything here saves as you type, no Save needed.
+        </p>
+      )}
       {(mic.supported || mic.error) && (
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {mic.supported && (
