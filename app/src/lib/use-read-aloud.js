@@ -20,7 +20,7 @@ import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
-import { buildStandInAssignments, resolveVoiceURIForId } from './voice-assignment.js';
+import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
@@ -176,22 +176,29 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     // (the wrong gender / "never worked" report — DR-0138). Wait briefly for the
     // list and resolve against what ACTUALLY arrived — the memoized assignments
     // were built from the empty list and can't be trusted for this first read.
+    // The PROSODY diversifier rides the same resolution: on a device whose voice
+    // list can't produce a man or two distinct people (the Android one-female-
+    // voice report, 2026-07-10), the person's deterministic PITCH does.
+    const catalogIdOf = (id) => (isSystemVoiceId(id)
+      ? SYSTEM_VOICE.id
+      : isPersonVoiceId(id)
+        ? (fullCatalog.find((x) => x.personKey === personKeyOf(id)) || {}).id
+        : undefined);
     let uri = resolveSpeakURI(voiceId);
+    let liveAssignments = assignments;
     if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
       const fresh = await waitForVoices(window.speechSynthesis);
       if (fresh.length) {
-        const freshAssignments = buildStandInAssignments(fullCatalog, fresh);
+        liveAssignments = buildStandInAssignments(fullCatalog, fresh);
         const overrides = loadPersonaVoiceMap();
-        if (isSystemVoiceId(voiceId)) {
-          uri = resolveVoiceURIForId(SYSTEM_VOICE.id, { assignments: freshAssignments, overrides, available: fresh });
-        } else if (isPersonVoiceId(voiceId)) {
-          const c = fullCatalog.find((x) => x.personKey === personKeyOf(voiceId));
-          uri = c ? resolveVoiceURIForId(c.id, { assignments: freshAssignments, overrides, available: fresh }) : uri;
-        }
+        const cidFresh = catalogIdOf(voiceId);
+        if (cidFresh) uri = resolveVoiceURIForId(cidFresh, { assignments: liveAssignments, overrides, available: fresh });
       }
     }
-    tts.speak(clean, uri);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog]);
+    const cid = catalogIdOf(voiceId);
+    const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
+    tts.speak(clean, uri, pitch);
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments]);
 
   return {
     supported: tts.supported,

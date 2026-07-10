@@ -84,6 +84,12 @@ export function bootHealingHtml() {
 
 export function bootFallbackHtml() {
   // Inline styles only — a failed CSS chunk must not blank this too.
+  // THE ONE TAP IS THE STRONGEST HEAL (2026-07-10, live report: "the one tap
+  // refresh doesn't work"). By the time this screen shows, a plain reload AND a
+  // cache-clear reload already ran automatically — so the primary button must
+  // never repeat the weakest action that just failed. It runs the full clear
+  // (SW + caches) AND loads a cache-busted URL, which defeats the one holder
+  // the ladder previously never touched: an HTTP/edge-cached index.html.
   return [
     '<div role="alert" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;',
     'font-family:Georgia,\'Times New Roman\',serif;background:#FAF8F4;color:#1A1815;text-align:center;">',
@@ -91,13 +97,33 @@ export function bootFallbackHtml() {
     '<div style="font-size:0.625rem;letter-spacing:0.25em;text-transform:uppercase;color:#B85838;font-weight:600;margin-bottom:0.75rem;">PoeTech</div>',
     '<h1 style="font-size:1.25rem;margin:0 0 0.5rem;font-weight:600;">Almost there — one more tap</h1>',
     '<p style="font-size:0.9375rem;line-height:1.5;color:#5A5751;margin:0 0 1.25rem;">',
-    'We refreshed automatically and your device is still holding the old version. One tap finishes it.</p>',
-    '<button data-boot-reload type="button" style="display:block;width:100%;padding:0.75rem 1rem;margin:0 0 0.625rem;',
-    'background:#1A1815;color:#fff;border:none;font:inherit;font-weight:600;font-size:0.875rem;cursor:pointer;">Reload</button>',
-    '<button data-boot-clear type="button" style="display:block;width:100%;padding:0.625rem 1rem;',
-    'background:transparent;color:#B85838;border:1px solid #C9BFA8;font:inherit;font-size:0.8125rem;cursor:pointer;">Still stuck? Clear cache &amp; reload</button>',
+    'We refreshed automatically and your device is still holding the old version. This tap fetches a completely fresh copy.</p>',
+    '<button data-boot-clear type="button" style="display:block;width:100%;padding:0.75rem 1rem;margin:0 0 0.625rem;',
+    'background:#1A1815;color:#fff;border:none;font:inherit;font-weight:600;font-size:0.875rem;cursor:pointer;">Get the fresh copy</button>',
+    '<button data-boot-reload type="button" style="display:block;width:100%;padding:0.625rem 1rem;',
+    'background:transparent;color:#B85838;border:1px solid #C9BFA8;font:inherit;font-size:0.8125rem;cursor:pointer;">Try a plain reload</button>',
     '</div></div>',
   ].join('');
+}
+
+// Load the SAME page through a cache-busted URL: a changing `fresh` query param
+// defeats a browser-HTTP-cached or edge-cached index.html — the one stale holder
+// clearAppCaches (SW + CacheStorage) cannot touch. location.replace so the stale
+// entry doesn't stay in history. Falls back to a plain reload when anything is
+// missing. Injectable win for tests.
+export function bustReload(win) {
+  const w = win !== undefined ? win : (typeof window !== 'undefined' ? window : null);
+  try {
+    const loc = w && w.location;
+    if (loc && typeof loc.replace === 'function' && typeof URL === 'function' && loc.href) {
+      const u = new URL(loc.href);
+      u.searchParams.set('fresh', String(Date.now()));
+      loc.replace(u.toString());
+      return true;
+    }
+  } catch (_) { /* fall through */ }
+  try { if (w && w.location && typeof w.location.reload === 'function') { w.location.reload(); return true; } } catch (_) { /* ignore */ }
+  return false;
 }
 
 // The nuclear cache-bust: drop the service worker + all caches so the next load
@@ -150,13 +176,17 @@ export function showBootFallback(rootEl, opts = {}) {
     }
   } catch (_) { /* watcher never blocks the heal */ }
 
+  // The strongest recovery: full clear, then a cache-busted URL (never a plain
+  // reload — an HTTP/edge-cached index survives clearAppCaches). Injectable.
+  const bust = opts.bust || (() => bustReload(win));
+
   if (stage === 'reload' || stage === 'clear') {
     try { el.innerHTML = bootHealingHtml(); } catch (_) { return false; }
     // A short beat so the screen paints (and a rapid-fire deploy settles) before
     // the recovery runs; injectable so tests run at 0ms.
     const delayMs = Number.isFinite(opts.delayMs) ? opts.delayMs : 800;
     const go = () => {
-      if (stage === 'clear') Promise.resolve(clear()).then(reload).catch(reload);
+      if (stage === 'clear') Promise.resolve(clear()).then(bust).catch(bust);
       else reload();
     };
     try { setTimeout(go, delayMs); } catch (_) { go(); }
@@ -168,7 +198,8 @@ export function showBootFallback(rootEl, opts = {}) {
     const r = el.querySelector && el.querySelector('[data-boot-reload]');
     const c = el.querySelector && el.querySelector('[data-boot-clear]');
     if (r && r.addEventListener) r.addEventListener('click', () => reload());
-    if (c && c.addEventListener) c.addEventListener('click', () => { Promise.resolve(clear()).then(reload).catch(reload); });
+    // The PRIMARY tap: clear SW + caches, then the cache-busted fresh URL.
+    if (c && c.addEventListener) c.addEventListener('click', () => { Promise.resolve(clear()).then(bust).catch(bust); });
   } catch (_) { /* the screen still shows even if wiring a button failed */ }
   return true;
 }

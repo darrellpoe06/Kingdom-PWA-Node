@@ -19,12 +19,7 @@ import { chromium } from 'playwright-core';
 // marketing welcome — the gate IS a healthy mount):
 //   - the disclaimer bar (signed-in and welcome views)
 //   - the profile-creation / sign-in wall (fresh visitor on production)
-// NOTE innerText reflects CSS text-transform in Chrome — the gate's submit
-// button reads 'CREATE PROFILE & ENTER' as rendered, and an EMBEDDED gate
-// (?moore=1, ?view=church for a signed-out visitor) renders the form WITHOUT
-// the 'Create your profile' heading. The 2026-07-10 daad4f3 run failed on
-// exactly that: a healthy gate under 400 chars on a standalone URL.
-const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS', 'CREATE PROFILE & ENTER', 'Welcome back'];
+const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS'];
 // Recovery-screen headlines = the app did NOT boot.
 const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest version'];
 
@@ -52,8 +47,12 @@ async function checkOnce(browser, url) {
   });
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    // Standalone boots (?moore=1, ?register=1, …) render their own surface, not
-    // the app shell — for those, "no recovery screen + real content" is the bar.
+    // Standalone boots (?moore=1, ?view=church, …) render their own surface OR —
+    // for a fresh signed-out visitor deep-linking into a gated tab — the ACCESS
+    // GATE. The gate IS a healthy mount (incident #715's lesson; the ?view=church
+    // first run re-taught it at 08:09Z: the app mounted the profile gate
+    // perfectly and the >=400-chars-only bar called it a failure). So: a mount
+    // marker OR real content passes; only the recovery screen / a thin blank fails.
     const standalone = url.includes('?');
     // Wait until the page RESOLVES — mounted, recovery screen, or real content —
     // instead of judging at a fixed instant (slow is not down).
@@ -61,10 +60,8 @@ async function checkOnce(browser, url) {
       ({ mounts, fails, alone }) => {
         const t = document.body ? document.body.innerText || '' : '';
         if (fails.some((m) => t.includes(m))) return true;
-        // A standalone URL is healthy on real content OR on any recognized
-        // mount (a signed-out visitor gets the ACCESS GATE there — the gate
-        // IS a healthy mount, incident #715 / the daad4f3 false alarm).
-        return (alone && t.trim().length >= 400) || mounts.some((m) => t.includes(m));
+        if (mounts.some((m) => t.includes(m))) return true;
+        return alone ? t.trim().length >= 400 : false;
       },
       { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
       { timeout: MOUNT_TIMEOUT_MS },
@@ -73,8 +70,8 @@ async function checkOnce(browser, url) {
     const failHit = FAIL_MARKERS.find((m) => text.includes(m));
     if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
     if (standalone) {
-      if (text.trim().length < 400 && !MOUNT_MARKERS.some((m) => text.includes(m))) {
-        return { ok: false, why: `standalone surface did not mount (body ${text.length} chars, no mount marker): "${text.trim().slice(0, 200)}"`, errors };
+      if (!MOUNT_MARKERS.some((m) => text.includes(m)) && text.trim().length < 400) {
+        return { ok: false, why: `standalone surface did not mount (no gate/mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       }
       return { ok: true, errors };
     }

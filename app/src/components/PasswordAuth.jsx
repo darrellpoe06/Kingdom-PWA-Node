@@ -1,16 +1,19 @@
 // =============================================================================
-// PasswordAuth — the SIMPLE login: create your profile (or sign in) at install
+// PasswordAuth — sign in YOUR way: the emailed link first, a password only by choice
 // =============================================================================
-// Darrell 2026-06-16: login must be simple. See "Download app" → install → create
-// a profile RIGHT HERE (name + email + password) → you're in, and the installed
-// app stays signed in on the phone. No link to click, nothing that looks like a
-// virus. Email is only ever used to verify/recover.
+// Darrell 2026-06-16: login must be simple. Darrell 2026-07-10 (live): "I can't
+// even download the PoeTech App unless I have a password... I only use my PIN —
+// can I do that only, and/or my fingerprint? Some people use email and password,
+// some a PIN, some fingerprints." COMMUNITY-FIRST commitment 2 is binding: "No
+// required password-typing — magic-link or biometric or device-trust where
+// possible." So the DEFAULT door asks for name + email only and emails the
+// Royalty Link (no password exists unless the person WANTS one); the password
+// form lives behind an explicit "use a password instead" choice. After the first
+// sign-in, the existing multi-point machinery takes over: trust the device, set
+// a PIN or enroll a fingerprint, and that's all this device ever asks for.
 //
-// This is the self-contained form (calls the email+password helpers in
-// supabase.js). The signed-in session that signUp/signIn returns is picked up by
-// the app's existing onAuthChange — so wiring this in front of the access gate
-// ("no profile, no access") is a separate, reviewed step. The Royalty Link stays
-// as a small "trouble?" fallback so no one is ever locked out.
+// The signed-in session is picked up by the app's existing onAuthChange. No
+// lockout path: every mode links to every other mode.
 //
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F
 // error, #B85838 focus ring, labelled inputs, >=44px targets, aria-live status.
@@ -23,6 +26,7 @@ import { signUpWithPassword, signInWithPassword, validateCredentials, sendRoyalt
 // there is still no lockout path no matter where it renders.
 export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false }) {
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
+  const [usePassword, setUsePassword] = useState(false); // the LINK is the default door
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('idle'); // idle | working | done | linksent
@@ -60,10 +64,15 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
 
   const tryLink = async () => {
     setError('');
-    const { error } = await sendRoyaltyLink(form.email);
-    if (error) { setError(error.message || 'Could not send the sign-in link.'); return; }
+    if (!form.email.trim() || !form.email.includes('@')) { setError('Please enter your email address.'); return; }
+    if (isSignup && !usePassword && !form.name.trim()) { setError('Please add your name.'); return; }
+    setStatus('working');
+    const { error } = await sendRoyaltyLink(form.email, { name: form.name });
+    if (error) { setStatus('idle'); setError(error.message || 'Could not send the sign-in link.'); return; }
     setStatus('linksent');
   };
+
+  const linkSubmit = (e) => { e.preventDefault(); tryLink(); };
 
   const inputCls = 'w-full border border-[#1A1815] px-3 py-2.5 min-h-[44px] text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
   const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
@@ -80,8 +89,54 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     return (
       <div className="max-w-sm" aria-live="polite">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Sign-in link sent</h3>
-        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Check {form.email || 'your email'} and tap the link to finish. Or go back and use your password.</p>
-        <button type="button" onClick={() => setStatus('idle')} className="mt-3 text-xs uppercase tracking-wider underline text-[#5A6E3D]">Back to password</button>
+        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Check {form.email || 'your email'} and tap the link — that’s the whole sign-in. No password.</p>
+        <button type="button" onClick={() => setStatus('idle')} className="mt-3 text-xs uppercase tracking-wider underline text-[#5A6E3D]">Back</button>
+      </div>
+    );
+  }
+
+  // THE DEFAULT DOOR — no password exists here. Name (first time) + email, one
+  // button, and the emailed link signs them in. The password form is a CHOICE.
+  if (!usePassword) {
+    return (
+      <div className={embedded ? '' : 'max-w-sm'}>
+        {!embedded && (
+          <>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+            <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              {isSignup ? 'Create your profile' : 'Welcome back'}
+            </h2>
+          </>
+        )}
+        <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          No password needed — we email you a sign-in link. After the first time, this
+          device can unlock with just your PIN or fingerprint.
+        </p>
+        <form onSubmit={linkSubmit} noValidate>
+          {isSignup && (
+            <div className="mb-3">
+              <label htmlFor="pa-name" className={labelCls}>Your name</label>
+              <input id="pa-name" type="text" value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" />
+            </div>
+          )}
+          <div className="mb-3">
+            <label htmlFor="pa-email" className={labelCls}>Email</label>
+            <input id="pa-email" type="email" value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" />
+          </div>
+          {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
+          <button type="submit" disabled={status === 'working'} className="w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+            {status === 'working' ? 'One moment…' : 'Email me my sign-in link →'}
+          </button>
+        </form>
+        <div className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          {isSignup ? (
+            <button type="button" onClick={() => { setMode('signin'); setError(''); }} className="underline hover:text-[#1A1815]">Already have a profile? Sign in</button>
+          ) : (
+            <button type="button" onClick={() => { setMode('signup'); setError(''); }} className="underline hover:text-[#1A1815]">New here? Create a profile</button>
+          )}
+          <span className="mx-2 text-[#E8E4DC]">|</span>
+          <button type="button" onClick={() => { setUsePassword(true); setError(''); }} className="underline hover:text-[#1A1815]">Prefer a password? Use one</button>
+        </div>
       </div>
     );
   }
@@ -136,7 +191,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
           <button type="button" onClick={() => { setMode('signup'); setError(''); }} className="underline hover:text-[#1A1815]">New here? Create a profile</button>
         )}
         <span className="mx-2 text-[#E8E4DC]">|</span>
-        <button type="button" onClick={tryLink} className="underline hover:text-[#1A1815]">Trouble? Email me a sign-in link</button>
+        <button type="button" onClick={() => { setUsePassword(false); setError(''); }} className="underline hover:text-[#1A1815]">No password — email me a link instead</button>
       </div>
     </div>
   );
