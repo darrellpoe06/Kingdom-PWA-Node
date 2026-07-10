@@ -119,3 +119,44 @@ describe('the dramatized player speaks each line in its speaker voice, sequentia
     expect(player.isPlaying()).toBe(false);
   });
 });
+
+describe('the PROSODY diversifier — distinct speakers on a one-female-voice device (2026-07-10 Android report)', () => {
+  const FEMALE_ONLY = [{ name: 'Google US English Female', voiceURI: 'gf', lang: 'en-US' }];
+  it('Jesus reads LOW and Mary reads bright on the same single female voice — never the same sound', async () => {
+    const { buildCast: bc, castPitch } = await import('../lib/scripture-voice-cast.js');
+    const a = bc(FEMALE_ONLY);
+    const jesus = castPitch(a, 'jesus');
+    const mary = castPitch(a, 'mary');
+    expect(jesus).toBeLessThan(0.9);        // a man is male-ified by pitch
+    expect(mary).toBeGreaterThanOrEqual(1); // a woman stays bright
+    expect(jesus).not.toBe(mary);
+  });
+  it('two MEN colliding on the one voice get distinct pitches (Jesus vs the Father)', async () => {
+    const { buildCast: bc, castPitch } = await import('../lib/scripture-voice-cast.js');
+    const a = bc(FEMALE_ONLY);
+    expect(castPitch(a, 'jesus')).not.toBe(castPitch(a, 'father'));
+  });
+  it('the narrator always reads at the reader’s neutral pitch', async () => {
+    const { buildCast: bc, castPitch } = await import('../lib/scripture-voice-cast.js');
+    expect(castPitch(bc(FEMALE_ONLY), 'narrator')).toBe(1);
+  });
+  it('with a REAL male voice available, matched men stay at neutral pitch (the voice carries identity)', async () => {
+    const { buildCast: bc, castPitch } = await import('../lib/scripture-voice-cast.js');
+    const a = bc([
+      { name: 'Daniel', voiceURI: 'd', lang: 'en-GB' },
+      { name: 'Alex', voiceURI: 'a', lang: 'en-US' },
+      { name: 'Samantha', voiceURI: 's', lang: 'en-US' },
+    ]);
+    expect(castPitch(a, 'jesus')).toBe(1); // matched male voice — no pitch shift needed
+  });
+  it('the player APPLIES the pitch to each utterance', () => {
+    const synth = mockSynth();
+    const player = createCastPlayer({ synth, Utterance: MockUtterance });
+    player.play(
+      [{ voice: 'jesus', text: 'I am the way' }],
+      () => ({ voice: DEVICE[2], pitch: 0.7 }),
+    );
+    expect(synth.spoken[0].pitch).toBe(0.7);
+    expect(synth.spoken[0].voice).toBe(DEVICE[2]);
+  });
+});

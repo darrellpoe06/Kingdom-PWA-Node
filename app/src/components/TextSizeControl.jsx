@@ -1,7 +1,7 @@
 // =============================================================================
 // TextSizeControl — the large-print control surface (WCAG 2.1 Resize Text 1.4.4)
 // =============================================================================
-// A simple, obvious A / A+ / A++ / A+++ / A++++ / A44 stepper that drives the shared-core
+// A simple, obvious A / A+ / A++ / A+++ / A44 stepper that drives the shared-core
 // text-size primitive (lib/text-size.js). Big tap targets, plain labels, no
 // jargon — built for a non-technical, elderly reader who just wants the words
 // bigger. The active step is announced for screen readers (aria-pressed), and
@@ -31,7 +31,7 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
         // with the root multiplier — otherwise the control would compound with its
         // own setting and overflow at Largest. The page behind the control is what
         // previews the real effect; this control just stays a usable control.
-        const labelPx = (isPanel ? [15, 17, 19, 21, 23, 25] : [12, 13, 14, 15, 16, 17])[i] || 15;
+        const labelPx = (isPanel ? [15, 17, 19, 21, 24] : [12, 13, 14, 15, 16])[i] || 15;
         return (
           <button
             key={s.key}

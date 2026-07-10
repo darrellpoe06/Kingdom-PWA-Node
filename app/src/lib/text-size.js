@@ -37,23 +37,25 @@ import { captureAnchor, applyAnchor } from './reading-position.js';
 const STORAGE_KEY = 'poe-text-size';
 
 // Stepped, plain-language options with an "A / A+ / A++ / A+++" affordance.
-// Multipliers: Largest = 1.5x root. On the reading bodies (which already use
-// Tailwind text-base/lg/xl) that lands large-print text at ~200% of the smallest
-// chrome baseline — the WCAG 1.4.4 target — while staying inside a layout that
-// does not break. Big, plain labels for non-technical readers.
+// Multipliers: Largest = 2x root — WCAG 1.4.4's 200% applied DIRECTLY to the
+// content scale, not reached only via the reading bodies' own headroom. Raised
+// from 1.5x on 2026-07-10 after Darrell, at A+++ on a small phone: "The largest
+// size text is still very small on a small cellphone" (DR-0145). The chrome cap
+// (below) keeps headers/tabs bounded (~1.25x at Largest) so the layout holds
+// while CONTENT truly doubles. Big, plain labels for non-technical readers.
 export const TEXT_SIZE_STEPS = [
   { key: 'normal',  mult: 1,    label: 'A',    name: 'Normal'  },
-  { key: 'large',   mult: 1.15, label: 'A+',   name: 'Large'   },
-  { key: 'larger',  mult: 1.3,  label: 'A++',  name: 'Larger'  },
-  { key: 'largest', mult: 1.5,  label: 'A+++', name: 'Largest' },
+  { key: 'large',   mult: 1.2,  label: 'A+',   name: 'Large'   },
+  { key: 'larger',  mult: 1.5,  label: 'A++',  name: 'Larger'  },
+  { key: 'largest', mult: 2,    label: 'A+++', name: 'Largest' },
   // "Can we get up to 44 big print for our users if needed and still make it
-  // look good and not overcrowded" (Darrell, 2026-07-10 — DR-0144). Two big-
-  // print steps for elders and for children learning to learn: Giant doubles
-  // the base, and Big Print 44 lands 16px body text at exactly 44px — true
-  // large-print territory. The chrome cap below is what keeps the nav and page
-  // titles from ballooning with it, so the WORDS grow, not the frame.
-  { key: 'giant',    mult: 2,    label: 'A++++', name: 'Giant' },
-  { key: 'bigprint', mult: 2.75, label: 'A44',   name: 'Big Print 44' },
+  // look good and not overcrowded" (Darrell, 2026-07-10 — DR-0147, atop the
+  // same day's DR-0145 doubling of Largest). One step above the doubled top,
+  // for elders and for children learning to learn: Big Print 44 lands 16px
+  // body text at exactly 44px — true large-print territory. The chrome cap
+  // below keeps the nav and page titles from ballooning with it, so the WORDS
+  // grow, not the frame.
+  { key: 'bigprint', mult: 2.75, label: 'A44', name: 'Big Print 44' },
 ];
 
 export const DEFAULT_TEXT_SIZE = 'normal';

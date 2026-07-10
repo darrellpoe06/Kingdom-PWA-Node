@@ -65,9 +65,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then echo 'SUPABASE_DB_URL secret missing'; exit 1; fi
-          psql "$DATABASE_URL" --single-transaction -v ON_ERROR_STOP=1 -f scripts/out/choir-sermons-backfill.sql
-          psql "$DATABASE_URL" -t -c "SELECT count(*) AS choir_sermons_rows FROM choir_sermons;"
+          # The stored secret carries trailing whitespace/newline — psql then asks
+          # for a database literally named "postgres\n" (first run failed exactly
+          # there). Strip ALL whitespace, same as scripts/db-migrate-apply.sh:31.
+          DBURL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then echo 'SUPABASE_DB_URL secret missing'; exit 1; fi
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f scripts/out/choir-sermons-backfill.sql
+          psql "$DBURL" -t -c "SELECT count(*) AS choir_sermons_rows FROM choir_sermons;"
 
       - name: Push the regenerated manifest (the lane opens the PR)
         run: |

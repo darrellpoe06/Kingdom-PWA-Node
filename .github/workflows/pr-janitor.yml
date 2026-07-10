@@ -1,0 +1,118 @@
+# pr-janitor — the lane cleans up after itself (DR-0146)
+#
+# Born from the 2026-07-10 "CI UNKNOWN" board: 24 PRs sat open, 23 of them
+# idle zombies whose branches carried NOTHING beyond main (empty diff, verified
+# branch-by-branch on the sandbox) — and the OpsBoard's bounded lane budget was
+# being spent describing corpses while the live work read "unknown". Hand-closing
+# them was rejected by the governor ("comprehensive processes"): the CLEANUP
+# must be a process the team can dispatch, observe, and re-run — not a session's
+# manual sweep.
+#
+# What one run does:
+#   1. Lists the open PRs (one API page, bounded).
+#   2. A PR is a CLOSE candidate ONLY when ALL of these hold:
+#        - idle: not updated for at least IDLE_HOURS (default 72), AND
+#        - provably empty: `git diff --quiet origin/main...branch` on the
+#          runner — every commit it carries is already in main, AND
+#        - not labeled `hold` (the governor's hand is senior), AND
+#        - not a draft (a draft states intent; it is reported, never closed), AND
+#        - auto-merge not armed (an armed PR is live by definition).
+#   3. Candidates are closed with a preserving comment; the BRANCH IS KEPT —
+#      nothing is deleted, reopen or push to revive.
+#   4. Stale-but-NON-EMPTY PRs are REPORTED in the job summary and left open —
+#      real work is never auto-closed (DR-0076: the diff is the evidence).
+#
+# THREE BRAKES (CLAUDE.md autonomous-automation rule):
+#   (1) Budget — one PR page per run; at most MAX_CLOSE closes; no loops.
+#   (2) Lock   — concurrency group; a second dispatch queues, never stacks.
+#   (3) Kill   — workflow_dispatch ONLY (no schedule; a human arms each run).
+#       Arming a schedule is the governor's standing Tier C decision.
+
+name: pr-janitor
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Actually close the proven-empty idle PRs (false = report only)'
+        default: 'true'
+        required: false
+      idle_hours:
+        description: 'Hours a PR must be untouched before it is even considered'
+        default: '72'
+        required: false
+
+concurrency:
+  group: pr-janitor
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sweep the open PRs (close only what is idle AND provably empty)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPLY: ${{ inputs.apply }}
+          IDLE_HOURS: ${{ inputs.idle_hours }}
+        run: |
+          set -euo pipefail
+          MAX_CLOSE=25   # the budget brake: one bounded pass, never a purge loop
+          NOW=$(date -u +%s)
+          CUTOFF=$(( ${IDLE_HOURS:-72} * 3600 ))
+          gh pr list --state open --limit 100 \
+            --json number,headRefName,updatedAt,isDraft,title,labels,autoMergeRequest > prs.json
+          TOTAL=$(jq length prs.json)
+          echo "## pr-janitor sweep — $TOTAL open PRs" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| PR | branch | idle | verdict |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          CLOSED=0
+          while IFS= read -r pr; do
+            NUM=$(jq -r '.number' <<<"$pr")
+            BR=$(jq -r '.headRefName' <<<"$pr")
+            UPD=$(jq -r '.updatedAt' <<<"$pr")
+            DRAFT=$(jq -r '.isDraft' <<<"$pr")
+            HOLD=$(jq -r '[.labels[].name] | index("hold") != null' <<<"$pr")
+            ARMED=$(jq -r '.autoMergeRequest != null' <<<"$pr")
+            AGE=$(( NOW - $(date -u -d "$UPD" +%s) ))
+            HOURS=$(( AGE / 3600 ))
+            if [ "$HOLD" = "true" ]; then
+              echo "| #$NUM | $BR | ${HOURS}h | held by the governor — untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            if [ "$ARMED" = "true" ]; then
+              echo "| #$NUM | $BR | ${HOURS}h | auto-merge armed — live, untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            if [ "$AGE" -lt "$CUTOFF" ]; then
+              echo "| #$NUM | $BR | ${HOURS}h | active — untouched |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            if [ "$DRAFT" = "true" ]; then
+              echo "| #$NUM | $BR | ${HOURS}h | stale DRAFT — reported, never closed |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            # The evidence step: is the branch's every commit already in main?
+            if ! git fetch --quiet origin "refs/heads/$BR:refs/janitor/$BR" 2>/dev/null; then
+              echo "| #$NUM | $BR | ${HOURS}h | branch unfetchable — reported only |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            if git diff --quiet "origin/main...refs/janitor/$BR"; then
+              if [ "$CLOSED" -ge "$MAX_CLOSE" ]; then
+                echo "| #$NUM | $BR | ${HOURS}h | empty-diff, but the $MAX_CLOSE-close budget is spent — next run |" >> "$GITHUB_STEP_SUMMARY"; continue
+              fi
+              if [ "$APPLY" = "false" ]; then
+                echo "| #$NUM | $BR | ${HOURS}h | WOULD close (empty diff vs main) — report-only run |" >> "$GITHUB_STEP_SUMMARY"; continue
+              fi
+              gh pr close "$NUM" --comment "Closed by pr-janitor: idle for ${HOURS}h and the branch carries no changes beyond main (empty diff, verified on the runner this run). Nothing is deleted — the branch remains; push a commit or reopen to revive. (DR-0146)"
+              CLOSED=$(( CLOSED + 1 ))
+              echo "| #$NUM | $BR | ${HOURS}h | CLOSED — proven empty vs main |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| #$NUM | $BR | ${HOURS}h | stale but CARRIES REAL CHANGES — left open for a human |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done < <(jq -c '.[]' prs.json)
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Closed $CLOSED of $TOTAL (cap $MAX_CLOSE). Only proven-empty idle PRs close; everything else is reported." >> "$GITHUB_STEP_SUMMARY"

@@ -65,17 +65,27 @@ export function normalizeCommits(json) {
   });
 }
 
-// Latest CI run conclusion for main — the "is the trunk healthy" signal.
+// CI health for main — the "is the trunk healthy" signal, told TRUTHFULLY while
+// a run is in flight (Darrell 2026-07-10, the "CI UNKNOWN" board): an
+// in-progress run says nothing about trunk health, so the VERDICT comes from
+// the most recent COMPLETED run on the same page (zero extra requests) and the
+// in-flight run is noted beside it — "CI green (abc1234) · new run in flight",
+// never UNKNOWN just because the lane is busy.
 export function normalizeMainRuns(json) {
   const runs = (json && Array.isArray(json.workflow_runs)) ? json.workflow_runs : [];
-  if (runs.length === 0) return { status: 'idle', label: 'No runs', latest: null };
-  const latest = runs[0];
-  const concl = String(latest.conclusion || latest.status || 'unknown');
+  if (runs.length === 0) return { status: 'idle', label: 'No runs', latest: null, inFlight: false };
+  const inFlightRun = runs.find((r) => r && r.status !== 'completed') || null;
+  const completed = runs.find((r) => r && r.status === 'completed') || null;
+  const judge = completed || runs[0];
+  const concl = String(judge.conclusion || judge.status || 'unknown');
   const map = { success: 'good', failure: 'problem', cancelled: 'attention', timed_out: 'problem' };
+  const inFlight = !!inFlightRun;
   return {
     status: map[concl] || 'attention',
-    label: concl === 'success' ? 'CI green' : `CI ${concl}`,
-    latest: { sha: String(latest.head_sha || '').slice(0, 7), name: latest.name || 'CI', conclusion: concl },
+    label: (concl === 'success' ? 'CI green' : `CI ${concl}`) + (inFlight ? ' · new run in flight' : ''),
+    latest: { sha: String(judge.head_sha || '').slice(0, 7), name: judge.name || 'CI', conclusion: concl },
+    inFlight,
+    inFlightSha: inFlightRun ? String(inFlightRun.head_sha || '').slice(0, 7) : null,
   };
 }
 
@@ -208,7 +218,12 @@ async function fetchOpsUncached(opts = {}) {
     out.recentMerges = merges;
     out.main = merges[0] ? { sha: merges[0].sha, shortSha: merges[0].shortSha, title: merges[0].title } : null;
 
-    // Lane per open PR — REAL changed files, bounded by the rate budget.
+    // Lane per open PR — REAL changed files, bounded by the rate budget. The
+    // budget is spent on the LIVE PRs first (most recently updated), so a pile
+    // of stale open PRs can no longer starve the readout of the work actually
+    // in flight (the 2026-07-10 "first 8 of 24" board — 23 of those 24 were
+    // idle zombies; pr-janitor.yml prunes them, this ordering survives them).
+    pulls = pulls.slice().sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
     const lookups = pulls.slice(0, MAX_PR_FILE_LOOKUPS);
     await Promise.all(lookups.map(async (p) => {
       try {
@@ -221,7 +236,7 @@ async function fetchOpsUncached(opts = {}) {
       }
     }));
     if (pulls.length > MAX_PR_FILE_LOOKUPS) {
-      out.notice = `Lane computed for the first ${MAX_PR_FILE_LOOKUPS} of ${pulls.length} open PRs (API rate budget).`;
+      out.notice = `Lane computed for the ${MAX_PR_FILE_LOOKUPS} most recently updated of ${pulls.length} open PRs (API rate budget) — the janitor prunes idle ones.`;
     }
     pulls.forEach((p) => { if (!p.lane) p.lane = 'unknown'; });
 

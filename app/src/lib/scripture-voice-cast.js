@@ -18,7 +18,7 @@
 // =============================================================================
 
 import { KIND } from './voice-registry.js';
-import { buildStandInAssignments, standInVoiceURI } from './voice-assignment.js';
+import { buildStandInAssignments, standInVoiceURI, standInPitch } from './voice-assignment.js';
 import { segmentsForVerse } from './scripture-highlights.js';
 import { voiceSpansFor, VOICES } from './scripture-voices.js';
 
@@ -53,6 +53,17 @@ export function buildCast(availableVoices) {
 export function castVoiceURI(assignments, voiceKey) {
   if (!voiceKey || voiceKey === 'narrator') return undefined;
   return standInVoiceURI(assignments, voiceKey);
+}
+
+// The PITCH a cast member speaks at — the prosody diversifier for devices whose
+// voice list is one-female-voice-only (2026-07-10 Android report): Jesus and the
+// men read LOW even when the only device voice is female; Mary and the women
+// read bright even against a male-only list; two colliding same-gender speakers
+// stay audibly distinct. Neutral when the device supplied a matched, distinct
+// voice. 'narrator' always reads at the reader's own neutral pitch.
+export function castPitch(assignments, voiceKey) {
+  if (!voiceKey || voiceKey === 'narrator') return 1;
+  return standInPitch(CAST, assignments, voiceKey);
 }
 
 // Split ONE verse into ordered, voice-tagged runs: [{ text, voice }] where voice

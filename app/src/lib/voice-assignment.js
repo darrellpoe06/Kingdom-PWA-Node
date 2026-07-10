@@ -154,6 +154,53 @@ export function standInVoiceURI(assignments, catalogId) {
   return v && v.voiceURI ? v.voiceURI : undefined;
 }
 
+// -----------------------------------------------------------------------------
+// PROSODY — the diversifier that works on EVERY device (Darrell 2026-07-10, on
+// his Android tablet: "All female same voice no matter what... needs to
+// diversify the voices"). Many Android browsers expose one or two voices, all
+// reading female — so no assignment strategy can produce a man or two distinct
+// people from the VOICE LIST alone. Web Speech's per-utterance PITCH can:
+//   • a MALE speaker forced onto a female/unknown voice reads at a LOW pitch,
+//   • a FEMALE speaker forced onto a male voice reads brighter,
+//   • two same-gender people COLLIDING on one device voice get distinct,
+//     deterministic pitch offsets — different people, audibly different,
+// all honestly labeled stand-ins. When the device DID supply a gender-correct,
+// distinct voice, pitch stays neutral — the real voice carries the identity.
+// -----------------------------------------------------------------------------
+export const PITCH_NEUTRAL = 1;
+
+/**
+ * The pitch a catalog option should speak at, given what the device actually
+ * assigned. Deterministic (same catalog + device → same pitch). `catalog` is the
+ * same array buildStandInAssignments received (order matters for the spread).
+ */
+export function standInPitch(catalog, assignments, catalogId) {
+  const list = Array.isArray(catalog) ? catalog.filter(Boolean) : [];
+  const entry = list.find((e) => e.id === catalogId);
+  if (!entry || entry.kind === KIND.SYNTHETIC) return PITCH_NEUTRAL;
+  const wantedOf = (e) => (e.gender === 'male' || e.gender === 'female' ? e.gender : 'unknown');
+  const wanted = wantedOf(entry);
+  const assigned = assignments ? assignments[catalogId] : null;
+  const assignedGender = !assigned || assigned.voiceURI === PHONE_DEFAULT_VOICE
+    ? 'unknown'
+    : classifyVoiceGender(assigned);
+  const group = list.filter((e) => e.kind !== KIND.SYNTHETIC && wantedOf(e) === wanted);
+  const idx = Math.max(0, group.findIndex((e) => e.id === catalogId));
+  const spread = (idx % 3) * 0.08; // person-to-person separation within a group
+  if (wanted === 'male' && assignedGender !== 'male') return +(0.7 + spread).toFixed(2);
+  if (wanted === 'female' && assignedGender === 'male') return +(1.25 + spread).toFixed(2);
+  if (wanted === 'female' && assignedGender === 'unknown') return +(1.05 + spread).toFixed(2);
+  // Gender matched — the voice itself carries the identity. But if this person
+  // COLLIDED onto the same device voice as an earlier same-group person (a one-
+  // voice device), a pitch offset keeps them audibly distinct.
+  const myUri = assigned && assigned.voiceURI;
+  const collided = !!myUri && group.slice(0, idx).some((e) => {
+    const other = assignments && assignments[e.id];
+    return other && other.voiceURI === myUri;
+  });
+  return collided ? +(1 + (idx % 2 ? -0.12 : 0.12)).toFixed(2) : PITCH_NEUTRAL;
+}
+
 /**
  * The voiceURI to actually SPEAK a catalog option in, honoring a user PIN first.
  * A pinned voiceURI (persona-voice-prefs) wins WHEN it still exists on this device's

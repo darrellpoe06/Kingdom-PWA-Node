@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   bootFallbackHtml, bootHealingHtml, showBootFallback, clearAppCaches,
-  decideBootHeal, BOOT_HEAL_KEY, BOOT_HEAL_WINDOW_MS,
+  decideBootHeal, bustReload, BOOT_HEAL_KEY, BOOT_HEAL_WINDOW_MS,
 } from '../lib/boot-fallback.js';
 
 // A window-like with a working per-test sessionStorage (jsdom's real one leaks
@@ -56,7 +56,8 @@ describe('the screens are self-contained plain DOM', () => {
     expect(html).toContain('data-boot-reload');
     expect(html).toContain('data-boot-clear');
     expect(html).toContain('PoeTech');
-    expect(html).toMatch(/Reload/);
+    expect(html).toContain('Get the fresh copy'); // the primary tap is the STRONGEST heal
+    expect(html).toMatch(/plain reload/);
     expect(html).not.toContain('class=');   // no Tailwind — a failed CSS chunk can't blank it
   });
   it('healing screen asks for NOTHING (no buttons, polite live region)', () => {
@@ -79,45 +80,48 @@ describe('showBootFallback — auto rungs recover without a tap', () => {
     await new Promise((r) => setTimeout(r, 1));
     expect(reload).toHaveBeenCalledTimes(1);
   });
-  it('rung 2: clears caches THEN reloads by itself', async () => {
+  it('rung 2: clears caches THEN loads the cache-busted fresh URL by itself', async () => {
     const el = document.createElement('div');
     const order = [];
-    const reload = vi.fn(() => order.push('reload'));
+    const bust = vi.fn(() => order.push('bust'));
     const clear = vi.fn(() => { order.push('clear'); return Promise.resolve(); });
-    showBootFallback(el, { reload, clear, win: fakeWin({ ts: NOW - 1000, stage: 'reload' }), now: () => NOW, delayMs: 0 });
+    showBootFallback(el, { bust, clear, win: fakeWin({ ts: NOW - 1000, stage: 'reload' }), now: () => NOW, delayMs: 0 });
     expect(el.innerHTML).toContain('Refreshing automatically');
     await new Promise((r) => setTimeout(r, 1));
-    expect(order).toEqual(['clear', 'reload']);
+    expect(order).toEqual(['clear', 'bust']);
   });
-  it('rung 2 still reloads even if the cache-clear rejects (fail-soft)', async () => {
+  it('rung 2 still busts through even if the cache-clear rejects (fail-soft)', async () => {
     const el = document.createElement('div');
-    const reload = vi.fn();
+    const bust = vi.fn();
     const clear = vi.fn(() => Promise.reject(new Error('x')));
-    showBootFallback(el, { reload, clear, win: fakeWin({ ts: NOW - 1000, stage: 'reload' }), now: () => NOW, delayMs: 0 });
+    showBootFallback(el, { bust, clear, win: fakeWin({ ts: NOW - 1000, stage: 'reload' }), now: () => NOW, delayMs: 0 });
     await new Promise((r) => setTimeout(r, 1));
-    expect(reload).toHaveBeenCalled();
+    expect(bust).toHaveBeenCalled();
   });
 });
 
 describe('showBootFallback — the manual screen (both auto rungs exhausted)', () => {
   const manualOpts = (over) => ({ win: fakeWin({ ts: NOW - 1000, stage: 'clear' }), now: () => NOW, ...over });
-  it('fills the root and Reload triggers a reload', () => {
+  it('the PRIMARY tap runs the STRONGEST heal — clear then the cache-busted URL, never a bare reload (the "one tap doesn\'t work" fix)', async () => {
     const el = document.createElement('div');
     const reload = vi.fn();
-    expect(showBootFallback(el, manualOpts({ reload, clear: () => Promise.resolve() }))).toBe(true);
-    expect(el.innerHTML).toContain('Almost there');
-    el.querySelector('[data-boot-reload]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-    expect(reload).toHaveBeenCalledTimes(1);
-  });
-  it('Clear cache runs the clear step then reloads', async () => {
-    const el = document.createElement('div');
-    const reload = vi.fn();
+    const bust = vi.fn();
     const clear = vi.fn(() => Promise.resolve());
-    showBootFallback(el, manualOpts({ reload, clear }));
+    expect(showBootFallback(el, manualOpts({ reload, clear, bust }))).toBe(true);
+    expect(el.innerHTML).toContain('Almost there');
+    expect(el.innerHTML).toContain('Get the fresh copy');
     el.querySelector('[data-boot-clear]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     await Promise.resolve(); await Promise.resolve();
     expect(clear).toHaveBeenCalled();
-    expect(reload).toHaveBeenCalled();
+    expect(bust).toHaveBeenCalled();       // the fresh-URL load, not the reload that already failed
+    expect(reload).not.toHaveBeenCalled();
+  });
+  it('the secondary button still offers the plain reload', () => {
+    const el = document.createElement('div');
+    const reload = vi.fn();
+    showBootFallback(el, manualOpts({ reload, clear: () => Promise.resolve(), bust: vi.fn() }));
+    el.querySelector('[data-boot-reload]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    expect(reload).toHaveBeenCalledTimes(1);
   });
   it('a storage-less environment (private mode) goes straight to the manual screen', () => {
     const el = document.createElement('div');
@@ -126,6 +130,22 @@ describe('showBootFallback — the manual screen (both auto rungs exhausted)', (
   });
   it('is null-safe when there is no root element', () => {
     expect(showBootFallback(null, {})).toBe(false);
+  });
+});
+
+describe('bustReload — the fresh-URL load that defeats an HTTP/edge-cached index', () => {
+  it('replaces to the same URL with a changing fresh param, preserving existing params', () => {
+    let dest = null;
+    const win = { location: { href: 'https://poetech.us/poetech-app/?view=church', replace: (u) => { dest = u; } } };
+    expect(bustReload(win)).toBe(true);
+    expect(dest).toContain('view=church');
+    expect(dest).toMatch(/[?&]fresh=\d+/);
+  });
+  it('falls back to a plain reload when replace/URL is unavailable, and never throws bare', () => {
+    const reload = vi.fn();
+    expect(bustReload({ location: { reload } })).toBe(true);
+    expect(reload).toHaveBeenCalled();
+    expect(bustReload(null)).toBe(false);
   });
 });
 

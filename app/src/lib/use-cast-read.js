@@ -13,7 +13,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildCast, castVoiceURI } from './scripture-voice-cast.js';
+import { buildCast, castVoiceURI, castPitch } from './scripture-voice-cast.js';
 import { segmentText } from './tts.js';
 
 /**
@@ -57,7 +57,12 @@ export function createCastPlayer({ synth, Utterance }) {
         if (i >= segs.length) { playing = false; _current = null; if (onDone) onDone(); return; }
         const u = new Utterance(segs[i].text);
         const v = typeof voiceForKey === 'function' ? voiceForKey(segs[i].voice) : null;
-        if (v) u.voice = v;
+        // voiceForKey may return a plain voice OR { voice, pitch } — the pitch is
+        // the prosody diversifier for one-voice devices (a man reads LOW even when
+        // the only device voice is female; two speakers stay audibly distinct).
+        const voice = v && v.voice !== undefined ? v.voice : v;
+        if (voice) u.voice = voice;
+        if (v && Number.isFinite(Number(v.pitch))) u.pitch = Number(v.pitch);
         const next = () => { if (myGen === gen) speakAt(i + 1); };
         u.onend = next;
         u.onerror = next; // a failed line never kills the reading
@@ -106,7 +111,11 @@ export function useCastRead() {
   const assignments = useMemo(() => buildCast(voices), [voices]);
   const voiceForKey = useCallback((key) => {
     const uri = castVoiceURI(assignments, key);
-    return uri ? (voices.find((v) => v && v.voiceURI === uri) || null) : null;
+    const voice = uri ? (voices.find((v) => v && v.voiceURI === uri) || null) : null;
+    // { voice, pitch }: the pitch diversifies speakers on devices whose voice
+    // list can't (the 2026-07-10 Android one-female-voice report). Neutral when
+    // the device supplied a matched, distinct voice.
+    return { voice, pitch: castPitch(assignments, key) };
   }, [assignments, voices]);
 
   const play = useCallback((lines) => {
