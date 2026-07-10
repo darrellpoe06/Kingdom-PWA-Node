@@ -26,7 +26,10 @@ export function parseServiceTitle(rawTitle) {
     }
   }
   const serviceType = /wednesday|bible\s*study/i.test(title) ? 'wednesday' : 'sunday';
-  const qm = title.match(/[“"']\s*([^“”"']+?)\s*[”"']/);
+  // Double/smart quotes only. An apostrophe is PART of a message title
+  // ("YOU CAN'T…", "I'LL…"), not a delimiter — the old single-quote class
+  // truncated real titles to 'YOU CAN' and 'I' in the shipped 0013 rows.
+  const qm = title.match(/[“"]\s*([^“”"]+?)\s*[”"]/);
   const messageTitle = qm ? qm[1].trim() : null;
   const sm = title.match(/Bishop[^"“]*?Gwin/i);
   const speaker = sm ? sm[0].replace(/\s+/g, ' ').trim() : null;

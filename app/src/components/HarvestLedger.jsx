@@ -41,6 +41,7 @@ const HARVEST_ABOUT = aboutFor('church:harvest');
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
 const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
+import { corpusCoverage } from '../lib/corpus-coverage.js';
 import { OPS_JOBS, queueCommand, cancelCommand, subscribeOpsCommands, runnerHint } from '../lib/ops-commands.js';
 
 const fmtDate = (d) => {
@@ -322,6 +323,10 @@ export default function HarvestLedger() {
 
   const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {} };
 
+  // Corpus wholeness (DR-0135): is what the app HOLDS everything the channel
+  // HAS? The 125-of-335 gap hid for weeks because nothing compared them.
+  const wholeness = corpusCoverage(l.rows);
+
   // Sliding section tabs (Darrell 2026-07-04 / 2026-07-05): the KPI banner +
   // stat strip stay PINNED above the strip (always visible — "no more down
   // scrolling to see KPIs"); the long stacked content moves behind sections.
@@ -334,6 +339,22 @@ export default function HarvestLedger() {
       render: () => (
         <>
           {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
+
+          {/* Corpus wholeness strip (DR-0135) — the channel-vs-app comparison
+              the 125-of-335 gap never had. Amber until whole; never silent. */}
+          <div
+            className="border p-3 mb-3"
+            style={{
+              borderColor: wholeness.manifestReady && wholeness.missing.length === 0 ? '#5A6E3D' : '#B85838',
+              backgroundColor: '#FAF8F4',
+            }}
+            role="status"
+          >
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Corpus wholeness — channel vs app</p>
+            <p className="text-[0.75rem] text-[#1A1815] leading-relaxed">
+              {wholeness.livePresent} service videos live in the app. {wholeness.note}
+            </p>
+          </div>
 
           <RecordsLog
             items={l.rows}

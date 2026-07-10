@@ -1,0 +1,84 @@
+# corpus-reconcile — make the service-video corpus WHOLE (DR-0135)
+#
+# Born from the 2026-07-10 gap: the 0013 seed carried 125 of the channel's 335
+# videos (the generator dropped every undated title) and no instrument compared
+# the channel against the app. This workflow is the probe + actuator:
+#
+#   1. Lists the FULL @thelovecorner channel with yt-dlp (metadata only, no
+#      downloads) via scripts/choir-youtube-backfill.mjs — which now emits ALL
+#      videos (undated insert with NULL service_date) and writes the corpus
+#      manifest the app's wholeness readout reads (lib/corpus-coverage.js).
+#   2. Applies the idempotent full backfill to the live DB (ON CONFLICT DO
+#      NOTHING — re-runs never duplicate) over SUPABASE_DB_URL, the same secret
+#      the db-migrate lane already holds.
+#   3. Pushes the regenerated manifest on a fix/ branch — the delivery lane
+#      auto-opens the PR, CI gates it, and on merge the in-app corpus-wholeness
+#      strip (Harvest Ledger) measures live rows against the new expected list.
+#
+# THREE BRAKES (CLAUDE.md autonomous-automation rule):
+#   (1) Budget — one channel listing + one SQL apply per run; no loops.
+#   (2) Lock   — concurrency group; a second dispatch queues, never stacks.
+#   (3) Kill   — workflow_dispatch ONLY (ships inactive; a human arms each run).
+#
+# NOTE: yt-dlp flat-playlist listing generally works from GitHub runner IPs
+# (it is not the caption endpoint that YouTube rate-limits) — but if YouTube
+# blocks the listing, the run exits RED and writes nothing (honest red,
+# DR-0076); the fallback is running the same script on the NAS.
+
+name: corpus-reconcile
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_sql:
+        description: 'Apply the full backfill SQL to the live DB (true/false)'
+        default: 'true'
+        required: false
+
+concurrency:
+  group: corpus-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yt-dlp
+        run: pip install yt-dlp
+
+      - name: Generate the full corpus (manifest + SQL)
+        run: |
+          node scripts/choir-youtube-backfill.mjs
+          echo "--- coverage summary ---"
+          node -e "
+            const m = require('./app/src/lib/corpus-manifest.json');
+            console.log(\`channel total: \${m.total} (dated \${m.dated}, undated \${m.undated}) — generated \${m.generatedAt}\`);
+            if (!m.total) { console.error('EMPTY listing — refusing to overwrite the manifest with nothing'); process.exit(1); }
+          "
+
+      - name: Apply the idempotent backfill to the live DB
+        if: ${{ inputs.apply_sql != 'false' }}
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo 'SUPABASE_DB_URL secret missing'; exit 1; fi
+          psql "$DATABASE_URL" --single-transaction -v ON_ERROR_STOP=1 -f scripts/out/choir-sermons-backfill.sql
+          psql "$DATABASE_URL" -t -c "SELECT count(*) AS choir_sermons_rows FROM choir_sermons;"
+
+      - name: Push the regenerated manifest (the lane opens the PR)
+        run: |
+          if git diff --quiet app/src/lib/corpus-manifest.json; then
+            echo 'Manifest unchanged — corpus already whole; nothing to push.'
+            exit 0
+          fi
+          BR="fix/corpus-manifest-$(date -u +%Y%m%d-%H%M)"
+          git config user.name 'corpus-reconcile'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b "$BR"
+          git add app/src/lib/corpus-manifest.json
+          git commit -m "Corpus manifest regenerated from the live channel listing (corpus-reconcile run ${GITHUB_RUN_ID})"
+          git push -u origin "$BR"
