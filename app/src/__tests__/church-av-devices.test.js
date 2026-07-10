@@ -26,6 +26,13 @@ describe('ATEM Production Studio 4K — the switcher facts', () => {
     expect(ATEM.cameraControl).toMatch(/Blackmagic-specific/);
     expect(ATEM.cameraControl).toMatch(/tally/);
   });
+  it('carries the 2026-07-08 scan facts: LAN IP + advertises _blackmagic._tcp, NOT NDI', () => {
+    expect(ATEM.scan.ipAddress).toBe('192.168.0.60');
+    expect(ATEM.scan.mdns).toBe('_blackmagic._tcp');
+    expect(ATEM.scan.nativeNdi).toBe(false);
+    expect(ATEM.scan.confirmed).toBe('2026-07-08');
+    expect(ATEM.scan.note).toMatch(/NO native NDI/i);
+  });
 });
 
 describe('the VX1000 switches at SOURCE level, NOT production level (precise)', () => {
