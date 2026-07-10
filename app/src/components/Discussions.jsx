@@ -30,7 +30,7 @@ import { useBoardTasks } from '../lib/use-board-tasks.js';
 
 // The decision ledger — Ari's derived note source (re-parsed every build).
 const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
-// The review registry — the Research Day cadence derives from it (DR-0141):
+// The review registry — the Research Day cadence derives from it (DR-0143):
 // a pass counts only when a REV record carrying the marker is filed.
 const UIUX_REVIEWS = (typeof __UIUX_REVIEWS__ !== 'undefined') ? __UIUX_REVIEWS__ : { ok: false, count: 0, items: [] };
 
@@ -80,7 +80,7 @@ function AriRecord() {
         </ul>
       </div>
 
-      {/* The sourcing bench + Research Day (DR-0141) — the whole team's
+      {/* The sourcing bench + Research Day (DR-0143) — the whole team's
           instruments with honest limits, the evidence-based findings registry,
           and the weekly research cadence MEASURED from the review registry. */}
       <div className="mt-3">

@@ -301,7 +301,7 @@ export const BROADCAST_MODULES = [
     bigIdea: 'An A.I. like an LLM is a very well-read helper that guesses the next word — it can sound sure and be wrong, so we test it. Used wisely, it serves the broadcast: live captions, turning the Bishop’s sermon into clips and notes, and searching the whole sermon archive (The Word — Migdal) by meaning.',
     inApp: 'In the app’s Council Chamber, ask the A.I. to draft a short title and three social captions for a recent sermon — then VERIFY every Scripture reference and quote it gives against the actual message before anyone would post it. Catch it being confidently wrong once.',
     anchor: { ref: '1 Thessalonians 5:21; Colossians 3:16', theme: 'Test everything; hold fast what is good. Let the word of Christ dwell in you richly. A.I. is a tool to spread the Word further — never a source of truth to trust unchecked.' },
-    launch: { view: 'church', churchView: 'home' },
+    launch: { view: 'church', churchView: 'home', churchSection: 'speak' },
     media: [
       { type: 'video', title: 'Walk-through: sermon → captions, clips & archive search', status: 'pending', caption: 'A recorded broadcast walk-through of the A.I. tools — to be captured and added.' },
     ],

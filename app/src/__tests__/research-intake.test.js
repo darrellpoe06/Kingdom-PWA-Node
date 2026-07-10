@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // research-intake — the sourcing bench, the intake, and the Research Day
-// (DR-0141). Pins: no instrument on the bench without a named constraint (a
+// (DR-0143). Pins: no instrument on the bench without a named constraint (a
 // limitless entry is a painted claim, DR-0076); the consumer-tier instruments
 // carry the no-API truth; premise-verify precedes ship in the intake; every
 // non-adopted finding carries a re-review date (DR-0075); and the cadence is

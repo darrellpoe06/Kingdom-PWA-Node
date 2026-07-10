@@ -233,7 +233,7 @@ function Studio({ ctx, preview, setPreview, onSave, canPublish }) {
 
 // --- The surface -------------------------------------------------------------
 
-export default function Library({ email, isFamilyMember = false, sermons = [], setView, setChurchView, setBooksView }) {
+export default function Library({ email, isFamilyMember = false, sermons = [], setView, setChurchView, setChurchHomeSection, setBooksView }) {
   const [mode, setMode] = useState('shelf');           // 'shelf' | 'studio'
   const [shelf, setShelf] = useState([]);
   const [reading, setReading] = useState(null);
@@ -280,10 +280,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   // into the live surface it describes.
   const onNavigate = useCallback((link) => {
     if (!link?.view) return;
-    if (link.view === 'church' && link.churchView && typeof setChurchView === 'function') setChurchView(link.churchView);
+    if (link.view === 'church' && link.churchView && typeof setChurchView === 'function') {
+      setChurchView(link.churchView);
+      // A link may name the SECTION (the Council Chamber = church home 'speak');
+      // without one, home opens on its Worship default (DR-0142).
+      if (link.churchView === 'home' && typeof setChurchHomeSection === 'function') setChurchHomeSection(link.churchSection || null);
+    }
     if (typeof setView === 'function') setView(link.view);
     try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* noop */ }
-  }, [setView, setChurchView]);
+  }, [setView, setChurchView, setChurchHomeSection]);
 
   // Open a purchased/entitled store book in the in-app reader — assembled from
   // its recipe (real corpus), then read with resume + companion deep-links.

@@ -1,0 +1,41 @@
+# Install health — prove poetech.us is INSTALLABLE as a PWA, from outside.
+#
+# WHY (2026-07-10, Darrell: "I can't download the PoeTech app — it should be
+# one button. Users are going to have this problem too."): site-health proves
+# UP+FRESH, boot-check proves it BOOTS — nothing ever asked Chrome whether it
+# would OFFER THE INSTALL. This runs scripts/install-health.mjs in a real
+# browser on the runner (the sandbox has no route to poetech.us; the runner is
+# the team's eye — DR-0125) and reports Chrome's own installability verdict
+# plus a fetch of every install-critical artifact.
+#
+# THE THREE BRAKES (CLAUDE.md): dispatch-only (no schedule — no timer), a
+# single browser session with a hard job timeout, no compute spawned, no
+# writes anywhere. Pure observation.
+name: Install health (PWA installability, outside-in)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: install-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Ask Chrome why (or whether) poetech.us installs
+        # pipefail: the probe's exit code must survive the tee (REV-0019).
+        run: |
+          set -o pipefail
+          node scripts/install-health.mjs https://poetech.us/poetech-app/ 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
