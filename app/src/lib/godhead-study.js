@@ -173,6 +173,20 @@ export const GODHEAD_ALGORITHMS = [
 
   // ── WISDOM & PSALMS ───────────────────────────────────────────────────────
   {
+    id: 'gh-taste-and-see', section: 'wisdom', name: 'Taste and See (the empirical invitation)',
+    // Captured from Darrell's question spoken into the app, 2026-07-10: "how
+    // do you taste and see in a practical sense?" — answered as the algorithm
+    // it is: Yahweh invites a firsthand TRIAL, and the seeing is the trial's
+    // observed result. Psalm 34 is David's own published lab report (34:4,6).
+    refs: ['Psalms 34:8', 'John 7:17', 'Malachi 3:10', '1 Peter 2:2-3'],
+    condition: 'TASTE — run the firsthand trial yourself: trust Him in a real matter, act on one promise, do His will, take refuge in a real trouble. Tasting cannot be delegated; no one can taste by watching another eat.',
+    consequence: 'SEE — the trial returns its result: you will know by experience that the LORD is good, and "blessed is the man that trusteth in him." Doing His will is how the doctrine is KNOWN (John 7:17); the tithe test is the one place He says "prove me now" (Malachi 3:10); and one real taste creates appetite for more (1 Peter 2:2-3).',
+    threeD: 'Stop evaluating God from the audience. Pick ONE trial this week and run it: act on one promise and record what happens; eat the Word daily until it is ingested, not sampled (Jeremiah 15:16); bring a real trouble to Him FIRST and write down what He does (Psalm 34:4,6 is exactly that record); run the tithe test He Himself invited. Then read your results — that reading IS the seeing.',
+    outcome: 'Firsthand knowledge that cannot be argued away — a faith built on your own tasted-and-seen record, not on secondhand reports.',
+    psyche: 'Experiential evidence rewires conviction in a way argument never does; the recorded trial (watch, recognize, record) turns one taste into a permanent, retrievable memory of His goodness — "forget not all his benefits."',
+    tags: ['taste-and-see', 'trial', 'experience', 'proof', 'testimony'],
+  },
+  {
     id: 'gh-trust-paths', section: 'wisdom', name: 'Trust → Directed Paths',
     refs: ['Proverbs 3:5-6'],
     condition: 'Trust in the LORD with ALL thine heart; lean NOT unto thine own understanding; acknowledge Him in ALL thy ways.',
