@@ -53,12 +53,12 @@ const BUDGET_PRESETS = [15, 30, 45, 60, 90];
 function NoteSection({ note }) {
   const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16 };
   const calloutCard = { ...card, background: '#FBF3EE', borderColor: '#E7C9BC' };
-  const h = { fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F', margin: '0 0 10px' };
+  const h = { fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F', margin: '0 0 10px' };
   if (note.kind === 'steps') {
     return (
       <div style={card}>
         <h4 style={h}>{note.heading}</h4>
-        <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.6 }}>
+        <ol style={{ margin: 0, paddingLeft: 22, fontSize: '0.875rem', lineHeight: 1.6 }}>
           {note.items.map((s, i) => <li key={i} style={{ marginBottom: 6 }}>{s}</li>)}
         </ol>
       </div>
@@ -68,7 +68,7 @@ function NoteSection({ note }) {
     return (
       <div style={card}>
         <h4 style={h}>{note.heading}</h4>
-        <ul style={{ margin: 0, paddingLeft: 22, fontSize: 15, lineHeight: 1.6 }}>
+        <ul style={{ margin: 0, paddingLeft: 22, fontSize: '0.9375rem', lineHeight: 1.6 }}>
           {note.items.map((s, i) => <li key={i} style={{ marginBottom: 6 }}>{s}</li>)}
         </ul>
       </div>
@@ -78,7 +78,7 @@ function NoteSection({ note }) {
   return (
     <div style={note.kind === 'callout' ? calloutCard : card}>
       <h4 style={h}>{note.heading}</h4>
-      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>{note.body}</p>
+      <p style={{ margin: 0, fontSize: '0.9375rem', lineHeight: 1.6 }}>{note.body}</p>
     </div>
   );
 }
@@ -94,19 +94,19 @@ function RunOfShowPanel({ segments, budgetMin }) {
   return (
     <div style={card}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
-        <span style={{ fontSize: 12, color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.8125rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
+        <span style={{ fontSize: '0.75rem', color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
           {reflowed ? `rescaled to ${Math.round(budgetMin)} min (full ${fit.fullMin})` : `${fit.fullMin} min total`}
         </span>
       </div>
       {fit.plan.map((seg, i) => (
         <div key={seg.id || i} style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: seg.skipped ? 0.5 : 1 }}>
           <span style={{ flex: 1 }}>
-            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: 14, textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
-            {seg.detail && <span style={{ fontSize: 12, color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
+            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
+            {seg.detail && <span style={{ fontSize: '0.75rem', color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
           </span>
           <span title={seg.atFloor ? 'At its minimum time' : (seg.skipped ? 'Dropped to fit the budget' : (reflowed ? 'original → adjusted' : 'authored minutes'))}
-            style={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
+            style={{ fontSize: '0.8125rem', fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
             {seg.skipped
               ? 'skip'
               : reflowed
@@ -131,9 +131,9 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   const [importance, setImportance] = useState(initial?.importance != null ? String(initial.importance) : '1');
   const [priority, setPriority] = useState(initial?.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE);
 
-  const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: 15, background: '#fff', color: '#1A1815' };
-  const lbl = { fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' };
-  const btn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', fontSize: 12 };
+  const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: '0.9375rem', background: '#fff', color: '#1A1815' };
+  const lbl = { fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' };
+  const btn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', fontSize: '0.75rem' };
 
   const submit = () => {
     if (!title.trim()) return;
@@ -155,7 +155,7 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
 
   return (
     <div style={{ border: '1px solid #1A1815', padding: 16, marginBottom: 16, background: '#fff' }}>
-      <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 15, margin: '0 0 12px' }}>
+      <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.9375rem', margin: '0 0 12px' }}>
         {initial ? 'Edit this section' : 'Add a section'}
       </h4>
       <label style={lbl}>Title (the room sees this)
@@ -189,7 +189,7 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
           })}
         </div>
       </div>
-      <p style={{ fontSize: 12, color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
+      <p style={{ fontSize: '0.75rem', color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
         Weight is how essential this is (1 = normal). The weightiest material is protected and gets the
         minutes when time is short; lower-weight material compresses, and supplementary sections drop first.
       </p>
@@ -408,9 +408,9 @@ export default function Presenter({
   }, [overlay, commitOverlay]);
 
   const btn = {
-    base: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '2px solid #1A1815', background: '#1A1815', color: '#fff', fontSize: 12 },
-    ghost: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #5A5751', background: '#fff', color: '#1A1815', fontSize: 12 },
-    nav: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 36, minWidth: 40, padding: '6px 12px', border: '1px solid #CFC9BD', background: 'transparent', color: '#FAF8F4', fontSize: 16, lineHeight: 1 },
+    base: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '2px solid #1A1815', background: '#1A1815', color: '#fff', fontSize: '0.75rem' },
+    ghost: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #5A5751', background: '#fff', color: '#1A1815', fontSize: '0.75rem' },
+    nav: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 36, minWidth: 40, padding: '6px 12px', border: '1px solid #CFC9BD', background: 'transparent', color: '#FAF8F4', fontSize: '1rem', lineHeight: 1 },
   };
   const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16 };
 
@@ -418,7 +418,7 @@ export default function Presenter({
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
         <div>
-          <p style={{ fontSize: 18, marginBottom: 16 }}>There’s nothing to present here yet.</p>
+          <p style={{ fontSize: '1.125rem', marginBottom: 16 }}>There’s nothing to present here yet.</p>
           {onClose && <button type="button" onClick={onClose} style={btn.ghost}>Close ✕</button>}
         </div>
       </div>
@@ -429,13 +429,13 @@ export default function Presenter({
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
       {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
+        <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
         <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: idx === 0 ? 0.4 : 1 }}>←</button>
-        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 15 }}>{cur.indexLabel}</strong>
+        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>{cur.indexLabel}</strong>
         <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: idx === last ? 0.4 : 1 }}>→</button>
-        <span style={{ color: '#CFC9BD', fontSize: 13, maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
-        <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: 18, color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
-          {formatClock(elapsed)} <span style={{ fontSize: 11, color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
+        <span style={{ color: '#CFC9BD', fontSize: '0.8125rem', maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
+        <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1.125rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
+          {formatClock(elapsed)} <span style={{ fontSize: '0.6875rem', color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
         </span>
         <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
         <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
@@ -445,11 +445,11 @@ export default function Presenter({
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(16px, 3vw, 32px)' }}>
         {/* audience-screen controls + "through the church" framing */}
         <div style={{ ...card, background: '#fff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 14 }}>Class screen (projector):</strong>
+          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.875rem' }}>Class screen (projector):</strong>
           {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.base}>Open class screen →</button>}
           {audienceState !== 'closed' && audienceState !== 'blocked' && (
             <>
-              <span style={{ fontSize: 13, color: '#5A6E3D' }}>● {audienceState === 'blank' ? 'holding slide up' : 'live & synced'}</span>
+              <span style={{ fontSize: '0.8125rem', color: '#5A6E3D' }}>● {audienceState === 'blank' ? 'holding slide up' : 'live & synced'}</span>
               {audienceState === 'blank'
                 ? <button type="button" onClick={resumeAudience} style={btn.base}>Resume</button>
                 : <button type="button" onClick={blankAudience} style={btn.ghost}>Blank screen</button>}
@@ -457,22 +457,22 @@ export default function Presenter({
             </>
           )}
           {audienceState === 'blocked' && (
-            <span style={{ fontSize: 13, color: '#7A1F1F' }}>
+            <span style={{ fontSize: '0.8125rem', color: '#7A1F1F' }}>
               Popup blocked — allow popups for this site, then{' '}
               <button type="button" onClick={openAudience} style={{ ...btn.ghost, display: 'inline' }}>try again</button>.
             </span>
           )}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
             ← / → or a clicker to advance
           </span>
-          <p style={{ flexBasis: '100%', margin: '4px 0 0', fontSize: 12, color: '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
+          <p style={{ flexBasis: '100%', margin: '4px 0 0', fontSize: '0.75rem', color: '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
             Presented through {kicker || 'The Church of the Living God'} — the works of every family, every age, go up on the screen here.
           </p>
         </div>
 
         {/* age-adaptive presenter hook (presenter-only — never changes the audience screen) */}
         <div style={{ ...card, background: '#fff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Presenting to</span>
+          <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Presenting to</span>
           <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {PRESENT_AGE_BANDS.map((b) => {
               const on = age === b.id;
@@ -484,21 +484,21 @@ export default function Presenter({
               );
             })}
           </div>
-          <span style={{ flexBasis: '100%', margin: 0, fontSize: 13, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
+          <span style={{ flexBasis: '100%', margin: 0, fontSize: '0.8125rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
         </div>
 
         {/* time-adaptive: "I have ___ minutes" -> fit-to-budget reflow + skip-suggest */}
         <div style={{ ...card, background: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>I have</span>
+            <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>I have</span>
             <input
               type="number" min="0" inputMode="numeric" aria-label="Minutes available"
               value={budgetInput}
               onChange={(e) => { setBudgetInput(e.target.value); applyBudget(e.target.value); }}
               placeholder="—"
-              style={{ width: 80, padding: '8px 10px', border: '1px solid #CFC9BD', fontFamily: '"JetBrains Mono", monospace', fontSize: 16, textAlign: 'center', background: '#fff', color: '#1A1815' }}
+              style={{ width: 80, padding: '8px 10px', border: '1px solid #CFC9BD', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', textAlign: 'center', background: '#fff', color: '#1A1815' }}
             />
-            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>minutes</span>
+            <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>minutes</span>
             {BUDGET_PRESETS.map((m) => (
               <button key={m} type="button" onClick={() => applyBudget(m)}
                 style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px', borderColor: budgetMin === m ? '#5A6E3D' : '#5A5751', background: budgetMin === m ? '#5A6E3D' : '#fff', color: budgetMin === m ? '#fff' : '#1A1815' }}>
@@ -508,11 +508,11 @@ export default function Presenter({
             {budgetMin > 0 && (
               <button type="button" onClick={() => { applyBudget(0); setOverrides({}); }} style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px' }}>Full curriculum</button>
             )}
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
               full = {fit.fullMin} min
             </span>
           </div>
-          <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
+          <p style={{ margin: '12px 0 0', fontSize: '0.875rem', lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
             {fit.summary}
           </p>
           {(budgetMin > 0 || Object.keys(overrides).length > 0) && (
@@ -529,28 +529,28 @@ export default function Presenter({
                 const forced = overrides[key];
                 return (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: row.skipped ? 0.55 : 1 }}>
-                    <span aria-hidden style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${isCore ? '#5A6E3D' : '#B85838'}`, color: isCore ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
+                    <span aria-hidden style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${isCore ? '#5A6E3D' : '#B85838'}`, color: isCore ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
                       {isCore ? 'Core' : 'Supp'}
                     </span>
-                    <span style={{ flex: 1, fontSize: 14, textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
+                    <span style={{ flex: 1, fontSize: '0.875rem', textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
                       {row.audience?.title || row.indexLabel || key}
                     </span>
                     <span title={row.atFloor ? 'At its minimum time' : (row.skipped ? 'Skipped to fit the budget' : 'Computed share of the budget')}
-                      style={{ fontSize: 12, color: row.atFloor ? '#B85838' : '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 78, textAlign: 'right' }}>
+                      style={{ fontSize: '0.75rem', color: row.atFloor ? '#B85838' : '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 78, textAlign: 'right' }}>
                       {row.skipped ? `skip${row.skipReason === 'forced' ? ' (you)' : ''}` : `${row.allocatedMin} min${row.atFloor ? ' · floor' : ''}`}
                     </span>
                     {canEdit && (
-                      <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11 }}>Edit</button>
+                      <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: '0.6875rem' }}>Edit</button>
                     )}
                     <button type="button" onClick={() => setOverride(key, row.skipped ? 'keep' : 'skip')}
                       aria-label={row.skipped ? `Force keep ${key}` : `Force skip ${key}`}
-                      style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11, borderColor: forced ? '#1A1815' : '#5A5751' }}>
+                      style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: '0.6875rem', borderColor: forced ? '#1A1815' : '#5A5751' }}>
                       {row.skipped ? 'Keep' : 'Skip'}
                     </button>
                   </div>
                 );
               })}
-              <p style={{ margin: '12px 0 0', fontSize: 12, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+              <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
                 Time is split proportionally — heavier sections keep more of the clock. A section at its{' '}
                 <span style={{ color: '#B85838' }}>floor</span> can’t shrink further; when floors don’t fit, supplementary
                 sections are skipped first (core is protected). Tap “Keep”/“Skip” to override any of it.
@@ -572,7 +572,7 @@ export default function Presenter({
 
         {/* what the room sees right now (mirror) */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <span>On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
             {curPlan && budgetMin > 0 && (
               <span style={{ color: curPlan.skipped ? '#7A1F1F' : (curPlan.atFloor ? '#B85838' : '#5A6E3D') }}>
@@ -580,10 +580,10 @@ export default function Presenter({
               </span>
             )}
           </div>
-          <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(22px, 3vw, 32px)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
-          {a.lead && <p style={{ fontSize: 17, lineHeight: 1.5, margin: '0 0 10px' }}>{a.lead}</p>}
-          {a.detail && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
-          {a.anchorRef && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
+          <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(1.375rem, 3vw, 2rem)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
+          {a.lead && <p style={{ fontSize: '1.0625rem', lineHeight: 1.5, margin: '0 0 10px' }}>{a.lead}</p>}
+          {a.detail && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
+          {a.anchorRef && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
         </div>
 
         {/* the session's reflowable run-of-show (rescales with the time budget) */}
@@ -593,7 +593,7 @@ export default function Presenter({
 
         {/* presenter-only notes */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '20px 0 12px' }}>
-          <h3 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 18, margin: 0 }}>Your notes <span style={{ fontSize: 12, color: '#5A5751', fontWeight: 400 }}>(only you see these)</span></h3>
+          <h3 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '1.125rem', margin: 0 }}>Your notes <span style={{ fontSize: '0.75rem', color: '#5A5751', fontWeight: 400 }}>(only you see these)</span></h3>
           <button type="button" onClick={() => setShowNotes((s) => !s)} style={btn.ghost}>{showNotes ? 'Hide notes' : 'Show notes'}</button>
         </div>
 
@@ -601,7 +601,7 @@ export default function Presenter({
           <>
             {!hasNotes && (
               <div style={{ ...card, background: '#FBF3EE', borderColor: '#E7C9BC' }}>
-                <p style={{ margin: 0, fontSize: 14, color: '#7A1F1F', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#7A1F1F', lineHeight: 1.5 }}>
                   No presenter notes for this one — present from the title, the idea, and the anchor on the screen above.
                 </p>
               </div>
@@ -613,16 +613,16 @@ export default function Presenter({
         {/* next up */}
         {nxt && (
           <div style={{ ...card, background: '#fff', opacity: 0.95 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
-            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 16 }}>{nxt.audience?.title}</strong>
-            {nxt.audience?.lead && <p style={{ fontSize: 13, color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{nxt.audience.lead}</p>}
+            <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
+            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem' }}>{nxt.audience?.title}</strong>
+            {nxt.audience?.lead && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{nxt.audience.lead}</p>}
           </div>
         )}
 
         {/* big prev / next */}
         <div style={{ display: 'flex', gap: 12, marginTop: 8, marginBottom: 40 }}>
-          <button type="button" onClick={() => go(-1)} disabled={idx === 0} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: 14, opacity: idx === 0 ? 0.4 : 1 }}>← Previous</button>
-          <button type="button" onClick={() => go(1)} disabled={idx === last} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: 14, opacity: idx === last ? 0.4 : 1 }}>Next →</button>
+          <button type="button" onClick={() => go(-1)} disabled={idx === 0} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: '0.875rem', opacity: idx === 0 ? 0.4 : 1 }}>← Previous</button>
+          <button type="button" onClick={() => go(1)} disabled={idx === last} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: '0.875rem', opacity: idx === last ? 0.4 : 1 }}>Next →</button>
         </div>
       </div>
     </div>
