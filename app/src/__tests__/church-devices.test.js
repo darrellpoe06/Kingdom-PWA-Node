@@ -20,6 +20,11 @@ describe('taxonomy', () => {
     expect(DEVICE_STATUS_IDS).toContain('online');
     expect(CAPABILITY_TOKENS).toContain('llm-inference');
   });
+  it('includes the switcher / printer / iot types the 2026-07-08 scan added', () => {
+    expect(DEVICE_TYPE_IDS).toContain('switcher');
+    expect(DEVICE_TYPE_IDS).toContain('printer');
+    expect(DEVICE_TYPE_IDS).toContain('iot');
+  });
   it('every type has a UiIcon name (never an emoji — consistency-guard)', () => {
     for (const t of DEVICE_TYPES) expect(typeof t.icon).toBe('string');
   });
@@ -41,6 +46,11 @@ describe('makeDevice — defensive normalizer', () => {
   it('drops unknown capability tokens', () => {
     const d = makeDevice({ name: 'X', capabilities: ['llm-inference', 'made-up'] });
     expect(d.capabilities).toEqual(['llm-inference']);
+  });
+  it('carries a provenance field (null when unset, trimmed string when set)', () => {
+    expect(makeDevice({ name: 'X' }).provenance).toBeNull();
+    expect(makeDevice({ name: 'X', provenance: '  scan-confirmed 2026-07-08 ' }).provenance)
+      .toBe('scan-confirmed 2026-07-08');
   });
 });
 
@@ -130,6 +140,83 @@ describe('SEED_DEVICES — the real COLG register (Reality-Trace)', () => {
   it('unconfirmed specs are flagged sme_needed, not fabricated', () => {
     for (const d of SEED_DEVICES) {
       if (!d.confirmed) expect(d.smeNeeded).toBe(true);
+    }
+  });
+});
+
+describe('2026-07-08 church LAN scan — provenance + confirmed IP corrections', () => {
+  const bySlug = (id) => SEED_DEVICES.find((d) => d.id === id);
+
+  it('every seed device carries a non-empty provenance string (source/confidence)', () => {
+    for (const d of SEED_DEVICES) {
+      expect(typeof d.provenance, `${d.name} missing provenance`).toBe('string');
+      expect(d.provenance.length, `${d.name} empty provenance`).toBeGreaterThan(0);
+    }
+  });
+
+  it('provenance is only ever scan-confirmed 2026-07-08 or needs-eyes-on for the scan rows', () => {
+    // Every device whose provenance mentions the scan must use the exact tokens —
+    // no ad-hoc "scan-ish 2026" drift (Verification Doctrine, DR-0076).
+    for (const d of SEED_DEVICES) {
+      if (/scan/i.test(d.provenance)) {
+        expect(/scan-confirmed 2026-07-08|needs-eyes-on/.test(d.provenance), `${d.name}: ${d.provenance}`).toBe(true);
+      }
+    }
+  });
+
+  it('the three PTZOptics cameras carry the CORRECTED scan IPs (.123/.126/.127, not ~.125/.126)', () => {
+    expect(bySlug('dev-ptz-center-1').ipAddress).toBe('192.168.1.123');
+    expect(bySlug('dev-ptz-right-3').ipAddress).toBe('192.168.1.126');
+    expect(bySlug('dev-ptz-left-2').ipAddress).toBe('192.168.1.127');
+    for (const id of ['dev-ptz-center-1', 'dev-ptz-right-3', 'dev-ptz-left-2']) {
+      const cam = bySlug(id);
+      expect(cam.deviceType).toBe('camera');
+      expect(cam.provenance).toBe('scan-confirmed 2026-07-08');
+      expect(cam.confirmed).toBe(true);
+    }
+  });
+
+  it('the ATEM switcher is an inventory row at 192.168.0.60 (no native NDI)', () => {
+    const atem = bySlug('dev-atem-production-studio-4k');
+    expect(atem.deviceType).toBe('switcher');
+    expect(atem.ipAddress).toBe('192.168.0.60');
+    expect(atem.provenance).toBe('scan-confirmed 2026-07-08');
+    expect(JSON.stringify(atem.specs)).toMatch(/_blackmagic\._tcp/);
+    expect(JSON.stringify(atem.specs)).toMatch(/NO native NDI/i);
+  });
+
+  it('the RackStation is LIVE on the church LAN at 192.168.0.100 (not offline)', () => {
+    const rs = bySlug('dev-synology-rackstation');
+    expect(rs.deviceType).toBe('nas');
+    expect(rs.ipAddress).toBe('192.168.0.100');
+    expect(rs.status).toBe('online');
+    expect(rs.provenance).toBe('scan-confirmed 2026-07-08');
+  });
+
+  it('the GPU nodes now carry their scan-confirmed LAN IPs + peripherals', () => {
+    const left = bySlug('dev-gpu-node-1');
+    const right = bySlug('dev-gpu-node-2');
+    expect(left.ipAddress).toBe('192.168.1.75');
+    expect(JSON.stringify(left.specs)).toMatch(/Blackmagic HDMI/i);
+    expect(JSON.stringify(right.specs)).toMatch(/192\.168\.1\.73/);
+    expect(JSON.stringify(right.specs)).toMatch(/Stream Deck/i);
+    expect(left.provenance).toBe('scan-confirmed 2026-07-08');
+    expect(right.provenance).toBe('scan-confirmed 2026-07-08');
+  });
+
+  it('the unconfirmed gear is flagged needs-eyes-on (not passed off as confirmed)', () => {
+    for (const id of ['dev-netgear-gear', 'dev-unifi-aps']) {
+      const d = bySlug(id);
+      expect(d.provenance).toBe('needs-eyes-on');
+      expect(d.confirmed).toBe(false);
+      expect(d.smeNeeded).toBe(true);
+    }
+  });
+
+  it('does not fabricate model numbers where the scan was UNSURE', () => {
+    // The unsure rows explicitly say UNSURE rather than inventing a model string.
+    for (const id of ['dev-imac-tlcs', 'dev-synology-rackstation', 'dev-ipcam-1', 'dev-printer-1', 'dev-netgear-gear', 'dev-unifi-aps']) {
+      expect(bySlug(id).makeModel).toMatch(/UNSURE/);
     }
   });
 });

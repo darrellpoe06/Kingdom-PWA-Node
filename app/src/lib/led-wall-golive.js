@@ -95,7 +95,8 @@ export const BOOTH_AS_BUILT = {
       role: 'Stage cameras (SDI + NDI)',
       detail:
         'Controlled from a browser PTZ page (Zoom/Focus/Snap Focus, Presets 1-9). ' +
-        'Camera control IPs seen ~192.168.1.125 / .126.',
+        'Camera IPs scan-confirmed 2026-07-08: Center-1 192.168.1.123, Right-3 ' +
+        '192.168.1.126, Left-2 192.168.1.127 (corrects the earlier ~.125/.126 guess).',
       confirm: true,
     },
     {
