@@ -11,6 +11,7 @@ import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChurchGiveFloater, ChurchGivePanel } from '../components/ChurchGiving.jsx';
+import { GIVING_CHANNELS } from '../lib/giving.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,13 +46,21 @@ describe('ChurchGiveFloater — the floater', () => {
 });
 
 describe('ChurchGivePanel — the panel', () => {
-  it('links ONLY to the church-provided destination (never an invented URL), opens safely', () => {
+  it('links ONLY to the church-published destinations (the four slide channels + the church site), all opening safely', () => {
     act(() => root.render(createElement(ChurchGivePanel, { church: COLG, onClose: () => {} })));
-    const a = container.querySelector('a[href]');
-    expect(a.getAttribute('href')).toBe(COLG.links.give);
-    expect(a.getAttribute('target')).toBe('_blank');
-    expect(a.getAttribute('rel')).toMatch(/noopener/);
+    const anchors = Array.from(container.querySelectorAll('a[href]'))
+      .filter((a) => !a.getAttribute('href').startsWith('https://www.youtube.com')); // Call-to-Give service links are corpus rows, tested in call-to-give.test.js
+    const allowed = new Set([...GIVING_CHANNELS.map((c) => c.url), COLG.links.give]);
+    expect(anchors.length).toBeGreaterThanOrEqual(5); // 4 channels + the website
+    for (const a of anchors) {
+      expect(allowed.has(a.getAttribute('href')), `unexpected link: ${a.getAttribute('href')}`).toBe(true);
+      expect(a.getAttribute('target')).toBe('_blank');
+      expect(a.getAttribute('rel')).toMatch(/noopener/);
+    }
     expect(container.textContent).toMatch(/No payment information/i);
+    // The four channels render with their plain-words identity, each with a scannable QR.
+    for (const ch of GIVING_CHANNELS) expect(container.textContent).toContain(ch.label);
+    expect(container.querySelectorAll('a svg').length).toBeGreaterThanOrEqual(4); // the QR codes
   });
 
   it('shows the benefits of giving according to the Word — six anchor scriptures + bright line', () => {
@@ -64,9 +73,15 @@ describe('ChurchGivePanel — the panel', () => {
     expect(text).toMatch(/10%/);                                        // tithe baseline
   });
 
-  it('shows a clearly-flagged "needs a giving URL" state and NO link when none configured', () => {
+  it('shows a clearly-flagged "needs a giving URL" state — the published channels stay, but no guessed site link', () => {
     act(() => root.render(createElement(ChurchGivePanel, { church: {}, onClose: () => {} })));
-    expect(container.querySelector('a[href]')).toBeNull();   // never a dead/guessed link
     expect(container.textContent).toMatch(/Giving link needed/i);
+    // The church's own published channels are independent of the site link and
+    // remain; every remaining anchor must be one of them — never a guessed URL.
+    const channelUrls = new Set(GIVING_CHANNELS.map((c) => c.url));
+    const anchors = Array.from(container.querySelectorAll('a[href]'))
+      .filter((a) => !a.getAttribute('href').startsWith('https://www.youtube.com'));
+    expect(anchors.length).toBe(GIVING_CHANNELS.length);
+    for (const a of anchors) expect(channelUrls.has(a.getAttribute('href'))).toBe(true);
   });
 });
