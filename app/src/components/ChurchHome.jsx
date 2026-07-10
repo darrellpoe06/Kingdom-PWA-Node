@@ -435,6 +435,27 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         )}
         <div className="bg-white border border-[#1A1815] p-4">
           <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
+          {Array.isArray(c.announcedEvents) && c.announcedEvents.length > 0 && (
+            <ul className="text-xs space-y-1.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              {c.announcedEvents.map((ev) => (
+                <li key={ev.id} className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span>
+                    <UiIcon name="calendar" /> <strong>{ev.name}</strong>
+                    {' '}· {ev.date}{ev.endDate ? ` → ${ev.endDate}` : ''}{ev.detail ? ` · ${ev.detail}` : ''}
+                  </span>
+                  {addEvent && (
+                    <button
+                      type="button"
+                      onClick={() => addEvent({ id: `church-${ev.id}`, title: ev.name, date: ev.date, time: '', notes: ev.detail || '' })}
+                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      + Calendar
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
           <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
             {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
             {c.links?.bibleChallenge && <li><UiIcon name="bookOpen" /> <a href={c.links.bibleChallenge} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Bible Reading Challenge 2026</a></li>}
