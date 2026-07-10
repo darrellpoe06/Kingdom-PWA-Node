@@ -50,3 +50,18 @@
 .tab-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Agreement print isolation (DR-0123 — "a print stylesheet is a small
+   increment"). Without this, the Scope view's ⎙ Print printed the ENTIRE app
+   shell (header, tabs, banners) with the agreement buried inside. While
+   <body> carries .print-scope (added by the Print handler for the duration
+   of the dialog), only the .print-sheet element is visible to the printer —
+   a clean, client-handable agreement, and the browser's own "Save as PDF"
+   is the PDF export. visibility (not display) keeps layout stable so the
+   sheet positions at the page origin. */
+@media print {
+  body.print-scope #root * { visibility: hidden; }
+  body.print-scope .print-sheet,
+  body.print-scope .print-sheet * { visibility: visible; }
+  body.print-scope .print-sheet { position: absolute; left: 0; top: 0; width: 100%; }
+}

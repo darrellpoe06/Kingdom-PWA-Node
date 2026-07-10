@@ -56,6 +56,7 @@ export const BOOK_MASTERPIECES = {
   'Job':           'The suffering-and-sovereignty masterpiece — the righteous man stripped to nothing, and the Voice from the whirlwind; in whose hand is the soul of every living thing and the breath of all mankind.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
+  'Ecclesiastes':  'The Preacher\'s audit of everything under the sun — vanity weighed to the bottom, and the conclusion of the whole matter: fear God and keep His commandments, for He brings every work into judgment with every secret thing.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
   'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
@@ -1008,6 +1009,21 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'Stop asking money to do what only Yahweh can. Steward wealth for the Kingdom, but anchor your security in the Redeemer, not the balance. When the day of wrath is the question, the only sufficient answer is His righteousness applied to you.',
     outcome: 'Security relocated from a number to the Redeemer — freed from the lie that enough money can save what only He can.',
     tags: ['money', 'redemption', 'only-yahweh', 'day-of-wrath', 'psalm'],
+  },
+  {
+    // Darrell 2026-07-08 (DR-0130): "Not just what the jury says, evidence we
+    // have even the evidence the judge dismisses comes into the eternal 4th
+    // dimensional courts and the impact on life during life... is what is
+    // still seen and impacts." The two-courts doctrine, seeded as the named
+    // pattern (the DR's routed opportunity, 2026-07-15).
+    id: 'gh-two-courts', section: 'wisdom', name: 'The Two Courts (man’s court is not the court of record)',
+    refs: ['Ecclesiastes 12:14', 'Luke 12:2', 'Hebrews 4:13'],
+    condition: 'Every work — WITH every secret thing, whether good or evil — stands before Him: "nothing covered, that shall not be revealed," and "all things are naked and opened unto the eyes of him with whom we have to do."',
+    consequence: 'God shall bring every work into judgment. The evidence a judge dismisses, the case that settles sealed, the wrong a government permits — none of it leaves the record; man’s court is real, but it is not the court of record.',
+    threeD: 'Live for the senior docket. Never measure your integrity by what human systems catch or excuse — a cleared name before men can still be a full file before Yahweh, and a conviction before men is not His verdict either. Confess and restore on the record that counts (the Zacchaeus road), and never help hide what He has already seen.',
+    outcome: 'Integrity calibrated to the eternal 4th-dimensional court — free from both the false comfort of "never charged" and the false despair of man’s misjudgment.',
+    psyche: 'Accountability to an all-seeing standard removes the moral hazard of "what I can get away with" — conduct stabilizes when the audit is understood to be total and certain.',
+    tags: ['two-courts', 'judgment', 'accountability', 'record', 'justice'],
   },
   {
     id: 'gh-god-of-this-world', section: 'epistles', name: 'The God of This World (we left Him; the world is occupied, not neutral)',

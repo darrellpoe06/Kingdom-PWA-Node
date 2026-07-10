@@ -65,6 +65,7 @@ export function normalizeEngagement(raw = {}) {
     quoteCents: asCents(raw.quoteCents),               // the governor's number — never computed
     payments: (Array.isArray(raw.payments) ? raw.payments : [])
       .map(normalizePayment).filter(Boolean),
+    agreementScopeId: cap(raw.agreementScopeId, 60),  // the signed scope's id (DR-0123 §2)
     mvpDeliveredAt: cap(raw.mvpDeliveredAt, 40),
     mvpAcceptedAt: cap(raw.mvpAcceptedAt, 40),
     createdAt: cap(raw.createdAt, 40),
@@ -125,6 +126,24 @@ export function termDueDate(engagement) {
   const dates = e.payments.map((p) => Date.parse(p.paidAt || '')).filter(Number.isFinite);
   if (!dates.length) return null;
   return new Date(Math.min(...dates) + TERM_DAYS * DAY_MS).toISOString().slice(0, 10);
+}
+
+// Agreement-on-file (DR-0123 §2): the signed scope and the engagement link by
+// id — a scope row carrying engagementId === e.id (or the engagement carrying
+// agreementScopeId) is the recorded agreement. This helper is the SEAM: it
+// answers from real rows and never invents a link. canStartBuild's money gate
+// is deliberately unchanged (its contract is pinned by tests and by the terms
+// module); readiness surfaces compose the two truths side by side — "deposit
+// met" and "agreement on file" — so a build that starts without a signed
+// scope is a VISIBLE choice, not an accident. The scope-creation UI picker
+// that WRITES engagementId is routed separately (re-review: 2026-07-22).
+export function agreementOnFile(engagement, scopes) {
+  const e = normalizeEngagement(engagement);
+  const rows = Array.isArray(scopes) ? scopes : [];
+  return rows.find((sRow) =>
+    sRow && ((sRow.engagementId && sRow.engagementId === e.id)
+      || (e.agreementScopeId && sRow.id === e.agreementScopeId))
+  ) || null;
 }
 
 // "…or we don't even start work." Structural: false with no quote, false below

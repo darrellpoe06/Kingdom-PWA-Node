@@ -7,7 +7,7 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  normalizeEngagement, normalizePayment,
+  normalizeEngagement, normalizePayment, agreementOnFile,
   totalPaidCents, depositRequiredCents, expectedByMvpCents, balanceDueCents,
   quoteMeetsMinimum, canStartBuild, engagementStage, termDueDate, STAGE_LABELS,
   BUILD_MINIMUM_CENTS, DEPOSIT_CENTS, MVP_PAYMENT_CENTS, TERM_DAYS,
@@ -172,5 +172,44 @@ describe('recorded discovery — requirements from the client\'s own words', () 
     expect([...requirementsByArea(out.items, { includeExtracted: true }).keys()]).toEqual(['orders', 'classes']);
     const reviewed = out.items.map((i) => (i.kind === 'requirement' ? { ...i, status: 'reviewed' } : i));
     expect(requirementsByArea(reviewed).size).toBe(2);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// agreementOnFile (DR-0123 §2) — the signed scope and the engagement link by
+// id; the helper answers from REAL rows and never invents a link. The money
+// gate (canStartBuild) is deliberately independent: readiness surfaces show
+// both truths side by side.
+// ---------------------------------------------------------------------------
+describe('agreementOnFile — the signed-scope link', () => {
+  const scopes = [
+    { id: 'scope-1', title: 'PoeTech Client Build', engagementId: 'eng-1' },
+    { id: 'scope-2', title: 'Unlinked scope' },
+  ];
+
+  it('finds the scope that names the engagement', () => {
+    const hit = agreementOnFile({ id: 'eng-1' }, scopes);
+    expect(hit?.id).toBe('scope-1');
+  });
+
+  it('finds the scope the engagement names (the reverse link)', () => {
+    const hit = agreementOnFile({ id: 'eng-9', agreementScopeId: 'scope-2' }, scopes);
+    expect(hit?.id).toBe('scope-2');
+  });
+
+  it('no link = null, never an invented match — and null ids never cross-match', () => {
+    expect(agreementOnFile({ id: 'eng-3' }, scopes)).toBeNull();
+    expect(agreementOnFile({}, [{ id: 's', engagementId: null }])).toBeNull();
+    expect(agreementOnFile({ id: 'eng-1' }, null)).toBeNull();
+  });
+
+  it('normalizeEngagement carries agreementScopeId (the field is first-class)', () => {
+    expect(normalizeEngagement({ agreementScopeId: 'scope-7' }).agreementScopeId).toBe('scope-7');
+  });
+
+  it('the money gate stays independent: canStartBuild ignores the agreement link', () => {
+    const paid = { id: 'eng-1', quoteCents: 200000, payments: [{ amountCents: 100000, paidAt: '2026-07-01' }] };
+    expect(canStartBuild(paid)).toBe(canStartBuild({ ...paid, agreementScopeId: 'scope-1' }));
   });
 });
