@@ -1,4 +1,4 @@
-# Android package — build the sovereign PoeTech app package (DR-0148, door 1).
+# Android package — build the sovereign PoeTech app package (DR-0152, door 1).
 #
 # WHY (Darrell, 2026-07-10): "We need a sustainable solution for chrome to let
 # me download this app period." Chrome's install offer is discretionary — it
@@ -7,7 +7,7 @@
 # REAL Android package (TWA via Bubblewrap) from the live manifest and attaches
 # the .apk/.aab as a run artifact — downloaded and installed like any app.
 #
-# SIGNING (held constraint, DR-0148): this run generates a fresh TESTING key
+# SIGNING (held constraint, DR-0152): this run generates a fresh TESTING key
 # each time — right for family sideload testing, NOT the Play key. The Play
 # keystore is generated once, offline, and custodied by Darrell like a title
 # deed before the first Play upload; assetlinks.json ships live only with that
@@ -86,7 +86,7 @@ jobs:
           {
             echo "## Android package built (sideload-testing)"
             echo "- Download the .apk from this run's Artifacts, open it on the phone, allow the install prompt."
-            echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0148)."
+            echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0152)."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Attach the package as a downloadable artifact
