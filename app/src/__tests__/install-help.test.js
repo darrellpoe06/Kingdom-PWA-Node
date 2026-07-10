@@ -11,6 +11,32 @@ describe('install-help', () => {
     expect(detectPlatform('something-weird')).toBe('other');
   });
 
+  it('a desktop-shaped Linux UA on a TOUCH screen is a phone, not a computer (the Fold, 2026-07-10)', () => {
+    const foldUA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    const real = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(navigator), 'maxTouchPoints');
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
+    try {
+      expect(detectPlatform(foldUA)).toBe('android');
+    } finally {
+      delete navigator.maxTouchPoints;
+      if (real) Object.defineProperty(Object.getPrototypeOf(navigator), 'maxTouchPoints', real);
+    }
+    // The same UA with NO touch screen stays a computer.
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
+    try {
+      expect(detectPlatform(foldUA)).toBe('desktop');
+    } finally {
+      delete navigator.maxTouchPoints;
+    }
+  });
+
+  it('Android steps name the scrollable menu path and the already-installed tell', () => {
+    const joined = installSteps('android').steps.join(' ');
+    expect(joined).toContain('Add to Home screen');
+    expect(joined).toContain('app drawer');
+    expect(joined).toContain('Open PoeTech');
+  });
+
   it('installSteps always returns non-empty steps for every platform', () => {
     for (const p of ['ios', 'android', 'desktop', 'other']) {
       const s = installSteps(p);

@@ -1,0 +1,100 @@
+# Android package — build the sovereign PoeTech app package (DR-0152, door 1).
+#
+# WHY (Darrell, 2026-07-10): "We need a sustainable solution for chrome to let
+# me download this app period." Chrome's install offer is discretionary — it
+# withholds the one-tap on postures, heuristics, and installed-already guesses
+# nobody controls. This workflow removes Chrome from the equation: it builds a
+# REAL Android package (TWA via Bubblewrap) from the live manifest and attaches
+# the .apk/.aab as a run artifact — downloaded and installed like any app.
+#
+# SIGNING (held constraint, DR-0152): this run generates a fresh TESTING key
+# each time — right for family sideload testing, NOT the Play key. The Play
+# keystore is generated once, offline, and custodied by Darrell like a title
+# deed before the first Play upload; assetlinks.json ships live only with that
+# real fingerprint.
+#
+# THE THREE BRAKES: dispatch-only (no schedule), one bounded job with a hard
+# timeout, no repo writes, no compute spawned beyond the single Gradle build.
+name: Android package (TWA, sideload-testing)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: android-package
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate the sideload-testing keystore (per-run; NOT the Play key)
+        id: keys
+        run: |
+          set -euo pipefail
+          PASS=$(openssl rand -hex 16)
+          keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -storepass "$PASS" -keypass "$PASS" \
+            -dname "CN=PoeTech Sideload Testing, O=PoeTech, C=US"
+          echo "::add-mask::$PASS"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble the TWA manifest from the repo template + live manifest
+        run: |
+          set -euo pipefail
+          mkdir -p twa-build
+          jq --arg ks "$PWD/android.keystore" '
+            del(._comment, ._signingNote)
+            | .iconUrl = "https://poetech.us/poetech-app/icon-512.png"
+            | .maskableIconUrl = "https://poetech.us/poetech-app/icon-maskable-512.png"
+            | .signingKey = { path: $ks, alias: "poetech" }
+          ' store/twa-manifest.template.json > twa-build/twa-manifest.json
+          cat twa-build/twa-manifest.json
+
+      - name: Point Bubblewrap at the runner's JDK + Android SDK (no prompts)
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.bubblewrap
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
+          cat ~/.bubblewrap/config.json
+
+      - name: Build the package (Bubblewrap -> Gradle -> signed .apk + .aab)
+        working-directory: twa-build
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
+        run: npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+
+      - name: Name what was built
+        run: |
+          set -euo pipefail
+          ls -la twa-build/*.apk twa-build/*.aab 2>/dev/null || { echo "::error::no package produced"; exit 1; }
+          {
+            echo "## Android package built (sideload-testing)"
+            echo "- Download the .apk from this run's Artifacts, open it on the phone, allow the install prompt."
+            echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0152)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attach the package as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: poetech-android-sideload-testing
+          path: |
+            twa-build/*.apk
+            twa-build/*.aab
+          retention-days: 30
+          if-no-files-found: error
