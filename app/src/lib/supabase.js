@@ -152,6 +152,100 @@ export async function signInWithPassword(email, password) {
   return supabase.auth.signInWithPassword({ email: v.email, password });
 }
 
+// -----------------------------------------------------------------------------
+// Phone + PIN sign-in (Darrell 2026-07-11: "can we allow a pin to begin instead
+// of an email ... everyone doesn't have an email so cellphone and pin and etc").
+//
+// COMMUNITY-FIRST (commitment: the elderly, tech-novice COLG member is the first
+// user): many people have a phone but no email. Supabase Auth requires SOME
+// identifier, so we make the PHONE the identity and the PIN the credential —
+// WITHOUT paying for SMS (Darrell's governed choice 2026-07-11: collected, not
+// text-verified). The mechanism REUSES the existing email+password path via a
+// SYNTHETIC, never-delivered identifier `<digits>@phone.poetech.us`; the real
+// phone is stored in user_metadata so it is displayable + recoverable. Email is
+// collected LATER (saveContactEmail) — optional, and it never blocks starting.
+//
+// SECURITY, stated plainly (DR-0100): the phone is NOT proven-owned (no SMS), so
+// this is a family/church-TRUST identity, not a bank's. The PIN is the guard and
+// Supabase Auth rate-limits sign-in attempts server-side (a 6-digit PIN is 1e6
+// combinations behind that limit). Stronger later = SMS verify (costs money) or
+// a longer PIN. The synthetic domain never receives mail, so it can never be a
+// password-reset / account-takeover vector.
+//
+// ONE dashboard prerequisite (Darrell): Auth → Providers → Email "Minimum
+// password length" must be ≤ 6 (6 is the Supabase default), or a 6-digit PIN is
+// rejected at signup. Nothing else to configure — no SMS provider, no secrets.
+// -----------------------------------------------------------------------------
+
+// The synthetic-email domain — one place, so the mapping never drifts. It never
+// receives mail; it only gives Supabase Auth a well-formed identifier.
+export const PHONE_LOGIN_DOMAIN = 'phone.poetech.us';
+
+// Strip a typed phone to digits; normalize a US 10-digit number to 11 (lead 1).
+// Returns '' when the digits can't be a real number. Pure.
+export function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D+/g, '');
+  if (digits.length === 10) return '1' + digits;                 // US national → E.164 digits
+  if (digits.length >= 11 && digits.length <= 15) return digits; // already country-coded
+  return '';                                                     // too short / too long
+}
+
+// The Supabase identifier for a phone login. Pure; '' in → '' out.
+export function phoneLoginEmail(rawPhone) {
+  const d = normalizePhone(rawPhone);
+  return d ? `${d}@${PHONE_LOGIN_DOMAIN}` : '';
+}
+
+// Validate phone + PIN before any network call. A PIN is 6 digits (meets the
+// Supabase default 6-char minimum). Returns { email (synthetic), pin } or
+// { error }. Pure.
+export function validatePhonePin(rawPhone, pin) {
+  const email = phoneLoginEmail(rawPhone);
+  if (!email) return { error: { message: 'Please enter a valid phone number.' } };
+  const p = String(pin || '');
+  if (!/^\d{6}$/.test(p)) return { error: { message: 'Your PIN must be 6 digits.' } };
+  return { email, pin: p };
+}
+
+/**
+ * Create an account with phone + PIN. Reuses signUp; the real phone + method go
+ * in user_metadata so the app can greet "(xxx) xxx-xxxx" and offer to add an
+ * email later. Returns { data, error }.
+ */
+export async function signUpWithPhonePin(rawPhone, pin, displayName) {
+  const v = validatePhonePin(rawPhone, pin);
+  if (v.error) return v;
+  return supabase.auth.signUp({
+    email: v.email,
+    password: v.pin,
+    options: { data: {
+      name: (displayName || '').trim() || null,
+      phone: normalizePhone(rawPhone),
+      login_method: 'phone-pin',
+    } },
+  });
+}
+
+/** Sign in an existing phone + PIN account. Returns { data, error }. */
+export async function signInWithPhonePin(rawPhone, pin) {
+  const v = validatePhonePin(rawPhone, pin);
+  if (v.error) return v;
+  return supabase.auth.signInWithPassword({ email: v.email, password: v.pin });
+}
+
+/**
+ * "Add your email later" — stores a real contact email in user_metadata WITHOUT
+ * the Supabase secure-email-change round-trip (the synthetic login email never
+ * receives mail, so an email-change confirmation could never be clicked).
+ * Promoting this contact email to a real LOGIN identity is a separate, explicit
+ * step routed for later. Returns { data, error }.
+ */
+export async function saveContactEmail(email) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  return supabase.auth.updateUser({ data: { contact_email: e } });
+}
+
 /**
  * Initiate the Google OAuth sign-in flow. The browser navigates away to
  * Google's consent screen, then back to our app via the Supabase callback
