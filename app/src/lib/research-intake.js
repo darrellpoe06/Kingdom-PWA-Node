@@ -201,6 +201,15 @@ export const RESEARCH_FINDINGS = Object.freeze([
     reReview: '2026-07-24',
   },
   {
+    key: 'claude-video-watch',
+    name: 'claude-video / watch (Claude Code /watch plugin) + the local-whisper fork',
+    source: 'GitHub-review pass 2026-07-11 (bradautomates/claude-video ~5,400 stars verified; mathiaschu/watch fork = local mlx-whisper, no API key; The Next New Thing episode)',
+    verdict: 'staged',
+    why: 'The most direct closer for the "I added a link -> lesson" gap found so far: /watch a URL -> yt-dlp downloads -> ffmpeg extracts frames -> a timestamped transcript is produced -> handed to the agent, which then runs the normal harvest-to-lesson Way (DR-0168). It gives the CLOUD AGENT itself the ability to strip a link (complementary to the NAS lane, which serves the app/family directly). Clarity-first pick (DR-0169): the mathiaschu/watch FORK transcribes locally with mlx-whisper and needs NO API key -- fully sovereign, highest governing-clarity of the ready tools.',
+    constraint: 'Test-first, not adopted (DR-0143): the base claude-video falls back to the Whisper API (vendor) when a video has no captions -- prefer the local-whisper fork to keep it sovereign. Whether the cloud sandbox can reach YouTube through the agent proxy is UNVERIFIED until tested. Transcript/download of arbitrary video sits in ToS-gray (same caveat as the scraper path). THE TEST before any adoption: in a Claude Code session install the plugin (or the local-whisper fork), /watch ONE known teaching URL, and confirm it returns a usable timestamped transcript at acceptable time/cost; only then wire it as an intake path.',
+    reReview: '2026-07-24',
+  },
+  {
     key: 'ai-studio-key',
     name: 'Google AI Studio free-tier Gemini API key',
     source: 'Ecosystem scan (the recurring unlock across findings)',
