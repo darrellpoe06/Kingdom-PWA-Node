@@ -32,7 +32,7 @@ function validIssue(overrides = {}) {
     lens: {
       fourD: { deepSource: 'Scripture engages injustice with truth and grace.', scripture: 'Micah 6:8' },
       threeD: 'Care about the real people affected; do not let outrage own you.',
-      benefits: ['Calm in a loud world', 'Sharper source-checking'],
+      benefits: ['Calm in a loud world', 'Sharper source-checking', 'Both courts: some judgment in this life, all of it in the eternal court after this life (Ecclesiastes 12:14; Hebrews 9:27).'],
       graceNote: 'Name a wrong without condemning a person made in God\'s image.',
       accountability: { statement: 'The wrongdoer owes confession and restitution; every dismissed or hidden thing still enters the eternal court.', scripture: 'Ecclesiastes 12:14; Numbers 5:7' },
       stewardship: 'Steward your attention and your dollar wisely.',
@@ -134,6 +134,26 @@ describe('safeguard: accountability stated plainly (the two courts)', () => {
   });
   it('passes when accountability is stated', () => {
     expect(auditIssue(validIssue()).ok).toBe(true);
+  });
+});
+
+describe('safeguard: the two courts are VISIBLE in the benefits (DR-0170)', () => {
+  it('catches a documented-accountability lesson whose benefits never name the eternal court', () => {
+    const issue = validIssue();
+    issue.lens = { ...issue.lens, benefits: ['Calm in a loud world', 'Sharper source-checking'] };
+    const res = auditIssue(issue);
+    expect(res.ok).toBe(false);
+    expect(res.errors.some((e) => e.code === 'accountability/eternal-court-not-in-benefits')).toBe(true);
+  });
+  it('passes when a benefit names both courts / the eternal reward', () => {
+    expect(auditIssue(validIssue()).ok).toBe(true);
+  });
+  it('does NOT require it when the lesson has no documented harm (unless it is about that subject)', () => {
+    const issue = validIssue();
+    issue.verifiable = [{ id: 'f1', statement: 'An unproven claim.', status: 'disputed', sources: [{ title: 'x', publisher: 'y', asOf: '2025-01-01' }] }];
+    issue.lens = { ...issue.lens, benefits: ['Calm in a loud world'] };
+    const res = auditIssue(issue);
+    expect(res.errors.some((e) => e.code === 'accountability/eternal-court-not-in-benefits')).toBe(false);
   });
 });
 

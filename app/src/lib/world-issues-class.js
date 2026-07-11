@@ -323,6 +323,7 @@ const MUSK_ISSUE = {
       scripture: 'Ecclesiastes 12:14; Luke 12:2-3; Hebrews 4:13; Proverbs 15:3; James 5:4; Isaiah 10:1-2; Amos 5:15; Numbers 5:6-7; Leviticus 6:4-5; Luke 19:8-9; Matthew 3:8; Ephesians 5:11; Leviticus 5:1; Proverbs 17:15; Proverbs 31:8-9; Galatians 6:7; 2 Corinthians 5:10; Revelation 20:12',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'Freedom from being manipulated by outrage media — in either direction (the attack OR the dismissal).',
       'Peace in a divisive world: you can engage hard things without your heart being eaten by anger.',
       'A repeatable skill: state what is proven plainly, label what is not, check the primary source, hear the other side at its strongest.',
@@ -485,6 +486,7 @@ const BEAUTY_SUPPLY_ISSUE = {
       scripture: 'Ecclesiastes 12:14; Isaiah 10:1-2; Proverbs 11:1; James 5:4; Numbers 5:7; Proverbs 17:15; Leviticus 5:1; Proverbs 22:22-23; Galatians 6:7',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'Freedom from being played by outrage that pits two underserved communities against each other.',
       'The ability to hold both: a real, documented barrier AND the dignity of good-faith families on the other side.',
       'A repeatable skill: separate a documented barrier from an assumed motive; refuse collective punishment.',
@@ -603,6 +605,7 @@ const GAME_CHANGERS_ISSUE = {
       scripture: 'Matthew 12:36; Ecclesiastes 12:14; Galatians 6:7; Proverbs 18:17; 1 Corinthians 6:19-20',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'Freedom from food-guilt and diet-tribe legalism — Romans 14 forbids exactly that judgment.',
       'The ability to hold BOTH: real, documented dietary damage is real AND no single diet is mandated.',
       'A repeatable skill: state established fact plainly, flag the film\'s cherry-picks narrowly, measure the ideology by the Word.',
@@ -773,6 +776,7 @@ const PROPHETIC_LENS_ISSUE = {
       scripture: 'Ecclesiastes 12:14; Matthew 12:36; Proverbs 11:1; Exodus 23:2; Isaiah 5:20; Galatians 6:7; 2 Corinthians 5:10',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'Freedom from apocalypse-content whiplash — neither swallowing the dread nor scoffing at the watchfulness.',
       'A repeatable test for prophetic media: documented words said plainly, unverifiable claims weighed at zero, every interpretation tried by the Word (1 John 4:1).',
       'The Babel lens — you can name the ancient pattern under new technology without needing hidden knowledge.',
@@ -1075,6 +1079,7 @@ const MEDICAL_ESTABLISHMENT_ISSUE = {
       scripture: 'Proverbs 11:1; Ecclesiastes 12:14; Matthew 18:6; Matthew 12:36; 1 Thessalonians 2:5; Proverbs 20:10; Exodus 23:1; Isaiah 5:20; Galatians 6:7',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'A working test for authority-figure indictments: weigh the CLAIM, not the credential \u2014 the badge is identical across her true and false statements.',
       'The true-number-false-cause skill: keep a real statistic ("1 in 31") while rejecting a falsified cause ("because of vaccines") \u2014 without averaging them into "who knows."',
       'Persecution-is-not-proof: the reflex to trust the attacked is disarmed \u2014 censorship and error can be true at once (Jeremiah 5:31).',
@@ -1355,6 +1360,7 @@ const AI_EMPIRE_ISSUE = {
       scripture: 'James 5:4; Ecclesiastes 12:14; 1 Timothy 6:9-10; Isaiah 5:8; Colossians 2:8; Proverbs 11:1; Matthew 12:36; Ecclesiastes 5:8; Proverbs 31:8-9; Micah 6:8; Isaiah 5:20; Galatians 6:7',
     },
     benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect \u2014 some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) \u2014 while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
       'Believe-first in practice: a well-sourced voice is received with belief and confirmed (DR-0166), not met with reflexive doubt \u2014 proportion, not credulity.',
       'The credential-splits-on-evidence skill, seen in contrast: Issue 5\u2019s falsified insider beside Issue 6\u2019s confirmed one \u2014 the badge never settled it; the sources did.',
       'Real damage named as damage: the labourer\u2019s withheld wage (James 5:4) and trauma are stated plainly, never softened to sound balanced (DR-0100).',
