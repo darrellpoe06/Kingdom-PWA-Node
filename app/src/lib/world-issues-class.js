@@ -60,7 +60,7 @@ export const WORLD_ISSUES_META = {
   tagline: 'Don’t be told what to think. Learn how to think it through.',
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 4, // four published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video); the track grows as issues are added
+  weeks: 5, // five published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -842,7 +842,310 @@ const PROPHETIC_LENS_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE];
+
+// =============================================================================
+// ISSUE 5 — a physician's sweeping critique of the medical establishment
+// (Dr. Stella Immanuel, same interview as Living Lessons L22/L23). The hardest
+// DR-0100 case yet: a mix of DOCUMENTED institutional facts (the 1986 liability
+// shield; nutrition-education gaps; real neglected US parasites; her own 2020
+// license history), a DOCUMENTED-BUT-MISATTRIBUTED statistic (the 1-in-31
+// autism figure is the real 2025 CDC number — her CAUSE claim is the part the
+// evidence contradicts), and FALSIFIED claims (the Amish "control group"; the
+// SIDS-from-vaccines claim — the record shows the opposite). SPEAK-ESTABLISHED-
+// FACT (DR-0100) cuts BOTH ways here: the real institutional failures are
+// stated plainly AND the vaccine-autism / Amish / SIDS claims are named as
+// contradicted by the evidence — under-claiming a true harm and over-claiming a
+// false cause are BOTH failures of truth. No medical advice is given; the skill
+// is discernment of authority-vs-evidence, not a treatment protocol. Every
+// figure verified by live web search 2026-07-11 (DR-0076), cited with as-of.
+// =============================================================================
+const MEDICAL_ESTABLISHMENT_ISSUE = {
+  id: 'wi-medical-establishment',
+  title: 'A Doctor Indicts Her Own Profession — Sorting True Reform From False Cause',
+  subject: { name: 'Dr. Stella Immanuel', kind: 'public-figure', isNamedRealPerson: true },
+  skill: 'Take a credentialed insider\u2019s sweeping indictment of her own field and learn the hardest discernment move: a real doctor naming REAL institutional failures (a liability shield, thin nutrition training, neglected parasites) in the SAME breath as claims the evidence contradicts (vaccines cause the autism rise; the Amish don\u2019t vaccinate or get autism; vaccines cause SIDS). Credentials are not evidence and evidence is not credentials \u2014 you weigh each CLAIM by its data, keep the true reforms without swallowing the false causes, and refuse to let a messenger\u2019s real courage under fire launder her unproven science. DR-0100 both ways: state the documented harm plainly; name the falsified claim plainly; never average them into "who knows."',
+  source: {
+    creator: 'Dr. Stella Immanuel (interviewed on "We Need to Talk")',
+    medium: 'video',
+    title: 'a physician\u2019s critique of medical training, the vaccine schedule, and pharmaceutical liability',
+    url: 'https://youtu.be/jiRPhN-lPcs',
+    asOf: '2026-07-11',
+    note: 'A credentialed physician (Texas license, pediatrics/emergency medicine) who gained a national platform in 2020. We examine her CLAIMS \u2014 sourced and sorted \u2014 not her person; the lesson holds for any authority-figure indictment of an institution.',
+  },
+
+  claims: [
+    {
+      id: 'c-liability',
+      text: 'Vaccine makers, and the doctors/nurses who inject them, cannot be sued if a childhood vaccine injures a child.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'DOCUMENTED and true in substance: the National Childhood Vaccine Injury Act of 1986 routes claims through the no-fault Vaccine Injury Compensation Program (VICP) instead of ordinary lawsuits, and shields manufacturers from liability for unavoidable side effects. This is her strongest, most checkable point \u2014 state it plainly.',
+    },
+    {
+      id: 'c-nutrition',
+      text: 'Most doctors graduate medical school knowing little about how nutrition affects disease, because natural medicine was stripped from the curriculum.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'The nutrition-gap half is DOCUMENTED: ~71% of US medical schools fail the National Academy of Sciences\u2019 recommended 25 hours of nutrition education; the average is ~19-24 hours total. The Flexner/Rockefeller history is MORE real than a bare conspiracy label allows (see f-flexner) \u2014 the 1910 Carnegie-commissioned Flexner Report did standardize allopathic training and closed most homeopathic/eclectic schools, and Rockefeller money funded the reforms. The honest fork is MOTIVE: "raise scientific standards after documenting real quackery" (the mainstream reading) vs "deliberately suppress natural medicine" (her reading) \u2014 the closures are fact; the intent is contested.',
+
+    },
+    {
+      id: 'c-parasites',
+      text: 'US doctors dismiss human parasites as a "third world disease" and refuse to treat them, though parasites drive much American chronic illness.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'PARTLY DOCUMENTED: the CDC names five "neglected parasitic infections" IN THE US (Chagas, cysticercosis, toxoplasmosis, toxocariasis, trichomoniasis) that are genuinely under-diagnosed \u2014 300,000+ with Chagas, millions with toxoplasmosis. That real neglect is TRUE. The leap to "parasites cause much of America\u2019s chronic disease and cancer" and routine self-"deworming" is NOT established, and the commerce built on it is a conflict of interest.',
+    },
+    {
+      id: 'c-autism-cause',
+      text: 'US autism rose from 1 in 1,000 to 1 in 31 BECAUSE of vaccines.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'The NUMBER is real; the CAUSE is contradicted. 1 in 31 IS the CDC\u2019s 2025 figure (2022 surveillance). But the largest studies \u2014 Hviid 2019, 657,461 Danish children \u2014 find NO association between vaccination and autism, including in high-risk subgroups; the rise tracks broadened diagnostic criteria and screening. A true statistic welded to a falsified cause.',
+    },
+    {
+      id: 'c-amish',
+      text: 'The Amish are a natural "control group": they don\u2019t vaccinate and almost never have autism.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'FALSE on both premises. Most Amish DO vaccinate (studies: 85-98% have at least some vaccination), and autism DOES occur among Amish children (documented cases; lower REPORTED rates track under-diagnosis and cultural under-reporting, not absence). The "control group" does not exist as described.',
+    },
+    {
+      id: 'c-sids',
+      text: '2,000 US babies die every year from SIDS caused by receiving too many vaccines at once.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'CONTRADICTED by the evidence, and dangerously so. SIDS deaths (~2,500/yr) are real, but the causal claim is the OPPOSITE of the data: the Vennemann meta-analysis of 9 studies found vaccination associated with roughly HALVING SIDS risk. Attributing SIDS to vaccines is a falsified cause that could cost a child protection.',
+    },
+    {
+      id: 'c-groupthink',
+      text: 'When she reported curing 350+ COVID patients with hydroxychloroquine, doctors attacked her and tried to strip her license instead of examining her data.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'MIXED and self-serving: the backlash and a 2021 Texas Medical Board corrective action are documented \u2014 AND the underlying claim (HCQ "cures" COVID) failed in controlled trials; the FDA revoked its emergency authorization for lack of benefit. Being attacked is not the same as being right; an anecdotal case series is not the clinical data that settles a treatment.',
+    },
+    {
+      id: 'c-programmed',
+      text: 'Doctors are "programmed" \u2014 handed protocols and taught to follow them without reading the studies or questioning the science.',
+      label: 'opinion',
+      attribution: 'Dr. Immanuel',
+      note: 'A sweeping characterization with a grain and an overreach: protocol-driven medicine and time-pressured practice are real and criticized from WITHIN medicine; "they never read the studies and just obey" is a caricature that also happens to elevate the speaker as the lone awakened one \u2014 a rhetorical move to notice.',
+    },
+    {
+      id: 'c-flexner',
+      text: 'The "Rockefeller Medical Industrial Complex" sponsored medical schools decades ago specifically to REMOVE natural medicine from the curriculum.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'The HISTORY is largely documented; the MOTIVE is the contested part. The 1910 Flexner Report (Carnegie-commissioned) did standardize allopathic education and closed more than half of US medical schools \u2014 especially homeopathic, eclectic, and naturopathic ones \u2014 and Rockefeller philanthropy heavily funded the reforms. Whether the AIM was "raise standards after documenting real quackery" or "deliberately suppress natural cures" is the interpretive fork; the closures themselves are fact.',
+    },
+    {
+      id: 'c-natural-cures',
+      text: 'Historical/indigenous cures the establishment ignores work: the pitcher plant (Sarracenia purpurea) treats pox viruses; high-dose Vitamin C plus nitazoxanide can treat Ebola \u2014 and she built supplements on this.',
+      label: 'claim',
+      attribution: 'Dr. Immanuel',
+      note: 'A real research kernel stretched past what it shows. The Sarracenia-vs-poxvirus finding is a genuine 2012 IN-VITRO (lab-dish) study (Arndt et al., PLOS One) \u2014 real, and interesting, but in-vitro inhibition is NOT a validated human treatment, and building/selling a monkeypox supplement on it is exactly the leap the evidence does not license. Nitazoxanide has documented broad antiviral activity in the lab; "cures Ebola with Vitamin C" is not established clinical fact. The pattern: a true citation \u2192 an unproven product.',
+    },
+  ],
+
+  verifiable: [
+    {
+      id: 'f-liability-1986',
+      statement: 'The National Childhood Vaccine Injury Act of 1986 created a no-fault Vaccine Injury Compensation Program and shields vaccine manufacturers from ordinary civil liability for unavoidable side effects; the program has paid out more than $5.3 billion (as of February 2025). Her liability claim is substantially TRUE.',
+      status: 'documented',
+      sources: [
+        { title: 'National Vaccine Injury Compensation Program \u2014 About', publisher: 'HRSA (US Health Resources & Services Administration)', url: 'https://www.hrsa.gov/vaccine-compensation/about', asOf: '2026-07-11' },
+        { title: 'National Childhood Vaccine Injury Act', publisher: 'Wikipedia (citing the 1986 Act, 42 U.S.C. \u00a7300aa)', url: 'https://en.wikipedia.org/wiki/National_Childhood_Vaccine_Injury_Act', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The shield is real and was enacted to keep a vaccine supply after 1980s DPT litigation; a citizen can rightly find the arrangement worth debating. The reform-fact stands on its own \u2014 no conspiracy framing required.',
+    },
+    {
+      id: 'f-nutrition-gap',
+      statement: 'US medical schools under-teach nutrition: ~71% fail to provide the National Academy of Sciences\u2019 recommended minimum of 25 hours; students receive ~19-24 contact hours on average. The nutrition-gap claim is DOCUMENTED.',
+      status: 'documented',
+      sources: [
+        { title: 'Nutrition Education in U.S. Medical Schools: Latest Update of a National Survey', publisher: 'Academic Medicine / PMC', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4042309/', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. A real, self-criticized gap inside medicine \u2014 stated plainly (DR-0100 tier 1). Note the boundary: "under-taught" is documented; "deliberately stripped by the Rockefeller complex" is a separate causal story \u2014 see f-flexner for what history does and does not establish.',
+    },
+    {
+      id: 'f-flexner',
+      statement: 'The Flexner Report (1910, commissioned by the Carnegie Foundation) standardized US medical education on the allopathic/scientific model and led to the closure of more than half of American medical schools \u2014 disproportionately homeopathic, eclectic, and naturopathic ones; Rockefeller philanthropy then funded the reforms heavily. The historical SHIFT she describes is real; the MOTIVE ("to suppress natural cures" vs "to end documented quackery") is what remains contested.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Flexner Report', publisher: 'Wikipedia (Carnegie Foundation; school closures; Rockefeller funding)', url: 'https://en.wikipedia.org/wiki/Flexner_Report', asOf: '2026-07-11' },
+        { title: 'Rockefeller, the Flexner Report, and the American Medical Association', publisher: 'Journal of Medical Humanities / PMC', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12318542/', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. A case where the conspiracy-adjacent claim has a real documentary spine \u2014 DR-0100 tier 1 for the events (Carnegie commission, mass closures, Rockefeller money) AND tier 2 for the intent. The Report also documented genuine diploma-mill quackery it was right to end; both can be true, and a just weight holds both.',
+    },
+    {
+      id: 'f-sarracenia',
+      statement: 'The pitcher-plant-vs-poxvirus claim rests on a real study: Arndt et al. (2012, PLOS One) characterized Sarracenia purpurea extract inhibiting poxvirus (including variola and monkeypox) replication IN VITRO. But in-vitro (lab-dish) inhibition is not a validated human treatment, and no controlled human trial establishes it as a monkeypox cure \u2014 so the supplement built on it outruns the evidence.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'In Vitro Characterization of a Nineteenth-Century Therapy for Smallpox', publisher: 'PLOS One (Arndt et al., 2012)', url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0032610', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The instructive tier-2 case: a REAL citation (the study exists and found real in-vitro activity) stretched to an UNPROVEN product (a sold monkeypox cure). "There is a study" is true; "therefore this supplement treats the disease in people" does not follow \u2014 the gap between in-vitro and clinical is where the overreach and the commerce live. No treatment advice is given here.',
+    },
+    {
+      id: 'f-parasites-real',
+      statement: 'The CDC formally recognizes five NEGLECTED parasitic infections IN the United States (Chagas, cysticercosis, toxoplasmosis, toxocariasis, trichomoniasis), genuinely under-diagnosed \u2014 300,000+ Americans with Chagas, millions with toxoplasmosis/toxocariasis. The "US parasites are neglected" claim is DOCUMENTED.',
+      status: 'documented',
+      sources: [
+        { title: 'Neglected Parasitic Infections: What Family Physicians Need to Know \u2014 A CDC Update', publisher: 'American Family Physician / CDC', url: 'https://www.aafp.org/pubs/afp/issues/2021/0900/p277.html', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The neglect is real (DR-0100 tier 1); the extrapolation to "parasites cause much US chronic disease and cancer" plus routine self-deworming is NOT established (tier 2) and is entangled with product sales (a conflict to name).',
+    },
+    {
+      id: 'f-autism-number-vs-cause',
+      statement: 'The "1 in 31" autism figure is REAL \u2014 the CDC\u2019s April 2025 ADDM report (2022 surveillance), up from 1 in 36 (2020). But the largest cohort study \u2014 Hviid et al. 2019, 657,461 Danish children \u2014 found NO association between MMR vaccination and autism, including in high-risk subgroups. The rising number is documented; the vaccine CAUSE is contradicted.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Prevalence of Autism Spectrum Disorder Among Children Aged 8 Years \u2014 ADDM Network, 2022', publisher: 'CDC MMWR', url: 'https://www.cdc.gov/mmwr/volumes/74/ss/ss7402a1.htm', asOf: '2026-07-11' },
+        { title: 'Measles, Mumps, Rubella Vaccination and Autism: A Nationwide Cohort Study', publisher: 'Annals of Internal Medicine (Hviid et al., 2019)', url: 'https://www.acpjournals.org/doi/10.7326/M18-2101', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. This is the lesson\u2019s hinge: a TRUE statistic ("1 in 31") welded to a FALSIFIED cause ("because of vaccines"). Rising prevalence tracks broadened criteria, earlier and wider screening, and diagnostic substitution \u2014 documented drivers the vaccine claim ignores.',
+    },
+    {
+      id: 'f-amish-false',
+      statement: 'The Amish "control group" claim is FALSE on both halves: most Amish DO vaccinate (85-98% with at least some vaccination in surveys), and autism DOES occur among Amish children. Lower reported rates reflect under-diagnosis and cultural under-reporting, not a vaccine-free autism-free population.',
+      status: 'disputed',
+      sources: [
+        { title: 'Anti-vaccine myth that Amish children don\u2019t have autism resurfaces', publisher: 'Public Health Communications Collaborative', url: 'https://publichealthcollaborative.org/alerts/anti-vaccine-myth-that-amish-children-dont-have-autism-resurfaces/', asOf: '2026-07-11' },
+        { title: 'The Amish Don\u2019t Get Autism?', publisher: 'Snopes', url: 'https://www.snopes.com/fact-check/the-amish-dont-get-autism/', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. A widely-circulated myth; the premise it rests on (Amish don\u2019t vaccinate) is itself false. A "control group" that isn\u2019t controlled proves nothing \u2014 name it plainly (DR-0100).',
+    },
+    {
+      id: 'f-sids-opposite',
+      statement: 'The claim that vaccines cause ~2,000 SIDS deaths a year is CONTRADICTED by the data: the Vennemann meta-analysis (9 studies) found immunization associated with roughly HALVING SIDS risk. SIDS is real (~2,500 US deaths/yr); the vaccine-cause is the opposite of what the evidence shows.',
+      status: 'disputed',
+      sources: [
+        { title: 'Do immunisations reduce the risk for SIDS? A meta-analysis', publisher: 'Vaccine (Vennemann et al., 2007) / PubMed', url: 'https://pubmed.ncbi.nlm.nih.gov/17400342/', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The most consequential falsified claim in the set \u2014 stated plainly BECAUSE under-claiming the correction could cost a child protection (DR-0100: real damage is named, and so is real safety).',
+    },
+    {
+      id: 'f-immanuel-record',
+      statement: 'Her 2020 account is documented and mixed: she publicly claimed 350+ COVID cures with hydroxychloroquine (July 2020, ~13M+ views); the Texas Medical Board took corrective action in 2021 over an HCQ prescription; and controlled trials plus the FDA\u2019s revoked emergency authorization found HCQ ineffective for COVID. Backlash occurred; so did the failure of the treatment claim in trials.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Who are the doctors in the viral hydroxychloroquine video?', publisher: 'PolitiFact', url: 'https://www.politifact.com/article/2020/jul/29/who-are-doctors-viral-hydroxychloroquine-video/', asOf: '2026-07-11' },
+        { title: 'Stella Immanuel', publisher: 'Wikipedia (Texas Medical Board action, 2021)', url: 'https://en.wikipedia.org/wiki/Stella_Immanuel', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. Being censored or attacked is orthogonal to being correct \u2014 both can be true at once. The discernment point: persecution is not proof; an anecdotal case series is not a controlled trial.',
+    },
+  ],
+
+  interpretation: [
+    { id: 'n-credentials-not-evidence', statement: 'A medical degree makes someone worth HEARING; it does not make each claim TRUE. Dr. Immanuel is right about the 1986 liability shield, the nutrition-education gap, and neglected US parasites \u2014 and wrong about vaccines causing the autism rise, the Amish "control group," and vaccine-caused SIDS. The credential is constant across both lists; only the EVIDENCE separates them. Weigh claims, not badges.', restsOn: ['f-liability-1986', 'f-nutrition-gap', 'f-autism-number-vs-cause', 'f-amish-false'] },
+    { id: 'n-true-number-false-cause', statement: 'The signature deception of this genre is the true statistic welded to a false cause: "1 in 31" is real, "because of vaccines" is contradicted. Accepting the number does not oblige you to accept the cause \u2014 and rejecting the cause does not let you deny the number. Hold both: autism identification really has risen; the vaccine explanation really has been tested and failed.', restsOn: ['f-autism-number-vs-cause'] },
+    { id: 'n-persecution-not-proof', statement: 'That a doctor was attacked, censored, or disciplined is a fact about her RECEPTION, not her ACCURACY. The same incident can hold real institutional overreach AND a treatment claim that failed in trials. Sympathy for the persecuted must not become suspension of the evidence test \u2014 that is exactly the lever the genre pulls.', restsOn: ['f-immanuel-record'] },
+    { id: 'n-reform-without-conspiracy', statement: 'The documented reforms (teach more nutrition, take US parasites seriously, debate the liability shield openly) stand WITHOUT the conspiracy scaffolding ("Rockefeller stripped natural medicine," "they know and hide it"). Keep the reform; drop the unprovable motive-story \u2014 a true problem does not need a secret villain to deserve fixing.', restsOn: ['f-nutrition-gap', 'f-parasites-real', 'f-liability-1986'] },
+  ],
+
+  perspectives: [
+    {
+      id: 'p-insider-reformer',
+      label: 'The insider-reformer view of the true parts',
+      heldBy: 'Dr. Immanuel and many patients failed by the system',
+      steelman: 'Heard at its strongest, this view names things medicine admits about itself: doctors ARE under-trained in nutrition, US parasites ARE neglected, the 1986 shield DID trade individual redress for supply stability, and protocol-driven, time-starved practice CAN dull curiosity. Patients who were dismissed, rushed, or harmed are not paranoid to distrust an institution that has, at times, earned distrust. A credentialed insider saying so from within is worth hearing \u2014 reform usually starts as an inside voice the institution first tries to silence.',
+    },
+    {
+      id: 'p-evidence-first',
+      label: 'What careful evidence-reading answers \u2014 and what it leaves standing',
+      heldBy: 'believers committed to sober verification (DR-0076)',
+      steelman: 'Careful reading answers the falsified claims decisively: the Amish "control group" is a double myth (they DO vaccinate; autism DOES occur), the SIDS-from-vaccines claim is the opposite of the meta-analytic data, and the autism-cause claim dies in a 657,000-child study. It also refuses to let courage-under-fire launder unproven science \u2014 persecution is not proof, and a case series is not a trial. But it does NOT dismiss the true reforms: the liability shield, the nutrition gap, and neglected parasites are real, and "she\u2019s a quack, ignore all of it" is its own failure of truth. Weigh each claim; keep what the data keeps.',
+    },
+    {
+      id: 'p-steward-of-the-body',
+      label: 'The steward-of-the-temple view',
+      heldBy: 'believers holding QUALITY-OF-LIFE and the Word together',
+      steelman: 'The body is the temple of the Holy Ghost (1 Corinthians 6:19-20) and Daniel\u2019s plain diet outshone the king\u2019s (Daniel 1:15) \u2014 so stewardship of food, sleep, and prevention is genuinely biblical, and a critique that recovers "tend the temple" is recovering something true. AND the same stewardship forbids gambling a child\u2019s protection on a falsified cause or a product pitch. The Word affirms the herbs of the field (Psalm 104:14) AND the physician (Colossians 4:14, "Luke, the beloved physician"; Sirach-era honor of the healer) \u2014 it does not pit natural against medical; it pits truth against falsehood, in both.',
+    },
+  ],
+
+  lens: {
+    fourD: {
+      deepSource: 'The Word gives the exact instrument this hardest case needs: "Prove all things; hold fast that which is good" (1 Thessalonians 5:21) \u2014 PROVE (test each claim), then HOLD FAST only what passes, keeping the good and releasing the rest, claim by claim rather than whole-messenger. It refuses both failures at once: "He that answereth a matter before he heareth it, it is folly and shame unto him" (Proverbs 18:13) forbids dismissing a credentialed critic unheard, and "the simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15) forbids swallowing her whole because some of it is true. On the true-number-false-cause weld, the Word prizes exact measures: "A false balance is abomination to the LORD: but a just weight is his delight" (Proverbs 11:1) \u2014 and a just weight means neither inflating the vaccine fear nor deflating the real autism rise; "divers weights, and divers measures, both of them are alike abomination to the LORD" (Proverbs 20:10). On persecution-as-proof, the Word is blunt that being opposed neither proves nor disproves a claim \u2014 true prophets were persecuted (Matthew 5:12) AND false ones flourished with a crowd (Jeremiah 5:31, "the prophets prophesy falsely... and my people love to have it so"); reception is not verification. And the stewardship the true parts recover is real: the body is "the temple of the Holy Ghost" (1 Corinthians 6:19-20), Daniel\u2019s pulse-and-water outshone the royal fare (Daniel 1:15), the LORD "causeth... herb for the service of man" (Psalm 104:14) \u2014 AND the physician is honored, not scorned ("Luke, the beloved physician," Colossians 4:14). The Word pits truth against falsehood, never natural against medical. The posture over all of it: a sound mind that tests, not a fearful one that swallows or scoffs (2 Timothy 1:7).',
+      scripture: '1 Thessalonians 5:21; Proverbs 18:13; Proverbs 14:15; Proverbs 11:1; Proverbs 20:10; Matthew 5:12; Jeremiah 5:31; 1 Corinthians 6:19-20; Daniel 1:15; Psalm 104:14; Colossians 4:14; 2 Timothy 1:7',
+    },
+    threeD: 'Practically: SORT before you react. Bin 1 \u2014 DOCUMENTED, say it plainly: the 1986 liability shield is real (VICP, $5.3B+ paid); ~71% of med schools miss the 25-hour nutrition minimum; the CDC lists five neglected US parasites. These are true reforms; do not deny them to protect the institution. Bin 2 \u2014 CONTRADICTED, say THAT plainly too: vaccines-cause-the-autism-rise dies in a 657,000-child study; the Amish "control group" is a double myth (they DO vaccinate; autism DOES occur); vaccine-caused SIDS is backwards (immunization roughly HALVES SIDS risk). Bin 3 \u2014 the TRUE-NUMBER-FALSE-CAUSE weld: "1 in 31" is the real CDC 2025 figure; "because of vaccines" is the falsified part \u2014 keep the number, drop the cause. And two rules for the whole genre: a credential is not evidence (weigh the claim, not the badge), and persecution is not proof (being attacked and being wrong can both be true). No treatment advice here \u2014 for your own family\u2019s medical decisions, real informed consent means the actual studies plus a doctor you can question, not a video.',
+    accountability: {
+      statement: 'THE TWO COURTS, applied to the healer and the institution alike. THE INSTITUTION is accountable for the real failures a credentialed insider named: an under-taught generation of doctors, neglected US parasites, and a liability shield that traded a family\u2019s day in court for supply stability \u2014 "a false balance is abomination to the LORD" (Proverbs 11:1), and where the system dismissed patients or rushed them, that is weighed even where no board ever ruled it wrong, for "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). AND THE MESSENGER is accountable for the falsified claims broadcast to frightened parents: telling mothers that vaccines cause SIDS when the data shows the opposite, or offering an Amish "control group" that does not exist, is testimony that can move a parent to withhold protection \u2014 "whoso shall offend one of these little ones... it were better for him that a millstone were hanged about his neck" (Matthew 18:6), and "every idle word that men shall speak, they shall give account thereof" (Matthew 12:36). THE COMMERCE is accountable too: selling the supplements and cleanses whose necessity you also preach is the "cloke of covetousness" Paul refused (1 Thessalonians 2:5) and a divers weight (Proverbs 20:10). AND WE are accountable for what we repeat: passing along the falsified cause because we distrust the institution is joining a false report (Exodus 23:1, "thou shalt not raise a false report"); and denying the true reforms because we dislike the messenger is calling good evil (Isaiah 5:20). No court on earth may ever rule on most of this \u2014 which is the point: it is weighed in the one that does. "Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7).',
+      scripture: 'Proverbs 11:1; Ecclesiastes 12:14; Matthew 18:6; Matthew 12:36; 1 Thessalonians 2:5; Proverbs 20:10; Exodus 23:1; Isaiah 5:20; Galatians 6:7',
+    },
+    benefits: [
+      'A working test for authority-figure indictments: weigh the CLAIM, not the credential \u2014 the badge is identical across her true and false statements.',
+      'The true-number-false-cause skill: keep a real statistic ("1 in 31") while rejecting a falsified cause ("because of vaccines") \u2014 without averaging them into "who knows."',
+      'Persecution-is-not-proof: the reflex to trust the attacked is disarmed \u2014 censorship and error can be true at once (Jeremiah 5:31).',
+      'True reform kept: the liability shield, the nutrition gap, and neglected US parasites are real and worth acting on \u2014 without the conspiracy scaffolding.',
+      'A guarded family: real informed consent is the actual studies plus a questionable-in-the-good-sense doctor, never a frightening video \u2014 and never a product pitch (1 Thessalonians 2:5).',
+      'Temple stewardship recovered rightly: food, sleep, prevention honored (Daniel 1:15; 1 Corinthians 6:19-20) alongside the beloved physician (Colossians 4:14), truth against falsehood in both.',
+    ],
+    graceNote: 'This lesson pronounces no verdict on Dr. Immanuel\u2019s soul or sincerity \u2014 that judgment is God\u2019s alone (Romans 14:4; James 4:12). A physician who kept treating patients under national attack is a person of real courage, and courage is honored here even as specific claims are corrected. Naming a falsified claim is not condemning a person; it is protecting a child \u2014 and the same Door stands open to her as to everyone (John 10:9). We correct the science, honor the reforms, bless the healer, and leave the heart with God.',
+    stewardship: 'The deeper response to "the system failed us" is not to trade one unquestioned authority (the institution) for another (the anointed contrarian) \u2014 it is to build a household that PROVES ALL THINGS (1 Thessalonians 5:21): reads the actual studies, keeps a doctor it can question, tends the temple with food and sleep and prevention, and refuses both the reflex that swallows and the reflex that scoffs. This platform\u2019s health surfaces exist to serve that discernment, never to sell a cleanse or launder a fear.',
+    anchor: {
+      ref: '1 Thessalonians 5:21',
+      theme: 'Prove all things; hold fast that which is good \u2014 the credential earns a hearing, the evidence earns belief; keep the true reforms, release the false causes, claim by claim.',
+    },
+  },
+
+  reflection: {
+    skill: 'When a credentialed insider indicts an institution: SORT, don\u2019t swallow and don\u2019t scoff. Bin each claim \u2014 documented (state it plainly), contradicted (state THAT plainly), or true-number-false-cause (keep the number, drop the cause). Remember the two rules: a credential is not evidence, and persecution is not proof. Keep the real reforms; refuse the falsified causes; give no medical advice \u2014 point to real informed consent (the studies plus a doctor you can question).',
+    practice: 'Take ONE health claim you have seen from a credentialed contrarian this month. Find the primary source for the STATISTIC and, separately, the primary source for the CAUSE \u2014 they are usually not the same paper. Write one sentence naming which bin the claim lands in, and one sentence on a "prove all things" response (a study to read, a question to ask your doctor) rather than a feeling.',
+    prompts: [
+      'Dr. Immanuel is right about the 1986 liability shield and wrong about vaccine-caused SIDS. Her credential is identical for both \u2014 so what actually did the separating?',
+      '"1 in 31" is the real CDC number; "because of vaccines" is contradicted by a 657,000-child study. Why is it not a compromise to accept the first and reject the second?',
+      'Why is "she was censored and attacked" not evidence that her claims are true? Where does Jeremiah 5:31 ("the prophets prophesy falsely... and my people love to have it so") warn the other direction?',
+      'The Amish "control group" fails because its premise (they don\u2019t vaccinate) is false. What makes a real control group \u2014 and why does a broken one prove nothing?',
+      'Where is the line between honoring the body as the temple (1 Corinthians 6:19-20; Daniel 1:15) and gambling a child\u2019s protection on a falsified cause or a product you are also selling (1 Thessalonians 2:5)?',
+      'What is one thing you will PROVE this month \u2014 an actual study to read, a real question to bring your doctor \u2014 instead of a fear to forward or an authority to simply trust?',
+    ],
+  },
+
+  levels: {
+    child: 'Sometimes a smart grown-up \u2014 even a real doctor \u2014 says some things that are TRUE and some things that are NOT true, all mixed together. That is tricky! So here is the wise-detective rule: check each thing BY ITSELF. If a doctor says "schools should teach doctors more about healthy food," we can look it up \u2014 and that one is true! But if the same doctor says "a special group of people never gets sick because they skip their shots," and we look it up and find out that group DOES get their shots and DOES sometimes get sick \u2014 then that part is not true, even though a doctor said it. Being a doctor means we should LISTEN carefully; it does not mean every single thing is right. The Bible gives the exact rule: "Prove all things; hold fast that which is good" (1 Thessalonians 5:21) \u2014 that means CHECK everything, and KEEP only the parts that are true. And the most important thing about your body and medicine: that is for your mom and dad and a doctor they trust to decide together \u2014 never from a scary video. God gave us a calm, strong mind, not a scared one (2 Timothy 1:7)!',
+    teen: 'This is the hardest discernment move there is, so slow down. A real physician goes on a podcast and says a BUNCH of things \u2014 and the trap is that they do not all have the same truth-value. Run the sort. TRUE stuff (check it, keep it): there really is a 1986 law that shields vaccine makers from normal lawsuits; med schools really do skimp on nutrition; the CDC really does list neglected US parasites. FALSE stuff (check it, drop it): "the Amish are a no-vaccine control group with no autism" \u2014 nope, most Amish DO vaccinate and autism DOES occur; "vaccines cause 2,000 SIDS deaths a year" \u2014 the data shows the OPPOSITE, vaccination is linked to about HALF the SIDS risk. And the sneakiest one \u2014 the TRUE-NUMBER-FALSE-CAUSE combo: "autism is now 1 in 31" is the REAL CDC number, but "because of vaccines" died in a study of 657,000 kids. Keep the number, drop the cause. Two rules that will save you for life: (1) a credential is not evidence \u2014 "she\u2019s a doctor" tells you to listen, not to believe every claim; (2) persecution is not proof \u2014 getting attacked or censored does not make you right (the Bible literally warns that false prophets can have the crowd cheering, Jeremiah 5:31). "Prove all things; hold fast that which is good" (1 Thessalonians 5:21) \u2014 that is the whole skill. And for actual medical decisions: real informed consent is the real studies plus a doctor you can ask hard questions \u2014 never a video, and never someone selling you the cleanse they say you need.',
+    senior: 'For the seasoned believer, this is the discipline of the just weight (Proverbs 11:1; 20:10) applied to a hard case: a credentialed insider who is RIGHT about real institutional failures and WRONG about specific falsified causes, in one breath. Refuse both easy exits. The scoffer\u2019s exit \u2014 "she\u2019s a discredited figure, ignore all of it" \u2014 violates Proverbs 18:13 (answering before hearing) and buries true reforms: the 1986 liability shield (real; VICP has paid $5.3B+), the documented nutrition-education gap (~71% of schools under the 25-hour minimum), the CDC\u2019s own list of neglected US parasites. The credulous exit \u2014 "a brave doctor was censored, so it must be true" \u2014 violates Proverbs 14:15 and forgets that reception is not verification: true prophets were persecuted (Matthew 5:12) and false ones were beloved (Jeremiah 5:31), so being attacked settles nothing. Between them runs the narrow way: PROVE ALL THINGS; HOLD FAST THE GOOD (1 Thessalonians 5:21), claim by claim. The teaching hinge for the young is the true-number-false-cause weld: "1 in 31" is the genuine 2025 CDC figure AND the vaccine-cause dies in Hviid\u2019s 657,000-child cohort \u2014 accepting the statistic does not oblige the cause, and rejecting the cause does not deny the statistic; that is a just weight. Name the falsified claims plainly precisely BECAUSE the stakes are a child\u2019s protection (the SIDS claim is backwards; the Amish "control group" is a double myth) \u2014 under-claiming a real safety is as much a lie as over-claiming a false harm (DR-0100). And recover what is genuinely biblical in her true half: the body is the temple (1 Corinthians 6:19-20), Daniel\u2019s plain table outshone the king\u2019s (Daniel 1:15), the LORD grows the herb for man\u2019s service (Psalm 104:14) \u2014 while honoring, not scorning, "Luke, the beloved physician" (Colossians 4:14). The Word never pits natural against medical; it pits truth against falsehood, in both. Model for the household the posture of 2 Timothy 1:7: not the fear that swallows, not the pride that scoffs \u2014 the sound mind that proves.',
+  },
+
+  quiz: {
+    questions: [
+      {
+        q: 'Dr. Immanuel says vaccine makers can\u2019t be sued if a childhood shot injures a child. Documented?',
+        options: ['No \u2014 anyone can sue for anything', 'Yes \u2014 the 1986 National Childhood Vaccine Injury Act routes claims through a no-fault program and shields makers from ordinary liability; say it plainly', 'Only for COVID vaccines'],
+        answer: 1,
+        explain: 'Her strongest, most checkable point. The shield is real (VICP, $5.3B+ paid) \u2014 a documented reform-fact worth debating openly, no conspiracy framing required (DR-0100 tier 1).',
+      },
+      {
+        q: 'She says autism rose to "1 in 31" BECAUSE of vaccines. How do you sort that?',
+        options: ['Reject the whole thing \u2014 the number is made up', 'Keep the NUMBER (1 in 31 is the real 2025 CDC figure), reject the CAUSE (a 657,000-child study found no vaccine-autism link) \u2014 a true statistic welded to a falsified cause', 'Accept both \u2014 she\u2019s a doctor'],
+        answer: 1,
+        explain: 'The signature move of the genre. Accepting the statistic does not oblige the cause; rejecting the cause does not deny the statistic. Hold a just weight (Proverbs 11:1).',
+      },
+      {
+        q: 'She offers the Amish as a "control group": unvaccinated and autism-free. What does checking find?',
+        options: ['Confirmed \u2014 the Amish prove the link', 'False on both halves \u2014 most Amish DO vaccinate (85-98%), and autism DOES occur among Amish children; a broken control group proves nothing', 'Unknowable'],
+        answer: 1,
+        explain: 'The premise (Amish don\u2019t vaccinate) is itself false, so the "experiment" never existed. Name it plainly (DR-0100) rather than averaging it into "who knows."',
+      },
+      {
+        q: 'She was attacked and disciplined after her 2020 hydroxychloroquine claims. Does that make her medical claims true?',
+        options: ['Yes \u2014 they wouldn\u2019t attack her if she weren\u2019t right', 'No \u2014 persecution is not proof; being censored and being wrong can both be true (Jeremiah 5:31 \u2014 false prophets can have the crowd), and HCQ failed in controlled trials', 'Only if many people were attacked'],
+        answer: 1,
+        explain: 'Reception is orthogonal to accuracy. Real backlash AND a treatment claim that failed in trials can coexist \u2014 the genre uses your sympathy as a lever; keep the evidence test.',
+      },
+      {
+        q: 'What is the believer\u2019s posture toward a credentialed insider who mixes true reforms with false causes?',
+        options: ['Swallow it \u2014 she\u2019s a doctor', 'Scoff \u2014 she\u2019s discredited', 'Prove all things; hold fast that which is good (1 Thessalonians 5:21) \u2014 weigh each claim, keep the true reforms, release the false causes, and keep a sound mind (2 Timothy 1:7)'],
+        answer: 2,
+        explain: 'Neither the credulous exit (Proverbs 14:15) nor the scoffer\u2019s exit (Proverbs 18:13). The narrow way sorts claim by claim \u2014 a just weight, not a rounded-off "who knows."',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine

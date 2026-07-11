@@ -214,3 +214,16 @@ relying on it; memories reflect what was true when written.
   data proves VRAM binding (dual-3090 is the pre-decided default when
   triggered). R4 waits on Darrell's real-infra values (UniFi, pfSense, mesh
   choice, VLAN IDs), not procurement.
+
+- **2026-07-11 — believe first, verify thoroughly the first time (DR-0166)** —
+  the default posture toward a human voice (especially spiritual testimony +
+  lived experience) is BELIEF AND HONOR, not skeptical dismantling.
+  Under-believing a true voice is a truth-failure (DR-0100 under-claiming) and
+  dishonors the person. Sequence: believe first (what is TRUE here?), research
+  to CONFIRM before to refute ("sounds fringe" = dig HARDER for the documentary
+  spine, not dismiss faster), one thorough pass so no corrective second pass
+  lands on the human, correct only the specific evidenced over-reach
+  honored-truth-first. Trigger: first-draft dismissed a physician's Flexner/
+  Rockefeller claim as "conspiracy" — it is largely documented. Does NOT weaken
+  DR-0076: still no fabrication, verses verbatim, falsified causes still named.
+  `feedback_believe_first_then_verify`.
