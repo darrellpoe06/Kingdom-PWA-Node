@@ -1,10 +1,10 @@
 # 2026-07-11 — The Harvest-to-Lesson Way + Perpetual Subject Research — Opportunities & Constraints
 
-**Decision:** DR-0167. **Review:** REV-0057. **Ari duty:** `harvest-to-lesson`.
+**Decision:** DR-0168. **Review:** REV-0057. **Ari duty:** `harvest-to-lesson`.
 
 ## What happened
 
-Across one session the family spoke eight teachings into the app and they became live, verse-checked lessons: Living Lessons **L18** (the flinch / Dr. Tracey Marks), **L19** (influence / Chase Hughes), **L20** (hyperspace / DMT), **L21** (belonging & hiding / Maslow-Harlow), **L22** (preparedness / Dr. Stella Immanuel), **L23** (eschatology frameworks), and World Issues **Issue 5** (the medical-establishment critique) and **Issue 6** (the AI-empire journalism / Karen Hao). Darrell then asked to **document the process, add the best Way to the Ways, and make perpetual research on these subjects a standing Ari duty — with or without vendor AI.** DR-0167 formalizes the Way; this note carries the O&C.
+Across one session the family spoke eight teachings into the app and they became live, verse-checked lessons: Living Lessons **L18** (the flinch / Dr. Tracey Marks), **L19** (influence / Chase Hughes), **L20** (hyperspace / DMT), **L21** (belonging & hiding / Maslow-Harlow), **L22** (preparedness / Dr. Stella Immanuel), **L23** (eschatology frameworks), and World Issues **Issue 5** (the medical-establishment critique) and **Issue 6** (the AI-empire journalism / Karen Hao). Darrell then asked to **document the process, add the best Way to the Ways, and make perpetual research on these subjects a standing Ari duty — with or without vendor AI.** DR-0168 formalizes the Way; this note carries the O&C.
 
 ## The Way (proven, now bound)
 

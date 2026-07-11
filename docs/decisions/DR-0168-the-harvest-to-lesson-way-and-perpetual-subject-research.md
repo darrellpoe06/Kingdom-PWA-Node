@@ -1,4 +1,4 @@
-# DR-0167 — The Harvest-to-Lesson Way, and Perpetual Subject Research (Ari, with or without vendor AI)
+# DR-0168 — The Harvest-to-Lesson Way, and Perpetual Subject Research (Ari, with or without vendor AI)
 
 - **Status:** accepted
 - **Date:** 2026-07-11
@@ -55,4 +55,4 @@ Ari's `researcher` + `sourcing` duties (DR-0143) are extended with a **standing 
 
 ## Encoded
 
-New Ari standing duty `harvest-to-lesson` (ari-notes.js), drRef DR-0167 — resolved live against the ledger like every duty. The Way rides the existing surfaces (the lessons in Church → Learn; Ari's reports; the Research Day cadence) — no new painted surface (DR-0061). Recorded for the ledger; REV-0057 filed; session note carries the O&C.
+New Ari standing duty `harvest-to-lesson` (ari-notes.js), drRef DR-0168 — resolved live against the ledger like every duty. The Way rides the existing surfaces (the lessons in Church → Learn; Ari's reports; the Research Day cadence) — no new painted surface (DR-0061). Recorded for the ledger; REV-0057 filed; session note carries the O&C.

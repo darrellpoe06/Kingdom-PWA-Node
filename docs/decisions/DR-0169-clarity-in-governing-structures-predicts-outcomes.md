@@ -1,4 +1,4 @@
-# DR-0168 — Clarity in Governing Structures Predicts Outcomes
+# DR-0169 — Clarity in Governing Structures Predicts Outcomes
 
 - **Status:** accepted
 - **Date:** 2026-07-11
