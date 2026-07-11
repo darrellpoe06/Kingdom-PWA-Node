@@ -125,6 +125,18 @@ describe('onRequest — real assets pass through with the immutable stamp', () =
     expect(asked.search).toBe('');
   });
 
+  it('forwards a portable Request (explicit method+headers, not whole-Request-as-init)', async () => {
+    // Portability guard: the forwarded Request must be built from an explicit
+    // init so undici/Node version differences can't throw and drop the call to
+    // the 503 catch (the local-Windows "503≠404" a teammate hit). A GET store
+    // request must reach ASSETS as a real, usable GET Request.
+    const env = { ASSETS: fakeAssets(jsResponse()) };
+    const request = new Request('https://poetech.us/poetech-app/assets/index-abc123.js');
+    const res = await onRequest({ request, env });
+    expect(res.status).toBe(200); // NOT 503 — the forward did not throw
+    expect(env.ASSETS.calls[0].method).toBe('GET');
+  });
+
   it('forwards conditional headers so 304 revalidation still works', async () => {
     const env = {
       ASSETS: fakeAssets((req) =>
