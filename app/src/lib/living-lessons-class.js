@@ -2081,6 +2081,12 @@ export const LIVING_LESSONS_MODULES = [
   },
   {
     id: 'll27-the-god-who-documents-his-grief',
+    // This lesson carries the interactive "Explore Your Story" reflection (the
+    // Joseph method, lib/story-exploration.js). The Apply stage offers it inline
+    // and the Games hub surfaces the same experience -- so people DO the question,
+    // not only read it (Darrell 2026-07-11: "ask that exact question in the app
+    // and games so people explore like Yahweh wants us to").
+    explore: 'story',
     title: 'The God Who Documents His Grief (and teaches you to read your story by His)',
     // Captured 2026-07-11 from Darrell spoken into the app: "Yahweh\u2019s trauma is
     // documented in the Word and He wants us to understand and believe Him. So
