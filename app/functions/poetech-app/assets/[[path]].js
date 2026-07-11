@@ -92,9 +92,18 @@ export async function onRequest(context) {
     const rootPath = url.pathname.startsWith(BASE_PREFIX)
       ? url.pathname.slice(BASE_PREFIX.length)
       : url.pathname;
-    // Forward the original request (method + conditional headers like
-    // if-none-match survive) at the rewritten URL so 304 revalidation works.
-    const upstream = await env.ASSETS.fetch(new Request(url.origin + rootPath, request));
+    // Forward the original request at the rewritten URL so 304 revalidation
+    // works — but build the forwarded Request from an EXPLICIT init (method +
+    // headers) rather than passing the whole Request as init. Whole-Request-as-
+    // init is spec-legal but behaves differently across undici/Node versions
+    // (some throw), and a throw here drops every call to the 503 catch below —
+    // the "503 where 404/200 was expected" a teammate hit on a local Windows
+    // run. The explicit init is portable and preserves exactly what the guard
+    // needs: the method (so HEAD stays HEAD) and the conditional headers (so
+    // if-none-match still yields 304). Verified behaviorally identical.
+    const upstream = await env.ASSETS.fetch(
+      new Request(url.origin + rootPath, { method: request.method, headers: request.headers })
+    );
 
     if (classifyAssetAnswer(upstream) === 'miss') return missResponse();
 
