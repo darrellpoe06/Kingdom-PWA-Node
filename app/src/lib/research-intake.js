@@ -196,8 +196,8 @@ export const RESEARCH_FINDINGS = Object.freeze([
     name: 'YouTube transcript ingestion (MCP servers)',
     source: 'Ecosystem scan (kimtaeyoon83/mcp-server-youtube-transcript, ergut/youtube-transcript-mcp; star counts unverified)',
     verdict: 'staged',
-    why: 'Removes the hand-carry for video input: a sermon or teaching published to YouTube becomes build input directly, pairing with the NAS Whisper lane instead of waiting on a Gemini paste.',
-    constraint: 'Transcript scraping is fragile against YouTube changes and sits in ToS gray area; the Gemini-API-backed variant needs the AI Studio key first.',
+    why: 'Removes the hand-carry for video input (the gap behind "I added a link"): a teaching on YouTube becomes build input directly. THE TEST PATH (verified viable 2026-07-11, DR-0169 clarity-first): the SOVEREIGN pipeline — yt-dlp pulls audio → faster-whisper (CTranslate2, ~4x, NVIDIA) or whisper.cpp (CPU/Apple) on the NAS → transcript to the Supabase intake the app reads. All MIT/open, self-hosted, data never leaves the house; large-v3 is the production-safe checkpoint. Highest governing-clarity of the options (DR-0169): auditable, in-house, no vendor trust required.',
+    constraint: 'The transcript-scraper MCP variant is FRAGILE (breaks on YouTube changes, ToS-gray) — lower clarity, not the primary. The sovereign lane needs one ConnectBot session by the Governor to install (yt-dlp + faster-whisper) on the NAS. THE TEST before adoption (DR-0143 evidence-based): transcribe ONE known 60-90min teaching, measure word-error-rate against a spot-checked hand transcript AND wall-clock vs real-time on the box; adopt only if WER is lesson-usable and it runs at/under real-time.',
     reReview: '2026-07-24',
   },
   {
@@ -205,8 +205,8 @@ export const RESEARCH_FINDINGS = Object.freeze([
     name: 'Google AI Studio free-tier Gemini API key',
     source: 'Ecosystem scan (the recurring unlock across findings)',
     verdict: 'staged',
-    why: 'THE honest programmatic-Gemini path: the consumer Gemini Pro subscription carries no API, but AI Studio issues free-tier keys independent of it — unlocking the NAS agent node, Open Notebook, and API-backed video ingestion without new spend.',
-    constraint: 'Quotas unverified — verify current limits before any lane depends on it; issuing the key is a value only Darrell holds (his Google account).',
+    why: 'THE honest programmatic-Gemini path — verified 2026-07-11: AI Studio issues free-tier keys independent of the (API-less) consumer subscription. Gemini FLASH stays free at ~1,500 requests/day (15 RPM) — enough for first-draft summaries and API-backed video ingestion at the house volume. An interim bridge to the sovereign Whisper lane, never a dependency.',
+    constraint: 'Verified correction (DR-0076): Google TIGHTENED the free tier in April 2026 — Gemini PRO is now paid-only via API (~50 RPD where free at all); only Flash-class is meaningfully free, and free-tier inputs may train Google (so no foundation-doc material). Issuing the key is a value only Darrell holds. Clarity check (DR-0169): an API is auditable per-call but still a vendor black box — structurally below the self-hosted lane.',
     reReview: '2026-07-24',
   },
   {
