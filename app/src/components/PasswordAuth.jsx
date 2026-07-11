@@ -18,7 +18,10 @@
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F
 // error, #B85838 focus ring, labelled inputs, >=44px targets, aria-live status.
 import React, { useState } from 'react';
-import { signUpWithPassword, signInWithPassword, validateCredentials, sendRoyaltyLink } from '../lib/supabase.js';
+import {
+  signUpWithPassword, signInWithPassword, validateCredentials, sendRoyaltyLink,
+  signUpWithPhonePin, signInWithPhonePin, validatePhonePin,
+} from '../lib/supabase.js';
 
 // `embedded` hides this component's own eyebrow + big heading + intro line so it
 // can sit inside a frame that already supplies them (e.g. AuthModal). The form,
@@ -27,12 +30,40 @@ import { signUpWithPassword, signInWithPassword, validateCredentials, sendRoyalt
 export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false }) {
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
   const [usePassword, setUsePassword] = useState(false); // the LINK is the default door
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [usePhonePin, setUsePhonePin] = useState(false); // phone + PIN, no email (DR-0172)
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', phone: '', pin: '', pinConfirm: '' });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('idle'); // idle | working | done | linksent
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const isSignup = mode === 'signup';
+
+  // Phone + PIN door (Darrell 2026-07-11: "not everyone has an email so
+  // cellphone and pin"). Validated locally first; the real phone + name ride in
+  // user_metadata; email is added later, never required to start.
+  const submitPhonePin = async (e) => {
+    e.preventDefault();
+    setError('');
+    const v = validatePhonePin(form.phone, form.pin);
+    if (v.error) { setError(v.error.message); return; }
+    if (isSignup) {
+      if (!form.name.trim()) { setError('Please add your name.'); return; }
+      if (form.pin !== form.pinConfirm) { setError('The two PINs don’t match.'); return; }
+    }
+    setStatus('working');
+    const res = isSignup
+      ? await signUpWithPhonePin(form.phone, form.pin, form.name)
+      : await signInWithPhonePin(form.phone, form.pin);
+    if (res.error) {
+      setStatus('idle');
+      setError(res.error.message || 'That didn’t work — please check your phone number and PIN.');
+      return;
+    }
+    const hasSession = !!res.data?.session;
+    setStatus('done');
+    if (hasSession && onSignedIn) onSignedIn(res.data.session);
+    if (!hasSession && isSignup) setError('Account created — you can sign in now with your phone and PIN.');
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -95,6 +126,63 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     );
   }
 
+  // THE PHONE + PIN DOOR — no email at all (DR-0172). Name (first time) + phone
+  // + a 6-digit PIN, and you're in. Email is added later, in settings, and is
+  // never required to start. Reachable from both other doors; links back so
+  // there is never a lockout.
+  if (usePhonePin) {
+    return (
+      <div className={embedded ? '' : 'max-w-sm'}>
+        {!embedded && (
+          <>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+            <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              {isSignup ? 'Create your profile' : 'Welcome back'}
+            </h2>
+          </>
+        )}
+        <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          No email needed — just your phone number and a 6-digit PIN. {isSignup ? 'You can add an email later if you ever want one.' : 'Enter the PIN you set up.'}
+        </p>
+        <form onSubmit={submitPhonePin} noValidate>
+          {isSignup && (
+            <div className="mb-3">
+              <label htmlFor="pa-name" className={labelCls}>Your name</label>
+              <input id="pa-name" type="text" value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" />
+            </div>
+          )}
+          <div className="mb-3">
+            <label htmlFor="pa-phone" className={labelCls}>Cell phone number</label>
+            <input id="pa-phone" type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} className={inputCls} autoComplete="tel" placeholder="(555) 555-5555" />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="pa-pin" className={labelCls}>{isSignup ? 'Choose a 6-digit PIN' : 'Your 6-digit PIN'}</label>
+            <input id="pa-pin" type="password" inputMode="numeric" maxLength={6} value={form.pin} onChange={set('pin')} className={inputCls} autoComplete={isSignup ? 'new-password' : 'current-password'} />
+          </div>
+          {isSignup && (
+            <div className="mb-3">
+              <label htmlFor="pa-pinconfirm" className={labelCls}>Confirm your PIN</label>
+              <input id="pa-pinconfirm" type="password" inputMode="numeric" maxLength={6} value={form.pinConfirm} onChange={set('pinConfirm')} className={inputCls} autoComplete="new-password" />
+            </div>
+          )}
+          {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
+          <button type="submit" disabled={status === 'working'} className="w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+            {status === 'working' ? 'One moment…' : (isSignup ? 'Create profile & enter →' : 'Sign in →')}
+          </button>
+        </form>
+        <div className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          {isSignup ? (
+            <button type="button" onClick={() => { setMode('signin'); setError(''); }} className="underline hover:text-[#1A1815]">Already have a profile? Sign in</button>
+          ) : (
+            <button type="button" onClick={() => { setMode('signup'); setError(''); }} className="underline hover:text-[#1A1815]">New here? Create a profile</button>
+          )}
+          <span className="mx-2 text-[#E8E4DC]">|</span>
+          <button type="button" onClick={() => { setUsePhonePin(false); setError(''); }} className="underline hover:text-[#1A1815]">Use email instead</button>
+        </div>
+      </div>
+    );
+  }
+
   // THE DEFAULT DOOR — no password exists here. Name (first time) + email, one
   // button, and the emailed link signs them in. The password form is a CHOICE.
   if (!usePassword) {
@@ -136,6 +224,9 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
           )}
           <span className="mx-2 text-[#E8E4DC]">|</span>
           <button type="button" onClick={() => { setUsePassword(true); setError(''); }} className="underline hover:text-[#1A1815]">Prefer a password? Use one</button>
+        </div>
+        <div className="mt-2 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }} className="underline hover:text-[#1A1815]">No email? Use a phone number + PIN</button>
         </div>
       </div>
     );
@@ -192,6 +283,9 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         )}
         <span className="mx-2 text-[#E8E4DC]">|</span>
         <button type="button" onClick={() => { setUsePassword(false); setError(''); }} className="underline hover:text-[#1A1815]">No password — email me a link instead</button>
+      </div>
+      <div className="mt-2 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }} className="underline hover:text-[#1A1815]">No email? Use a phone number + PIN</button>
       </div>
     </div>
   );
