@@ -10,6 +10,7 @@ import { ConcernsBoard } from './ConcernsBoard.jsx';
 import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
+import AriReview from './AriReview.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
@@ -270,7 +271,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // Feedback rides its OWN visible sub-tab with a live count (Darrell
   // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
   // below the fold of the list view). Count = real rows, shown even at zero.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['ari-review','✓ Ari Review'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -322,6 +323,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       )}
       {subView === 'boards' && (
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
+      )}
+      {subView === 'ari-review' && (
+        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} />
       )}
       {subView === 'feedback' && (
         <div className="space-y-4">
