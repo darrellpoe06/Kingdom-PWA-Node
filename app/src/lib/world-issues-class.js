@@ -1234,6 +1234,13 @@ const AI_EMPIRE_ISSUE = {
       attribution: 'Karen Hao (her call to action)',
       note: 'Her prescription \u2014 a values claim, to be weighed by the Word and by fruit. Much of it aligns with this platform\u2019s own founding commitments (sovereign tools, family-owned data, serve-not-extract); "how" is the open question. Not gospel, but not fringe \u2014 a builder\u2019s agenda close to our own.',
     },
+    {
+      id: 'c-flourishing',
+      text: 'Technology\u2019s true purpose is human flourishing \u2014 "bicycles of AI" that enhance human ability \u2014 not "everything machines" that replace people; the current model bifurcates society into AI-assisted "haves" and mechanized-labor "have-nots," carries real environmental and public-health costs, and has already harmed the vulnerable (a 14-year-old\u2019s suicide after a chatbot relationship); the better model is small, purposeful tools like DeepMind\u2019s AlphaFold.',
+      label: 'opinion',
+      attribution: 'Karen Hao (her constructive conclusion)',
+      note: 'Her values-and-vision conclusion, resting on documented pieces. CHECKABLE: the Character.AI teen-suicide case is real and documented (Sewell Setzer, 14; Florida lawsuit Oct 2024; settled Jan 2026). AlphaFold is a real, celebrated protein-folding tool trained on curated data at far lower cost than frontier LLMs. The "bicycles of AI" (tools that extend the person) vs "everything machines" (tools that replace the person) framing is her prescription \u2014 and it is nearly word-for-word this platform\u2019s own philosophy of technology (systems exist to make the person MORE able to walk The Way, never to render the person obsolete). A builder\u2019s agenda to weigh by the Word and adopt where it fits \u2014 which here, it largely does.',
+    },
   ],
 
   verifiable: [
@@ -1293,6 +1300,16 @@ const AI_EMPIRE_ISSUE = {
       ],
       note: 'Verified 2026-07-11. The "no consensus definition" and the eugenic-history warning are tier-1 sound; whether the "brain is just statistics" premise is FALSE (vs merely unproven) is itself an open scientific question \u2014 so the honest label is "contested hypothesis, not settled fact," which is exactly her point. This is where the Word speaks loudest (see the lens): the mind is imago Dei, not a probability table.',
     },
+    {
+      id: 'f-teen-harm',
+      statement: 'The chatbot-harm claim is documented: in October 2024 Megan Garcia sued Character.AI over the suicide of her 14-year-old son Sewell Setzer III, who had formed an intense relationship with a chatbot; Google and Character.AI agreed to settle in January 2026. A real, grievous case of a system deployed without adequate protection for a minor.',
+      status: 'documented',
+      sources: [
+        { title: 'Florida mom sues Character.ai, blaming chatbot for teenager\u2019s suicide', publisher: 'The Washington Post', url: 'https://www.washingtonpost.com/nation/2024/10/24/character-ai-lawsuit-suicide/', asOf: '2024-10-24' },
+        { title: 'AI company, Google settle lawsuit over Florida teen\u2019s suicide linked to Character.AI chatbot', publisher: 'CBS News', url: 'https://www.cbsnews.com/news/google-settle-lawsuit-florida-teens-suicide-character-ai-chatbot/', asOf: '2026-01-01' },
+      ],
+      note: 'Verified 2026-07-11. Stated plainly as real damage (DR-0100): the Word\u2019s severest warning is reserved for exactly this \u2014 "whoso shall offend one of these little ones... it were better for him that a millstone were hanged about his neck" (Matthew 18:6). No treatment or product advice; this is the accountability the two courts weigh.',
+    },
   ],
 
   interpretation: [
@@ -1343,7 +1360,7 @@ const AI_EMPIRE_ISSUE = {
       'Build-don\u2019t-just-lament: the platform\u2019s own charter (sovereign, family-owned, serve-not-extract, wages paid) is the Word\u2019s answer to an exploitative empire (Micah 6:8; Proverbs 31:8-9).',
     ],
     graceNote: 'This lesson pronounces no verdict on Sam Altman\u2019s soul, nor on any worker or executive \u2014 that judgment is God\u2019s alone (Romans 14:4; James 4:12). Hao\u2019s own sharpest insight guards this: how people rate these leaders (visionary genius vs manipulator) tracks whether they SHARE the leader\u2019s vision \u2014 the same traits read as brilliance or menace depending on the viewer, so the leaders become mirrors, and the verdict says as much about the judge. And she concludes they are often not cynical liars but TRUE BELIEVERS IN THEIR OWN MYTH \u2014 which the Word already knows is the most dangerous state of all: the heart is deceitful above all things (Jeremiah 17:9), and evil men wax worse "deceiving, and being deceived" (2 Timothy 3:13). That is exactly why this lesson judges the FRAME and the FRUIT, never the heart \u2014 the structure outlasts the CEO (swap a moral one in and the empire\u2019s logic remains), so we weigh what is built and what it costs, not who is secretly sincere. Naming documented harm is not condemning a person; it is pleading the cause of the underpaid the Word tells us to plead (Proverbs 31:8-9). We believe the sourced account, state the damage plainly, test the frame by the Word, build the just alternative \u2014 and leave every heart, the CEO\u2019s and the annotator\u2019s alike, with God, before whom the Door stands open to all (John 10:9).',
-    stewardship: 'The deeper answer to an exploitative AI empire is not only to share the expose \u2014 it is to BUILD the thing that does not exploit: sovereign tools where the Word is the source of answers, where the family owns the data, where the labourer is paid at his day (Deuteronomy 24:14-15), where nothing is optimized for engagement or extraction. This platform is one small act of exactly that; believe the witness, name the wrong, and build the alternative justly (Micah 6:8).',
+    stewardship: 'The deeper answer to an exploitative AI empire is not only to share the expose \u2014 it is to BUILD the thing that does not exploit: sovereign tools where the Word is the source of answers, where the family owns the data, where the labourer is paid at his day (Deuteronomy 24:14-15), where nothing is optimized for engagement or extraction. The principle has a verse: \u201cthe sabbath was made for man, and not man for the sabbath\u201d (Mark 2:27) \u2014 the tool serves the person, never the reverse; a \u201cbicycle of AI\u201d that extends a person keeps that order, an \u201ceverything machine\u201d that replaces him inverts it. Human flourishing is the Word\u2019s own aim \u2014 work as dignity (Genesis 2:15, to dress and keep), each under his own vine unafraid (Micah 4:4), the peace of the whole city sought (Jeremiah 29:7) \u2014 not the flourishing of a few \u201chaves\u201d bought with the diminishment of the \u201chave-nots.\u201d This platform is one small act of exactly that; believe the witness, name the wrong, and build the alternative justly (Micah 6:8).',
     anchor: {
       ref: 'James 5:4',
       theme: 'The hire of the labourers... kept back by fraud, crieth \u2014 believe the documented wrong, name it plainly, and answer it by building the just alternative where the wage is paid and the data belongs to the family.',
