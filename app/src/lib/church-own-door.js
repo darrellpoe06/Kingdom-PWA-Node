@@ -30,6 +30,14 @@ export const DOOR_PLAN_RECORDED = '2026-07-10';
 
 export const DOOR_DOMAIN = 'thechurchofthelivinggod.com';
 
+// The church's shareable front-door on poetech.us (DR-0174): the static
+// entry page (public/lovecorner/index.html) that previews as the church in a
+// texted link, then meta-refreshes into ?view=church. Every share surface
+// (QR, texted link) encodes THIS url. Mirrors Moore's MOORE_SHARE_URL.
+export const SHARE_DOOR_URL = 'https://poetech.us/lovecorner/';
+export const SHARE_DOOR_ALIASES = ['/church', '/thelovecorner'];
+export const INSTALL_MANIFEST = '/manifest-lovecorner.webmanifest';
+
 // --- What is TRUE about the church's current web presence (verified, sourced) --
 export const SITE_FACTS = [
   {
@@ -125,11 +133,11 @@ export const DOOR_PHASES = [
     sortOrder: 20,
   }),
   makeDoorPhase({
-    id: 'phase-install-identity', status: 'planned', tier: 'C',
+    id: 'phase-install-identity', status: 'in-progress', tier: 'C',
     title: 'Installable under the church\'s own name — entry page, manifest, share QR',
-    detail: 'The Moore pattern applied: a poetech.us/<church> entry page with the church\'s own tags, a church manifest so Add-to-Home-Screen carries the church\'s name and colors, and a share URL/QR the congregation can actually pass on. Ships with the door, behind the same gate.',
-    gate: 'Rides the phase-door-build Tier C gate (same sign-off, same soak).',
-    drRefs: ['DR-0114'],
+    detail: 'The Moore pattern applied and BUILT (DR-0174): public/lovecorner/index.html is the church-tagged entry page (a texted link previews as THE CHURCH, then meta-refreshes into ?view=church); manifest-lovecorner.webmanifest carries the church\'s own name so Add-to-Home-Screen installs "The Love Corner"; /church + /thelovecorner are the share aliases. Icons reuse the platform art until COLG supplies its own (routed). HELD Tier C — the artifact exists so the church can SEE and approve it; it opens publicly only after Bishop Gwin\'s doctrine sign-off + Governor review.',
+    gate: 'Bishop Gwin doctrine sign-off + Governor review before the door opens publicly (DR-0003 / DR-0133). The artifact is built and held; it is not live until the gate clears.',
+    drRefs: ['DR-0114', 'DR-0174'],
     sortOrder: 30,
   }),
   makeDoorPhase({

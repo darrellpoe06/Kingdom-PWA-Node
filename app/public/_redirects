@@ -17,6 +17,16 @@
 /mooredivahs   /moore/  301
 /mooredivahs/  /moore/  301
 
+# The church's share links (DR-0133 phase install-identity): /lovecorner serves
+# the static Church-of-the-Living-God entry page (its own og tags so a texted
+# link previews as THE CHURCH, then meta-refresh into ?view=church).
+# public/lovecorner/index.html is served automatically at /lovecorner/; only the
+# aliases need rules. HELD Tier C — live only after Bishop Gwin + Governor.
+/church        /lovecorner/  301
+/church/       /lovecorner/  301
+/thelovecorner   /lovecorner/  301
+/thelovecorner/  /lovecorner/  301
+
 # The bare root must land INSIDE the manifest scope (/poetech-app/), or the
 # page a phone naturally opens (poetech.us) is out of scope and Chrome refuses
 # to install the PWA entirely — no prompt, no "Install app" menu entry
