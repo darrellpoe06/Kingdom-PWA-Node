@@ -56,6 +56,7 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
+import StoryExplorer from './games/StoryExplorer.jsx';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
@@ -554,6 +555,10 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
+  // Optional "Explore your story" reveal — for a lesson that carries the L27
+  // reflection method (module.explore === 'story'), the exact question is offered
+  // right in the Apply stage so people DO it where they meet it, not only read it.
+  const [showExplore, setShowExplore] = useState(false);
   const liveRef = useRef(null);
   const startedRef = useRef(false);
   // The lesson-flow STANDARD: one consistent five-stage arc (Open → Teach → Engage
@@ -648,6 +653,24 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             )}
             {/* Check-for-understanding quiz (real assessment) */}
             <QuizBlock module={module} saved={quizSaved} onRecord={recordQuizAndEngage} />
+            {/* Explore your story — the L27 reflection, made interactive (opt-in reveal) */}
+            {module.explore === 'story' && (
+              <div className="mt-3 border-t border-[#E8E4DC] pt-3">
+                {!showExplore ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowExplore(true)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    Explore your story &mdash; read your life by His Word →
+                  </button>
+                ) : (
+                  <div className="border border-[#E8E4DC] bg-white p-3">
+                    <StoryExplorer level={level} onExit={() => setShowExplore(false)} />
+                  </div>
+                )}
+              </div>
+            )}
           </>
         );
       case 'send':

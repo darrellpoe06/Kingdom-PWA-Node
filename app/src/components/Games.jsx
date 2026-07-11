@@ -20,6 +20,7 @@ import UiIcon from './UiIcon.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
 import AssetAllocator from './games/AssetAllocator.jsx';
+import StoryExplorer from './games/StoryExplorer.jsx';
 import { START_CASH } from '../lib/games/asset-allocation.js';
 import { FamilyPortrait } from './games/GameArt.jsx';
 import { GAME_LEVELS, levelMeta } from '../lib/games/difficulty.js';
@@ -55,7 +56,7 @@ const TABS = [
 export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
   const [tab, setTab] = useState('play');
   const [activeSaveId, setActiveSaveId] = useState(null);
-  const [mini, setMini] = useState(null); // an open mini-game ('steward' | null)
+  const [mini, setMini] = useState(null); // an open mini-experience ('steward' | 'story' | null)
   const [level, setLevel] = useState('child'); // age/difficulty, young -> old
 
   const games = listGames();
@@ -115,6 +116,18 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
           about the most doors; it&rsquo;s about stewarding what you were given.
         </p>
         <AssetAllocator onExit={() => setMini(null)} />
+      </div>
+    );
+  }
+
+  // ---- the "Explore Your Story" reflection takes over the Play tab ----------
+  if (tab === 'play' && mini === 'story') {
+    return (
+      <div className="mx-auto max-w-2xl px-1 sm:px-0 py-2">
+        <div className="flex items-center justify-end gap-3 mb-3">
+          <TextSizeControl />
+        </div>
+        <StoryExplorer level={level} onExit={() => setMini(null)} />
       </div>
     );
   }
@@ -249,6 +262,27 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
             <div className="mt-4">
               <button onClick={() => setMini('steward')} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
                 <UiIcon name="chart" /> Take the challenge
+              </button>
+            </div>
+          </div>
+
+          {/* Explore Your Story — read your life by His Word (the L27 question,
+              made interactive). Not a competition: a gentle guided reflection. */}
+          <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4`}>
+            <div className="flex items-center gap-2">
+              <UiIcon name="dove" className={T_ACCENT} />
+              <h3 className={`text-lg font-semibold ${T_INK}`} style={{ fontFamily: 'Fraunces, serif' }}>Explore Your Story</h3>
+              <span className={`text-[0.625rem] uppercase tracking-wide ${T_ACCENT} ${BG_CREAM} px-1.5 py-0.5 rounded`}>reflect</span>
+            </div>
+            <p className={`text-sm ${T_ACCENT} mt-1`}>Read your life by His Word &mdash; the Joseph way.</p>
+            <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>
+              The God who documented His own grief keeps a record of your tears too (Psalm 56:8). Bring one real
+              memory &mdash; a garden one or a hard one &mdash; and let the Word read your life: where was God, what was
+              He preserving, and what comfort can you now give? (Genesis 50:20). Private to your device.
+            </p>
+            <div className="mt-4">
+              <button onClick={() => setMini('story')} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
+                <UiIcon name="dove" /> Explore your story
               </button>
             </div>
           </div>
