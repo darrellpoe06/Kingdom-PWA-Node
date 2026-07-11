@@ -282,3 +282,303 @@ export function cameraIntegration(connectionKey) {
     via: c.via,
   };
 }
+
+// =============================================================================
+// THREE SCREENS, THREE JOBS — the middle (LED wall) is independent of the sides
+// =============================================================================
+// Verified on site 2026-07-10 (Darrell). The sanctuary carries THREE display
+// surfaces that must NOT be conflated:
+//   - The MIDDLE screen  = the LED wall (Mirackle P1.99mm, 48 cabinets).
+//   - The TWO SIDE screens = the sanctuary PROJECTORS, fed from Proclaim.
+// Today the middle screen is fed by the WALL LAPTOP (the Alienware in the booth,
+// hostname TLC-Tech-Team) running NDI Studio Monitor full-screen -> HDMI ->
+// NovaStar VX1000 Pro -> the wall. Broadcast is a SEPARATE lane: OBS on the RIGHT
+// CUDA (livestream-main-pc), publishing NDI "OBS", multistreamed to YouTube +
+// Facebook. The NDI sources on the church LAN the wall can point at are the three
+// PTZOptics cameras (Center-1/Left-2/Right-3, 192.168.1.123/.127/.126), NDI
+// ProClaim, the iMac (macOS AV Output), and OBS.
+//
+// RECONCILE WITH SIGNAL_CHAIN (above): SIGNAL_CHAIN / WALL_FEED_ARCHITECTURE
+// describe the PLANNED production destination (camera SDI -> ATEM -> VX1000, the
+// DR-0082 hybrid). MIDDLE_SCREEN_TOPOLOGY below is the CURRENT deployed reality
+// for the middle screen. Both are true: one is where we're going, one is what is
+// running today. Neither paints over the other.
+// =============================================================================
+export const MIDDLE_SCREEN_TOPOLOGY = {
+  verifiedOn: '2026-07-10',
+  verifiedBy: 'Darrell (on site)',
+  screens: [
+    { screen: 'middle', is: 'The LED wall', fedBy: 'Wall laptop (TLC-Tech-Team, Alienware) -> NDI Studio Monitor full-screen -> HDMI -> NovaStar VX1000 Pro -> wall.', independent: 'CAN be made independent of both the side screens and the broadcast (see WALL_FEED_OPTIONS).' },
+    { screen: 'sides', is: 'The two sanctuary projectors', fedBy: 'Proclaim (presentation software) -> the projectors.', independent: 'Their own lane; the wall does not have to mirror them.' },
+    { screen: 'broadcast', is: 'The online stream (not a room screen)', fedBy: 'OBS on the RIGHT CUDA (livestream-main-pc) -> NDI "OBS" -> multistream YouTube + Facebook.', independent: 'A separate program; the wall does not have to mirror it either.' },
+  ],
+  ndiSourcesOnLan: [
+    { name: 'OBS (LIVESTREAM-MAIN)', from: 'livestream-main-pc (right CUDA)', is: 'the switched broadcast program (cameras)' },
+    { name: 'NDI ProClaim', from: 'the Proclaim host', is: 'the same words the side screens show' },
+    { name: 'PTZOptics Center-1 / Left-2 / Right-3', from: '192.168.1.123 / .127 / .126', is: 'single camera feeds' },
+    { name: 'macOS AV Output', from: 'the iMac (TLCs-iMac)', is: 'graphics/output Mac' },
+  ],
+  principle: 'Different settings allow for various outcomes: what the wall SHOWS is chosen by which NDI source the wall laptop points at. The wall is only as independent as the source it subscribes to.',
+};
+
+// The wall laptop is a DUMB ENDPOINT: it points at ONE NDI source once and never
+// changes during a service. Set NDI Studio Monitor to auto-start so a reboot lands
+// back on the wall feed with no operator touch.
+export const WALL_LAPTOP_ENDPOINT = {
+  device: 'Wall laptop (TLC-Tech-Team, Alienware) in the booth, on the VX1000 HDMI input',
+  role: 'Runs NDI Studio Monitor full-screen; its HDMI out is the VX1000 input for the wall.',
+  setOnce: 'Point NDI Studio Monitor at the ONE chosen NDI source (recommended: "WALL"), full-screen it, and leave it. It never switches mid-service.',
+  autoStart: 'NDI Studio Monitor -> Settings -> Application -> Run at Windows Start, so a reboot returns to the wall feed unattended.',
+  why: 'A dumb, unchanging endpoint means the wall has one job and one failure mode; all the "what shows" logic lives upstream in the chosen source, not in a person clicking at the wall.',
+};
+
+// The enumerated wall configurations. Each is a real NDI source the wall laptop
+// can point at; each PRODUCES a different outcome with its own opportunities and
+// constraints. `independentOfSides` / `independentOfBroadcast` classify how much
+// separation each buys. The RECOMMENDED option is the only one independent of BOTH.
+export const WALL_FEED_OPTIONS = [
+  {
+    key: 'obs-mirror',
+    name: 'Wall points at OBS NDI',
+    produces: 'The wall MIRRORS the broadcast program (the switched cameras / IMAG).',
+    independentOfSides: true,   // not tied to Proclaim
+    independentOfBroadcast: false,
+    recommended: false,
+    opportunities: [
+      'Zero new software: OBS already runs the broadcast on the right CUDA.',
+      'The room sees exactly what the online audience sees — good for IMAG of the speaker.',
+    ],
+    constraints: [
+      'The wall is CHAINED to the broadcast: whatever the stream cuts to, the wall shows — you cannot put words on the wall while the stream shows a camera.',
+      'NDI + software adds latency; camera IMAG on the wall lags the room slightly.',
+      'If OBS dies, the wall feed dies with it (unless a safety source is held).',
+    ],
+  },
+  {
+    key: 'proclaim-mirror',
+    name: 'Wall points at NDI ProClaim',
+    produces: 'The wall shows the SAME words/lyrics as the two side screens.',
+    independentOfSides: false,
+    independentOfBroadcast: true,
+    recommended: false,
+    opportunities: [
+      'Simplest path to words on the wall — Proclaim is already driving the sides.',
+      'One operator, one presentation; the wall and sides never disagree.',
+    ],
+    constraints: [
+      'The wall is CHAINED to Proclaim: it is a third copy of the side screens, not its own surface.',
+      'Requires Proclaim to publish an NDI output (a Proclaim plan/setting to confirm on the machine).',
+    ],
+  },
+  {
+    key: 'single-camera',
+    name: 'Wall points at a camera',
+    produces: 'A single-camera wall (one PTZOptics feed full-wall).',
+    independentOfSides: true,
+    independentOfBroadcast: true,
+    recommended: false,
+    opportunities: [
+      'Dead simple; useful for a fixed wide shot or an overflow room.',
+    ],
+    constraints: [
+      'No switching, no words, no graphics — just one camera. Rarely what a service wants on the main wall.',
+    ],
+  },
+  {
+    key: 'wall-obs',
+    name: 'Wall points at a dedicated "WALL" NDI feed from a SECOND OBS ("WALL OBS")',
+    produces: 'The wall carries ITS OWN program — WORDS ONLY by default (Scripture, sermon points, lyrics, announcements), separate from the cameras AND from Proclaim.',
+    independentOfSides: true,
+    independentOfBroadcast: true,
+    recommended: true,
+    intent: "Darrell's stated intent: the wall carries WORDS ONLY, separate from cameras AND separate from Proclaim.",
+    how: 'A SECOND OBS instance ("WALL OBS") on the LEFT CUDA (tlcmediadpt), launched with `--portable --multi --websocket_port 4466`, with its own words/graphics sources, publishing an NDI output named "WALL". The wall laptop points at "WALL". Ari drives its scenes remotely (with the AV guardrails).',
+    launchFlags: '--portable --multi --websocket_port 4466',
+    obsInstance: 'WALL OBS',
+    ndiName: 'WALL',
+    runsOn: 'left-cuda',        // tlcmediadpt (dev-gpu-node-1)
+    built: false,              // NOT YET BUILT — honest until the second OBS exists
+    opportunities: [
+      'The middle screen becomes independent of BOTH the side screens (Proclaim) AND the broadcast/cameras — its own words-only surface.',
+      'Ari can drive the wall program (next slide, next point, a passage) without touching the broadcast or Proclaim.',
+      'The broadcast OBS on the right CUDA is untouched — the two OBS instances never collide (separate box, separate websocket port).',
+    ],
+    constraints: [
+      'NOT YET BUILT: the second OBS instance + the "WALL" NDI output + its word/graphics sources do not exist yet. Until they do, the wall cannot use this option.',
+      'Runs on the LEFT CUDA (tlcmediadpt) so it never competes with the live broadcast encode on the right CUDA (DR-0012).',
+      'Ari driving it is gated by the AV guardrails (humans keep the live cut; preview-then-execute; writes held while an operator is live).',
+    ],
+  },
+];
+
+// =============================================================================
+// TODAY'S AV FIXES (2026-07-10) — grounded facts, each with why it mattered
+// =============================================================================
+// The NDI discovery fix — the big one. OBS's NDI output was INVISIBLE to the wall
+// for two compounding reasons, both fixed on the box.
+export const NDI_DISCOVERY_FIX = {
+  date: '2026-07-10',
+  symptom: 'The wall (NDI Studio Monitor) could not SEE OBS\'s NDI output ("LIVESTREAM-MAIN (OBS)") on the LAN, so the wall could not point at the broadcast.',
+  rootCauses: [
+    'DUAL-HOMED NIC: livestream-main-pc has BOTH network adapters live on overlapping /23 ranges (wired 192.168.1.73 + Wi-Fi 192.168.0.44); NDI auto-picked the Wi-Fi adapter, advertising on the wrong side.',
+    'DISCOVERY SERVER OVERRIDE: an NDI Discovery Server was set ("discovery":"192.168.0.11"), which SUPPRESSES the normal mDNS broadcast — so nothing on the LAN could auto-discover the source.',
+  ],
+  fixFile: 'C:\\ProgramData\\NDI\\ndi-config.v1.json',
+  fixFileNote: 'Note: C:\\ProgramData\\NewTek\\NDI is a JUNCTION to the same file — editing either edits both.',
+  fix: [
+    'Set "adapters":{"allowed":["192.168.1.73"]} — pin NDI to the wired church-LAN NIC.',
+    'Set "discovery":"" — clear the Discovery Server override so mDNS broadcast resumes.',
+    'FULL OBS RESTART — a Main-Output toggle alone was NOT enough; the config is read at process start.',
+  ],
+  result: '"LIVESTREAM-MAIN (OBS)" became visible on the LAN and the wall could point at it.',
+  openRootCause: 'The two NICs should NOT both be on a /23; the overlapping masks are the underlying defect. Fix the subnet masks in a calm (non-service) moment. re-review: 2026-07-24',
+  opportunities: [
+    'The broadcast is now a selectable wall source (option obs-mirror).',
+    'The same adapters/discovery hygiene unblocks every future NDI source on this box.',
+  ],
+  constraints: [
+    'The dual-homed /23 NIC misconfiguration remains until the masks are fixed — a latent source of NDI/network flakiness.',
+    'Pinning "adapters.allowed" to the wired IP means a change to the wired IP needs this file updated.',
+  ],
+};
+
+// OBS remote control — proven, with the resting-state security posture named.
+export const OBS_REMOTE_CONTROL = {
+  date: '2026-07-10',
+  proven: 'obs-websocket v5 on port 4455 — Ari can READ scenes and SWITCH the program on livestream-main-pc.',
+  port: 4455,
+  authStateNow: 'Auth is currently OFF (open on the LAN) — proven-out state only.',
+  restingState: 'Resting state MUST re-enable auth, with the password read LOCALLY on the box and NEVER pasted into chat. re-review: 2026-07-17',
+  guardrail: 'Humans keep the live cut. Ari uses preview-then-execute; writes are held while an operator is at the board (see AV_GUARDRAILS).',
+  opportunities: [
+    'Ari can assist the operator (surface the right scene, prep a lower third) without taking the cut.',
+    'The same websocket drives the future "WALL OBS" program on port 4466 (a separate instance, separate auth).',
+  ],
+  constraints: [
+    'Auth-off is not a shippable resting state — it must be re-enabled before this is trusted unattended.',
+    'A second OBS instance needs its OWN websocket port (4466) so the two never cross.',
+  ],
+};
+
+// LED wall live over the network — the VX1000 has NO network video input, so
+// exactly one HDMI hop is required. And the feedback-loop warning.
+export const LED_WALL_OVER_NETWORK = {
+  path: 'OBS NDI Main Output -> wall laptop NDI Studio Monitor -> HDMI -> NovaStar VX1000 -> wall.',
+  vx1000NoNetworkVideo: 'The VX1000 has NO network video input — video reaches it only as a physical signal (HDMI/SDI). The wall laptop IS that one HDMI hop; it cannot be removed.',
+  feedbackLoopWarning: 'NEVER feed OBS\'s OWN NDI output back into an OBS scene. An OBS output captured as an OBS input is a video feedback loop (the hall-of-mirrors) that spikes latency and can hang the encode.',
+  opportunities: [
+    'The wall runs live off the LAN with owned gear — no dedicated NDI decoder box needed while the wall laptop is the endpoint.',
+  ],
+  constraints: [
+    'The one HDMI hop (wall laptop) is a single point of failure for the wall; auto-start (WALL_LAPTOP_ENDPOINT) is the mitigation, not a second box.',
+  ],
+};
+
+// The durable AV guardrails — extracted as the Way. These ride EVERY step where
+// Ari or automation touches the live AV chain.
+export const AV_GUARDRAILS = [
+  { key: 'humans-keep-the-cut', rule: 'Humans keep the live cut. Ari never takes the program cut during a service.' },
+  { key: 'preview-then-execute', rule: 'Preview-then-execute: Ari proposes/previews a change; a human confirms before it goes to program.' },
+  { key: 'hold-while-operator-live', rule: 'Writes are HELD while an operator is at the board. Ari does not write to a surface a human is actively driving.' },
+  { key: 'kill-switch', rule: 'A kill-switch / dead-man pause exists on any automation that touches AV; on overrun or a missed heartbeat it PAUSES, never auto-continues (three-brakes).' },
+  { key: 'no-inference-on-live-encode', rule: 'No AI/inference load on the box encoding the live stream during a service (DR-0012). The WALL OBS runs on the LEFT CUDA for exactly this reason.' },
+  { key: 'no-ndi-feedback-loop', rule: "Never feed OBS's own NDI output back into an OBS scene (video feedback loop)." },
+];
+
+// The NDI gotchas the discovery fix taught — durable, for the Ways.
+export const NDI_GOTCHAS = [
+  { key: 'multi-homed-nic', gotcha: 'A multi-homed (dual-NIC) box lets NDI auto-pick the WRONG adapter. Pin it: "adapters":{"allowed":["<wired-LAN-ip>"]}.' },
+  { key: 'discovery-server-suppresses-mdns', gotcha: 'An NDI Discovery Server override ("discovery":"<ip>") SUPPRESSES mDNS broadcast, so sources vanish from auto-discovery. Clear it ("discovery":"") to restore mDNS.' },
+  { key: 'config-read-at-start', gotcha: 'ndi-config.v1.json is read at PROCESS START — a full app restart is required; a Main-Output toggle is not enough. (C:\\ProgramData\\NewTek\\NDI is a junction to the same file.)' },
+];
+
+// =============================================================================
+// DERIVED READINESS (proven-to-catch) — status comes from the device rows, not
+// a painted green. NO fake-green: an option whose required program is NOT built
+// reads 'not-built'; an option needing an unconfirmed node reads 'unverified'.
+// =============================================================================
+// Given the live device rows (church-devices SEED_DEVICES merged with DB rows),
+// classify each WALL_FEED_OPTION: is its source node PRESENT + online, and is the
+// option actually usable today? The recommended WALL OBS option is `built:false`
+// in the data, so it can only ever return 'not-built' until a real WALL-OBS node
+// exists — the honesty gate the render leans on.
+export function avIndependenceReadiness(devices) {
+  const list = Array.isArray(devices) ? devices.filter((d) => d && d.active !== false) : [];
+  const byId = (id) => list.find((d) => d.id === id) || null;
+  const online = (d) => !!d && d.status === 'online';
+
+  const rightCuda = byId('dev-gpu-node-2');   // OBS broadcast box
+  const leftCuda = byId('dev-gpu-node-1');    // where WALL OBS would run
+  const wallLaptop = byId('dev-av-booth-laptop');
+  const proclaimHost = byId('dev-imac-tlcs');
+  const anyCamera = list.find((d) => d.deviceType === 'camera' && online(d)) || null;
+  // The endpoint the wall depends on for EVERY option is the wall laptop.
+  const endpointReady = online(wallLaptop);
+
+  return WALL_FEED_OPTIONS.map((opt) => {
+    let sourcePresent = false;
+    let node = null;
+    if (opt.key === 'obs-mirror') { node = rightCuda; sourcePresent = online(rightCuda); }
+    else if (opt.key === 'proclaim-mirror') { node = proclaimHost; sourcePresent = online(proclaimHost); }
+    else if (opt.key === 'single-camera') { node = anyCamera; sourcePresent = !!anyCamera; }
+    else if (opt.key === 'wall-obs') { node = leftCuda; sourcePresent = online(leftCuda); }
+
+    // The recommended second-OBS program is not built until the data says so.
+    const notBuilt = opt.built === false;
+    let status;
+    if (notBuilt) status = 'not-built';               // never green while unbuilt
+    else if (!endpointReady) status = 'unverified';   // wall laptop not confirmed online
+    else if (!sourcePresent) status = 'unverified';   // source node absent/unconfirmed
+    else status = 'available';
+
+    return {
+      key: opt.key,
+      name: opt.name,
+      recommended: opt.recommended === true,
+      independentOfSides: opt.independentOfSides === true,
+      independentOfBroadcast: opt.independentOfBroadcast === true,
+      independentOfBoth: opt.independentOfSides === true && opt.independentOfBroadcast === true,
+      produces: opt.produces,
+      status,                                         // 'available' | 'unverified' | 'not-built'
+      sourceNode: node ? (node.name || node.id) : null,
+      endpointReady,
+      // The feasibility of BUILDING the recommended option (its node exists) is
+      // separate from whether it is built. Feasible-but-unbuilt is the true state.
+      feasible: opt.key === 'wall-obs' ? online(leftCuda) : sourcePresent,
+    };
+  });
+}
+
+// Ari's AV capabilities, DERIVED + HONEST. Each capability carries a real state:
+// 'enabled-guarded' (proven, rides the guardrails), 'not-built' (the surface does
+// not exist yet), or 'unverified' (a required node is unconfirmed). NO capability
+// defaults to a pass — the state is computed from today's fixes + the device rows.
+export function ariAvCapabilities(devices) {
+  const readiness = avIndependenceReadiness(devices);
+  const wallObs = readiness.find((r) => r.key === 'wall-obs');
+  const list = Array.isArray(devices) ? devices.filter((d) => d && d.active !== false) : [];
+  const deviceCount = list.length;
+  return [
+    {
+      key: 'obs-scenes',
+      capability: 'Read OBS scenes and switch the program on the broadcast box',
+      state: 'enabled-guarded',
+      basis: `Proven ${OBS_REMOTE_CONTROL.date}: obs-websocket v5 on :${OBS_REMOTE_CONTROL.port}.`,
+      guardrail: 'Humans keep the live cut; preview-then-execute; writes held while an operator is live.',
+    },
+    {
+      key: 'wall-program',
+      capability: 'Drive the WALL program (words-only middle screen)',
+      state: wallObs && wallObs.status === 'available' ? 'enabled-guarded' : 'not-built',
+      basis: 'Requires the second "WALL OBS" instance on the left CUDA (WALL_FEED_OPTIONS.wall-obs).',
+      guardrail: 'Same AV guardrails; runs on the left CUDA, never the live-encode box.',
+    },
+    {
+      key: 'device-inventory',
+      capability: 'Read the church device inventory / capability register',
+      state: deviceCount > 0 ? 'enabled-guarded' : 'unverified',
+      basis: `Derived from ${deviceCount} device rows (church-devices).`,
+      guardrail: 'Read-only; the register is the source of which node can take which job.',
+    },
+  ];
+}

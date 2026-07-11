@@ -213,6 +213,25 @@ describe('2026-07-08 church LAN scan — provenance + confirmed IP corrections',
     }
   });
 
+  it('the booth Alienware is consolidated as the wall laptop (TLC-Tech-Team), not duplicated', () => {
+    // DR-0166: one machine — the booth NovaLCT laptop IS the wall NDI Studio
+    // Monitor endpoint. It must NOT spawn a second row.
+    const laptops = SEED_DEVICES.filter((d) => /Alienware/i.test(d.makeModel || ''));
+    expect(laptops).toHaveLength(1);
+    const wall = bySlug('dev-av-booth-laptop');
+    expect(wall.ipAddress).toBe('100.92.143.124');
+    expect(JSON.stringify(wall.specs)).toMatch(/TLC-Tech-Team/);
+    expect(JSON.stringify(wall.specs)).toMatch(/NDI Studio Monitor/);
+    expect(JSON.stringify(wall.specs)).toMatch(/NDI 6 Tools/);
+  });
+
+  it('livestream-main-pc carries the 2026-07-10 NDI discovery fix + obs-websocket :4455', () => {
+    const right = bySlug('dev-gpu-node-2');
+    expect(JSON.stringify(right.specs)).toMatch(/obs-websocket v5 on :4455/);
+    expect(JSON.stringify(right.specs)).toMatch(/adapters\.allowed/);
+    expect(JSON.stringify(right.specs)).toMatch(/discovery/);
+  });
+
   it('does not fabricate model numbers where the scan was UNSURE', () => {
     // The unsure rows explicitly say UNSURE rather than inventing a model string.
     for (const id of ['dev-imac-tlcs', 'dev-synology-rackstation', 'dev-ipcam-1', 'dev-printer-1', 'dev-netgear-gear', 'dev-unifi-aps']) {

@@ -10,7 +10,11 @@ import {
   ATEM, WALL_PROCESSOR, CAMERA_CONNECTIONS, SOURCE_BRIDGES, SIGNAL_CHAIN,
   AV_DEVICES, cameraIntegration,
   LED_OUTPUT, CABLING_PLANES, WALL_PLACEMENT, WALL_FEED_ARCHITECTURE, NOVASTAR_IO,
+  MIDDLE_SCREEN_TOPOLOGY, WALL_LAPTOP_ENDPOINT, WALL_FEED_OPTIONS,
+  NDI_DISCOVERY_FIX, OBS_REMOTE_CONTROL, LED_WALL_OVER_NETWORK,
+  AV_GUARDRAILS, NDI_GOTCHAS, avIndependenceReadiness, ariAvCapabilities,
 } from '../lib/church-av-devices.js';
+import { SEED_DEVICES } from '../lib/church-devices.js';
 
 describe('ATEM Production Studio 4K — the switcher facts', () => {
   it('has 20 SDI + 1 HDMI inputs', () => {
@@ -173,6 +177,136 @@ describe('cameraIntegration — switches vs needs-BMD-for-control', () => {
   });
   it('returns null for an unknown connection (guards bad input)', () => {
     expect(cameraIntegration('nope')).toBeNull();
+  });
+});
+
+// =============================================================================
+// DR-0166 — the middle screen is independent of the side screens; no fake-green.
+// =============================================================================
+describe('MIDDLE_SCREEN_TOPOLOGY — three screens, three jobs (verified 2026-07-10)', () => {
+  it('names the middle=LED wall (NDI Studio Monitor -> VX1000), sides=Proclaim, broadcast=OBS', () => {
+    expect(MIDDLE_SCREEN_TOPOLOGY.verifiedOn).toBe('2026-07-10');
+    const mid = MIDDLE_SCREEN_TOPOLOGY.screens.find((s) => s.screen === 'middle');
+    const sides = MIDDLE_SCREEN_TOPOLOGY.screens.find((s) => s.screen === 'sides');
+    const bc = MIDDLE_SCREEN_TOPOLOGY.screens.find((s) => s.screen === 'broadcast');
+    expect(mid.fedBy).toMatch(/NDI Studio Monitor.*VX1000/);
+    expect(sides.fedBy).toMatch(/Proclaim/);
+    expect(bc.fedBy).toMatch(/OBS.*RIGHT CUDA/i);
+  });
+  it('the wall laptop is a dumb endpoint that auto-starts NDI Studio Monitor', () => {
+    expect(WALL_LAPTOP_ENDPOINT.autoStart).toMatch(/Run at Windows Start/i);
+    expect(WALL_LAPTOP_ENDPOINT.setOnce).toMatch(/never switches|once/i);
+  });
+});
+
+describe('WALL_FEED_OPTIONS — what each setting produces + independence', () => {
+  it('has exactly ONE recommended option and it is the WALL OBS words-only path', () => {
+    const rec = WALL_FEED_OPTIONS.filter((o) => o.recommended);
+    expect(rec).toHaveLength(1);
+    expect(rec[0].key).toBe('wall-obs');
+    expect(rec[0].produces).toMatch(/WORDS ONLY/i);
+    expect(rec[0].launchFlags).toMatch(/--portable --multi --websocket_port 4466/);
+  });
+  it('ONLY the recommended option is independent of BOTH sides and broadcast', () => {
+    for (const o of WALL_FEED_OPTIONS) {
+      const both = o.independentOfSides && o.independentOfBroadcast;
+      if (o.recommended) expect(both, o.key).toBe(true);
+    }
+    // obs-mirror is tied to broadcast; proclaim-mirror is tied to sides
+    expect(WALL_FEED_OPTIONS.find((o) => o.key === 'obs-mirror').independentOfBroadcast).toBe(false);
+    expect(WALL_FEED_OPTIONS.find((o) => o.key === 'proclaim-mirror').independentOfSides).toBe(false);
+  });
+  it('every option carries opportunities AND constraints', () => {
+    for (const o of WALL_FEED_OPTIONS) {
+      expect(o.opportunities.length, `${o.key} opportunities`).toBeGreaterThan(0);
+      expect(o.constraints.length, `${o.key} constraints`).toBeGreaterThan(0);
+    }
+  });
+  it('the recommended WALL OBS is built:false (honest — not yet built)', () => {
+    expect(WALL_FEED_OPTIONS.find((o) => o.key === 'wall-obs').built).toBe(false);
+  });
+});
+
+describe('today\'s AV fixes (2026-07-10) — grounded facts', () => {
+  it('NDI discovery fix pins the wired adapter, clears discovery, and requires a full restart', () => {
+    const joinedCauses = NDI_DISCOVERY_FIX.rootCauses.join(' ');
+    expect(joinedCauses).toMatch(/DUAL-HOMED/i);
+    expect(joinedCauses).toMatch(/Discovery Server/i);
+    const joinedFix = NDI_DISCOVERY_FIX.fix.join(' ');
+    expect(joinedFix).toMatch(/adapters.*allowed.*192\.168\.1\.73/);
+    expect(joinedFix).toMatch(/discovery.*""/);
+    expect(joinedFix).toMatch(/FULL OBS restart/i);
+    expect(NDI_DISCOVERY_FIX.fixFileNote).toMatch(/JUNCTION/i);
+    expect(NDI_DISCOVERY_FIX.openRootCause).toMatch(/re-review: 2026-07-24/);
+  });
+  it('OBS remote control is obs-websocket v5 on 4455 with an auth re-enable resting state', () => {
+    expect(OBS_REMOTE_CONTROL.port).toBe(4455);
+    expect(OBS_REMOTE_CONTROL.restingState).toMatch(/re-enable auth/i);
+    expect(OBS_REMOTE_CONTROL.restingState).toMatch(/never/i);
+  });
+  it('LED wall over the network needs one HDMI hop and forbids the OBS feedback loop', () => {
+    expect(LED_WALL_OVER_NETWORK.vx1000NoNetworkVideo).toMatch(/NO network video input/i);
+    expect(LED_WALL_OVER_NETWORK.feedbackLoopWarning).toMatch(/NEVER feed OBS.*own NDI output back/i);
+  });
+});
+
+describe('AV_GUARDRAILS + NDI_GOTCHAS — the durable Ways', () => {
+  it('the guardrails hold the live cut, preview-then-execute, and forbid the feedback loop', () => {
+    const keys = AV_GUARDRAILS.map((g) => g.key);
+    expect(keys).toContain('humans-keep-the-cut');
+    expect(keys).toContain('preview-then-execute');
+    expect(keys).toContain('kill-switch');
+    expect(keys).toContain('no-ndi-feedback-loop');
+  });
+  it('the NDI gotchas name the multi-homed NIC and the discovery-server mDNS suppression', () => {
+    const keys = NDI_GOTCHAS.map((g) => g.key);
+    expect(keys).toContain('multi-homed-nic');
+    expect(keys).toContain('discovery-server-suppresses-mdns');
+  });
+});
+
+describe('avIndependenceReadiness — DERIVED status, never a painted pass', () => {
+  it('the recommended WALL OBS is not-built over the REAL register (never green)', () => {
+    const readiness = avIndependenceReadiness(SEED_DEVICES);
+    const wall = readiness.find((r) => r.key === 'wall-obs');
+    expect(wall.status).toBe('not-built');
+    expect(wall.recommended).toBe(true);
+    expect(wall.independentOfBoth).toBe(true);
+    // its node exists (left CUDA) so it is FEASIBLE, just not built
+    expect(wall.feasible).toBe(true);
+  });
+  it('an option with an offline source reads unverified, not available', () => {
+    // drop every device offline -> the endpoint is not ready -> nothing is available
+    const offline = SEED_DEVICES.map((d) => ({ ...d, status: 'offline' }));
+    for (const r of avIndependenceReadiness(offline)) {
+      expect(r.status === 'not-built' || r.status === 'unverified', r.key).toBe(true);
+      expect(r.status).not.toBe('available');
+    }
+  });
+  it('obs-mirror is available when the broadcast box + wall laptop are online', () => {
+    const obs = avIndependenceReadiness(SEED_DEVICES).find((r) => r.key === 'obs-mirror');
+    // right CUDA (dev-gpu-node-2) and the wall laptop (dev-av-booth-laptop) are online in the seed
+    expect(obs.status).toBe('available');
+    expect(obs.independentOfBroadcast).toBe(false);
+  });
+  it('degrades honestly on empty/garbage input', () => {
+    expect(avIndependenceReadiness(null).every((r) => r.status !== 'available')).toBe(true);
+    expect(avIndependenceReadiness([]).length).toBe(WALL_FEED_OPTIONS.length);
+  });
+});
+
+describe('ariAvCapabilities — honest derived states', () => {
+  it('OBS scene control is enabled-guarded; the WALL program is not-built', () => {
+    const caps = ariAvCapabilities(SEED_DEVICES);
+    const obs = caps.find((c) => c.key === 'obs-scenes');
+    const wall = caps.find((c) => c.key === 'wall-program');
+    expect(obs.state).toBe('enabled-guarded');
+    expect(obs.guardrail).toMatch(/live cut/i);
+    expect(wall.state).toBe('not-built');
+  });
+  it('device-inventory read is unverified only when there are no rows', () => {
+    expect(ariAvCapabilities([]).find((c) => c.key === 'device-inventory').state).toBe('unverified');
+    expect(ariAvCapabilities(SEED_DEVICES).find((c) => c.key === 'device-inventory').state).toBe('enabled-guarded');
   });
 });
 

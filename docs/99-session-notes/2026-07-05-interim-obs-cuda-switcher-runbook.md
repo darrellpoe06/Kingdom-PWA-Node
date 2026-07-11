@@ -1,5 +1,15 @@
 # Interim switcher — OBS on the CUDA tower carries the switch + Proclaim feed (2026-07-05)
 
+> **CONSOLIDATED (2026-07-10, DR-0166).** The current, canonical middle-screen
+> topology + wall-feed options + AV guardrails now live in
+> [`2026-07-10-middle-screen-independence-and-av-fixes.md`](2026-07-10-middle-screen-independence-and-av-fixes.md)
+> (grounded in `app/src/lib/church-av-devices.js`, rendered in the Church Video Wall
+> › Middle screen tab). This runbook is retained as the dated 2026-07-05 record of
+> the interim OBS switch; where it and the canonical note overlap, the canonical
+> note governs. Since then verified: the wall is fed by the wall laptop
+> (TLC-Tech-Team) NDI Studio Monitor → HDMI → VX1000 (not only Proclaim-direct), and
+> OBS's NDI became LAN-visible after the 2026-07-10 discovery fix.
+
 Layer 4 working artifact + on-site runbook. Darrell on site at COLG today; the live
 camera switch is still down (the Lenovo Legion NDI -> HDMI bridge into the ATEM —
 the incident DR-0082 responds to). The endorsed end state is the **hybrid**

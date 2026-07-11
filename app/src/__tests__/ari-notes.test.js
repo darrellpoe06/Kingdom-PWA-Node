@@ -67,4 +67,11 @@ describe('resolveDuties', () => {
   it('every standing duty carries a DR ref (no unattributed responsibility)', () => {
     for (const d of ARI_STANDING_DUTIES) expect(d.drRef).toMatch(/^DR-\d{4}$/);
   });
+  it('the av-loop duty exists, cites DR-0166, and carries the guardrails + derived-report rule', () => {
+    const av = ARI_STANDING_DUTIES.find((d) => d.key === 'av-loop');
+    expect(av).toBeTruthy();
+    expect(av.drRef).toBe('DR-0166');
+    expect(av.duty).toMatch(/humans-keep-the-live-cut|live cut/i);
+    expect(av.duty).toMatch(/UNVERIFIED/);
+  });
 });

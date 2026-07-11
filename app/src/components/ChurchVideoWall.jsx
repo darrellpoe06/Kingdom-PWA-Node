@@ -35,7 +35,11 @@ import {
 import {
   ATEM, SIGNAL_CHAIN, AV_DEVICES, SOURCE_BRIDGES,
   CABLING_PLANES, WALL_PLACEMENT, WALL_FEED_ARCHITECTURE,
+  MIDDLE_SCREEN_TOPOLOGY, WALL_LAPTOP_ENDPOINT, WALL_FEED_OPTIONS,
+  NDI_DISCOVERY_FIX, OBS_REMOTE_CONTROL, LED_WALL_OVER_NETWORK,
+  AV_GUARDRAILS, NDI_GOTCHAS, avIndependenceReadiness, ariAvCapabilities,
 } from '../lib/church-av-devices.js';
+import { SEED_DEVICES } from '../lib/church-devices.js';
 import {
   VIDEO_IN, CONTROL, LED_DATA, POWER, MAP,
   ledLineMath, TEACHING_CARD, FINISH_CHECKLIST, CHAIN_DIAGRAM,
@@ -248,6 +252,13 @@ export default function ChurchVideoWall() {
   const doneCount = FINISH_CHECKLIST.filter((c) => checked[c.id]).length;
   const totals = useMemo(() => budgetTotals(projectLines), [projectLines]);
   const donation = useMemo(() => donationProgress(project || {}), [project]);
+
+  // The middle-screen readiness + Ari's AV capabilities DERIVE from the real
+  // device register (church-devices SEED_DEVICES) — never a painted status
+  // (DR-0166 / NO-STATIC-DATA). The recommended WALL OBS reads not-built here
+  // because the data says built:false, so it can never render green until it is.
+  const wallReadiness = useMemo(() => avIndependenceReadiness(SEED_DEVICES), []);
+  const ariAv = useMemo(() => ariAvCapabilities(SEED_DEVICES), []);
 
   // Commissioned 2026-07-03 (first light, live sermon video full-wall). The
   // default reflects reality; a live project row can still override it.
@@ -669,6 +680,151 @@ export default function ChurchVideoWall() {
       </div>
         </div>
       ),
+    },
+    {
+      id: 'middle',
+      label: 'Middle screen',
+      icon: 'monitor',
+      render: () => {
+        const toneFor = (s) => (s === 'available' ? 'good' : s === 'unverified' ? 'attention' : 'idle');
+        const stateFor = (s) => (s === 'enabled-guarded' ? 'good' : s === 'unverified' ? 'attention' : 'idle');
+        const readinessByKey = Object.fromEntries(wallReadiness.map((r) => [r.key, r]));
+        return (
+        <div className="space-y-4">
+          {/* ===== MIDDLE SCREEN — independent of the two side screens (DR-0166) ===== */}
+          <div className={card}>
+            <div className="flex items-center justify-between">
+              <div className={labelCls}>Middle screen (LED wall) &middot; independent of the two side screens</div>
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">verified {MIDDLE_SCREEN_TOPOLOGY.verifiedOn}</span>
+            </div>
+            <p className="mt-2 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">{MIDDLE_SCREEN_TOPOLOGY.principle}</p>
+            <div className="mt-3 space-y-2">
+              {MIDDLE_SCREEN_TOPOLOGY.screens.map((s) => (
+                <div key={s.screen} className="border border-[#E8E4DC] p-2.5">
+                  <div className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{s.is}</div>
+                  <div className="text-[0.75rem] text-[#1A1815]"><b>Fed by:</b> {s.fedBy}</div>
+                  <div className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">{s.independent}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">
+              NDI sources on the LAN the wall can point at: {MIDDLE_SCREEN_TOPOLOGY.ndiSourcesOnLan.map((n) => n.name).join(' · ')}.
+            </p>
+          </div>
+
+          {/* ===== WALL FEED OPTIONS — what each setting produces, with a DERIVED status ===== */}
+          <div className={card}>
+            <div className={labelCls}>What the wall shows &middot; options + live readiness (derived, no fake-green)</div>
+            <p className="mt-1 text-[0.6875rem] text-[#5A5751]">Status is derived from the device register — <b>available</b> (source node online), <b>unverified</b> (a required node unconfirmed), <b>not built</b> (the program does not exist yet). It is never a painted pass.</p>
+            <div className="mt-3 space-y-3">
+              {WALL_FEED_OPTIONS.map((opt) => {
+                const r = readinessByKey[opt.key] || {};
+                const statusLabel = r.status === 'available' ? 'available' : r.status === 'unverified' ? 'unverified' : 'not built';
+                return (
+                  <div key={opt.key} className={`border p-2.5 ${opt.recommended ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}>
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>
+                        {opt.name}
+                        {opt.recommended && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">recommended</span>}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider"><KpiDot status={toneFor(r.status)} /> {statusLabel}</span>
+                    </div>
+                    <div className="text-[0.75rem] text-[#1A1815] mt-0.5"><b>Produces:</b> {opt.produces}</div>
+                    <div className="mt-1 flex gap-2 flex-wrap text-[0.5625rem] uppercase tracking-wider">
+                      <span className={`px-1.5 py-0.5 border ${opt.independentOfSides ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#C9C2B6] text-[#5A5751]'}`}>{opt.independentOfSides ? 'independent of sides' : 'tied to sides (Proclaim)'}</span>
+                      <span className={`px-1.5 py-0.5 border ${opt.independentOfBroadcast ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#C9C2B6] text-[#5A5751]'}`}>{opt.independentOfBroadcast ? 'independent of broadcast' : 'tied to broadcast'}</span>
+                    </div>
+                    {opt.recommended && opt.intent && <p className="mt-1 text-[0.75rem] text-[#B85838] italic">{opt.intent}</p>}
+                    {opt.how && <p className="mt-1 text-[0.6875rem] text-[#5A5751]"><b>How:</b> {opt.how}</p>}
+                    <div className="mt-2 grid sm:grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">Opportunities</div>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.opportunities.map((o, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815] flex gap-1.5"><span className="text-[#5A6E3D]">+</span><span>{o}</span></li>)}
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">Constraints</div>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.constraints.map((c, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815] flex gap-1.5"><span className="text-[#B85838]">&minus;</span><span>{c}</span></li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* The dumb endpoint */}
+            <div className="mt-3 border-l-2 border-[#B85838] pl-2.5">
+              <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">The wall laptop is a dumb endpoint</div>
+              <p className="mt-0.5 text-[0.75rem] text-[#1A1815]">{WALL_LAPTOP_ENDPOINT.setOnce}</p>
+              <p className="mt-0.5 text-[0.6875rem] text-[#5A5751]"><b>Auto-start:</b> {WALL_LAPTOP_ENDPOINT.autoStart}</p>
+            </div>
+          </div>
+
+          {/* ===== TODAY'S AV FIXES (2026-07-10) — opportunities + constraints ===== */}
+          <div className={card}>
+            <div className={labelCls}>Today&rsquo;s AV fixes &middot; {NDI_DISCOVERY_FIX.date}</div>
+
+            <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">NDI discovery fix (the big one)</div>
+            <p className="mt-1 text-[0.8125rem] text-[#1A1815]"><b>Symptom:</b> {NDI_DISCOVERY_FIX.symptom}</p>
+            <ul className="mt-1 space-y-0.5">
+              {NDI_DISCOVERY_FIX.rootCauses.map((c, i) => <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-1.5"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>)}
+            </ul>
+            <p className="mt-1 text-[0.6875rem] text-[#5A5751]"><b>Fix</b> (<span className="font-sans">{NDI_DISCOVERY_FIX.fixFile}</span> — {NDI_DISCOVERY_FIX.fixFileNote}):</p>
+            <ol className="mt-0.5 space-y-0.5">
+              {NDI_DISCOVERY_FIX.fix.map((f, i) => <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-1.5"><span className="text-[#B85838]">{i + 1}.</span><span>{f}</span></li>)}
+            </ol>
+            <p className="mt-1 text-[0.75rem] text-[#5A6E3D]"><b>Result:</b> {NDI_DISCOVERY_FIX.result}</p>
+            <p className="mt-1 text-[0.6875rem] text-[#B85838] italic"><b>Open root cause:</b> {NDI_DISCOVERY_FIX.openRootCause}</p>
+
+            <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">OBS remote control</div>
+            <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{OBS_REMOTE_CONTROL.proven}</p>
+            <p className="mt-0.5 text-[0.6875rem] text-[#B85838] italic">{OBS_REMOTE_CONTROL.restingState}</p>
+            <p className="mt-0.5 text-[0.6875rem] text-[#5A5751]"><b>Guardrail:</b> {OBS_REMOTE_CONTROL.guardrail}</p>
+
+            <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">LED wall live over the network</div>
+            <p className="mt-1 text-[0.8125rem] text-[#1A1815]">{LED_WALL_OVER_NETWORK.path}</p>
+            <p className="mt-0.5 text-[0.75rem] text-[#1A1815]">{LED_WALL_OVER_NETWORK.vx1000NoNetworkVideo}</p>
+            <p className="mt-1 text-[0.75rem] text-[#B85838] border-l-2 border-[#B85838] pl-2.5"><b>&#9888;</b> {LED_WALL_OVER_NETWORK.feedbackLoopWarning}</p>
+          </div>
+
+          {/* ===== AV GUARDRAILS + NDI GOTCHAS — the Ways ===== */}
+          <div className={card}>
+            <div className={labelCls}>AV guardrails &amp; NDI gotchas &middot; the Ways</div>
+            <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Guardrails (every AV touch)</div>
+            <ul className="mt-1 space-y-1">
+              {AV_GUARDRAILS.map((g) => <li key={g.key} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&#9888;</span><span>{g.rule}</span></li>)}
+            </ul>
+            <div className="mt-3 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">NDI gotchas</div>
+            <ul className="mt-1 space-y-1">
+              {NDI_GOTCHAS.map((g) => <li key={g.key} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{g.gotcha}</span></li>)}
+            </ul>
+          </div>
+
+          {/* ===== ARI'S AV CAPABILITIES — DERIVED, honest states ===== */}
+          <div className={card}>
+            <div className={labelCls}>Ari&rsquo;s AV capabilities &middot; derived, honest state (no fake-green)</div>
+            <div className="mt-2 space-y-2">
+              {ariAv.map((c) => {
+                const label = c.state === 'enabled-guarded' ? 'enabled (guarded)' : c.state === 'unverified' ? 'unverified' : 'not built';
+                return (
+                  <div key={c.key} className="border border-[#E8E4DC] p-2.5">
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{c.capability}</span>
+                      <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider"><KpiDot status={stateFor(c.state)} /> {label}</span>
+                    </div>
+                    <div className="text-[0.6875rem] text-[#5A5751]">{c.basis}</div>
+                    <div className="text-[0.6875rem] text-[#5A5751] italic"><b>Guardrail:</b> {c.guardrail}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">Derived from the device register + today&rsquo;s fixes. Governed by DR-0166; the WALL program stays <b>not built</b> until the second OBS exists.</p>
+          </div>
+        </div>
+        );
+      },
     },
     {
       id: 'software',
