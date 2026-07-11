@@ -128,7 +128,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         <p className="text-sm text-[#5A5751] leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Two things are <strong>free forever — no card, no trial clock</strong>: the <strong>Financial System for Families</strong> and the <strong>Spiritual Module for the edification of the Body</strong>. The paid tiers below add the ecosystem layer (tenant / contractor / client portals, multi-entity, Projects) for the businesses, professionals, and landlords who need it — each one replaces several SaaS subscriptions. Paid tiers are options, not the gate.
         </p>
-
+        <SectionTabs variant="sub" idBase="about-pricing" ariaLabel="Plan options" defaultId="free" sections={[
+          { id: 'free', label: 'Start free', icon: 'check', render: () => (
+          <>
         {/* START HERE — Foundation FREE leads, visually dominant, above the paid ladder. */}
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2">★ Start here</div>
         <div className="mb-5">
@@ -157,7 +159,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             Two are <strong>free for everyone, forever</strong>: the <strong>Financial System for Families</strong> (the Foundation tier above) and the <strong>Spiritual Module for the edification of the Body</strong> (Scripture, the Godhead Study Platform, and worship surfaces — free on every tier, no upgrade). Two more open the door for those the work of justice names: <strong>Loved Ones · Founding Family</strong> (free PoeTech+ for life — the first 100 Church of the Living God families and chosen family invited directly by the Poe family) and <strong>Community · Families in Need</strong> (free access through partner churches and 501(c)(3)s — funded by our aligned-brand partners: open-source tools, data-sovereignty hardware, and family-stewardship-aligned services we genuinely recommend, never by selling your data). See the cards below the paid ladder.
           </p>
         </div>
-
+          </>
+        ) },
+          { id: 'paid', label: 'Paid tiers', icon: 'coins', render: () => (
+          <>
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-2">Paid tiers · options, not the gate</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Round 5 — Tier features matched to the live tier-gating map (see
@@ -168,7 +173,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <PricingTier name="Premium" bestFor="a solo professional or contractor running a client-facing business." tagline="Contractor + Client portals · solo professional · Scope tool · Wrap-me handoff" monthly="149" annual="1490" replaces="~$125-180/mo: CRM ($30-50) + intake forms ($20-30) + scheduling ($14-29) + QuickBooks Solopreneur ($20) + intake-conversion analytics. Practice Operations is non-PHI — your clinical EHR (SimplePractice / TherapyNotes) stays separate." availableNow={['Everything in Household (available-now items)','Practice Operations tab — inquiry capture · source attribution · conversion tracking (non-PHI)','Dev/Ops — "Wrap me with the tech" CTA (auto-create Project + Scope + Capex from any opportunity)','Scope-of-work agreements (full templates · materials-paid-by policy)','Project Inventory & Capital Forecast — 12-month outflow projection + savings prompts','Spiritual Life · Godhead Study Platform (always free for every tier)']} shipsLater={['🔐 Contractor portals — every 1099 sees assigned projects, scope, materials policy, timeline, and YTD pay; uploads invoices, posts status, messages you through a scoped channel (when external auth ships)','🔐 Client portals (Practice, non-PHI) — prospective clients see intake status + next step + appointment summary; reschedule via Acuity link. HIPAA stays in Acuity (when external auth ships)','Education / Tutors / Elder Care modules (when launched)','Marketplace access (when launched)']} onChoose={openCart} />
           <PricingTier name="PoeTech Business" bestFor="a multi-entity operator or a small org with staff." tagline="Full ecosystem · multi-entity · multi-user · audit-grade" monthly="249" annual="2490" replaces="~$240-400/mo: QuickBooks Online Plus ($115) + HoneyBook ($59) + ClickUp Business ($12) + Stessa Pro ($28) + scheduling ($15-29) + audit/export + multi-entity tracking" availableNow={['Everything in Premium (available-now items)','Up to 10 entities tracked','Quarterly strategy review with PoeTech Services','Eligible for revenue-share consulting partnership']} shipsLater={['🔐 Unlimited external portals — tenants, contractors, clients, donors, parishioners, volunteers, customers; all scoped, all logged (when external auth ships)','🔐 Audit-grade interaction log — every message, file, status change, and payment, exportable for compliance, court, or board review','Up to 5 staff / team users (when backend ships)','Advanced reporting + CSV / Excel bulk export','1099-NEC e-file integration','API access for custom integrations','Priority phone + Slack support']} business onChoose={openCart} />
         </div>
-
+          </>
+        ) },
+          { id: 'justice', label: 'Free for justice', icon: 'heart', render: () => (
+          <>
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2 mt-6">Free access for the work of justice</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <PricingTier name="Loved Ones · Founding Family" bestFor="the people we love — free PoeTech+ for life for first-100 Church of the Living God families and for chosen family invited directly by the Poe family." tagline="Free PoeTech+ for life · First 100 Church of the Living God families AND chosen family invited directly by the Poe family" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 Church of the Living God families — The Love Corner, Champaign IL · the gated rail, that cohort closes when filled','Chosen family by direct Poe-family invitation — open-ended at Poe-family discretion; a gift of belonging, not a paywall','Soul first, then the family economy — Body-of-Christ stewardship where the spiritual and the financial meet','One month Household-tier credit per paying family you refer']} community onChoose={openCart} />
@@ -178,12 +186,18 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         <p className="text-xs text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Annual pricing reflects ~17% savings (2 months free). Foundation is free forever — to generate the experience and the data that improves the system for every family. Loved Ones tier honors the warm-market relationships that make PoeTech viable: people who already know us, trust us, and pray for us. Their early adoption is the foundation everything else stands on — and their pricing is locked even as the broader pricing reflects the platform's growing value.
         </p>
-      </section>
-
+          </>
+        ) },
+          { id: 'adopt', label: 'Bring it to others', icon: 'users', render: () => (
+          <>
       {/* Adopt PoeTech — the front door for friends bringing this to their own
           family, church, or business. Pure presentation over the onboarding libs
           (lib/adopter-onboarding.js + lib/adopter-templates.js); no main-file dep. */}
       <AdoptPoeTech />
+          </>
+        ) },
+        ]} />
+      </section>
       </>
     ) },
     { id: 'mission', label: 'Mission', icon: 'dove', render: () => (
@@ -243,12 +257,22 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           Live modules ship to all subscribers. Planned and Vision modules accept early interest signals — tap <strong>Notify me · vote on priority</strong> to register and weigh in on what gets built next. Signed in, votes pool across the family (module_interest) and that real aggregate shapes the roadmap; signed out, votes stay on this device until you sign in.
         </p>
         <CommunityPriorities moduleInterest={moduleInterest} familyModuleInterest={familyModuleInterest} />
-        <div className="space-y-3">
+        <SectionTabs variant="sub" idBase="about-modules" ariaLabel="Module status" defaultId="live" sections={[
+          { id: 'live', label: 'Live now (2)', icon: 'check', render: () => (
+          <div className="space-y-3">
           <ModuleCard moduleKey="financial" status="active" title="Financial Control System" desc="Multi-entity bookkeeping with debt avalanche, rental snowball, pressure slider, tax calendar, 1099 tracking, scope-of-work agreements, event reminders." features={['4-entity book separation','Debt avalanche · rental snowball','7-year Sabbath payoff goal','Tax & compliance calendar','Events with browser notifications','Scope of work templates & agreements','1099 tracking · both directions']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
+          <ModuleCard moduleKey="practice-ops" status="active" title="Practice Operations · TLC" desc="Non-PHI tooling around Christina's clinical practice. Inquiry capture, source attribution, and pre-patient lead tracking — running in the app today. Acuity remains the system of record for client scheduling and intake." features={['Inquiry capture form (pre-patient, no PHI)','Status workflow: new → contacted → moved to Acuity','Source attribution (organic / FB / referral / church)','Conversion rate tracking','Per-provider routing (Christina + MSW contractors)','MSW contractor onboarding (uses scope tool)','Acuity API integration (planned)','Revenue-per-session reconciliation (planned)']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
+          </div>
+          ) },
+          { id: 'planned', label: 'Planned (2)', icon: 'calendar', render: () => (
+          <div className="space-y-3">
           <ModuleCard moduleKey="home-command" status="planned" title="Home Command Center" repo="poe-trust-command-center" desc="BAS-level intelligence for the residential home. Enterprise building-automation thinking applied to family stewardship." features={['IoT sensor integration','F&S-level alarms (leak, intrusion, HVAC failure)','Seasonal maintenance calendar','Floor plan mapping & inventory','Per-property dashboards']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="health-wellness" status="planned" title="Health & Wellness · PoeTech-PWA" repo="poetech.us" desc="Public-facing health stewardship. IoT and sensor data for big-picture private health visibility." features={['IoT health data aggregation','Big-picture private health dashboard','Comprehensive measurement incl. water sensors','Facial recognition AI trained for Black families (NIST-documented accuracy gaps — opt-in correction)','Open-source where possible']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
+          </div>
+          ) },
+          { id: 'vision', label: 'Vision (8)', icon: 'sparkle', render: () => (
+          <div className="space-y-3">
           <ModuleCard moduleKey="marketplace" status="vision" title="PoeTech Marketplace · Scope & Contractors" desc="Vendor marketplace where PoeTech mediates the scope agreement itself — protecting both customer and contractor from unfair disputes." features={['Vendor onboarding with paid positions','Scope-mediated agreements (the differentiator)','Reviews anchored to agreed scope','Trade-specific templates','Trust & safety verification']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
-          <ModuleCard moduleKey="practice-ops" status="active" title="Practice Operations · TLC" desc="Non-PHI tooling around Christina's clinical practice. Inquiry capture, source attribution, and pre-patient lead tracking — running in the app today. Acuity remains the system of record for client scheduling and intake." features={['Inquiry capture form (pre-patient, no PHI)','Status workflow: new → contacted → moved to Acuity','Source attribution (organic / FB / referral / church)','Conversion rate tracking','Per-provider routing (Christina + MSW contractors)','MSW contractor onboarding (uses scope tool)','Acuity API integration (planned)','Revenue-per-session reconciliation (planned)']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="media-production" status="vision" title="AI Media Production · Movies & Series" desc="The long arc: sovereign AI-driven film and series production using the family's own models — life-like movies with persistent characters the audience knows; a character can carry a film and spin into a series, and vice versa. Coming when we can: gated on real capability, family curation, and the theological review pipeline — never hype." features={['Sovereign generation (the LLMs we build, on our own hardware)','Persistent characters across movies and series (and vice versa)','Family-curated library as the creative seed','Theological review pipeline — every frame passes the Test','Distribution sovereignty + audience consent','Built on the existing harvest/voice/workflow rails']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="marketing-growth" status="vision" title="Marketing & Growth" desc="Help PoeTech subscribers grow their own ministry, practice, or business through integrated social media management, ad attribution, and SEO tools — all under the local-first privacy posture." features={['Facebook + Instagram (Meta) ads attribution','Google Ads tracking','Content calendar across social channels','Email + SMS campaigns (where lawful)','Google My Business + local SEO health','Lead source data into Practice Operations','Audience insights without surveillance capitalism']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="education" status="vision" title="Education & Children · Literacy Justice" desc="&quot;From us for us&quot; — designed by Black families, for Black families. Children not reading proficiently by 3rd grade are 4-8x more likely to drop out of high school. 30-50% of incarcerated individuals have dyslexia (vs 5-15% general population). Technology can help break this pattern through early screening, dyslexia-aware design, and family-supervised AI literacy." features={['AI literacy curriculum for kids (age-appropriate prompt engineering, AI safety, fact-checking AI output)','Dyslexia-aware interface (OpenDyslexic / Lexend fonts, color overlays, line tracking)','Voice-to-text and text-to-speech throughout','Early literacy screening · intervention tracking before 3rd grade','Per-child reading proficiency dashboard','Apprenticeship curriculum tracking','Goal-setting & review cycles','Pricing: Family of 3: $19/mo · Family of 5+: $29/mo · Included in Premium tier']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
@@ -256,7 +280,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <ModuleCard moduleKey="elder-care-coord" status="vision" title="Elder Care Coordination" desc="For adult children managing care for aging parents. The forgotten generation in family-tech — most platforms focus on the kids or the parents themselves, not the family member doing the coordination work. Built on the same calendar, scope, and practice operations primitives already shipping today." features={['Multi-generational household tracking','Caregiver scheduling and 1099 management (uses scope tool)','Appointment + medication reminder calendar','Document storage (Power of Attorney, advance directives, HIPAA releases)','Shared access for siblings managing care together','Aging-in-place property maintenance tracking','Financial visibility across parent + adult-child budgets','Connection to Elder Care Marketplace (caregivers, helpers)']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="home-legacy" status="vision" title="Home Legacy Program · Poe Properties extension" desc="Ethical purchase program for elderly homeowners who want certainty their home will be cared for after they pass — when family inheritance isn't a clean option. Not a marketplace. Not a flip. Relationship-based, attorney-required, family-involved when possible. This is genuinely sensitive territory; we approach it with deep care because Yahweh names the elderly as deserving particular care." features={['Years of relationship before any purchase conversation','Elderly homeowner ALWAYS has their own attorney (we pay if needed)','Family involvement required when family exists','Fair market value pricing · independently documented','Life estate option — they live there until death, paid up front or monthly','Property maintenance commitment baked into the agreement','No high-pressure sales · they walk if they want','Elder abuse prevention training for everyone involved','Transparent reporting of every transaction to a community advisory board','Alternative to probate sales and state escheat']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
           <ModuleCard moduleKey="spiritual" status="vision" title="Spiritual Life · The Godhead Study Platform" desc="An interactive tool for studying The Godhead, original business systems from a biblical worldview, and the philosophy of technology in light of scripture. FREE for every family — Foundation tier and above. The Poe family worldview, derived from biblical scriptures with algorithmic rigor, made interactive. A stronghold made visible in daily study." features={['FREE tier — included with every PoeTech subscription including Foundation','Interactive Godhead study (Father · Son · Holy Spirit · their unity and distinction)','Original Business Systems study — biblical economics, stewardship, the seven-year cycle, debt-jubilee patterns','Technology Study — philosophy of technology from a biblical worldview','Built-in Bookstore — digital download + Amazon physical order','📖 The Holy Spirit Integration Worldview (Darrell Poe, forthcoming) — the foundational text','📖 Christina Poe (forthcoming) — clinical & community wisdom','Family prayer journal · scripture study plans · ministry calendar','Algorithm-driven study paths · personalized scripture walks','Local-first study notes · device-only by default']} moduleInterest={moduleInterest} toggleModuleInterest={toggleModuleInterest} />
-        </div>
+          </div>
+          ) },
+        ]} />
       </section>
 
       {/* v28+ MVP v1.5 round 3 — Capex / Tools list moved to Projects tab.
@@ -372,7 +398,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
       </>
     ) },
     { id: 'sponsors', label: 'Sponsors', icon: 'landmark', render: () => (
-      <>
+      <SectionTabs variant="sub" idBase="about-sponsors" ariaLabel="Sponsor sections" defaultId="ethics" sections={[
+        { id: 'ethics', label: 'Ethics', icon: 'check', render: () => (
+          <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsorship & Advertising Ethics</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -407,7 +435,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           100% of sponsorship revenue funds the Community tier subscriptions. Transparent annual reporting: paying subscribers see what the underwriting funds. Sponsorship is part of the mission, not separate from it.
         </p>
       </section>
-
+          </>
+        ) },
+        { id: 'tiers', label: 'Tiers & slots', icon: 'coins', render: () => (
+          <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsor Tiers · Limited Slots</div>
         <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -461,7 +492,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </p>
         </div>
       </section>
-
+          </>
+        ) },
+        { id: 'vetting', label: 'Vetting', icon: 'lock', render: () => (
+          <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Vetting Framework · The PoeTech Standard</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -499,7 +533,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </ol>
         </div>
       </section>
-
+          </>
+        ) },
+        { id: 'how', label: 'How it works', icon: 'sliders', render: () => (
+          <>
       <section className="bg-white border-2 border-[#B85838] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -512,7 +549,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           Questions before paying? Email <strong>contact@poetech.us</strong> with your mission, business model, ownership, regulatory status, and which tier you're considering. We'll respond within 3 business days. Limited slots — current opening status published quarterly.
         </p>
       </section>
-      </>
+          </>
+        ) },
+      ]} />
     ) },
     { id: 'settings', label: 'Settings', icon: 'palette', render: () => (
       <>

@@ -77,6 +77,35 @@ describe('About — sideways section tabs', () => {
     cleanup();
   });
 
+  it('long panels carry a 3rd-row sub-tab strip (DR-0116 rule 1)', () => {
+    const { host, cleanup } = mount();
+    // Pricing (default panel) nests a sub-row that splits the long tier lists.
+    const pricingSub = host.querySelector('[role="tablist"][aria-label="Plan options"]');
+    expect(pricingSub).toBeTruthy();
+    expect([...host.querySelectorAll('[id^="about-pricing-tab-"]')].map((b) => b.id)).toEqual([
+      'about-pricing-tab-free', 'about-pricing-tab-paid', 'about-pricing-tab-justice', 'about-pricing-tab-adopt',
+    ]);
+
+    // Modules: open the 2nd-row tab, then its 3rd-row splits by real status.
+    act(() => { host.querySelector('#about-tab-modules').click(); });
+    const modSub = host.querySelector('[role="tablist"][aria-label="Module status"]');
+    expect(modSub).toBeTruthy();
+    // Default sub = Live: a live module shows, a vision-only module does not.
+    expect(host.textContent).toContain('Multi-entity bookkeeping');       // financial, status="active"
+    expect(host.textContent).not.toContain('Ethical purchase program for elderly homeowners'); // home-legacy, vision
+    act(() => { host.querySelector('#about-modules-tab-vision').click(); });
+    expect(host.textContent).toContain('Ethical purchase program for elderly homeowners'); // now the vision panel
+
+    // Sponsors: its whole panel is a 3rd-row (ethics default).
+    act(() => { host.querySelector('#about-tab-sponsors').click(); });
+    expect(host.querySelector('[role="tablist"][aria-label="Sponsor sections"]')).toBeTruthy();
+    expect(host.textContent).toContain('Sponsorship & Advertising Ethics'); // ethics default
+    expect(host.textContent).not.toContain('Vetting Framework');            // vetting is another sub-tab
+    act(() => { host.querySelector('#about-sponsors-tab-vetting').click(); });
+    expect(host.textContent).toContain('Vetting Framework');
+    cleanup();
+  });
+
   it('the steward-only Feedback / Checkout tabs appear only when they hold data', () => {
     const empty = mount();
     expect(empty.host.querySelector('#about-tab-feedback')).toBeNull();
