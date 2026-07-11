@@ -60,7 +60,7 @@ export const WORLD_ISSUES_META = {
   tagline: 'Don’t be told what to think. Learn how to think it through.',
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 5, // five published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique); the track grows as issues are added
+  weeks: 6, // six published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -1145,7 +1145,267 @@ const MEDICAL_ESTABLISHMENT_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE];
+
+// =============================================================================
+// ISSUE 6 — the AI-empire journalism (Karen Hao, "Empire of AI"). Built
+// BELIEVE-FIRST (DR-0166): a credentialed investigative journalist with a
+// documented, award-winning book (260+ interviews, National Book Critics
+// Circle Award) is received with belief-and-honor, and the research CONFIRMS
+// her account rather than hunting to refute it. This is the DELIBERATE
+// CONTRAST to Issue 5: same "credentialed insider indicts the powerful"
+// shape, opposite evidence quality \u2014 here the claims are well-sourced and
+// hold up, which teaches that "credentialed" splits on the EVIDENCE, not the
+// badge. DR-0100: the documented harms (exploited annotation labor, the
+// nonprofit-to-for-profit shift, the fired-then-reinstated CEO, the resource
+// consumption) are stated PLAINLY as established fact \u2014 under-claiming real,
+// verified corporate damage would be its own failure of truth. The Word
+// governs the response: honest weights, the labourer's wage, the Babel
+// pattern, and build-don't-just-lament. Every figure verified by live web
+// search 2026-07-11 (DR-0076), cited with as-of dates.
+// =============================================================================
+const AI_EMPIRE_ISSUE = {
+  id: 'wi-ai-empire',
+  title: 'A Journalist Maps the AI Empire — Believing a Well-Sourced Voice',
+  subject: { name: 'Karen Hao / the AI industry', kind: 'public-figure', isNamedRealPerson: true },
+  skill: 'Take a credentialed investigative journalist\u2019s documented critique of the most powerful industry on earth and practice the discernment move Issue 5 sets up by contrast: when a voice is well-sourced, you BELIEVE FIRST and confirm (DR-0166), you STATE the documented harm plainly as established fact (DR-0100 \u2014 under-claiming verified damage is its own lie), and you still test the interpretive frame by the Word. Same "insider indicts the powerful" shape as the medical issue; OPPOSITE evidence quality \u2014 which is exactly the lesson: "credentialed" is not one category. The badge is identical; the EVIDENCE separates the falsified claim from the sourced one.',
+  source: {
+    creator: 'Karen Hao (interviewed about "Empire of AI")',
+    medium: 'video',
+    title: 'an investigative journalist\u2019s account of OpenAI, Sam Altman, and the AI industry',
+    url: 'https://youtu.be/',
+    asOf: '2026-07-11',
+    note: 'A documented, award-winning book (National Book Critics Circle Award, 2025; ~260-300 interviews over seven years at MIT Tech Review, WSJ, The Atlantic). We receive it BELIEVING-FIRST (DR-0166) and confirm the checkable claims \u2014 the opposite posture from hunting a fringe claim to refute, and appropriate to the opposite evidence quality.',
+  },
+
+  claims: [
+    {
+      id: 'c-ouster',
+      text: 'OpenAI\u2019s board briefly ousted CEO Sam Altman, and an employee revolt reinstated him days later.',
+      label: 'claim',
+      attribution: 'Karen Hao (reporting documented events)',
+      note: 'DOCUMENTED and public: the board removed Altman on 17 November 2023; ~700 of ~770 employees signed a letter threatening to leave for Microsoft; he was reinstated on 22 November with a reconstituted board. Widely reported at the time \u2014 state it plainly.',
+    },
+    {
+      id: 'c-nonprofit-shift',
+      text: 'OpenAI began as a nonprofit and shifted toward a for-profit structure, creating deep internal divisions.',
+      label: 'claim',
+      attribution: 'Karen Hao',
+      note: 'DOCUMENTED: founded as a nonprofit (2015), it created a "capped-profit" subsidiary in 2019 (cap initially 100x investment) to attract capital and take Microsoft\u2019s $1B; later restructuring moved further toward a public-benefit corporation. The structure and the tensions it created are on the record.',
+    },
+    {
+      id: 'c-labor',
+      text: 'Highly educated workers are pushed into precarious "data annotation" work \u2014 and low-paid workers in the Global South label traumatic content \u2014 to train the very models displacing them.',
+      label: 'claim',
+      attribution: 'Karen Hao',
+      note: 'DOCUMENTED and serious: TIME (Jan 2023) reported OpenAI used Kenyan workers via Sama at under $2/hour to label graphic content (murder, abuse) for ChatGPT\u2019s safety filter, with thin psychological support; the workers petitioned Kenya\u2019s parliament. The hidden human cost of AI is established fact \u2014 name it plainly (DR-0100 tier 1).',
+    },
+    {
+      id: 'c-agi-marketing',
+      text: 'AGI ("artificial general intelligence") is a flexible marketing term, redefined per audience \u2014 cure-cancer for politicians, digital-assistant for consumers, revenue-engine for investors.',
+      label: 'claim',
+      attribution: 'Karen Hao',
+      note: 'INTERPRETATION with a strong evidentiary basis: that AGI lacks a fixed operational definition and is deployed rhetorically is well-argued and widely observed; "deliberate myth-making" is her characterization of motive. The lack of a settled definition is checkable; the intent is her sourced inference.',
+    },
+    {
+      id: 'c-myths',
+      text: 'AI companies use myths \u2014 existential-risk ("we are summoning a demon we alone can control"), an "us vs. them" arms race (now vs. China), and a messiah/utopia narrative \u2014 to secure capital, evade regulation, and shield themselves from democratic participation.',
+      label: 'opinion',
+      attribution: 'Karen Hao (her central thesis)',
+      note: 'Her INTERPRETIVE THESIS, resting on documented behavior. The individual behaviors (existential-risk framing, arms-race rhetoric, utopian promises) are observable and quoted; "myth to consolidate power" is the analytic frame \u2014 strong, sourced, and to be weighed as argument, not gospel. The Musk "summoning the demon" quote (Issue 4) is a real instance of the existential-risk register she describes.',
+    },
+    {
+      id: 'c-intelligence',
+      text: 'The industry claims to be recreating "human intelligence" it cannot even define \u2014 running on the unproven assumption that the brain is just a statistical engine \u2014 and its goal is to DUPLICATE and replace humans rather than serve them; historically, quantifying and ranking intelligence has served nefarious ends.',
+      label: 'claim',
+      attribution: 'Karen Hao',
+      note: 'A cluster with a strong checkable core and a righteous challenge. CHECKABLE: "AI" was coined in 1956 and there is still no agreed scientific definition of human intelligence across psychology/biology/neurology \u2014 true, and it means "human-level" is a movable goalpost. The "brain is just a statistical engine" (associated with figures like Hinton/Sutskever) is a genuine, heavily-DEBATED hypothesis, not settled fact \u2014 she is right to label it an assumption. The historical warning is documented: attempts to strictly quantify and rank intelligence (eugenics, racial IQ pseudoscience) really did serve to "prove" some groups inferior. And her deepest question \u2014 why DUPLICATE humans to replace them, rather than build tools that serve human flourishing \u2014 is a philosophy-of-technology challenge this platform shares.',
+    },
+    {
+      id: 'c-environment',
+      text: 'AI data centers consume enormous resources (power, water, land \u2014 facilities compared in scale to Central Park), driving real public pushback and litigation.',
+      label: 'claim',
+      attribution: 'Karen Hao',
+      note: 'DOCUMENTED in substance: large AI/hyperscale data centers are genuinely resource-intensive (electricity and cooling water at scale) and have drawn protests and legal action; the specific "Central Park-sized" comparison is illustrative rather than a precise unit. The resource-consumption concern is real and measurable.',
+    },
+    {
+      id: 'c-breakup',
+      text: 'The response is to "break up the empire" \u2014 support alternatives, build democratic participation into how AI is deployed, and pursue ethical, sustainable development that gives real utility without exploitation.',
+      label: 'opinion',
+      attribution: 'Karen Hao (her call to action)',
+      note: 'Her prescription \u2014 a values claim, to be weighed by the Word and by fruit. Much of it aligns with this platform\u2019s own founding commitments (sovereign tools, family-owned data, serve-not-extract); "how" is the open question. Not gospel, but not fringe \u2014 a builder\u2019s agenda close to our own.',
+    },
+  ],
+
+  verifiable: [
+    {
+      id: 'f-book',
+      statement: '"Empire of AI: Dreams and Nightmares in Sam Altman\u2019s OpenAI" (Karen Hao, May 2025) is a documented, award-winning work of journalism \u2014 ~260-300 interviews over seven years (MIT Technology Review, WSJ, The Atlantic); winner of the 2025 National Book Critics Circle Award for Nonfiction; a New York Times bestseller. OpenAI declined to cooperate and Altman publicly criticized it.',
+      status: 'documented',
+      sources: [
+        { title: 'Empire of AI', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Empire_of_AI', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The CREDENTIAL-AND-EVIDENCE case: unlike a viral claim, this is heavily sourced, fact-checked, and award-recognized journalism \u2014 which is exactly why the believe-first posture (DR-0166) fits, and why the contrast with Issue 5 teaches that "credentialed" splits on evidence quality.',
+    },
+    {
+      id: 'f-ouster',
+      statement: 'Sam Altman was removed by OpenAI\u2019s board on 17 November 2023 ("the board no longer has confidence..."), roughly 700 of ~770 employees signed a letter threatening to follow him to Microsoft, and he was reinstated on 22 November with a reconstituted board. Public, documented, contemporaneous.',
+      status: 'documented',
+      sources: [
+        { title: 'Removal of Sam Altman from OpenAI', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI', asOf: '2026-07-11' },
+        { title: 'Hundreds of OpenAI workers threaten to leave over CEO Sam Altman\u2019s firing', publisher: 'NPR', url: 'https://www.npr.org/2023/11/20/1214281184/hundreds-of-openai-workers-threaten-to-leave-over-ceo-sam-altmans-firing', asOf: '2023-11-20' },
+      ],
+      note: 'Verified 2026-07-11. Stated plainly (DR-0100 tier 1). A clean documented event \u2014 the kind of checkable spine that anchors a trustworthy account.',
+    },
+    {
+      id: 'f-structure',
+      statement: 'OpenAI was founded as a nonprofit (2015), created a capped-profit subsidiary in 2019 (profit cap initially 100x investment) to raise capital and accept Microsoft\u2019s ~$1B, and has since restructured further toward a public-benefit-corporation model. The nonprofit-to-for-profit trajectory is documented.',
+      status: 'documented',
+      sources: [
+        { title: 'OpenAI \u2014 corporate structure and 2019 capped-profit restructuring', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/OpenAI', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The shift is fact; whether it was mission-drift or mission-necessity is the contested interpretation \u2014 the same believe-the-facts / weigh-the-frame split that runs through the whole track.',
+    },
+    {
+      id: 'f-labor',
+      statement: 'TIME (January 2023) documented that OpenAI, via the firm Sama, used Kenyan workers paid under $2/hour to label graphic content (including depictions of murder and sexual abuse) to build ChatGPT\u2019s safety filter, with workers reporting inadequate psychological support; the workers later petitioned Kenya\u2019s parliament. The exploited-labor claim is DOCUMENTED.',
+      status: 'documented',
+      sources: [
+        { title: 'OpenAI Used Kenyan Workers on Less Than $2 Per Hour to Make ChatGPT Less Toxic', publisher: 'TIME', url: 'https://time.com/6247678/openai-chatgpt-kenya-workers/', asOf: '2023-01-18' },
+        { title: 'Workers that made ChatGPT less harmful ask lawmakers to stem alleged exploitation', publisher: 'TechCrunch', url: 'https://techcrunch.com/2023/07/14/workers-that-made-chatgpt-less-harmful-ask-lawmakers-to-stem-alleged-exploitation-by-big-tech/', asOf: '2023-07-14' },
+      ],
+      note: 'Verified 2026-07-11. The most morally weighty documented fact in the set \u2014 stated PLAINLY as real damage (DR-0100): the labourer\u2019s wage and the labourer\u2019s trauma are exactly what the Word attends to (James 5:4; Deuteronomy 24:14-15). Under-claiming this to sound "balanced" would be its own failure of truth.',
+    },
+    {
+      id: 'f-resource',
+      statement: 'Large AI/hyperscale data centers are genuinely resource-intensive \u2014 significant electricity draw and cooling-water use \u2014 and have generated real community protest and litigation. The "Central Park-sized" comparison is illustrative rather than a precise measurement.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Empire of AI (documents resource consumption and public pushback)', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Empire_of_AI', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The resource intensity and the pushback are real (tier 1); the vivid size comparison is a rhetorical illustration (tier 2) \u2014 keep the documented substance, hold the illustration as illustration.',
+    },
+    {
+      id: 'f-intelligence',
+      statement: 'The claim that there is no settled scientific definition of human intelligence is well-founded: the term "artificial intelligence" was coined in 1956, yet psychology, biology, and neuroscience still lack an agreed definition of intelligence \u2014 so "human-level" AI has no fixed goalpost. The "brain is only a statistical engine" premise behind large-model scaling is a contested hypothesis, not established science. And the history of quantifying/ranking intelligence (eugenics, racial IQ pseudoscience) genuinely served to justify treating groups as inferior.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'History of artificial intelligence (1956 Dartmouth coinage; no settled definition of intelligence)', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/History_of_artificial_intelligence', asOf: '2026-07-11' },
+      ],
+      note: 'Verified 2026-07-11. The "no consensus definition" and the eugenic-history warning are tier-1 sound; whether the "brain is just statistics" premise is FALSE (vs merely unproven) is itself an open scientific question \u2014 so the honest label is "contested hypothesis, not settled fact," which is exactly her point. This is where the Word speaks loudest (see the lens): the mind is imago Dei, not a probability table.',
+    },
+  ],
+
+  interpretation: [
+    { id: 'n-believe-well-sourced', statement: 'The right posture toward a well-sourced voice is BELIEF, then confirmation (DR-0166) \u2014 not the skeptic\u2019s default. Hao\u2019s central factual claims (the ouster, the structure shift, the Kenyan labor, the resource use) CONFIRM under checking; a credentialed voice backed by 260+ interviews and an award earns the presumption of accuracy that a viral fringe claim does not. Belief is not credulity here; it is proportion \u2014 the evidence quality is high, so the belief is warranted.', restsOn: ['f-book', 'f-ouster', 'f-labor'] },
+    { id: 'n-credential-splits-on-evidence', statement: 'Set this beside Issue 5 and the lesson leaps out: two credentialed insiders indict the powerful; one\u2019s central claims FALSIFY under checking (the Amish "control group," vaccine-SIDS) and one\u2019s CONFIRM (the Kenyan labor, the ouster). The credential is identical; the EVIDENCE is the divider. "She has credentials" never settles it in either direction \u2014 you always go to the sources.', restsOn: ['f-book', 'f-labor'] },
+    { id: 'n-facts-vs-frame', statement: 'Even with a trustworthy reporter, keep the two layers distinct: the documented FACTS (believe them) and the interpretive FRAME ("myth-making to consolidate power," "empire," "break it up") \u2014 a strong, sourced argument to weigh, not a revelation to swallow whole. Believing the facts does not oblige adopting every analytic claim; testing the frame does not license denying the facts.', restsOn: ['f-structure', 'f-resource'] },
+    { id: 'n-real-damage-named', statement: 'The exploited-labor and resource-consumption harms are ESTABLISHED, so they are stated plainly as damage (DR-0100) \u2014 not softened into "some say" for the sake of appearing even-handed. The both-sides reflex that mutes verified harm is the exact failure DR-0100 exists to prevent; a just weight names a real wrong as a real wrong.', restsOn: ['f-labor'] },
+    { id: 'n-imago-dei', statement: 'Hao\u2019s deepest challenge \u2014 that the industry claims to recreate a "human intelligence" it cannot define, on the unproven premise that the mind is just a statistical engine \u2014 the Word answers at the root: the human is made in God\u2019s image (Genesis 1:27), a "living soul" breathed by God (Genesis 2:7), "fearfully and wonderfully made" (Psalm 139:14), carrying "a spirit in man" whose understanding is "the inspiration of the Almighty" (Job 32:8). A being reducible to statistics could be duplicated; an imago-Dei soul cannot. Her eugenic-history warning is the same truth from the other side: every scheme to rank human worth by measured intelligence collides with the equal image every person bears. And her question \u2014 why DUPLICATE and replace rather than SERVE \u2014 is this platform\u2019s own philosophy of technology: tools exist to make the person more able to walk The Way, not to render the person obsolete.', restsOn: ['f-intelligence'] },
+  ],
+
+  perspectives: [
+    {
+      id: 'p-journalist',
+      label: 'The investigative-journalist view (believed, then confirmed)',
+      heldBy: 'Karen Hao and the record',
+      steelman: 'Heard at its strongest \u2014 and confirmed by checking \u2014 this view documents what the industry would rather stay hidden: a mission-driven nonprofit became a capital-hungry for-profit, a CEO was fired and reinstalled by an employee-and-investor revolt in five days, the "safety" of the flagship product was purchased with under-$2/hour trauma-labeling in Nairobi, and the data centers draw resources at a scale that is provoking real communities to protest and sue. These are not fringe allegations; they are sourced, award-recognized reporting. A believer who honors truth honors this reporting \u2014 the Word attends to exactly these things: the withheld wage, the oppressed poor, the tower built for a name.',
+    },
+    {
+      id: 'p-frame-tester',
+      label: 'What testing the FRAME adds \u2014 and what it leaves standing',
+      heldBy: 'believers weighing the analysis by the Word',
+      steelman: 'Testing the frame is not doubting the facts. "Empire," "myth-making," and "break it up" are a powerful analytic lens \u2014 and mostly a righteous one \u2014 but they are still a human argument to be weighed, not scripture. Two cautions the Word adds: first, an industry\u2019s self-serving existential-risk myth is real (she is right that "only we can be trusted with the demon" is a power move) AND the underlying spiritual danger of the technology is also real (Issue 4) \u2014 the myth being cynical does not make the risk zero. Second, "break up the empire" can curdle into its own utopianism if it forgets that the human heart, not just the corporate structure, is what needs redeeming (Jeremiah 17:9). Keep the documented indictment; hold the totalizing frame with an open hand.',
+    },
+    {
+      id: 'p-builder',
+      label: 'The sovereign-builder view (this platform among them)',
+      heldBy: 'believers building alternatives',
+      steelman: 'Hao\u2019s call \u2014 support alternatives, build democratic participation, pursue utility without exploitation \u2014 is close to this platform\u2019s own founding charter (sovereign tools, family-owned data, serve-not-extract, no engagement optimization). The durable answer to an exploitative empire is not only critique; it is building the thing that does not exploit: technology where the Word is the source of answers, where the labourer is paid, where the data belongs to the family. Lament that only consumes the exposE9 changes nothing; building changes the defaults a household lives inside \u2014 and doing it JUSTLY, wages paid and dignity kept, is part of the witness (James 5:4; Micah 6:8).',
+    },
+  ],
+
+  lens: {
+    fourD: {
+      deepSource: 'The Word both BELIEVES the documented harm and JUDGES the empire that caused it. On believing a true report: "the simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15) is not a license to disbelieve \u2014 the prudent man LOOKS WELL, and when he looks and the sources hold, he believes; and "he that is first in his own cause seemeth just; but his neighbour cometh and searcheth him" (Proverbs 18:17) cuts toward the powerful here \u2014 the corporation is first in its own cause, and the journalist is the neighbour who came and searched. On the exploited labour, the Word is not neutral and neither are we: "Behold, the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth" (James 5:4); "Thou shalt not oppress an hired servant that is poor and needy... At his day thou shalt give him his hire" (Deuteronomy 24:14-15); "Woe unto him that... useth his neighbour\u2019s service without wages, and giveth him not for his work" (Jeremiah 22:13). The under-$2/hour trauma-labeling is precisely the withheld and under-paid hire the Word says CRIES to God \u2014 stated plainly (DR-0100). On the empire itself, the Babel pattern returns (Issue 4\u2019s lens): "let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name" (Genesis 11:4) \u2014 an all-consolidating project for a name and against being "scattered" (against democratic dispersion of power); "Woe unto them that join house to house, that lay field to field, till there be no place" (Isaiah 5:8) names the monopolizing impulse; and the love of money under it is diagnosed exactly: "they that will be rich fall into temptation and a snare... for the love of money is the root of all evil" (1 Timothy 6:9-10). On the myth-making, "Beware lest any man spoil you through philosophy and vain deceit, after the tradition of men... and not after Christ" (Colossians 2:8) \u2014 a utopian AI-gospel is exactly a philosophy after the rudiments of the world. And the believer\u2019s mandate is not spectator outrage but advocacy and just building: "Open thy mouth for the dumb... plead the cause of the poor and needy" (Proverbs 31:8-9); "do justly, and love mercy, and walk humbly with thy God" (Micah 6:8). Not fear, not cynicism \u2014 a sound mind that believes the evidence, names the wrong, and builds the just alternative (2 Timothy 1:7).',
+      scripture: 'Proverbs 14:15; Proverbs 18:17; James 5:4; Deuteronomy 24:14-15; Jeremiah 22:13; Genesis 11:4; Isaiah 5:8; 1 Timothy 6:9-10; Colossians 2:8; Proverbs 31:8-9; Micah 6:8; Ecclesiastes 5:8; 2 Timothy 1:7',
+    },
+    threeD: 'Practically: BELIEVE THE SOURCED, name the harm, weigh the frame. Bin 1 \u2014 DOCUMENTED, state plainly: the 2023 board ouster and employee-revolt reinstatement; the nonprofit\u2192capped-profit shift and Microsoft\u2019s stake; the Kenyan annotators under $2/hour labeling trauma for the safety filter; the real resource intensity and community pushback. These are established (a National-Book-Critics-Circle-Award book, TIME, NPR) \u2014 do not soften real damage to sound balanced (DR-0100). Bin 2 \u2014 the FRAME to weigh: "empire," "myth-making to consolidate power," "break it up" is a strong, mostly-righteous argument \u2014 test it by the Word (the labourer\u2019s wage cries, James 5:4; the tower-for-a-name is Babel, Genesis 11:4) and hold the totalizing parts with an open hand (structures need reform AND hearts need redeeming, Jeremiah 17:9). And the CONTRAST that teaches the skill: set this beside Issue 5 \u2014 same "credentialed insider" shape, opposite evidence quality; the credential never settled it, the sources did. Then respond the Word\u2019s way: plead the cause of the underpaid (Proverbs 31:8-9), and BUILD the just alternative rather than only sharing the expose.',
+    accountability: {
+      statement: 'THE TWO COURTS, applied to the empire and the witness alike. THE COMPANIES are accountable for documented harm no earthly court has fully reckoned: wages kept low on workers labeling trauma so a product could be sold as "safe" \u2014 "the hire of the labourers... kept back by fraud, crieth" (James 5:4), and a wage-court in Nairobi is not the last court; "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), and the trauma carried by the underpaid is weighed as impact on life DURING life. The love-of-money root (1 Timothy 6:9-10) and the join-house-to-house monopolizing (Isaiah 5:8) are named where regulators have been slow. THE MYTH-MAKERS are accountable for the narrative: selling an existential-risk story to secure power, or a utopia-story to evade participation, is "philosophy and vain deceit" (Colossians 2:8) and a false balance (Proverbs 11:1) \u2014 and idle-but-load-bearing words are accounted for (Matthew 12:36). THE WITNESS is accountable too, the other way: Hao\u2019s reporting confirms under checking, which is its own vindication \u2014 but any journalist is bound to the just weight (Proverbs 11:1), and where a frame outruns its evidence it must be held as argument, not fact. AND WE are accountable for our response: to SEE the oppression of the poor and "marvel not... for he that is higher than the highest regardeth" (Ecclesiastes 5:8) is not passivity but the assurance that fuels action \u2014 to plead the cause (Proverbs 31:8-9) and to build justly (Micah 6:8), not to consume the outrage and move on. Denying documented worker-harm because we like the technology is calling evil good (Isaiah 5:20); swallowing the whole totalizing frame because the facts are true is believing every word (Proverbs 14:15). No one gets away \u2014 "Be not deceived; God is not mocked" (Galatians 6:7).',
+      scripture: 'James 5:4; Ecclesiastes 12:14; 1 Timothy 6:9-10; Isaiah 5:8; Colossians 2:8; Proverbs 11:1; Matthew 12:36; Ecclesiastes 5:8; Proverbs 31:8-9; Micah 6:8; Isaiah 5:20; Galatians 6:7',
+    },
+    benefits: [
+      'Believe-first in practice: a well-sourced voice is received with belief and confirmed (DR-0166), not met with reflexive doubt \u2014 proportion, not credulity.',
+      'The credential-splits-on-evidence skill, seen in contrast: Issue 5\u2019s falsified insider beside Issue 6\u2019s confirmed one \u2014 the badge never settled it; the sources did.',
+      'Real damage named as damage: the labourer\u2019s withheld wage (James 5:4) and trauma are stated plainly, never softened to sound balanced (DR-0100).',
+      'Facts-vs-frame kept distinct: believe the documented events; weigh "empire / myth / break-it-up" as strong argument, not gospel.',
+      'The Babel diagnosis extended: consolidation for a name, join-house-to-house monopoly, and the love-of-money root named by the Word (Genesis 11:4; Isaiah 5:8; 1 Timothy 6:9-10).',
+      'Build-don\u2019t-just-lament: the platform\u2019s own charter (sovereign, family-owned, serve-not-extract, wages paid) is the Word\u2019s answer to an exploitative empire (Micah 6:8; Proverbs 31:8-9).',
+    ],
+    graceNote: 'This lesson pronounces no verdict on Sam Altman\u2019s soul, nor on any worker or executive \u2014 that judgment is God\u2019s alone (Romans 14:4; James 4:12). Hao\u2019s own sharpest insight guards this: how people rate these leaders (visionary genius vs manipulator) tracks whether they SHARE the leader\u2019s vision \u2014 the same traits read as brilliance or menace depending on the viewer, so the leaders become mirrors, and the verdict says as much about the judge. And she concludes they are often not cynical liars but TRUE BELIEVERS IN THEIR OWN MYTH \u2014 which the Word already knows is the most dangerous state of all: the heart is deceitful above all things (Jeremiah 17:9), and evil men wax worse "deceiving, and being deceived" (2 Timothy 3:13). That is exactly why this lesson judges the FRAME and the FRUIT, never the heart \u2014 the structure outlasts the CEO (swap a moral one in and the empire\u2019s logic remains), so we weigh what is built and what it costs, not who is secretly sincere. Naming documented harm is not condemning a person; it is pleading the cause of the underpaid the Word tells us to plead (Proverbs 31:8-9). We believe the sourced account, state the damage plainly, test the frame by the Word, build the just alternative \u2014 and leave every heart, the CEO\u2019s and the annotator\u2019s alike, with God, before whom the Door stands open to all (John 10:9).',
+    stewardship: 'The deeper answer to an exploitative AI empire is not only to share the expose \u2014 it is to BUILD the thing that does not exploit: sovereign tools where the Word is the source of answers, where the family owns the data, where the labourer is paid at his day (Deuteronomy 24:14-15), where nothing is optimized for engagement or extraction. This platform is one small act of exactly that; believe the witness, name the wrong, and build the alternative justly (Micah 6:8).',
+    anchor: {
+      ref: 'James 5:4',
+      theme: 'The hire of the labourers... kept back by fraud, crieth \u2014 believe the documented wrong, name it plainly, and answer it by building the just alternative where the wage is paid and the data belongs to the family.',
+    },
+  },
+
+  reflection: {
+    skill: 'When a WELL-SOURCED voice indicts the powerful: BELIEVE FIRST and confirm (DR-0166) \u2014 the opposite of hunting a fringe claim to refute. State documented harm plainly as established fact (DR-0100); keep the FACTS (believe) distinct from the FRAME (weigh by the Word); and set it beside the falsified-insider case to see that "credentialed" splits on evidence, not on the badge. Then respond the Word\u2019s way: plead the cause of the underpaid, and build the just alternative rather than only lamenting.',
+    practice: 'Take ONE documented claim from this account (the Kenyan annotators; the 2023 ouster; the structure shift) and find its primary source (TIME, NPR, the record). Then take ONE frame-claim ("myth-making," "empire") and write the verse that tests it. Finally, write one sentence on a BUILD-or-PLEAD response \u2014 something you will make, support, or advocate \u2014 rather than an outrage to forward.',
+    prompts: [
+      'Karen Hao\u2019s central factual claims CONFIRM under checking; a physician\u2019s (Issue 5) central claims FALSIFY. Their credentials are identical \u2014 so what actually did the separating, and what does that retire forever as an argument?',
+      'The Word says the withheld hire of the labourer CRIES to God (James 5:4). How should under-$2/hour trauma-labeling for a "safety" filter be named \u2014 and what does softening it into "some say" cost?',
+      'Where is the line between believing Hao\u2019s documented facts and adopting her whole "empire / break-it-up" frame? Which parts are established, and which are strong argument to weigh?',
+      'She says the existential-risk narrative is a myth to consolidate power \u2014 and Issue 4 says the spiritual danger is real. How can BOTH be true at once (the myth cynical AND the risk real)?',
+      'Genesis 11:4 (a tower for a name, against being scattered) \u2014 where do you see the Babel pattern in an industry consolidating capital, talent, and narrative? Where would that reading overreach?',
+      'What will you BUILD, SUPPORT, or PLEAD in response \u2014 rather than one more expose you forward? Where does this platform\u2019s own charter (wages paid, data owned, serve-not-extract) already answer part of it?',
+    ],
+  },
+
+  levels: {
+    child: 'When a grown-up who studied something very carefully \u2014 like a reporter who spent SEVEN YEARS talking to hundreds of people \u2014 tells you what they found, the wise thing is usually to BELIEVE them and then double-check, not to argue right away. A reporter named Karen looked closely at the big computer-brain companies, and she found some sad true things: some workers far away were paid almost nothing to read terribly scary things all day so the computer would be "safe." The Bible says God HEARS it when a worker is not paid fairly \u2014 "the cry of the workers... has reached the ears of the Lord" (James 5:4)! God cares about the person who does the hard work. So two things to remember: (1) when someone did careful homework, believe them and check \u2014 that is different from someone just saying something scary on the internet; and (2) God wants workers treated fairly and paid. And the best answer to a company that does wrong is not just to be mad \u2014 it is to help build something GOOD instead, where everyone is treated right. God gave us a strong, calm mind to build good things (2 Timothy 1:7)!',
+    teen: 'Here is the flip side of the discernment coin. In Issue 5, a credentialed doctor made claims that FELL APART when you checked them (the Amish "control group," vaccine-SIDS \u2014 both false). Here, a credentialed journalist makes claims that HOLD UP when you check them: Sam Altman really was fired by OpenAI\u2019s board and reinstated 5 days later when ~700 of 770 employees revolted; OpenAI really did morph from a nonprofit into a for-profit; and TIME documented that Kenyan workers were paid under $2/hour to label horrific content so ChatGPT could be "safe." Same "credentialed insider" setup \u2014 opposite result. THE LESSON: the credential never settles it; the SOURCES do. And when the sources are strong (260+ interviews, a major award, TIME, NPR), the right move is to BELIEVE and confirm, not to reflex-doubt \u2014 that\u2019s called proportion. Now keep two layers separate: the FACTS (believe them) and the FRAME ("empire," "myth-making," "break it up" \u2014 a strong argument to weigh by the Word, not a done deal). The Bible is FIERCE about the underpaid worker \u2014 their unpaid wages literally "cry" to God (James 5:4) \u2014 so naming that harm plainly is obedience, not politics. And the response isn\u2019t just outrage: it\u2019s to plead for the mistreated (Proverbs 31:8-9) and BUILD something that pays people right and doesn\u2019t exploit \u2014 which is literally what this platform is trying to be.',
+    senior: 'For the seasoned believer, this issue is the deliberate counterweight that keeps discernment from curdling into cynicism. Issue 5 trained the muscle that DOUBTS a falsified claim; this one trains the muscle that BELIEVES a proven one \u2014 and a mature mind needs both, or it becomes a mere scoffer, which the Word never commends (Proverbs 14:15 says look well, THEN proceed \u2014 not disbelieve on principle). Hao\u2019s account is heavily sourced (260+ interviews, a National Book Critics Circle Award) and its checkable spine holds: the November 2023 board ouster and five-day employee-revolt reinstatement, the nonprofit-to-capped-profit restructuring with Microsoft\u2019s stake, and \u2014 most weighty \u2014 TIME\u2019s documentation of Kenyan annotators paid under $2/hour to label trauma for the safety filter. Believe-first (DR-0166) is not credulity here; it is proportion to strong evidence, and it honors the human voice the way the house now requires. State the documented harm PLAINLY (DR-0100): the withheld and meager wage of the labourer is precisely what Scripture says CRIES to the Lord of sabaoth (James 5:4; Deuteronomy 24:14-15; Jeremiah 22:13) \u2014 to mute that for the sake of sounding even-handed would be its own false balance (Proverbs 11:1). Then keep the elder\u2019s discipline of separating fact from frame: "empire," "myth-making," "break it up" is a strong and largely righteous analysis, and still a human argument \u2014 the industry\u2019s existential-risk myth can be cynical (a power move) WHILE the technology\u2019s spiritual danger is real (Issue 4); both hold. And model the Word\u2019s response over mere lament: "he that is higher than the highest regardeth" (Ecclesiastes 5:8) is not passivity but the confidence that frees you to plead the cause of the underpaid (Proverbs 31:8-9) and to build justly (Micah 6:8) \u2014 wages paid, data owned, nothing optimized for extraction. The Babel tower rises again for a name (Genesis 11:4); the answer of the fathers is not only to expose it but to build a truer house, and to pay everyone who lays its bricks.',
+  },
+
+  quiz: {
+    questions: [
+      {
+        q: 'Karen Hao\u2019s account is heavily sourced (260+ interviews, a major award) and its checkable claims confirm. What is the right posture toward it?',
+        options: ['Reflexive doubt \u2014 all critics have an agenda', 'Believe-first and confirm (DR-0166) \u2014 proportion to strong evidence, not credulity; a well-sourced voice earns the presumption a viral claim does not', 'Accept every word including the frame'],
+        answer: 1,
+        explain: 'Believe-first is not "believe everything." It is meeting strong evidence with belief and confirmation instead of reflexive suspicion \u2014 and it honors the human voice.',
+      },
+      {
+        q: 'Set Issue 5 (a physician\u2019s falsified claims) beside Issue 6 (a journalist\u2019s confirmed ones). What separates them?',
+        options: ['Their credentials \u2014 one is more qualified', 'The EVIDENCE \u2014 identical "credentialed insider" shape, opposite evidence quality; the badge never settled it, the sources did', 'Their tone'],
+        answer: 1,
+        explain: 'The whole two-issue lesson: "credentialed" is not one category. You always go to the sources \u2014 in both directions, to doubt AND to believe.',
+      },
+      {
+        q: 'TIME documented Kenyan workers paid under $2/hour labeling traumatic content for ChatGPT\u2019s safety filter. How does the Word have you name it?',
+        options: ['Gently, as "some say," to stay balanced', 'Plainly, as real damage \u2014 "the hire of the labourers... kept back by fraud, crieth" (James 5:4); softening verified harm is its own false balance (Proverbs 11:1; DR-0100)', 'Not at all \u2014 business is business'],
+        answer: 1,
+        explain: 'The withheld wage of the labourer cries to God. Under-claiming a documented harm to sound even-handed is exactly the failure DR-0100 forbids.',
+      },
+      {
+        q: 'Hao says the existential-risk narrative is a myth to consolidate power; Issue 4 says the spiritual danger is real. Can both be true?',
+        options: ['No \u2014 pick one', 'Yes \u2014 the myth can be a cynical power move AND the underlying risk can be real; believing her facts does not oblige denying the danger, and naming the danger does not deny her point', 'Only if you distrust both'],
+        answer: 1,
+        explain: 'Facts and frame stay distinct. A self-serving myth and a genuine risk can coexist \u2014 weigh each on its own evidence rather than forcing a single verdict.',
+      },
+      {
+        q: 'What is the believer\u2019s response to a documented, exploitative "AI empire"?',
+        options: ['Consume the expose and move on', 'Deny it because the tech is useful', 'Plead the cause of the underpaid (Proverbs 31:8-9) AND build the just alternative \u2014 wages paid, data owned, serve-not-extract (Micah 6:8) \u2014 not lament alone'],
+        answer: 2,
+        explain: 'Neither outrage-scrolling nor denial. See the oppression without marveling (Ecclesiastes 5:8), plead the cause, and build the truer house that pays its labourers (James 5:4; Deuteronomy 24:14-15).',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
