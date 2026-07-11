@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   boardProgress, groupTasks, sortTasks, nextStatus, boardsFromTasks,
   seedTasksForBoard, mergedBoardList, SEED_BOARDS, seedTaskSlug,
-  BOARD_STATUS_ORDER, boardDueByMonth,
+  BOARD_STATUS_ORDER, boardDueByMonth, seedDueDate,
 } from '../lib/board.js';
 
 const T = (over = {}) => ({ slug: over.slug || Math.random().toString(36), status: 'not-started', boardSlug: 'b', boardTitle: 'B', title: 'x', ...over });
@@ -113,6 +113,60 @@ describe('boardDueByMonth — the boards ARE on the timeline (honest counts)', (
   it('items outside the 12-month window are ignored', () => {
     const out = boardDueByMonth([T({ dueDate: '2031-01-01', status: 'not-started' })], { now: NOW });
     expect(Object.values(out).reduce((s, n) => s + n, 0)).toBe(0);
+  });
+});
+
+describe('seedDueDate + the PM plan fills the timeline (DR-0170)', () => {
+  it('every OPEN seed item carries a target dueDate — no undated open plan item', () => {
+    // The reason the 12-Month Workload Forecast was empty: open items were
+    // undated. This invariant fails the build if a future open seed item lands
+    // without a target date (proven-to-catch — Darrell 2026-07-11).
+    const undated = [];
+    for (const b of SEED_BOARDS) {
+      for (const it of b.items || []) {
+        if (it.status === 'done') continue;               // finished items need no target
+        if (!it.dueDate) undated.push(`${b.slug}/${it.key}`);
+      }
+    }
+    expect(undated, `open seed items with no target dueDate: ${undated.join(', ')}`).toEqual([]);
+  });
+
+  it('every seed dueDate is a real ISO date the forecast can place', () => {
+    for (const b of SEED_BOARDS) {
+      for (const it of b.items || []) {
+        if (!it.dueDate) continue;
+        expect(it.dueDate, `${b.slug}/${it.key}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(Number.isNaN(Date.parse(it.dueDate))).toBe(false);
+      }
+    }
+  });
+
+  it('seedDueDate resolves a dated seed slug and is honest about the rest', () => {
+    // Find a real dated open item to resolve by its stable slug.
+    let found = null;
+    for (const b of SEED_BOARDS) {
+      const it = (b.items || []).find((x) => x.dueDate && x.status !== 'done');
+      if (it) { found = { boardSlug: b.slug, slug: seedTaskSlug(b.slug, it.key), date: it.dueDate }; break; }
+    }
+    expect(found).toBeTruthy();
+    expect(seedDueDate(found.boardSlug, found.slug)).toBe(found.date);
+    // Non-seed / unknown / wrong-board → undefined (never invents a date).
+    expect(seedDueDate(found.boardSlug, 'bt-local-whatever')).toBeUndefined();
+    expect(seedDueDate('no-such-board', found.slug)).toBeUndefined();
+    expect(seedDueDate(found.boardSlug, `bt-seed-${found.boardSlug}-does-not-exist`)).toBeUndefined();
+  });
+
+  it('the planned dates actually land on the forecast (the boards ARE the timeline)', () => {
+    // Expand a real seeded board and confirm its dated open items count on the
+    // 12-month forecast — the fix for the empty timeline.
+    const rows = seedTasksForBoard(SEED_BOARDS[0].slug);
+    const dated = rows.filter((r) => r.dueDate && r.status !== 'done');
+    expect(dated.length).toBeGreaterThan(0);
+    const earliest = dated.map((r) => r.dueDate).sort()[0];
+    const now = new Date(`${earliest.slice(0, 7)}-01T00:00:00`);
+    const buckets = boardDueByMonth(rows, { now });
+    const total = Object.values(buckets).reduce((a, b) => a + b, 0);
+    expect(total).toBeGreaterThan(0); // at least the earliest dated item is placed
   });
 });
 
