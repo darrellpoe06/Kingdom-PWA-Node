@@ -74,12 +74,13 @@ describe('the share aliases resolve to the entry page', () => {
 });
 
 describe('the plan and the artifact never drift (DR-0121)', () => {
-  it('phase install-identity reflects the BUILT artifact, still Tier C gated', () => {
+  it('phase install-identity is approved and shipping (the church cleared it 2026-07-11)', () => {
     const phase = DOOR_PHASES.find((p) => p.id === 'phase-install-identity');
     expect(phase).toBeTruthy();
-    expect(phase.status).toBe('in-progress');       // built, not yet publicly live
+    expect(phase.status).toBe('verified');          // approved by Darrell (COLG Dir. of Tech) + Bishop Gwin
     expect(phase.tier).toBe('C');
-    expect(phase.gate).toMatch(/Bishop Gwin|Governor/); // the opening is gated
+    expect(phase.evidence).toMatch(/Darrell|Bishop Gwin/); // 'verified' needs evidence (DR-0076)
+    expect(phase.gate).toMatch(/CLEARED|approved/i);        // the gate is satisfied, not pending
   });
   it('the install constants are wired', () => {
     expect(INSTALL_MANIFEST).toBe('/manifest-lovecorner.webmanifest');
