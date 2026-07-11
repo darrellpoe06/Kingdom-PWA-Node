@@ -275,7 +275,7 @@ export function lintNoOneSidedPersuasion(issue) {
     out.push({ code: 'accountability/missing', severity: 'error', message: 'A named-person lesson with documented harm must state accountability plainly (lens.accountability): what the Word requires of the wrongdoer (confession, restitution, fruits of repentance) and of us — never left implied.' });
   }
   // The TWO COURTS must be visible in the benefits, not only in the deep lens
-  // (Darrell 2026-07-11 sharpening, DR-0170): where a lesson carries documented
+  // (Darrell 2026-07-11 sharpening, DR-0171): where a lesson carries documented
   // accountability, at least one benefit must name that judgment lands in BOTH
   // courts — some in this life (imperfectly: the guilty escape and the innocent
   // suffer) and all in the ETERNAL court after this life. Scoped to hasDocumented

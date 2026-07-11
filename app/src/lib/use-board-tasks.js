@@ -17,7 +17,7 @@ import { useSyncExternalStore } from 'react';
 import { boardTasksSync, mergeRemoteBoardTasks } from './board-tasks-sync.js';
 import {
   newTaskSlug, seedTasksForBoard, nextStatus, tasksForBoard, groupLabelOf,
-  normalizeOwner, canonicalSeedOwner, taskHistory, makeHandoff, appendHistory,
+  normalizeOwner, canonicalSeedOwner, seedDueDate, taskHistory, makeHandoff, appendHistory,
   withPhaseCompletion,
 } from './board.js';
 
@@ -72,6 +72,7 @@ function ensureSubscribed() {
     // still-backwards seed owner and persist it. Idempotent — a converged board
     // is a no-op, so this cannot loop.
     reconcileSeedOwners();
+    reconcileSeedDueDates();
   });
 }
 
@@ -175,6 +176,25 @@ function reconcileSeedOwners() {
   }
 }
 
+// ---- dueDate gap-fill (DR-0170: fill the timeline, never overwrite) ---------
+// A loaded seed row with NO dueDate adopts its seed item's PLANNED target date
+// (Ari's PM forecast) so it lands on the 12-Month Workload Forecast instead of
+// counting as "undated". Gap-fill ONLY: a row that already carries a dueDate —
+// the family set it, or a prior heal did — is never touched, so the governor's
+// real date is always senior to the forecast. Idempotent (after one pass the
+// row has a date, so it never fires again). Runs client-side, where the family
+// instance is writable (the cloud agent cannot write these rows — DR-0060).
+function reconcileSeedDueDates() {
+  for (const t of state) {
+    if (!t || !t.slug || !String(t.slug).startsWith('bt-seed-')) continue;
+    if (t.status === 'done') continue;          // a finished item needs no target
+    if (t.dueDate) continue;                    // family/prior date is senior — never overwrite
+    const planned = seedDueDate(t.boardSlug, t.slug);
+    if (!planned) continue;
+    patchTask(t, { dueDate: planned });
+  }
+}
+
 // Load a seed board's real items — only the ones not already present (idempotent
 // by stable slug), so a re-load fills gaps without clobbering edits.
 export async function loadSeed(boardSlug) {
@@ -195,6 +215,7 @@ export async function loadSeed(boardSlug) {
 // Correct any locally-cached rows on first load too (covers the signed-out /
 // offline path where the cloud subscription is a no-op). Idempotent.
 reconcileSeedOwners();
+reconcileSeedDueDates();
 
 // The hook every consumer uses — returns the live task list, re-rendering on any
 // change from any consumer or the realtime stream.

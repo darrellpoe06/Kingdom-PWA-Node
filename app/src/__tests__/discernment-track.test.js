@@ -137,7 +137,7 @@ describe('safeguard: accountability stated plainly (the two courts)', () => {
   });
 });
 
-describe('safeguard: the two courts are VISIBLE in the benefits (DR-0170)', () => {
+describe('safeguard: the two courts are VISIBLE in the benefits (DR-0171)', () => {
   it('catches a documented-accountability lesson whose benefits never name the eternal court', () => {
     const issue = validIssue();
     issue.lens = { ...issue.lens, benefits: ['Calm in a loud world', 'Sharper source-checking'] };

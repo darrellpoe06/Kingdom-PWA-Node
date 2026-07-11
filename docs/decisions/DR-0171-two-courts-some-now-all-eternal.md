@@ -1,4 +1,4 @@
-# DR-0170 — The Two Courts: Some Judgment Now, All of It Eternal (and earthly justice fails both ways)
+# DR-0171 — The Two Courts: Some Judgment Now, All of It Eternal (and earthly justice fails both ways)
 
 - **Status:** accepted
 - **Date:** 2026-07-11
