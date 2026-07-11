@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
 import TrialStatus from './TrialStatus.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
 import { ARI } from '../lib/ari.js';
@@ -94,11 +95,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     try { window.location.href = url; } catch (e) {}
     closeCart();
   };
-  return (
-    <div className="space-y-10 w-full">
-      {authCreatedAt && (
-        <div className="-mb-4"><TrialStatus createdAt={authCreatedAt} /></div>
-      )}
+  const sections = [
+    { id: 'pricing', label: 'Plans & pricing', icon: 'coins', render: () => (
+      <>
       <section>
         <SectionTitle>What you actually get</SectionTitle>
         {/* The purpose, in the Governor's own words (Darrell 2026-07-03):
@@ -185,61 +184,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           family, church, or business. Pure presentation over the onboarding libs
           (lib/adopter-onboarding.js + lib/adopter-templates.js); no main-file dep. */}
       <AdoptPoeTech />
-
-      {feedback.length > 0 && (
-        <section className="bg-white border-2 border-[#B85838] p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">💬 Feedback Log · MVP Test</div>
-          <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What testers have shared ({feedback.length})</h3>
-          <div className="space-y-3">
-            {[...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(f => (
-              <div key={f.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
-                <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
-                  <div className="text-[10px] uppercase tracking-wider">
-                    <span className="font-semibold text-[#B85838]">{f.area}</span>
-                    {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(f.createdAt).toLocaleDateString()}</span>
-                    <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
-                  </div>
-                </div>
-                {f.whatsWorking && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
-                {f.whatsNot && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p></div>}
-                {f.whatsMissing && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p></div>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">Appearance · Themes</div>
-        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Switch themes from the swatches in the header (top-right) anytime. Editorial cream is the default · five total themes including a true dark mode.
-        </p>
-      </section>
-      <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
-        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Need larger print to read comfortably? Use the “aA” control at the top of the screen (in the header, top-right). It scales the whole app from that one place, and your choice is saved on this device.
-        </p>
-      </section>
-      {authUserId && (
-        <section className="bg-white border border-[#E8E4DC] p-4">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Security · Multi-point sign-in</div>
-          <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            Your space is protected by more than one key: your identity (email / Google / Apple), a PIN, and the devices you trust. You need at least two to get in.
-          </p>
-          {onChangePin && (
-            <button
-              type="button"
-              onClick={onChangePin}
-              className="mb-4 text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
-              Change your PIN
-            </button>
-          )}
-          <TrustedDevices userId={authUserId} />
-        </section>
-      )}
+      </>
+    ) },
+    { id: 'mission', label: 'Mission', icon: 'dove', render: () => (
+      <>
       <section>
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2">PoeTech LLC · poetech.us</div>
         <h2 className="text-3xl sm:text-4xl mb-4 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>A stronghold for relationships with Yahweh.</h2>
@@ -275,6 +223,20 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         </p>
       </section>
 
+
+      <section className="bg-white border border-[#1A1815] p-5">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
+        <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Every module is being built to share data with every other. As each one ships: the home module detecting an HVAC failure will land the incident in the cash flow; the health module measuring stress will show its correlation with pressure; the spiritual module marking a fast week will show up in the grocery spend pattern. The church and financial modules already run this way today.
+        </p>
+        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          One family. One picture. All the granular detail when you need it.
+        </p>
+      </section>
+      </>
+    ) },
+    { id: 'modules', label: 'Modules', icon: 'sliders', render: () => (
+      <>
       <section>
         <SectionTitle>Modules</SectionTitle>
         <p className="text-sm text-[#5A5751] leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -301,7 +263,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           Lives at the bottom of Projects as "Project Inventory & Capital
           Forecast" because tools/equipment are most actionable next to the
           projects that need them. About no longer hosts the editor. */}
-
+      </>
+    ) },
+    { id: 'serve', label: 'Who we serve', icon: 'users', render: () => (
+      <>
       <section>
         <SectionTitle>Markets We Serve · Underserved by Mainstream Tech</SectionTitle>
         <p className="text-sm text-[#5A5751] leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -323,7 +288,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           The breadth of who PoeTech serves is also the breadth of who benefits from local-first data, non-predatory pricing, and a stronghold mission. Every market named above has been underserved by mainstream tech because they don't fit the &quot;single business owner, single household, single problem&quot; pattern. We were built for the actual texture of family life.
         </p>
       </section>
-
+      </>
+    ) },
+    { id: 'ari', label: 'Meet Ari', icon: 'sparkle', render: () => (
+      <>
       {/* Meet Ari — the unseen, made seen. The platform's A.I. identity, placed
           here on purpose: next to the people the world overlooks, because that
           is who the Black Lion is. All copy comes from the one source, lib/ari.js. */}
@@ -342,8 +310,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           {ARI.honesty}
         </p>
       </section>
-
-
+      </>
+    ) },
+    { id: 'community', label: 'Community', icon: 'heart', render: () => (
+      <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Community Partnership Model</div>
         <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -356,7 +326,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           Paying subscribers know transparently that their subscription funds both tiers. No charity badge appears on the recipient's app. No data-driven judgment of worthiness from PoeTech. The community gives. The community receives. The data infrastructure compounds the work.
         </p>
       </section>
-
+      </>
+    ) },
+    { id: 'bookstore', label: 'Bookstore', icon: 'book', render: () => (
+      <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">PoeTech Bookstore · Forthcoming</div>
         <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Original work. From us, for the families.</h3>
@@ -396,7 +369,10 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </ul>
         </div>
       </section>
-
+      </>
+    ) },
+    { id: 'sponsors', label: 'Sponsors', icon: 'landmark', render: () => (
+      <>
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsorship & Advertising Ethics</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -536,18 +512,70 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           Questions before paying? Email <strong>contact@poetech.us</strong> with your mission, business model, ownership, regulatory status, and which tier you're considering. We'll respond within 3 business days. Limited slots — current opening status published quarterly.
         </p>
       </section>
-
-      <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
-        <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Every module is being built to share data with every other. As each one ships: the home module detecting an HVAC failure will land the incident in the cash flow; the health module measuring stress will show its correlation with pressure; the spiritual module marking a fast week will show up in the grocery spend pattern. The church and financial modules already run this way today.
-        </p>
+      </>
+    ) },
+    { id: 'settings', label: 'Settings', icon: 'palette', render: () => (
+      <>
+      <section className="bg-white border border-[#E8E4DC] p-4">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">Appearance · Themes</div>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          One family. One picture. All the granular detail when you need it.
+          Switch themes from the swatches in the header (top-right) anytime. Editorial cream is the default · five total themes including a true dark mode.
         </p>
       </section>
-
-      {checkoutIntents.length > 0 && (
+      <section className="bg-white border border-[#E8E4DC] p-4">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
+        <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Need larger print to read comfortably? Use the “aA” control at the top of the screen (in the header, top-right). It scales the whole app from that one place, and your choice is saved on this device.
+        </p>
+      </section>
+      {authUserId && (
+        <section className="bg-white border border-[#E8E4DC] p-4">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Security · Multi-point sign-in</div>
+          <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            Your space is protected by more than one key: your identity (email / Google / Apple), a PIN, and the devices you trust. You need at least two to get in.
+          </p>
+          {onChangePin && (
+            <button
+              type="button"
+              onClick={onChangePin}
+              className="mb-4 text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Change your PIN
+            </button>
+          )}
+          <TrustedDevices userId={authUserId} />
+        </section>
+      )}
+      </>
+    ) },
+    ...(feedback.length > 0 ? [{ id: 'feedback', label: `Tester feedback (${feedback.length})`, icon: 'chat', render: () => (
+      <>
+        <section className="bg-white border-2 border-[#B85838] p-5">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">💬 Feedback Log · MVP Test</div>
+          <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What testers have shared ({feedback.length})</h3>
+          <div className="space-y-3">
+            {[...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(f => (
+              <div key={f.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+                <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
+                  <div className="text-[10px] uppercase tracking-wider">
+                    <span className="font-semibold text-[#B85838]">{f.area}</span>
+                    {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(f.createdAt).toLocaleDateString()}</span>
+                    <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
+                  </div>
+                </div>
+                {f.whatsWorking && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
+                {f.whatsNot && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p></div>}
+                {f.whatsMissing && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p></div>}
+              </div>
+            ))}
+          </div>
+        </section>
+      </>
+    ) }] : []),
+    ...(checkoutIntents.length > 0 ? [{ id: 'intents', label: `Checkout intents (${checkoutIntents.length})`, icon: 'mail', render: () => (
+      <>
         <section className="bg-white border border-[#1A1815] p-5">
           <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">🛒 Checkout Intents · {checkoutIntents.length}</div>
           <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Who's clicked Subscribe or Claim</h3>
@@ -574,7 +602,15 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             Local-first capture. Email handshake is currently mailto - swap in a Stripe Payment Link in the cart drawer when ready.
           </p>
         </section>
+      </>
+    ) }] : []),
+  ];
+  return (
+    <div className="space-y-6 w-full">
+      {authCreatedAt && (
+        <div className="mb-2"><TrialStatus createdAt={authCreatedAt} /></div>
       )}
+      <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="pricing" />
 
       {cartTier && (
         <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={closeCart}>
