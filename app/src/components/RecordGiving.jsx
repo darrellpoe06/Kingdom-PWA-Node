@@ -18,7 +18,10 @@ import React, { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   normalizeGift, planGivingImport, guessGivingColumns, mapSheetRows, GIFT_METHODS,
+  monthlyGivingReport, givingMonthsAvailable,
 } from '../lib/giving-records.js';
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 const INK = '#1A1815';
 const CREAM = '#FAF8F4';
@@ -54,6 +57,17 @@ export default function RecordGiving({ records = [], addRecord, deleteRecord }) 
     () => [...(records || [])].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 25),
     [records],
   );
+
+  // The monthly report — computed, never hand-compiled. Default to the newest
+  // month that actually has gifts (givingMonthsAvailable), else this month.
+  const months = useMemo(() => givingMonthsAvailable(records), [records]);
+  const [reportYm, setReportYm] = useState('');
+  const activeYm = reportYm || months[0] || new Date().toISOString().slice(0, 7);
+  const report = useMemo(() => {
+    const [y, m] = activeYm.split('-').map(Number);
+    return monthlyGivingReport(records, { year: y, month: m });
+  }, [records, activeYm]);
+  const reportLabel = (() => { const [y, m] = activeYm.split('-').map(Number); return `${MONTH_NAMES[(m || 1) - 1]} ${y}`; })();
 
   function submitOne(e) {
     e.preventDefault();
@@ -117,6 +131,48 @@ export default function RecordGiving({ records = [], addRecord, deleteRecord }) 
               {Object.entries(ytd.byMethod).map(([m, v]) => (
                 <span key={m} className="px-2 py-0.5 text-[0.6875rem] border" style={{ borderColor: '#C9C2B6', color: INK }}>{m}: {money(v)}</span>
               ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* MONTHLY REPORT — computed for the trustees, never hand-compiled */}
+      <section aria-labelledby="rep-h" className="border p-4 print:border-0" style={{ borderColor: INK }}>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+          <h3 id="rep-h" className="text-[0.625rem] uppercase tracking-[0.25em]" style={{ color: MUTE }}>Monthly report · for the trustees</h3>
+          <div className="flex items-center gap-2 print:hidden">
+            {months.length > 0 && (
+              <select aria-label="Report month" className="p-1.5 border border-[#E8E4DC] text-sm bg-white" value={activeYm} onChange={(e) => setReportYm(e.target.value)}>
+                {months.map((ym) => { const [y, m] = ym.split('-').map(Number); return <option key={ym} value={ym}>{MONTH_NAMES[m - 1]} {y}</option>; })}
+              </select>
+            )}
+            <button type="button" onClick={() => window.print()} disabled={report.count === 0} className="min-h-[40px] px-3 text-xs uppercase tracking-wider border disabled:opacity-50 focus:outline focus:outline-2" style={{ borderColor: INK, color: INK, outlineColor: RUST }}>Print</button>
+          </div>
+        </div>
+        <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>The Church of the Living God — Giving, {reportLabel}</div>
+        {report.count === 0 ? (
+          <p className="text-sm mt-1" style={{ color: MUTE }}>No gifts recorded for this month yet — the report fills itself as gifts are recorded or imported.</p>
+        ) : (
+          <>
+            <div className="text-3xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{money(report.total)}</div>
+            <div className="text-xs mb-3" style={{ color: MUTE }}>{report.count} gift{report.count === 1 ? '' : 's'} · totals below are computed from the ledger, not compiled by hand</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider mb-1" style={{ color: MUTE }}>By fund</div>
+                <ul className="text-sm">
+                  {Object.entries(report.byFund).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                    <li key={k} className="flex justify-between border-b py-1" style={{ borderColor: '#E8E4DC' }}><span>{k}</span><span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{money(v)}</span></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider mb-1" style={{ color: MUTE }}>By method</div>
+                <ul className="text-sm">
+                  {Object.entries(report.byMethod).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+                    <li key={k} className="flex justify-between border-b py-1" style={{ borderColor: '#E8E4DC' }}><span>{k}</span><span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{money(v)}</span></li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </>
         )}

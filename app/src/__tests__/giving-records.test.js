@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeGift, normalizeGiftDate, parseAmount, giftDedupeKey,
   planGivingImport, guessGivingColumns, mapSheetRows, GIFT_METHODS,
+  monthlyGivingReport, givingMonthsAvailable,
 } from '../lib/giving-records.js';
 
 describe('normalizeGift — one gift, validated', () => {
@@ -81,6 +82,31 @@ describe('planGivingImport — bulk, deduped, nothing double-counted', () => {
     const a = normalizeGift({ member: 'DP', amount: 100, date: '2026-07-05', fund: 'Tithe' }).gift;
     const b = normalizeGift({ member: 'DP', amount: 100, date: '2026-07-05', fund: 'Building' }).gift;
     expect(giftDedupeKey(a)).not.toBe(giftDedupeKey(b));
+  });
+});
+
+describe('monthlyGivingReport — computed, never hand-compiled', () => {
+  const ledger = [
+    { member: 'DP', amount: 100, date: '2026-07-05', method: 'cash', fund: 'Tithe' },
+    { member: 'Mary', amount: 50, date: '2026-07-12', method: 'online', fund: 'General' },
+    { member: 'Deacon', amount: 25, date: '2026-07-20', method: 'check', fund: 'Building' },
+    { member: 'Old', amount: 999, date: '2026-06-30', method: 'cash', fund: 'Tithe' }, // other month
+  ].map((r) => normalizeGift(r).gift);
+
+  it('sums only the chosen month, by fund and by method — the total can\'t be wrong', () => {
+    const rep = monthlyGivingReport(ledger, { year: 2026, month: 7 });
+    expect(rep.count).toBe(3);
+    expect(rep.total).toBe(175);            // 100 + 50 + 25, June's 999 excluded
+    expect(rep.byMethod).toEqual({ cash: 100, online: 50, check: 25 });
+    expect(rep.byFund).toEqual({ Tithe: 100, General: 50, Building: 25 });
+  });
+
+  it('an empty month reports zero, not a painted number', () => {
+    expect(monthlyGivingReport(ledger, { year: 2026, month: 1 })).toMatchObject({ count: 0, total: 0 });
+  });
+
+  it('givingMonthsAvailable lists only real periods, newest first', () => {
+    expect(givingMonthsAvailable(ledger)).toEqual(['2026-07', '2026-06']);
   });
 });
 

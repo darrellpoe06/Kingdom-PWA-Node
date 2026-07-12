@@ -132,6 +132,36 @@ export function guessGivingColumns(headers = []) {
   return map;
 }
 
+// The transparent MONTHLY report — computed, never hand-compiled (DP 2026-07-12:
+// "that monthly report is ridiculous to keep doing... easy systems to eliminate
+// human failures"). Pure: give it the ledger + a year/month, it returns the
+// totals the trustee report shows. No human sums a column; the sum can't be
+// wrong. `month` is 1-12.
+export function monthlyGivingReport(records = [], { year, month } = {}) {
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const rows = (records || []).filter((r) => String(r.date || '').startsWith(ym));
+  const byFund = {}; const byMethod = {};
+  let total = 0;
+  for (const r of rows) {
+    const amt = Number(r.amount) || 0;
+    total += amt;
+    byFund[r.fund || 'General'] = round2((byFund[r.fund || 'General'] || 0) + amt);
+    byMethod[r.method || 'cash'] = round2((byMethod[r.method || 'cash'] || 0) + amt);
+  }
+  return { year, month, ym, count: rows.length, total: round2(total), byFund, byMethod, gifts: rows };
+}
+
+// The months that actually have gifts, newest-first ('YYYY-MM') — so the report
+// picker only ever offers real periods (never a painted/empty month).
+export function givingMonthsAvailable(records = []) {
+  const set = new Set();
+  for (const r of records || []) {
+    const m = String(r.date || '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(m)) set.add(m);
+  }
+  return [...set].sort().reverse();
+}
+
 // Turn already-parsed sheet rows (array of objects keyed by header) into the
 // {member,amount,date,fund,method,note} shape normalizeGift expects, using a
 // column map (from guessGivingColumns or the steward's correction).

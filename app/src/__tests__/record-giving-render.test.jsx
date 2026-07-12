@@ -66,3 +66,19 @@ describe('RecordGiving — year-to-date is real, not painted', () => {
     expect(container.textContent).toMatch(/No gifts recorded yet/i);
   });
 });
+
+describe('RecordGiving — the monthly report computes itself for the trustees', () => {
+  it('renders a computed month total by fund/method (no hand-compiling)', async () => {
+    const y = new Date().getFullYear();
+    const records = [
+      { id: 'a', member: 'DP', amount: 100, date: `${y}-07-05`, method: 'cash', fund: 'Tithe', taxYear: y },
+      { id: 'b', member: 'Mary', amount: 50, date: `${y}-07-12`, method: 'online', fund: 'General', taxYear: y },
+    ];
+    await mount({ records, addRecord: vi.fn() });
+    expect(container.textContent).toMatch(/Monthly report/i);
+    expect(container.textContent).toContain('The Church of the Living God — Giving');
+    expect(container.textContent).toContain('$150.00');       // computed month total
+    // a Print button exists for handing to the trustees
+    expect(btn(/print/i)).toBeTruthy();
+  });
+});
