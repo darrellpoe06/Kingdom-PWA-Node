@@ -19,6 +19,13 @@ describe('pairIds / mappedArraySlice — the scraper reads nav arrays, not the w
     const src = `const z = [['one','1'],['two','2']].map(([id, label]) => go(id));`;
     expect(pairIds(mappedArraySlice(src, 'go(id)'))).toEqual(['one', 'two']);
   });
+  it('sees through a chained .filter(([id]) => ...) between the array and .map()', () => {
+    // The church door scopes the top-nav down with a `.filter` whose callback
+    // destructures `([id])` — a stray `]` that must NOT fool the slicer into
+    // grabbing the destructuring bracket instead of the array's own bracket.
+    const src = `const z = [\n  ['one','1'],\n  ['two','2'],\n].filter(([id]) => keep || id === 'two')\n .map(([id, label]) => go(id));`;
+    expect(pairIds(mappedArraySlice(src, 'go(id)'))).toEqual(['one', 'two']);
+  });
 });
 
 describe('the real app — every gated nav surface is selectable in the feedback form', () => {

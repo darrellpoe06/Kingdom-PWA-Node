@@ -1097,6 +1097,17 @@ export default function PoeFinancialSystem() {
   );
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
+  // Church-door mode (DR-0174, Darrell 2026-07-12: "It should just be the church
+  // app... no need to change the PoeTech App... isn't it built as modular?").
+  // When the app was LAUNCHED via the church door (the installed Love Corner app
+  // or /lovecorner → ?view=church), it presents as a focused CHURCH-ONLY app:
+  // the top nav is scoped to the church (whose sub-nav already holds worship,
+  // giving, prayer, and the Word — Godhead study, Scripture, The Word). PoeTech
+  // itself is untouched. CAPTURED ONCE at first render (useState initializer),
+  // BEFORE nav-history rewrites the URL — so a family member tapping the Church
+  // tab inside full PoeTech (which sets ?view=church) is NOT scoped; only a real
+  // church-door launch is. Pure signal in lib/church-own-door.js.
+  const [churchDoorOnly] = useState(() => isChurchDoorContext());
   // Measure how the app is used, to make it better (Darrell 2026-07-04). One
   // place captures every tab open (URL-driven + every nav button). Sovereign,
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
@@ -4436,7 +4447,8 @@ ${THEME_CSS}
                 // like Center / Forecast); the module also carries a defense-in-
                 // depth locked fallback for any deep-link.
                 ...((!reviewerMode && (isFamilyMember || !isPublicHost())) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
-              ].map(([id, label]) => {
+              ].filter(([id]) => !churchDoorOnly || id === 'church')
+               .map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
                 }
@@ -5089,11 +5101,14 @@ ${THEME_CSS}
           />
         )}
 
+        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). */}
+        {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
         </footer>
-        {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
+        )}
+        {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
             <AdvisementBanner />
           </div>
