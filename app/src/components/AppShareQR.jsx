@@ -22,9 +22,21 @@ import React, { useState, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { appJoinUrl, appJoinUrlDisplay } from '../lib/app-share.js';
 
-export default function AppShareQR({ size = 176, compact = false }) {
-  const url = appJoinUrl();
-  const shown = appJoinUrlDisplay();
+// Props default to the PLATFORM join URL (unchanged for existing callers), but
+// accept an override so any door can hand out its OWN scannable code — e.g. the
+// church's poetech.us/lovecorner door (DR-0174). title/blurb/ariaLabel let the
+// card speak in that door's voice. All optional; passing nothing = the original.
+export default function AppShareQR({
+  size = 176,
+  compact = false,
+  url: urlProp = null,
+  shown: shownProp = null,
+  title = 'Share the app',
+  blurb = 'Have someone point their phone camera at this code. It opens the install page for their exact device — no long address to type.',
+  ariaLabel = 'QR code to install the PoeTech app',
+}) {
+  const url = urlProp || appJoinUrl();
+  const shown = shownProp || appJoinUrlDisplay();
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -53,11 +65,10 @@ export default function AppShareQR({ size = 176, compact = false }) {
   return (
     <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
-        Share the app
+        {title}
       </div>
       <p className="text-[0.8125rem] text-[#1A1815] mt-1 mb-3 leading-relaxed">
-        Have someone point their phone camera at this code. It opens the install
-        page for their exact device — no long address to type.
+        {blurb}
       </p>
 
       <div className={`flex ${compact ? 'flex-row items-center' : 'flex-col sm:flex-row sm:items-center'} gap-4`}>
@@ -69,7 +80,7 @@ export default function AppShareQR({ size = 176, compact = false }) {
             level="M"
             includeMargin={false}
             role="img"
-            aria-label="QR code to install the PoeTech app"
+            aria-label={ariaLabel}
           />
         </div>
 
