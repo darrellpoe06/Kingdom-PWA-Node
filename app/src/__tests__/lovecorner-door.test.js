@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { SHARE_DOOR_URL, SHARE_DOOR_ALIASES, INSTALL_MANIFEST, DOOR_PHASES } from '../lib/church-own-door.js';
+import { SHARE_DOOR_URL, SHARE_DOOR_ALIASES, INSTALL_MANIFEST, DOOR_PHASES, LOVE_CORNER_BRAND, isChurchDoorContext } from '../lib/church-own-door.js';
 
 const pub = (rel) => join(dirname(fileURLToPath(import.meta.url)), '../../public/', rel);
 const read = (rel) => readFileSync(pub(rel), 'utf8');
@@ -96,6 +96,24 @@ describe('the plan and the artifact never drift (DR-0121)', () => {
   it('the install constants are wired', () => {
     expect(INSTALL_MANIFEST).toBe('/manifest-lovecorner.webmanifest');
     expect(SHARE_DOOR_URL).toBe('https://poetech.us/lovecorner/');
+  });
+});
+
+describe('the focused church app — church-door context (DR-0174)', () => {
+  it('the church brand is the church, not PoeTech', () => {
+    expect(LOVE_CORNER_BRAND.name).toBe('The Love Corner');
+    expect(LOVE_CORNER_BRAND.eyebrow).toMatch(/Church of the Living God/);
+    expect(LOVE_CORNER_BRAND.logo).toMatch(/^\/lovecorner-icon-/);
+  });
+
+  it('isChurchDoorContext is true ONLY for a ?view=church launch', () => {
+    expect(isChurchDoorContext('?view=church')).toBe(true);
+    expect(isChurchDoorContext('?view=church&sub=home')).toBe(true);
+    // NOT the church door: PoeTech default, or any other view
+    expect(isChurchDoorContext('')).toBe(false);
+    expect(isChurchDoorContext('?view=overview')).toBe(false);
+    expect(isChurchDoorContext('?moore=1')).toBe(false);
+    expect(isChurchDoorContext('?join=1')).toBe(false);
   });
 });
 
