@@ -5,7 +5,7 @@
 // scripts/tenancy-guard.mjs (also runnable as a CLI); this test runs it inside
 // `app — lint + vitest` so it gates every merge with no ruleset change.
 import { describe, it, expect } from 'vitest';
-import { scanTenancy, checkProvisioning, checkIdentityGate, checkInstancesRecursion } from '../../../scripts/tenancy-guard.mjs';
+import { scanTenancy, checkProvisioning, checkIdentityGate, checkInstancesRecursion, scanIndexCoverage } from '../../../scripts/tenancy-guard.mjs';
 
 describe('tenancy guard — data isolation (DR-0059)', () => {
   it('the scanner actually sees the schema (not vacuously empty)', () => {
@@ -75,6 +75,38 @@ describe('tenancy guard — data isolation (DR-0059)', () => {
         USING ( user_in_instance(id) OR user_in_instance(parent_instance_id) );`;
     const { ok } = checkInstancesRecursion(dropped);
     expect(ok).toBe(true);
+  });
+
+  // Check E (DR-0179 platform-backend decision): every instance-scoped table
+  // must index instance_id, or the RLS filter (user_in_instance(instance_id))
+  // seq-scans on every read — the #1 multi-tenant perf killer, and the worst
+  // failure mode as sister/brother churches multiply the tenant count.
+  it('every instance-scoped table indexes instance_id (RLS filter is index-backed)', () => {
+    const { scoped, missing } = scanIndexCoverage();
+    expect(scoped.size, 'index scanner saw no scoped tables — re-anchor Check E').toBeGreaterThan(10);
+    expect(missing, `instance-scoped tables with NO instance_id index: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  // Anti-theater: an instance-scoped table with NO instance_id index is CAUGHT.
+  it('CATCHES an instance-scoped table with no instance_id index', () => {
+    const noIdx = `CREATE TABLE widgets (
+      id uuid PRIMARY KEY,
+      instance_id uuid NOT NULL REFERENCES instances(id),
+      label text
+    );`;
+    const { missing } = scanIndexCoverage(noIdx);
+    expect(missing).toContain('widgets');
+  });
+
+  // ...and the same table WITH an instance_id-leading index passes (not always-red).
+  it('PASSES a table that indexes instance_id (dedicated index or leading column)', () => {
+    const withIdx = `CREATE TABLE widgets (
+      id uuid PRIMARY KEY,
+      instance_id uuid NOT NULL REFERENCES instances(id),
+      label text
+    );
+    CREATE INDEX IF NOT EXISTS widgets_instance_idx ON widgets (instance_id);`;
+    expect(scanIndexCoverage(withIdx).missing).toEqual([]);
   });
 
   // And confirm the fixed form passes (so the guard isn't just always-failing).

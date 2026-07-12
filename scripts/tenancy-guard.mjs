@@ -79,6 +79,47 @@ export function scanTenancy() {
   return { tableScoped, rlsOn, missing };
 }
 
+// --- Check E: instance_id index coverage (scalability best practice) --------
+// Every RLS policy is effectively `... AND instance_id = <mine>` on every query
+// against a tenant-scoped table (the user_in_instance(instance_id) USING clause).
+// The #1 multi-tenant performance killer is a MISSING index on the RLS-filtered
+// column: without an index whose LEADING column is instance_id, every read does a
+// sequential scan and the pooled backend degrades tenant-by-tenant as data grows.
+// This gate requires every instance-scoped table to carry such an index (a
+// dedicated CREATE INDEX ... (instance_id...), or a leading instance_id in an
+// inline PRIMARY KEY / UNIQUE, which Postgres backs with an index). Encodes the
+// documented best practice so a new tenant table can't ship un-indexed. (DR for
+// the platform-backend decision; validated by the 2025 RLS scale guidance.)
+const INDEX_EXCEPTIONS = {
+  // 'table_name': 'why an instance_id-leading index is unnecessary here',
+};
+
+export function scanIndexCoverage(sqlOverride = null) {
+  const sql = stripComments(sqlOverride != null ? sqlOverride : (readSql(SCHEMA_DIR) + readSql(MIGRATIONS_DIR)));
+
+  const scoped = new Map(); // name -> CREATE TABLE body (for inline PK/UNIQUE)
+  const createRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?\s*\(([\s\S]*?)\n\s*\)\s*;/gi;
+  let m;
+  while ((m = createRe.exec(sql)) !== null) {
+    if (/\binstance_id\b/.test(m[2])) scoped.set(m[1].toLowerCase(), m[2]);
+  }
+
+  const indexed = new Set();
+  // A dedicated index whose FIRST column is instance_id (optionally USING btree).
+  const idxRe = /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?["']?[a-zA-Z0-9_]+["']?\s+ON\s+(?:public\.)?["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?\s*(?:USING\s+\w+\s*)?\(\s*["']?instance_id\b/gi;
+  while ((m = idxRe.exec(sql)) !== null) indexed.add(m[1].toLowerCase());
+  // An inline PRIMARY KEY / UNIQUE whose leading column is instance_id also
+  // creates a usable index.
+  for (const [name, body] of scoped) {
+    if (/\b(?:PRIMARY\s+KEY|UNIQUE)\s*\(\s*instance_id\b/i.test(body)) indexed.add(name);
+  }
+
+  const missing = [...scoped.keys()]
+    .filter(t => !indexed.has(t) && !(t in INDEX_EXCEPTIONS))
+    .sort();
+  return { scoped: new Set(scoped.keys()), indexed, missing };
+}
+
 // --- Check B: provisioning isolation --------------------------------------
 // Returns { ok, problems[], file } for the EFFECTIVE join_default_instance —
 // the last migration (by filename order, which is how the lane applies them)
@@ -232,6 +273,7 @@ if (isMain()) {
   const prov = checkProvisioning();
   const ident = checkIdentityGate();
   const recur = checkInstancesRecursion();
+  const idx = scanIndexCoverage();
 
   console.log('# TENANCY GUARD (deterministic data-isolation gate)\n');
   console.log('## A. RLS coverage');
@@ -275,7 +317,17 @@ if (isMain()) {
     console.log('');
   }
 
-  const failed = missing.length > 0 || !prov.ok || !ident.ok || !recur.ok;
+  console.log('## E. instance_id index coverage (multi-tenant scalability)');
+  console.log(`Instance-scoped tables: ${idx.scoped.size} · with an instance_id-leading index: ${idx.indexed.size}`);
+  if (idx.missing.length === 0) {
+    console.log('PASS — every instance-scoped table indexes instance_id (RLS filter is index-backed).\n');
+  } else {
+    console.log(`FAIL — ${idx.missing.length} instance-scoped table(s) with NO instance_id index (RLS does a seq-scan per read):`);
+    idx.missing.forEach(t => console.log(`  - ${t}`));
+    console.log('');
+  }
+
+  const failed = missing.length > 0 || !prov.ok || !ident.ok || !recur.ok || idx.missing.length > 0;
   console.log(failed ? 'TENANCY GUARD: FAIL' : 'TENANCY GUARD: PASS');
   process.exit(failed ? 1 : 0);
 }
