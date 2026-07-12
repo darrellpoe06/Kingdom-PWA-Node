@@ -1,7 +1,7 @@
-# DR-0174 — The Love Corner gets its standalone branded install: the church's own door, built (held for the gate)
+# DR-0174 — The Love Corner gets its standalone branded install: the church's own door (approved, shipping ahead of the Assembly)
 
-- **Status:** accepted (artifact built; HELD for Bishop Gwin doctrine sign-off + Governor review before it opens publicly — Tier C)
-- **Tier:** C (COLG public identity — RELEASE-TIERS; DR-0133 §gate). Shipped on `feat/lovecorner-door`, PR labeled `hold`; NOT auto-merged, NOT opened publicly until the gate clears.
+- **Status:** accepted — **APPROVED 2026-07-11** by the Governor (Darrell, COLG Director of Technology) AND Bishop Gwin, for release ahead of the National Assembly. The Tier C DR-0133/DR-0003 gate is SATISFIED; PR #787 released to `main`.
+- **Tier:** C (COLG public identity — RELEASE-TIERS; DR-0133 §gate). The gate here is the church's own approval, and the church's own Director of Technology + Bishop gave it — so this ships. (Tier C means the church decides, not that the agent adds a wait the church didn't ask for.)
 - **Scope:** `app/public/lovecorner/index.html` (the church-tagged entry page), `app/public/manifest-lovecorner.webmanifest` (the branded install), `app/public/_redirects` (`/church`, `/thelovecorner` aliases), `app/src/lib/church-own-door.js` (phase flipped to built + share constants), `app/src/__tests__/lovecorner-door.test.js` (proven-to-catch)
 - **Date:** 2026-07-11
 - **Principles:** COMMUNITY-FIRST (COLG is the named first community), APP-IS-PRIMARY, NO-STATIC-DATA (DR-0121 — the plan and the artifact never drift), VERIFICATION-DOCTRINE (DR-0076), GOVERN-EXECUTE-ADVISE, RELEASE-TIERS
