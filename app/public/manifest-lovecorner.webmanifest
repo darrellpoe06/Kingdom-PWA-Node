@@ -11,21 +11,27 @@
   "categories": ["lifestyle", "education"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/lovecorner-icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/lovecorner-icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/icon-maskable-192.png",
+      "src": "/lovecorner-icon-maskable-192.png",
       "type": "image/png",
       "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/lovecorner-icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "maskable"
     }
   ]

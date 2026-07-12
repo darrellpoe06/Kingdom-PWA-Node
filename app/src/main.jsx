@@ -77,7 +77,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
-  || __params.get('share') === '1'
+  || __params.get('share') === '1' || __params.get('share') === 'church'
   || __params.get('moore') === '1'
   || !!__params.get('biz')
   || !!__params.get('room')
