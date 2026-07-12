@@ -86,4 +86,12 @@ describe('COLG_DEFAULT_CHURCH — the real contact record (document-verified)', 
     expect(a.date).toBe('2026-07-14');
     expect(a.endDate).toBe('2026-07-16');
   });
+  it('was founded in 1946 (letterhead + Bishop Gwin brief)', () => {
+    expect(COLG_DEFAULT_CHURCH.founded).toBe(1946);
+  });
+  it('Sunday Worship carries its full 11:00 AM–12:15 PM window', () => {
+    const sun = COLG_DEFAULT_CHURCH.services.find((s) => s.day === 'Sunday');
+    expect(sun.time).toBe('11:00 AM');
+    expect(sun.endTime).toBe('12:15 PM');
+  });
 });

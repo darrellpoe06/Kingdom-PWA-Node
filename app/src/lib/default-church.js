@@ -38,8 +38,11 @@ export const COLG_DEFAULT_CHURCH = {
   phone: '217-359-6920',
   officeHours: 'Mon–Fri 11:00 AM – 6:00 PM · Closed Sat & Sun',
   contactEmail: '',
+  // Founded July 1946 (verified: Bishop Gwin migration brief + the official
+  // letterhead on the July 2026 calendar/orders of service, 2026-07-12).
+  founded: 1946,
   services: [
-    { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', label: 'Sunday Worship', online: true },
+    { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', endTime: '12:15 PM', label: 'Sunday Worship', online: true },
     { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM',  label: 'Bible Study',    online: true },
     { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM',  label: 'Bible Study',    online: true },
   ],
