@@ -117,6 +117,20 @@ describe('the focused church app — church-door context (DR-0174)', () => {
   });
 });
 
+describe('the Sanctuary LED wall holding graphic (DR-0178)', () => {
+  it('the church\'s "Get Up!" graphic file exists in public/', () => {
+    expect(existsSync(pub('lovecorner/wall/get-up.png')), 'the wall holding graphic is missing — the wall page would 404').toBe(true);
+  });
+
+  it('the fullscreen wall page shows that graphic on black, no chrome, no inline script (CSP-safe)', () => {
+    const html = read('lovecorner/wall/index.html');
+    expect(html).toMatch(/src="\/lovecorner\/wall\/get-up\.png"/);   // points at the real asset
+    expect(html).toMatch(/object-fit:\s*contain/);                  // letterboxed — never crops the emblem/text
+    expect(html).toMatch(/background:\s*#000/i);                    // pure black field for the wall feed
+    expect(html).not.toMatch(/<script/i);                          // CSP: script-src 'self'
+  });
+});
+
 describe('the ?share=church projector boot (DR-0177) — source-pinned', () => {
   const mainPath = join(dirname(fileURLToPath(import.meta.url)), '../main.jsx');
   const main = readFileSync(mainPath, 'utf8').replace(/\/\/.*$/gm, ''); // strip line comments

@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- =========================================================================
+  poetech.us/lovecorner/wall — the Sanctuary LED wall HOLDING GRAPHIC.
+  WHY THIS FILE EXISTS: the LED wall (LED Nation / Mirackle P1.99, 8x6 cabinets,
+  ~16:9) is fed from a laptop -> NovaStar VX1000 (lib/led-wall-golive.js). During
+  install it was held FROZEN on a still. This is the app-served, SWAPPABLE
+  replacement: the laptop behind the wall opens this URL fullscreen (F11) and
+  feeds it to the NovaStar, so the wall shows the church's own graphic — driven
+  from the app, not a loose file, and changed by swapping the asset (the Ways:
+  the app is the primary artifact; a click today is a URL tomorrow).
+
+  CURRENT GRAPHIC: "Get Up!" — the church's own series art with the CGLG emblem,
+  supplied by Darrell 2026-07-12. To change the wall: drop the new PNG in this
+  folder and point the <img src> at it (one line).
+
+  Built for a wall feed: pure black field, the graphic centered and letterboxed
+  (object-fit: contain) so nothing is cropped, no scrollbars, cursor hidden. No
+  inline JS (CSP: script-src 'self'); a static image needs none.
+========================================================================== -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The Church of the Living God — LED Wall</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="/lovecorner-icon-192.png" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    body { display: grid; place-items: center; cursor: none; }
+    /* Fill the wall edge-to-edge, letterboxed on black so the emblem + "Get Up!"
+       are never cropped on the 16:9 wall (the source art is 3:2). */
+    img { width: 100vw; height: 100vh; object-fit: contain; display: block; }
+  </style>
+</head>
+<body>
+  <img src="/lovecorner/wall/get-up.png"
+       alt="Get Up! — The Church of the Living God" />
+</body>
+</html>
