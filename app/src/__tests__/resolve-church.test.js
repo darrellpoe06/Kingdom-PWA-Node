@@ -64,3 +64,26 @@ describe('looksLikeColg', () => {
     expect(looksLikeColg(null)).toBe(false);
   });
 });
+
+// The church's REAL contact facts, verified against its own printed documents
+// (2026-07-12: the July 2026 calendar + orders of service). These were empty /
+// placeholder before; the church home renders phone as click-to-call and shows
+// the pastor + office hours, so a regression to blank is a visible, wrong front
+// door for the congregation (DR-0076 — real data, sourced, rendered).
+describe('COLG_DEFAULT_CHURCH — the real contact record (document-verified)', () => {
+  it('carries the church office phone (click-to-call), not a blank', () => {
+    expect(COLG_DEFAULT_CHURCH.phone).toBe('217-359-6920');
+  });
+  it('names the pastor and office hours from the letterhead', () => {
+    expect(COLG_DEFAULT_CHURCH.pastor).toMatch(/Lloyd E\. Gwin/);
+    expect(COLG_DEFAULT_CHURCH.officeHours).toMatch(/Mon.*Fri/);
+  });
+  it('the address carries the ZIP', () => {
+    expect(COLG_DEFAULT_CHURCH.address).toMatch(/61820/);
+  });
+  it('the 77th National Assembly dates match the calendar (Jul 14–16, 2026)', () => {
+    const a = COLG_DEFAULT_CHURCH.announcedEvents.find((e) => /77th/.test(e.name));
+    expect(a.date).toBe('2026-07-14');
+    expect(a.endDate).toBe('2026-07-16');
+  });
+});
