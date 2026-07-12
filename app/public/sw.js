@@ -84,12 +84,43 @@ self.addEventListener('fetch', (event) => {
   // privacy/data fix still reaches the device on the very next navigation.
   const req = event.request;
   let isHashedAsset = false;
+  let isStableBootstrap = false;
   try {
     const url = new URL(req.url);
-    isHashedAsset = url.origin === self.location.origin
-      && url.pathname.startsWith(BASE + '/')
-      && /\.(?:js|css|woff2?)$/.test(url.pathname);
+    const sameApp = url.origin === self.location.origin && url.pathname.startsWith(BASE + '/');
+    // STABLE-PATH BOOTSTRAP (2026-07-12, the church-phone blank that outlived its
+    // own fix): watchdog.js lives at a fixed, UNHASHED path on purpose — it is the
+    // always-fresh last line of the boot chain, and its whole contract (see the
+    // header of watchdog.js) is "survives every deploy." But it ends in `.js`, so
+    // the cache-first branch below treated it as an IMMUTABLE hashed chunk and
+    // pinned the OLD copy on every already-installed device — a device stuck on a
+    // stale 8s watchdog kept looping even after the 20s fix (#800) shipped to the
+    // CDN, because the SW never served the new bytes. A stable-path file changes
+    // content at the SAME url, so it must be NETWORK-FIRST: newest always wins,
+    // with the cache only as an offline fallback. This is the ONE class the
+    // "hashed = immutable" assumption is false for. (sw.js is fetched by the
+    // browser's own update machinery, not this handler, so watchdog.js is the
+    // only script that reaches here on a stable path.)
+    isStableBootstrap = sameApp && /\/watchdog\.js$/.test(url.pathname);
+    isHashedAsset = !isStableBootstrap && sameApp && /\.(?:js|css|woff2?)$/.test(url.pathname);
   } catch (_) { /* non-URL request → fall through to the default path */ }
+
+  if (isStableBootstrap) {
+    // Network-first: always try the freshest copy; fall back to cache only when
+    // the network is unreachable, and refresh the cached copy on every success.
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).then((res) => {
+        try {
+          if (res && res.ok && (res.type === 'basic' || res.type === 'default')) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          }
+        } catch (_) { /* caching is best-effort */ }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
 
   if (isHashedAsset) {
     event.respondWith(

@@ -140,6 +140,79 @@ describe('sw.js — hashed assets are cached-first and populated on miss', () =>
 });
 
 // =============================================================================
+// Stable-path bootstrap (watchdog.js) MUST be network-first — the 2026-07-12
+// "the fix shipped but the church phones stayed down" outage. watchdog.js lives
+// at a fixed UNHASHED path and is the always-fresh last line of the boot chain;
+// its bytes change at the SAME url every deploy. It ends in `.js`, so the old
+// handler swept it into the cache-first "immutable hashed chunk" branch and
+// PINNED the stale copy on every already-installed device — a phone stuck on the
+// old 8s watchdog kept looping even after the 20s fix (#800) reached the CDN,
+// because the SW never served the new bytes. Proven-to-catch: if watchdog.js is
+// ever cache-first again, the "HIT still goes to network / newest wins" case
+// below flips to serving the stale cached copy and fails.
+// =============================================================================
+describe('sw.js — watchdog.js is network-first (the stale-fix-cannot-reach-device bug)', () => {
+  const wdReq = () => ({ url: `${ORIGIN}${BASE}/watchdog.js`, mode: 'no-cors' });
+
+  // A loadSw whose network response tag can change between calls, so we can prove
+  // the NEWEST bytes win over a previously-cached copy.
+  function loadSwMutable() {
+    let tag = 'net';
+    let fail = false;
+    const sw = loadSw(async () => {
+      if (fail) throw new Error('offline');
+      return mockResponse({ tag });
+    });
+    return { ...sw, setTag: (t) => { tag = t; }, setOffline: (v) => { fail = v; } };
+  }
+
+  it('a HIT still goes to the network and serves the FRESH copy (newest wins)', async () => {
+    const sw = loadSwMutable();
+    const req = wdReq();
+    sw.setTag('v1-stale');
+    await handleFetch(sw, req);          // first load populates the cache with v1
+    expect(await sw.cachesApi.match(req), 'watchdog cached after first load').toBeTruthy();
+
+    sw.setTag('v2-fresh');
+    sw.fetchCalls.length = 0;            // reset the network spy
+    const res = await handleFetch(sw, req);
+    // cache-first would have returned 'v1-stale:clone' with ZERO network calls —
+    // that is exactly the pinning bug. Network-first must hit the network and
+    // return the fresh bytes.
+    expect(sw.fetchCalls.some((c) => c.url === req.url), 'watchdog HIT must still fetch network').toBe(true);
+    expect(res.tag).toBe('v2-fresh');
+  });
+
+  it('refreshes the cached copy with each successful network fetch', async () => {
+    const sw = loadSwMutable();
+    const req = wdReq();
+    sw.setTag('v2-fresh');
+    await handleFetch(sw, req);
+    const cached = await sw.cachesApi.match(req);
+    expect(cached && cached.tag).toContain('v2-fresh'); // the fresh bytes are now cached
+  });
+
+  it('falls back to the cached copy only when the network is unreachable (offline)', async () => {
+    const sw = loadSwMutable();
+    const req = wdReq();
+    sw.setTag('cached-copy');
+    await handleFetch(sw, req);          // populate the cache while online
+    sw.setOffline(true);                 // now the network is down
+    const res = await handleFetch(sw, req);
+    expect(res, 'offline serves the cached watchdog rather than nothing').toBeTruthy();
+    expect(res.tag).toContain('cached-copy');
+  });
+
+  it('the network request bypasses the HTTP cache (no-store) so a CDN edge cannot pin it either', async () => {
+    const sw = loadSwMutable();
+    const req = wdReq();
+    await handleFetch(sw, req);
+    const call = sw.fetchCalls.find((c) => c.url === req.url);
+    expect(call && call.opts && call.opts.cache).toBe('no-store');
+  });
+});
+
+// =============================================================================
 // Navigation redirect guard — the 2026-07-07 /moore ERR_FAILED. The nav handler
 // re-issues the request with a redirect-FOLLOWING fetch; a browser refuses a
 // `redirected` response for a navigation, so every redirecting path (e.g.
