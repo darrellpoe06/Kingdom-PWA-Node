@@ -69,4 +69,31 @@ describe('AppShareQR — renders a scannable code for the canonical join URL', (
     await mount(AppShareQR);
     expect(container.textContent.toLowerCase()).toContain("doesn't grant access");
   });
+
+  // DR-0174: the same card serves ANY door — the church's poetech.us/lovecorner
+  // door hands out its OWN scannable code. Proven-to-catch: the override props
+  // actually drive the encoded value, the shown link, and the aria-label.
+  it('encodes a door-specific URL when overridden (the church door)', async () => {
+    await mount(AppShareQR, {
+      url: 'https://poetech.us/lovecorner/',
+      shown: 'poetech.us/lovecorner',
+      title: 'The Love Corner app',
+      ariaLabel: 'QR code to install The Love Corner church app',
+    });
+    const svg = container.querySelector('svg');
+    expect(svg.getAttribute('aria-label')).toMatch(/Love Corner/);
+    expect(container.textContent).toContain('poetech.us/lovecorner');
+    expect(container.textContent).not.toContain('?join=1'); // not the platform default
+  });
+
+  it('the override copy button writes the door URL, not the platform URL', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const orig = navigator.clipboard;
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    await mount(AppShareQR, { url: 'https://poetech.us/lovecorner/', shown: 'poetech.us/lovecorner' });
+    const copyBtn = [...container.querySelectorAll('button')].find((b) => /copy link/i.test(b.textContent));
+    await act(async () => { copyBtn.click(); });
+    expect(writeText).toHaveBeenCalledWith('https://poetech.us/lovecorner/');
+    Object.defineProperty(navigator, 'clipboard', { value: orig, configurable: true });
+  });
 });

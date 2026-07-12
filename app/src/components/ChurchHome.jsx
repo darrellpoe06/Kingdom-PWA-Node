@@ -20,6 +20,8 @@ import React, { useState } from 'react';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
+import AppShareQR from './AppShareQR.jsx';
+import { SHARE_DOOR_URL } from '../lib/church-own-door.js';
 import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -294,6 +296,21 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           </div>
         </section>
       )}
+
+      {/* GET / SHARE OUR APP (DR-0174) — the church's own door as a scannable
+          code the congregation can pass on: project it, print it for the
+          bulletin, or show a phone. Encodes SHARE_DOOR_URL (poetech.us/lovecorner
+          → installs "The Love Corner"), one source with the door + manifest. */}
+      <section aria-labelledby="shareapp-h">
+        <h3 id="shareapp-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Get our app · Share it</h3>
+        <AppShareQR
+          url={SHARE_DOOR_URL}
+          shown="poetech.us/lovecorner"
+          title="The Love Corner app"
+          blurb="Point a phone camera at this code to install our church app — services, live worship, sermons, giving, and prayer, all in one place. Project it, print it for the bulletin, or just show your phone."
+          ariaLabel="QR code to install The Love Corner church app"
+        />
+      </section>
         </>
       ),
     },
