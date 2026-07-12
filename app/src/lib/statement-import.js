@@ -152,6 +152,69 @@ export function normalizeDate(s) {
   return s;
 }
 
+// -----------------------------------------------------------------------------
+// parseOfx — OFX/QFX statement text -> the SAME normalized rows shape as the
+// delimited parser, fully in-browser (the "we read it in your browser, nothing
+// saves" promise on the landing upload was contradicted by the old path POSTing
+// the raw file to an n8n webhook). OFX/QFX are SGML/XML: each transaction is a
+// <STMTTRN> block with <DTPOSTED>, <TRNAMT>, and <NAME>/<MEMO>. Tolerant of both
+// tag styles (SGML `<TAG>value` with no close, and XML `<TAG>value</TAG>`), which
+// is why a generic XML parser is the wrong tool here. Reconciliation gate applies:
+// every <STMTTRN> block is ingested or rejected-with-a-reason, never dropped.
+// -----------------------------------------------------------------------------
+export function isOfxFile(file) {
+  if (!file) return false;
+  if (/\.(ofx|qfx)$/i.test(file.name || '')) return true;
+  const t = (file.type || '').toLowerCase();
+  return t.includes('ofx') || t.includes('quicken') || t.includes('money');
+}
+
+// Read one OFX field value whether it is SGML (`<TAG>val`, ended by the next `<`
+// or newline) or XML (`<TAG>val</TAG>`). Returns '' when absent.
+function ofxField(block, tag) {
+  const m = block.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i'));
+  return m ? m[1].trim() : '';
+}
+
+// OFX dates are YYYYMMDD (optionally with HHMMSS and a [tz] suffix). Normalize the
+// leading 8 digits to YYYY-MM-DD; anything else falls through to normalizeDate.
+function normalizeOfxDate(s) {
+  const m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return normalizeDate(s);
+}
+
+export function parseOfx(text, { flipSign = false } = {}) {
+  if (!text || !text.trim()) return { rows: [], rejected: [], reconciliation: reconcile(0, 0, 0), headers: [], errors: ['File is empty.'] };
+  const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi)
+    // Some exporters omit the closing tag; split on the opening tag as a fallback.
+    || text.split(/<STMTTRN>/i).slice(1).map((b) => `<STMTTRN>${b}`);
+  if (!blocks.length) {
+    return { rows: [], rejected: [], reconciliation: reconcile(0, 0, 0), headers: [], errors: ['No transactions found. This does not look like an OFX/QFX statement.'] };
+  }
+  const rows = [];
+  const rejected = [];
+  blocks.forEach((block, i) => {
+    const date = normalizeOfxDate(ofxField(block, 'DTPOSTED'));
+    const rawAmt = ofxField(block, 'TRNAMT');
+    const desc = ofxField(block, 'NAME') || ofxField(block, 'MEMO') || ofxField(block, 'PAYEE');
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { rejected.push({ line: i + 1, reason: 'unreadable-date', raw: rawAmt, value: ofxField(block, 'DTPOSTED') }); return; }
+    const num = parseFloat(String(rawAmt).replace(/[$,]/g, ''));
+    if (!Number.isFinite(num)) { rejected.push({ line: i + 1, reason: 'unparseable-amount', raw: rawAmt }); return; }
+    let amount = num;
+    if (flipSign) amount = -amount;
+    rows.push({ date, description: desc || '(no description)', amount, category: 'other', ok: true });
+  });
+  return { rows, rejected, reconciliation: reconcile(blocks.length, rows.length, rejected.length), headers: ['date', 'description', 'amount'], errors: [] };
+}
+
+// parseStatementText — one entry point: OFX/QFX -> parseOfx, else delimited/CSV.
+// (Excel is converted to CSV upstream by statementFileToCsv before this is called.)
+export function parseStatementText(text, { format = 'auto', flipSign = false } = {}) {
+  const looksOfx = format === 'ofx' || format === 'qfx' || /<OFX>|<STMTTRN>/i.test(text || '');
+  return looksOfx ? parseOfx(text, { flipSign }) : parseDelimitedToRows(text, { flipSign });
+}
+
 export function parseDelimitedToRows(text, { flipSign = false } = {}) {
   if (!text || !text.trim()) return { rows: [], headers: [], errors: ['File is empty.'] };
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
