@@ -28,6 +28,7 @@ import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
+import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
   BROADCAST_INTEREST_TAG, BROADCAST_TUTOR_META,
@@ -3619,7 +3620,10 @@ export default function PoeFinancialSystem() {
   if (__gate !== 'app') {
     return (
       <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        {__gate === 'gate' ? <PasswordAuth /> : null}
+        {/* The church door wears the church, not PoeTech (DR-0174): a member
+            opening ?view=church meets "The Love Corner" + the church logo on
+            the sign-in gate. PoeTech's own front door passes no brand. */}
+        {__gate === 'gate' ? <PasswordAuth brand={isChurchDoorContext() ? LOVE_CORNER_BRAND : null} /> : null}
       </div>
     );
   }
@@ -4235,8 +4239,10 @@ ${THEME_CSS}
                   (<sm) it falls back to the clean brand "PoeTech" — an ellipsis
                   cut is never acceptable. */}
               <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
-                <span className="hidden sm:inline lg:hidden">Family Operating Systems</span>
-                <span className="sm:hidden lg:inline">PoeTech</span>
+                {/* In the church view the header wears the church, not PoeTech
+                    (DR-0174 — "it looks like the PoeTech App... why?"). */}
+                <span className="hidden sm:inline lg:hidden">{view === 'church' ? 'The Love Corner' : 'Family Operating Systems'}</span>
+                <span className="sm:hidden lg:inline">{view === 'church' ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">

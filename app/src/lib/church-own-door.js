@@ -38,6 +38,25 @@ export const SHARE_DOOR_URL = 'https://poetech.us/lovecorner/';
 export const SHARE_DOOR_ALIASES = ['/church', '/thelovecorner'];
 export const INSTALL_MANIFEST = '/manifest-lovecorner.webmanifest';
 
+// The church's brand, used to SKIN the entry a member meets when they open the
+// church door (DR-0174 follow-up: "It looks like the PoeTech App... why?").
+// The install layer was church-branded; this brands the SHELL a member sees
+// after they tap in — the sign-in gate + header wear the church, not PoeTech,
+// when opened via ?view=church. PoeTech's own front door is unaffected.
+export const LOVE_CORNER_BRAND = {
+  name: 'The Love Corner',
+  eyebrow: 'The Church of the Living God',
+  logo: '/lovecorner-icon-192.png',
+};
+
+// Is this load in the church's context (the church door / installed church app,
+// whose manifest start_url is ?view=church)? Pure; injectable search for tests.
+export function isChurchDoorContext(search) {
+  const s = typeof search === 'string' ? search
+    : (typeof window !== 'undefined' && window.location ? window.location.search : '');
+  try { return new URLSearchParams(s).get('view') === 'church'; } catch { return false; }
+}
+
 // --- What is TRUE about the church's current web presence (verified, sourced) --
 export const SITE_FACTS = [
   {

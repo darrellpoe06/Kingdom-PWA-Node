@@ -27,7 +27,13 @@ import {
 // can sit inside a frame that already supplies them (e.g. AuthModal). The form,
 // the create/sign-in toggle, and the Royalty Link fallback are unchanged — so
 // there is still no lockout path no matter where it renders.
-export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false }) {
+// `brand` skins the entry for a specific door (DR-0174: the church door wears
+// "The Love Corner" + the church logo, not "PoeTech"). Null = PoeTech's own
+// front door, unchanged. Shape: { name, eyebrow, logo }.
+export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false, brand = null }) {
+  const brandName = (brand && brand.name) || 'PoeTech';
+  const brandEyebrow = (brand && (brand.eyebrow || brand.name)) || 'PoeTech';
+  const brandLogo = (brand && brand.logo) || null;
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
   const [usePassword, setUsePassword] = useState(false); // the LINK is the default door
   const [usePhonePin, setUsePhonePin] = useState(false); // phone + PIN, no email (DR-0172)
@@ -112,7 +118,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     return (
       <div className="max-w-sm" aria-live="polite">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>You’re in 🎉</h3>
-        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Welcome to PoeTech. This device will stay signed in.</p>
+        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Welcome to {brandName}. This device will stay signed in.</p>
       </div>
     );
   }
@@ -135,7 +141,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       <div className={embedded ? '' : 'max-w-sm'}>
         {!embedded && (
           <>
-            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+            {brandLogo && <img src={brandLogo} alt="" className="h-10 w-10 mb-1.5" />}
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{brandEyebrow}</div>
             <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
               {isSignup ? 'Create your profile' : 'Welcome back'}
             </h2>
@@ -190,7 +197,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       <div className={embedded ? '' : 'max-w-sm'}>
         {!embedded && (
           <>
-            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+            {brandLogo && <img src={brandLogo} alt="" className="h-10 w-10 mb-1.5" />}
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{brandEyebrow}</div>
             <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
               {isSignup ? 'Create your profile' : 'Welcome back'}
             </h2>
@@ -216,6 +224,18 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
             {status === 'working' ? 'One moment…' : 'Email me my sign-in link →'}
           </button>
         </form>
+        {/* No-email members are the point (COMMUNITY-FIRST — the deacon with a
+            flip phone, DR-0172). The phone+PIN way is a PROMINENT option here,
+            not fine print, so it's found without scrolling past email copy. */}
+        <div className="mt-3 flex items-center gap-2" aria-hidden="true">
+          <span className="h-px flex-1 bg-[#E8E4DC]"></span>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">or</span>
+          <span className="h-px flex-1 bg-[#E8E4DC]"></span>
+        </div>
+        <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }}
+          className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+          No email? Use your phone number + a PIN
+        </button>
         <div className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           {isSignup ? (
             <button type="button" onClick={() => { setMode('signin'); setError(''); }} className="underline hover:text-[#1A1815]">Already have a profile? Sign in</button>
@@ -225,9 +245,6 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
           <span className="mx-2 text-[#E8E4DC]">|</span>
           <button type="button" onClick={() => { setUsePassword(true); setError(''); }} className="underline hover:text-[#1A1815]">Prefer a password? Use one</button>
         </div>
-        <div className="mt-2 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }} className="underline hover:text-[#1A1815]">No email? Use a phone number + PIN</button>
-        </div>
       </div>
     );
   }
@@ -236,7 +253,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     <div className={embedded ? '' : 'max-w-sm'}>
       {!embedded && (
         <>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech</div>
+          {brandLogo && <img src={brandLogo} alt="" className="h-10 w-10 mb-1.5" />}
+          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{brandEyebrow}</div>
           <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
             {isSignup ? 'Create your profile' : 'Welcome back'}
           </h2>
