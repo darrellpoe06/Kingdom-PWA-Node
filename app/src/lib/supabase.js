@@ -246,6 +246,31 @@ export async function saveContactEmail(email) {
   return supabase.auth.updateUser({ data: { contact_email: e } });
 }
 
+// The ONE place a person's display name is decided (DP 2026-07-12: "Everyone
+// calls me DP... I want a user name so people can pick whatever they want... so
+// people recognize who is who"). Every surface that shows an author — the church
+// family thread, the account strip, prayer, trivia — resolves through THIS, so a
+// chosen name shows the same everywhere and we never leak the raw email local
+// part when a real name exists. Order: the name the person CHOSE (display_name)
+// → the name they gave at signup (name / full_name) → the email local part →
+// 'Member'. Pure; takes a Supabase user (or null).
+export function resolveUserName(user) {
+  const md = (user && user.user_metadata) || {};
+  const pick = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
+  return pick(md.display_name) || pick(md.name) || pick(md.full_name)
+    || pick((user && user.email || '').split('@')[0]) || 'Member';
+}
+
+// "Pick your name" — stores the chosen display name in user_metadata so it syncs
+// across devices and shows everywhere resolveUserName is read. Mirrors
+// saveContactEmail (no email round-trip). Returns { data, error }. A blank name
+// CLEARS it (falls back to name/email). Kept short so it fits a nametag.
+export async function saveDisplayName(name) {
+  const n = (name || '').trim();
+  if (n.length > 40) return { error: { message: 'Please choose a shorter name (40 characters or fewer).' } };
+  return supabase.auth.updateUser({ data: { display_name: n || null } });
+}
+
 /**
  * Initiate the Google OAuth sign-in flow. The browser navigates away to
  * Google's consent screen, then back to our app via the Supabase callback

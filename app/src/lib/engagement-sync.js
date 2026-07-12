@@ -27,7 +27,7 @@
 //       { id, userId, displayName, body, thread, createdAt, mine }
 // =============================================================================
 
-import supabase from './supabase.js';
+import supabase, { resolveUserName } from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
 
 // Church module: Engagement/Trivia is CHURCH content (BG's message), so it now
@@ -44,11 +44,13 @@ async function currentSession() {
   return data.session ?? null;
 }
 
-/** Friendly display name from an explicit value, else the email local part. */
+/** The name stored on a message/answer: an explicit override, else the person's
+ *  chosen display name (resolveUserName — display_name → name → email local
+ *  part), so the family thread shows "DP", not "darrellpoe06" (DP 2026-07-12). */
 function resolveDisplayName(session, explicit) {
   const trimmed = (explicit || '').trim();
   if (trimmed) return trimmed;
-  return session.user.email?.split('@')[0] || 'Member';
+  return resolveUserName(session.user);
 }
 
 /**
