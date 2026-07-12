@@ -23,9 +23,18 @@ const CREAM = '#FAF8F4';
 const CORAL = '#D57A55';
 const MUTE = '#B8B2A6';
 
-export default function SharePoster() {
-  const url = appJoinUrl();
-  const shown = appJoinUrlDisplay();
+// Props default to the PLATFORM poster (unchanged for the ?share=1 mount), but
+// accept an override so a specific door gets its OWN projector poster — e.g. the
+// church's poetech.us/lovecorner door (DR-0176), routed at ?share=church.
+export default function SharePoster({
+  url: urlProp = null,
+  shown: shownProp = null,
+  brandLine = 'PoeTech · Life, Soul & Money',
+  heading = 'Scan to get the app',
+  ariaLabel = 'QR code to install the PoeTech app',
+}) {
+  const url = urlProp || appJoinUrl();
+  const shown = shownProp || appJoinUrlDisplay();
   const [full, setFull] = useState(false);
 
   const toggleFull = useCallback(() => {
@@ -47,13 +56,13 @@ export default function SharePoster() {
       style={{ background: INK, color: CREAM }}
     >
       <div className="text-sm sm:text-base uppercase tracking-[0.35em] font-semibold" style={{ color: CORAL }}>
-        PoeTech · Life, Soul &amp; Money
+        {brandLine}
       </div>
       <h1
         className="mt-3 text-3xl sm:text-5xl font-bold"
         style={{ fontFamily: '"Fraunces", Georgia, serif', letterSpacing: '-0.02em' }}
       >
-        Scan to get the app
+        {heading}
       </h1>
 
       <div className="mt-8 sm:mt-10 bg-white rounded-2xl p-5 sm:p-7 shadow-xl">
@@ -63,7 +72,7 @@ export default function SharePoster() {
           level="M"
           includeMargin={false}
           role="img"
-          aria-label="QR code to install the PoeTech app"
+          aria-label={ariaLabel}
           className="w-[62vw] max-w-[420px] h-auto"
         />
       </div>

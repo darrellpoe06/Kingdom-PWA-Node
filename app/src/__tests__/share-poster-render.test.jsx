@@ -12,12 +12,12 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 import SharePoster from '../components/SharePoster.jsx';
 
 let container, root;
-async function mount(Component) {
+async function mount(Component, props) {
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => {
     root = createRoot(container);
-    root.render(createElement(Component));
+    root.render(createElement(Component, props));
   });
 }
 afterEach(() => {
@@ -42,5 +42,21 @@ describe('SharePoster — full-screen scan-to-get-the-app poster', () => {
   it('keeps the steward posture (showing does not grant access)', async () => {
     await mount(SharePoster);
     expect(container.textContent.toLowerCase()).toContain("doesn't grant access");
+  });
+
+  // DR-0176: the same poster serves the CHURCH door (?share=church) — one big
+  // QR for poetech.us/lovecorner, projected in the sanctuary / conference hall.
+  it('renders the CHURCH poster when given church props (?share=church)', async () => {
+    await mount(SharePoster, {
+      url: 'https://poetech.us/lovecorner/',
+      shown: 'poetech.us/lovecorner',
+      brandLine: 'The Church of the Living God · The Love Corner',
+      heading: 'Scan to get our church app',
+      ariaLabel: 'QR code to install The Love Corner church app',
+    });
+    expect(container.querySelector('svg[aria-label*="Love Corner"]')).not.toBeNull();
+    expect(container.textContent).toContain('Scan to get our church app');
+    expect(container.textContent).toContain('poetech.us/lovecorner');
+    expect(container.textContent).not.toContain('?join=1'); // church door, not the platform default
   });
 });
