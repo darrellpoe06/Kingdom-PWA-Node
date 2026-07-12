@@ -561,6 +561,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
           {c.address && <div><div className={labelCls}>Location</div><div>{c.address}</div></div>}
+          {c.pastor && <div><div className={labelCls}>Pastor</div><div>{c.pastor}</div></div>}
           {c.phone && <div><div className={labelCls}>Phone</div><a href={`tel:${c.phone.replace(/[^0-9]/g, '')}`} className="underline text-[#B85838] hover:text-[#1A1815]">{c.phone}</a></div>}
           {c.officeHours && <div><div className={labelCls}>Office</div><div>{c.officeHours}</div></div>}
         </div>

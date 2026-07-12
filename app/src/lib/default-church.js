@@ -30,9 +30,13 @@ export const COLG_DEFAULT_CHURCH = {
   name: 'The Church of the Living God',
   nickname: 'Also known as The Love Corner — Champaign IL',
   site: COLG_SITE,
-  address: '312 E. Bradley Ave, Champaign, IL',
-  phone: '',
-  officeHours: '',
+  address: '312 E. Bradley Ave, Champaign, IL 61820',
+  // Verified against the church's own printed documents (2026-07-12: the July
+  // 2026 calendar + orders of service + Bible-quiz headers, all carrying the
+  // official letterhead). Senior Bishop Lloyd E. Gwin, Pastor.
+  pastor: 'Senior Bishop Lloyd E. Gwin',
+  phone: '217-359-6920',
+  officeHours: 'Mon–Fri 11:00 AM – 6:00 PM · Closed Sat & Sun',
   contactEmail: '',
   services: [
     { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', label: 'Sunday Worship', online: true },
