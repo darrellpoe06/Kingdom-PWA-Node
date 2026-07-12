@@ -658,6 +658,86 @@ export async function inviteToChurch(email, role) {
   return error ? { skipped: 'invite-error', error } : { invited: true, id: data };
 }
 
+// --- Sent invites (the director's "who have I already invited?" view) --------
+// Christina (2026-07-12): she needs to SEE who she already sent an invite to, so
+// she doesn't guess or double-invite. The rows already exist in instance_invites
+// (written by invite_to_church) and owner/admin already have a SELECT on them
+// (policy instance_invites_admin_read, schema-v2.1-infra) — so this reads the
+// real rows directly, no new migration. SCOPED to the church instance so a
+// governor who ALSO owns the family instance never sees family invites bleed
+// into the choir roster. Live: a new invite or an acceptance updates the list.
+
+// instance_invites has no created_at; expires_at defaults to (invited + 14 days)
+// in migration 0014, so the SEND date is derivable for display.
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function toInviteShape(row) {
+  const expiresAt = row.expires_at ?? null;
+  const invitedAt = expiresAt
+    ? new Date(Date.parse(expiresAt) - INVITE_TTL_MS).toISOString()
+    : null;
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role ?? 'member',
+    invitedBy: row.invited_by ?? null,
+    acceptedAt: row.accepted_at ?? null,
+    expiresAt,
+    invitedAt,
+  };
+}
+
+// Pure: an invite is 'accepted' once it's been consumed at sign-in; otherwise
+// 'expired' if past its window, else still 'pending' (the actionable state).
+export function deriveInviteStatus(invite, nowMs) {
+  if (!invite) return 'pending';
+  if (invite.acceptedAt) return 'accepted';
+  const exp = invite.expiresAt ? Date.parse(invite.expiresAt) : NaN;
+  if (Number.isFinite(exp) && Number.isFinite(nowMs) && exp <= nowMs) return 'expired';
+  return 'pending';
+}
+
+// Pure: newest invite first, so "who did I just invite?" is at the top.
+export function sortInvites(invites) {
+  return [...(invites || [])].sort((a, b) =>
+    String(b.invitedAt || '').localeCompare(String(a.invitedAt || '')));
+}
+
+// Scoped, live subscriber (mirrors makeSubscriber but pinned to the church
+// instance — the generic all-rows read would mix in family invites for a
+// governor who owns both). Non-admins get [] (RLS), so it degrades quietly.
+export function subscribeChurchInvites(onChange, displayName) {
+  let channel = null;
+  let cancelled = false;
+  (async () => {
+    const session = await currentSession();
+    if (!session || cancelled) return;
+    const tenantId = await churchInstanceId(displayName);
+    if (!tenantId || cancelled) return;
+    const fetchAll = async () => {
+      const { data, error } = await supabase
+        .from('instance_invites')
+        .select('*')
+        .eq('instance_id', tenantId)
+        .order('expires_at', { ascending: false });
+      if (error) { console.warn('[choir-sync] instance_invites fetch failed:', error); return null; }
+      return (data || []).map(toInviteShape);
+    };
+    const initial = await fetchAll();
+    if (initial && !cancelled) onChange(initial);
+    channel = supabase
+      .channel('church-invites-stream')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'instance_invites', filter: `instance_id=eq.${tenantId}` },
+        () => { fetchAll().then((rows) => { if (rows && !cancelled) onChange(rows); }); })
+      .subscribe();
+  })();
+  return function unsubscribe() {
+    cancelled = true;
+    if (channel) supabase.removeChannel(channel);
+  };
+}
+
 export async function sendChoirMessage(body, displayName) {
   const text = (body || '').trim();
   if (!text) return { skipped: 'empty' };

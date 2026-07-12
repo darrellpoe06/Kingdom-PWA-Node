@@ -30,7 +30,7 @@ import {
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
-  inviteToChurch, classifyUpload,
+  inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
 } from '../lib/choir-sync.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
@@ -423,7 +423,18 @@ function MessagesPanel({ messages, onSend }) {
   );
 }
 
-function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
+const inviteRoleLabel = (r) => (r === 'admin' ? 'Co-director' : r === 'viewer' ? 'Viewer' : 'Member');
+// Traffic-light status, all from tokens that already carry a midnight (dark-
+// theme) remap in theme-css.js — no new colors, so the contrast + legibility
+// guards stay green in both themes: green = joined, rust = still pending, grey
+// = expired.
+const INVITE_BADGE = {
+  accepted: { label: 'Joined', cls: 'bg-[#5A6E3D] text-white' },
+  pending: { label: 'Pending', cls: 'bg-[#B85838] text-white' },
+  expired: { label: 'Expired', cls: 'bg-[#E8E4DC] text-[#5A5751]' },
+};
+
+function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite }) {
   const [f, setF] = useState({ displayName: '', section: '', choirRole: 'member' });
   const [adding, setAdding] = useState(false);
   const [inv, setInv] = useState({ email: '', role: 'member' });
@@ -450,6 +461,29 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>
           </div>
           {invMsg && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
+        </div>
+      )}
+      {canEdit && onInvite && (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Invites you've sent</div>
+          {invites.length ? (
+            <ul className="space-y-2">
+              {invites.map((iv) => {
+                const badge = INVITE_BADGE[deriveInviteStatus(iv, Date.now())] || INVITE_BADGE.pending;
+                return (
+                  <li key={iv.id} className="flex items-baseline justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-sm text-[#1A1815] break-all" style={{ fontFamily: '"Fraunces", serif' }}>{iv.email}</span>
+                      <span className="text-[0.6875rem] text-[#5A5751] ml-2">{inviteRoleLabel(iv.role)}{iv.invitedAt ? ` · sent ${fmtDate(String(iv.invitedAt).slice(0, 10))}` : ''}</span>
+                    </div>
+                    <span className={`text-[0.5625rem] uppercase tracking-wider px-2 py-1 whitespace-nowrap ${badge.cls}`}>{badge.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No invites sent yet. When you invite someone above, they'll show here — pending until they sign in, then marked joined.</p>
+          )}
         </div>
       )}
       {canEdit && (adding ? (
@@ -730,6 +764,7 @@ export default function Choir() {
   const [absences, setAbsences] = useState([]);
   const [teamDocs, setTeamDocs] = useState([]);
   const [resources, setResources] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -756,6 +791,7 @@ export default function Choir() {
       subscribeAbsences(setAbsences),
       subscribeTeamDocuments(setTeamDocs),
       subscribeResources(setResources),
+      subscribeChurchInvites(setInvites),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee]);
@@ -869,7 +905,7 @@ export default function Choir() {
     ),
     roster: () => (
       <RosterPanel
-        members={members} canEdit={access.canEdit}
+        members={members} invites={sortInvites(invites)} canEdit={access.canEdit}
         onAdd={async (m) => { reportSkip(await addMember(m)); }}
         onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
         onInvite={(email, role) => inviteToChurch(email, role)}

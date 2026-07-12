@@ -11,6 +11,7 @@ import {
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
   isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
+  toInviteShape, deriveInviteStatus, sortInvites,
 } from '../lib/choir-sync.js';
 
 describe('deriveAccess (visibility/edit gate)', () => {
@@ -479,5 +480,44 @@ describe('decodeHtmlEntities — harvested titles render as words, not entities'
     expect(toSermonShape({ id: 'x', title: '&quot;MY WORSHIP&quot;' }).title).toBe('"MY WORSHIP"');
     expect(toScheduleShape({ id: 'y', service_date: 'd', service_type: 'sunday', title: 'A &amp; B' }).title).toBe('A & B');
     expect(toSongShape({ id: 'z', title: '&#39;Tis So Sweet' }).title).toBe("'Tis So Sweet");
+  });
+});
+
+describe('sent-invites view (Christina: "see who I already invited") ', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  it('toInviteShape maps a row and derives the send date (expires - 14d)', () => {
+    const expiresAt = new Date(Date.parse('2026-07-12T00:00:00.000Z') + 14 * DAY).toISOString();
+    const shape = toInviteShape({ id: 'i1', email: 'A@Email.com', role: 'admin', invited_by: 'u1', accepted_at: null, expires_at: expiresAt });
+    expect(shape.id).toBe('i1');
+    expect(shape.email).toBe('A@Email.com');
+    expect(shape.role).toBe('admin');
+    expect(shape.invitedBy).toBe('u1');
+    expect(shape.acceptedAt).toBeNull();
+    expect(String(shape.invitedAt).slice(0, 10)).toBe('2026-07-12');
+  });
+  it('role defaults to member; a null expiry leaves invitedAt null', () => {
+    const shape = toInviteShape({ id: 'i2', email: 'b@e.com' });
+    expect(shape.role).toBe('member');
+    expect(shape.invitedAt).toBeNull();
+  });
+  it('deriveInviteStatus: accepted > expired > pending', () => {
+    const now = Date.parse('2026-07-12T00:00:00.000Z');
+    const future = new Date(now + DAY).toISOString();
+    const past = new Date(now - DAY).toISOString();
+    expect(deriveInviteStatus({ acceptedAt: past, expiresAt: past }, now)).toBe('accepted');
+    expect(deriveInviteStatus({ acceptedAt: null, expiresAt: past }, now)).toBe('expired');
+    expect(deriveInviteStatus({ acceptedAt: null, expiresAt: future }, now)).toBe('pending');
+    expect(deriveInviteStatus(null, now)).toBe('pending');
+  });
+  it('sortInvites puts the newest invite first and never mutates the input', () => {
+    const input = [
+      { id: 'old', invitedAt: '2026-07-01T00:00:00.000Z' },
+      { id: 'new', invitedAt: '2026-07-10T00:00:00.000Z' },
+      { id: 'mid', invitedAt: '2026-07-05T00:00:00.000Z' },
+    ];
+    const sorted = sortInvites(input);
+    expect(sorted.map((x) => x.id)).toEqual(['new', 'mid', 'old']);
+    expect(input.map((x) => x.id)).toEqual(['old', 'new', 'mid']); // input untouched
+    expect(sortInvites(null)).toEqual([]);
   });
 });
