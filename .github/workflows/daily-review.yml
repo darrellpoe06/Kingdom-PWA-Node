@@ -20,12 +20,13 @@ name: daily-review
 
 on:
   workflow_dispatch:
-  # To run it daily, uncomment (07:00 America/Chicago = 12:00 UTC). Do this
-  # deliberately, watching the first few runs. It is read-only + free, so the
-  # risk is low — but the discipline (ship inactive, enable on purpose) is the
-  # point, and it must not undermine.
-  # schedule:
-  #   - cron: '0 12 * * *'
+  # ARMED 2026-07-12 (DR-0178, "inert is a staging gate, not the resting state"):
+  # enabled with Darrell present and asking to go live. Report-only + free (no
+  # LLM, no repo writes) with a concurrency lock, so it cannot run away — the one
+  # timer-class item whose kill-switch is "it changes nothing." 07:00 America/
+  # Chicago = 12:00 UTC. To disable: re-comment the schedule below.
+  schedule:
+    - cron: '0 12 * * *'
 
 concurrency:
   group: daily-review

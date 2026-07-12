@@ -165,12 +165,15 @@ export const LEDGER = [
     gate: 'ships LegalPlaceholder; full impl tracked as tasks #94–#99',
     reason: 'FIX LIST: PIN setup → AES-GCM-256 at-rest → matter CRUD (4 scopes) → privileged journal/documents → key-date Calendar mirroring → privileged-stripped export are not built. Surfaced honestly as a placeholder, NOT flipped on.',
   },
-  {
-    id: 'pulpit-sermons', label: 'Pulpit — sermon archive (captioned, searchable)',
-    ref: 'app/src/poe-financial-mvp-v28.jsx:8017 ("Sermons coming soon")', bucket: BUCKET.BROKEN, active: false,
-    gate: 'entry point + placeholder; Sermon-to-Content pipeline not online',
-    reason: 'FIX LIST: the sermon caption/archive/search pipeline is not wired. The Pulpit surface ships with an honest "coming soon" panel rather than an empty/broken archive.',
-  },
+  // (removed 2026-07-12) 'pulpit-sermons' entry retired: it described the Pulpit
+  // sermon archive as a "Sermons coming soon" placeholder at a monolith line that
+  // no longer exists (:8017 in a 5307-line file; the quoted string is nowhere in
+  // the tree). The archive SHIPPED — Pulpit.jsx ("The Word — Migdal") renders the
+  // live, RPC-backed (theword_public_sermons, 0029) chronological library with
+  // per-message points + search. The remaining caption-ENRICHMENT gap (Harvest %)
+  // is tracked by the harvest pipeline (Harvest Ledger), not as a broken Pulpit.
+  // The entry carried no surfaceId, so validateLedger's cross-check never caught
+  // the drift — the cause of DR-0076 "honest ledger, dishonestly stale."
 ];
 
 // ── Validation — the regression guard (runs in CI via vitest) ────────────────
