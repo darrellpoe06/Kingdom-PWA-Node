@@ -152,6 +152,7 @@ export const FEEDBACK_AREAS = [
     ['church-event-center', '└ Event Center · room / event requests'],
     ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
+    ['church-bus', 'Church · Bus Ministry (drivers · routes · schedule · reminders · messages · meetings)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
