@@ -18,7 +18,7 @@
 // =============================================================================
 import { useSyncExternalStore } from 'react';
 import {
-  makeProgram, makeEnrollment, makeTeamMember, makeRetroNote, mergeSeed,
+  makeProgram, makeEnrollment, makeTeamMember, makeRetroNote, makeInterest, mergeSeed,
   SEED_PROGRAMS, SEED_ENROLLMENTS, SEED_TEAM, SEED_RETROS,
 } from './cohort-programs.js';
 
@@ -34,9 +34,10 @@ function loadLocal() {
       enrollments: Array.isArray(obj.enrollments) ? obj.enrollments : [],
       team: Array.isArray(obj.team) ? obj.team : [],
       retros: Array.isArray(obj.retros) ? obj.retros : [],
+      interests: Array.isArray(obj.interests) ? obj.interests : [],
     };
   } catch {
-    return { programs: [], enrollments: [], team: [], retros: [] };
+    return { programs: [], enrollments: [], team: [], retros: [], interests: [] };
   }
 }
 
@@ -50,6 +51,7 @@ function hydrate() {
     enrollments: mergeSeed(local.enrollments, SEED_ENROLLMENTS),
     team: mergeSeed(local.team, SEED_TEAM),
     retros: mergeSeed(local.retros, SEED_RETROS),
+    interests: local.interests, // real prospective-family captures only — no seed
   };
 }
 
@@ -129,6 +131,16 @@ export function addRetroNote(partial) {
   if (!note.programId || !note.note.trim()) return null;
   setState((cur) => ({ ...cur, retros: [...cur.retros, note] }));
   return note;
+}
+
+// ---------------------------------------------------------------------------
+// CRUD — prospective-family interest (the public invite's pipeline end)
+// ---------------------------------------------------------------------------
+export function addInterest(partial) {
+  const interest = makeInterest(partial, { now: nowIso() });
+  if (!interest.parentName || !interest.email) return null;
+  setState((cur) => ({ ...cur, interests: [...(cur.interests || []), interest] }));
+  return interest;
 }
 
 // The hook every consumer imports — live, shared, auto-re-rendering.

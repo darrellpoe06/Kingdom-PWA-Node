@@ -29,13 +29,13 @@ import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import {
   useCohortPrograms, addEnrollment, recordPayment, setEnrollmentStatus,
-  addTeamMember, removeTeamMember, addRetroNote, addProgram,
+  addTeamMember, removeTeamMember, addRetroNote, addProgram, addInterest,
 } from '../lib/use-cohort-programs.js';
 import {
   INDUSTRY_TRACKS, AGE_BANDS, TEAM_ROLES, WEEKDAYS, RETRO_CATEGORIES,
   ACADEMY_TIERS, HOMESCHOOL_POSITIONING, EARNINGS_SOURCE, EARNINGS_VERIFY_NOTE,
   ALL_OCCUPATIONS_MEDIAN_CENTS, DEFAULT_TRACK_IDS,
-  trackCatalog, ageBand, teamRole, planById, isSeedId,
+  trackCatalog, ageBand, teamRole, planById, isSeedId, validateInterest,
   programStats, teamStats, programSchedule, cycleProgress, breakEvenStudents,
   enrollmentPaymentState, trackROI, trackAccessTier, installmentSchedule,
 } from '../lib/cohort-programs.js';
@@ -104,12 +104,17 @@ export default function CohortPrograms({ isGovernor = false } = {}) {
     );
   }
 
+  // Non-operators (prospective families) meet the parent-facing invite — the
+  // value/ROI pitch + a way to register interest — never the operations console.
+  if (!isGovernor) return <ParentInvite program={program} />;
+
   const cycle = cycleProgress(program, new Date().toISOString());
   const breakEven = breakEvenStudents(program);
+  const interestCount = (store.interests || []).filter((i) => i.programId === program.id).length;
 
   const sections = [
     { id: 'overview', label: 'Overview', icon: 'home', render: () => (
-      <OverviewSection program={program} stats={stats} cycle={cycle} breakEven={breakEven} isGovernor={isGovernor} />
+      <OverviewSection program={program} stats={stats} cycle={cycle} breakEven={breakEven} isGovernor={isGovernor} interestCount={interestCount} />
     ) },
     { id: 'value', label: 'Why it’s worth it', icon: 'sparkle', render: () => (
       <ValueSection program={program} />
@@ -175,9 +180,75 @@ function TierLadder() {
 }
 
 // ---------------------------------------------------------------------------
+// ParentInvite — the public, parent-facing value page (non-operators). The
+// pitch a family sees to DECIDE: the ladder, what each day is worth (with real
+// earning power), how it compares to homeschool, and a way to register interest.
+// ---------------------------------------------------------------------------
+function ParentInvite({ program }) {
+  return (
+    <div className="max-w-4xl">
+      <SectionTitle eyebrow="PoeTech Academy · for families">Give your child the cutting edge</SectionTitle>
+      <p className="mb-3 text-sm text-[#1A1815] leading-relaxed">
+        One industry a day, Monday through Friday — Yahweh first, then A.I. and coding, wholeness, business, and the hands-on trades. The same lesson three weeks deep, tuned to your child’s age. Understanding you build with your hands, not theory you forget.
+      </p>
+      <TierLadder />
+      <div className="mt-4">
+        <ValueSection program={program} />
+      </div>
+      <div className="mt-4">
+        <InterestForm program={program} />
+      </div>
+    </div>
+  );
+}
+
+function InterestForm({ program }) {
+  const [parentName, setParentName] = useState('');
+  const [email, setEmail] = useState('');
+  const [childAgeBandId, setChildAgeBandId] = useState(AGE_BANDS[0].id);
+  const [planInterest, setPlanInterest] = useState((program.paymentPlans[0] || {}).id || 'full');
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  const onSubmit = () => {
+    const check = validateInterest({ parentName, email });
+    if (!check.ok) { setError(check.error); return; }
+    addInterest({ programId: program.id, parentName: parentName.trim(), email: email.trim(), childAgeBandId, planInterest });
+    setDone(true); setError('');
+  };
+
+  if (done) {
+    return (
+      <div className="border border-[#5A6E3D] bg-[#F0F4EA] p-4 text-sm text-[#3F5226]">
+        <span className="font-semibold">Thank you — you’re on the list.</span> The Academy team will reach out about the next cohort. Yahweh knowledge is always free; the cutting-edge and hands-on tracks are how your child goes deep.
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-4">
+      <div className="text-sm font-semibold text-[#1A1815] mb-1">Register your interest</div>
+      <div className="text-xs text-[#5A5751] mb-2 leading-relaxed">No payment now — tell us who to reach and your child’s age, and we’ll share the next cohort’s dates and the payment options (pay in full, or monthly).</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <input value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Your name" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Your name" />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Email" />
+        <select value={childAgeBandId} onChange={(e) => setChildAgeBandId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Child age band">
+          {AGE_BANDS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+        </select>
+        <select value={planInterest} onChange={(e) => setPlanInterest(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Payment interest">
+          {program.paymentPlans.map((p) => <option key={p.id} value={p.id}>{p.label} — {usd(p.totalCents)}</option>)}
+        </select>
+      </div>
+      {error && <div className="mt-1.5 text-xs text-[#7A1F1F]">{error}</div>}
+      <button type="button" onClick={onSubmit} className="mt-2 border border-[#5A6E3D] bg-[#F0F4EA] text-[#3F5226] px-3 py-1.5 text-sm font-semibold">I’m interested</button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Overview
 // ---------------------------------------------------------------------------
-function OverviewSection({ program, stats, cycle, breakEven, isGovernor }) {
+function OverviewSection({ program, stats, cycle, breakEven, isGovernor, interestCount = 0 }) {
   return (
     <div>
       <div className="mb-2 text-sm text-[#1A1815] font-semibold">{program.name}</div>
@@ -194,7 +265,7 @@ function OverviewSection({ program, stats, cycle, breakEven, isGovernor }) {
         <MetricCell label="Committed revenue" value={usd(stats.committedCents)} sub="enrolled × their plan" />
         <MetricCell label="Potential at capacity" value={usd(stats.potentialCents)} sub={`${num(stats.capacity)} × ${usd(program.tuitionCents)} — projection`} />
         <MetricCell label="Tuition" value={usd(program.tuitionCents)} sub="hands-on cohort" />
-        <MetricCell label="Waitlist / invited" value={`${num(stats.waitlistCount)} / ${num(stats.invitedCount)}`} sub="not holding a seat" />
+        <MetricCell label="Interested families" value={num(interestCount)} sub="from the invite page" />
       </div>
 
       <div className="border border-[#E8E4DC] bg-white p-3 mb-3">

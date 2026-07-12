@@ -4439,12 +4439,13 @@ ${THEME_CSS}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-                // Academy — the PoeTech Academy cohort-operations console (enroll,
-                // tuition/payment plans, weekly-track schedule, team, week-4 retro).
-                // A business-operations surface: family/Governor OR a business-tier
-                // operator running cohorts. Spread so it's absent from the DOM for
-                // everyone else (no-leak); the component carries its own gate too.
-                ...((isFamilyMember || tierMeets(data.userTier, 'business')) ? [['cohorts', <><UiIcon name="bookOpen" /> Academy</>]] : []),
+                // Academy — the PoeTech Academy. Open to everyone as a parent-facing
+                // INVITE (the value/ROI pitch + register-interest): prospective
+                // families must be able to see it to decide. The operations CONSOLE
+                // inside (enroll, tuition, team, week-4 retro) stays operator-gated —
+                // the component renders the invite for non-operators and the console
+                // only for family/Governor or a business-tier operator.
+                ['cohorts', <><UiIcon name="bookOpen" /> Academy</>],
                 // Admin — the real backend control surface. Shown to family
                 // stewards, and on the trusted NAS/home host (where being on the
                 // family network is itself the access control) — the SAME gate the
@@ -5093,23 +5094,17 @@ ${THEME_CSS}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 
-        {/* Academy — the cohort-operations console. Family/Governor OR a
-            business-tier operator; own SectionBoundary so a thrown error degrades
-            just this surface. Writes are gated to the operator; a non-permitted
-            deep-link gets the locked card (nav gate + render gate never disagree). */}
-        {view === 'cohorts' && ((isFamilyMember || tierMeets(data.userTier, 'business'))
-          ? (
-            <SectionBoundary name="Academy">
-              <CohortPrograms isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
-            </SectionBoundary>
-          )
-          : (
-            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center">
-              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
-              <p className="text-sm text-[#1A1815] font-semibold">The Academy console is an operations space.</p>
-              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">Running a cohort — enrollment, tuition, team, and the weekly schedule — is for family/governor or a business-tier account.</p>
-            </div>
-          ))}
+        {/* Academy — open to everyone as the parent-facing INVITE (value/ROI +
+            register-interest). The component itself shows the invite to non-
+            operators and the operations CONSOLE (enroll, tuition, team, retro)
+            only when isGovernor is true — so the gate lives inside, one surface
+            serving both parents and operators. Own SectionBoundary so a thrown
+            error degrades just this surface. */}
+        {view === 'cohorts' && (
+          <SectionBoundary name="Academy">
+            <CohortPrograms isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+          </SectionBoundary>
+        )}
 
         {/* Access & Usage was MERGED into Admin (one users report, 2026-07-04):
             AdminConsole now renders the AccessUsageMetrics report itself, and a

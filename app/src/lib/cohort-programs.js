@@ -409,6 +409,31 @@ export function makeTeamMember(partial = {}, { now = '' } = {}) {
   };
 }
 
+// A prospective family's interest — the parent-facing invite's pipeline end
+// (BUSINESS-PROCESS-CONNECTIONS: a surface that invites must have somewhere the
+// invitation lands). Captured from the public value page; operators see the
+// count + list in the console and convert it to an enrollment.
+export function makeInterest(partial = {}, { now = '' } = {}) {
+  const p = partial || {};
+  return {
+    id: asStr(p.id) || rid('int'),
+    programId: asStr(p.programId),
+    parentName: asStr(p.parentName),
+    email: asStr(p.email),
+    childAgeBandId: ageBand(p.childAgeBandId) ? p.childAgeBandId : 'k-2',
+    planInterest: asStr(p.planInterest) || 'full',
+    note: asStr(p.note),
+    createdIso: asStr(p.createdIso) || asStr(now) || null,
+  };
+}
+
+export function validateInterest(partial) {
+  const p = partial || {};
+  if (!asStr(p.parentName).trim()) return { ok: false, error: 'Please add your name.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(asStr(p.email).trim())) return { ok: false, error: 'A valid email is required so the team can reach you.' };
+  return { ok: true };
+}
+
 export function makeRetroNote(partial = {}, { now = '' } = {}) {
   const p = partial || {};
   return {

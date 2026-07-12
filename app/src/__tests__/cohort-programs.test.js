@@ -4,7 +4,7 @@
 // ROI framing, and seed integrity. Pure lib → no DOM/localStorage to mock.
 import { describe, it, expect } from 'vitest';
 import {
-  makeProgram, makeEnrollment, makeTeamMember,
+  makeProgram, makeEnrollment, makeTeamMember, makeInterest, validateInterest,
   defaultPaymentPlans, installmentSchedule, planById,
   enrollmentPaymentState, programStats, teamStats, breakEvenStudents,
   programSchedule, cycleProgress, trackROI, trackAccessTier, trackCatalog,
@@ -143,6 +143,20 @@ describe('cohort-programs — the parent ROI framing (sourced, real)', () => {
       expect(t.earning.medianCents).toBeGreaterThan(0);
       expect(t.earning.url).toMatch(/bls\.gov/);
     }
+  });
+});
+
+describe('cohort-programs — the parent-facing invite pipeline', () => {
+  it('interest capture requires a name and a valid email (a real pipeline end)', () => {
+    expect(validateInterest({ parentName: '', email: 'a@b.com' }).ok).toBe(false);
+    expect(validateInterest({ parentName: 'Parent', email: 'not-an-email' }).ok).toBe(false);
+    expect(validateInterest({ parentName: 'Parent', email: 'parent@example.com' }).ok).toBe(true);
+  });
+  it('an interest normalizes to a real record tied to a program + age band', () => {
+    const i = makeInterest({ programId: 'p1', parentName: 'Parent', email: 'p@x.com', childAgeBandId: '6-8' }, { now: NOW });
+    expect(i.programId).toBe('p1');
+    expect(i.childAgeBandId).toBe('6-8');
+    expect(i.id).toMatch(/^int-/);
   });
 });
 
