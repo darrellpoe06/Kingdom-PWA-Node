@@ -16,10 +16,21 @@
 // =============================================================================
 import React, { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
+import TabHelp from './TabHelp.jsx';
 import {
   normalizeGift, planGivingImport, guessGivingColumns, mapSheetRows, GIFT_METHODS,
   monthlyGivingReport, givingMonthsAvailable,
 } from '../lib/giving-records.js';
+
+// The short walkthrough for this tab (per-tab-tutorial-way). Kept next to the
+// surface it describes, so it moves when the surface moves. 5 steps, plain words.
+const HELP_STEPS = [
+  'Add one gift fast: type the giver’s name and amount, pick the date and method (cash is the default), and tap "Record gift."',
+  'Bring in a spreadsheet: tap "choose a file" and pick a Givelify, Zelle, Cash App, PayPal, or check export (.xlsx or .csv). The giver, amount, and date columns are matched for you.',
+  'Before it saves, you see "N new · M already recorded · K need a fix" — anything already in the ledger is skipped, so importing the same file twice never double-counts.',
+  'The "This year" box and the "Monthly report" fill themselves from the gifts — no adding up by hand.',
+  'For the trustees: pick the month and tap "Print." The report is figured from the ledger, so the total is always right.',
+];
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -117,6 +128,8 @@ export default function RecordGiving({ records = [], addRecord, deleteRecord }) 
           One clean ledger — cash, check, and online (Givelify, Zelle, Cash App, PayPal) together. This records gifts already received; no money is processed here.
         </p>
       </header>
+
+      <TabHelp title="How to use Record Giving" steps={HELP_STEPS} />
 
       {/* YEAR TO DATE — real rows, never painted */}
       <section aria-labelledby="ytd-h" className="border p-4" style={{ borderColor: INK, background: CREAM }}>
