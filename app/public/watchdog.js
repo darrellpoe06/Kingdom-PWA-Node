@@ -11,7 +11,14 @@
 // a cache-busting param, then say something honest instead of staying blank.
 (function () {
   'use strict';
-  var WAIT_MS = 8000;
+  // 20s, not 8s: the full app is a large bundle, and on a congested shared
+  // network (a church sanctuary full of phones on one AP) it can take well over
+  // 8s to arrive. An 8s window fired mid-download and the recovery below reloaded
+  // the page — restarting the download from scratch, so it NEVER finished (the
+  // 2026-07-12 "watchdog message, then instant white" outage on church WiFi).
+  // Give a slow-but-working network time to boot before we ever intervene; a fast
+  // network boots in under a second, so this longer wait is dormant for it.
+  var WAIT_MS = 20000;
   function retried() {
     try { return new URL(window.location.href).searchParams.has('pt-retry'); } catch (e) { return true; }
   }
@@ -53,8 +60,18 @@
   }
   setTimeout(function () {
     if (window.__PT_BOOTED) return;
-    freeWaitingWorker();
+    // MESSAGE path (we already retried once and the app still hasn't booted):
+    // leave a STABLE honest message and do NOT touch the service worker. Posting
+    // SKIP_WAITING here makes sw-update's controllerchange handler auto-reload the
+    // page with no user action — which WIPES this very message to white and
+    // restarts the large bundle download, looping forever on a slow network. That
+    // self-inflicted reload was the "watchdog message, then instant white" outage
+    // (2026-07-12, church WiFi): during the Assembly every per-merge deploy left a
+    // waiting worker, so the poke fired every time. The message must be terminal.
     if (retried()) { saySomething(); return; }
+    // RETRY path: a navigation is the intent anyway, so it is safe to free a
+    // waiting worker here so the retry loads under the newest worker.
+    freeWaitingWorker();
     retryOnce();
   }, WAIT_MS);
 })();
