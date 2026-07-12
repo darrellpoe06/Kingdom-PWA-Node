@@ -104,7 +104,7 @@ import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
 import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/concerns-sync.js';
 // 2026-07-05 live-data rails (0077): the audited device-local collections gain
 // the same fail-soft sync everything else rides. See lib/doc-sync.js + live-rails.js.
-import { gameSavesSync, subscriptionsSync, skillProfilesSync, prayerRequestsSync, churchVoiceSync } from './lib/doc-sync.js';
+import { gameSavesSync, subscriptionsSync, skillProfilesSync, prayerRequestsSync, churchVoiceSync, givingRecordsSync } from './lib/doc-sync.js';
 import { uploadSymbol as uploadWatchlistSymbol, removeSymbol as removeWatchlistSymbolRemote } from './lib/watchlist-sync.js';
 import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
@@ -136,7 +136,7 @@ import {
   About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
-  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
+  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, RecordGiving, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, Relationships,
@@ -455,6 +455,7 @@ export const SEED_DATA = {
   // COLG_DEFAULT_CHURCH (lib/default-church.js) so every default surface stays in sync.
   church: COLG_DEFAULT_CHURCH,
   prayerRequests: [], // local prayer-request log; user controls send-out via mailto button
+  givingRecords: [], // steward giving ledger (cash + imported); synced steward-only (0096)
   // Round 14 — Voice Ops (Phase 1) — config for the Cloudflare Worker backend.
   // User fills in API endpoint + token on the 📞 Inbound tab; both saved locally
   // (encrypted at rest via the browser's IndexedDB). NEVER committed to git.
@@ -525,6 +526,7 @@ export const EMPTY_WORLD = {
   opportunities: [],
   capexItems: [],
   prayerRequests: [],
+  givingRecords: [],
   skillProfiles: [],
   userTier: 'foundation',
   welcomeDismissed: false,
@@ -3384,6 +3386,10 @@ export default function PoeFinancialSystem() {
   const addPrayerRequest = (item) => { prayerRequestsCrud.add({ ...item, id: `pr-${Date.now()}`, createdAt: new Date().toISOString(), sentAt: null }); };
   const markPrayerRequestSent = (id) => prayerRequestsCrud.update(id, { sentAt: new Date().toISOString() });
   const deletePrayerRequest = prayerRequestsCrud.remove;
+  // Steward giving ledger (0096) — cash + bulk-imported gifts; steward-only RLS.
+  const givingRecordsCrud = railCrud(givingRecordsSync, 'givingRecords', 'giving-records-sync');
+  const addGivingRecord = (gift) => { givingRecordsCrud.add({ ...gift, id: `gv-${Date.now()}-${Math.floor(Math.random() * 1e6)}`, createdAt: new Date().toISOString() }); };
+  const deleteGivingRecord = givingRecordsCrud.remove;
   const addWatchlistSymbol = (sym) => {
     const s = (sym || '').trim().toLowerCase();
     if (!s) return;
@@ -4498,7 +4504,7 @@ ${THEME_CSS}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['giving', <><UiIcon name="coins" /> Record Giving</>],['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4603,6 +4609,9 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
           : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
+        {view === 'church' && churchView === 'giving' && (isChurchStaff
+          ? <RecordGiving records={data.givingRecords || []} addRecord={addGivingRecord} deleteRecord={deleteGivingRecord} />
+          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The giving ledger is church steward data. Sign in with a church staff account to view it.</div>)}
         {/* Device Inventory: the asset register for church infrastructure +
             the idle-GPU compute pool (capability index). Staff-gated; RLS
             scopes church_devices (0056). The capability fields feed the

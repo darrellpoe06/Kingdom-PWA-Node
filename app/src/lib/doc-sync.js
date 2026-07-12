@@ -67,3 +67,8 @@ export const skillProfilesSync = createDocTableSync({ localKey: 'skillProfiles',
 export const prayerRequestsSync = createDocTableSync({ localKey: 'prayerRequests', remoteTable: 'prayer_requests' });
 // One Voice notes — spoken/typed voice notes routed to the church surfaces.
 export const churchVoiceSync = createDocTableSync({ localKey: 'churchVoice', remoteTable: 'church_voice' });
+// Steward giving records — cash gifts + bulk-imported giving (Givelify/Zelle/
+// Cash App/PayPal/check), the one ledger behind the transparent monthly report.
+// Steward-only by RLS (owner/admin); the doc carries the normalized gift
+// (lib/giving-records.js). Migration 0096-giving-records-rail.sql.
+export const givingRecordsSync = createDocTableSync({ localKey: 'givingRecords', remoteTable: 'giving_records' });

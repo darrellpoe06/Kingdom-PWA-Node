@@ -155,6 +155,7 @@ export const FEEDBACK_AREAS = [
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
+    ['church-giving', 'Church · Record Giving (staff: cash + bulk-import ledger — all channels, transparent monthly report)'],
     ['church-harvest', 'Church · Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · Video Wall (sanctuary LED capital project — budget · donations · spec)'],
     ['church-devices', 'Church · Device Inventory (staff: asset register — NAS · GPU nodes · VX1000 · LED wall · network · cameras · sound + idle-GPU compute pool)'],
