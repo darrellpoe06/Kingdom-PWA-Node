@@ -139,7 +139,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
-  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, Relationships,
+  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
@@ -1017,7 +1017,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast','cohorts'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4439,6 +4439,13 @@ ${THEME_CSS}
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
+                // Academy — the PoeTech Academy. Open to everyone as a parent-facing
+                // INVITE (the value/ROI pitch + register-interest): prospective
+                // families must be able to see it to decide. The operations CONSOLE
+                // inside (enroll, tuition, team, week-4 retro) stays operator-gated —
+                // the component renders the invite for non-operators and the console
+                // only for family/Governor or a business-tier operator.
+                ['cohorts', <><UiIcon name="bookOpen" /> Academy</>],
                 // Admin — the real backend control surface. Shown to family
                 // stewards, and on the trusted NAS/home host (where being on the
                 // family network is itself the access control) — the SAME gate the
@@ -5086,6 +5093,18 @@ ${THEME_CSS}
           ))}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
+
+        {/* Academy — open to everyone as the parent-facing INVITE (value/ROI +
+            register-interest). The component itself shows the invite to non-
+            operators and the operations CONSOLE (enroll, tuition, team, retro)
+            only when isGovernor is true — so the gate lives inside, one surface
+            serving both parents and operators. Own SectionBoundary so a thrown
+            error degrades just this surface. */}
+        {view === 'cohorts' && (
+          <SectionBoundary name="Academy">
+            <CohortPrograms isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+          </SectionBoundary>
+        )}
 
         {/* Access & Usage was MERGED into Admin (one users report, 2026-07-04):
             AdminConsole now renders the AccessUsageMetrics report itself, and a

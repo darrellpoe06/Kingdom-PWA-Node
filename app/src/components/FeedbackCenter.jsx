@@ -137,6 +137,9 @@ export const FEEDBACK_AREAS = [
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
   ]},
+  { group: 'Academy (steward/business · cohort operations)', items: [
+    ['cohorts', 'Academy · cohort operations (enrollment · tuition/payment plans · weekly-track schedule · team · week-4 retro)'],
+  ]},
   { group: 'Access & Usage (steward · access governance)', items: [
     ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
   ]},
