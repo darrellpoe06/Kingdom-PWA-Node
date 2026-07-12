@@ -33,6 +33,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { resolveGiveDestination, GIVING_CHANNELS, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import { useAutoHideOnScroll, hiddenFloaterClass } from '../lib/floating-visibility.js';
 import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
 import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
 
@@ -282,6 +283,10 @@ export function ChurchGivePanel({ church, onClose }) {
 // icon. Manages its own open state so the monolith wiring is a single mount.
 export function ChurchGiveFloater({ church }) {
   const [open, setOpen] = React.useState(false);
+  // Give tucks away while reading and returns on scroll-up; pinned open while the
+  // panel is up (DR-0179 floaters "leave & return"). The contextual giving-time /
+  // live-service pin layers on top of this via forceVisible when that's wired.
+  const { visible: dockVisible } = useAutoHideOnScroll({ forceVisible: open });
   return (
     <>
       {!open && (
@@ -290,7 +295,7 @@ export function ChurchGiveFloater({ church }) {
           onClick={() => setOpen(true)}
           aria-label="Give to the church"
           title="Give to the church — and the blessing of giving according to the Word"
-          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-4 py-3 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
+          className={`fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-4 py-3 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-300 ${hiddenFloaterClass(dockVisible, 'right')}`}
           style={{ borderRadius: '999px' }}
         >
           <GiftIcon /> Give
