@@ -631,7 +631,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           navigates to this tab is opted-in to deeper engagement. */}
       {showingDefaultHome && (
         <p className="text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          This is your default church home — The Church of the Living God, the platform&apos;s first community. Choosing your own church home opens as partner churches join the directory; until then, the real next step is inviting yours from the Church Directory (About section).
+          This is your default church home — The Church of the Living God, the platform&apos;s first community. Choosing your own church home opens as partner churches join the directory; until then, the real next step is inviting yours from the Church Directory, further down this page.
         </p>
       )}
 
