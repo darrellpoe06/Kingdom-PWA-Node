@@ -11,7 +11,7 @@
 // (Bishop Gwin + Governor) governs when it opens publicly.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { SHARE_DOOR_URL, SHARE_DOOR_ALIASES, INSTALL_MANIFEST, DOOR_PHASES } from '../lib/church-own-door.js';
@@ -35,9 +35,20 @@ describe('the church-branded install manifest', () => {
     expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
   });
 
-  it('carries real icons (reused platform art until COLG supplies its own)', () => {
+  it('carries the CHURCH\'s OWN logo icons (not the platform placeholder)', () => {
     expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
-    for (const i of manifest.icons) expect(i.src).toMatch(/^\/icon-/);
+    for (const i of manifest.icons) expect(i.src).toMatch(/^\/lovecorner-icon-/);
+    // both any + maskable purposes present so Android's adaptive mask is clean
+    const purposes = new Set(manifest.icons.map((i) => i.purpose));
+    expect(purposes.has('any')).toBe(true);
+    expect(purposes.has('maskable')).toBe(true);
+  });
+
+  it('the church logo icon files actually exist in public/', () => {
+    for (const rel of ['lovecorner-icon-192.png', 'lovecorner-icon-512.png',
+      'lovecorner-icon-maskable-192.png', 'lovecorner-icon-maskable-512.png']) {
+      expect(existsSync(pub(rel)), `${rel} missing — the church icon won't ship`).toBe(true);
+    }
   });
 });
 
@@ -85,5 +96,22 @@ describe('the plan and the artifact never drift (DR-0121)', () => {
   it('the install constants are wired', () => {
     expect(INSTALL_MANIFEST).toBe('/manifest-lovecorner.webmanifest');
     expect(SHARE_DOOR_URL).toBe('https://poetech.us/lovecorner/');
+  });
+});
+
+describe('the ?share=church projector boot (DR-0177) — source-pinned', () => {
+  const mainPath = join(dirname(fileURLToPath(import.meta.url)), '../main.jsx');
+  const main = readFileSync(mainPath, 'utf8').replace(/\/\/.*$/gm, ''); // strip line comments
+
+  it('routes ?share=church to the SharePoster church poster', () => {
+    expect(main).toMatch(/share'?\)\s*===\s*'church'/);
+    expect(main).toMatch(/brandLine=["'][^"']*Love Corner/);
+  });
+
+  it('opts OUT of the service-worker update-reload (a mid-service deploy must NOT reload the projected screen)', () => {
+    // The __standalone list gates SW registration + update reloads; the church
+    // projector must be in it, exactly like ?share=1 / ?audience / ?teach.
+    const standaloneBlock = main.slice(main.indexOf('__standalone ='), main.indexOf('__root ='));
+    expect(standaloneBlock).toMatch(/get\('share'\)\s*===\s*'church'/);
   });
 });
