@@ -424,9 +424,13 @@ function MessagesPanel({ messages, onSend }) {
 }
 
 const inviteRoleLabel = (r) => (r === 'admin' ? 'Co-director' : r === 'viewer' ? 'Viewer' : 'Member');
+// Traffic-light status, all from tokens that already carry a midnight (dark-
+// theme) remap in theme-css.js — no new colors, so the contrast + legibility
+// guards stay green in both themes: green = joined, rust = still pending, grey
+// = expired.
 const INVITE_BADGE = {
   accepted: { label: 'Joined', cls: 'bg-[#5A6E3D] text-white' },
-  pending: { label: 'Pending', cls: 'bg-[#F0EAD8] text-[#7A6A2D]' },
+  pending: { label: 'Pending', cls: 'bg-[#B85838] text-white' },
   expired: { label: 'Expired', cls: 'bg-[#E8E4DC] text-[#5A5751]' },
 };
 
