@@ -155,6 +155,27 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('share') === 'church') {
+  // The CHURCH's projector poster (DR-0176): ?share=church shows one big QR for
+  // the church door (poetech.us/lovecorner → installs "The Love Corner") — for
+  // the sanctuary screen or the conference hall. Same poster component, church
+  // props; SHARE_DOOR_URL is the one source it and the door page/manifest share.
+  Promise.all([
+    import('./components/SharePoster.jsx'),
+    import('./lib/church-own-door.js'),
+  ]).then(([{ default: SharePoster }, { SHARE_DOOR_URL }]) => {
+    __root.render(
+      <React.StrictMode><ErrorBoundary>
+        <SharePoster
+          url={SHARE_DOOR_URL}
+          shown="poetech.us/lovecorner"
+          brandLine="The Church of the Living God · The Love Corner"
+          heading="Scan to get our church app"
+          ariaLabel="QR code to install The Love Corner church app"
+        />
+      </ErrorBoundary></React.StrictMode>
+    );
+  }).catch((err) => { console.warn('church share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('share') === '1') {
   // Full-screen "scan to get the app" poster for a projector/screen — a whole
   // room scans one big QR. No account/data/auth; only displays the join URL.
