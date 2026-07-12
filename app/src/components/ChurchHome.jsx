@@ -528,7 +528,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               <div key={svc.id} className={`p-3 flex items-center justify-between gap-3 flex-wrap ${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
                 <div className="min-w-0">
                   <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{svc.day}</div>
-                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}</span></div>
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{svc.label} · <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{svc.time}{svc.endTime ? `–${svc.endTime}` : ''}</span></div>
                   {svc.online && <div className="text-[0.625rem] text-[#5A6E3D] uppercase tracking-wider">✓ live online</div>}
                 </div>
                 <button type="button" onClick={() => saveServiceToCalendar(svc)} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"><UiIcon name="calendar" /> Save next one</button>
@@ -551,7 +551,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           the actions, not with the marquee). */}
       <section className="bg-white border border-[#1A1815] p-5">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1">Home Church</div>
-        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}</h2>
+        <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{c.name}{c.founded && <span className="text-sm text-[#5A5751] font-normal ml-2" style={{ letterSpacing: 0 }}>· Est. {c.founded}</span>}</h2>
         {c.nickname && <div className="text-base text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.nickname}</div>}
         {c.tagline && <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{c.tagline}</p>}
         {c.verse && (
