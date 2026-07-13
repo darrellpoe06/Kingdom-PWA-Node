@@ -24,3 +24,25 @@ export const TLC_TEAM = [
 
 export const TLC_INSURANCE =
   'Blue Cross Blue Shield · Aetna · United Health Care · Veterans Affairs · Cigna · Self-pay rates available';
+
+// The public brand line + the two real client actions (book, learn more). The
+// booking link is TLC's live Acuity scheduler; the website is their live site.
+// One source so the operator Practice tab AND the client door never drift.
+export const TLC_BRAND = {
+  name: 'TLC Therapy Solutions',
+  tagline: 'Real Solutions for Real Life.',
+  blurb: 'Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.',
+  website: 'https://tlctherapysolutions.me',
+  bookingUrl: 'https://tlctherapysolutions-scheduleappointment.as.me/',
+};
+
+// The services a client can book — the SAME list the Practice tab shows, lifted
+// here so the client door renders one record, not a copy that drifts.
+export const TLC_SERVICES = [
+  { name: 'Individual Therapy', desc: 'One-on-one · adult', for: 'Anxiety · depression · grief · life transitions · faith integration' },
+  { name: 'Couples Therapy', desc: 'Marriage & relationships', for: 'Communication · conflict · pre-marital · rebuilding trust' },
+  { name: 'Family Therapy', desc: 'Multi-generation work', for: 'Parent-child · sibling dynamics · blended families' },
+  { name: 'Child & Adolescent', desc: 'Ages 6-17', for: 'Anxiety · school refusal · behavioral · trauma · identity' },
+  { name: 'Group Therapy', desc: 'Themed cohort groups', for: 'Connection-based healing · processing in community' },
+  { name: 'Clinical Consultation', desc: 'For pastors & professionals', for: 'Referral guidance · faith-clinical integration · supervision' },
+];

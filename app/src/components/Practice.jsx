@@ -14,7 +14,7 @@ import { ClientGrowth } from './ClientGrowth.jsx';
 import { PracticeLearn } from './PracticeLearn.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
 import SectionTabs from './SectionTabs.jsx';
-import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
+import { TLC_TEAM, TLC_INSURANCE, TLC_SERVICES, TLC_BRAND } from '../lib/tlc-practice.js';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -381,18 +381,11 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       <section>
         <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {[
-            { name: 'Individual Therapy', desc: 'One-on-one · adult', for: 'Anxiety · depression · grief · life transitions · faith integration' },
-            { name: 'Couples Therapy', desc: 'Marriage & relationships', for: 'Communication · conflict · pre-marital · rebuilding trust' },
-            { name: 'Family Therapy', desc: 'Multi-generation work', for: 'Parent-child · sibling dynamics · blended families' },
-            { name: 'Child & Adolescent', desc: 'Ages 6-17', for: 'Anxiety · school refusal · behavioral · trauma · identity' },
-            { name: 'Group Therapy', desc: 'Themed cohort groups', for: 'Connection-based healing · processing in community' },
-            { name: 'Clinical Consultation', desc: 'For pastors & professionals', for: 'Referral guidance · faith-clinical integration · supervision' },
-          ].map(s => (
+          {TLC_SERVICES.map(s => (
             <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">
                 <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
-                <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
               </div>
               <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
               <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
@@ -527,7 +520,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Real Solutions for Real Life.</h2>
             <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.</p>
           </div>
-          <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
+          <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] whitespace-nowrap">📅 Book a Session →</a>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           <a href="https://tlctherapysolutions.me/" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
