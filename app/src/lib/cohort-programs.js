@@ -128,6 +128,27 @@ export function trackAccessTier(trackId) {
   return academyTier('digital'); // knowledge at entry; hands-on cohort deepens it
 }
 
+// SUBSCRIPTION-OR-ARI (Darrell 2026-07-12): to learn beyond the always-free
+// Yahweh track, a learner of ANY age either holds a subscription or goes through
+// Ari. Ari (the sovereign local-LLM tutor, lib/class-tutor.js) is the teacher
+// INSIDE the subscription — self-driving and age-adaptive, so no per-age staff is
+// needed. That is what makes "any age" scale: the teacher is Ari, not a hire.
+export const ARI_TUTOR_NOTE =
+  'Taught by Ari — the sovereign A.I. tutor included with your subscription. Self-paced and age-adaptive, so a learner of any age starts the moment they want to, without waiting on a class.';
+
+// Pure access read for a learner. `hasSubscription` is the caller's resolved
+// entitlement (effectiveTier !== free — see lib/entitlements.js). Yahweh is
+// always open; the cutting-edge digital learning (and Ari as its teacher) is the
+// subscription; the hands-on cohort is the $1,000 in-person build.
+export function learnerAccess({ hasSubscription = false } = {}) {
+  return {
+    yahweh: true,                    // always free, any age
+    digitalWithAri: !!hasSubscription, // subscription unlocks the curriculum + Ari
+    handsOnCohort: !!hasSubscription,  // enrollment is the paid cohort path
+    teacher: 'Ari',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Homeschool positioning — sourced market context for the parent value section.
 // Established fact (DR-0100), cited (DR-0076): where this offering sits vs the
@@ -279,6 +300,29 @@ export const AGE_BANDS = [
 ];
 export const ageBand = (id) => AGE_BANDS.find((a) => a.id === asStr(id)) || null;
 
+// AUDIENCES — who a cohort is FOR. "Any age group, for those who want to learn"
+// (Darrell 2026-07-12). A program declares its audience so the framing, the age
+// bands offered, and the on-ramp fit — a seniors tech-confidence cohort and a
+// youth cohort are the same engine, different audience.
+export const AUDIENCES = [
+  { id: 'all-ages', label: 'All ages', ageBandIds: AGE_BANDS.map((a) => a.id),
+    blurb: 'Open to every age — children through adults and elders. Intergenerational by design.' },
+  { id: 'youth', label: 'Youth', ageBandIds: ['k-2', '3-5', '6-8', '9-12'],
+    blurb: 'For school-age children — story-first for the youngest, portfolio-deep by high school.' },
+  { id: 'adult', label: 'Adults', ageBandIds: ['young-adult', 'adult'],
+    blurb: 'For adults learning or re-skilling — the cutting edge with a clear path to earning.' },
+  { id: 'elders', label: 'Elders', ageBandIds: ['adult'],
+    blurb: 'For seniors — everyday tech confidence and the Word, at a patient pace (COMMUNITY-FIRST).' },
+];
+export const audienceById = (id) => AUDIENCES.find((a) => a.id === asStr(id)) || null;
+
+// The age bands a program offers, narrowed to its audience.
+export function audienceAgeBands(program) {
+  const aud = audienceById(program && program.audience) || audienceById('all-ages');
+  const allow = new Set(aud.ageBandIds);
+  return AGE_BANDS.filter((b) => allow.has(b.id));
+}
+
 // Enrollment status governs whether a seat is HELD. Payment is tracked
 // separately (a partially-paid enrolled student still holds their seat).
 export const ENROLLMENT_STATUSES = ['invited', 'enrolled', 'waitlist', 'withdrawn'];
@@ -388,6 +432,7 @@ export function makeProgram(partial = {}, { now = '' } = {}) {
     weeksPerCycle: Math.max(1, asNum(p.weeksPerCycle, DEFAULT_WEEKS)),
     retroWeek: RETRO_WEEK,
     minStart: Math.max(1, asNum(p.minStart, DEFAULT_MIN_START)),
+    audience: audienceById(p.audience) ? p.audience : 'all-ages',
     formatIds: (asArr(p.formatIds).filter((id) => sessionFormat(id)).length
       ? asArr(p.formatIds).filter((id) => sessionFormat(id))
       : SESSION_FORMATS.map((f) => f.id)),

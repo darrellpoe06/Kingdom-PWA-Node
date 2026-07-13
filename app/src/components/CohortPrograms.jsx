@@ -32,9 +32,10 @@ import {
   addTeamMember, removeTeamMember, addRetroNote, addProgram, addInterest,
 } from '../lib/use-cohort-programs.js';
 import {
-  INDUSTRY_TRACKS, AGE_BANDS, TEAM_ROLES, WEEKDAYS, RETRO_CATEGORIES,
+  INDUSTRY_TRACKS, TEAM_ROLES, WEEKDAYS, RETRO_CATEGORIES,
   ACADEMY_TIERS, HOMESCHOOL_POSITIONING, EARNINGS_SOURCE, EARNINGS_VERIFY_NOTE,
-  ALL_OCCUPATIONS_MEDIAN_CENTS, DEFAULT_TRACK_IDS,
+  ALL_OCCUPATIONS_MEDIAN_CENTS, DEFAULT_TRACK_IDS, AUDIENCES, ARI_TUTOR_NOTE,
+  audienceById, audienceAgeBands,
   trackCatalog, ageBand, teamRole, planById, isSeedId, validateInterest,
   programStats, teamStats, programSchedule, cycleProgress, breakEvenStudents,
   enrollmentPaymentState, trackROI, trackAccessTier, installmentSchedule,
@@ -191,8 +192,20 @@ function ParentInvite({ program }) {
     <div className="max-w-4xl">
       <SectionTitle eyebrow="PoeTech Academy · for families">Give your child the cutting edge</SectionTitle>
       <p className="mb-3 text-sm text-[#1A1815] leading-relaxed">
-        One industry a day, Monday through Friday — Yahweh first, then A.I. and coding, wholeness, business, and the hands-on trades. The same lesson three weeks deep, tuned to your child’s age. Understanding you build with your hands, not theory you forget.
+        One industry a day, Monday through Friday — Yahweh first, then A.I. and coding, wholeness, business, and the hands-on trades. The same lesson three weeks deep, tuned to the learner’s age. Understanding you build with your hands, not theory you forget.
       </p>
+
+      {/* Any age, taught by Ari — the subscription-or-Ari access */}
+      <div className="mb-4 border border-[#3F6098] bg-[#FAF8F4] p-4">
+        <div className="flex items-center gap-1.5 text-[#1A1815] mb-1">
+          <UiIcon name="sparkle" />
+          <span className="text-sm font-semibold">Any age — taught by Ari</span>
+        </div>
+        <div className="text-xs text-[#5A5751] leading-relaxed">
+          {audienceById(program.audience) ? audienceById(program.audience).blurb + ' ' : ''}{ARI_TUTOR_NOTE} Yahweh knowledge is always free; the cutting-edge curriculum comes with a subscription, and the hands-on cohort is the $1,000 in-person build.
+        </div>
+      </div>
+
       <TierLadder />
 
       {/* How you attend — the flexible formats */}
@@ -224,9 +237,10 @@ function ParentInvite({ program }) {
 }
 
 function InterestForm({ program }) {
+  const bands = audienceAgeBands(program);
   const [parentName, setParentName] = useState('');
   const [email, setEmail] = useState('');
-  const [childAgeBandId, setChildAgeBandId] = useState(AGE_BANDS[0].id);
+  const [childAgeBandId, setChildAgeBandId] = useState(bands[0].id);
   const [planInterest, setPlanInterest] = useState((program.paymentPlans[0] || {}).id || 'full');
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
@@ -253,8 +267,8 @@ function InterestForm({ program }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="Your name" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Your name" />
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Email" />
-        <select value={childAgeBandId} onChange={(e) => setChildAgeBandId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Child age band">
-          {AGE_BANDS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+        <select value={childAgeBandId} onChange={(e) => setChildAgeBandId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Learner age">
+          {bands.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
         </select>
         <select value={planInterest} onChange={(e) => setPlanInterest(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Payment interest">
           {program.paymentPlans.map((p) => <option key={p.id} value={p.id}>{p.label} — {usd(p.totalCents)}</option>)}
@@ -273,7 +287,10 @@ function OverviewSection({ program, stats, cycle, breakEven, isGovernor, interes
   const r = readiness || { minStart: program.minStart, enrolledCount: stats.enrolledCount, ready: false, needed: program.minStart, pct: 0 };
   return (
     <div>
-      <div className="mb-2 text-sm text-[#1A1815] font-semibold">{program.name}</div>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-[#1A1815] font-semibold">{program.name}</span>
+        {audienceById(program.audience) && <Badge cls="bg-[#FAF8F4] text-[#5A5751] border-[#C9C2B4]">{audienceById(program.audience).label}</Badge>}
+      </div>
       <div className="mb-3 text-xs text-[#5A5751] leading-relaxed">{program.tagline}</div>
 
       {/* Start-readiness — a cohort triggers only at the minimum roster. */}
@@ -560,9 +577,10 @@ function EnrollmentRow({ enrollment, program, isGovernor }) {
 }
 
 function AddStudentForm({ program }) {
+  const bands = audienceAgeBands(program);
   const [studentName, setStudentName] = useState('');
   const [guardianName, setGuardianName] = useState('');
-  const [ageBandId, setAgeBandId] = useState(AGE_BANDS[0].id);
+  const [ageBandId, setAgeBandId] = useState(bands[0].id);
   const [planId, setPlanId] = useState((program.paymentPlans[0] || {}).id || 'full');
   const [status, setStatus] = useState('enrolled');
 
@@ -582,7 +600,7 @@ function AddStudentForm({ program }) {
         <input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Student name" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Student name" />
         <input value={guardianName} onChange={(e) => setGuardianName(e.target.value)} placeholder="Parent / guardian (optional)" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Guardian name" />
         <select value={ageBandId} onChange={(e) => setAgeBandId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Age band">
-          {AGE_BANDS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+          {bands.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
         </select>
         <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Payment plan">
           {program.paymentPlans.map((p) => <option key={p.id} value={p.id}>{p.label} — {usd(p.totalCents)}</option>)}
@@ -732,6 +750,7 @@ function NewProgramForm() {
   const [name, setName] = useState('');
   const [tuition, setTuition] = useState('1000');
   const [capacity, setCapacity] = useState('500');
+  const [audience, setAudience] = useState('all-ages');
   const [trackIds, setTrackIds] = useState(DEFAULT_TRACK_IDS.slice());
 
   const setTrack = (i, id) => setTrackIds((cur) => cur.map((t, idx) => (idx === i ? id : t)));
@@ -742,6 +761,7 @@ function NewProgramForm() {
       name: name.trim(),
       tuitionCents: Math.round((Number(tuition) || 0) * 100),
       capacity: Math.max(1, Math.round(Number(capacity) || 0)),
+      audience,
       trackIds,
     });
     setName(''); setOpen(false);
@@ -762,6 +782,9 @@ function NewProgramForm() {
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Program name" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm sm:col-span-3" aria-label="Program name" />
         <label className="text-xs text-[#5A5751]">Tuition $<input value={tuition} onChange={(e) => setTuition(e.target.value)} type="number" min="0" className="ml-1 w-24 border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Tuition dollars" /></label>
         <label className="text-xs text-[#5A5751]">Capacity <input value={capacity} onChange={(e) => setCapacity(e.target.value)} type="number" min="1" className="ml-1 w-24 border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Capacity" /></label>
+        <label className="text-xs text-[#5A5751]">Audience <select value={audience} onChange={(e) => setAudience(e.target.value)} className="ml-1 border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Audience">
+          {AUDIENCES.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+        </select></label>
       </div>
       <div className="text-[0.6875rem] uppercase tracking-wide text-[#5A5751] mb-1">Five weekday tracks</div>
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-1 mb-2">
