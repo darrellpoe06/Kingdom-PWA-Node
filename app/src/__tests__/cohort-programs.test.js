@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   makeProgram, makeEnrollment, makeTeamMember, makeInterest, validateInterest,
-  startReadiness, programFormats,
+  startReadiness, programFormats, audienceAgeBands, learnerAccess, AGE_BANDS,
   defaultPaymentPlans, installmentSchedule, planById,
   enrollmentPaymentState, programStats, teamStats, breakEvenStudents,
   programSchedule, cycleProgress, trackROI, trackAccessTier, trackCatalog,
@@ -202,6 +202,28 @@ describe('cohort-programs — the parent-facing invite pipeline', () => {
     expect(i.programId).toBe('p1');
     expect(i.childAgeBandId).toBe('6-8');
     expect(i.id).toMatch(/^int-/);
+  });
+});
+
+describe('cohort-programs — any age + subscription-or-Ari access', () => {
+  it('defaults to all-ages and narrows the age bands to the chosen audience', () => {
+    expect(makeProgram({}, { now: NOW }).audience).toBe('all-ages');
+    const adult = makeProgram({ audience: 'adult' }, { now: NOW });
+    const ids = audienceAgeBands(adult).map((b) => b.id);
+    expect(ids).toEqual(['young-adult', 'adult']);
+    expect(ids).not.toContain('k-2'); // an adult cohort doesn't offer a K-2 seat
+  });
+  it('all-ages spans children through adults; an unknown audience falls back to all-ages', () => {
+    expect(audienceAgeBands(makeProgram({ audience: 'all-ages' }, { now: NOW })).length).toBe(AGE_BANDS.length);
+    expect(makeProgram({ audience: 'nope' }, { now: NOW }).audience).toBe('all-ages');
+  });
+  it('Yahweh is open to any age; the cutting-edge curriculum (taught by Ari) needs a subscription', () => {
+    const anon = learnerAccess({ hasSubscription: false });
+    expect(anon.yahweh).toBe(true);          // free, any age, always
+    expect(anon.digitalWithAri).toBe(false); // gated
+    const sub = learnerAccess({ hasSubscription: true });
+    expect(sub.digitalWithAri).toBe(true);
+    expect(sub.teacher).toBe('Ari');
   });
 });
 
