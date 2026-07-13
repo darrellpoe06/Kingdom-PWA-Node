@@ -246,6 +246,76 @@ export async function saveContactEmail(email) {
   return supabase.auth.updateUser({ data: { contact_email: e } });
 }
 
+// -----------------------------------------------------------------------------
+// Promote a phone+PIN account to ALSO log in by a real, VERIFIED email.
+// -----------------------------------------------------------------------------
+// This is the DR-0172 follow-up — BUILT, not deferred to a re-review date no one
+// owned (Darrell 2026-07-13: "we should have NO FOLLOWUP LATER"). The key fact
+// that made "merging" sound hard: it is NOT a merge. A phone user adding their
+// email has only ever had ONE account. updateUser({ email }) attaches the email
+// to that SAME user id — the id never changes, so the phone-number → unique-ID
+// mapping is preserved exactly (the deterministic synthetic identifier still
+// resolves to the same row). Supabase emails a confirmation link to the new
+// address; clicking it makes that email the account's VERIFIED login identifier,
+// which UPGRADES the account (a collected-not-verified phone identity becomes a
+// proven-owned email one) with no SMS and no second account. The phone stays in
+// user_metadata for greeting + recovery. After confirmation the person signs in
+// with email + PIN. Front-door identity = Tier C (DR-0172): this rides behind
+// the Governor reviewer pass, never the auto-merge lane.
+
+// The friendly domain check — a real email is never the synthetic placeholder.
+export function isSyntheticPhoneEmail(email) {
+  return typeof email === 'string' && email.endsWith('@' + PHONE_LOGIN_DOMAIN);
+}
+
+// Is this session a phone+PIN account whose login identifier is still the
+// synthetic phone email (no real email attached yet)? Pure.
+export function isPhoneLoginSession(session) {
+  const email = session && session.user ? session.user.email : '';
+  const method = session && session.user && session.user.user_metadata
+    ? session.user.user_metadata.login_method : undefined;
+  return method === 'phone-pin' || isSyntheticPhoneEmail(email || '');
+}
+
+// Format normalized phone digits as (xxx) xxx-xxxx for display; leaves anything
+// non-standard untouched. Pure — never throws.
+export function formatPhoneDisplay(rawPhone) {
+  const d = String(rawPhone || '').replace(/\D+/g, '');
+  const local = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  if (local.length === 10) return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  return String(rawPhone || '');
+}
+
+// The friendly identity label for the signed-in strip + admin list: a phone user
+// sees their formatted number, NEVER the raw <digits>@phone.poetech.us; everyone
+// else sees their email. Pure. (Fixes the ugly synthetic address in the Access
+// & Usage list.)
+export function identityLabel(session) {
+  if (!session || !session.user) return '';
+  if (isPhoneLoginSession(session)) {
+    const meta = session.user.user_metadata || {};
+    const phone = meta.phone || (session.user.email || '').split('@')[0];
+    return formatPhoneDisplay(phone);
+  }
+  return session.user.email || '';
+}
+
+/**
+ * Attach a real, verified login email to the CURRENT account (same user id — not
+ * a merge). Supabase sends a confirmation link to the address; the account gains
+ * email login once it's clicked. Returns { data, error }. Rejects the synthetic
+ * placeholder so a phone user can't "add" the fake address.
+ */
+export async function promoteEmailToLogin(email) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  if (isSyntheticPhoneEmail(e)) {
+    return { error: { message: 'That is the placeholder address — enter your real email.' } };
+  }
+  const redirectTo = window.location.origin + window.location.pathname;
+  return supabase.auth.updateUser({ email: e }, { emailRedirectTo: redirectTo });
+}
+
 /**
  * Initiate the Google OAuth sign-in flow. The browser navigates away to
  * Google's consent screen, then back to our app via the Supabase callback
