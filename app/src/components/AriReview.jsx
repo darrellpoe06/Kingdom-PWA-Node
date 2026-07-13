@@ -18,6 +18,7 @@ import React, { useMemo } from 'react';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { SectionTitle } from './shared.jsx';
 import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
+import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
 import { ARI } from '../lib/ari.js';
 
 // Build-time-injected repo ledgers (same globals PerpetualReport reads); the
@@ -112,6 +113,45 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
           </ul>
         </div>
       )}
+
+      {/* Ari's adjustments — the propose + gated auto-apply split. Ari applies
+          the safe, reversible, evidence-backed fixes itself and logs them; the
+          rest it proposes for a human (the gate encodes DR-0076). */}
+      {(() => {
+        const adj = adjustmentsSummary(review.findings);
+        if (adj.autoCount === 0 && adj.proposeCount === 0) return null;
+        return (
+          <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">{ARI.name} &middot; adjustments</div>
+            <p className="text-sm text-[#1A1815] font-medium">{adj.headline}</p>
+            {adj.autoCount > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#3F5226] font-semibold mb-1">Ari can apply safely ({adj.autoCount})</div>
+                <ul className="space-y-1">
+                  {adj.auto.map((a, i) => (
+                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+                      <span className="text-[#3F5226]">&#10003;</span> {a.action || a.title}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {adj.proposeCount > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#B45309] font-semibold mb-1">Needs your call ({adj.proposeCount})</div>
+                <ul className="space-y-1">
+                  {adj.propose.map((a, i) => (
+                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+                      <span className="text-[#B45309]">&bull;</span> {a.action || a.title} <span className="text-[0.6875rem] text-[#8A857C]">&mdash; {a.reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-[0.625rem] text-[#8A857C] mt-3 leading-relaxed">{ADJUSTMENTS_DOCTRINE}</p>
+          </div>
+        );
+      })()}
 
       {/* Per-dimension detail */}
       <div className="space-y-3">
