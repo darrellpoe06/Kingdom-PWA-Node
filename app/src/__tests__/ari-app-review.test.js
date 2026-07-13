@@ -54,6 +54,30 @@ describe('buildAppReview — five dimensions, all evidence-backed', () => {
     expect(rev.status).toBe('warning');
   });
 
+  it('reviews: NAMES the specific overdue decision + its date (no rotting date hides in a count)', () => {
+    const decisions = [{ id: 'DR-0172', title: 'phone door', decision: 'ship it. re-review: 2026-01-05' }];
+    const rev = buildAppReview({ decisions }, NOW).dimensions.find((d) => d.key === 'reviews');
+    const named = rev.findings.find((f) => /DR-0172/.test(f.title));
+    expect(named).toBeTruthy();
+    expect(named.title).toMatch(/overdue \d+d/);        // how overdue, not just "some are"
+    expect(named.evidence).toMatch(/2026-01-05/);        // the actual due date is shown
+    expect(named.action).toMatch(/re-date it with a reason/); // owned outcome, not a shelf
+  });
+
+  it('reviews: a deep overdue backlog names the first few and rolls the rest into one remainder', () => {
+    // 7 distinct overdue dated re-reviews across the DR ledger.
+    const decisions = Array.from({ length: 7 }, (_, i) => ({
+      id: `DR-90${i}`, title: `d${i}`, decision: `x. re-review: 2026-01-0${i + 1}`,
+    }));
+    const rev = buildAppReview({ decisions }, NOW).dimensions.find((d) => d.key === 'reviews');
+    const named = rev.findings.filter((f) => /re-review overdue/.test(f.title));
+    const remainder = rev.findings.find((f) => /more dated re-review/.test(f.title));
+    expect(named.length).toBe(5);          // capped at OVERDUE_NAMED_CAP
+    expect(remainder).toBeTruthy();
+    expect(remainder.title).toMatch(/2 more/);
+    expect(rev.metrics.overdue).toBe(7);   // the count is still whole
+  });
+
   it('backlog: open concerns are a warning, in-progress a nit, and open feedback a nit', () => {
     const concerns = [{ status: 'open', concern: 'x' }, { status: 'in-progress', concern: 'y' }, { status: 'done', concern: 'z' }];
     const feedback = [{ status: 'open' }, { status: 'resolved' }];

@@ -28,7 +28,7 @@
 // =============================================================================
 import { SEED_BOARDS, tasksForBoard, staleSeedStatuses, missingSeedTasks } from './board.js';
 import { overallCompletion, projectedFinish } from './completion.js';
-import { extractReReviews, reReviewStatus } from './re-reviews.js';
+import { extractReReviews, reReviewStatus, sortReReviews } from './re-reviews.js';
 import { deriveDataConcerns } from './derive-concerns.js';
 
 // Severity ranking — shared vocabulary with llm-review so the whole app reads
@@ -128,23 +128,46 @@ function reviewPlan(tasks, nowMs) {
 // ---- dimension: review freshness -------------------------------------------
 // Dated re-reviews parsed from the review + decision ledgers (re-reviews.js).
 // Overdue ones are the ones slipping; due-soon are the near backlog.
+// Cap the number of individually-named overdue re-reviews so a big backlog can't
+// flood the review; the rest roll into one remainder finding. NAMING each one
+// (which DR/REV, how overdue) is the point — a dated commitment nobody owns can't
+// hide inside a count (Darrell 2026-07-13: "WHO WILL FOLLOWUP AND WHAT TIMELINE").
+const OVERDUE_NAMED_CAP = 5;
+
 function reviewFreshness({ reviews, decisions }, nowMs) {
   const items = extractReReviews({ reviews, decisions }, nowMs);
   const findings = [];
-  let overdue = 0;
+  const overdueItems = sortReReviews(
+    items.filter((it) => reReviewStatus(it).status === 'problem'),
+    'date', 'asc', // soonest past-due first = most overdue first (dates ascend)
+  );
+  const overdue = overdueItems.length;
   let soon = 0;
   for (const it of items) {
-    const st = reReviewStatus(it);
-    if (st.status === 'problem') overdue += 1;
-    else if (st.status === 'attention') soon += 1;
+    if (reReviewStatus(it).status === 'attention') soon += 1;
   }
-  if (overdue > 0) {
+  // Name each overdue re-review as its own finding: the source (DR-xxxx / REV-xx),
+  // its due date, and how many days it has slipped — a concrete, pullable item.
+  overdueItems.slice(0, OVERDUE_NAMED_CAP).forEach((it) => {
+    const who = it.sourceId || it.title || 're-review';
+    const days = Math.abs(it.dueInDays);
     findings.push(finding(
       'reviews', 'warning',
-      `${overdue} dated re-review${overdue === 1 ? '' : 's'} overdue`,
-      `${overdue} re-review item(s) parsed from REVIEWS.md / the DR ledger with a past due date`,
-      'Run the overdue re-reviews (Review feed)',
-      { count: overdue },
+      `${who} re-review overdue ${days}d`,
+      `${it.source || 'ledger'} · was due ${it.date}`,
+      `Run the ${who} re-review now, or re-date it with a reason (DR-0075)`,
+      { sourceId: it.sourceId || null, date: it.date, dueInDays: it.dueInDays },
+    ));
+  });
+  // The remainder, if the backlog is deeper than the cap.
+  const rest = overdue - Math.min(overdue, OVERDUE_NAMED_CAP);
+  if (rest > 0) {
+    findings.push(finding(
+      'reviews', 'warning',
+      `${rest} more dated re-review${rest === 1 ? '' : 's'} overdue`,
+      `${rest} additional re-review item(s) past due beyond the ${OVERDUE_NAMED_CAP} named above`,
+      'Open the Review feed to run the rest',
+      { count: rest },
     ));
   }
   if (soon > 0) {
