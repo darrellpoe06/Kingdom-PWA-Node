@@ -4596,7 +4596,7 @@ ${THEME_CSS}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives
