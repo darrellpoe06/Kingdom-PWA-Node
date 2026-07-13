@@ -26,6 +26,9 @@ describe('office-assistant — the reusable engine is config-driven', () => {
     expect(o.circle).toBe('Danville');
     expect(tlc.validateOrg({ organization: '', categoryId: 'medical' }).ok).toBe(false);
     expect(tlc.networkGoal([]).low).toBe(2500);
+    // Notes round-trip on the real record (the clarify-anything field the UI edits).
+    expect(tlc.makeOrg({ organization: 'A', categoryId: 'medical', notes: 'verified — spoke to the office manager' }, { now: NOW }).notes)
+      .toBe('verified — spoke to the office manager');
     expect(tlc.seedOrgs.length).toBe(5);
     expect(tlc.orgStats(tlc.seedOrgs).total).toBe(5);
     expect(tlc.topConvertingSources(tlc.seedOrgs).totalReferred).toBe(5);

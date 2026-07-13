@@ -178,6 +178,7 @@ function ReferralSection({ config, model, store, isGovernor, orgs, stats, goal, 
 function OrgRow({ config, model, store, isGovernor, org }) {
   const cat = model.referralCategory(org.categoryId);
   const out = model.outcome(org.outcomeId);
+  const [note, setNote] = useState(org.notes || '');
   return (
     <div className="border border-[#E8E4DC] bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -207,6 +208,22 @@ function OrgRow({ config, model, store, isGovernor, org }) {
           <input type="date" onChange={(e) => store.setFollowUp(org.id, e.target.value ? new Date(e.target.value).toISOString() : null)} className="border border-[#C9C2B4] bg-white px-1.5 py-0.5 text-[0.6875rem]" aria-label={`Follow-up date for ${org.organization}`} />
         </div>
       )}
+      {/* Notes — clarify anything about this source: verified the office, who you
+          spoke to, best time to reach them, the next step. Governor edits inline
+          (saves on blur); everyone else reads. Persists via the real record. */}
+      {isGovernor ? (
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => { if ((note || '') !== (org.notes || '')) store.updateOrg(org.id, { notes: note }); }}
+          placeholder="Notes — anything to clarify (verified the office? who you spoke to? best time? next step?)"
+          rows={2}
+          aria-label={`Notes for ${org.organization}`}
+          className="mt-2 w-full border border-[#C9C2B4] bg-[#FAF8F4] px-2 py-1 text-[0.6875rem] text-[#5A5751]"
+        />
+      ) : org.notes ? (
+        <div className="mt-2 text-[0.6875rem] text-[#5A5751] leading-relaxed"><span className="font-semibold text-[#1A1815]">Notes:</span> {org.notes}</div>
+      ) : null}
     </div>
   );
 }
@@ -214,7 +231,7 @@ function OrgRow({ config, model, store, isGovernor, org }) {
 function AddOrgForm({ config, model, store }) {
   const firstCat = config.referralCategories[0] ? config.referralCategories[0].id : '';
   const firstCircle = config.geoCircles[0] ? config.geoCircles[0].name : '';
-  const [f, setF] = useState({ organization: '', categoryId: firstCat, type: '', circle: firstCircle, contactPerson: '', jobTitle: '', email: '', phone: '', website: '' });
+  const [f, setF] = useState({ organization: '', categoryId: firstCat, type: '', circle: firstCircle, contactPerson: '', jobTitle: '', email: '', phone: '', website: '', notes: '' });
   const [error, setError] = useState('');
   const cat = model.referralCategory(f.categoryId);
   const set = (k) => (e) => setF((cur) => ({ ...cur, [k]: e.target.value }));
@@ -223,7 +240,7 @@ function AddOrgForm({ config, model, store }) {
     const check = model.validateOrg(f);
     if (!check.ok) { setError(check.error); return; }
     store.addOrg(f);
-    setF((cur) => ({ ...cur, organization: '', type: '', contactPerson: '', jobTitle: '', email: '', phone: '', website: '' }));
+    setF((cur) => ({ ...cur, organization: '', type: '', contactPerson: '', jobTitle: '', email: '', phone: '', website: '', notes: '' }));
     setError('');
   };
 
@@ -247,6 +264,7 @@ function AddOrgForm({ config, model, store }) {
         <input value={f.email} onChange={set('email')} placeholder="Email" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Email" />
         <input value={f.phone} onChange={set('phone')} placeholder="Phone" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Phone" />
         <input value={f.website} onChange={set('website')} placeholder="Website" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm sm:col-span-2" aria-label="Website" />
+        <textarea value={f.notes} onChange={set('notes')} placeholder="Notes — verify this is the right office, who you spoke to, best time to reach them, anything to clarify" rows={2} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm sm:col-span-2" aria-label="Notes" />
       </div>
       {cat && (cat.searches || []).length > 0 && <div className="mt-1.5 text-[0.625rem] text-[#8A857C]">Search ideas: {cat.searches.map((s) => `“${s}”`).join(' · ')}</div>}
       {error && <div className="mt-1.5 text-xs text-[#7A1F1F]">{error}</div>}
