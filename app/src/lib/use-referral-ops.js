@@ -14,6 +14,10 @@ import { TLC_CONFIG } from '../modules/office-assistant/configs/tlc.js';
 const model = createOfficeModel(TLC_CONFIG);
 const store = createOfficeStore(TLC_CONFIG, model);
 
+// The singleton TLC store instance, for OfficeAssistant to render against (one
+// instance — the CRUD exports below drive the SAME store the UI subscribes to).
+export const tlcStore = store;
+
 export const useReferralOps = store.useStore;
 export const addOrg = store.addOrg;
 export const updateOrg = store.updateOrg;
