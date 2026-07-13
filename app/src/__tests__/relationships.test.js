@@ -19,6 +19,10 @@ import {
   isChildCapabilityLocked,
   buildMatrix,
   capabilitiesFor,
+  ASSISTANT_GRANTABLE,
+  resolveAssistantCapability,
+  isAssistantCapabilityLocked,
+  effectiveAssistantPolicy,
 } from '../lib/relationships.js';
 
 const REL = RELATIONSHIP_TYPES;
@@ -244,29 +248,48 @@ describe('buildMatrix', () => {
 // OPERATES scoped work surfaces and is walled off from the owner's data; the
 // owner sees down + keeps oversight. Proven-to-catch the wall so a future edit
 // that loosens it fails the build (the model half; RLS is the data-gate slice).
-describe('owner <-> assistant — leadership sees down, the assistant never sees up', () => {
+describe('owner <-> assistant — per-assistant checkboxes, walls locked, owner sees down', () => {
   const REL_OA = REL.OWNER_ASSISTANT;
-  it('grants the assistant exactly the four scoped work surfaces', () => {
-    expect(can(REL_OA, 'assistant', 'referrals.manage')).toBe(true);
-    expect(can(REL_OA, 'assistant', 'tasks.own')).toBe(true);
-    expect(can(REL_OA, 'assistant', 'inbound.contact')).toBe(true);
-    expect(can(REL_OA, 'assistant', 'crm.assigned')).toBe(true);
-  });
-  it("WALLS the assistant off from the owner's data + oversight (each explicit deny)", () => {
-    for (const cap of ['finance.view', 'finance.manage', 'portfolio.view', 'family.build', 'family.manage', 'ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+
+  it('the four work surfaces are OFF by default (a deliberate checkbox, not automatic)', () => {
+    for (const cap of ['referrals.manage', 'tasks.own', 'inbound.contact', 'crm.assigned']) {
       expect(can(REL_OA, 'assistant', cap)).toBe(false);
     }
+  });
+  it('the owner can CHECK each of the four work surfaces to grant it', () => {
+    for (const cap of ['referrals.manage', 'tasks.own', 'inbound.contact', 'crm.assigned']) {
+      expect(can(REL_OA, 'assistant', cap, { [cap]: 'allow' })).toBe(true);
+    }
+    expect(ASSISTANT_GRANTABLE.slice().sort()).toEqual(['crm.assigned', 'inbound.contact', 'referrals.manage', 'tasks.own']);
+  });
+  it("LOCKS the owner's data + oversight — checking the box does NOTHING (clamped to deny)", () => {
+    for (const cap of ['finance.view', 'finance.manage', 'portfolio.view', 'family.build', 'family.manage', 'ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+      // even a deliberate attempt to grant it resolves to deny — the wall is structural
+      expect(can(REL_OA, 'assistant', cap, { [cap]: 'allow' })).toBe(false);
+      expect(isAssistantCapabilityLocked(cap)).toBe(true);
+      expect(resolveAssistantCapability(cap, { [cap]: 'allow' })).toBe('deny');
+    }
+  });
+  it('the four work surfaces are configurable (not locked)', () => {
+    for (const cap of ASSISTANT_GRANTABLE) expect(isAssistantCapabilityLocked(cap)).toBe(false);
+  });
+  it('effectiveAssistantPolicy reflects the owner’s checkboxes + marks the locked walls', () => {
+    const eff = effectiveAssistantPolicy({ 'referrals.manage': 'allow' });
+    expect(eff['referrals.manage'].setting).toBe('allow');
+    expect(eff['referrals.manage'].locked).toBe(false);
+    expect(eff['tasks.own'].setting).toBe('deny');           // unchecked
+    expect(eff['finance.view'].locked).toBe(true);
+    expect(eff['finance.view'].setting).toBe('deny');
   });
   it('lets the owner see down: everything the assistant does + the four oversight powers', () => {
     expect(can(REL_OA, 'owner', 'referrals.manage')).toBe(true);
     expect(can(REL_OA, 'owner', 'crm.assigned')).toBe(true);
     expect(can(REL_OA, 'owner', 'finance.view')).toBe(true);
     expect(can(REL_OA, 'owner', 'ops.oversight')).toBe(true);
-    expect(can(REL_OA, 'owner', 'ops.history')).toBe(true);
     expect(can(REL_OA, 'owner', 'ops.delegate')).toBe(true);
   });
-  it('no-leak default: a capability the assistant was never granted is deny', () => {
-    expect(can(REL_OA, 'assistant', 'lease.manage')).toBe(false);
+  it('no-leak default: a capability outside the assistant policy is deny even if granted', () => {
+    expect(can(REL_OA, 'assistant', 'lease.manage', { 'lease.manage': 'allow' })).toBe(false);
     expect(can(REL_OA, 'assistant', 'rentroll.view')).toBe(false);
   });
 });
