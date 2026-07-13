@@ -31,8 +31,11 @@ describe('family-invite — parse a person + their family from one field', () =>
     expect(isValidInviteEmail(null)).toBe(false);
   });
 
-  it('roles never offer owner (only member/admin/viewer)', () => {
-    expect(INVITE_ROLES).toEqual(['member', 'admin', 'viewer']);
+  it('offers the walled assistant role + member/admin/viewer, never owner', () => {
+    expect(INVITE_ROLES).toEqual(['assistant', 'member', 'admin', 'viewer']);
+    // 'assistant' is the ONLY invite role walled from the books (RLS 0100) — the
+    // safe way to invite a 1099 helper; the others can read the family financials.
+    expect(INVITE_ROLES).toContain('assistant');
     expect(INVITE_ROLES).not.toContain('owner');
   });
 });

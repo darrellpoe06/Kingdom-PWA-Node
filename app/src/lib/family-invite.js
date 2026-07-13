@@ -20,7 +20,13 @@ export function isValidInviteEmail(email) {
   return e.length > 3 && /\S+@\S+\.\S+/.test(e);
 }
 
-export const INVITE_ROLES = ['member', 'admin', 'viewer'];
+// 'assistant' is the WALLED business-operator role (Darrell 2026-07-13): an
+// invited assistant is excluded from the family books at the DB (RLS 0100), so
+// they operate their scoped work surfaces and never read the owner's financials.
+// member/admin/viewer are NOT walled — the RLS wall covers only child + assistant
+// — so an assistant is the ONLY safe way to invite a 1099 helper. The RPC + the
+// instance_invites.role CHECK accept 'assistant' as of migration 0101.
+export const INVITE_ROLES = ['assistant', 'member', 'admin', 'viewer'];
 
 // Split a free-text field (commas / semicolons / whitespace / newlines) into a
 // deduped, lowercased list of valid emails, plus the invalid fragments so the
