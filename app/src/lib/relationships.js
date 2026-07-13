@@ -58,6 +58,7 @@ export const RELATIONSHIP_TYPES = Object.freeze({
   FAMILY: 'family',
   LANDLORD_TENANT: 'landlord-tenant',
   LANDLORD_MANAGER: 'landlord-manager',
+  OWNER_ASSISTANT: 'owner-assistant',
 });
 
 export const RELATIONSHIPS = Object.freeze([
@@ -130,6 +131,37 @@ export const RELATIONSHIPS = Object.freeze([
     roles: ['landlord', 'manager'],
     steward: 'landlord',
   },
+  // OWNER ↔ ASSISTANT — the business-level delegation for a working assistant
+  // (Darrell 2026-07-13: "make sure assistants can't see the owner's data,
+  // however the owners or governors can see [down the level] — level and data
+  // controls for leadership and owners"). The ASSISTANT (e.g. an executive
+  // admin / marketing assistant in training) OPERATES a scoped set of work
+  // surfaces — the referral database + marketing ops, their own tasks/calendar,
+  // pre-intake inbound inquiries (contact-level, NO PHI), and the CRM scoped to
+  // their OWN assigned leads. They are walled off from the owner's world: the
+  // finances, the forecast, the whole portfolio, family governance, the other
+  // businesses, and the oversight powers — all DENY, explicitly (a data gate,
+  // not just a hidden tab; the DB half is the load-bearing next slice, RLS, the
+  // same way `child`/`successor` are role-gated at the row level, DR-0074/0082).
+  //
+  // The OWNER (leadership / governor) sees DOWN: everything the assistant does,
+  // plus the four oversight powers (watch the workflows, review the history to
+  // train, coach for quality, delegate the same sight). Leadership sees the
+  // level below; the level below never sees up. Same staged, revocable pattern
+  // as landlord↔manager and the family successor.
+  {
+    type: RELATIONSHIP_TYPES.OWNER_ASSISTANT,
+    label: 'Owner ↔ Assistant',
+    blurb:
+      'The business delegation for a working assistant: the owner hands an assistant a ' +
+      'scoped set of work surfaces — the referral database + marketing, their own ' +
+      'tasks, pre-intake inbound (contact-level, no PHI), and the CRM leads assigned to ' +
+      'them — while the finances, forecast, portfolio, family data, and the other ' +
+      'businesses stay walled off. The owner sees everything the assistant does and ' +
+      'keeps the oversight powers; the assistant never sees up the level.',
+    roles: ['owner', 'assistant'],
+    steward: 'owner',
+  },
 ]);
 
 export const relationshipByType = Object.fromEntries(RELATIONSHIPS.map((r) => [r.type, r]));
@@ -182,6 +214,14 @@ export const CAPABILITIES = Object.freeze({
   'ops.history':       { label: 'Review message history', desc: 'Review the historical tenant/manager exchanges.',  outbound: false, sensitive: true  },
   'ops.train':         { label: 'Train for quality',      desc: 'Coach a manager on workflow quality from the nuance.', outbound: false, sensitive: false },
   'ops.delegate':      { label: 'Grant access to others', desc: 'Give running/oversight access to family or a 1099 worker.', outbound: false, sensitive: true  },
+
+  // ---- owner<->assistant (business delegation) work surfaces ---------------
+  // The scoped set an assistant OPERATES. Each is a work surface, never the
+  // owner's finances/portfolio/family data (those stay in the deny set below).
+  'referrals.manage':  { label: 'Referral DB + marketing', desc: 'Operate the referral database + marketing/content ops.', outbound: false, sensitive: false },
+  'tasks.own':         { label: 'Own tasks / calendar',   desc: 'Manage their own task list and schedule.',          outbound: false, sensitive: false },
+  'inbound.contact':   { label: 'Inbound (contact-level)', desc: 'Work pre-intake inbound inquiries — contact-level only, NO PHI.', outbound: false, sensitive: true  },
+  'crm.assigned':      { label: 'CRM — assigned leads',   desc: 'See + work only the CRM leads assigned to them (not the whole pipeline).', outbound: false, sensitive: true  },
 
   // ---- family / governance capabilities -----------------------------------
   'family.shared':     { label: 'Shared family surfaces', desc: 'Use the shared family circle data + surfaces.',     outbound: false, sensitive: false },
@@ -374,6 +414,49 @@ export const MATRIX = Object.freeze({
       'message.tenant': ALLOW,
       'portfolio.view': ALLOW,
       // …plus the four oversight powers that make delegation safe and trainable.
+      'ops.oversight': ALLOW,
+      'ops.history': ALLOW,
+      'ops.train': ALLOW,
+      'ops.delegate': ALLOW,
+    },
+  },
+  // OWNER ↔ ASSISTANT — the business delegation. The delta between the two rows
+  // IS the level boundary Darrell asked for: the assistant OPERATES four scoped
+  // work surfaces; the owner's finances, portfolio, family governance, and the
+  // oversight powers are the assistant's explicit DENY set (a visible wall, the
+  // same way the tenant row shows the portfolio walled off). The owner sees
+  // everything the assistant does + keeps oversight — leadership sees down, the
+  // level below never sees up.
+  [RELATIONSHIP_TYPES.OWNER_ASSISTANT]: {
+    assistant: {
+      // The scoped work surfaces the assistant runs.
+      'referrals.manage': ALLOW,
+      'tasks.own': ALLOW,
+      'inbound.contact': ALLOW,
+      'crm.assigned': ALLOW,
+      // …and the WALL: the owner's world is denied, explicitly (not by omission),
+      // so the matrix visibly shows "Not allowed" on each — and the RLS half
+      // (the load-bearing data gate) mirrors exactly this set.
+      'finance.view': DENY,
+      'finance.manage': DENY,
+      'portfolio.view': DENY,
+      'family.build': DENY,
+      'family.manage': DENY,
+      'ops.oversight': DENY,
+      'ops.history': DENY,
+      'ops.train': DENY,
+      'ops.delegate': DENY,
+    },
+    owner: {
+      // The owner sees everything the assistant does…
+      'referrals.manage': ALLOW,
+      'tasks.own': ALLOW,
+      'inbound.contact': ALLOW,
+      'crm.assigned': ALLOW,
+      // …can see the finances the assistant cannot…
+      'finance.view': ALLOW,
+      'portfolio.view': ALLOW,
+      // …and keeps the four oversight powers over the assistant's work.
       'ops.oversight': ALLOW,
       'ops.history': ALLOW,
       'ops.train': ALLOW,
