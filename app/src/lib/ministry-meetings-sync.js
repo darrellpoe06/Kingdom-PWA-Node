@@ -62,6 +62,7 @@ export async function scheduleMeeting(meeting, existing, displayName) {
   const row = {
     instance_id: tenantId,
     ministry: meeting.ministry ?? null,
+    space: meeting.space === 'main' ? 'main' : 'ministry',
     title: (meeting.title || '').trim(),
     host_name: resolveName(session, meeting.hostName || displayName),
     host_user_id: session.user.id,

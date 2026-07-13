@@ -79,20 +79,63 @@ an external integration. This is consistent with the whole platform's spine
 
 The **scheduling + guardrail record** (`ministry_meetings`) and the **load
 rules** (`lib/ministry-meetings.js`, unit-tested and proven-to-catch). A leader
-schedules a meeting (title, time, duration, participant cap, provider, optional
-join link) and the load rules gate it **before** it can be created. The load
-rules are the **three brakes** (CLAUDE.md: Autonomous Automation Requires Three
-Brakes) applied to meetings so the environment can't be overloaded:
+picks a **room**, schedules a meeting (title, time, duration, participant cap,
+provider, optional join link), and the load rules gate it **before** it can be
+created.
 
-- **Budget** — participant cap (≤ 25), duration cap (≤ 180 min), max concurrent
-  meetings per instance (≤ 3).
-- **Concurrency lock** — one live/overlapping meeting per ministry at a time.
+**Two meeting rooms (declared by Darrell 2026-07-12), sized to the real on-site
+stack (see §3.5):**
+
+- **Main meeting space** — for **admin staff + monthly meetings**, up to **50
+  people**. It is **exclusive** (a 50-person sovereign video meeting takes the
+  whole stack, so nothing else may overlap it) and **admin-only to book** (RLS in
+  `0098` enforces this, not just the UI).
+- **Ministry meeting** — a working meeting for a ministry (bus sync, choir), up
+  to **25** (12 typical); several can run within the concurrency cap.
+
+The load rules are the **three brakes** (CLAUDE.md: Autonomous Automation Requires
+Three Brakes) applied to meetings so the environment can't be overloaded:
+
+- **Budget** — participant cap = the **room's** cap (main 50 / ministry 25),
+  duration cap (≤ 180 min), max concurrent *ministry* meetings per instance (≤ 3).
+- **Concurrency lock** — one meeting per ministry at a time; the main room is
+  exclusive against everything.
 - **Guardrail** — scheduling required (a real future start time; no unbounded
   ad-hoc meeting).
 
 Raising any cap is a decision (DR-0075), not a silent tweak. The provider field
 already includes `poetech-obs` as the first-class default; `zoom`/`teams`/`other`
 are accepted as a pasted-link fallback until the engine lands.
+
+### 3.5 Opportunities & constraints — grounded in the real stack (Ari + Claude)
+
+The infrastructure project Ari & Claude are researching is the sovereign compute
+stack: the **on-site Synology NAS** (`192.168.1.26`, LAN/Tailscale-only — it
+already hosts the workflows + local models) and the planned **5× RTX 3090 rig**
+(ChurchInfraPlan; 24 GB/card). The caps are grounded in that hardware, not
+aspiration:
+
+**Opportunities**
+- **Sovereign by default.** A NAS/rig-hosted meeting means the admin staff's
+  monthly meeting never leaves the building's control — no Zoom account, no
+  third-party recording of church business (DATA-AS-EMPOWERMENT, COMMUNITY-FIRST).
+- **The broadcast stack is already there.** OBS + NDI + the video wall + the GPU
+  rig are the exact primitives a 50-person room needs; the meeting engine extends
+  the broadcast investment, it doesn't start a new one (AI-MEDIA-PRODUCTION).
+- **The rig makes 50 realistic.** Multi-GPU transcode/compositing on the 3090 rig
+  is what lets one room carry the whole admin staff at once.
+
+**Constraints (honest — DR-0100)**
+- **One uplink.** A 50-person meeting saturates the sovereign uplink, so the main
+  room is **exclusive** — a hardware fact encoded as a rule, not a preference.
+  Bigger-than-50, or main-plus-ministry concurrent, is a **cloud/hybrid** question,
+  not something the on-site box should promise.
+- **NAS-first, rig-pending.** Until the 3090 rig is stood up, the NAS alone bounds
+  real concurrent video; the ≤ 3 ministry-meeting cap reflects the conservative
+  present. Caps rise **with measured capacity** (DR-0076), not before.
+- **LAN/Tailscale reach.** The sovereign path is reachable in-building and over
+  Tailscale; a public 50-person meeting is a separate networking decision (Funnel
+  throttles cross-origin — the n8n same-origin memory).
 
 ### What is the Tier-C target (NOT built — do not paint it)
 
