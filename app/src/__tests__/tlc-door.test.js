@@ -15,10 +15,10 @@
 // governs when it opens publicly.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { isTlcDoorContext, TLC_SHARE_URL, TLC_SHARE_ALIASES, TLC_DOOR_BRAND } from '../lib/tlc-door.js';
+import { isTlcDoorContext, TLC_SHARE_URL, TLC_SHARE_ALIASES, TLC_DOOR_BRAND, TLC_INSTALL_MANIFEST } from '../lib/tlc-door.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pub = (rel) => join(here, '../../public/', rel);
@@ -54,6 +54,41 @@ describe('the shareable entry page', () => {
   });
   it('the og:url matches the TLC_SHARE_URL the app encodes (one source)', () => {
     expect(html).toContain(`content="${TLC_SHARE_URL}"`);
+  });
+  it('links the TLC manifest + icon so it installs as TLC (an app, not a website)', () => {
+    expect(html).toContain('manifest-tlc.webmanifest');
+    expect(html).toMatch(/apple-touch-icon"\s+href="\/tlc-icon\.svg"/);
+  });
+});
+
+describe('the installable app — manifest + icon (Add to Home Screen)', () => {
+  const manifest = JSON.parse(read('manifest-tlc.webmanifest'));
+  it('installs under TLC\'s own name — not "PoeTech"', () => {
+    expect(manifest.name).toBe('TLC Therapy Solutions');
+    expect(manifest.short_name).toBe('TLC Therapy');
+    expect(manifest.name).not.toMatch(/^PoeTech/);
+  });
+  it('opens the TLC door standalone, and stays in scope so it can actually install', () => {
+    expect(manifest.start_url).toContain('tlc=1');
+    expect(manifest.display).toBe('standalone');
+    // scope must contain the start_url (Chrome refuses to install otherwise)
+    expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
+  });
+  it('carries a real TLC-branded icon (any + maskable) that exists on disk', () => {
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
+    for (const i of manifest.icons) expect(i.src).toBe('/tlc-icon.svg');
+    const purposes = new Set(manifest.icons.map((i) => i.purpose));
+    expect(purposes.has('any')).toBe(true);
+    expect(purposes.has('maskable')).toBe(true);
+    expect(existsSync(pub('tlc-icon.svg')), 'tlc-icon.svg missing — the install icon won\'t ship').toBe(true);
+  });
+  it('TLC_INSTALL_MANIFEST is wired to the manifest file', () => {
+    expect(TLC_INSTALL_MANIFEST).toBe('/manifest-tlc.webmanifest');
+  });
+  it('the running door SWAPS the document manifest so in-app install carries TLC (source-pinned)', () => {
+    const doorJsx = readFileSync(join(here, '../components/TlcPublicDoor.jsx'), 'utf8');
+    expect(doorJsx).toMatch(/link\[rel="manifest"\]/);
+    expect(doorJsx).toMatch(/TLC_INSTALL_MANIFEST/);
   });
 });
 
