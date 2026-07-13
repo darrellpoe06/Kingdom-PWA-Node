@@ -302,6 +302,76 @@ export async function linkIdentity(provider) {
   return supabase.auth.linkIdentity({ provider, options: { redirectTo } });
 }
 
+// -----------------------------------------------------------------------------
+// The boot-gate's bounded fallback — read the persisted session from storage
+// WITHOUT the network/lock path getSession() takes (2026-07-13).
+// -----------------------------------------------------------------------------
+// The "left the tab open, came back to a white screen after a while" hang:
+// on the public host the app renders NOTHING until the first getSession()
+// resolves (access-gate.js → the 'loading' blank). But getSession() can block
+// INDEFINITELY in exactly the return-after-time case:
+//   - the stored access token has expired, so init triggers a NETWORK refresh
+//     before it resolves — a congested network stalls it; and/or
+//   - supabase-js's cross-tab Navigator lock is held by a frozen/discarded tab
+//     (several poetech.us tabs open), so the lock is never released.
+// Either one strands the boot gate on blank forever — and nothing is rendered
+// to tap, so no in-app button can recover it. The session itself is fine: the
+// refresh token is sitting in localStorage. So we read it DIRECTLY (synchronous,
+// no network, no lock) to render from the last-known session at once; the real
+// getSession()/refresh reconciles in the background, and a genuinely-dead
+// session still falls to the sign-in gate via the SIGNED_OUT recovery path.
+// Pure + injectable so it is unit-testable without a live client.
+
+/**
+ * Synchronously read the persisted Supabase session from a Storage-like object
+ * (defaults to window.localStorage). supabase-js persists it under the key
+ * `sb-<project-ref>-auth-token`; we match by shape so no ref is needed. Returns
+ * the session object or null. Best-effort — never throws (blocked/malformed
+ * storage → null).
+ */
+export function readPersistedSession(store) {
+  try {
+    const ls = store || (typeof window !== 'undefined' ? window.localStorage : null);
+    if (!ls || typeof ls.length !== 'number') return null;
+    for (let i = 0; i < ls.length; i++) {
+      const key = ls.key(i);
+      if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
+      const raw = ls.getItem(key);
+      if (!raw) continue;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { continue; }
+      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
+      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
+      if (session && session.access_token && session.user) return session;
+    }
+  } catch (_) { /* storage blocked / SecurityError → treat as no session */ }
+  return null;
+}
+
+/**
+ * Bounded initial auth resolution for onAuthChange. Fires `emit` with the
+ * persisted session IMMEDIATELY (storage read — synchronous, can't hang), then
+ * reconciles with getSession() when/if it resolves. Guarantees `emit` runs at
+ * least once synchronously, so a hung getSession() can NEVER strand the boot
+ * gate on a white screen. Injectable (getSession, readStored) for tests.
+ *
+ * @param {(session: object|null) => void} emit
+ * @param {{ getSession: () => Promise<any>, readStored: () => (object|null) }} io
+ */
+export function resolveInitialSession(emit, { getSession, readStored }) {
+  let stored;
+  try { stored = readStored(); } catch (_) { stored = null; }
+  emit(stored ?? null); // immediate + bounded — the gate resolves no matter what
+  try {
+    Promise.resolve(getSession())
+      .then((res) => {
+        const s = res && res.data ? res.data.session : undefined;
+        if (s !== undefined) emit(s ?? null); // reconcile with the source of truth
+      })
+      .catch(() => { /* keep the optimistic read; onAuthStateChange corrects later */ });
+  } catch (_) { /* getSession threw synchronously — the storage read already fired */ }
+}
+
 // True only for the brief window around a user-initiated sign-out. The auth
 // guard reads this so a DELIBERATE sign-out clears immediately, while a
 // transient SIGNED_OUT (PWA resume / rotated-token race) gets the recovery
@@ -334,9 +404,17 @@ export async function signOut() {
  *   useEffect(() => onAuthChange(setSession), []);
  */
 export function onAuthChange(callback) {
-  // Fire immediately with the current session so callers don't need a
-  // separate getSession() call. Then subscribe to future changes.
-  supabase.auth.getSession().then(({ data }) => callback(data.session ?? null));
+  // Fire immediately with the current session so callers don't need a separate
+  // getSession() call — but resolve it with a BOUND (read storage first, then
+  // reconcile with getSession) so a hung getSession() can never strand the app
+  // on the blank boot gate. This is the fix for the "left the tab open, came
+  // back to a white screen after a while" resume hang: getSession() blocks on an
+  // expired-token network refresh / cross-tab lock, and the gate waits on it
+  // forever. See readPersistedSession + resolveInitialSession above.
+  resolveInitialSession(callback, {
+    getSession: () => supabase.auth.getSession(),
+    readStored: () => readPersistedSession(),
+  });
 
   // Re-arm the background token refresher whenever the app/tab returns to the
   // foreground. A PWA resume or a long-backgrounded tab lets the service
