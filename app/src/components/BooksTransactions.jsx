@@ -16,7 +16,7 @@ import { fmt } from '../lib/format.js';
 import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
-import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile } from '../lib/statement-import.js';
+import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile, parseAmount } from '../lib/statement-import.js';
 import { planBulkImport } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
@@ -709,12 +709,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       const date = normalizeDate(rawDate);
       const desc = cells[idx.desc] || '';
       let amt = 0;
-      if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
-      else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+      if (idx.amount !== -1 && cells[idx.amount]) amt = parseAmount(cells[idx.amount]);
+      else if (idx.credit !== -1 && cells[idx.credit]) amt = parseAmount(cells[idx.credit]);
       if (csvFlipSign) amt = -amt;
       const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
-      const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
-      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok };
+      // Name WHY a row is skipped so a lower total is never silent (Christina,
+      // 2026-07-13). An Excel date left as a serial number ("45850") is the most
+      // common cause — it fails the YYYY-MM-DD check and the row drops.
+      let reason = '';
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) reason = 'unreadable or blank date';
+      else if (!desc) reason = 'missing description';
+      const ok = !reason;
+      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok, reason };
     });
     return { rows, headers, idx, errors };
   })();
@@ -1431,9 +1437,22 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                       </tbody>
                     </table>
                   </div>
-                  {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — all {csvParsed.rows.length} will import.</p>}
+                  {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — the {csvParsed.rows.filter(r => r.ok).length} valid rows will import.</p>}
                 </div>
               )}
+
+              {/* Skipped-rows summary — a lower total is never silent. Names how
+                  many rows won't import and why (Christina, 2026-07-13). */}
+              {(() => {
+                const skipped = csvParsed.rows.filter(r => !r.ok);
+                if (!skipped.length) return null;
+                const reasons = [...new Set(skipped.map(r => r.reason).filter(Boolean))];
+                return (
+                  <div className="text-[0.6875rem] text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#E8E4DC]" role="status" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {skipped.length} row{skipped.length === 1 ? '' : 's'} won&apos;t import{reasons.length ? ` — ${reasons.join('; ')}` : ''}. If an Excel date shows as a number (e.g. 45850), format that column as a Date in Excel and re-export.
+                  </div>
+                );
+              })()}
 
               {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
 
