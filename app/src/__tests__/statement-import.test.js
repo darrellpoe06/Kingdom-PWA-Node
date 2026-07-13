@@ -158,3 +158,32 @@ describe('looksImportableFile — photos and PDFs are named, not parsed', () => 
     expect(looksImportableFile({ name: 'export', type: 'text/plain' })).toBe(true);
   });
 });
+
+import { parseAmount } from '../lib/statement-import.js';
+
+describe('parseAmount — accounting negatives stop importing as 0 (Christina 2026-07-13)', () => {
+  it('parses plain, currency, and thousands-separated positives', () => {
+    expect(parseAmount('1234.56')).toBe(1234.56);
+    expect(parseAmount('$1,234.56')).toBe(1234.56);
+    expect(parseAmount('1,234.56')).toBe(1234.56);
+  });
+  it('reads parenthesized accounting negatives as negative, NOT 0 (the bug)', () => {
+    expect(parseAmount('(1,234.56)')).toBe(-1234.56);
+    expect(parseAmount('($50.00)')).toBe(-50);
+  });
+  it('reads leading and trailing minus as negative', () => {
+    expect(parseAmount('-1,234.56')).toBe(-1234.56);
+    expect(parseAmount('1,234.56-')).toBe(-1234.56);
+  });
+  it('blank / non-numeric -> 0 (unchanged), so blank cells still import as 0', () => {
+    expect(parseAmount('')).toBe(0);
+    expect(parseAmount(null)).toBe(0);
+    expect(parseAmount('N/A')).toBe(0);
+  });
+  it('a parenthesized negative reaches the ledger through the delimited parser', () => {
+    // The end-to-end proof: before the fix this row imported as 0.
+    const r = parseDelimitedToRows('Date,Description,Amount\n06/01/2026,REFUND,(21.00)');
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].amount).toBe(-21);
+  });
+});

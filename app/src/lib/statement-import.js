@@ -142,6 +142,29 @@ export function parseCsvLine(line) {
   return out.map((s) => s.trim());
 }
 
+// parseAmount — a money cell -> a number, honoring the negative formats that
+// spreadsheets and banks actually use (Christina's Excel, 2026-07-13). The old
+// path did `parseFloat(cell.replace(/[$,]/g,'')) || 0`, so an accounting negative
+// like "(1,234.56)" or a trailing-minus "1,234.56-" became NaN -> 0 — every
+// parenthesized negative silently zeroed out and the imported total drifted off
+// the real one. This honors: parentheses = negative, a leading OR trailing minus
+// = negative, and strips stray currency symbols / thousands separators / spaces.
+// Blank or truly non-numeric -> 0 (unchanged, so blank cells still import as 0).
+// Pure.
+export function parseAmount(raw) {
+  let s = String(raw == null ? '' : raw).trim();
+  if (!s) return 0;
+  let negative = false;
+  if (/^\(.*\)$/.test(s)) { negative = true; s = s.slice(1, -1); } // accounting ()
+  if (/-\s*$/.test(s)) { negative = true; s = s.replace(/-\s*$/, ''); } // trailing -
+  if (/^\s*-/.test(s)) { negative = true; s = s.replace(/^\s*-/, ''); } // leading -
+  s = s.replace(/[^0-9.]/g, ''); // drop $, commas, currency codes, spaces
+  if (!s || s === '.') return 0;
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return 0;
+  return negative ? -n : n;
+}
+
 export function normalizeDate(s) {
   if (!s) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
@@ -241,8 +264,8 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
     const date = normalizeDate(cells[idx.date] || '');
     const desc = cells[idx.desc] || '';
     let amt = 0;
-    if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
-    else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+    if (idx.amount !== -1 && cells[idx.amount]) amt = parseAmount(cells[idx.amount]);
+    else if (idx.credit !== -1 && cells[idx.credit]) amt = parseAmount(cells[idx.credit]);
     if (flipSign) amt = -amt;
     const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
