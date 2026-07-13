@@ -38,19 +38,44 @@ export const MEETING_STATUS = [
 ];
 export const meetingStatusLabel = (s) => (MEETING_STATUS.find(([k]) => k === s)?.[1]) || s;
 
+// MEETING SPACES (declared by Darrell 2026-07-12). Two rooms, sized to the real
+// sovereign stack — the on-site Synology NAS today, the 5x RTX 3090 rig the infra
+// project is standing up (ChurchInfraPlan). The caps are grounded in that
+// hardware, not aspiration: a self-hosted SFU on one uplink can carry the whole
+// admin staff OR several small working meetings, not both at once.
+//   - main:     the admin-staff / monthly meeting room — up to 50 people, but
+//               EXCLUSIVE (it takes the whole stack, so nothing else runs
+//               alongside it) and ADMIN-ONLY to book.
+//   - ministry: a working meeting for a ministry (bus sync, choir) — up to 12
+//               typical, 25 ceiling; several can run within the concurrency cap.
+export const MEETING_SPACES = {
+  main:     { id: 'main',     label: 'Main meeting space (admin & monthly)', cap: 50, adminOnly: true,  exclusive: true },
+  ministry: { id: 'ministry', label: 'Ministry meeting',                     cap: 25, adminOnly: false, exclusive: false },
+};
+export const meetingSpaceLabel = (s) => (MEETING_SPACES[s]?.label) || MEETING_SPACES.ministry.label;
+export function spaceCap(space) { return (MEETING_SPACES[space] || MEETING_SPACES.ministry).cap; }
+// The main room is admin-staff only (Darrell 2026-07-12). RLS enforces this too
+// (0098); this mirror only decides which spaces a surface offers.
+export function canBookSpace(space, role) {
+  const sp = MEETING_SPACES[space] || MEETING_SPACES.ministry;
+  return sp.adminOnly ? (role === 'owner' || role === 'admin') : true;
+}
+
 // The environment budget. These are deliberately conservative caps — the point
-// is to protect the sovereign stack, not to host webinars. They are the numbers
-// the guard checks against; raising one is a decision (DR-0075), not a silent tweak.
+// is to protect the sovereign stack, not to host webinars. Per-meeting participant
+// caps come from the SPACE (above); these bound duration + how many small meetings
+// overlap. Raising one is a decision (DR-0075), not a silent tweak.
 export const MEETING_LIMITS = {
-  maxParticipants: 25,       // per meeting
+  maxParticipants: 50,       // absolute ceiling = the main space; per-space cap is senior
   maxDurationMin: 180,       // 3h ceiling per meeting
-  maxConcurrentPerInstance: 3, // across all ministries at once
+  maxConcurrentPerInstance: 3, // small ministry meetings at once (a main-space meeting is exclusive)
 };
 
 export function toMeetingShape(row, myUserId) {
   return {
     id: row.id,
     ministry: row.ministry ?? null,
+    space: row.space ?? 'ministry',
     title: row.title ?? '',
     hostName: row.host_name ?? '',
     hostUserId: row.host_user_id ?? null,
@@ -105,31 +130,45 @@ export function meetingLoadCheck(existing = [], proposed = {}, nowMs = 0, limits
     violations.push({ rule: 'duration', message: `Meetings are capped at ${L.maxDurationMin} minutes to protect the environment.` });
   }
 
-  // BUDGET: participant cap within range.
+  // BUDGET: participant cap within the SPACE's cap (main 50, ministry 25).
+  const space = MEETING_SPACES[proposed.space] || MEETING_SPACES.ministry;
   const cap = Number(proposed.participantCap);
   if (!Number.isFinite(cap) || cap < 1) {
     violations.push({ rule: 'participant-cap', message: 'Set a participant cap (at least 1).' });
-  } else if (cap > L.maxParticipants) {
-    violations.push({ rule: 'participant-cap', message: `The participant cap is ${L.maxParticipants} to protect the environment.` });
+  } else if (cap > space.cap) {
+    violations.push({ rule: 'participant-cap', message: `${space.label} holds up to ${space.cap} people.` });
   }
 
   const active = (existing || []).filter((m) => isActiveMeeting(m, nowMs) && m.id !== proposed.id);
 
-  // BUDGET: max concurrent meetings per instance (across ministries), counted at
-  // the proposed window.
+  // The set of active meetings that overlap the proposed window.
   const overlappingInstance = active.filter((m) => {
     const ms = m.scheduledAt ? Date.parse(m.scheduledAt) : NaN;
     return Number.isNaN(startMs) || m.status === 'live' || windowsOverlap(startMs, dur, ms, m.durationMin);
   });
-  if (overlappingInstance.length >= L.maxConcurrentPerInstance) {
-    violations.push({ rule: 'max-concurrent', message: `No more than ${L.maxConcurrentPerInstance} meetings can run at once here. Pick a different time.` });
+
+  // EXCLUSIVE: the main space (a 50-person meeting) takes the whole sovereign
+  // stack — nothing else may overlap it, in either direction.
+  const anyExclusiveActive = overlappingInstance.some((m) => (MEETING_SPACES[m.space] || MEETING_SPACES.ministry).exclusive);
+  if (space.exclusive && overlappingInstance.length >= 1) {
+    violations.push({ rule: 'main-space-exclusive', message: 'The main meeting space runs on its own — no other meeting can overlap it. Pick a clear time.' });
+  } else if (!space.exclusive && anyExclusiveActive) {
+    violations.push({ rule: 'main-space-exclusive', message: 'The main meeting space is booked in that window — it takes the whole stack. Pick another time.' });
   }
 
-  // CONCURRENCY LOCK: one live/overlapping meeting per ministry at a time.
-  if (proposed.ministry) {
-    const sameMinistry = overlappingInstance.filter((m) => m.ministry === proposed.ministry);
-    if (sameMinistry.length >= 1) {
-      violations.push({ rule: 'ministry-lock', message: `${proposed.ministry} already has a meeting in that window. One at a time.` });
+  // BUDGET: max concurrent SMALL (ministry) meetings per instance, at the window.
+  // (An exclusive main-space meeting is handled above, not counted here.)
+  if (!space.exclusive) {
+    const overlappingMinistry = overlappingInstance.filter((m) => !(MEETING_SPACES[m.space] || MEETING_SPACES.ministry).exclusive);
+    if (overlappingMinistry.length >= L.maxConcurrentPerInstance) {
+      violations.push({ rule: 'max-concurrent', message: `No more than ${L.maxConcurrentPerInstance} ministry meetings can run at once here. Pick a different time.` });
+    }
+    // CONCURRENCY LOCK: one live/overlapping meeting per ministry at a time.
+    if (proposed.ministry) {
+      const sameMinistry = overlappingMinistry.filter((m) => m.ministry === proposed.ministry);
+      if (sameMinistry.length >= 1) {
+        violations.push({ rule: 'ministry-lock', message: `${proposed.ministry} already has a meeting in that window. One at a time.` });
+      }
     }
   }
 

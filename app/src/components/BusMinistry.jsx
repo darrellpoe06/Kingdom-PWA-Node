@@ -35,7 +35,8 @@ import {
 } from '../lib/bus-ministry-sync.js';
 import {
   subscribeMeetings, scheduleMeeting, setMeetingStatus, removeMeeting,
-  upcomingMeetings, meetingProviderLabel, meetingStatusLabel, MEETING_PROVIDERS, MEETING_LIMITS,
+  upcomingMeetings, meetingProviderLabel, meetingStatusLabel, MEETING_PROVIDERS,
+  meetingSpaceLabel, canBookSpace, spaceCap,
 } from '../lib/ministry-meetings-sync.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -464,7 +465,9 @@ function MeetingsPanel({ meetings, canEdit, reportSkip }) {
     if (!form.title.trim() || !form.scheduledAt) return;
     let iso = null;
     try { iso = new Date(form.scheduledAt).toISOString(); } catch { /* invalid date stays null; load-check rejects it */ }
-    const r = await scheduleMeeting({ ...form, ministry: 'bus', scheduledAt: iso }, meetings);
+    // A main-space meeting is an admin/staff meeting, not a bus-ministry one.
+    const ministry = form.space === 'main' ? null : 'bus';
+    const r = await scheduleMeeting({ ...form, ministry, scheduledAt: iso }, meetings);
     if (r?.violations) { setViolations(r.violations); return; }
     setViolations([]);
     reportSkip(r);
@@ -475,9 +478,11 @@ function MeetingsPanel({ meetings, canEdit, reportSkip }) {
     <div className="space-y-4">
       <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
         <p className="text-xs text-[#5A5751]">
-          Sovereign PoeTech meetings (our own, on our broadcast stack). To protect the environment, meetings are capped
-          at {MEETING_LIMITS.maxParticipants} people and {MEETING_LIMITS.maxDurationMin} minutes, and only one bus-ministry meeting runs at a time.
-          "Count the cost, whether he have sufficient to finish it" (Luke 14:28).
+          Sovereign PoeTech meetings — our own, on our on-site stack (the Synology NAS today; the 5&times;RTX&nbsp;3090 rig
+          the infrastructure project is building). Two rooms, sized to that hardware: the <b>main meeting space</b> (admin
+          staff &amp; monthly meetings, up to {spaceCap('main')} people — it takes the whole stack, so nothing else runs
+          alongside it) and <b>ministry meetings</b> (working meetings, up to {spaceCap('ministry')}). "Count the cost,
+          whether he have sufficient to finish it" (Luke 14:28).
         </p>
       </div>
 
@@ -488,7 +493,7 @@ function MeetingsPanel({ meetings, canEdit, reportSkip }) {
             <span className="text-sm text-[#1A1815]">{m.title}</span>
             <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#C9BFA8] text-[#5A5751]">{meetingStatusLabel(m.status)}</span>
           </div>
-          <div className="text-xs text-[#5A5751]">{meetingProviderLabel(m.provider)} · {m.hostName} · cap {m.participantCap}</div>
+          <div className="text-xs text-[#5A5751]">{meetingSpaceLabel(m.space)} · {meetingProviderLabel(m.provider)} · {m.hostName} · cap {m.participantCap}</div>
           <div className="text-xs text-[#5A5751]">{(() => { try { return new Date(m.scheduledAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch { return m.scheduledAt; } })()} · {m.durationMin} min</div>
           <div className="flex gap-1.5 pt-1">
             {m.joinUrl && <a href={m.joinUrl} target="_blank" rel="noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>Join</a>}
@@ -500,7 +505,13 @@ function MeetingsPanel({ meetings, canEdit, reportSkip }) {
 
       {form ? (
         <div className={`${CARD} space-y-2`}>
-          <label className="block"><span className={LABEL}>Title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={FIELD} placeholder="Bus ministry sync" /></label>
+          <label className="block"><span className={LABEL}>Room</span>
+            <select value={form.space} onChange={(e) => { const space = e.target.value; setForm({ ...form, space, participantCap: Math.min(form.participantCap, spaceCap(space)) }); }} className={FIELD}>
+              <option value="ministry">{meetingSpaceLabel('ministry')} · up to {spaceCap('ministry')}</option>
+              {canBookSpace('main', canEdit ? 'admin' : 'member') && <option value="main">{meetingSpaceLabel('main')} · up to {spaceCap('main')}</option>}
+            </select>
+          </label>
+          <label className="block"><span className={LABEL}>Title</span><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={FIELD} placeholder={form.space === 'main' ? 'Monthly staff meeting' : 'Bus ministry sync'} /></label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label className="block"><span className={LABEL}>When</span><input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className={FIELD} /></label>
             <label className="block"><span className={LABEL}>Minutes</span><input type="number" value={form.durationMin} onChange={(e) => setForm({ ...form, durationMin: Number(e.target.value) })} className={FIELD} /></label>
@@ -523,7 +534,7 @@ function MeetingsPanel({ meetings, canEdit, reportSkip }) {
           </div>
         </div>
       ) : (
-        <button type="button" onClick={() => setForm({ title: '', scheduledAt: '', durationMin: 60, participantCap: 12, provider: 'poetech-obs', joinUrl: '' })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Schedule a meeting</button>
+        <button type="button" onClick={() => setForm({ space: 'ministry', title: '', scheduledAt: '', durationMin: 60, participantCap: 12, provider: 'poetech-obs', joinUrl: '' })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ Schedule a meeting</button>
       )}
     </div>
   );
