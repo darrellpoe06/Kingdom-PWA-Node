@@ -41,6 +41,10 @@ import {
   enrollmentPaymentState, trackROI, trackAccessTier, installmentSchedule,
   startReadiness, programFormats,
 } from '../lib/cohort-programs.js';
+import {
+  US_JURISDICTIONS, GUIDE_AREAS, STUDY_GUIDES_DISCLAIMER, CREDENTIAL_SOURCES,
+  stateGuide, guidesByArea, guidePoolSummary,
+} from '../lib/study-guides.js';
 
 // ---------------------------------------------------------------------------
 // formatters (house style)
@@ -224,6 +228,10 @@ function ParentInvite({ program }) {
       </div>
 
       <div className="mt-4">
+        <HomeschoolGuides />
+      </div>
+
+      <div className="mt-4">
         <ValueSection program={program} />
       </div>
       <div className="mt-4">
@@ -232,6 +240,72 @@ function ParentInvite({ program }) {
         </div>
         <InterestForm program={program} />
       </div>
+    </div>
+  );
+}
+
+// Homeschool + study guides — the parent-facing "we guide you to pass the test"
+// surface: your state's path, the real credential routes, and the Ari-guided
+// subject pool (the $39.99 digital tier). Honest by construction — no diploma is
+// claimed; the disclaimer + authoritative link are always present.
+function HomeschoolGuides() {
+  const [stateId, setStateId] = useState('');
+  const guide = stateId ? stateGuide(stateId) : null;
+  const pool = guidePoolSummary();
+
+  return (
+    <div className="border border-[#3F6098] bg-white p-4">
+      <div className="flex items-center gap-1.5 text-[#1A1815] mb-1">
+        <UiIcon name="bookOpen" />
+        <span className="text-sm font-semibold">Homeschool with Ari — get to the diploma</span>
+      </div>
+      <div className="text-xs text-[#5A5751] leading-relaxed mb-3">
+        We don’t issue the diploma — we’re the study guide and the Ari guide that gets your learner ready to meet your state’s requirement and pass the test. A parent-issued diploma with a full transcript is legal in all 50 states; the GED or HiSET is the recognized equivalency where you want one.
+      </div>
+
+      {/* state selector */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <label className="text-[0.625rem] uppercase tracking-wide text-[#5A5751]">Your state</label>
+        <select value={stateId} onChange={(e) => setStateId(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Your state">
+          <option value="">Choose a state…</option>
+          {US_JURISDICTIONS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+
+      {guide && (
+        <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-[#1A1815]">{guide.name}</span>
+            <Badge cls="bg-[#FAF8F4] text-[#5A5751] border-[#C9C2B4]">{guide.tierLabel} regulation</Badge>
+          </div>
+          <div className="text-xs text-[#5A5751] mt-1 leading-relaxed">{guide.tierBlurb}</div>
+          <div className="mt-2 grid grid-cols-1 gap-1">
+            {guide.credentialPaths.map((p) => (
+              <div key={p.id} className="text-[0.6875rem] text-[#5A5751] leading-relaxed">
+                <span className="font-semibold text-[#1A1815]">{p.label}</span> — {p.summary}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-[0.625rem] text-[#8A857C]">
+            {guide.verifyNote} <a href={guide.source} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Verify current law →</a>
+          </div>
+        </div>
+      )}
+
+      {/* the Ari-guided subject pool */}
+      <div className="text-[0.6875rem] uppercase tracking-wide text-[#5A5751] mb-1">The study-guide pool · {pool.total} subjects · taught by Ari · any age</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+        {GUIDE_AREAS.map((area) => (
+          <div key={area.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-2.5">
+            <div className="text-xs font-semibold text-[#1A1815]">{area.label}</div>
+            <div className="text-[0.6875rem] text-[#5A5751] mt-1 leading-relaxed">
+              {guidesByArea(area.id).map((g) => g.subject).join(' · ')}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 text-[0.625rem] text-[#8A857C] leading-relaxed">{STUDY_GUIDES_DISCLAIMER} Sources: {CREDENTIAL_SOURCES}</div>
     </div>
   );
 }
