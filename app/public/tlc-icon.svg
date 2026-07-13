@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="TLC Therapy Solutions">
+  <!-- Full-bleed background so the Android adaptive mask never clips a ring.
+       All meaningful content is kept inside the central maskable safe zone
+       (~the middle 80%). Ink field, cream wordmark, rust heart — the TLC
+       brand palette. A real TLC-branded icon; crisp PNGs await Christina's
+       official logo asset. -->
+  <rect width="512" height="512" fill="#1A1815"/>
+  <!-- Rust heart, centered above the wordmark, inside the safe zone -->
+  <path fill="#B85838" d="M256 214c-14-30-44-44-72-36-30 9-46 41-33 72 12 29 55 63 105 96 50-33 93-67 105-96 13-31-3-63-33-72-28-8-58 6-72 36z" transform="translate(0 -34) scale(1 1)" transform-origin="256 256"/>
+  <!-- TLC wordmark -->
+  <text x="256" y="352" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="132" letter-spacing="6" fill="#FAF8F4">TLC</text>
+  <!-- Practice line -->
+  <text x="256" y="404" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="30" letter-spacing="8" fill="#B85838">THERAPY</text>
+</svg>

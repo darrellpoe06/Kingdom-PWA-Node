@@ -13,11 +13,36 @@
 // there is nothing here to leak. (Proven by tlc-door.test.js: the module imports
 // no store, no auth, no family surface.)
 // =============================================================================
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TLC_TEAM, TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
-import { TLC_DOOR_BRAND } from '../lib/tlc-door.js';
+import { TLC_DOOR_BRAND, TLC_INSTALL_MANIFEST } from '../lib/tlc-door.js';
 
 export default function TlcPublicDoor() {
+  // Make this an APP, not a website: while the TLC door is mounted, swap the
+  // document's manifest + title so "Add to Home Screen" installs "TLC Therapy"
+  // (its own icon, opens standalone — no browser chrome). Mirrors the Moore /
+  // Love Corner install pattern. The SVG icon is a real TLC-branded mark; crisp
+  // PNGs await Christina's official logo asset.
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = `${TLC_BRAND.name} — ${TLC_BRAND.tagline}`;
+    let link = document.querySelector('link[rel="manifest"]');
+    const prevHref = link ? link.getAttribute('href') : null;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    link.href = TLC_INSTALL_MANIFEST;
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    const prevTheme = themeMeta ? themeMeta.getAttribute('content') : null;
+    if (themeMeta) themeMeta.setAttribute('content', '#1A1815');
+    return () => {
+      document.title = prevTitle;
+      if (prevHref) link.href = prevHref;
+      if (themeMeta && prevTheme) themeMeta.setAttribute('content', prevTheme);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-[#FAF8F4] text-[#1A1815]">
       {/* Header — the TLC brand a client meets. No PoeTech chrome. */}

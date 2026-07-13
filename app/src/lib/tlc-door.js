@@ -28,6 +28,9 @@ import { TLC_BRAND } from './tlc-practice.js';
 // (public/tlc/index.html) that previews as TLC in a texted link, then meta-
 // refreshes into ?tlc=1. Every share surface (QR, texted link) encodes THIS
 // url. Mirrors the church's SHARE_DOOR_URL.
+// The install manifest that makes "Add to Home Screen" install "TLC Therapy",
+// its own icon, opening standalone (no browser chrome) — an app, not a website.
+export const TLC_INSTALL_MANIFEST = '/manifest-tlc.webmanifest';
 export const TLC_SHARE_URL = 'https://poetech.us/tlc/';
 // Canonical is /tlc/ (the entry-page directory, served automatically); these are
 // alternate spellings that redirect to it. Each has a rule in public/_redirects.
