@@ -28,7 +28,11 @@ import SectionTabs from './SectionTabs.jsx';
 import {
   RELATIONSHIPS, RELATIONSHIP_TYPES, SETTING,
   buildMatrix,
+  ASSISTANT_GRANTABLE, ASSISTANT_CAPABILITIES, capabilityMeta,
 } from '../lib/relationships.js';
+import {
+  useAssistantAccess, addAssistant, removeAssistant, toggleCap,
+} from '../lib/use-assistant-access.js';
 import {
   buildMaintenanceRequest, buildRentRecord, buildNotice, buildMessage,
   landlordView, tenantView, rentSafetyNote,
@@ -98,7 +102,7 @@ function MatrixPanel() {
                         <span className="text-sm text-[#1A1815]">
                           {r.label}
                           {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
-                          {!r.configurable && role === 'child' ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
+                          {!r.configurable && (role === 'child' || role === 'assistant') ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
                         </span>
                         <Badge cls={cls}>{cls.label}</Badge>
                       </li>
@@ -118,6 +122,83 @@ function MatrixPanel() {
       note="Derived live from the permission model — the defaults and safety ceilings each role starts from. Per-child grants are made and shown on the Family Roster (Center → Serve).">
       <SectionTabs variant="sub" sections={relSections} ariaLabel="Relationship types"
         idBase="rel-matrix" defaultId={RELATIONSHIP_TYPES.GUARDIAN_CHILD} />
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Assistant access — "check boxes for what you allow for each 1099 assistant"
+// (Darrell 2026-07-13). Per assistant, the owner CHECKS the work surfaces that
+// assistant is allowed. Only the four grantable surfaces are checkboxes; the
+// owner's world (finances / portfolio / family / oversight) renders LOCKED and
+// can never be turned on — the model clamps it to deny (relationships.js), so
+// the wall is structural, not a default the owner can toggle off.
+// ---------------------------------------------------------------------------
+function AssistantAccessPanel() {
+  const { assistants } = useAssistantAccess();
+  const [name, setName] = useState('');
+  const grantable = ASSISTANT_GRANTABLE.map((cap) => ({ cap, meta: capabilityMeta(cap) }));
+  const walls = ASSISTANT_CAPABILITIES
+    .filter((cap) => !ASSISTANT_GRANTABLE.includes(cap))
+    .map((cap) => ({ cap, meta: capabilityMeta(cap) }));
+  const add = () => { const n = name.trim(); if (n) { addAssistant(n); setName(''); } };
+
+  return (
+    <Panel title="1099 Assistant access" icon="users"
+      note="Check what each 1099 assistant is allowed. Their finances, forecast, portfolio, family, and the owner's oversight are locked off and can never be checked on. This is the access config; the database (row-level security) is the wall that enforces it.">
+      <div className="flex items-center gap-2 mb-4">
+        <input value={name} onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          placeholder="Add a 1099 assistant (name)" aria-label="Assistant name"
+          className="flex-1 p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+        <button type="button" onClick={add}
+          className="px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Add</button>
+      </div>
+
+      {assistants.length === 0 ? (
+        <p className="text-sm text-[#5A5751]">No assistants yet. Add one to set exactly what they can see.</p>
+      ) : (
+        <div className="space-y-4">
+          {assistants.map((a) => (
+            <div key={a.id} className="border border-[#1A1815]">
+              <div className="px-3 py-2 border-b border-[#1A1815] flex items-center justify-between bg-[#F4F2EE]">
+                <span className="text-sm font-bold text-[#1A1815]">{a.name}</span>
+                <button type="button" onClick={() => removeAssistant(a.id)} aria-label={`Remove ${a.name}`}
+                  className="text-sm text-[#5A5751] hover:text-[#B85838] px-2 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+              </div>
+              <ul className="divide-y divide-[#E6E0D6]">
+                {grantable.map(({ cap, meta }) => {
+                  const checked = a.config && a.config[cap] === 'allow';
+                  return (
+                    <li key={cap} className="px-3 py-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" checked={!!checked} onChange={() => toggleCap(a.id, cap)}
+                          aria-label={`${meta ? meta.label : cap} for ${a.name}`} className="mt-0.5" />
+                        <span>
+                          <span className="text-sm text-[#1A1815]">{meta ? meta.label : cap}</span>
+                          {meta ? <span className="block text-xs text-[#5A5751]">{meta.desc}</span> : null}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+                {walls.map(({ cap, meta }) => (
+                  <li key={cap} className="px-3 py-2 opacity-60">
+                    <label className="flex items-start gap-2 cursor-not-allowed">
+                      <input type="checkbox" checked={false} disabled aria-label={`${meta ? meta.label : cap} (locked — never allowed)`} className="mt-0.5" />
+                      <span className="flex items-center gap-1">
+                        <span className="text-sm text-[#1A1815]">{meta ? meta.label : cap}</span>
+                        <UiIcon name="lock" className="inline w-3 h-3" />
+                        <span className="text-xs text-[#5A5751]">always off</span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }
@@ -368,6 +449,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
   // the render thunks are plain closures over them.
   const sections = [
     { id: 'matrix', label: 'Matrix', icon: 'users', render: () => <MatrixPanel /> },
+    { id: 'assistant', label: '1099 Assistants', icon: 'sliders', render: () => <AssistantAccessPanel /> },
     {
       id: 'guardian',
       label: 'Guardian & Child',

@@ -299,6 +299,77 @@ export function effectiveChildPolicy(config = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// ASSISTANT capability policy + the safety ceiling — the "check boxes for what
+// you allow for each 1099 assistant" (Darrell 2026-07-13). Mirrors the child
+// policy exactly: `default` is OFF, so the owner deliberately CHECKS each work
+// surface an assistant gets; `maxGrant` is the most an owner may grant. The
+// owner's world — finances, portfolio, family governance, the oversight powers —
+// is LOCKED (default === maxGrant === deny): no checkbox can ever grant an
+// assistant the owner's data. The wall is structural, not a default the owner
+// can toggle off — the same way a guardian cannot grant a child purchase.any.
+// ---------------------------------------------------------------------------
+export const ASSISTANT_CAPABILITY_POLICY = Object.freeze({
+  // Configurable work surfaces — OFF by default; the owner checks what to grant.
+  'referrals.manage': { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'tasks.own':        { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'inbound.contact':  { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'crm.assigned':     { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  // LOCKED walls — the owner's data + oversight; an assistant can NEVER be granted
+  // these (default === maxGrant === deny, so the checkbox renders locked/off).
+  'finance.view':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'finance.manage':   { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'portfolio.view':   { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'family.build':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'family.manage':    { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.oversight':    { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.history':      { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.train':        { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.delegate':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+});
+
+export const ASSISTANT_CAPABILITIES = Object.freeze(Object.keys(ASSISTANT_CAPABILITY_POLICY));
+
+// The capabilities the owner can actually CHECK (a real toggle) vs. the locked
+// walls — so the UI shows a live checkbox for the grantable set and a locked
+// row for the rest.
+export const ASSISTANT_GRANTABLE = Object.freeze(
+  ASSISTANT_CAPABILITIES.filter((cap) => rank(ASSISTANT_CAPABILITY_POLICY[cap].maxGrant) > rank(SETTING.DENY)),
+);
+
+export const isAssistantCapabilityLocked = (cap) => {
+  const p = ASSISTANT_CAPABILITY_POLICY[cap];
+  return !!p && rank(p.default) >= rank(p.maxGrant) && p.maxGrant === p.default;
+};
+
+// Resolve an assistant's effective setting for a capability given the owner's
+// checkbox config (cap -> setting). Missing => the OFF default. Always clamped
+// to the ceiling, so checking a locked wall resolves to deny (no-leak).
+export function resolveAssistantCapability(cap, config = {}) {
+  const policy = ASSISTANT_CAPABILITY_POLICY[cap];
+  if (!policy) return SETTING.DENY; // unknown capability => deny (no-leak)
+  const chosen = Object.prototype.hasOwnProperty.call(config, cap) ? config[cap] : policy.default;
+  return clampSetting(chosen, policy.maxGrant);
+}
+
+// The full effective assistant policy (every capability resolved), for the
+// checkbox UI + the RLS payload. Returns cap -> { setting, default, maxGrant,
+// locked, meta } — the same shape as effectiveChildPolicy.
+export function effectiveAssistantPolicy(config = {}) {
+  const out = {};
+  for (const cap of ASSISTANT_CAPABILITIES) {
+    const policy = ASSISTANT_CAPABILITY_POLICY[cap];
+    out[cap] = {
+      setting: resolveAssistantCapability(cap, config),
+      default: policy.default,
+      maxGrant: policy.maxGrant,
+      locked: isAssistantCapabilityLocked(cap),
+      meta: CAPABILITIES[cap] || null,
+    };
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // The MATRIX for the non-child, fixed roles. Each role maps a capability to a
 // fixed setting. (Children are NOT in here — their settings come from the policy
 // above so a guardian can configure them.) Anything not listed is DENY by
@@ -428,25 +499,9 @@ export const MATRIX = Object.freeze({
   // everything the assistant does + keeps oversight — leadership sees down, the
   // level below never sees up.
   [RELATIONSHIP_TYPES.OWNER_ASSISTANT]: {
-    assistant: {
-      // The scoped work surfaces the assistant runs.
-      'referrals.manage': ALLOW,
-      'tasks.own': ALLOW,
-      'inbound.contact': ALLOW,
-      'crm.assigned': ALLOW,
-      // …and the WALL: the owner's world is denied, explicitly (not by omission),
-      // so the matrix visibly shows "Not allowed" on each — and the RLS half
-      // (the load-bearing data gate) mirrors exactly this set.
-      'finance.view': DENY,
-      'finance.manage': DENY,
-      'portfolio.view': DENY,
-      'family.build': DENY,
-      'family.manage': DENY,
-      'ops.oversight': DENY,
-      'ops.history': DENY,
-      'ops.train': DENY,
-      'ops.delegate': DENY,
-    },
+    // assistant: NOT a fixed row — resolved from ASSISTANT_CAPABILITY_POLICY +
+    // the owner's per-assistant checkbox config (like a child), so the owner
+    // grants each work surface deliberately and the walls stay locked-deny.
     owner: {
       // The owner sees everything the assistant does…
       'referrals.manage': ALLOW,
@@ -471,8 +526,13 @@ export const MATRIX = Object.freeze({
 // the matrix is. Unknown type/role/capability => safe deny.
 // ---------------------------------------------------------------------------
 const isChildRole = (role) => role === 'child';
+const isAssistantRole = (role, relationship) =>
+  role === 'assistant' && relationship === RELATIONSHIP_TYPES.OWNER_ASSISTANT;
 
-export function decide({ relationship, role, capability, childConfig = {} } = {}) {
+// `config` is the per-person checkbox config for whichever role is CONFIGURABLE
+// in this call (a child's guardian config, or an assistant's owner config). It
+// aliases the legacy `childConfig` name so every existing caller keeps working.
+export function decide({ relationship, role, capability, childConfig = {}, config = childConfig } = {}) {
   const meta = CAPABILITIES[capability] || null;
   const fail = (reason) => ({ allowed: false, requiresApproval: false, setting: DENY, reason, meta });
 
@@ -487,8 +547,14 @@ export function decide({ relationship, role, capability, childConfig = {} } = {}
     if (!CHILD_CAPABILITY_POLICY[capability]) {
       return fail(`"${capability}" is not a capability a child can hold`);
     }
-    setting = resolveChildCapability(capability, childConfig);
+    setting = resolveChildCapability(capability, config);
     configurable = !isChildCapabilityLocked(capability);
+  } else if (isAssistantRole(role, relationship)) {
+    if (!ASSISTANT_CAPABILITY_POLICY[capability]) {
+      return fail(`"${capability}" is not a capability an assistant can hold`);
+    }
+    setting = resolveAssistantCapability(capability, config);
+    configurable = !isAssistantCapabilityLocked(capability);
   } else {
     const row = (MATRIX[relationship] && MATRIX[relationship][role]) || {};
     setting = row[capability] || DENY;
@@ -526,6 +592,7 @@ export function capabilitiesFor(relationship, role) {
   const rel = relationshipByType[relationship];
   if (!rel || !rel.roles.includes(role)) return [];
   if (isChildRole(role)) return CHILD_CAPABILITIES.slice();
+  if (isAssistantRole(role, relationship)) return ASSISTANT_CAPABILITIES.slice();
   return Object.keys((MATRIX[relationship] && MATRIX[relationship][role]) || {});
 }
 
