@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   makeProgram, makeEnrollment, makeTeamMember, makeInterest, validateInterest,
+  startReadiness, programFormats,
   defaultPaymentPlans, installmentSchedule, planById,
   enrollmentPaymentState, programStats, teamStats, breakEvenStudents,
   programSchedule, cycleProgress, trackROI, trackAccessTier, trackCatalog,
@@ -45,6 +46,50 @@ describe('cohort-programs — payment math (honest tuition + installments)', () 
     const e = enr({ payments: [{ amountCents: 90000, iso: NOW }] });
     expect(validatePayment(20000, e, p).ok).toBe(false); // only $100 left
     expect(validatePayment(10000, e, p).ok).toBe(true);
+  });
+});
+
+describe('cohort-programs — start-readiness (minimum roster triggers a cohort)', () => {
+  it('a program is FORMING below the minimum and READY at/above it', () => {
+    const p = prog({ minStart: 10 });
+    const nine = Array.from({ length: 9 }, (_, i) => enr({ id: `e${i}`, status: 'enrolled' }));
+    let r = startReadiness(p, nine);
+    expect(r.ready).toBe(false);
+    expect(r.needed).toBe(1);
+    expect(r.enrolledCount).toBe(9);
+    r = startReadiness(p, [...nine, enr({ id: 'e9', status: 'enrolled' })]);
+    expect(r.ready).toBe(true);
+    expect(r.needed).toBe(0);
+  });
+  it('waitlisted / invited sign-ups do NOT count toward the start minimum', () => {
+    const p = prog({ minStart: 3 });
+    const r = startReadiness(p, [
+      enr({ id: 'a', status: 'enrolled' }),
+      enr({ id: 'b', status: 'waitlist' }),
+      enr({ id: 'c', status: 'invited' }),
+    ]);
+    expect(r.enrolledCount).toBe(1);
+    expect(r.ready).toBe(false);
+  });
+  it('defaults the minimum to 10 when unset', () => {
+    expect(makeProgram({}, { now: NOW }).minStart).toBe(10);
+  });
+});
+
+describe('cohort-programs — flexible delivery formats + $250 plan', () => {
+  it('offers all three delivery formats by default; each keeps the full curriculum', () => {
+    const p = makeProgram({}, { now: NOW });
+    const ids = programFormats(p).map((f) => f.id);
+    expect(ids).toEqual(['weekend-4h', 'afterschool-2h', 'dropin-1h']);
+    expect(programFormats(p).find((f) => f.id === 'weekend-4h').hours).toBe(4);
+  });
+  it('the 4-payment plan is $250 increments at $1,000 tuition and sums to the total', () => {
+    const plans = defaultPaymentPlans(100000);
+    const four = plans.find((p) => p.id === 'mo4');
+    expect(four.installments).toBe(4);
+    const sched = installmentSchedule(four);
+    expect(sched).toEqual([25000, 25000, 25000, 25000]); // $250 x 4
+    expect(sched.reduce((a, b) => a + b, 0)).toBe(100000);
   });
 });
 

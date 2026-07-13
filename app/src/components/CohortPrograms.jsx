@@ -38,6 +38,7 @@ import {
   trackCatalog, ageBand, teamRole, planById, isSeedId, validateInterest,
   programStats, teamStats, programSchedule, cycleProgress, breakEvenStudents,
   enrollmentPaymentState, trackROI, trackAccessTier, installmentSchedule,
+  startReadiness, programFormats,
 } from '../lib/cohort-programs.js';
 
 // ---------------------------------------------------------------------------
@@ -110,11 +111,12 @@ export default function CohortPrograms({ isGovernor = false } = {}) {
 
   const cycle = cycleProgress(program, new Date().toISOString());
   const breakEven = breakEvenStudents(program);
+  const readiness = startReadiness(program, store.enrollments);
   const interestCount = (store.interests || []).filter((i) => i.programId === program.id).length;
 
   const sections = [
     { id: 'overview', label: 'Overview', icon: 'home', render: () => (
-      <OverviewSection program={program} stats={stats} cycle={cycle} breakEven={breakEven} isGovernor={isGovernor} interestCount={interestCount} />
+      <OverviewSection program={program} stats={stats} cycle={cycle} breakEven={breakEven} isGovernor={isGovernor} interestCount={interestCount} readiness={readiness} />
     ) },
     { id: 'value', label: 'Why it’s worth it', icon: 'sparkle', render: () => (
       <ValueSection program={program} />
@@ -192,10 +194,29 @@ function ParentInvite({ program }) {
         One industry a day, Monday through Friday — Yahweh first, then A.I. and coding, wholeness, business, and the hands-on trades. The same lesson three weeks deep, tuned to your child’s age. Understanding you build with your hands, not theory you forget.
       </p>
       <TierLadder />
+
+      {/* How you attend — the flexible formats */}
+      <div className="mt-4 border border-[#E8E4DC] bg-white p-4">
+        <div className="text-sm font-semibold text-[#1A1815] mb-1">Do it on your schedule</div>
+        <div className="text-xs text-[#5A5751] mb-2.5 leading-relaxed">Same three-week session, three ways to attend — pick what fits your family. Pay in full, in 3 payments, or 4 × $250.</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {programFormats(program).map((f) => (
+            <div key={f.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+              <div className="text-sm font-semibold text-[#1A1815]">{f.label}</div>
+              <div className="text-[0.6875rem] uppercase tracking-wide text-[#B85838] mt-0.5">{f.hours} hours · {f.cadence}</div>
+              <div className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">{f.blurb}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-4">
         <ValueSection program={program} />
       </div>
       <div className="mt-4">
+        <div className="border border-[#E8E4DC] bg-[#FBF7EC] p-3 mb-3 text-xs text-[#5A5751] leading-relaxed">
+          <span className="font-semibold text-[#B45309]">A cohort starts once {program.minStart} families sign up.</span> Register your interest now — you’ll be first to know the moment the next session is set, with no payment until it’s confirmed.
+        </div>
         <InterestForm program={program} />
       </div>
     </div>
@@ -248,11 +269,43 @@ function InterestForm({ program }) {
 // ---------------------------------------------------------------------------
 // Overview
 // ---------------------------------------------------------------------------
-function OverviewSection({ program, stats, cycle, breakEven, isGovernor, interestCount = 0 }) {
+function OverviewSection({ program, stats, cycle, breakEven, isGovernor, interestCount = 0, readiness }) {
+  const r = readiness || { minStart: program.minStart, enrolledCount: stats.enrolledCount, ready: false, needed: program.minStart, pct: 0 };
   return (
     <div>
       <div className="mb-2 text-sm text-[#1A1815] font-semibold">{program.name}</div>
       <div className="mb-3 text-xs text-[#5A5751] leading-relaxed">{program.tagline}</div>
+
+      {/* Start-readiness — a cohort triggers only at the minimum roster. */}
+      <div className={`border p-3 mb-3 ${r.ready ? 'border-[#5A6E3D] bg-[#F0F4EA]' : 'border-[#B85838] bg-[#FBF7EC]'}`}>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className={`text-sm font-semibold ${r.ready ? 'text-[#3F5226]' : 'text-[#B45309]'}`}>
+            {r.ready ? `Ready to start — ${num(r.enrolledCount)} enrolled (min ${num(r.minStart)})` : `Forming — ${num(r.enrolledCount)} of ${num(r.minStart)} needed to start`}
+          </span>
+          {!r.ready && <span className="text-xs text-[#5A5751]">{num(r.needed)} more</span>}
+        </div>
+        <div className="h-2 w-full bg-[#FAF8F4] border border-[#C9C2B4] overflow-hidden">
+          <div className={`h-full ${r.ready ? 'bg-[#5A6E3D]' : 'bg-[#B85838]'}`} style={{ width: `${r.pct}%` }} />
+        </div>
+        <div className="mt-1.5 text-[0.6875rem] text-[#5A5751] leading-relaxed">
+          A cohort doesn’t begin until at least {num(r.minStart)} students enroll — no half-empty starts. Below that it collects sign-ups.
+        </div>
+      </div>
+
+      {/* Delivery formats — the same 3-week curriculum, on the family's schedule. */}
+      <div className="border border-[#E8E4DC] bg-white p-3 mb-3">
+        <div className="text-sm font-semibold text-[#1A1815] mb-1.5">How families attend</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+          {programFormats(program).map((f) => (
+            <div key={f.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-2">
+              <div className="text-xs font-semibold text-[#1A1815]">{f.label} · {f.hours}h</div>
+              <div className="text-[0.625rem] text-[#8A857C]">{f.cadence}</div>
+              <div className="text-[0.6875rem] text-[#5A5751] mt-1 leading-relaxed">{f.blurb}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-1.5 text-[0.625rem] text-[#8A857C]">Same $1,000 three-week session, whichever they choose — pay in full, 3 payments, or 4 × $250.</div>
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4">
         <MetricCell label="Enrolled (real)" value={num(stats.enrolledCount)} sub={`of ${num(stats.capacity)} seats`} />

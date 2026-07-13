@@ -314,7 +314,10 @@ export function defaultPaymentPlans(tuitionCents) {
   const per3 = Math.ceil(t / 3 / 100) * 100; // round each installment up to the dollar
   return [
     { id: 'full', label: 'Pay in full', installments: 1, totalCents: t },
-    { id: 'mo3', label: '3 monthly payments', installments: 3, totalCents: Math.max(t, per3 * 3) },
+    { id: 'mo3', label: '3 payments', installments: 3, totalCents: Math.max(t, per3 * 3) },
+    // 4 even payments — at the $1,000 tuition this is the $250 increments Darrell
+    // named. installmentSchedule() splits it evenly and sums back to the total.
+    { id: 'mo4', label: '4 payments', installments: 4, totalCents: t },
   ];
 }
 
@@ -342,6 +345,22 @@ export const DEFAULT_TUITION_CENTS = 100000; // $1,000
 export const DEFAULT_CAPACITY = 500;
 export const DEFAULT_WEEKS = 3;
 export const RETRO_WEEK = 4;
+// Darrell 2026-07-12: a cohort should not START until enough families commit —
+// a minimum roster triggers it. Ten is the default floor; below it the program
+// is FORMING (collecting sign-ups), not running.
+export const DEFAULT_MIN_START = 10;
+
+// SESSION_FORMATS — the same 3-week / $1,000 curriculum, delivered in different
+// time shapes so a family (and thin early staffing) can pick what fits. Every
+// format delivers the full five-track cycle; they differ only in how the hours
+// are arranged. Darrell 2026-07-12: start with a weekend 4-hour lab, or an
+// after-school 2-hour lab, or a drop-in hour weekdays 3–5pm.
+export const SESSION_FORMATS = [
+  { id: 'weekend-4h', label: 'Saturday lab', hours: 4, cadence: 'Saturdays', blurb: 'All five tracks in one focused 4-hour hands-on lab each Saturday — the whole week in a morning.' },
+  { id: 'afterschool-2h', label: 'After-school lab', hours: 2, cadence: 'Weekdays, after school', blurb: 'A 2-hour learning lab after school — come the days that fit your family.' },
+  { id: 'dropin-1h', label: 'Drop-in hour', hours: 1, cadence: 'Weekdays 3–5pm', blurb: 'A focused hour at the church, weekdays between 3 and 5pm — a lighter on-ramp.' },
+];
+export const sessionFormat = (id) => SESSION_FORMATS.find((f) => f.id === asStr(id)) || null;
 
 // The five default weekday tracks Darrell named (Music is available in the
 // catalog to swap onto any day).
@@ -368,6 +387,10 @@ export function makeProgram(partial = {}, { now = '' } = {}) {
     staffTarget: Math.max(0, asNum(p.staffTarget, 10)),
     weeksPerCycle: Math.max(1, asNum(p.weeksPerCycle, DEFAULT_WEEKS)),
     retroWeek: RETRO_WEEK,
+    minStart: Math.max(1, asNum(p.minStart, DEFAULT_MIN_START)),
+    formatIds: (asArr(p.formatIds).filter((id) => sessionFormat(id)).length
+      ? asArr(p.formatIds).filter((id) => sessionFormat(id))
+      : SESSION_FORMATS.map((f) => f.id)),
     cycleMonth: asStr(p.cycleMonth) || asStr(now).slice(0, 7), // 'YYYY-MM'
     status: PROGRAM_STATUSES.includes(p.status) ? p.status : 'enrolling',
     tracks: asArr(p.tracks).length ? asArr(p.tracks) : makeProgramTracks(p.trackIds),
@@ -572,6 +595,26 @@ export function teamStats(program, team, enrolledCount = 0) {
     studentsPerStaff: staff.length > 0 ? Math.round((enrolledCount / staff.length) * 10) / 10 : null,
     coverage,
     daysCovered: coverage.filter((c) => c.covered).length,
+  };
+}
+
+// The delivery formats this program offers, enriched from the catalog.
+export function programFormats(program) {
+  return asArr(program && program.formatIds).map(sessionFormat).filter(Boolean);
+}
+
+// Start-readiness: a cohort triggers only once the roster reaches the minimum.
+// Below it the program is FORMING; at/above it, it is ready to start. Counts
+// only seat-holding (enrolled) students — real commitments, not invites.
+export function startReadiness(program, enrollments) {
+  const minStart = Math.max(1, asNum(program && program.minStart, DEFAULT_MIN_START));
+  const enrolledCount = seatHolders(enrollments, program && program.id).length;
+  return {
+    minStart,
+    enrolledCount,
+    ready: enrolledCount >= minStart,
+    needed: Math.max(0, minStart - enrolledCount),
+    pct: minStart > 0 ? Math.min(100, Math.round((enrolledCount / minStart) * 100)) : 100,
   };
 }
 
