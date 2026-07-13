@@ -27,6 +27,16 @@
 /thelovecorner   /lovecorner/  301
 /thelovecorner/  /lovecorner/  301
 
+# TLC Therapy Solutions' share links: /tlc serves the static TLC client-door
+# entry page (its own og tags so a texted link previews as TLC, then meta-
+# refresh into ?tlc=1). public/tlc/index.html is served automatically at /tlc/;
+# only the spelled-out aliases need rules. HELD Tier C — live only after
+# Christina Poe, LCSW reviews the content and greenlights the send.
+/tlctherapy            /tlc/  301
+/tlctherapy/           /tlc/  301
+/tlctherapysolutions   /tlc/  301
+/tlctherapysolutions/  /tlc/  301
+
 # The bare root must land INSIDE the manifest scope (/poetech-app/), or the
 # page a phone naturally opens (poetech.us) is out of scope and Chrome refuses
 # to install the PWA entirely — no prompt, no "Install app" menu entry

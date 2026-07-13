@@ -29,6 +29,8 @@ import { accessState } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
+import { isTlcDoorContext } from './lib/tlc-door.js';
+import TlcPublicDoor from './components/TlcPublicDoor.jsx';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
   BROADCAST_INTEREST_TAG, BROADCAST_TUTOR_META,
@@ -1108,6 +1110,13 @@ export default function PoeFinancialSystem() {
   // tab inside full PoeTech (which sets ?view=church) is NOT scoped; only a real
   // church-door launch is. Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
+  // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
+  // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
+  // → ?tlc=1), the app presents as the focused, PUBLIC, client-facing TLC app —
+  // "Find your therapist" (provider match + services + insurance + Book) and
+  // nothing else. NOT the operator TLC tab (?view=tlc). Captured ONCE at first
+  // render, before nav-history rewrites the URL. Pure signal in lib/tlc-door.js.
+  const [tlcDoorOnly] = useState(() => isTlcDoorContext());
   // Measure how the app is used, to make it better (Darrell 2026-07-04). One
   // place captures every tab open (URL-driven + every nav button). Sovereign,
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
@@ -3633,6 +3642,22 @@ export default function PoeFinancialSystem() {
   // never sample/demo data. Private host (NAS/LAN/Tailscale) is unchanged. The
   // 'loading' state renders nothing so the form never flashes at a signed-in user
   // mid auth-check. See lib/access-gate.js (proven-to-catch test).
+  // TLC CLIENT DOOR — a full, PUBLIC takeover (before the sign-in gate): a
+  // prospective client opening the TLC link meets "Find your therapist" with no
+  // account, no PoeTech chrome, and no path to anything operator/family. The
+  // door renders ONLY public marketing facts (tlc-practice.js); there is nothing
+  // here to leak. This is the sendable TLC Therapy Solutions app.
+  if (tlcDoorOnly) {
+    return (
+      <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+        <SectionBoundary name="TLC">
+          <TlcPublicDoor />
+        </SectionBoundary>
+      </div>
+    );
+  }
+
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   if (__gate !== 'app') {
     return (
