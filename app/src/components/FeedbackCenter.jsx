@@ -140,7 +140,8 @@ export const FEEDBACK_AREAS = [
   { group: 'Academy (steward/business · cohort operations)', items: [
     ['cohorts', 'Academy · cohort operations (enrollment · tuition/payment plans · weekly-track schedule · team · week-4 retro)'],
   ]},
-  { group: 'Assistant (steward/business · TLC referral ops)', items: [
+  { group: 'TLC (steward/business · the whole TLC office)', items: [
+    ['tlc', 'TLC · the unified TLC Therapy Solutions workspace (Practice · Intake · Assistant, three views of one office)'],
     ['tlc-assistant', 'Assistant · TLC referral database + admin/marketing assistant (referral network · outreach · content calendar · weekly goals · Ari path)'],
   ]},
   { group: 'Access & Usage (steward · access governance)', items: [
@@ -229,6 +230,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
     if (currentView === 'books') return 'books-accounts';
     if (currentView === 'debts') return 'debts';
     if (currentView === 'projects') return 'projects';
+    if (currentView === 'tlc') return 'tlc';
     if (currentView === 'practice') return 'practice';
     if (currentView === 'opportunities') return 'opportunities';
     if (currentView === 'markets') return 'markets';

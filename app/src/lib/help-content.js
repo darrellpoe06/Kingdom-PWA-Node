@@ -278,6 +278,18 @@ export const HELP = {
     why: 'A practice lives or dies on steady, ethical client flow. Structure turns "hope someone calls" into a repeatable pipeline.',
     section: 'business',
   },
+  tlc: {
+    title: 'TLC',
+    tag: 'The whole TLC office in one workspace.',
+    what: 'TLC is the single workspace that runs TLC Therapy Solutions end to end — intake, practice operations and the clinician roster, and the referral/outreach assistant — as three views of the same office instead of scattered tabs.',
+    how: [
+      'Open Practice to run day-to-day operations and match clients to a preferred provider.',
+      'Open Intake to turn incoming calls and messages into a project, incident, or lead.',
+      'Open Assistant to work the referral database and outreach, one geographic circle at a time.',
+    ],
+    why: 'One office, one place. Running intake, operations, and outreach from a single workspace is how nothing about the practice falls between the seams.',
+    section: 'business',
+  },
   opportunities: {
     title: 'Dev/Ops',
     tag: 'The builder/operator workspace for the platform itself.',

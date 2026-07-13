@@ -1017,7 +1017,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -1125,6 +1125,12 @@ export default function PoeFinancialSystem() {
   };
   const [booksView, setBooksView] = useState('calendar');
   const [churchView, setChurchView] = useState(getInitialChurchView());
+  // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
+  // Whole TLC App... one single tab that holds all of it"). One office, three
+  // views of the same office: Practice (operations + clinician roster), Intake
+  // (Inbound), and Assistant (referral/outreach). Condenses the three separate
+  // TLC surfaces into one entry; the individual routes stay valid for deep-links.
+  const [tlcSub, setTlcSub] = useState('practice');
   // Which SECTION the church home opens on when a launch target names one —
   // the Council Chamber is the 'speak' section (DR-0142); null = Worship default.
   const [churchHomeSection, setChurchHomeSection] = useState(null);
@@ -4369,7 +4375,14 @@ ${THEME_CSS}
                 ['inbound', <><UiIcon name="phone" /> Inbound</>],
                 ['rentals','Real Estate'],
                 ['projects','Projects'],
-                ['practice','Practice'],
+                // TLC — the unified TLC Therapy Solutions office. Operators
+                // (family/Governor or a business-tier account) get ONE entry that
+                // holds all three TLC surfaces (Practice, Intake, Assistant) as
+                // sub-tabs; a plain premium user still reaches standalone Practice.
+                // The individual routes stay valid for deep-links either way.
+                ...((isFamilyMember || tierMeets(data.userTier, 'business'))
+                  ? [['tlc', <><UiIcon name="heart" /> TLC</>]]
+                  : [['practice','Practice']]),
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
@@ -4446,11 +4459,9 @@ ${THEME_CSS}
                 // the component renders the invite for non-operators and the console
                 // only for family/Governor or a business-tier operator.
                 ['cohorts', <><UiIcon name="bookOpen" /> Academy</>],
-                // Assistant — the TLC Therapy Solutions referral database + admin/
-                // marketing assistant workspace. An internal ops tool: family/
-                // Governor or a business-tier operator. Spread so it's absent from
-                // the DOM for everyone else (no-leak); component gates its writes.
-                ...((isFamilyMember || tierMeets(data.userTier, 'business')) ? [['tlc-assistant', <><UiIcon name="users" /> Assistant</>]] : []),
+                // Assistant is folded into the unified TLC workspace (above) as a
+                // sub-tab — no standalone top-nav entry. The 'tlc-assistant' route
+                // stays valid for deep-links; the render block below still serves it.
                 // Admin — the real backend control surface. Shown to family
                 // stewards, and on the trusted NAS/home host (where being on the
                 // family network is itself the access control) — the SAME gate the
@@ -4512,6 +4523,17 @@ ${THEME_CSS}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['projects', <><UiIcon name="sliders" /> Projects</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                ))}
+            </TabScroll>
+          </div>
+        )}
+        {view === 'tlc' && (isFamilyMember || tierMeets(data.userTier, 'business')) && (
+          <div className="border-t border-[#E8E4DC] bg-white">
+            {/* TLC sub-nav — three views of the one TLC office, routed through the
+                shared <TabScroll> primitive (same fluid scroll as the main nav). */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
+                {[['practice', <><UiIcon name="heart" /> Practice</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>]].map(([id, label]) => (
+                  <button key={id} onClick={() => setTlcSub(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${tlcSub === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
           </div>
@@ -5134,6 +5156,36 @@ ${THEME_CSS}
               <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
               <p className="text-sm text-[#1A1815] font-semibold">The Assistant workspace is an operations space.</p>
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The TLC referral database and outreach system is for a family/governor or business-tier account.</p>
+            </div>
+          ))}
+
+        {/* TLC — the unified TLC Therapy Solutions office. ONE workspace, three
+            views of the same office (Darrell 2026-07-13: "the Whole TLC App...
+            one single tab that holds all of it"): Practice (operations + the
+            clinician roster), Intake (Inbound), and Assistant (referral/outreach).
+            Gated to a family/Governor OR a business-tier operator; the sub-tab
+            strip lives in the header above. Each sub-view reuses the exact same
+            component + props as its standalone route, so this is a composition,
+            not a fork — the individual routes stay valid for deep-links. */}
+        {view === 'tlc' && ((isFamilyMember || tierMeets(data.userTier, 'business'))
+          ? (
+            <SectionBoundary name="TLC">
+              {tlcSub === 'practice' && (
+                <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} />
+              )}
+              {tlcSub === 'intake' && (
+                <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
+              )}
+              {tlcSub === 'assistant' && (
+                <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+              )}
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center">
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">The TLC workspace is an operations space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The TLC Therapy Solutions office — intake, practice operations, and outreach — is for a family/governor or business-tier account.</p>
             </div>
           ))}
 

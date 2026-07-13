@@ -19,7 +19,7 @@ import { ARI } from '../lib/ari.js';
 // The REAL nav, mirrored from poe-financial-mvp-v28.jsx so this test breaks the
 // build if a shipped surface is added without help. Keep in sync with the nav.
 const TOP_LEVEL_VIEWS = [
-  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice',
+  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice', 'tlc',
   'opportunities', 'about', 'notes', 'create', 'voice', 'library', 'recipes',
   'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'forecast', 'admin',
 ];
