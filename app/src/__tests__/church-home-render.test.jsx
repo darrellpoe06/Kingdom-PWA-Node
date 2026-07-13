@@ -189,3 +189,23 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     expect(container.textContent).toMatch(/Grace Fellowship/);
   });
 });
+
+// Follow along in the Word (Darrell 2026-07-13): wherever a message is preached
+// on the Church home, a control opens the INTERNAL KJV Scripture reader
+// (churchView 'scripture') to follow along — no link-out. Proven-to-catch: the
+// control calls setChurchView('scripture'), and is absent when nav is unavailable.
+describe('Follow along in the Word', () => {
+  it('opens the internal Scripture reader from the Worship home', () => {
+    const setChurchView = vi.fn();
+    mount({ setChurchView });
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    expect(btn).toBeTruthy();
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(setChurchView).toHaveBeenCalledWith('scripture');
+  });
+  it('renders no follow-along control when navigation is unavailable', () => {
+    mount({});
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    expect(btn).toBeFalsy();
+  });
+});

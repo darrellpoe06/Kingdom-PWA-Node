@@ -29,7 +29,7 @@ import SectionTabs from './SectionTabs.jsx';
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null }) {
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -240,6 +240,20 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
             </div>
           )}
 
+          {/* Follow along in the Word (Darrell 2026-07-13): whenever a message is
+              being preached here, open the INTERNAL KJV Scripture reader to read
+              the passage in-app and follow along — no link-out. Reuses the Church
+              Scripture surface (churchView 'scripture'). */}
+          {typeof setChurchView === 'function' && (
+            <button
+              type="button"
+              onClick={() => setChurchView('scripture')}
+              className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              <UiIcon name="book" /> Follow along in the Word
+            </button>
+          )}
+
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             {onlineServices.length > 0 && (
               <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -282,6 +296,15 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
         </p>
+        {typeof setChurchView === 'function' && (
+          <button
+            type="button"
+            onClick={() => setChurchView('scripture')}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            <UiIcon name="book" /> Follow along in the Word
+          </button>
+        )}
       </section>
 
       {/* MEDIA / BROADCAST */}
