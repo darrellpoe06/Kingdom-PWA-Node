@@ -157,6 +157,7 @@ export const FEEDBACK_AREAS = [
     ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
     ['church-event-center', '└ Event Center · room / event requests'],
     ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
+    ['church-projects', 'Church · Projects (the Love Corner project board — video wall · ministries · Assembly · infra · door · outreach)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-bus', 'Church · Bus Ministry (drivers · routes · schedule · reminders · messages · meetings)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
