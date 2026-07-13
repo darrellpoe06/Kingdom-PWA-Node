@@ -24,9 +24,9 @@ import {
 const REL = RELATIONSHIP_TYPES;
 
 describe('relationship types', () => {
-  it('defines the four relationships with steward + roles', () => {
+  it('defines the five relationships with steward + roles', () => {
     expect(RELATIONSHIPS.map((r) => r.type).sort()).toEqual(
-      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT, REL.LANDLORD_MANAGER].sort(),
+      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT, REL.LANDLORD_MANAGER, REL.OWNER_ASSISTANT].sort(),
     );
     for (const r of RELATIONSHIPS) {
       expect(r.roles.length).toBeGreaterThanOrEqual(2);
@@ -237,5 +237,36 @@ describe('buildMatrix', () => {
     const childBuy = rows.find((r) => r.role === 'child' && r.capability === 'purchase.any');
     expect(childMsg.configurable).toBe(true);
     expect(childBuy.configurable).toBe(false);
+  });
+});
+
+// owner<->assistant — the level boundary (Darrell 2026-07-13): an assistant
+// OPERATES scoped work surfaces and is walled off from the owner's data; the
+// owner sees down + keeps oversight. Proven-to-catch the wall so a future edit
+// that loosens it fails the build (the model half; RLS is the data-gate slice).
+describe('owner <-> assistant — leadership sees down, the assistant never sees up', () => {
+  const REL_OA = REL.OWNER_ASSISTANT;
+  it('grants the assistant exactly the four scoped work surfaces', () => {
+    expect(can(REL_OA, 'assistant', 'referrals.manage')).toBe(true);
+    expect(can(REL_OA, 'assistant', 'tasks.own')).toBe(true);
+    expect(can(REL_OA, 'assistant', 'inbound.contact')).toBe(true);
+    expect(can(REL_OA, 'assistant', 'crm.assigned')).toBe(true);
+  });
+  it("WALLS the assistant off from the owner's data + oversight (each explicit deny)", () => {
+    for (const cap of ['finance.view', 'finance.manage', 'portfolio.view', 'family.build', 'family.manage', 'ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+      expect(can(REL_OA, 'assistant', cap)).toBe(false);
+    }
+  });
+  it('lets the owner see down: everything the assistant does + the four oversight powers', () => {
+    expect(can(REL_OA, 'owner', 'referrals.manage')).toBe(true);
+    expect(can(REL_OA, 'owner', 'crm.assigned')).toBe(true);
+    expect(can(REL_OA, 'owner', 'finance.view')).toBe(true);
+    expect(can(REL_OA, 'owner', 'ops.oversight')).toBe(true);
+    expect(can(REL_OA, 'owner', 'ops.history')).toBe(true);
+    expect(can(REL_OA, 'owner', 'ops.delegate')).toBe(true);
+  });
+  it('no-leak default: a capability the assistant was never granted is deny', () => {
+    expect(can(REL_OA, 'assistant', 'lease.manage')).toBe(false);
+    expect(can(REL_OA, 'assistant', 'rentroll.view')).toBe(false);
   });
 });
