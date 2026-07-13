@@ -140,6 +140,9 @@ export const FEEDBACK_AREAS = [
   { group: 'Academy (steward/business · cohort operations)', items: [
     ['cohorts', 'Academy · cohort operations (enrollment · tuition/payment plans · weekly-track schedule · team · week-4 retro)'],
   ]},
+  { group: 'Assistant (steward/business · TLC referral ops)', items: [
+    ['tlc-assistant', 'Assistant · TLC referral database + admin/marketing assistant (referral network · outreach · content calendar · weekly goals · Ari path)'],
+  ]},
   { group: 'Access & Usage (steward · access governance)', items: [
     ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
   ]},
