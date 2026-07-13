@@ -19,6 +19,7 @@ import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { SectionTitle } from './shared.jsx';
 import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
+import { runAriLoop, loopHeadline } from '../lib/ari-loop.js';
 import { ARI } from '../lib/ari.js';
 
 // Build-time-injected repo ledgers (same globals PerpetualReport reads); the
@@ -120,10 +121,12 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
       {(() => {
         const adj = adjustmentsSummary(review.findings);
         if (adj.autoCount === 0 && adj.proposeCount === 0) return null;
+        const loop = runAriLoop(review, Date.now());
         return (
           <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">{ARI.name} &middot; adjustments</div>
-            <p className="text-sm text-[#1A1815] font-medium">{adj.headline}</p>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">{ARI.name} &middot; control loop (MAPE-K)</div>
+            <p className="text-sm text-[#1A1815] font-medium">{loopHeadline(loop)}</p>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1">Monitor &rarr; Analyze &rarr; Plan &rarr; Execute &rarr; Knowledge &middot; {loop.metrics.stpRate}% straight-through this pass.</p>
             {adj.autoCount > 0 && (
               <div className="mt-3">
                 <div className="text-[0.6875rem] uppercase tracking-wider text-[#3F5226] font-semibold mb-1">Ari can apply safely ({adj.autoCount})</div>
