@@ -13,6 +13,7 @@ import {
   reschedulePatch,
   stageBoard,
   lifecycleTrail,
+  projectTimelineLanes,
   STAGE_KEYS,
 } from '../lib/project-management.js';
 
@@ -124,5 +125,44 @@ describe('stageBoard + lifecycleTrail (real tallies / real history)', () => {
   });
   it('is safe with no lifecycle', () => {
     expect(lifecycleTrail({})).toEqual([]);
+  });
+});
+
+// projectTimelineLanes — proven-to-catch (DR-0076): the timeline is a LIVE view
+// of real projects when no board is loaded, never a dead end or a painted lane.
+describe('projectTimelineLanes — projects ride the timeline when no board is loaded', () => {
+  it('returns [] for no projects (empty stays empty — never painted)', () => {
+    expect(projectTimelineLanes([])).toEqual([]);
+    expect(projectTimelineLanes(null)).toEqual([]);
+    expect(projectTimelineLanes(undefined)).toEqual([]);
+  });
+  it('derives a lane per project from the shared engine (stage + real dates)', () => {
+    const lanes = projectTimelineLanes([
+      { id: 'p1', title: 'Church infra plan', status: 'active', endDate: '2026-09-01' },
+      { id: 'p2', title: 'Sponsor outreach', status: 'planning' },
+    ]);
+    expect(lanes).toHaveLength(2);
+    expect(lanes[0]).toMatchObject({ id: 'p1', title: 'Church infra plan', stage: 'execute', stageLabel: 'Execute', pct: 100, endDate: '2026-09-01' });
+    expect(lanes[1]).toMatchObject({ id: 'p2', stage: 'plan', stageLabel: 'Plan' });
+  });
+  it('reports parked pct as null (honest, not 0)', () => {
+    const [lane] = projectTimelineLanes([{ id: 'p3', title: 'Paused', status: 'on-hold' }]);
+    expect(lane.pct).toBeNull();
+    expect(lane.stage).toBe('parked');
+  });
+  it('excludes archived projects (kept for the record, off the live timeline)', () => {
+    const archived = { id: 'p4', title: 'Done deal', status: 'on-hold', lifecycle: { log: [{ toPhase: 'on-hold', note: 'archived for the record' }] } };
+    expect(projectTimelineLanes([archived])).toEqual([]);
+  });
+  it('excludes completed projects (live timeline is open work, matching the list default)', () => {
+    const lanes = projectTimelineLanes([
+      { id: 'p6', title: 'Taxes filed', status: 'complete' },
+      { id: 'p7', title: 'Roof repair', status: 'active' },
+    ]);
+    expect(lanes.map((l) => l.id)).toEqual(['p7']);
+  });
+  it('falls back to a title so a lane is never blank', () => {
+    const [lane] = projectTimelineLanes([{ id: 'p5', status: 'active' }]);
+    expect(lane.title).toBe('Untitled project');
   });
 });

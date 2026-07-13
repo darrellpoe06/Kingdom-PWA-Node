@@ -25,7 +25,7 @@ import Discussions from './Discussions.jsx';
 import {
   ETERNAL_STAGES, stageOfProject, stageMeta, statusForStage, nextStage,
   stageProgress, lifecycleTrail, archivePatch, isArchived,
-  markCompletePatch, reschedulePatch,
+  markCompletePatch, reschedulePatch, projectTimelineLanes,
 } from '../lib/project-management.js';
 import { discussionsForProject, kindMeta } from '../lib/discussions.js';
 import { CLIENT_BUILD_TEMPLATE } from '../lib/client-build-agreement.js';
@@ -55,9 +55,10 @@ const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity
 // last item goes done). Derived entirely from real board_tasks rows; an empty
 // state says so honestly instead of painting lanes.
 // -----------------------------------------------------------------------------
-function BoardsOnTimeline({ tasks }) {
+function BoardsOnTimeline({ tasks, projects = [] }) {
   const lanes = useMemo(() => boardTimelineLanes(tasks), [tasks]);
   const completions = useMemo(() => phaseCompletions(tasks), [tasks]);
+  const projectLanes = useMemo(() => projectTimelineLanes(projects), [projects]);
   const when = (iso) => {
     const d = safeDate(iso);
     return d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'date not recorded';
@@ -66,9 +67,34 @@ function BoardsOnTimeline({ tasks }) {
     <section>
       <SectionTitle eyebrow="Coordination">Boards on the Timeline · Phase Walk</SectionTitle>
       {lanes.length === 0 ? (
-        <div className="bg-white border border-[#E8E4DC] p-4 text-sm text-[#5A5751]">
-          No board items yet — open <span aria-hidden="true">▦</span> Boards and load a program board&apos;s real items; each board then rides this timeline as a lane.
-        </div>
+        projectLanes.length > 0 ? (
+          /* No program board loaded yet — but real projects exist, so each one
+             rides this timeline by its stage (one engine, two views; DR-0187).
+             The section is a LIVE view instead of a dead "go load a board" end. */
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1">Your projects on the timeline</div>
+            <p className="text-xs text-[#5A5751] mb-2 leading-relaxed">
+              No program board is loaded yet, so each project rides the timeline by its stage. Open <span aria-hidden="true">▦</span> Boards and load a board to add the phase-by-phase walk.
+            </p>
+            <div className="space-y-1">
+              {projectLanes.map((lane) => (
+                <div key={lane.id} className="bg-white border border-[#E8E4DC] p-2.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-[#1A1815]">{lane.title}</span>
+                    <span className="text-xs text-[#5A5751]">
+                      {lane.stageLabel}{lane.pct != null ? ` · ${lane.pct}%` : ' · parked'}
+                      {lane.endDate ? ` · due ${when(lane.endDate)}` : ''}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#E8E4DC] p-4 text-sm text-[#5A5751]">
+            No board items yet — open <span aria-hidden="true">▦</span> Boards and load a program board&apos;s real items; each board then rides this timeline as a lane.
+          </div>
+        )
       ) : (
         <div className="space-y-2">
           {lanes.map((lane) => (
@@ -920,7 +946,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
           the moment the last item of a phase went done (the finish ripple in
           use-board-tasks.patchTask). All derived from the real board_tasks
           rows and real recorded moments — never an invented date (DR-0076). */}
-      <BoardsOnTimeline tasks={boardTasks} />
+      <BoardsOnTimeline tasks={boardTasks} projects={scoped} />
 
       {/* Filter + add */}
       <section>
