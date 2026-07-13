@@ -11,6 +11,7 @@ import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
 import AriReview from './AriReview.jsx';
+import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
@@ -271,7 +272,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // Feedback rides its OWN visible sub-tab with a live count (Darrell
   // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
   // below the fold of the list view). Count = real rows, shown even at zero.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['ari-review','✓ Ari Review'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['ministry-ops','Ministry Ops'],['ari-review','✓ Ari Review'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -344,6 +345,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
+      {subView === 'ministry-ops' && <MinistryOps />}
       {subView === 'delays' && isGovernor && <DelayReport />}
       {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
