@@ -492,7 +492,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       // 2026-07-05: "a 3rd row of sliding tabs if that tab scrolls really long")
       // split it: day-to-day inquiries, the services/team cards, revenue.
       render: () => (
-        <SectionTabs variant="sub" sections={operationsSections} ariaLabel="Operations sections" idBase="practice-ops" defaultId="inquiries" />
+        <SectionTabs variant="sub" sections={operationsSections} ariaLabel="Operations sections" idBase="practice-ops" defaultId="services" />
       ),
     },
     {
