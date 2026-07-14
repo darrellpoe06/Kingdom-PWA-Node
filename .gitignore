@@ -58,7 +58,12 @@ credentials.json
 *.log
 
 # Claude Code local config — never commit
-.claude/
+# Ignore .claude/ CONTENTS (not the dir itself) so the shared project settings
+# can be re-included — a parent-dir ignore ('.claude/') can't be negated per file.
+.claude/*
+# ...but DO commit the shared project settings: the ari-guard Stop hook that
+# enforces DR-0111 must ship with the repo. Personal config stays ignored.
+!.claude/settings.json
 
 # Supabase self-hosted — secrets and data volumes never committed
 infra/supabase/.env

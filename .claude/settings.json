@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ari-guard-stop-hook.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

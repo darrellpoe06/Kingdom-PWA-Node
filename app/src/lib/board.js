@@ -425,7 +425,7 @@ export const SEED_BOARDS = [
     blurb: 'The stewardship handoff: who carries what, and the plan for passing the system + the ministry + the businesses to the next generation.',
     groupOrder: ['Succession'],
     items: [
-      { key: 'suc-surface', group: 'Succession', title: 'Succession surface in-app (family-gated)', status: 'done', owner: 'Ari', notes: 'FamilySuccession.jsx built + mounted (surfaces.js: succession, family/governor-gated).' },
+      { key: 'suc-surface', group: 'Succession', title: 'Succession surface in-app (family-gated)', status: 'not-started', dueDate: '2026-09-30', owner: 'Ari', notes: 'NOT built — the prior "done" was unverified and FALSE: no components/FamilySuccession.jsx and no surfaces.js "succession" entry exist (confirmed 2026-07-14). Corrected per DR-0076 (no un-evidenced done). Build the family/governor-gated surface, then mark done with the file:line as evidence.' },
       { key: 'suc-map', group: 'Succession', title: 'Map each role/asset to a successor + readiness', status: 'not-started', dueDate: '2026-09-30', owner: 'Darrell', notes: 'Who carries what; readiness per successor. Real family data, entered by Darrell.' },
       { key: 'suc-docs', group: 'Succession', title: 'Governing documents + access handoff plan', status: 'not-started', dueDate: '2026-08-31', owner: 'Darrell', notes: 'DB primary → home hardware (~Jul–Aug 2026); sealed-blob backup at church. Access handoff on the same arc.' },
     ],
