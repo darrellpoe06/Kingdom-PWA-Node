@@ -68,6 +68,7 @@ import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
+import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
 import { useIdleReveal } from './lib/use-idle-reveal.js';
@@ -4297,10 +4298,9 @@ ${THEME_CSS}
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
-              {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
-                  Replaced native <details> (which doesn't auto-close on outside
-                  click and felt broken) with a controlled dropdown that closes
-                  on selection and clicks outside, with a brief flash on change. */}
+              {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
+              <HeaderAuthButton />
+              {/* Tier indicator + dev-only switcher (controlled dropdown). */}
               <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
               {/* 2026-06-14 — the profile switcher is the family device-sharing
                   control; it is hidden for a self-serve ('self') user, who has

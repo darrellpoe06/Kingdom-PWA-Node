@@ -83,22 +83,26 @@ export default function AuthBanner() {
                 </button>
               </>
             )}
-            <span className="text-[#5A5751]">·</span>
+            {/* OBVIOUS boxed control (Darrell 2026-07-14, "like this" — the TLC
+                door's bordered LOG OUT box): a real button, not a faint link.
+                Signed IN -> "Log out". */}
             <button
               type="button"
               onClick={handleSignOut}
-              className="underline hover:text-[#B85838] focus:outline-none focus:text-[#B85838]"
+              className="normal-case tracking-normal text-[0.75rem] font-semibold px-4 py-1.5 border border-[#FAF8F4] text-[#FAF8F4] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
             >
-              Sign out
+              Log out
             </button>
           </>
         ) : (
+          /* Signed OUT -> the obvious "Log in / Create account" box (same boxed
+             treatment), so the way in is never a faint link you scroll past. */
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="hover:text-[#B85838] focus:outline-none focus:text-[#B85838]"
+            className="normal-case tracking-normal text-[0.75rem] font-semibold px-4 py-1.5 border border-[#FAF8F4] text-[#FAF8F4] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
-            Sign in to sync across devices →
+            Log in / Create account
           </button>
         )}
       </div>
