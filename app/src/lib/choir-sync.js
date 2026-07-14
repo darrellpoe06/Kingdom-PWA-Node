@@ -380,11 +380,17 @@ export function selectNewSermonImports(items, existingVideoIds) {
   for (const it of items || []) {
     if (!it.videoId || have.has(it.videoId)) continue;
     const p = _parseTitle(it.title);
-    if (!p.serviceDate) continue;
+    // Every video lands WITH a date "so users know" (Darrell 2026-07-14): prefer
+    // the date in the title; fall back to the YouTube UPLOAD date (publishedAt).
+    // Only skip if there is genuinely no date anywhere — no more dropping a real
+    // service just because its title didn't spell out the date.
+    const uploadDate = (typeof it.publishedAt === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.publishedAt)) ? it.publishedAt.slice(0, 10) : null;
+    const serviceDate = p.serviceDate || uploadDate;
+    if (!serviceDate) continue;
     out.push({
       videoId: it.videoId,
       youtubeUrl: `https://www.youtube.com/watch?v=${it.videoId}`,
-      serviceDate: p.serviceDate,
+      serviceDate,
       serviceType: p.serviceType,
       title: p.title || String(it.title || '').trim(),
       speaker: p.speaker,
@@ -1002,7 +1008,14 @@ async function fetchUploadsItems(uploads, key, maxPages) {
     const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
     const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50${tok}&playlistId=${encodeURIComponent(uploads)}`, key);
     for (const i of pl?.items || []) {
-      items.push({ videoId: i?.contentDetails?.videoId, title: i?.snippet?.title });
+      items.push({
+        videoId: i?.contentDetails?.videoId,
+        title: i?.snippet?.title,
+        // The video's real upload date (contentDetails.videoPublishedAt is the
+        // publish time; snippet.publishedAt is when it was added to the playlist).
+        // Used as the service-date fallback so a dateless title still lands dated.
+        publishedAt: i?.contentDetails?.videoPublishedAt || i?.snippet?.publishedAt || null,
+      });
     }
     pageToken = pl?.nextPageToken || '';
     pages += 1;
