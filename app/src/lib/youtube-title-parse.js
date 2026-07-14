@@ -13,6 +13,8 @@
 // harvested titles arrive entity-encoded, sometimes uppercased). Decodes one
 // level (&amp; last, so double-encoded text unescapes one honest step). Pure,
 // dependency-free, case-insensitive; safe on null.
+import { classifyServiceType } from './service-day.js'; // pure sibling util (still Node + browser safe)
+
 export function decodeHtmlEntities(text) {
   if (text == null || typeof text !== 'string') return text ?? null;
   return text
@@ -41,7 +43,9 @@ export function parseServiceTitle(rawTitle) {
       serviceDate = `${yr}-${pad(mo)}-${pad(day)}`;
     }
   }
-  const serviceType = /wednesday|bible\s*study/i.test(title) ? 'wednesday' : 'sunday';
+  // Classify the stream: Sunday / Wednesday, or a conference / funeral for the
+  // off-day streams (title wins, then weekday) — one rule, in service-day.js.
+  const serviceType = classifyServiceType(title, serviceDate);
   // Double/smart quotes only. An apostrophe is PART of a message title
   // ("YOU CAN'T…", "I'LL…"), not a delimiter — the old single-quote class
   // truncated real titles to 'YOU CAN' and 'I' in the shipped 0013 rows.

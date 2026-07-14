@@ -77,6 +77,8 @@ describe('youtube-title-parse — the apostrophe regression that truncated real 
   it('an undated special-event title parses with a null date (it lands, labeled undated — never dropped)', () => {
     const p = parseServiceTitle('Roline Brumfield Homegoing Service');
     expect(p.serviceDate).toBeNull();
-    expect(p.serviceType).toBe('sunday');
+    // A homegoing is now correctly labeled a funeral (Darrell 2026-07-14) — not
+    // defaulted to 'sunday'. It still LANDS (undated, never dropped).
+    expect(p.serviceType).toBe('funeral');
   });
 });
