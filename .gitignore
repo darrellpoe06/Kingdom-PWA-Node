@@ -59,6 +59,10 @@ credentials.json
 
 # Claude Code local config — never commit
 .claude/
+# ...but commit the SHARED project settings (the ari-guard Stop hook lives here,
+# DR-0111 enforcement); keep personal/session config out.
+!.claude/settings.json
+.claude/settings.local.json
 
 # Supabase self-hosted — secrets and data volumes never committed
 infra/supabase/.env
