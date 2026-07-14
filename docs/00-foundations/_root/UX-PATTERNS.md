@@ -146,6 +146,19 @@ The large-print control (the SEE half of the see/hear accessibility pair; its HE
 
 **The one-line test for any new surface:** *"When a low-vision user maxes the text size, does the readable content grow while the header stays put — or does the header overrun the screen?"* If the header scales, it is missing `.ts-chrome-region`.
 
+## Pattern 2c: Reclaim screen real-estate — collapsing banner + back/forward nav (PoeTech Standard)
+
+**Binding standard, declared by Darrell 2026-07-14:** *"PoeTech standard banner mover for more screen real-estate and the forward and back arrows etc — all standard PoeTech Builds."*
+
+Two chrome primitives ship as **standards on every PoeTech build**, so the frame never wastes the small phone viewport:
+
+1. **The banner mover (collapse for real-estate).** The tall display banner (brand, version, comfort controls, page title) must be **collapsible** so the reader can trade it for content height and bring it back on demand. Two sanctioned forms:
+   - **Explicit toggle** — the chevron in the main app's nav row hides/shows the banner (the form shown in the Family OS shell).
+   - **Auto-hide on scroll** — the header drops up as you read down and returns when you scroll up (`lib/use-auto-hide-header.js`, the standard collapsing top bar; used on the TLC door). Either satisfies the standard; pick per surface.
+2. **Back / forward navigation arrows.** The in-app `← →` pair behaves like a browser's history within the app's views — `NavControls` (`components/shared.jsx`) driven by `useBrowserHistoryNav` (`lib/nav-history.js`). Any app with **more than a couple of navigable views** carries them; a 2-tab door does not need them (nothing to navigate back through), and forcing them there would be chrome with no function.
+
+**The rule:** a standard PoeTech build never pins a tall, immovable banner over the content, and any multi-view app gives the user real back/forward. Reuse the primitives above — do not reinvent per app. (Ties to Pattern 2b: the collapsed/again-shown chrome is capped, never ballooned, under large text.)
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
