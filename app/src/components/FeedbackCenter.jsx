@@ -10,6 +10,27 @@
 // place), no width-cap classes — this file carries NO consistency-guard
 // baseline debt on purpose.
 import React, { useState } from 'react';
+import { useAutoHideOnScroll, hiddenFloaterClass } from '../lib/floating-visibility.js';
+
+// FloatingFeedbackButton — the persistent bottom-left launcher. Extracted from the
+// monolith so it can auto-hide (DR-0179 "floaters leave & return"): it tucks off
+// the left edge while the person reads/scrolls down and slides back on scroll-up,
+// so it stops covering content. Render it only when the modal is closed.
+export function FloatingFeedbackButton({ onOpen }) {
+  const { visible } = useAutoHideOnScroll();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Open feedback"
+      title="Tell us what's working / not working / missing"
+      className={`fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-300 ${hiddenFloaterClass(visible, 'left')}`}
+      style={{ borderRadius: '999px' }}
+    >
+      💬 Feedback
+    </button>
+  );
+}
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';

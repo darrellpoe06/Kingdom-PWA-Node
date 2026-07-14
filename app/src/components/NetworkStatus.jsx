@@ -23,6 +23,7 @@
 // =============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useAutoHideOnScroll, hiddenFloaterClass } from '../lib/floating-visibility.js';
 
 const COLOR = {
   ok: '#16A34A',          // green
@@ -147,6 +148,9 @@ export default function NetworkStatus() {
   const [expanded, setExpanded] = useState(false);
   const tickRef = useRef(null);
   const cancelledRef = useRef(false);
+  // Auto-hide the status pill so it stops covering content; scrolling up brings
+  // it back, and an open detail panel pins it (DR-0179 floaters "leave & return").
+  const { visible: dockVisible } = useAutoHideOnScroll({ forceVisible: expanded });
 
   // Refresh device-network info on online/offline + connection-change events.
   useEffect(() => {
@@ -221,7 +225,7 @@ export default function NetworkStatus() {
   // Compact pill: 3 dots side-by-side, plus the connection label on wider screens.
   return (
     <div
-      className="fixed bottom-20 left-4 z-30 print:hidden"
+      className={`fixed bottom-20 left-4 z-30 print:hidden transition-all duration-300 ${hiddenFloaterClass(dockVisible, 'left')}`}
       role="status"
       aria-label="Network status"
     >

@@ -128,7 +128,7 @@ import UiIcon from './components/UiIcon.jsx';
 // collapsing/opening the header chrome never makes the page jump.
 import { captureAnchor, applyAnchor } from './lib/reading-position.js';
 import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from './lib/header-hideaway.js';
-import { FeedbackModal, FeedbackPromotePanel } from './components/FeedbackCenter.jsx';
+import { FeedbackModal, FeedbackPromotePanel, FloatingFeedbackButton } from './components/FeedbackCenter.jsx';
 // Lazy-loaded feature surfaces now mount through the surface-mount registry
 // (the modular spine). Their `() => import(...)` loaders + nav metadata live in
 // ONE place — app/src/surfaces.js (DR-0078 §4.3) — instead of 23 inline
@@ -5251,18 +5251,7 @@ ${THEME_CSS}
       {/* Round 15 — Persistent floating feedback button. Always reachable from
           any tab; pre-fills the current view. Sits above TTS controls in the
           stack. Hidden when the feedback modal is already open. */}
-      {!feedbackOpen && (
-        <button
-          type="button"
-          onClick={() => setFeedbackOpen(true)}
-          aria-label="Open feedback"
-          title="Tell us what's working / not working / missing"
-          className="fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
-          style={{ borderRadius: '999px' }}
-        >
-          💬 Feedback
-        </button>
-      )}
+      {!feedbackOpen && <FloatingFeedbackButton onOpen={() => setFeedbackOpen(true)} />}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
       {/* Give floater — Church surfaces only (bottom-right; Feedback owns
           bottom-left). Links out to the congregation's own giving page + the
