@@ -29,8 +29,10 @@ import {
   saveDriver, removeDriver, saveRoute, removeRoute, addStarterRoutes, saveVan, removeVan, addStarterVans,
   saveScheduleRow, removeScheduleRow, setScheduleStatus, scheduleReminders, markReminderSent, acknowledgeReminder,
   sendBusMessage, submitRequest, updateRequest,
+  subscribeRideRequests, submitRideRequest, updateRideRequest,
   coverageForDate, buildReminderPlan, dueReminders, overdueReminders, upcomingSundays, remindSendOn,
   serviceWindow, driverRoleLabel, scheduleStatusLabel, requestStatusLabel, DRIVER_ROLES, REQUEST_STATUS,
+  validateRideRequest, rideRequestStatusLabel, rideRequestOpen, RIDE_REQUEST_STATUS,
   DEFAULT_ARRIVE, DEFAULT_END,
 } from '../lib/bus-ministry-sync.js';
 import {
@@ -59,6 +61,7 @@ export default function BusMinistry() {
   const [reminders, setReminders] = useState([]);
   const [messages, setMessages] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [rideRequests, setRideRequests] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [err, setErr] = useState('');
 
@@ -80,6 +83,15 @@ export default function BusMinistry() {
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee]);
 
+  // Ride requests stream for EVERY signed-in member (not just the ministry):
+  // RLS returns a rider their OWN requests and a ministry member ALL of them, so
+  // both the rider's "your requests" and the coordinator's inbox stay live.
+  useEffect(() => {
+    if (!signedIn) return undefined;
+    const unsub = subscribeRideRequests(setRideRequests);
+    return () => { try { unsub && unsub(); } catch { /* noop */ } };
+  }, [signedIn]);
+
   const reportSkip = (r) => { if (r && r.skipped) setErr(`Could not save (${r.skipped}). Try again.`); else setErr(''); };
   const canEdit = access.canEdit;
 
@@ -94,12 +106,20 @@ export default function BusMinistry() {
       </div>
     );
   }
+  // A rider (not a driver) can't see the coordination space — but they CAN ask
+  // for a ride. Instead of a dead end, give them the request form + their own
+  // requests. RLS lets any church member file one and see only their own.
   if (!access.canSee) {
     return (
-      <div className="max-w-3xl mx-auto p-4">
+      <div className="max-w-3xl mx-auto p-4 space-y-3">
         <SectionTitle>Bus / Van Ministry</SectionTitle>
-        <p className="text-sm text-[#5A5751] mt-2">
-          This is the bus ministry's coordination space. Ask Deacon Anderson (the coordinator) to add you to the driver roster and you'll see the schedule, reminders, and messages here.
+        <p className="text-xs text-[#5A5751] italic">
+          "Bear ye one another's burdens, and so fulfil the law of Christ." — Galatians 6:2 (KJV)
+        </p>
+        {err && <p className="text-xs text-[#991B1B]" role="alert">{err}</p>}
+        <RiderRequestPanel myRequests={rideRequests.filter((r) => r.mine)} reportSkip={reportSkip} />
+        <p className="text-xs text-[#5A5751] mt-2">
+          Drive with the ministry? Ask Deacon Anderson (the coordinator) to add you to the driver roster, and the schedule, reminders, and messages will show here.
         </p>
       </div>
     );
@@ -113,6 +133,7 @@ export default function BusMinistry() {
     { id: 'reminders', label: 'Reminders', icon: 'phone', render: () => <RemindersPanel {...{ reminders, canEdit, reportSkip }} /> },
     { id: 'meetings', label: 'Meetings', icon: 'monitor', render: () => <MeetingsPanel {...{ meetings, canEdit, reportSkip }} /> },
     { id: 'talk', label: 'Messages', icon: 'chat', render: () => <TalkPanel {...{ messages, reportSkip, dmRoster }} /> },
+    { id: 'rides', label: 'Ride requests', icon: 'users', render: () => <RideRequestsPanel {...{ rideRequests, drivers, canEdit, reportSkip }} /> },
     { id: 'requests', label: 'Requests', icon: 'sliders', render: () => <RequestsPanel {...{ requests, canEdit, reportSkip }} /> },
   ];
 
@@ -631,6 +652,176 @@ function RequestsPanel({ requests, canEdit, reportSkip }) {
       ) : (
         <button type="button" onClick={() => setForm({ title: '', detail: '', priority: 'normal' })} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>+ New request</button>
       )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Rider request — how a church member (not a driver) asks for a ride. Shown to
+// anyone who isn't on the ministry roster. Files a structured request the
+// coordinator + drivers see; the rider tracks their own below.
+// -----------------------------------------------------------------------------
+function RiderRequestPanel({ myRequests, reportSkip }) {
+  const sundays = useMemo(() => upcomingSundays(todayIso(), 6), []);
+  const [form, setForm] = useState({
+    riderName: '', riderPhone: '', pickupArea: '', pickupAddress: '',
+    serviceDate: sundays[0] || '', passengers: 1, accessibleNeeded: false, notes: '',
+  });
+  const [errors, setErrors] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async () => {
+    const v = validateRideRequest(form);
+    setErrors(v.errors);
+    if (!v.ok) return;
+    setBusy(true);
+    const r = await submitRideRequest(form);
+    setBusy(false);
+    reportSkip(r);
+    if (r && r.saved) {
+      setSent(true);
+      setForm((f) => ({ ...f, pickupAddress: '', notes: '' }));
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className={CARD}>
+        <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: 'Fraunces, serif' }}>Need a ride to church?</h3>
+        <p className="text-xs text-[#5A5751] mt-1 mb-3">Send the bus/van ministry a ride request. Deacon Anderson and the drivers will see it and set your pickup.</p>
+        {sent && <p className="text-xs text-[#3F5226] mb-2" role="status">Your ride request was sent. You'll see its status below — a driver will confirm your pickup.</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label className={LABEL}>Your name</label>
+            <input className={FIELD} value={form.riderName} onChange={(e) => set('riderName', e.target.value)} placeholder="First and last" />
+            {errors.riderName && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.riderName}</p>}
+          </div>
+          <div>
+            <label className={LABEL}>Phone (so a driver can reach you)</label>
+            <input className={FIELD} value={form.riderPhone} onChange={(e) => set('riderPhone', e.target.value)} placeholder="(optional)" inputMode="tel" />
+          </div>
+          <div>
+            <label className={LABEL}>Pickup area</label>
+            <input className={FIELD} value={form.pickupArea} onChange={(e) => set('pickupArea', e.target.value)} placeholder="e.g. Urbana, Champaign south" />
+            {errors.pickupArea && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.pickupArea}</p>}
+          </div>
+          <div>
+            <label className={LABEL}>Pickup address</label>
+            <input className={FIELD} value={form.pickupAddress} onChange={(e) => set('pickupAddress', e.target.value)} placeholder="Street address (optional)" />
+          </div>
+          <div>
+            <label className={LABEL}>Which Sunday</label>
+            <select className={FIELD} value={form.serviceDate} onChange={(e) => set('serviceDate', e.target.value)}>
+              {sundays.map((d) => <option key={d} value={d}>{fmtDate(d)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={LABEL}>How many riders</label>
+            <input className={FIELD} type="number" min="1" value={form.passengers} onChange={(e) => set('passengers', e.target.value)} />
+            {errors.passengers && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.passengers}</p>}
+          </div>
+        </div>
+        <label className="flex items-center gap-2 mt-2 text-xs text-[#1A1815]">
+          <input type="checkbox" checked={form.accessibleNeeded} onChange={(e) => set('accessibleNeeded', e.target.checked)} />
+          I need the accessibility van (wheelchair / walker)
+        </label>
+        <div className="mt-2">
+          <label className={LABEL}>Anything else</label>
+          <textarea className={FIELD} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Number of steps, a helper coming, timing… (optional)" />
+        </div>
+        <button type="button" disabled={busy} onClick={submit} className={`${BTN} mt-3 bg-[#B85838] text-white hover:bg-[#1A1815] disabled:opacity-60`}>
+          {busy ? 'Sending…' : 'Send ride request'}
+        </button>
+      </div>
+
+      <div className={CARD}>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Your ride requests</div>
+        {(!myRequests || myRequests.length === 0)
+          ? <p className="text-sm text-[#5A5751]">No ride requests yet. Send one above and you'll track it here.</p>
+          : (
+            <ul className="space-y-2">
+              {myRequests.map((r) => (
+                <li key={r.id} className="border-l-2 border-[#E8E4DC] pl-3 py-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm text-[#1A1815]">{fmtDateShort(r.serviceDate)} · {r.pickupArea || r.pickupAddress || 'pickup'}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{rideRequestStatusLabel(r.status)}</span>
+                  </div>
+                  {r.assignedDriverName && <p className="text-[0.6875rem] text-[#3F5226]">Driver: {r.assignedDriverName}</p>}
+                  {r.coordinatorNote && <p className="text-[0.6875rem] text-[#5A5751]">Note: {r.coordinatorNote}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Ride requests inbox — what the coordinator + drivers see. Open ones first;
+// the coordinator moves each along (seen / ride set / completed / declined),
+// assigns a driver, and can leave a note the rider sees.
+// -----------------------------------------------------------------------------
+function RideRequestsPanel({ rideRequests, drivers, canEdit, reportSkip }) {
+  const open = useMemo(() => (rideRequests || []).filter((r) => rideRequestOpen(r.status)), [rideRequests]);
+  const closed = useMemo(() => (rideRequests || []).filter((r) => !rideRequestOpen(r.status)), [rideRequests]);
+
+  const act = async (id, patch) => { const r = await updateRideRequest(id, patch); reportSkip(r); };
+
+  const Card = ({ r }) => (
+    <li className={CARD}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-[#1A1815]">{r.riderName}{r.passengers > 1 ? ` +${r.passengers - 1}` : ''}</p>
+          <p className="text-[0.6875rem] text-[#5A5751]">
+            {fmtDate(r.serviceDate)} · {[r.pickupArea, r.pickupAddress].filter(Boolean).join(' · ') || 'pickup TBD'}
+            {r.accessibleNeeded ? ' · ♿ accessible van' : ''}
+          </p>
+          {r.riderPhone && <p className="text-[0.6875rem] text-[#5A5751]">☎ {r.riderPhone}</p>}
+          {r.notes && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">{r.notes}</p>}
+          {r.assignedDriverName && <p className="text-[0.6875rem] text-[#3F5226] mt-0.5">Driver: {r.assignedDriverName}</p>}
+        </div>
+        <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] whitespace-nowrap">{rideRequestStatusLabel(r.status)}</span>
+      </div>
+      {canEdit && (
+        <div className="mt-2 space-y-2 border-t border-[#F0EDE6] pt-2">
+          <div className="flex flex-wrap gap-1">
+            {RIDE_REQUEST_STATUS.filter(([k]) => k !== r.status).map(([k, label]) => (
+              <button key={k} type="button" onClick={() => act(r.id, { status: k })}
+                className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838]">
+                {label}
+              </button>
+            ))}
+          </div>
+          {drivers && drivers.length > 0 && (
+            <select className={FIELD} value="" onChange={(e) => {
+              const d = drivers.find((x) => x.id === e.target.value);
+              if (d) act(r.id, { assignedDriverId: d.id, assignedDriverName: d.displayName });
+            }}>
+              <option value="">Assign a driver…</option>
+              {drivers.map((d) => <option key={d.id} value={d.id}>{d.displayName}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+    </li>
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[#1A1815]">
+        {open.length === 0 ? 'No open ride requests right now.' : `${open.length} open ride request${open.length === 1 ? '' : 's'} — riders waiting on a pickup.`}
+      </p>
+      {open.length > 0 && <ul className="space-y-2">{open.map((r) => <Card key={r.id} r={r} />)}</ul>}
+      {closed.length > 0 && (
+        <details>
+          <summary className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold cursor-pointer">Closed ({closed.length})</summary>
+          <ul className="space-y-2 mt-2">{closed.map((r) => <Card key={r.id} r={r} />)}</ul>
+        </details>
+      )}
+      {!canEdit && open.length + closed.length > 0 && <p className="text-[0.6875rem] text-[#5A5751]">Only the coordinator changes a request's status or assigns a driver.</p>}
     </div>
   );
 }

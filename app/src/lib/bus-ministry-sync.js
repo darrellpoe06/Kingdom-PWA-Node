@@ -16,6 +16,7 @@ import { churchInstanceId } from './church-instance.js';
 import { inviteToChurch, isValidInviteEmail } from './choir-sync.js';
 import {
   toDriverShape, toRouteShape, toVanShape, toScheduleShape, toReminderShape, toBusMessageShape, toRequestShape,
+  toRideRequestShape,
   deriveAccess, buildReminderPlan,
   STARTER_ROUTES, STARTER_VANS, DEFAULT_ARRIVE, DEFAULT_END,
 } from './bus-ministry.js';
@@ -92,6 +93,7 @@ export const subscribeSchedule    = makeSubscriber('bus_schedule', toScheduleSha
 export const subscribeReminders   = makeSubscriber('bus_reminders', toReminderShape, { col: 'send_on', asc: true });
 export const subscribeBusMessages = makeSubscriber('bus_messages', toBusMessageShape, { col: 'created_at', asc: true });
 export const subscribeRequests    = makeSubscriber('bus_requests', toRequestShape, { col: 'created_at', asc: false });
+export const subscribeRideRequests = makeSubscriber('bus_ride_requests', toRideRequestShape, { col: 'created_at', asc: false });
 
 // --- Roster ------------------------------------------------------------------
 export async function saveDriver(driver, displayName) {
@@ -294,5 +296,47 @@ export async function updateRequest(id, patch, displayName) {
   if (patch.resolution != null) row.resolution = patch.resolution;
   row.updated_by = ctx.userId;
   const { error } = await supabase.from('bus_requests').update(row).eq('id', id);
+  return error ? { skipped: 'update-error', error } : { saved: true };
+}
+
+// --- Ride requests (a rider asks for a pickup; the coordinator acts) ----------
+// Any signed-in church member can file one (RLS: user_in_instance + own id).
+// Fails soft; the client shows the reason. `form` is the rider-facing shape.
+export async function submitRideRequest(form, displayName) {
+  const name = (form?.riderName || '').trim();
+  const area = (form?.pickupArea || '').trim();
+  const address = (form?.pickupAddress || '').trim();
+  if (!name || (!area && !address)) return { skipped: 'incomplete' };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const passengers = Number(form.passengers);
+  const { error } = await supabase.from('bus_ride_requests').insert({
+    instance_id: ctx.tenantId,
+    requested_by: ctx.userId,
+    rider_name: name,
+    rider_phone: (form.riderPhone || '').trim() || null,
+    pickup_area: area || null,
+    pickup_address: address || null,
+    service_date: form.serviceDate || null,
+    passengers: Number.isFinite(passengers) && passengers >= 1 ? Math.floor(passengers) : 1,
+    accessible_needed: !!form.accessibleNeeded,
+    notes: (form.notes || '').trim() || null,
+    status: 'new',
+    created_by: ctx.userId,
+  });
+  return error ? { skipped: 'insert-error', error } : { saved: true };
+}
+
+// The coordinator moves a request along (status / driver assignment / a note),
+// or the rider cancels their own. RLS decides who may actually write.
+export async function updateRideRequest(id, patch, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const row = { updated_by: ctx.userId };
+  if (patch.status != null) row.status = patch.status;
+  if (patch.assignedDriverId !== undefined) row.assigned_driver_id = patch.assignedDriverId;
+  if (patch.assignedDriverName !== undefined) row.assigned_driver_name = patch.assignedDriverName;
+  if (patch.coordinatorNote !== undefined) row.coordinator_note = patch.coordinatorNote;
+  const { error } = await supabase.from('bus_ride_requests').update(row).eq('id', id);
   return error ? { skipped: 'update-error', error } : { saved: true };
 }

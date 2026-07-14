@@ -59,6 +59,19 @@ export const REQUEST_STATUS = [
 ];
 export const requestStatusLabel = (s) => (REQUEST_STATUS.find(([k]) => k === s)?.[1]) || s;
 
+// Ride-request lifecycle (a rider asks; the coordinator moves it along).
+export const RIDE_REQUEST_STATUS = [
+  ['new', 'New'],
+  ['acknowledged', 'Seen'],
+  ['scheduled', 'Ride set'],
+  ['completed', 'Completed'],
+  ['cancelled', 'Cancelled'],
+  ['declined', 'Declined'],
+];
+export const rideRequestStatusLabel = (s) => (RIDE_REQUEST_STATUS.find(([k]) => k === s)?.[1]) || s;
+// Still-open (needs the coordinator's attention) vs. closed out.
+export const rideRequestOpen = (s) => s === 'new' || s === 'acknowledged' || s === 'scheduled';
+
 export const REMINDER_CHANNELS = [
   ['app', 'In-app'],
   ['text', 'Text'],
@@ -226,6 +239,43 @@ export function toRequestShape(row, myUserId) {
     createdAt: row.created_at ?? null,
     mine: !!myUserId && row.submitted_by === myUserId,
   };
+}
+
+// Ride request — a rider's pickup ask (any member files it; drivers see + act).
+export function toRideRequestShape(row, myUserId) {
+  return {
+    id: row.id,
+    riderName: row.rider_name ?? '',
+    riderPhone: row.rider_phone ?? null,
+    pickupArea: row.pickup_area ?? null,
+    pickupAddress: row.pickup_address ?? null,
+    serviceDate: row.service_date ?? null,
+    passengers: row.passengers ?? 1,
+    accessibleNeeded: !!row.accessible_needed,
+    notes: row.notes ?? null,
+    status: row.status ?? 'new',
+    assignedDriverName: row.assigned_driver_name ?? null,
+    coordinatorNote: row.coordinator_note ?? null,
+    createdAt: row.created_at ?? null,
+    mine: !!myUserId && row.requested_by === myUserId,
+  };
+}
+
+// Validate a rider's ride-request form. A name is required (so a driver knows who
+// they're picking up); a pickup area OR address is required (so they know where).
+// Returns { ok, errors:{field:msg} }. Phone/date/notes are optional but urged.
+export function validateRideRequest(form = {}) {
+  const errors = {};
+  const name = (form.riderName || '').trim();
+  const area = (form.pickupArea || '').trim();
+  const address = (form.pickupAddress || '').trim();
+  if (!name) errors.riderName = 'Please add your name so the driver knows who to pick up.';
+  if (!area && !address) errors.pickupArea = 'Add a pickup area or address so we know where to come.';
+  const p = Number(form.passengers);
+  if (form.passengers != null && form.passengers !== '' && (!Number.isFinite(p) || p < 1)) {
+    errors.passengers = 'How many riders? (at least 1).';
+  }
+  return { ok: Object.keys(errors).length === 0, errors };
 }
 
 // -----------------------------------------------------------------------------
