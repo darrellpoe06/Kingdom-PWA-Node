@@ -8,7 +8,7 @@
 // Proven-to-catch: the SAME metadata string renders in the SAME structural spot
 // whether the title is short or long.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -71,5 +71,41 @@ describe('MessageRow — one fixed data format per video', () => {
     expect(shortMetaParentTag).toBe(longMetaParentTag);
     expect(shortPrevIsTitleRow).toBe(true);
     expect(longPrevIsTitleRow).toBe(true);
+  });
+});
+
+// A video placeholder so the flow stays the same and lost videos are findable
+// (Darrell 2026-07-14). A message with no video (e.g. from BG's emailed outline)
+// keeps the same card shape — a same-size placeholder in the thumbnail slot,
+// labelled so the missing video is visible — instead of collapsing the layout.
+describe('MessageRow — video placeholder for messages with no video', () => {
+  const mountWith = (props) => act(() => root.render(createElement(MessageRow, props)));
+  const noVideo = { id: 'nv', serviceDate: '2026-03-08', serviceType: 'sunday', title: 'Only Move When He Moves', youtubeUrl: null, status: 'active' };
+
+  it('shows a "No video" placeholder (not a collapsed card) when there is no video', () => {
+    mountWith({ sermon: noVideo, canEdit: false });
+    expect(container.querySelector('img'), 'should have no real thumbnail image').toBeFalsy();
+    const ph = container.querySelector('[aria-label="No video attached yet"]');
+    expect(ph, 'no video placeholder rendered').toBeTruthy();
+    expect(ph.textContent).toMatch(/no video/i);
+    // Same slot shape as a real thumbnail (aspect-video, fixed width).
+    expect(ph.className).toMatch(/aspect-video/);
+    expect(ph.className).toMatch(/w-28/);
+  });
+
+  it('leadership placeholder is a one-tap way into Edit to attach the found video', () => {
+    const onEdit = vi.fn();
+    mountWith({ sermon: noVideo, canEdit: true, onEdit });
+    const ph = [...container.querySelectorAll('button')].find((b) => /no video/i.test(b.textContent || ''));
+    expect(ph).toBeTruthy();
+    act(() => ph.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the REAL thumbnail (no placeholder) when a video exists', () => {
+    mountWith({ sermon: { ...noVideo, youtubeUrl: 'https://youtu.be/abc12345678' }, canEdit: false });
+    expect(container.querySelector('img')).toBeTruthy();
+    const ph = [...container.querySelectorAll('div,button')].find((el) => /no video/i.test(el.textContent || ''));
+    expect(ph).toBeFalsy();
   });
 });

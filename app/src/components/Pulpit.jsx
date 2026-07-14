@@ -237,14 +237,31 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
   return (
     <div className="p-3 border-b border-[#E8E4DC]">
       <div className="flex gap-3">
-        {/* Thumbnail — the consumer-video-library affordance; click to play inline. */}
-        {thumb && (
+        {/* Thumbnail — the consumer-video-library affordance; click to play inline.
+            When a message has NO video (e.g. it came from BG's emailed outline, not
+            a stream), render a PLACEHOLDER in the same slot instead of collapsing
+            the layout (Darrell 2026-07-14: "a video placeholder so the flow stays
+            the same and we can find potential lost videos"). Same shape on every
+            card; a message missing its video is now visible — and for leadership,
+            the placeholder is a one-tap way into Edit to attach the found video. */}
+        {thumb ? (
           <button type="button" onClick={play} aria-label={playing ? 'Hide video' : `Play ${sermon.title}`}
             className="relative shrink-0 w-28 sm:w-36 focus:outline focus:outline-2 focus:outline-[#B85838]">
             <img src={thumb} alt="" loading="lazy" className="w-full aspect-video object-cover border border-[#1A1815]" />
             <span aria-hidden className="absolute inset-0 flex items-center justify-center text-white text-lg" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{playing ? '▾' : '▶'}</span>
             {typeof rank === 'number' && <span className="absolute top-0 left-0 bg-[#1A1815] text-white text-[0.625rem] px-1.5 py-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{rank}</span>}
           </button>
+        ) : canEdit && onEdit ? (
+          <button type="button" onClick={() => onEdit(sermon)} aria-label={`No video attached — add one for ${sermon.title}`}
+            className="shrink-0 w-28 sm:w-36 aspect-video border border-dashed border-[#5A5751] bg-[#FAF8F4] flex flex-col items-center justify-center gap-0.5 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <span aria-hidden className="text-[#5A5751] text-lg leading-none">▶</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">No video · add</span>
+          </button>
+        ) : (
+          <div aria-label="No video attached yet" className="shrink-0 w-28 sm:w-36 aspect-video border border-dashed border-[#5A5751] bg-[#FAF8F4] flex flex-col items-center justify-center gap-0.5">
+            <span aria-hidden className="text-[#5A5751] text-lg leading-none">▶</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">No video yet</span>
+          </div>
         )}
         <div className="min-w-0 flex-1">
           {/* Title — always line 1. */}
