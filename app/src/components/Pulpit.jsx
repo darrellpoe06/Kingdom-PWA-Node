@@ -247,15 +247,21 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
-              {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
-              {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
-            </div>
-            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {serviceKindLabel(sermon.serviceType)}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
+          {/* Title — always line 1. */}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
+            {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
           </div>
-          {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+          {/* The FIXED "when · what · who" metadata line — SAME place on EVERY card so
+              the eye trains to one spot (Darrell 2026-07-14: "keep the same data format
+              for each video"). Never right-floated: justify-between moved the date to a
+              different line depending on title length. Always directly under the title,
+              in a fixed order — date · kind · slot · speaker · scripture. */}
+          <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {fmtDate(sermon.serviceDate)} · {serviceKindLabel(sermon.serviceType)}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}
+            {sermon.speaker ? ` · ${sermon.speaker}` : ''}
+            {sermon.scriptureRef ? ` · ${sermon.scriptureRef}` : ''}
+          </p>
           {sermon.repreachSourceName && (
             <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
               ↻ Re-preached — original by {sermon.repreachSourceName}{sermon.repreachSourceTitle ? `: “${sermon.repreachSourceTitle}”` : ''}
@@ -787,4 +793,4 @@ export default function Pulpit() {
   );
 }
 
-export { Pulpit };
+export { Pulpit, MessageRow };
