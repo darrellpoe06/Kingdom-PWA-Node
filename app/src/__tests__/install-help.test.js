@@ -30,11 +30,14 @@ describe('install-help', () => {
     }
   });
 
-  it('Android steps name the scrollable menu path and the already-installed tell', () => {
+  it('Android steps name the menu path AND the stale "already installed" recovery', () => {
     const joined = installSteps('android').steps.join(' ');
     expect(joined).toContain('Add to Home screen');
     expect(joined).toContain('app drawer');
-    expect(joined).toContain('Open PoeTech');
+    // The ghost case (2026-07-14): Chrome falsely reports "already installed"
+    // while the icon is absent from the drawer — the steps must name the fix.
+    expect(joined).toContain('already installed');
+    expect(joined).toContain('Site settings');
   });
 
   it('installSteps always returns non-empty steps for every platform', () => {
