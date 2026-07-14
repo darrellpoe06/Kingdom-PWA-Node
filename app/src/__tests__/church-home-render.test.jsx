@@ -190,22 +190,29 @@ describe('ChurchHome — every inline section survived the extraction', () => {
   });
 });
 
-// Follow along in the Word (Darrell 2026-07-13): wherever a message is preached
-// on the Church home, a control opens the INTERNAL KJV Scripture reader
-// (churchView 'scripture') to follow along — no link-out. Proven-to-catch: the
-// control calls setChurchView('scripture'), and is absent when nav is unavailable.
+// Follow along in the Word (Darrell 2026-07-14): the control opens the Scripture
+// reader INLINE, on the SAME page as the live player, so you watch + read the Word
+// together — it must NOT navigate away (the old bug: it called setChurchView
+// ('scripture'), moving you off the live video). Proven-to-catch: clicking reveals
+// the inline reader on this page and never leaves it.
 describe('Follow along in the Word', () => {
-  it('opens the internal Scripture reader from the Worship home', () => {
+  it('opens the Scripture reader INLINE on the same page (does not navigate away)', () => {
     const setChurchView = vi.fn();
     mount({ setChurchView });
     const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
     expect(btn).toBeTruthy();
+    // Reader is not present until asked for.
+    expect(container.textContent).not.toMatch(/Follow Along · The Word/);
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(setChurchView).toHaveBeenCalledWith('scripture');
+    // The inline reader appears on THIS page...
+    expect(container.textContent).toMatch(/Follow Along · The Word/);
+    // ...and we never navigated to the Scripture tab (the whole point).
+    expect(setChurchView).not.toHaveBeenCalledWith('scripture');
   });
-  it('renders no follow-along control when navigation is unavailable', () => {
+  it('offers follow-along even without navigation (it is inline, not a tab jump)', () => {
     mount({});
     const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
-    expect(btn).toBeFalsy();
+    // Inline follow-along no longer depends on setChurchView being available.
+    expect(btn).toBeTruthy();
   });
 });
