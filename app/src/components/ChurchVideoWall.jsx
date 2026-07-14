@@ -53,6 +53,9 @@ import {
 import {
   LIVE_SERVICE, BOOTH_AS_BUILT, SWITCHER_SOFTWARE, LOWER_THIRDS, BOOTH_RESIDENT,
 } from '../lib/led-wall-golive.js';
+import {
+  BROADCAST_REVIEW, AUDIO_ADJUSTMENTS, CHOIR_WALKIN_CUE,
+} from '../lib/broadcast-adjustments.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -389,6 +392,54 @@ export default function ChurchVideoWall() {
           ))}
         </ul>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">Progress saved on this device. Full runbook: docs/99-session-notes/2026-07-01-colg-onsite-session-turnkey-runbook.md</p>
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'broadcast',
+      label: 'Broadcast review',
+      icon: 'monitor',
+      render: () => (
+        <div className="space-y-4">
+      {/* ===== CHRISTINA'S BROADCAST REVIEW — mix + choir walk-in cue ===== */}
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>Broadcast review &middot; {BROADCAST_REVIEW.reviewer} &middot; {BROADCAST_REVIEW.capturedOn}</div>
+          <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status="attention" /> Requested</span>
+        </div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{BROADCAST_REVIEW.posture}</p>
+        <div className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{BROADCAST_REVIEW.service}</div>
+
+        {/* AUDIO MIX — Yamaha TF5, relative targets */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Audio mix &middot; Yamaha TF5 (front-of-house)</div>
+        <div className="mt-2 space-y-2">
+          {AUDIO_ADJUSTMENTS.map((a) => (
+            <div key={a.id} className="border border-[#E8E4DC] p-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{a.change}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">{a.status}</span>
+              </div>
+              <div className="mt-0.5 text-[0.75rem] text-[#1A1815]"><b>Target:</b> {a.target}</div>
+              <div className="text-[0.75rem] text-[#5A5751]"><b>Why:</b> {a.why}</div>
+              <div className="text-[0.75rem] text-[#5A5751]"><b>How:</b> {a.how}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* VIDEO CUE — the choir walk-in reveal */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Choir walk-in &middot; hold, then reveal</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{CHOIR_WALKIN_CUE.station}</p>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">{CHOIR_WALKIN_CUE.principle}</p>
+        <ol className="mt-2 space-y-1.5">
+          {CHOIR_WALKIN_CUE.steps.map((s, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{s}</span></li>
+          ))}
+        </ol>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>&#9888; Guard:</b> {CHOIR_WALKIN_CUE.guard}</p>
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751]"><b>Why:</b> {CHOIR_WALKIN_CUE.why}</p>
+
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {BROADCAST_REVIEW.source} These are requested changes for the team, not a claim the mix has been reset (DR-0076). Full note: docs/99-session-notes/2026-07-14-colg-broadcast-review-christina.md</p>
       </div>
         </div>
       ),
