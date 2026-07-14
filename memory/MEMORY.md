@@ -21,6 +21,23 @@ relying on it; memories reflect what was true when written.
 - **feedback_surface_premise_conflicts** — when a step-by-step plan rests on
   a verifiably-wrong premise, stop before irreversible steps and offer
   options instead of executing as written.
+- **feedback_reset_branch_from_main_per_change** — the recurring "conflicting
+  merges" (a PR going `mergeable_state: dirty` and blocking auto-merge) come
+  from REUSING one working branch across squash-merges without resetting it.
+  The lane squash-merges (main gets ONE commit; the branch keeps its pre-squash
+  originals), so a reused branch DIVERGES from main and conflicts. Hit on #837
+  (2026-07-14) after #835 + #836 squashed off the same branch. FIX, every time,
+  BEFORE starting a new change: reset the working branch from the latest default
+  branch — `git fetch origin main && git checkout -B <branch> origin/main` —
+  then build on that; never stack new work on already-squash-merged history. If
+  the branch already carries genuinely-unmerged commits, rebase them onto
+  origin/main instead of discarding. Pairs with the git-guidance merged-PR rule
+  and DR-0103. If it still recurs, the structural options are auto-reset/delete
+  merged branches (extend `pr-janitor`, which today KEEPS branches) or turn on
+  the merge queue (`ci.yml` already has the `merge_group` trigger). Do NOT build
+  an autonomous force-push rebase bot without the three brakes (a lock) — it
+  force-pushes a branch out from under an active session and creates NEW
+  conflicts.
 - **feedback_undermining_caught_by_stop_hook** — the undermining pattern
   DR-0111 forbids (re-asking directed/settled work, either/or menus on
   authorized work, un-evidenced "done") is now caught by a DETERMINISTIC Claude
