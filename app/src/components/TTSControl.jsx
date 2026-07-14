@@ -21,6 +21,7 @@ import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
+import { useIdleReveal } from '../lib/use-idle-reveal.js';
 
 // Pull the visible page text: clone <main>, strip floating/hidden chrome.
 function readablePageText() {
@@ -49,6 +50,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // start — mapped to the exact word via lib/read-from-here, falling back to the
   // top of the page (never silence) when the device can't resolve the tap.
   const [armed, setArmed] = useState(false);
+  // The collapsed read-aloud button is a gentle reminder: it dims + settles when
+  // idle and re-reveals on scroll/touch. Declared before the early return below
+  // so the hook order is stable (rules-of-hooks). Applies to the collapsed button
+  // only — an OPEN panel is in active use and must never fade.
+  const revealFab = useIdleReveal();
   useEffect(() => {
     if (!armed || typeof document === 'undefined') return undefined;
     const main = document.querySelector('main') || document.body;
@@ -182,7 +188,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           </p>
         </div>
       ) : (
-        <button type="button" onClick={() => setIsOpen(true)} aria-label="Open read-aloud controls" title="Read aloud" className="bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+        // .ts-chrome-region caps it so it does NOT grow with the text-size
+        // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
+        // settles it when idle, springs it back on scroll/touch.
+        <button type="button" onClick={() => setIsOpen(true)} aria-label="Open read-aloud controls" title="Read aloud" className={`ts-chrome-region bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${revealFab ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}>
           🔊
         </button>
       )}

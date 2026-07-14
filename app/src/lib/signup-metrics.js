@@ -17,8 +17,9 @@
 // status the UI renders as-is. Pure helpers are isolated + unit-tested so the
 // shaping logic is verified independent of the network.
 // =============================================================================
-import supabase from './supabase.js';
+import supabase, { readPersistedSession } from './supabase.js';
 import { relativeTime } from './access-metrics.js';
+import { withTimeout, SNAPSHOT_TIMEOUT_MS } from './access-metrics-sync.js';
 
 // ── fetch ────────────────────────────────────────────────────────────────────
 // Returns a discriminated status object — never throws, never paints:
@@ -27,17 +28,19 @@ import { relativeTime } from './access-metrics.js';
 //   { status: 'unavailable', error }               — RPC missing / transient
 //   { status: 'ready', data }                      — real metrics payload
 export async function fetchSignupMetrics() {
-  let session = null;
-  try {
-    const { data } = await supabase.auth.getSession();
-    session = (data && data.session) || null;
-  } catch (_) {
-    // leave session null — treated as signed-out below
-  }
+  // getSession() can hang on a resumed tab; time-box it and fall back to the
+  // synchronous persisted read so this never strands the SIGNUPS tab on
+  // "Loading…" (same guard as fetchAccessSnapshot — DR-0076).
+  const sessionRes = await withTimeout(supabase.auth.getSession(), SNAPSHOT_TIMEOUT_MS, null);
+  const session = sessionRes && sessionRes.data ? (sessionRes.data.session || null) : readPersistedSession();
   if (!session) return { status: 'signed-out' };
 
   try {
-    const { data, error } = await supabase.rpc('admin_signup_metrics');
+    const { data, error } = await withTimeout(
+      supabase.rpc('admin_signup_metrics'),
+      SNAPSHOT_TIMEOUT_MS,
+      { data: null, error: { message: 'admin_signup_metrics-timeout', timedOut: true } },
+    );
     if (error) {
       // 42501 = our in-function "not authorized" raise (insufficient_privilege).
       // PostgREST may also surface it as code 'P0001' (raise) — match on text too.

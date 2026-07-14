@@ -300,6 +300,9 @@ export default function AccessUsageMetrics() {
   const v = view || {};
   const presenceUnavailable = !!(snap && snap.errors && snap.errors.member_presence);
   const invitesUnavailable = !!(snap && snap.errors && snap.errors.external_users);
+  // The roster read itself failed/timed out — showing "0 people with access" then
+  // would be a LIE (nobody has access), when really we couldn't read it. Say so.
+  const rosterUnavailable = !!(snap && snap.errors && snap.errors.instance_members);
   const hasPresence = v.fresh && v.fresh.reporting > 0;
 
   return (
@@ -311,8 +314,10 @@ export default function AccessUsageMetrics() {
         </h2>
         <div className="flex items-center gap-3">
           <KpiDot
-            status={v.totals && v.totals.totalPeople ? 'good' : 'idle'}
-            label={`${(v.totals && v.totals.totalPeople) || 0} ${(v.totals && v.totals.totalPeople) === 1 ? 'person' : 'people'} with access`}
+            status={rosterUnavailable ? 'idle' : (v.totals && v.totals.totalPeople ? 'good' : 'idle')}
+            label={rosterUnavailable
+              ? 'Access couldn’t load — tap Refresh'
+              : `${(v.totals && v.totals.totalPeople) || 0} ${(v.totals && v.totals.totalPeople) === 1 ? 'person' : 'people'} with access`}
           />
           <button
             type="button"

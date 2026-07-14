@@ -12,6 +12,7 @@
 // topViews    — PURE shape of the most-used list for the surface (node-testable).
 // =============================================================================
 import { supabase } from './supabase.js';
+import { withTimeout, SNAPSHOT_TIMEOUT_MS } from './access-metrics-sync.js';
 
 export async function recordView(name) {
   const v = String(name || '').trim();
@@ -26,9 +27,15 @@ export async function recordView(name) {
 
 export async function fetchUsageFlow(days = 30) {
   try {
-    const { data } = await supabase.auth.getSession();
-    if (!data || !data.session) return null;
-    const { data: flow, error } = await supabase.rpc('usage_flow_metrics', { days_in: days });
+    // Time-box getSession + the RPC so a resumed-tab stall can't hang the
+    // WHAT'S-USED tab on "Loading…" forever (DR-0076, same guard as the snapshot).
+    const sessionRes = await withTimeout(supabase.auth.getSession(), SNAPSHOT_TIMEOUT_MS, null);
+    if (!sessionRes || !sessionRes.data || !sessionRes.data.session) return null;
+    const { data: flow, error } = await withTimeout(
+      supabase.rpc('usage_flow_metrics', { days_in: days }),
+      SNAPSHOT_TIMEOUT_MS,
+      { data: null, error: { message: 'usage_flow_metrics-timeout', timedOut: true } },
+    );
     if (error) { console.warn('[usage-events] flow fetch failed:', error); return null; }
     return flow || null;
   } catch (err) { console.warn('[usage-events] flow fetch failed:', err); return null; }

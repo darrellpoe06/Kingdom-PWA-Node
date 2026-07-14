@@ -16,7 +16,7 @@
 // ChurchOneVoice) came along untouched; COLG_DEFAULT_CHURCH moved to
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
@@ -25,11 +25,22 @@ import { SHARE_DOOR_URL } from '../lib/church-own-door.js';
 import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import ScriptureLibrary from './ScriptureLibrary.jsx';
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false }) {
+  // Follow along in the Word — open the Scripture reader INLINE on THIS page so
+  // you can watch the service AND read the Word together (Darrell 2026-07-14:
+  // navigating to the Scripture tab moved you off the live player). The ref lets
+  // us scroll the reader into view when it opens, without leaving the video.
+  const [followAlong, setFollowAlong] = useState(false);
+  const followRef = useRef(null);
+  const openFollowAlong = useCallback(() => {
+    setFollowAlong(true);
+    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
+  }, []);
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -240,19 +251,18 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
             </div>
           )}
 
-          {/* Follow along in the Word (Darrell 2026-07-13): whenever a message is
-              being preached here, open the INTERNAL KJV Scripture reader to read
-              the passage in-app and follow along — no link-out. Reuses the Church
-              Scripture surface (churchView 'scripture'). */}
-          {typeof setChurchView === 'function' && (
-            <button
-              type="button"
-              onClick={() => setChurchView('scripture')}
-              className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              <UiIcon name="book" /> Follow along in the Word
-            </button>
-          )}
+          {/* Follow along in the Word (Darrell 2026-07-14): open the Scripture
+              reader INLINE — below the player, on THIS page — so you watch the
+              service AND read the Word together. It used to navigate to the
+              Scripture tab, which moved you off the live video. */}
+          <button
+            type="button"
+            onClick={() => (followAlong ? setFollowAlong(false) : openFollowAlong())}
+            aria-expanded={followAlong}
+            className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
+          </button>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             {onlineServices.length > 0 && (
@@ -287,6 +297,25 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </section>
       )}
 
+      {/* The Word, INLINE — the Scripture reader opens right here on the same page
+          as the live player above, so watching + following along happen together
+          (never a navigate-away). Public: works signed in or not. */}
+      {followAlong && (
+        <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#B85838] p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
+            <button
+              type="button"
+              onClick={() => setFollowAlong(false)}
+              className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              × Close
+            </button>
+          </div>
+          <ScriptureLibrary email={email} canStudy={canStudy} setChurchView={setChurchView} />
+        </section>
+      )}
+
       {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
           LIVE (choir_sermons + video_transcripts + the Harvest Ledger); this
           entry point names the real progress and the real next action, never a
@@ -296,15 +325,13 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
         </p>
-        {typeof setChurchView === 'function' && (
-          <button
-            type="button"
-            onClick={() => setChurchView('scripture')}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
-          >
-            <UiIcon name="book" /> Follow along in the Word
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={openFollowAlong}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        >
+          <UiIcon name="book" /> Follow along in the Word
+        </button>
       </section>
 
       {/* MEDIA / BROADCAST */}

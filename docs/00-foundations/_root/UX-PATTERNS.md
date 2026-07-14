@@ -159,6 +159,17 @@ Two chrome primitives ship as **standards on every PoeTech build**, so the frame
 
 **The rule:** a standard PoeTech build never pins a tall, immovable banner over the content, and any multi-view app gives the user real back/forward. Reuse the primitives above — do not reinvent per app. (Ties to Pattern 2b: the collapsed/again-shown chrome is capped, never ballooned, under large text.)
 
+## Pattern 2d: Floating controls — rest, get out of the way, then remind (PoeTech Standard)
+
+**Declared by Darrell 2026-07-14:** *"those buttons shouldn't get bigger with text changes and they should move out the way after a certain amount of time and come up when the users move the screen as gentle reminders that those options exist for them — best practice."*
+
+Floating action buttons (the **Feedback** launcher, the **read-aloud** button, and any future floater) follow two rules on every build:
+
+1. **They do NOT scale with the text-size control.** They are chrome, not reading text — cap them with the shared **`.ts-chrome-region`** class (the same zoom-cap the page title + nav use, Pattern 2b), so raising text size grows the readable content and leaves the floaters put. A giant Feedback pill at A44 is the bug this prevents. (Use the region cap, NOT hardcoded `text-[12px]` — the consistency-guard requires fonts stay rem so the control *can* scale them; the cap bounds the region without breaking that invariant.)
+2. **They rest, settle out of the way when idle, and re-reveal on movement.** Visible at rest; after a few idle seconds they **dim + settle** (opacity down, a small translate — still tappable, never gone); the instant the user **scrolls or touches**, they **spring back to full** — the reappearance is the *gentle reminder* the option exists. `lib/use-idle-reveal.js` is the shared primitive (returns `visible`; the caller maps it to opacity/translate). An **open** control panel is in active use and must never fade — idle-reveal applies to the collapsed/at-rest button only.
+
+Regression-guarded in `__tests__/use-idle-reveal.test.jsx` (visible → hides after the idle window → re-reveals on scroll).
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
