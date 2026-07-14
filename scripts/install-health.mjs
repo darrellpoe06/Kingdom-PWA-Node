@@ -19,6 +19,9 @@ import { chromium } from 'playwright-core';
 
 const url = process.argv[2] || 'https://poetech.us/poetech-app/';
 const origin = new URL(url).origin;
+// Name the target up front so a multi-door run (each brand door is its own
+// installable app — DR-0125) reads clearly in the step summary.
+console.log(`INSTALL-HEALTH target: ${url}`);
 
 const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
   ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH, headless: true }
