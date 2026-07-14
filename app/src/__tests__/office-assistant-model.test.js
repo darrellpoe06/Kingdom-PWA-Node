@@ -63,3 +63,27 @@ describe('office-assistant — the reusable engine is config-driven', () => {
     expect(min.networkGoal.low).toBe(2500);
   });
 });
+
+describe('the editable daily schedule (makeBlock + seedSchedule)', () => {
+  const tlc = createOfficeModel(TLC_CONFIG);
+
+  it('seeds the schedule from config.dayBlocks with stable seed ids', () => {
+    expect(tlc.seedSchedule.length).toBe(TLC_CONFIG.dayBlocks.length);
+    expect(tlc.seedSchedule[0]).toMatchObject({ id: 'seed-block-1', time: '12:00–12:20', name: 'Daily CEO meeting' });
+    // every seeded block carries the CEO-meeting time source (block[0]).
+    expect(tlc.seedSchedule[0].time).toBe(TLC_CONFIG.dayBlocks[0].time);
+  });
+
+  it('makeBlock normalizes an edited block and keeps its id in place', () => {
+    const edited = tlc.makeBlock({ id: 'seed-block-1', time: '9:00–9:30', name: 'Standup', detail: 'Kick off the day' });
+    expect(edited).toEqual({ id: 'seed-block-1', time: '9:00–9:30', name: 'Standup', detail: 'Kick off the day' });
+  });
+
+  it('makeBlock mints a fresh id for a brand-new block and coerces junk to strings', () => {
+    const fresh = tlc.makeBlock({ name: 42, detail: null });
+    expect(fresh.id).toMatch(/^block-/);
+    expect(fresh.name).toBe('');       // non-string coerced, not crashed
+    expect(fresh.detail).toBe('');
+    expect(fresh.time).toBe('');
+  });
+});

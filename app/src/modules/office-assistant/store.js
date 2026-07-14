@@ -22,9 +22,12 @@ export function createOfficeStore(config, model) {
         orgs: Array.isArray(obj.orgs) ? obj.orgs : [],
         posts: Array.isArray(obj.posts) ? obj.posts : [],
         ideas: Array.isArray(obj.ideas) ? obj.ideas : [],
+        // null (never touched) => fall back to the config's default schedule;
+        // an array => staff have adjusted it and their list is authoritative.
+        schedule: Array.isArray(obj.schedule) ? obj.schedule : null,
       };
     } catch {
-      return { orgs: [], posts: [], ideas: [] };
+      return { orgs: [], posts: [], ideas: [], schedule: null };
     }
   }
   function hydrate() {
@@ -33,6 +36,8 @@ export function createOfficeStore(config, model) {
       orgs: model.mergeSeed(local.orgs, model.seedOrgs),
       posts: model.mergeSeed(local.posts, model.seedPosts),
       ideas: local.ideas, // real captures only — no seed
+      // Default to the config schedule until staff edit it; then persist theirs.
+      schedule: (local.schedule || model.seedSchedule).map((b) => model.makeBlock(b)),
     };
   }
 
@@ -77,6 +82,25 @@ export function createOfficeStore(config, model) {
     return idea;
   }
 
+  // Schedule (editable work-time blocks). Every write persists the WHOLE list, so
+  // staff edits are authoritative and dependent surfaces (the CEO-meeting time,
+  // read from schedule[0]) update from this one source — "update the spaces that
+  // need that" (Darrell, 2026-07-14).
+  function updateBlock(id, patch) {
+    setState((cur) => ({ ...cur, schedule: cur.schedule.map((b) => (b.id === id ? model.makeBlock({ ...b, ...patch, id }) : b)) }));
+  }
+  function addBlock(partial = {}) {
+    const block = model.makeBlock(partial);
+    setState((cur) => ({ ...cur, schedule: [...cur.schedule, block] }));
+    return block;
+  }
+  function removeBlock(id) {
+    setState((cur) => ({ ...cur, schedule: cur.schedule.filter((b) => b.id !== id) }));
+  }
+  function resetSchedule() {
+    setState((cur) => ({ ...cur, schedule: model.seedSchedule.map((b) => model.makeBlock(b)) }));
+  }
+
   function useStore() {
     return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   }
@@ -85,5 +109,6 @@ export function createOfficeStore(config, model) {
     useStore,
     addOrg, updateOrg, setOrgOutcome, markFlyerSent, recordEmail, recordCall, setFollowUp,
     addPost, updatePost, addIdea,
+    updateBlock, addBlock, removeBlock, resetSchedule,
   };
 }

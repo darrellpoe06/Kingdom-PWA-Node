@@ -45,6 +45,7 @@ export default function OfficeAssistant({ config, store, model: modelProp = null
   const state = store.useStore();
   const orgs = useMemo(() => state.orgs || [], [state.orgs]);
   const posts = useMemo(() => state.posts || [], [state.posts]);
+  const schedule = useMemo(() => state.schedule || [], [state.schedule]);
   const now = new Date().toISOString();
 
   const stats = useMemo(() => model.orgStats(orgs), [model, orgs]);
@@ -58,7 +59,7 @@ export default function OfficeAssistant({ config, store, model: modelProp = null
   const ctx = { config, model, store, isGovernor };
 
   const sections = [
-    { id: 'today', label: 'Today', icon: 'home', render: () => <TodaySection {...ctx} report={report} todayCat={todayCat} dueList={dueList} goal={goal} /> },
+    { id: 'today', label: 'Today', icon: 'home', render: () => <TodaySection {...ctx} report={report} todayCat={todayCat} dueList={dueList} goal={goal} schedule={schedule} /> },
     { id: 'referrals', label: `Referral DB (${stats.total})`, icon: 'users', render: () => <ReferralSection {...ctx} orgs={orgs} stats={stats} goal={goal} converting={converting} /> },
     { id: 'outreach', label: 'Outreach', icon: 'mail', render: () => <OutreachSection {...ctx} dueList={dueList} /> },
     { id: 'content', label: 'Content', icon: 'palette', render: () => <ContentSection {...ctx} posts={posts} ideas={state.ideas || []} /> },
@@ -77,7 +78,11 @@ export default function OfficeAssistant({ config, store, model: modelProp = null
 }
 
 // ---------------------------------------------------------------------------
-function TodaySection({ config, report, todayCat, dueList, goal }) {
+function TodaySection({ config, store, report, todayCat, dueList, goal, schedule }) {
+  // The CEO-meeting time reads from the SAME editable schedule (first block), so
+  // adjusting the schedule updates this header too — "update the spaces that need
+  // that" (Darrell). Falls back to config only if the schedule is empty.
+  const firstBlock = (schedule && schedule[0]) || config.dayBlocks[0];
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-3">
@@ -96,26 +101,14 @@ function TodaySection({ config, report, todayCat, dueList, goal }) {
 
       {(config.ceoMeetingQuestions || []).length > 0 && (
         <div className="border border-[#E8E4DC] bg-white p-3 mb-3">
-          <div className="text-sm font-semibold text-[#1A1815] mb-1.5">The daily CEO meeting{config.dayBlocks[0] ? ` (${config.dayBlocks[0].time})` : ''}</div>
+          <div className="text-sm font-semibold text-[#1A1815] mb-1.5">The daily CEO meeting{firstBlock ? ` (${firstBlock.time})` : ''}</div>
           <ul className="text-xs text-[#5A5751] leading-relaxed list-disc pl-4 space-y-0.5">
             {config.ceoMeetingQuestions.map((q) => <li key={q}>{q}</li>)}
           </ul>
         </div>
       )}
 
-      {(config.dayBlocks || []).length > 0 && (
-        <div className="border border-[#E8E4DC] bg-white p-3 mb-3">
-          <div className="text-sm font-semibold text-[#1A1815] mb-1.5">The afternoon</div>
-          <div className="grid grid-cols-1 gap-1">
-            {config.dayBlocks.map((b) => (
-              <div key={b.time} className="flex gap-2 text-xs">
-                <span className="text-[#8A857C] font-mono shrink-0 w-24">{b.time}</span>
-                <span><span className="font-semibold text-[#1A1815]">{b.name}.</span> <span className="text-[#5A5751]">{b.detail}</span></span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ScheduleCard store={store} schedule={schedule} />
 
       <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
         <div className="text-sm font-semibold text-[#1A1815] mb-1">Daily report</div>
@@ -123,6 +116,101 @@ function TodaySection({ config, report, todayCat, dueList, goal }) {
           Contacts added <b>{num(report.contactsAdded)}</b> · Emails <b>{num(report.emailsSent)}</b> · Calls <b>{num(report.callsMade)}</b> · Follow-ups needed <b>{num(report.followUpsNeeded)}</b> · Social posts <b>{num(report.postsCreated)}</b>. Network so far: <b>{num(goal.total)}</b> of {num(goal.low)}–{num(config.networkGoal.high)} ({pct(goal.pct)}). {dueList.length > 0 ? `${dueList.length} follow-up(s) waiting.` : 'No follow-ups overdue.'}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The editable daily schedule ("the afternoon"). View mode reads the real,
+// persisted blocks; Edit mode lets staff adjust the time + task + detail, add or
+// remove blocks, or reset to the office default. Every change persists to the
+// store and the CEO-meeting header above re-reads block[0] automatically.
+function ScheduleCard({ store, schedule }) {
+  const [editing, setEditing] = useState(false);
+  const blocks = schedule || [];
+  return (
+    <div className="border border-[#E8E4DC] bg-white p-3 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="text-sm font-semibold text-[#1A1815]">The afternoon</div>
+        <button
+          type="button"
+          onClick={() => setEditing((v) => !v)}
+          className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9C2B4] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        >
+          {editing ? 'Done' : 'Edit schedule'}
+        </button>
+      </div>
+
+      {!editing ? (
+        blocks.length > 0 ? (
+          <div className="grid grid-cols-1 gap-1">
+            {blocks.map((b) => (
+              <div key={b.id} className="flex gap-2 text-xs">
+                <span className="text-[#8A857C] font-mono shrink-0 w-24">{b.time}</span>
+                <span><span className="font-semibold text-[#1A1815]">{b.name}.</span> <span className="text-[#5A5751]">{b.detail}</span></span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-[#8A857C]">No blocks yet. Tap <b>Edit schedule</b> to add work times.</div>
+        )
+      ) : (
+        <div className="space-y-2">
+          {blocks.map((b) => (
+            <div key={b.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 space-y-1.5">
+              <div className="flex gap-1.5 items-center">
+                <input
+                  aria-label="Time"
+                  value={b.time}
+                  onChange={(e) => store.updateBlock(b.id, { time: e.target.value })}
+                  placeholder="12:00–12:20"
+                  className="w-28 shrink-0 border border-[#C9C2B4] bg-white px-1.5 py-1 text-xs font-mono focus:outline focus:outline-2 focus:outline-[#B85838]"
+                />
+                <input
+                  aria-label="Task"
+                  value={b.name}
+                  onChange={(e) => store.updateBlock(b.id, { name: e.target.value })}
+                  placeholder="Task"
+                  className="flex-1 border border-[#C9C2B4] bg-white px-1.5 py-1 text-xs font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+                />
+                <button
+                  type="button"
+                  aria-label={`Remove ${b.name || 'block'}`}
+                  onClick={() => store.removeBlock(b.id)}
+                  className="shrink-0 px-2 py-1 border border-[#C9C2B4] text-[#B85838] hover:bg-[#B85838] hover:text-white text-xs focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  Remove
+                </button>
+              </div>
+              <textarea
+                aria-label="Detail"
+                value={b.detail}
+                onChange={(e) => store.updateBlock(b.id, { detail: e.target.value })}
+                placeholder="What happens in this block"
+                rows={2}
+                className="w-full border border-[#C9C2B4] bg-white px-1.5 py-1 text-xs text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              />
+            </div>
+          ))}
+          <div className="flex flex-wrap gap-2 pt-0.5">
+            <button
+              type="button"
+              onClick={() => store.addBlock({ time: '', name: '', detail: '' })}
+              className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              + Add a block
+            </button>
+            <button
+              type="button"
+              onClick={() => { if (typeof window === 'undefined' || window.confirm('Reset the schedule to the office default?')) store.resetSchedule(); }}
+              className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#C9C2B4] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              Reset to default
+            </button>
+          </div>
+          <div className="text-[0.625rem] text-[#8A857C] leading-relaxed pt-0.5">Changes save automatically to this device and update the CEO-meeting time above.</div>
+        </div>
+      )}
     </div>
   );
 }
