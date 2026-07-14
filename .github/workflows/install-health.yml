@@ -26,7 +26,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,8 +34,24 @@ jobs:
           node-version: 22
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
-      - name: Ask Chrome why (or whether) poetech.us installs
+      - name: Ask Chrome whether EACH door installs
         # pipefail: the probe's exit code must survive the tee (REV-0019).
+        # One installable app per brand door (DR-0125): the main app AND each
+        # branded door (TLC, Church/Love Corner, Moore) is its own PWA, so each
+        # gets Chrome's own installability verdict — a redirecting start_url or
+        # out-of-scope door is named here, in CI, not discovered on a phone.
         run: |
           set -o pipefail
-          node scripts/install-health.mjs https://poetech.us/poetech-app/ 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=0
+          for entry in \
+            "PoeTech (main)|https://poetech.us/poetech-app/" \
+            "TLC Therapy door|https://poetech.us/poetech-app/?tlc=1" \
+            "Church / Love Corner door|https://poetech.us/poetech-app/?view=church" \
+            "Moore Divahs door|https://poetech.us/poetech-app/?moore=1"; do
+            label="${entry%%|*}"; target="${entry##*|}"
+            echo "## ${label}" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo '```' | tee -a "$GITHUB_STEP_SUMMARY"
+            node scripts/install-health.mjs "${target}" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || status=1
+            echo '```' | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          exit $status
