@@ -110,6 +110,14 @@ export function createOfficeModel(config) {
     return { id: asStr(p.id) || rid('idea'), text: asStr(p.text), createdIso: asStr(p.createdIso) || asStr(now) || null };
   }
 
+  // A daily-schedule block (the editable work-time rows). Darrell (2026-07-14):
+  // "a general schedule ... adjust work times and tasks". Time + task name + the
+  // detail are all user-editable; the id is stable so an edit updates in place.
+  function makeBlock(partial = {}) {
+    const p = partial || {};
+    return { id: asStr(p.id) || rid('block'), time: asStr(p.time), name: asStr(p.name), detail: asStr(p.detail) };
+  }
+
   function validateOrg(partial) {
     if (!asStr(partial && partial.organization).trim()) return { ok: false, error: 'An organization name is required.' };
     if (!referralCategory(partial && partial.categoryId)) return { ok: false, error: 'Pick a category.' };
@@ -193,16 +201,21 @@ export function createOfficeModel(config) {
   // numbers on first open. `seed-` ids so a future cloud sync filters them.
   const seedOrgs = asArr(cfg.seedOrgs).map((o) => makeOrg(o, { now: o.addedIso || '' }));
   const seedPosts = asArr(cfg.seedPosts).map((p) => makePost(p, { now: p.createdIso || '' }));
+  // The default schedule the office starts with (config.dayBlocks), normalized
+  // to real editable rows. `seed-block-N` ids so a future cloud sync can tell an
+  // untouched default from a staff edit. Once staff edit the schedule the store
+  // owns the whole list (their rows are authoritative — no seed resurrection).
+  const seedSchedule = asArr(cfg.dayBlocks).map((b, i) => makeBlock({ id: `seed-block-${i + 1}`, ...b }));
 
   return {
     config: cfg,
     // helpers
     referralCategory, geoCircle, outcome,
     // factories
-    makeOrg, makePost, makeIdea, validateOrg,
+    makeOrg, makePost, makeIdea, makeBlock, validateOrg,
     // derivations
     categoryForDay, orgStats, followUpsDue, dailyReport, weeklyProgress, topConvertingSources, networkGoal,
     // seeds + merge
-    seedOrgs, seedPosts, mergeSeed, isSeedId,
+    seedOrgs, seedPosts, seedSchedule, mergeSeed, isSeedId,
   };
 }

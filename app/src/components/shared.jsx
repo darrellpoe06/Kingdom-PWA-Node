@@ -314,9 +314,15 @@ function NavControls({ canGoBack, canGoForward, goBack, goForward, chrome = fals
   );
 }
 
+// The page-title header is DISPLAY CHROME (the PoeTech Standard, Darrell
+// 2026-07-14): raising text size must grow the BODY copy, not the big title —
+// a title that scaled with the control overran the screen. `.ts-chrome-region`
+// caps this row (font + box) via zoom; at Normal it is an EXACT no-op, so
+// default users are pixel-identical. Every surface that uses <SectionTitle>
+// inherits the capped header for free.
 function SectionTitle({ children, eyebrow }) {
   return (
-    <div className="mb-5 pb-3 border-b-2 border-[#1A1815] section-title-wrapper">
+    <div className="ts-chrome-region mb-5 pb-3 border-b-2 border-[#1A1815] section-title-wrapper">
       {eyebrow && <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1.5 font-semibold">{eyebrow}</div>}
       <h2 className="text-2xl sm:text-3xl leading-tight section-title-text" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{children}</h2>
     </div>

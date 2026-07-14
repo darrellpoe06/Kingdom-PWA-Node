@@ -16,13 +16,15 @@
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import { TLC_TEAM, TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
-import { TLC_DOOR_BRAND, TLC_INSTALL_MANIFEST } from '../lib/tlc-door.js';
+import { TLC_DOOR_BRAND, TLC_INSTALL_MANIFEST, TLC_SHARE_URL } from '../lib/tlc-door.js';
 import supabase, { onAuthChange } from '../lib/supabase.js';
+import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
+import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 
 // The client-facing booking page (the sendable front door a prospect meets).
 function ClientDoor() {
@@ -92,12 +94,16 @@ function ClientDoor() {
 export default function TlcPublicDoor() {
   const [signedIn, setSignedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
   // These are platform staples: every surface must be resizable + re-themeable.
   const [theme, setTheme] = useState(() => readThemePref('cream'));
   useEffect(() => { saveThemePref(theme); }, [theme]);
   const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
+  // The standard PoeTech collapsing top bar: the header drops up out of the way
+  // while you read down the page, and comes back down the moment you scroll up.
+  const headerHidden = useAutoHideHeader();
 
   // Make this an APP, not a website: swap the document's manifest + title so
   // "Add to Home Screen" installs "TLC Therapy" standalone (its own icon).
@@ -135,13 +141,24 @@ export default function TlcPublicDoor() {
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
-      {/* Header — the TLC brand + the staff login menu. No PoeTech chrome. */}
-      <header className="bg-white border-b-2 border-[#1A1815]">
+      {/* Header — the TLC brand + the staff login menu. No PoeTech chrome.
+          Sticky + auto-hide (the standard PoeTech collapsing bar): it slides up
+          off-screen as you read down, and slides back the instant you scroll up.
+          When the login form is open we keep it pinned so it can't vanish mid-type. */}
+      <header
+        className={`sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !(showLogin && !signedIn) ? '-translate-y-full' : 'translate-y-0'}`}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">{TLC_DOOR_BRAND.name}</div>
-              <h1 className="text-3xl sm:text-4xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.tagline}</h1>
+              {/* Display TITLE is CHROME, not content: .ts-chrome-region caps it
+                  (font + box) so raising text size grows the BODY copy, never the
+                  big H1 — the PoeTech Standard (a giant H1 overran the screen).
+                  The blurb stays outside the cap so it scales for low-vision. */}
+              <div className="ts-chrome-region">
+                <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">{TLC_DOOR_BRAND.name}</div>
+                <h1 className="text-3xl sm:text-4xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.tagline}</h1>
+              </div>
               <p className="text-sm sm:text-base text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_DOOR_BRAND.blurb}</p>
             </div>
             {/* Staff log in / out — lets TLC staff sign in from the door itself,
@@ -201,7 +218,27 @@ export default function TlcPublicDoor() {
             <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
               Learn more
             </a>
+            {/* Show a scannable QR right on screen — for a screen-share or an
+                in-person "point your phone at this" (Darrell 2026-07-14). It
+                shares the way in; it never grants access. */}
+            <button type="button" onClick={() => setShowShare((v) => !v)} aria-expanded={showShare} className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+              {showShare ? 'Hide QR' : 'Share · QR'}
+            </button>
           </div>
+
+          {/* The QR share card — encodes the TLC public door URL so anyone can
+              scan it to open the TLC app (no long address to type). */}
+          {showShare && (
+            <div className="mt-4 max-w-xl">
+              <AppShareQR
+                url={TLC_SHARE_URL}
+                shown="poetech.us/tlc"
+                title="Share TLC Therapy Solutions"
+                blurb="Point a phone camera at this code (or share your screen) to open the TLC Therapy Solutions app — no long address to type."
+                ariaLabel="QR code to open the TLC Therapy Solutions app"
+              />
+            </div>
+          )}
 
           {/* The login form opens right on the door — no download needed. */}
           {showLogin && !signedIn && (

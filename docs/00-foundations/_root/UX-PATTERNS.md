@@ -127,6 +127,25 @@ The Web Speech voices are *acceptable*, not natural. Two upgrade paths exist for
   2. **Bishop Gwin's EXPLICIT CONSENT + guardrails** — his voice and likeness are his to authorize. The cloned voice may read ONLY his real, authored content; every synthesized playback is clearly labeled as synthesized; it never fabricates him saying things he did not say. Consent is revocable and governs the whole capability (pairs with `DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md`, `COMMUNITY-FIRST-MISSION.md`, and family/community voice governance).
   Status: deferred, not a now item, gated on hardware **and** his blessing.
 **When:** this rides the local-LLM / GPU hardware build-out — not a now item. Until then the browser provider is the correct, free, unbreakable default. The speed-fix + native-best Web Speech control is what ships now; everything in this Phase 2 list (including the Bishop Gwin voice) is a documented future path, not current work. Recorded here so the path isn't re-derived later.
+## Pattern 2b: Large-Print / Text-Size — CONTENT scales, DISPLAY CHROME is capped (PoeTech Standard)
+
+**Binding standard, declared by Darrell 2026-07-14:**
+
+> "when the fonts get bigger the main header H1 dont change sizes ... only the text fonts get larger as you increase size so it doesnt over run the screens all apps ... We need all TEXT THAT IS EXPECTED TO BE READ OR READ ALOUD USING THE STANDARD TTS ... TO GET BIGGER, NOT BIG TEXT ALREADY."
+
+The large-print control (the SEE half of the see/hear accessibility pair; its HEAR companion is Pattern 2's TTS) exists to grow the text a person actually **reads** — body copy, cards, labels, list items, the reading surfaces, and **anything the TTS reads aloud**. It must **not** grow the already-large **display type** (the page-title `<h1>`, the primary/secondary nav). Big display text that scales with the control **overruns the screen** (a giant "Real Solutions for Real Life." pushed the whole app off a phone). That is the bug this standard prevents.
+
+**The rule (applies to every app / surface on the platform):**
+
+- **CONTENT scales fully** — body/cell text, card bodies, labels, form text, reading bodies, and any string the TTS speaks. This is the text expected to be read; it inherits the root-font scale for free (author new reading text in `rem`, never fixed `px`, so it participates).
+- **DISPLAY CHROME is capped** — the main header `<h1>`/page title and the nav rows grow only gently (≈1.12x at "Largest"), never balloon. They are *already big*; the point of the control is not to make them bigger.
+
+**Mechanism (already in the platform — reuse it, do not reinvent):** `lib/text-size.js` scales the document root font-size (all `rem` content grows) and publishes `--ts-chrome-scale`. Mark any display/nav row with the shared **`.ts-chrome-region`** class (defined in `index.css`) and it applies that variable as `zoom`, capping the region's font **and** box together. At **Normal** size it is an **exact no-op** (pixel-identical to today), so default users see zero change. Apply `.ts-chrome-region` **only** to rows holding rem-driven display/nav type and **no** already-fixed-`px` controls (so nothing already fixed is shrunk).
+
+**Where it lives (source of truth):** the shared `SectionTitle` primitive (`components/shared.jsx`) carries `.ts-chrome-region`, so **every** surface that uses it inherits the capped page-title for free. Standalone doors that render their own display `<h1>` (e.g. `TlcPublicDoor.jsx`) wrap the title unit in `.ts-chrome-region` the same way. Regression-guarded in `__tests__/text-size.test.js` (the pure cap math: Normal = 1, Largest ≈ 1.125).
+
+**The one-line test for any new surface:** *"When a low-vision user maxes the text size, does the readable content grow while the header stays put — or does the header overrun the screen?"* If the header scales, it is missing `.ts-chrome-region`.
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
