@@ -109,27 +109,35 @@ describe('the brand a client meets', () => {
   });
 });
 
-describe('NO-LEAK: the client door renders only public marketing facts', () => {
-  // The entire module graph the door pulls in must not touch anything operator
-  // or personal. We statically scan the door component + its lib for imports of
-  // the store, auth, supabase, or the family shell. A prospective client opens
-  // this with no account; there must be NOTHING here to leak.
+describe('NO-LEAK: a signed-OUT client sees only public marketing facts', () => {
+  // The door now carries a STAFF LOGIN (Darrell 2026-07-14: "a menu so we can
+  // login before downloading"): auth + the TLC Assistant are intentional, but
+  // gated behind sign-in — a signed-out client renders ONLY ClientDoor. The real
+  // leak guard is now: the door must never pull in the FAMILY / FINANCIAL store
+  // or the monolith shell, and the Assistant must stay login-gated.
   const doorJsx = readFileSync(join(here, '../components/TlcPublicDoor.jsx'), 'utf8');
   const doorLib = readFileSync(join(here, '../lib/tlc-door.js'), 'utf8');
-  const FORBIDDEN = /from\s+['"][^'"]*(supabase|use-financial|financial-store|auth|instance|family|use-referral-ops|office-assistant|poe-financial-mvp)[^'"]*['"]/i;
+  // Family/financial/personal surfaces that must NEVER enter the TLC door.
+  const FORBIDDEN_FAMILY = /from\s+['"][^'"]*(use-financial|financial-store|poe-financial-mvp|use-referral-ops)[^'"]*['"]/i;
+  // The door LIB stays pure — nothing operator or auth at all.
+  const FORBIDDEN_LIB = /from\s+['"][^'"]*(supabase|use-financial|financial-store|auth|instance|family|office-assistant|poe-financial-mvp)[^'"]*['"]/i;
 
-  it('the door component imports no store / auth / family / shell surface', () => {
-    expect(FORBIDDEN.test(doorJsx), 'TlcPublicDoor pulls in an operator/personal surface').toBe(false);
+  it('the door component imports no family / financial / shell surface', () => {
+    expect(FORBIDDEN_FAMILY.test(doorJsx), 'TlcPublicDoor pulls in a family/financial surface').toBe(false);
   });
-  it('the door lib imports no store / auth / family / shell surface', () => {
-    expect(FORBIDDEN.test(doorLib), 'tlc-door.js pulls in an operator/personal surface').toBe(false);
+  it('the door lib imports nothing operator / auth (stays pure)', () => {
+    expect(FORBIDDEN_LIB.test(doorLib), 'tlc-door.js pulls in an operator/personal surface').toBe(false);
   });
-  it('the door renders the public roster + insurance + booking, and nothing operator', () => {
-    // Renders the public facts...
+  it('the Assistant is rendered ONLY behind sign-in (signed-out clients never see it)', () => {
+    // The Assistant tab is inside the `signedIn ?` branch; a signed-out client
+    // gets <ClientDoor/> only.
+    expect(doorJsx).toMatch(/signedIn\s*\?/);
+    expect(doorJsx).toMatch(/TlcAssistant/);          // present, but gated
+    expect(doorJsx).not.toMatch(/Inbound|inquir|Pre-Intake/i); // intake data never here
+  });
+  it('the door renders the public roster + insurance + booking', () => {
     expect(doorJsx).toMatch(/TLC_TEAM/);
     expect(doorJsx).toMatch(/TLC_INSURANCE/);
     expect(doorJsx).toMatch(/bookingUrl/);
-    // ...and never the operator surfaces (Inbound intake, the Assistant, inquiries).
-    expect(doorJsx).not.toMatch(/Inbound|TlcAssistant|inquir|Pre-Intake/i);
   });
 });
