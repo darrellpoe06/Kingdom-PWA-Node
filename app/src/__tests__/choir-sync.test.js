@@ -305,6 +305,19 @@ describe('selectNewSermonImports (idempotent channel import)', () => {
   it('is safe on empty inputs', () => {
     expect(selectNewSermonImports(null, null)).toEqual([]);
   });
+  // Every video lands WITH a date "so users know" (Darrell 2026-07-14): a title with
+  // no spelled-out date still archives, dated from the YouTube UPLOAD date
+  // (contentDetails.videoPublishedAt), instead of being silently dropped. Only a
+  // video with NO date anywhere is skipped.
+  it('falls back to the upload date (publishedAt) when the title has no date', () => {
+    const withUpload = [
+      { videoId: 'vUP', title: 'Sunday Worship at The Love Corner', publishedAt: '2026-07-12T15:30:00Z' },
+      { videoId: 'vNONE', title: 'Choir rehearsal clip' }, // no title date, no upload date -> still skip
+    ];
+    const out = selectNewSermonImports(withUpload, []);
+    expect(out.map((r) => r.videoId)).toEqual(['vUP']);
+    expect(out[0].serviceDate).toBe('2026-07-12');
+  });
 });
 
 describe('isExternalUrl (sermon doc: external link vs storage path)', () => {
