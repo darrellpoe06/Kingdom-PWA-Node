@@ -21,6 +21,20 @@ relying on it; memories reflect what was true when written.
 - **feedback_surface_premise_conflicts** — when a step-by-step plan rests on
   a verifiably-wrong premise, stop before irreversible steps and offer
   options instead of executing as written.
+- **feedback_believe_firsthand_device_reports** — Darrell's firsthand report
+  of what his own device does IS ground truth; never explain it away as user
+  error or make him re-prove it. 2026-07-14: he reported he could not install
+  the Love Corner / TLC PWAs; two replies implied he was installing from the
+  wrong place before his own app-drawer screenshots proved the apps were
+  genuinely absent while Chrome falsely reported "This app is already
+  installed" (a stale WebAPK / installed-registry ghost — cleared device-side
+  via Chrome → Site settings → poetech.us → Clear & reset). Making him prove
+  reality three times is the authority-usurping "undermining" DR-0111 forbids.
+  On ANY "it doesn't work on my device" report: believe it first, reproduce /
+  diagnose the REAL cause from his evidence, then fix — do not re-litigate the
+  premise. Pairs with feedback_speak_established_fact, the Reality-Trace rule
+  (observe the running system, don't assume), and DR-0076 (verify, don't
+  claim).
 - **feedback_no_coauthor_trailer** — commits use plain subjects, no Claude
   co-author trailer; match the existing pre-Claude commit style.
 - **feedback_auto_push_after_commit** — every commit is immediately followed

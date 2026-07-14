@@ -74,7 +74,8 @@ export function installSteps(platform, canPrompt = false) {
           'Open this page in Chrome.',
           'Tap the ⋮ menu (top-right).',
           'Scroll the menu down and tap “Add to Home screen” (it may say “Install app”), then confirm — on some phones it sits below “Share.”',
-          'If the menu says “Open PoeTech” instead, the app is ALREADY installed on this phone — find PoeTech in your app drawer or home screen.',
+          'If Chrome says “This app is already installed” but you do NOT see its icon in your app drawer, Chrome’s record is stale — the app is not really there. Clear it: ⋮ → Settings → Site settings → All sites → poetech.us → “Clear & reset.” Then fully close Chrome, reopen this page, and install again.',
+          'If the menu instead offers “Open” and the icon IS in your app drawer, it is already installed — just open it.',
         ],
       };
     case 'desktop':
