@@ -777,9 +777,9 @@ function RideRequestsPanel({ rideRequests, drivers, canEdit, reportSkip }) {
           <p className="text-sm font-semibold text-[#1A1815]">{r.riderName}{r.passengers > 1 ? ` +${r.passengers - 1}` : ''}</p>
           <p className="text-[0.6875rem] text-[#5A5751]">
             {fmtDate(r.serviceDate)} · {[r.pickupArea, r.pickupAddress].filter(Boolean).join(' · ') || 'pickup TBD'}
-            {r.accessibleNeeded ? ' · ♿ accessible van' : ''}
+            {r.accessibleNeeded ? ' · accessible van needed' : ''}
           </p>
-          {r.riderPhone && <p className="text-[0.6875rem] text-[#5A5751]">☎ {r.riderPhone}</p>}
+          {r.riderPhone && <p className="text-[0.6875rem] text-[#5A5751]">Phone: {r.riderPhone}</p>}
           {r.notes && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">{r.notes}</p>}
           {r.assignedDriverName && <p className="text-[0.6875rem] text-[#3F5226] mt-0.5">Driver: {r.assignedDriverName}</p>}
         </div>
