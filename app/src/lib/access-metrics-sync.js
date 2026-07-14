@@ -18,7 +18,27 @@
 //     write to auth.uid()). No-op when signed out. Privacy: build + heartbeat
 //     only — no behavior, no content (see 0055-member-presence.sql).
 // =============================================================================
-import supabase from './supabase.js';
+import supabase, { readPersistedSession } from './supabase.js';
+
+// Nothing here may hang the Access & Usage panel on "Loading…" forever. A resumed
+// tab's getSession() or a stalled SELECT can never resolve (documented incident:
+// auth-boot-gate-hang, DR-0076). Every awaited call is raced against this ceiling
+// and degrades to an honest fallback instead of freezing. 8s is generous for a
+// real round-trip yet bounded so the UI always resolves.
+export const SNAPSHOT_TIMEOUT_MS = 8000;
+
+// Resolve `promise`, or return `fallback` after `ms`. A rejection also yields the
+// fallback. Pure enough to unit-test with an injected clock is unnecessary — the
+// behavior is proven by the snapshot test asserting it never hangs.
+export function withTimeout(promise, ms, fallback) {
+  let timer;
+  const timed = new Promise((resolve) => { timer = setTimeout(() => resolve(fallback), ms); });
+  const wrapped = Promise.resolve(promise).then(
+    (v) => { clearTimeout(timer); return v; },
+    () => { clearTimeout(timer); return fallback; },
+  );
+  return Promise.race([wrapped, timed]);
+}
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -62,7 +82,11 @@ export async function reportPresence() {
 // (recording the failure so the UI can say "couldn't load X" honestly).
 async function safeSelect(table, columns, map, errors) {
   try {
-    const { data, error } = await supabase.from(table).select(columns);
+    const { data, error } = await withTimeout(
+      supabase.from(table).select(columns),
+      SNAPSHOT_TIMEOUT_MS,
+      { data: null, error: { message: `${table}-timeout`, timedOut: true } },
+    );
     if (error) {
       console.warn(`[access-metrics] read ${table} failed:`, error.message || error);
       errors[table] = error.message || String(error);
@@ -79,8 +103,13 @@ async function safeSelect(table, columns, map, errors) {
 export async function fetchAccessSnapshot() {
   const errors = {};
 
-  const { data: sessionData } = await supabase.auth.getSession().catch(() => ({ data: null }));
-  const signedIn = !!(sessionData && sessionData.session);
+  // getSession() can hang on a resumed tab (auth-boot-gate-hang). Race it against
+  // the ceiling and, if it stalls/errors, decide sign-in from the SYNCHRONOUS
+  // persisted read (never hangs) so the panel resolves either way.
+  const sessionRes = await withTimeout(supabase.auth.getSession(), SNAPSHOT_TIMEOUT_MS, null);
+  const signedIn = sessionRes && sessionRes.data
+    ? !!(sessionRes.data.session)
+    : !!readPersistedSession();
   if (!signedIn) {
     return {
       signedIn: false,
