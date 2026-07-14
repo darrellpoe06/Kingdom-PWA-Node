@@ -20,14 +20,25 @@ Routing is a capability match against the device register (`church_devices`,
 surfaced in the app's Church → Devices tab): a `transcription` job goes only to a
 node whose `capabilities` include `transcription`.
 
-## The three brakes (all required, all shipped engaged/absent)
+## The brakes (all required, all shipped engaged/absent)
 
 1. **Kill-switch** — `state/KILL_SWITCH` present ⇒ engaged ⇒ nothing runs. *Ships present.*
    Recreate it any time to panic-stop.
-2. **Arm (×2)** — both `state/ARMED` and `state/GPU_SCHED_ARMED` must exist
+2. **Streaming hold** — `state/STREAMING_HOLD` present ⇒ a live stream is in
+   progress ⇒ the CUDA towers (LEFT `tlcmediadpt`, RIGHT `livestream-main-pc`)
+   are reserved for the stream ⇒ nothing runs. *Ships present* (engaged
+   2026-07-14 by Darrell: "dont use the left or right cuda right now we are
+   streaming!"). This is DR-0012 as a physical brake, senior to every arm and
+   budget: create the file when streaming starts, delete it only when the
+   stream has ended. When in doubt, leave it engaged.
+3. **Arm (×2)** — both `state/ARMED` and `state/GPU_SCHED_ARMED` must exist
    (master arm + dedicated scheduler arm). *Ship absent.*
-3. **Budget** — `GPU_SCHED_MAX_JOBS_PER_RUN` and `GPU_SCHED_MAX_JOBS_PER_DAY`
+4. **Budget** — `GPU_SCHED_MAX_JOBS_PER_RUN` and `GPU_SCHED_MAX_JOBS_PER_DAY`
    env vars must be > 0. *Unset = 0 = missing brake = inert.*
+
+A device whose register status is `streaming` is additionally never a routing
+candidate (it is not in `IDLE_STATES`) — so even with the hold cleared, a box
+still marked live can't be picked.
 
 Plus a **single-flight lock** (`state/run.lock/`; a second run skips) and an
 **append-only event log** (`state/events.jsonl`; every decision recorded).
@@ -61,7 +72,9 @@ is a stub that logs `DISPATCH NOT WIRED (inert scaffold)`.
    (`ollama:11434` / `voice-studio:8770` / `whisper-gpu:8771`) — a separate,
    reviewed change.
 5. Arm: create `state/ARMED` and `state/GPU_SCHED_ARMED`, then remove
-   `state/KILL_SWITCH`.
-6. Watch `state/events.jsonl`. Disarm by recreating `state/KILL_SWITCH`.
+   `state/KILL_SWITCH` — and remove `state/STREAMING_HOLD` ONLY if no service
+   is streaming or about to.
+6. Watch `state/events.jsonl`. Disarm by recreating `state/KILL_SWITCH`;
+   protect a live stream by recreating `state/STREAMING_HOLD`.
 
 DR-0012: inference never runs on the box encoding a live stream during a service.
