@@ -1123,9 +1123,7 @@ export default function PoeFinancialSystem() {
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
   useEffect(() => { recordView(view); }, [view]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  // Floating Feedback button: a gentle reminder, not a fixture — it settles out
-  // of the way when idle and re-reveals on scroll/touch (useIdleReveal).
-  const feedbackReveal = useIdleReveal();
+  const feedbackReveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
   // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
   // instead of falling through to the family persona picker. Presentational only.
   const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
@@ -5264,10 +5262,7 @@ ${THEME_CSS}
           onClick={() => setFeedbackOpen(true)}
           aria-label="Open feedback"
           title="Tell us what's working / not working / missing"
-          // .ts-chrome-region caps it so it does NOT grow with the text-size
-          // control — chrome, not reading text (Pattern 2b/2d), the same cap the
-          // page title + nav use. Idle-reveal: dims + settles down when idle,
-          // springs back on scroll/touch.
+          // ts-chrome-region = no text-size balloon; idle-reveal dims/reveals (Pattern 2d).
           className={`ts-chrome-region fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
           style={{ borderRadius: '999px' }}
         >
