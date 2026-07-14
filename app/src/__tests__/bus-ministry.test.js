@@ -11,6 +11,7 @@ import {
   addDays, dayOfWeek, nextSunday, upcomingSundays, remindSendOn,
   formatTime, serviceWindow,
   toDriverShape, toRouteShape, toVanShape, toScheduleShape, toReminderShape, toBusMessageShape, toRequestShape,
+  toRideRequestShape, validateRideRequest, rideRequestStatusLabel, rideRequestOpen,
   coverageForDate, buildReminderPlan, dueReminders, overdueReminders, unconfirmedForDate, needsReminder,
 } from '../lib/bus-ministry.js';
 
@@ -110,6 +111,29 @@ describe('row -> shape mappers', () => {
       .toMatchObject({ serviceDate: '2026-07-19', driverName: 'Joanne', sendOn: '2026-07-16', status: 'pending', channel: 'app' });
     expect(toBusMessageShape({ id: 'm1', user_id: 'u1', display_name: 'Deacon', body: 'Be here 9:45' }, 'u1')).toMatchObject({ body: 'Be here 9:45', mine: true });
     expect(toRequestShape({ id: 'q1', title: 'Add text reminders', submitted_by: 'u1', submitter_name: 'Deacon', status: 'new', priority: 'high' }, 'u1')).toMatchObject({ title: 'Add text reminders', status: 'new', priority: 'high', mine: true });
+  });
+  it('maps a ride-request row incl. accessibility + mine flag', () => {
+    const s = toRideRequestShape({ id: 'rr1', requested_by: 'u5', rider_name: 'Sister Kay', rider_phone: '217-555-0199', pickup_area: 'Urbana', service_date: '2026-07-19', passengers: 2, accessible_needed: true, status: 'new', assigned_driver_name: null }, 'u5');
+    expect(s).toMatchObject({ id: 'rr1', riderName: 'Sister Kay', pickupArea: 'Urbana', serviceDate: '2026-07-19', passengers: 2, accessibleNeeded: true, status: 'new', mine: true });
+  });
+});
+
+describe('ride requests — a rider asks for a pickup', () => {
+  it('validate requires a name and a pickup area or address', () => {
+    expect(validateRideRequest({ riderName: '', pickupArea: '' }).ok).toBe(false);
+    expect(validateRideRequest({ riderName: 'Kay', pickupArea: '' }).errors.pickupArea).toBeTruthy();
+    expect(validateRideRequest({ riderName: '', pickupArea: 'Urbana' }).errors.riderName).toBeTruthy();
+    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana' }).ok).toBe(true);
+    expect(validateRideRequest({ riderName: 'Kay', pickupAddress: '12 Main St' }).ok).toBe(true);
+  });
+  it('validate rejects a passenger count below 1', () => {
+    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana', passengers: 0 }).errors.passengers).toBeTruthy();
+    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana', passengers: 3 }).ok).toBe(true);
+  });
+  it('open status covers new/acknowledged/scheduled; closed covers completed/cancelled/declined', () => {
+    expect(['new', 'acknowledged', 'scheduled'].every(rideRequestOpen)).toBe(true);
+    expect(['completed', 'cancelled', 'declined'].some(rideRequestOpen)).toBe(false);
+    expect(rideRequestStatusLabel('scheduled')).toBe('Ride set');
   });
 });
 
