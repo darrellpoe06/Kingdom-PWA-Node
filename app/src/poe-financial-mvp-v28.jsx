@@ -3648,8 +3648,11 @@ export default function PoeFinancialSystem() {
   // door renders ONLY public marketing facts (tlc-practice.js); there is nothing
   // here to leak. This is the sendable TLC Therapy Solutions app.
   if (tlcDoorOnly) {
+    // No data-theme here: TlcPublicDoor owns the theme (its own comfort controls
+    // + THEME_CSS). A second data-theme wrapper here nested two theme scopes and
+    // broke color inheritance (dark text on a dark surface — a contrast failure).
     return (
-      <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+      <div className="min-h-screen overflow-x-clip" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
         <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
         <SectionBoundary name="TLC">
           <TlcPublicDoor />
