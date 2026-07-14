@@ -56,13 +56,17 @@ describe('TlcPublicDoor — the sendable client door', () => {
     expect(container.textContent).toContain('Blue Cross Blue Shield');
   });
 
-  it('exposes NOTHING operator — no inquiry queue, Intake, Assistant, or nav', async () => {
+  it('signed-out: client door + a staff LOGIN menu, but no operator data', async () => {
     await mount();
     const text = container.textContent;
-    for (const bad of ['Pre-Intake Inquiry', 'Big Picture', 'Dev/Ops', 'Client Growth', 'Sign in']) {
+    // No operator DATA leaks to a signed-out client (intake queue, dashboards).
+    for (const bad of ['Pre-Intake Inquiry', 'Big Picture', 'Dev/Ops', 'Client Growth']) {
       expect(text, `operator surface leaked: "${bad}"`).not.toContain(bad);
     }
-    // no in-app buttons (the door's only controls are outbound <a> links)
-    expect(container.querySelectorAll('button').length).toBe(0);
+    // The staff-login control IS present — the menu Darrell asked for, so staff
+    // can log in from the door (before/without installing). The Assistant itself
+    // stays gated behind sign-in, so it is NOT rendered for a signed-out client.
+    const buttons = Array.from(container.querySelectorAll('button')).map((b) => (b.textContent || '').toLowerCase());
+    expect(buttons.some((t) => t.includes('log in')), 'no staff login control on the door').toBe(true);
   });
 });
