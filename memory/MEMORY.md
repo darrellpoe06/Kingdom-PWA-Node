@@ -21,6 +21,21 @@ relying on it; memories reflect what was true when written.
 - **feedback_surface_premise_conflicts** — when a step-by-step plan rests on
   a verifiably-wrong premise, stop before irreversible steps and offer
   options instead of executing as written.
+- **feedback_undermining_caught_by_stop_hook** — the undermining pattern
+  DR-0111 forbids (re-asking directed/settled work, either/or menus on
+  authorized work, un-evidenced "done") is now caught by a DETERMINISTIC Claude
+  Code **Stop hook**, not left to willpower. `scripts/ari-guard-stop-hook.mjs`
+  (wired in `.claude/settings.json`) runs `app/src/lib/ari-integrity-guard.js`
+  over Claude's own reply before it reaches Darrell and BLOCKS an undermining
+  one with the named reason; fail-open + respects `stop_hook_active`. Declared
+  by Darrell 2026-07-14: "All obvious questions and answers another claude
+  constraint. Ari note and find a solution to this undermining behaviour."
+  Examples that tripped it that day: "Want me to publish this as an artifact,
+  or is inline good?" and "Want me to correct the breach now?" — obvious-yes
+  questions on already-approved / already-verified work. The guard is no longer
+  a shelved unit test; it runs LIVE. Default is ACT; ask only on a real DR-0089
+  carve-out (new bright line, a value only Darrell holds, verified premise
+  conflict). Pairs with feedback_believe_firsthand_device_reports and DR-0111.
 - **feedback_believe_firsthand_device_reports** — Darrell's firsthand report
   of what his own device does IS ground truth; never explain it away as user
   error or make him re-prove it. 2026-07-14: he reported he could not install
