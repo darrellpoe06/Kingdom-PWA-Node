@@ -21,6 +21,8 @@ import supabase, { onAuthChange } from '../lib/supabase.js';
 import PasswordAuth from './PasswordAuth.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
+import { useTextSize } from '../lib/text-size.js';
+import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 
 // The client-facing booking page (the sendable front door a prospect meets).
 function ClientDoor() {
@@ -90,6 +92,12 @@ function ClientDoor() {
 export default function TlcPublicDoor() {
   const [signedIn, setSignedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
+  // (shared libs; a per-device choice that follows the user between shells).
+  // These are platform staples: every surface must be resizable + re-themeable.
+  const [theme, setTheme] = useState(() => readThemePref('cream'));
+  useEffect(() => { saveThemePref(theme); }, [theme]);
+  const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
 
   // Make this an APP, not a website: swap the document's manifest + title so
   // "Add to Home Screen" installs "TLC Therapy" standalone (its own icon).
@@ -125,7 +133,8 @@ export default function TlcPublicDoor() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF8F4] text-[#1A1815]">
+    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]">
+      <style>{THEME_CSS}</style>
       {/* Header — the TLC brand + the staff login menu. No PoeTech chrome. */}
       <header className="bg-white border-b-2 border-[#1A1815]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -148,6 +157,41 @@ export default function TlcPublicDoor() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Comfort controls — theme + text size, the platform staples. Same
+              shared libs (theme-css / text-size) the whole PoeTech app uses. */}
+          <div className="mt-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Comfort controls">
+            {THEMES.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                aria-label={`${t.label} theme`}
+                title={t.label}
+                aria-pressed={theme === t.key}
+                className="flex h-9 w-9 items-center justify-center rounded-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                onClick={() => setTheme(t.key)}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                  style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }}
+                />
+              </button>
+            ))}
+            <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
+            {sizeSteps.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                aria-label={`Text size ${s.name}`}
+                aria-pressed={sizeKey === s.key}
+                className={`min-h-[36px] min-w-[36px] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                onClick={() => setSizeKey(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2.5">
