@@ -58,6 +58,19 @@ const clickTab = (label) => {
   act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 };
 
+describe('Love Corner — an obvious Log in / Create account for signed-out visitors', () => {
+  it('shows a prominent Log in / Create account button when signed OUT', () => {
+    mount({ signedIn: false });
+    const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));
+    expect(btn, 'no obvious Log in / Create account button on the public church door').toBeTruthy();
+  });
+  it('hides it once signed in (no redundant login prompt)', () => {
+    mount({ signedIn: true });
+    const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));
+    expect(btn).toBeFalsy();
+  });
+});
+
 describe('ChurchHome — every inline section survived the extraction', () => {
   it('renders the full section inventory of the pre-extraction Church home', () => {
     mount();

@@ -26,11 +26,17 @@ import UiIcon from './UiIcon.jsx';
 import EmojiText from './EmojiText.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import ScriptureLibrary from './ScriptureLibrary.jsx';
+import AuthModal from './AuthModal.jsx';
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false }) {
+  // Obvious, prominent LOG IN / CREATE ACCOUNT for the public Love Corner door
+  // (Darrell 2026-07-14). The community is public; this is the clear way in for a
+  // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
+  // ride). One sign-in serves everyone — the role follows the account.
+  const [loginOpen, setLoginOpen] = useState(false);
   // Follow along in the Word — open the Scripture reader INLINE on THIS page so
   // you can watch the service AND read the Word together (Darrell 2026-07-14:
   // navigating to the Scripture tab moved you off the live player). The ref lets
@@ -675,6 +681,29 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
 
   return (
     <div className="space-y-6">
+      {/* Obvious LOG IN / CREATE ACCOUNT — signed-out only. The community is
+          public (no account needed to look around); this is the clear way for a
+          member/staff/admin to sign in, or anyone to make an account to request a
+          ride and save their place. */}
+      {!signedIn && (
+        <div className="bg-white border-2 border-[#1A1815] p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-0.5">The Love Corner</div>
+            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Members &amp; staff — log in to your account. New here? Create one to request a ride and save your place.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLoginOpen(true)}
+            className="shrink-0 inline-flex items-center px-5 py-3 bg-[#1A1815] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            Log in / Create account
+          </button>
+        </div>
+      )}
+      {!signedIn && (
+        <AuthModal open={loginOpen} onClose={() => setLoginOpen(false)} onSignedIn={() => setLoginOpen(false)} mode="signup" />
+      )}
+
       {/* DEFAULT CHURCH HOME NOTE (D21) — shown when the user has not set their
           own church home; COLG / The Love Corner is the platform default (the
           Father's Business anchor). Mars Hill Option B: the visitor who
