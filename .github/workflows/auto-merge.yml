@@ -111,6 +111,20 @@ jobs:
       # by the token IS allowed (unlike push), so when main's tip commit touched
       # a migration, dispatch db-migrate here. db-migrate is idempotent (applies
       # all guarded SQL every run), so a redundant dispatch is harmless.
+      # WHY THE WAIT LOOP (2026-07-14, after 0102 was skipped): this step RACED
+      # the merge exactly like the deploy step below once did. The sweep fires on
+      # the green check_suite — the same moment native auto-merge squashes — so
+      # when a migration-bearing PR merged, this one-shot check ran a beat BEFORE
+      # the merge landed, saw main's tip was still the PREVIOUS (migration-free)
+      # commit, and skipped; the merge push itself fires no event (token-
+      # suppressed), so db-migrate never ran and migration 0102 (conference/
+      # funeral service_type) had to be dispatched by hand. Fix mirrors the deploy
+      # step: when the tip has no migration yet but ARMED PRs exist (a merge may
+      # be seconds away), poll for main to advance and dispatch the moment a
+      # migration lands on the tip. Gated on the last-dispatched sha so a migration
+      # tip triggers exactly ONE db-migrate; db-migrate is idempotent (applies all
+      # guarded SQL every run) so a redundant dispatch is harmless. 6-minute window
+      # spans a full CI run, same rationale as the deploy loop.
       - name: Apply migrations if main's tip added one (closes the GITHUB_TOKEN push gap)
         if: ${{ always() }}
         env:
@@ -118,14 +132,34 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          touched=$(gh api "repos/$REPO/commits/main" \
-            --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo false)
-          if [ "$touched" = "true" ]; then
-            echo "main tip touched a migration — dispatching db-migrate."
-            gh workflow run db-migrate.yml --repo "$REPO" --ref main \
-              || echo "::warning::could not dispatch db-migrate (it can be run manually)"
+          dispatched_for=""
+          migrate_if_tip_migration() {
+            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            [ -n "$main_sha" ] || return 1
+            [ "$main_sha" != "$dispatched_for" ] || return 1
+            touched=$(gh api "repos/$REPO/commits/$main_sha" \
+              --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo false)
+            if [ "$touched" = "true" ]; then
+              echo "main tip $main_sha touched a migration — dispatching db-migrate."
+              gh workflow run db-migrate.yml --repo "$REPO" --ref main \
+                || echo "::warning::could not dispatch db-migrate (it can be run manually)"
+              dispatched_for="$main_sha"
+              return 0
+            fi
+            return 1
+          }
+          if migrate_if_tip_migration; then exit 0; fi
+          armed=$(gh pr list --repo "$REPO" --state open --base main \
+            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
+          if [ "$armed" -gt 0 ]; then
+            echo "main tip has no migration, but $armed armed PR(s) may merge momentarily — polling up to 6 minutes."
+            for i in $(seq 1 24); do
+              sleep 15
+              if migrate_if_tip_migration; then exit 0; fi
+            done
+            echo "No migration landed within the wait; the next sweep covers it."
           else
-            echo "main tip has no migration change; nothing to apply."
+            echo "main tip has no migration change and no armed PRs; nothing to apply."
           fi
 
       # SAME GITHUB_TOKEN gap, for PRODUCTION DEPLOY (2026-07-06). deploy-
