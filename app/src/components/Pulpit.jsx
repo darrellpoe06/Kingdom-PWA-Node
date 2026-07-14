@@ -44,7 +44,7 @@ import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reacti
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
-import { fetchPointsData, fetchVideoStats } from '../lib/sermon-library-sync.js';
+import { fetchPointsData, fetchPublicPoints, fetchVideoStats } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
@@ -595,13 +595,26 @@ export default function Pulpit() {
   // points fall back to title scriptures, reactions read as no-signal-yet — and
   // never throws. Signed-out skips it. Points/reactions come alive as data lands.
   useEffect(() => {
-    if (!signedIn) {
-      setPointsData({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} });
-      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
-      return undefined;
-    }
     let alive = true;
-    fetchPointsData().then((d) => { if (alive) setPointsData(d || { prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); });
+    // PUBLIC teaching outline — EVERYONE (signed in or not) sees the published key
+    // points + scriptures via the SECURITY DEFINER RPC (0101). The prep table
+    // itself is leadership-only; this is the public window, no notes, no drafts.
+    fetchPublicPoints().then((prep) => { if (alive) setPointsData((cur) => ({ ...cur, prepBySermon: prep || {} })); });
+    if (!signedIn) {
+      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
+      return () => { alive = false; };
+    }
+    // Signed-in enrichment: transcripts/harvests (RLS-gated), YouTube stats,
+    // reactions. Leadership's own prep read (incl. drafts) overlays the public
+    // outline for the management view; a non-leader's prep read is {} (harmless).
+    fetchPointsData().then((d) => {
+      if (!alive || !d) return;
+      setPointsData((cur) => ({
+        prepBySermon: { ...cur.prepBySermon, ...(d.prepBySermon || {}) },
+        transcriptsByVideo: d.transcriptsByVideo || {},
+        harvestsByVideo: d.harvestsByVideo || {},
+      }));
+    });
     fetchVideoStats().then((m) => { if (alive) setStatsMap(m || {}); });
     let unsub = null;
     churchInstanceId(email).then((id) => {

@@ -47,8 +47,9 @@ export async function fetchHarvestsByVideo() {
 }
 
 // BG's parsed pre-service PREP outlines keyed by sermon id (the authoritative
-// points + scripture feed, migration 0067). RLS: user_in_choir read; a non-member
-// (or an un-migrated cloud) gets {} and the library degrades to transcript/title.
+// points + scripture feed, migration 0067). RLS: OWNER/ADMIN read only (0101 —
+// Darrell: only he, BG, and Christina see the prep). A non-leader gets {}; the
+// PUBLIC points below is how everyone else gets the published outline.
 export async function fetchPrepBySermon() {
   const { data, error } = await supabase.from('sermon_prep')
     .select('sermon_id,points,scriptures,theme,anchor,source,needs_review');
@@ -61,6 +62,27 @@ export async function fetchPrepBySermon() {
         scriptures: Array.isArray(r.scriptures) ? r.scriptures : [],
         theme: r.theme || '', anchor: r.anchor || null,
         source: r.source || 'email', needsReview: r.needs_review !== false,
+      };
+    }
+  }
+  return out;
+}
+
+// The PUBLIC teaching outline — points + scriptures + theme for PUBLISHED
+// (non-draft) messages, via the SECURITY DEFINER RPC (0101). Readable by EVERYONE
+// (signed in or not); NO notes (they aren't in prep), NO drafts. This is how the
+// public library shows BG's key points + scriptures without exposing the prep
+// itself (Darrell 2026-07-14). Keyed by sermon id, same shape as fetchPrepBySermon.
+export async function fetchPublicPoints() {
+  const { data, error } = await supabase.rpc('theword_public_points');
+  if (error) { console.warn('[sermon-library] public points fetch failed:', error); return {}; }
+  const out = {};
+  for (const r of data || []) {
+    if (r && r.sermon_id) {
+      out[r.sermon_id] = {
+        points: Array.isArray(r.points) ? r.points : [],
+        scriptures: Array.isArray(r.scriptures) ? r.scriptures : [],
+        theme: r.theme || '', anchor: null, source: 'prep', needsReview: false,
       };
     }
   }

@@ -14,6 +14,7 @@ vi.mock('../lib/supabase.js', () => ({ default: { rpc: (...a) => rpc(...a) } }))
 vi.mock('../lib/church-instance.js', () => ({ churchInstanceId: vi.fn(async () => 'instance-1') }));
 
 import { fetchPublicSermons } from '../lib/choir-sync.js';
+import { fetchPublicPoints } from '../lib/sermon-library-sync.js';
 
 beforeEach(() => rpc.mockReset());
 
@@ -41,5 +42,35 @@ describe('fetchPublicSermons — the public library client', () => {
   it('returns [] for an empty library', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
     await expect(fetchPublicSermons()).resolves.toEqual([]);
+  });
+});
+
+// The PUBLIC teaching outline (0101): everyone — signed in or not — gets the
+// published messages' key POINTS + SCRIPTURES via the SECURITY DEFINER RPC, while
+// the sermon_prep table itself is leadership-only. Pins the client contract: it
+// reads the RPC (never the table), keys by sermon id, and NEVER carries notes.
+describe('fetchPublicPoints — the public points/scriptures client', () => {
+  it('reads the public RPC and keys the outline by sermon id (points + scriptures, no notes)', async () => {
+    rpc.mockResolvedValue({
+      data: [
+        { sermon_id: 's1', theme: 'The Fear of the Lord', points: [{ n: 1, text: 'Reverence', scriptures: ['Prov 1:7'] }], scriptures: ['Prov 1:7', 'Ps 111:10'] },
+      ],
+      error: null,
+    });
+    const out = await fetchPublicPoints();
+    expect(rpc).toHaveBeenCalledWith('theword_public_points');
+    expect(out.s1.points).toHaveLength(1);
+    expect(out.s1.scriptures).toEqual(['Prov 1:7', 'Ps 111:10']);
+    expect(out.s1.theme).toBe('The Fear of the Lord');
+    expect(out.s1.source).toBe('prep');
+    // The public shape carries NO notes field — notes never leave the private prep.
+    expect(out.s1).not.toHaveProperty('notes');
+  });
+
+  it('degrades to {} on error and on empty — never throws', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    await expect(fetchPublicPoints()).resolves.toEqual({});
+    rpc.mockResolvedValue({ data: [], error: null });
+    await expect(fetchPublicPoints()).resolves.toEqual({});
   });
 });
