@@ -48,6 +48,7 @@ export const DEVICE_TYPE_IDS = DEVICE_TYPES.map((t) => t.id);
 export const DEVICE_STATUSES = [
   { id: 'online',      label: 'Online',      tone: 'good' },
   { id: 'assumed',     label: 'Assumed on',  tone: 'idle' }, // seed baseline: believed on, never measured (no heartbeat yet)
+  { id: 'streaming',   label: 'Streaming (live)', tone: 'attention' }, // in the live chain RIGHT NOW — never a batch-job target (DR-0012)
   { id: 'standby',     label: 'Standby',     tone: 'idle' },
   { id: 'offline',     label: 'Offline',     tone: 'idle' },
   { id: 'maintenance', label: 'Maintenance', tone: 'attention' },

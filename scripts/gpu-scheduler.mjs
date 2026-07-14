@@ -15,9 +15,12 @@
 // THE THREE BRAKES (CLAUDE.md "Autonomous Automation Requires Three Brakes"):
 //   1. KILL-SWITCH   — infra/gpu-scheduler/state/KILL_SWITCH present => engaged.
 //                      Ships present. Nothing runs while it exists.
-//   2. ARMED + GPU_SCHED_ARMED — both flag files must be present (master +
+//   2. STREAMING_HOLD — state/STREAMING_HOLD present => a live stream is in
+//                      progress; the CUDA towers are reserved for the stream
+//                      (DR-0012). Nothing runs while it exists. Ships present.
+//   3. ARMED + GPU_SCHED_ARMED — both flag files must be present (master +
 //                      dedicated scheduler arm). Ship absent.
-//   3. BUDGET        — GPU_SCHED_MAX_JOBS_PER_RUN / _PER_DAY env > 0. Unset = 0
+//   4. BUDGET        — GPU_SCHED_MAX_JOBS_PER_RUN / _PER_DAY env > 0. Unset = 0
 //                      = missing brake = inert.
 //   PLUS single-flight lock (state/run.lock dir; a second run SKIPS) and the
 //   append-only event log (state/events.jsonl).
@@ -57,6 +60,7 @@ function nowIso() { return new Date().toISOString(); }
 function loadState() {
   return makeInertState({
     killSwitch:    flag('KILL_SWITCH'),
+    streamingHold: flag('STREAMING_HOLD'),
     armed:         flag('ARMED'),
     gpuSchedArmed: flag('GPU_SCHED_ARMED'),
     lockHeld:      false,
@@ -79,6 +83,12 @@ function main() {
   if (state.killSwitch) {
     logEvent(makeEvent('inert', 'KILL_SWITCH engaged — no run', state, nowIso()));
     console.log('[gpu-scheduler] INERT: KILL_SWITCH engaged. Nothing runs.');
+    return;
+  }
+
+  if (state.streamingHold) {
+    logEvent(makeEvent('streaming_hold', 'STREAMING_HOLD engaged — live stream in progress, CUDA towers reserved (DR-0012) — no run', state, nowIso()));
+    console.log('[gpu-scheduler] STREAMING HOLD: a live stream is in progress. The left/right CUDA towers are reserved for the stream (DR-0012). Nothing runs.');
     return;
   }
 
