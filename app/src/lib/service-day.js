@@ -41,6 +41,8 @@ export function serviceKind(serviceType) {
     case 'rehearsal': return 'rehearsal';
     case 'wednesday': return 'Bible study';
     case 'both': return 'service';
+    case 'conference': return 'conference';
+    case 'funeral': return 'funeral';
     default: return serviceType || 'service';
   }
 }
@@ -61,8 +63,29 @@ function canonicalTypeLabel(serviceType) {
     case 'rehearsal': return 'Thursday rehearsal';
     case 'wednesday': return 'Wednesday Bible study';
     case 'both': return 'Service';
+    case 'conference': return 'Conference';
+    case 'funeral': return 'Funeral';
     default: return serviceType || 'Service';
   }
+}
+
+// Classify a streamed service by its TITLE. Conferences and funerals are the
+// off-cycle streams (Darrell 2026-07-14: "labeled as conferences and funerals for
+// those streams that are not on Sunday and usually Wednesday except for
+// conferences"). The reliable signal is the TITLE, not the date: a Sunday message
+// is often dated/uploaded on another weekday, so the weekday cannot reclassify it
+// (that reclassified real Sunday sermons as Wednesday). A funeral / conference
+// names itself; anything else keeps the historical default (wednesday if it says
+// so, else sunday). `dateStr` is accepted for signature stability but not used to
+// override a title. Pure.
+const FUNERAL_RE = /\b(funeral|home[\s-]?going|homegoing|celebration of life|memorial service|in loving memory|going home celebration|repast)\b/i;
+const CONFERENCE_RE = /\b(conference|convocation|holy convocation|assembly|convention|congress|summit|conclave)\b/i;
+export function classifyServiceType(title, _dateStr) {
+  const t = String(title || '');
+  if (FUNERAL_RE.test(t)) return 'funeral';
+  if (CONFERENCE_RE.test(t)) return 'conference';
+  if (/wednesday|bible\s*study/i.test(t)) return 'wednesday';
+  return 'sunday';
 }
 
 // The honest "<weekday> <kind>" label for a dated service card. Weekday comes from
