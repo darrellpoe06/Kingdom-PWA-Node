@@ -23,6 +23,14 @@ const asNum = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const asArr = (v) => (Array.isArray(v) ? v : []);
 const rid = (p, seed) => `${p}-${asStr(seed) || Math.random().toString(36).slice(2, 9)}`;
 
+// The human-readable CSV columns for the Referral DB export/import. Order is the
+// column order in the file; the keys double as the header labels.
+export const ORG_CSV_COLUMNS = [
+  'Organization', 'Category', 'Type', 'Area', 'Contact person', 'Job title',
+  'Email', 'Phone', 'Website', 'Flyer sent', 'Emailed on', 'Called on',
+  'Follow-up on', 'Outcome', 'Clients referred', 'Notes', 'Added on',
+];
+
 function sameDay(aIso, bIso) {
   const a = Date.parse(asStr(aIso)); const b = Date.parse(asStr(bIso));
   if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
@@ -199,6 +207,78 @@ export function createOfficeModel(config) {
   // The seed rows, normalized through this office's factories (SEED-DATA-AS-
   // ASPIRATION): a few clearly-sample sources so the board renders real derived
   // numbers on first open. `seed-` ids so a future cloud sync filters them.
+  // --- CSV export/import (low-hanging fruit — a data surface should back up) ---
+  const categoryLabel = (id) => { const c = referralCategory(id); return c ? (c.label || c.id) : asStr(id); };
+  const categoryIdFromLabel = (label) => {
+    const s = asStr(label).trim().toLowerCase();
+    const hit = categories.find((c) => (c.label || '').toLowerCase() === s || (c.id || '').toLowerCase() === s);
+    return hit ? hit.id : firstCategoryId;
+  };
+  const outcomeLabel = (id) => outcome(id).label || outcome(id).id;
+  const outcomeIdFromLabel = (label) => {
+    const s = asStr(label).trim().toLowerCase();
+    const hit = outcomes.find((o) => (o.label || '').toLowerCase() === s || (o.id || '').toLowerCase() === s);
+    return hit ? hit.id : (outcomes[0] ? outcomes[0].id : 'none');
+  };
+
+  // One org -> a flat, human-readable CSV row object (labels, not ids).
+  function orgToCsvRow(o) {
+    const org = o || {};
+    return {
+      Organization: asStr(org.organization),
+      Category: categoryLabel(org.categoryId),
+      Type: asStr(org.type),
+      Area: asStr(org.circle),
+      'Contact person': asStr(org.contactPerson),
+      'Job title': asStr(org.jobTitle),
+      Email: asStr(org.email),
+      Phone: asStr(org.phone),
+      Website: asStr(org.website),
+      'Flyer sent': org.flyerSent ? 'yes' : '',
+      'Emailed on': asStr(org.emailedOn) || '',
+      'Called on': asStr(org.calledOn) || '',
+      'Follow-up on': asStr(org.followUpOn) || '',
+      Outcome: outcomeLabel(org.outcomeId),
+      'Clients referred': String(asNum(org.clientsReferred, 0)),
+      Notes: asStr(org.notes),
+      'Added on': asStr(org.addedIso) || '',
+    };
+  }
+
+  // A CSV row object (from parseCsv) -> an org partial makeOrg can normalize.
+  // Lenient: unknown category/outcome fall back to the first; "yes/true/1" => flag.
+  function csvRowToOrgPartial(row) {
+    const r = row || {};
+    const truthy = (v) => /^(yes|true|1|y)$/i.test(asStr(v).trim());
+    return {
+      organization: asStr(r.Organization),
+      categoryId: categoryIdFromLabel(r.Category),
+      type: asStr(r.Type),
+      circle: asStr(r.Area),
+      contactPerson: asStr(r['Contact person']),
+      jobTitle: asStr(r['Job title']),
+      email: asStr(r.Email),
+      phone: asStr(r.Phone),
+      website: asStr(r.Website),
+      flyerSent: truthy(r['Flyer sent']),
+      emailedOn: asStr(r['Emailed on']) || null,
+      calledOn: asStr(r['Called on']) || null,
+      followUpOn: asStr(r['Follow-up on']) || null,
+      outcomeId: outcomeIdFromLabel(r.Outcome),
+      clientsReferred: asNum(r['Clients referred'], 0),
+      notes: asStr(r.Notes),
+    };
+  }
+
+  // The editable schedule + the weekly plan as plain text (share / print / paste).
+  function scheduleToText(schedule) {
+    const lines = asArr(schedule).map((b) => `${asStr(b.time)}  ${asStr(b.name)}${b.detail ? ` — ${asStr(b.detail)}` : ''}`);
+    const week = asArr(cfg.weeklyPlan).map((d) => `${asStr(d.day)}: ${asArr(d.focus).join(', ')}`);
+    const parts = [`${asStr(cfg.brand)} — Daily schedule`, '', ...lines];
+    if (week.length) parts.push('', 'Weekly plan', ...week);
+    return parts.join('\n');
+  }
+
   const seedOrgs = asArr(cfg.seedOrgs).map((o) => makeOrg(o, { now: o.addedIso || '' }));
   const seedPosts = asArr(cfg.seedPosts).map((p) => makePost(p, { now: p.createdIso || '' }));
   // The default schedule the office starts with (config.dayBlocks), normalized
@@ -215,6 +295,8 @@ export function createOfficeModel(config) {
     makeOrg, makePost, makeIdea, makeBlock, validateOrg,
     // derivations
     categoryForDay, orgStats, followUpsDue, dailyReport, weeklyProgress, topConvertingSources, networkGoal,
+    // csv export/import + schedule text
+    orgToCsvRow, csvRowToOrgPartial, scheduleToText,
     // seeds + merge
     seedOrgs, seedPosts, seedSchedule, mergeSeed, isSeedId,
   };

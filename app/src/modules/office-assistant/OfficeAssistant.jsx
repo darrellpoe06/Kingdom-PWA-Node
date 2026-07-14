@@ -10,11 +10,13 @@
 //
 // NO PHI: referral SOURCES only (organizations + office contacts), never clients
 // or protected health information (config.noPhiNote states the office's boundary).
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle, MetricCell } from '../../components/shared.jsx';
 import UiIcon from '../../components/UiIcon.jsx';
 import SectionTabs from '../../components/SectionTabs.jsx';
-import { createOfficeModel, isSeedId } from './model.js';
+import { createOfficeModel, isSeedId, ORG_CSV_COLUMNS } from './model.js';
+import { toCsv, parseCsv } from '../../lib/csv.js';
+import { downloadText } from '../../lib/report-export.js';
 
 const num = (n) => (Number(n) || 0).toLocaleString();
 const pct = (n) => `${Math.round(Number(n) || 0)}%`;
@@ -78,7 +80,7 @@ export default function OfficeAssistant({ config, store, model: modelProp = null
 }
 
 // ---------------------------------------------------------------------------
-function TodaySection({ config, store, report, todayCat, dueList, goal, schedule }) {
+function TodaySection({ config, model, store, report, todayCat, dueList, goal, schedule }) {
   // The CEO-meeting time reads from the SAME editable schedule (first block), so
   // adjusting the schedule updates this header too — "update the spaces that need
   // that" (Darrell). Falls back to config only if the schedule is empty.
@@ -108,7 +110,7 @@ function TodaySection({ config, store, report, todayCat, dueList, goal, schedule
         </div>
       )}
 
-      <ScheduleCard store={store} schedule={schedule} />
+      <ScheduleCard config={config} model={model} store={store} schedule={schedule} />
 
       <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
         <div className="text-sm font-semibold text-[#1A1815] mb-1">Daily report</div>
@@ -125,20 +127,33 @@ function TodaySection({ config, store, report, todayCat, dueList, goal, schedule
 // persisted blocks; Edit mode lets staff adjust the time + task + detail, add or
 // remove blocks, or reset to the office default. Every change persists to the
 // store and the CEO-meeting header above re-reads block[0] automatically.
-function ScheduleCard({ store, schedule }) {
+function ScheduleCard({ config, model, store, schedule }) {
   const [editing, setEditing] = useState(false);
   const blocks = schedule || [];
+  const exportText = () => {
+    const base = `${(config.id || 'office')}-schedule`;
+    downloadText(model.scheduleToText(blocks), `${base}.txt`, 'text/plain;charset=utf-8');
+  };
   return (
     <div className="border border-[#E8E4DC] bg-white p-3 mb-3">
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <div className="text-sm font-semibold text-[#1A1815]">The afternoon</div>
-        <button
-          type="button"
-          onClick={() => setEditing((v) => !v)}
-          className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9C2B4] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
-        >
-          {editing ? 'Done' : 'Edit schedule'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={exportText}
+            className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9C2B4] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            Export
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9C2B4] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            {editing ? 'Done' : 'Edit schedule'}
+          </button>
+        </div>
       </div>
 
       {!editing ? (
@@ -219,9 +234,43 @@ function ScheduleCard({ store, schedule }) {
 function ReferralSection({ config, model, store, isGovernor, orgs, stats, goal, converting }) {
   const [catFilter, setCatFilter] = useState('all');
   const [circleFilter, setCircleFilter] = useState('all');
+  const [prefill, setPrefill] = useState(null);
+  const [importMsg, setImportMsg] = useState('');
+  const fileRef = useRef(null);
   const filtered = useMemo(() => orgs.filter((o) =>
     (catFilter === 'all' || o.categoryId === catFilter) &&
     (circleFilter === 'all' || o.circle === circleFilter)), [orgs, catFilter, circleFilter]);
+
+  // Export ALL organizations (not just the filtered view) so it's a true backup.
+  const exportCsv = () => {
+    const rows = orgs.map((o) => model.orgToCsvRow(o));
+    downloadText(toCsv(ORG_CSV_COLUMNS, rows), `${config.id || 'office'}-referral-db.csv`, 'text/csv;charset=utf-8');
+  };
+  const onImportFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const { rows } = parseCsv(text);
+      const partials = rows.map((r) => model.csvRowToOrgPartial(r));
+      const res = store.importOrgs(partials);
+      setImportMsg(`Imported ${res.added} · skipped ${res.skipped} duplicate(s)${res.invalid ? ` · ${res.invalid} without a name` : ''}.`);
+    } catch (err) {
+      setImportMsg('Could not read that file — export a CSV first to see the format.');
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+  // Turn a sample (or any row) into a fresh starting point in the Add form — the
+  // examples are meant to be finished into real records fast (Darrell 2026-07-14).
+  const useAsStartingPoint = (org) => {
+    setPrefill({
+      _nonce: `${org.id}:${(orgs.length)}`,
+      organization: org.organization, categoryId: org.categoryId, type: org.type,
+      circle: org.circle, contactPerson: org.contactPerson, jobTitle: org.jobTitle,
+      email: org.email, phone: org.phone, website: org.website, notes: org.notes,
+    });
+  };
 
   return (
     <div>
@@ -241,7 +290,17 @@ function ReferralSection({ config, model, store, isGovernor, orgs, stats, goal, 
         </div>
       </div>
 
-      {isGovernor && <AddOrgForm config={config} model={model} store={store} />}
+      {isGovernor && <AddOrgForm config={config} model={model} store={store} prefill={prefill} />}
+
+      {/* Export / import — low-hanging backup + bulk-add (no PHI; sources only). */}
+      {isGovernor && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={exportCsv} className="border border-[#C9C2B4] bg-white text-[#5A5751] px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838]">Export CSV</button>
+          <button type="button" onClick={() => fileRef.current && fileRef.current.click()} className="border border-[#C9C2B4] bg-white text-[#5A5751] px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838]">Import CSV</button>
+          <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onImportFile} className="sr-only" aria-label="Import a CSV of referral sources" />
+          {importMsg && <span className="text-[0.6875rem] text-[#3F5226]" aria-live="polite">{importMsg}</span>}
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 mb-2">
         <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Filter by category">
@@ -257,25 +316,37 @@ function ReferralSection({ config, model, store, isGovernor, orgs, stats, goal, 
 
       <div className="space-y-1">
         {filtered.length === 0 && <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-4 text-sm text-[#5A5751]">No organizations yet. Add the first referral source above.</div>}
-        {filtered.map((o) => <OrgRow key={o.id} config={config} model={model} store={store} isGovernor={isGovernor} org={o} />)}
+        {filtered.map((o) => <OrgRow key={o.id} config={config} model={model} store={store} isGovernor={isGovernor} org={o} onUseAsStart={useAsStartingPoint} />)}
       </div>
     </div>
   );
 }
 
-function OrgRow({ config, model, store, isGovernor, org }) {
+function OrgRow({ config, model, store, isGovernor, org, onUseAsStart }) {
   const cat = model.referralCategory(org.categoryId);
   const out = model.outcome(org.outcomeId);
   const [note, setNote] = useState(org.notes || '');
+  const isSample = isSeedId(org.id);
   return (
-    <div className="border border-[#E8E4DC] bg-white p-3">
+    <div className={`border ${isSample ? 'border-dashed border-[#C9C2B4]' : 'border-[#E8E4DC]'} bg-white p-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-sm font-semibold text-[#1A1815]">{org.organization}</div>
+          <div className="text-sm font-semibold text-[#1A1815] flex items-center gap-1.5">
+            {org.organization}
+            {isSample && <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A857C] border border-[#C9C2B4] px-1 py-0.5">Sample</span>}
+          </div>
           <div className="text-[0.6875rem] text-[#8A857C]">{cat ? cat.label : ''}{org.type ? ` · ${org.type}` : ''} · {org.circle}{org.contactPerson ? ` · ${org.contactPerson}${org.jobTitle ? ` (${org.jobTitle})` : ''}` : ''}</div>
         </div>
         <Badge cls={outcomeBadgeClass(out)}>{out.label}</Badge>
       </div>
+      {/* A sample is a STARTING POINT: staff finish it into a real record fast
+          (Darrell 2026-07-14). This pre-fills the Add form with the sample's
+          values so the assistant edits + saves a genuine record. */}
+      {isGovernor && isSample && onUseAsStart && (
+        <button type="button" onClick={() => onUseAsStart(org)} className="mt-2 border border-[#5A6E3D] bg-[#F0F4EA] text-[#3F5226] px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider font-semibold hover:bg-[#E4EED6] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Use as starting point
+        </button>
+      )}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6875rem] text-[#5A5751]">
         {org.email && <span className="inline-flex items-center gap-1"><UiIcon name="mail" /> {org.email}</span>}
         {org.phone && <span className="inline-flex items-center gap-1"><UiIcon name="phone" /> {org.phone}</span>}
@@ -316,13 +387,28 @@ function OrgRow({ config, model, store, isGovernor, org }) {
   );
 }
 
-function AddOrgForm({ config, model, store }) {
+function AddOrgForm({ config, model, store, prefill = null }) {
   const firstCat = config.referralCategories[0] ? config.referralCategories[0].id : '';
   const firstCircle = config.geoCircles[0] ? config.geoCircles[0].name : '';
-  const [f, setF] = useState({ organization: '', categoryId: firstCat, type: '', circle: firstCircle, contactPerson: '', jobTitle: '', email: '', phone: '', website: '', notes: '' });
+  const blank = { organization: '', categoryId: firstCat, type: '', circle: firstCircle, contactPerson: '', jobTitle: '', email: '', phone: '', website: '', notes: '' };
+  const [f, setF] = useState(blank);
   const [error, setError] = useState('');
+  const [fromSample, setFromSample] = useState(false);
+  const formRef = useRef(null);
   const cat = model.referralCategory(f.categoryId);
   const set = (k) => (e) => setF((cur) => ({ ...cur, [k]: e.target.value }));
+
+  // Load a "Use as starting point" prefill: fill the form from the sample and
+  // scroll it into view so staff can finish + save it quickly.
+  useEffect(() => {
+    if (!prefill) return;
+    const { _nonce, ...vals } = prefill;
+    setF({ ...blank, ...vals });
+    setFromSample(true);
+    setError('');
+    if (formRef.current && formRef.current.scrollIntoView) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill && prefill._nonce]);
 
   const onAdd = () => {
     const check = model.validateOrg(f);
@@ -330,11 +416,12 @@ function AddOrgForm({ config, model, store }) {
     store.addOrg(f);
     setF((cur) => ({ ...cur, organization: '', type: '', contactPerson: '', jobTitle: '', email: '', phone: '', website: '', notes: '' }));
     setError('');
+    setFromSample(false);
   };
 
   return (
-    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-      <div className="text-sm font-semibold text-[#1A1815] mb-2">Add a referral source</div>
+    <div ref={formRef} className={`border ${fromSample ? 'border-[#5A6E3D]' : 'border-[#E8E4DC]'} bg-[#FAF8F4] p-3`}>
+      <div className="text-sm font-semibold text-[#1A1815] mb-2">{fromSample ? 'Finish this record — started from a sample' : 'Add a referral source'}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input value={f.organization} onChange={set('organization')} placeholder="Organization" className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm sm:col-span-2" aria-label="Organization" />
         <select value={f.categoryId} onChange={set('categoryId')} className="border border-[#C9C2B4] bg-white px-2 py-1 text-sm" aria-label="Category">

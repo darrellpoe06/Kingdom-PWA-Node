@@ -86,4 +86,46 @@ describe('the editable daily schedule (makeBlock + seedSchedule)', () => {
     expect(fresh.detail).toBe('');
     expect(fresh.time).toBe('');
   });
+
+  it('scheduleToText renders the schedule + weekly plan as shareable text', () => {
+    const txt = tlc.scheduleToText(tlc.seedSchedule);
+    expect(txt).toContain('TLC Therapy Solutions — Daily schedule');
+    expect(txt).toContain('12:00–12:20  Daily CEO meeting');
+    expect(txt).toContain('Weekly plan');
+    expect(txt).toContain('Monday:');
+  });
+});
+
+describe('Referral DB CSV export/import (round-trips through real records)', () => {
+  const tlc = createOfficeModel(TLC_CONFIG);
+
+  it('orgToCsvRow emits human labels, not ids', () => {
+    const o = tlc.makeOrg({ organization: 'Acme Clinic', categoryId: 'medical', circle: 'Danville', outcomeId: 'interested', clientsReferred: 2, flyerSent: true }, { now: NOW });
+    const row = tlc.orgToCsvRow(o);
+    expect(row.Organization).toBe('Acme Clinic');
+    expect(row.Category).toBe('Medical');        // label, not "medical"
+    expect(row.Outcome).toBe('Interested');
+    expect(row['Flyer sent']).toBe('yes');
+    expect(row['Clients referred']).toBe('2');
+  });
+
+  it('csvRowToOrgPartial maps labels back to ids, leniently', () => {
+    const p = tlc.csvRowToOrgPartial({ Organization: 'Acme', Category: 'Medical', Area: 'Danville', Outcome: 'Interested', 'Flyer sent': 'yes', 'Clients referred': '3' });
+    expect(p.categoryId).toBe('medical');
+    expect(p.outcomeId).toBe('interested');
+    expect(p.flyerSent).toBe(true);
+    expect(p.clientsReferred).toBe(3);
+    // an unknown category falls back to the first (never throws / never lost)
+    expect(tlc.csvRowToOrgPartial({ Organization: 'X', Category: 'Nope' }).categoryId).toBe('medical');
+  });
+
+  it('a full row survives org -> csvRow -> partial -> org', () => {
+    const o = tlc.makeOrg({ organization: 'Round Trip', categoryId: 'legal', circle: 'Savoy', contactPerson: 'Jo', email: 'jo@x.org', outcomeId: 'call-back', notes: 'has, comma' }, { now: NOW });
+    const back = tlc.makeOrg(tlc.csvRowToOrgPartial(tlc.orgToCsvRow(o)), { now: NOW });
+    expect(back.organization).toBe('Round Trip');
+    expect(back.categoryId).toBe('legal');
+    expect(back.circle).toBe('Savoy');
+    expect(back.outcomeId).toBe('call-back');
+    expect(back.notes).toBe('has, comma');
+  });
 });

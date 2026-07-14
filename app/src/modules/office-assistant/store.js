@@ -67,6 +67,28 @@ export function createOfficeStore(config, model) {
   const recordCall = (id) => updateOrg(id, { calledOn: nowIso() });
   const setFollowUp = (id, followUpOn) => updateOrg(id, { followUpOn });
 
+  // Bulk import (from a parsed CSV). Skips rows with no organization name and
+  // skips duplicates (same name + category already present), so re-importing the
+  // same file is idempotent. Returns a { added, skipped, invalid } summary.
+  function importOrgs(partials) {
+    const rows = Array.isArray(partials) ? partials : [];
+    const key = (o) => `${(o.organization || '').trim().toLowerCase()}|${o.categoryId || ''}`;
+    let added = 0; let skipped = 0; let invalid = 0;
+    setState((cur) => {
+      const seen = new Set(cur.orgs.map(key));
+      const next = [...cur.orgs];
+      for (const p of rows) {
+        const org = model.makeOrg(p, { now: nowIso() });
+        if (!org.organization.trim()) { invalid += 1; continue; }
+        const k = key(org);
+        if (seen.has(k)) { skipped += 1; continue; }
+        seen.add(k); next.push(org); added += 1;
+      }
+      return { ...cur, orgs: next };
+    });
+    return { added, skipped, invalid };
+  }
+
   function addPost(partial) {
     const post = model.makePost(partial, { now: nowIso() });
     setState((cur) => ({ ...cur, posts: [...cur.posts, post] }));
@@ -107,7 +129,7 @@ export function createOfficeStore(config, model) {
 
   return {
     useStore,
-    addOrg, updateOrg, setOrgOutcome, markFlyerSent, recordEmail, recordCall, setFollowUp,
+    addOrg, updateOrg, setOrgOutcome, markFlyerSent, recordEmail, recordCall, setFollowUp, importOrgs,
     addPost, updatePost, addIdea,
     updateBlock, addBlock, removeBlock, resetSchedule,
   };
