@@ -273,3 +273,14 @@ relying on it; memories reflect what was true when written.
   Rockefeller claim as "conspiracy" — it is largely documented. Does NOT weaken
   DR-0076: still no fabrication, verses verbatim, falsified causes still named.
   `feedback_believe_first_then_verify`.
+
+- **2026-07-14 — Bishop Gwin voice/likeness consent GRANTED (Darrell: "We have
+  consent. Yes.")** — the consent gate on the Bishop Gwin custom cloned-voice /
+  BG-style capability (UX-PATTERNS Pattern 2 Phase 2) is CLEARED. Standing
+  authorization to build the sovereign voice-clone + the "BG algorithm"
+  (style-aware point/title extraction, RAG over his corpus). The OTHER gate still
+  holds: the **GPU/CUDA hardware** (runs in-house, sovereign — no vendor cloud),
+  and the guardrails stand — synthesized playback clearly labeled, may read ONLY
+  his real authored content, never fabricates him saying what he did not say,
+  consent revocable. Extracting points from his real transcript (descriptive) is
+  separate and needs no voice-clone. `project_bg_voice_consent_granted`.
