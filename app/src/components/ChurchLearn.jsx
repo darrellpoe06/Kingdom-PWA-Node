@@ -57,6 +57,8 @@ import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-alg
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
+import BiblicalTimeline from './BiblicalTimeline.jsx';
+import { epochsForLesson, getEpoch } from '../lib/biblical-timeline.js';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
@@ -672,6 +674,35 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 )}
               </div>
             )}
+            {/* The master timeline, made interactive (module.explore === 'timeline'):
+                the whole story as one line, connecting every OTHER lesson at its
+                place -- surfaced INSIDE this lesson, in the Learn section (Darrell
+                2026-07-15: "add it into the Learn section as a lesson that connects
+                the others ... on their respective timelines"). */}
+            {module.explore === 'timeline' && (
+              <div className="mt-3 border-t border-[#E8E4DC] pt-3">
+                {!showExplore ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowExplore(true)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    Open the timeline &mdash; see where every lesson sits →
+                  </button>
+                ) : (
+                  <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+                    <BiblicalTimeline />
+                    <button
+                      type="button"
+                      onClick={() => setShowExplore(false)}
+                      className="mt-3 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      Close the timeline
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         );
       case 'send':
@@ -1022,6 +1053,18 @@ function CourseView({
                   </span>
                 )}
               </div>
+              {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
+                  "a lesson ... that connects the others ... on their respective
+                  timelines"). Only Living Lessons are anchored on the spine, so this
+                  is inert for other courses. */}
+              {(() => {
+                const eras = epochsForLesson(m.id).map((eid) => (getEpoch(eid) || {}).era).filter(Boolean);
+                return eras.length ? (
+                  <div className="mt-1 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">
+                    <span className="font-semibold">On the timeline:</span> {eras.join(' · ')}
+                  </div>
+                ) : null;
+              })()}
               <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
