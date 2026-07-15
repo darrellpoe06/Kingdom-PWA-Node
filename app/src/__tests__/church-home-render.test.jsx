@@ -228,4 +228,20 @@ describe('Follow along in the Word', () => {
     // Inline follow-along no longer depends on setChurchView being available.
     expect(btn).toBeTruthy();
   });
+
+  // Watch + work the Word together (Darrell 2026-07-15): when follow-along is open,
+  // the live player PINS (sticky) so it stays watchable while you scroll the Word
+  // below it. Proven-to-catch: opening follow-along makes the live-worship section
+  // sticky; closing it releases the pin.
+  it('pins the live player (sticky) while following along, releases it on close', () => {
+    mount();
+    const section = () => container.querySelector('#live-worship-h').closest('section');
+    expect(section().className).not.toMatch(/\bsticky\b/); // normal card by default
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(section().className).toMatch(/\bsticky\b/);     // pinned while reading
+    const close = [...container.querySelectorAll('button')].find((b) => /Close the Word/i.test(b.textContent || ''));
+    act(() => close.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(section().className).not.toMatch(/\bsticky\b/); // released
+  });
 });
