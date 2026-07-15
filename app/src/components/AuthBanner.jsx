@@ -1,16 +1,16 @@
 // =============================================================================
-// AuthBanner — sign-in strip above the title bar
+// AuthBanner — the signed-in "sync status" strip above the title bar
 // =============================================================================
-// Renders one of two states:
-//   1. Signed out:  "Sign in to sync across devices →" — opens a QUIET in-app
-//                   dialog (AuthModal) over the page you're on. No full-page jump
-//                   (Darrell 2026-06-17: "not messy"). Google runs in a popup so
-//                   you keep your place; email + Royalty Link live in the dialog.
-//   2. Signed in:   "Signed in as foo@example.com · Sign out"
+// ONE login/logout control, app-wide (Darrell 2026-07-15, with two screenshots:
+// "Logout button is too big" + "Should only have one login"). The single, obvious
+// Log in / Log out box is HeaderAuthButton, in the header's top-right cluster
+// (next to Subscribe / Install app) -- the spot Darrell asked for on 2026-07-14.
+// This strip therefore NO LONGER renders its own (oversized, duplicate) auth
+// button; it is purely the signed-in readout:
 //
-// The dialog (AuthModal) owns all the auth UI now; this strip is just the trigger
-// + signed-in readout. Session state still flows from supabase via onAuthChange,
-// which the dialog updates in place (the popup signs in without leaving the page).
+//   • Signed in:  "● Signed in as foo@example.com"  (+ "Add email" for phone
+//                 accounts adding a real login email, DR-0172).
+//   • Signed out: renders NOTHING -- HeaderAuthButton owns the way in.
 //
 // Style matches the "Projections, not promises" strip directly above it
 // (bg-[#1A1815], text-[#FAF8F4], tracking-[0.2em], uppercase 10px). Sticks at
@@ -18,12 +18,10 @@
 // =============================================================================
 
 import React, { useEffect, useState } from 'react';
-import { onAuthChange, signOut, isPhoneLoginSession, identityLabel, promoteEmailToLogin } from '../lib/supabase.js';
-import AuthModal from './AuthModal.jsx';
+import { onAuthChange, isPhoneLoginSession, identityLabel, promoteEmailToLogin } from '../lib/supabase.js';
 
 export default function AuthBanner() {
   const [session, setSession] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
   // Phone users adding a real login email (DR-0172 follow-up, built not deferred).
   const [addEmailOpen, setAddEmailOpen] = useState(false);
   const [addEmailValue, setAddEmailValue] = useState('');
@@ -36,11 +34,6 @@ export default function AuthBanner() {
     const unsubscribe = onAuthChange((s) => setSession(s));
     return unsubscribe;
   }, []);
-
-  async function handleSignOut() {
-    await signOut();
-    // onAuthChange will fire with null; the strip collapses back to the prompt.
-  }
 
   async function handleAddEmail(e) {
     e.preventDefault();
@@ -61,55 +54,35 @@ export default function AuthBanner() {
   const isPhoneUser = isPhoneLoginSession(session);
   const label = identityLabel(session) || userEmail;
 
+  // Signed OUT: render nothing. The ONE way in is HeaderAuthButton's "Log in" box
+  // in the header cluster — no duplicate login here (Darrell 2026-07-15).
+  if (!userEmail) return null;
+
   return (
     <div className="bg-[#1A1815] text-[#FAF8F4] text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 print:hidden border-t border-[#3A2A24]">
       <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 flex-wrap">
-        {userEmail ? (
+        <span aria-label="Sync status">
+          <span className="text-[#5A6E3D]">●</span> Signed in as{' '}
+          <span className="normal-case tracking-normal font-mono">{label}</span>
+        </span>
+        {isPhoneUser && (
           <>
-            <span aria-label="Sync status">
-              <span className="text-[#5A6E3D]">●</span> Signed in as{' '}
-              <span className="normal-case tracking-normal font-mono">{label}</span>
-            </span>
-            {isPhoneUser && (
-              <>
-                <span className="text-[#5A5751]">·</span>
-                <button
-                  type="button"
-                  onClick={() => { setAddEmailOpen((v) => !v); setAddEmailStatus(null); }}
-                  aria-expanded={addEmailOpen}
-                  className="underline hover:text-[#B85838] focus:outline-none focus:text-[#B85838]"
-                >
-                  Add email
-                </button>
-              </>
-            )}
-            {/* OBVIOUS boxed control (Darrell 2026-07-14, "like this" — the TLC
-                door's bordered LOG OUT box): a real button, not a faint link.
-                Signed IN -> "Log out". */}
+            <span className="text-[#5A5751]">·</span>
             <button
               type="button"
-              onClick={handleSignOut}
-              className="normal-case tracking-normal text-[0.75rem] font-semibold px-4 py-1.5 border border-[#FAF8F4] text-[#FAF8F4] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              onClick={() => { setAddEmailOpen((v) => !v); setAddEmailStatus(null); }}
+              aria-expanded={addEmailOpen}
+              className="underline hover:text-[#B85838] focus:outline-none focus:text-[#B85838]"
             >
-              Log out
+              Add email
             </button>
           </>
-        ) : (
-          /* Signed OUT -> the obvious "Log in / Create account" box (same boxed
-             treatment), so the way in is never a faint link you scroll past. */
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="normal-case tracking-normal text-[0.75rem] font-semibold px-4 py-1.5 border border-[#FAF8F4] text-[#FAF8F4] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-          >
-            Log in / Create account
-          </button>
         )}
       </div>
 
       {/* Phone user adding a real login email — same account, same id, no merge:
           a verified email is attached to this account (DR-0172, built now). */}
-      {userEmail && isPhoneUser && addEmailOpen && (
+      {isPhoneUser && addEmailOpen && (
         <div className="max-w-7xl mx-auto mt-2 px-1 normal-case tracking-normal">
           <form onSubmit={handleAddEmail} className="flex flex-wrap items-center justify-center gap-2">
             <label htmlFor="add-login-email" className="text-[#FAF8F4] text-[0.6875rem]">
@@ -141,17 +114,6 @@ export default function AuthBanner() {
             </p>
           )}
         </div>
-      )}
-
-      {/* The quiet, focus-trapped sign-in dialog. Mounted only while open so its
-          effects (focus trap, scroll lock) don't run for signed-in users. */}
-      {!userEmail && (
-        <AuthModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onSignedIn={() => setModalOpen(false)}
-          mode="signup"
-        />
       )}
     </div>
   );
