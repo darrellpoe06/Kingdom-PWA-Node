@@ -2288,6 +2288,12 @@ export const LIVING_LESSONS_MODULES = [
   },
   {
     id: 'll30-the-whole-story-yahweh-and-humanity',
+    // Carries the interactive Timeline surface (BiblicalTimeline) inline in its
+    // Apply stage -- the master lesson connects every OTHER lesson at its place on
+    // the line, in the Learn section (Darrell 2026-07-15: "add it into the Learn
+    // section as a lesson that connects the others ... on their respective
+    // timelines"). The `explore` hook is the same one L27 uses for StoryExplorer.
+    explore: 'timeline',
     // The MASTER TIMELINE lesson (Darrell 2026-07-15: "create one master timeline
     // lesson that ties in all the other lessons in their respective places ...
     // Yahweh and humans[’] relationship before, during and end of time ...
