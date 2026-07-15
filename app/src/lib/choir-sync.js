@@ -448,19 +448,31 @@ export async function getChoirAccess(displayName) {
 // --- Generic fetch + realtime subscribe --------------------------------------
 
 function makeSubscriber(table, mapRow, orderBy) {
-  return function subscribe(onChange) {
+  return function subscribe(onChange, onError) {
     let channel = null;
     let cancelled = false;
     (async () => {
-      const session = await currentSession();
-      if (!session || cancelled) return;
+      // Cold-start race (Darrell 2026-07-15, "we don't have any Word in the Word
+      // Tab"): getSession() can return null for a beat on a fresh load, BEFORE
+      // the persisted session is read. The old code bailed silently on that null
+      // -> onChange never fired -> the list sat at "No messages yet." though the
+      // session and the rows were both there a moment later. Retry briefly; only
+      // after the session truly doesn't arrive do we report an honest empty.
+      let session = null;
+      for (let i = 0; i < 8 && !cancelled; i += 1) {
+        session = await currentSession();
+        if (session) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (cancelled) return;
+      if (!session) { onChange([]); return; } // genuinely signed out -> honest empty, never a hang
       const myUserId = session.user.id;
       const fetchAll = async () => {
         const q = supabase.from(table).select('*');
         const { data, error } = orderBy
           ? await q.order(orderBy.col, { ascending: orderBy.asc })
           : await q;
-        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); return null; }
+        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); if (onError) onError(error); return null; }
         return (data || []).map((r) => mapRow(r, myUserId));
       };
       const initial = await fetchAll();

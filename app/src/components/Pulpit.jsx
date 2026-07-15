@@ -332,7 +332,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
 // -----------------------------------------------------------------------------
 const LIB_SORTS = [['newest', 'Newest'], ['reacted', 'Most reacted'], ['viewed', 'Most viewed']];
 
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false, libLoading = false, libError = false, onRetry = null }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
   const [sortMode, setSortMode] = useState('newest'); // newest | reacted (in-app, primary) | viewed (YouTube, secondary)
@@ -446,7 +446,14 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         </div>
       )}
 
-      {historyEnriched.length === 0 ? (
+      {libLoading ? (
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Loading the Word…</p>
+      ) : libError ? (
+        <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="mb-1">The Word didn’t load — this is a connection hiccup, your messages are safe.</p>
+          <button type="button" onClick={() => onRetry && onRetry()} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>↻ Retry</button>
+        </div>
+      ) : historyEnriched.length === 0 ? (
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet.</p>
       ) : sortMode === 'newest' ? (
         // NEWEST — the office-like, date-grouped view (no death-scroll). Points
@@ -584,6 +591,13 @@ export default function Pulpit() {
   const [churchInstId, setChurchInstId] = useState(null); // resolved church instance for keying reactions
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  // The library load has THREE honest states, never a false "empty" (Darrell
+  // 2026-07-15): loading (fetch in flight) / error (fetch failed -> Retry) /
+  // loaded (only then does an empty list mean "No messages yet."). reloadKey
+  // re-fires the load for Retry.
+  const [libLoading, setLibLoading] = useState(true);
+  const [libError, setLibError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setEmail(s?.user?.email || ''); }), []);
 
@@ -596,20 +610,28 @@ export default function Pulpit() {
   }, [signedIn]);
 
   // Leadership streams the table (all messages incl. drafts + the private docs).
+  // The load reports its state so a fetch that fails/hasn't-arrived shows Loading
+  // or Retry, never a false "No messages yet." (Darrell 2026-07-15).
   useEffect(() => {
     if (!canManage) return undefined;
-    const unsubs = [subscribeSermons(setSermons), subscribeSermonDocuments(setSermonDocs), subscribeSpeakers(setSpeakers)];
+    setLibLoading(true); setLibError(false);
+    const onSermons = (rows) => { setSermons(rows); setLibLoading(false); setLibError(false); };
+    const onLoadError = () => { setLibError(true); setLibLoading(false); };
+    const unsubs = [subscribeSermons(onSermons, onLoadError), subscribeSermonDocuments(setSermonDocs), subscribeSpeakers(setSpeakers)];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
-  }, [canManage]);
+  }, [canManage, reloadKey]);
 
   // EVERYONE ELSE (incl. signed-out / unchurched) gets the PUBLIC library via the
   // RPC — published messages only, RLS/SECURITY-DEFINER enforced, no drafts/prep.
   useEffect(() => {
     if (canManage) return undefined; // leadership uses the richer table view
     let alive = true;
-    fetchPublicSermons().then((rows) => { if (alive) setPublicSermons(Array.isArray(rows) ? rows : []); });
+    setLibLoading(true); setLibError(false);
+    fetchPublicSermons()
+      .then((rows) => { if (alive) { setPublicSermons(Array.isArray(rows) ? rows : []); setLibLoading(false); } })
+      .catch(() => { if (alive) { setLibError(true); setLibLoading(false); } });
     return () => { alive = false; };
-  }, [canManage]);
+  }, [canManage, reloadKey]);
 
   // LIBRARY ENRICHMENT (signed-in): the points sources (transcripts + recorded
   // harvest refs), the live IN-APP reaction map (PRIMARY signal, keyed by the
@@ -799,6 +821,8 @@ export default function Pulpit() {
           onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
+          libLoading={libLoading} libError={libError}
+          onRetry={() => { setLibError(false); setLibLoading(true); setReloadKey((k) => k + 1); }}
         />
       )}
 
