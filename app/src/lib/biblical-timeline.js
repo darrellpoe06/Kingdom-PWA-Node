@@ -35,8 +35,14 @@
 // (the test proves each resolves) so the timeline "ties in all the other lessons
 // in their respective places" without a dead reference.
 //
-// DOCTRINALLY SUBSTANTIVE + COLG-FACING -> Tier C (RELEASE-TIERS): this ships for
-// Bishop Gwin’s review (held), not straight to production.
+// DOCTRINE ALREADY WRITTEN DOWN -> SHIPS LIKE ANY CONTENT (Darrell 2026-07-15:
+// "The doctrine has no need to be held up ... we already have a whole archive of
+// our biblical views ... push straight to production ... we will update the
+// lesson when we read it on production if and when it is wrong"). This FOLLOWS
+// the house’s already-authoritative positions (THE-ROOT / THE-ROOT-POSITIONS) --
+// it does not re-open them -- so it rides the normal lane, and correctness is
+// checked LIVE on production via reviewer mode (DR-0104), updated there if it
+// reads wrong. No hold.
 // =============================================================================
 
 // The overarching frame: Yahweh Himself spans the whole line -- the same before,
