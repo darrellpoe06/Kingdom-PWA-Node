@@ -62,6 +62,7 @@ import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
+import { recordUse, recentUsed } from '../lib/ux-signals.js';
 
 const fmtDate = formatClassDate;
 
@@ -801,6 +802,9 @@ function CourseView({
   const [openTutorId, setOpenTutorId] = useState(null);
   const [exportNote, setExportNote] = useState('');
   const [teaching, setTeaching] = useState(false);
+  // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
+  // from the user's own device-local UX history (ux-signals).
+  const [recentTick, setRecentTick] = useState(0);
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -949,6 +953,39 @@ function CourseView({
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
             Pick a {U.noun} by title · {schedule.length}
           </div>
+          {/* "Recently opened" — the view adapts to the user's OWN history (Darrell
+              2026-07-15: "users preferences based on historical data about uiux").
+              Device-local + private (ux-signals); empty until they open lessons. */}
+          {(() => {
+            void recentTick; // re-derive when a lesson is opened
+            const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
+            if (recentIds.length === 0) return null;
+            return (
+              <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Recently opened</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentIds.map((id) => {
+                    const m = schedule.find((x) => x.id === id);
+                    const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="text-[0.6875rem] px-2 py-1 border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        style={{ fontFamily: '"Fraunces", serif' }}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
             {schedule.map((m) => (
               <li key={m.id}>
@@ -1014,7 +1051,7 @@ function CourseView({
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <button
                   type="button"
-                  onClick={() => setOpenTutorId(tutorOpen ? null : m.id)}
+                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); } setOpenTutorId(tutorOpen ? null : m.id); }}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
                   className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
