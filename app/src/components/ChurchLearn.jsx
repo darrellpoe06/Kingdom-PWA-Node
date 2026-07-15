@@ -938,12 +938,43 @@ function CourseView({
           </button>
         </div>
       )}
+      {/* Pick-a-lesson-by-title index (Darrell 2026-07-15: "Titles etc so users
+          can pick a lesson from their titles"). Every lesson renders in full
+          below, so with many lessons the list is a long scroll -- this scannable
+          title index jumps straight to any one. Follows the current SORT (it maps
+          the already-sorted `schedule`). Shown once a course has enough lessons to
+          be worth an index. */}
+      {schedule.length > 4 && (
+        <nav aria-label={`Pick a ${U.noun} by title`} className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
+            Pick a {U.noun} by title · {schedule.length}
+          </div>
+          <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
+            {schedule.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${m.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="w-full text-left py-1 text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={{ fontFamily: '"Fraunces", serif' }}
+                >
+                  <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
+                  {' · '}{m.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       <ol className="space-y-3">
         {schedule.map((m) => {
           const done = !!progress[m.id];
           const tutorOpen = openTutorId === m.id;
           return (
-            <li key={m.id} className="border border-[#E8E4DC] p-4">
+            <li key={m.id} id={`learn-lesson-${m.id}`} className="border border-[#E8E4DC] p-4 scroll-mt-28">
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {m.week} · {m.title}
