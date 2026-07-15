@@ -35,6 +35,7 @@
 // signed-in user. Reviewing is looking; submissions are real.
 // =============================================================================
 import React from 'react';
+import ReviewsPeek from '../components/ReviewsPeek.jsx';
 
 export const REVIEWER_MODE_KEY = 'poe-reviewer-mode';
 
@@ -79,21 +80,28 @@ export function exitReviewerMode(storage = defaultStorage(), reload = defaultRel
 // Playwright drive, 2026-07-05). Ink palette (not the demo strip's clay) so
 // "sample data" and "reviewer lens" read as different states at a glance.
 export function ReviewerModeBanner({ onExit = () => exitReviewerMode() }) {
+  // A steward-only overlay (a user never sees it). It carries the "seeing this as
+  // a user" bar AND the recent review records (ReviewsPeek) -- so the written
+  // review for the change being looked at is one tap away while reviewing the
+  // live production push (DR-0104), instead of buried in the repo.
   return (
-    <div className="sticky top-0 z-[60] bg-[#1A1815] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
-      <div className="flex items-center gap-2">
-        <span className="uppercase tracking-[0.2em] font-semibold">Reviewer mode</span>
-        <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>
-          You are seeing this build exactly as a signed-in user sees it. Your family books, profile, and cloud snapshot are untouched.
-        </span>
+    <div className="sticky top-0 z-[60]">
+      <div className="bg-[#1A1815] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="uppercase tracking-[0.2em] font-semibold">Reviewer mode</span>
+          <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>
+            You are seeing this build exactly as a signed-in user sees it. Your family books, profile, and cloud snapshot are untouched.
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onExit}
+          className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold"
+        >
+          Exit reviewer mode →
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onExit}
-        className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold"
-      >
-        Exit reviewer mode →
-      </button>
+      <ReviewsPeek />
     </div>
   );
 }
