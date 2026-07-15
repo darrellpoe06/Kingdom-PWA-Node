@@ -3740,7 +3740,7 @@ ${THEME_CSS}
           what's shipped and what's vision. Per Darrell 2026-05-28: the
           start position is the family financial system; this front door
           appears only on first arrival. */}
-      {(isPickerMode || isFirstTimeLanding) && (
+      {!churchDoorOnly && (isPickerMode || isFirstTimeLanding) && (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
@@ -4133,7 +4133,7 @@ ${THEME_CSS}
       {/* Demo banner — thin strip across the top whenever in demo mode (not
           picker). Stays visible the whole session. CTAs: switch persona, see
           welcome modal again, or start your own. */}
-      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && (
+      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && !churchDoorOnly && (
         <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
@@ -4238,7 +4238,7 @@ ${THEME_CSS}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
@@ -4280,7 +4280,7 @@ ${THEME_CSS}
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Life, Soul & Money <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
@@ -4300,14 +4300,14 @@ ${THEME_CSS}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
-              {/* Tier indicator + dev-only switcher (controlled dropdown). */}
-              <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
+              {/* Tier switcher (PoeTech family-OS control) — hidden on the Love Corner door. */}
+              {!churchDoorOnly && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
               {/* 2026-06-14 — the profile switcher is the family device-sharing
                   control; it is hidden for a self-serve ('self') user, who has
                   only their own identity. Clicking it would setProfile(null)
                   and re-trap them at the Poe-family picker (the load effect
                   won't re-fire to restore 'self'). */}
-              {currentProfile && currentProfile !== 'self' && (() => {
+              {currentProfile && currentProfile !== 'self' && !churchDoorOnly && (() => {
                 const p = PROFILES.find(x => x.id === currentProfile);
                 return (
                   <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
@@ -4363,7 +4363,7 @@ ${THEME_CSS}
                 ))}
               </div>
               <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
-                <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
+                <div className="font-medium">{churchDoorOnly ? 'The Love Corner' : (data.meta.releaseLabel || `v${data.meta.appVersion}`)}</div>
                 <div title="Today's date">{headerDateLabel}{headerTimeLabel ? <span className="text-[#B85838]"> · {headerTimeLabel}</span> : null}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
