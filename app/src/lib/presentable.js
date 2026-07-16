@@ -55,12 +55,24 @@ export const DEFAULT_KICKER = 'The Church of the Living God';
 // index (the projector then holds its last good slide). Adds generic fields
 // (index/indexLabel/kicker/detailLabel) on top of the original course payload shape,
 // so the existing AudienceWindow keeps working and new surfaces label themselves.
+// Resolve the audience LEAD line for the room at the current age band. A scene may
+// carry `audience.leadByAge` ({ child, teen, adult }) so the speaker can RE-PITCH the
+// same slide to the room LIVE — switch the band and this returns the matching text,
+// with the base `lead` as the fallback (Darrell 2026-07-16: "have the audience choice
+// the whole way through... switch instantly, not go out then back to the top").
+export function resolveAudienceLead(audience, age) {
+  const a = audience || {};
+  if (a.leadByAge && typeof a.leadByAge === 'object' && age && a.leadByAge[age]) return a.leadByAge[age];
+  return a.lead || '';
+}
+
 export function buildSlideForScene(scenes, index, opts = {}) {
   const list = Array.isArray(scenes) ? scenes : [];
   const scene = list[index];
   if (!scene) return null;
   const total = list.length;
   const a = scene.audience || {};
+  const lead = resolveAudienceLead(a, opts.age);
   return {
     type: 'slide',
     index: index + 1,
@@ -70,8 +82,8 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     title: a.title || '',
     // `lead`/`detail` are the generic names; mirror them onto the original
     // `bigIdea`/`inApp` keys so an un-upgraded AudienceWindow still renders.
-    lead: a.lead || '',
-    bigIdea: a.lead || '',
+    lead,
+    bigIdea: lead,
     detail: a.detail || null,
     inApp: a.detail || null,
     detailLabel: a.detailLabel || 'In the app',
@@ -620,7 +632,15 @@ export function coursePresentable(course) {
 export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
-  const levelText = opts.level && m.levels && m.levels[opts.level] ? m.levels[opts.level] : null;
+  const lv = m.levels || {};
+  const levelText = opts.level && lv[opts.level] ? lv[opts.level] : null;
+  // Per-band variants so the speaker can switch age LIVE on the big-idea slide
+  // (child/teen from the lesson's own level copy; adult = the general big idea).
+  const leadByAge = {
+    child: lv.child || m.bigIdea || '',
+    teen: lv.teen || m.bigIdea || '',
+    adult: m.bigIdea || lv.senior || '',
+  };
   const tp = Array.isArray(m.facilitator?.talkingPoints) ? m.facilitator.talkingPoints : [];
   const dp = Array.isArray(m.facilitator?.discussionPrompts) ? m.facilitator.discussionPrompts : [];
   const anchorRef = m.anchor?.ref || null;
@@ -649,6 +669,9 @@ export function lessonPresentable(module, opts = {}) {
           // elsewhere the room sees that part's own one-line detail.
           title: seg.name || `Part ${i + 1}`,
           lead: big ? (levelText || m.bigIdea || seg.detail || '') : (seg.detail || ''),
+          // The big-idea part carries every band's copy so the speaker re-pitches it
+          // to the room mid-talk without leaving the slide.
+          leadByAge: big ? leadByAge : null,
           detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
           detailLabel: handsOnLabel,
           anchorRef: i === 0 ? anchorRef : null,
@@ -666,6 +689,7 @@ export function lessonPresentable(module, opts = {}) {
       audience: {
         title: m.title || 'The lesson',
         lead: levelText || m.bigIdea || '',
+        leadByAge,
         detail: m.inApp || null,
         detailLabel: handsOnLabel,
         anchorRef, anchorTheme,

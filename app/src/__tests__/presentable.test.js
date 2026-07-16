@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
-  buildSlideForScene, holdingSlide,
+  buildSlideForScene, holdingSlide, resolveAudienceLead,
   coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
@@ -161,6 +161,32 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(bare.scenes.length).toBe(1);
     expect(bare.scenes[0].audience.lead).toBe('idea');
     expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
+  });
+
+  it('carries every age band on the big-idea slide so the speaker re-pitches LIVE', () => {
+    const p = lessonPresentable(lesson);
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    expect(big.audience.leadByAge).toMatchObject({
+      child: lesson.levels.child, teen: lesson.levels.teen, adult: lesson.bigIdea,
+    });
+    // switching the band mid-slide re-pitches the room's lead, no rebuild/navigation
+    expect(resolveAudienceLead(big.audience, 'child')).toBe(lesson.levels.child);
+    expect(resolveAudienceLead(big.audience, 'adult')).toBe(lesson.bigIdea);
+    // a slide built for a band carries that band's wording to the projector
+    const idxBig = p.scenes.indexOf(big);
+    expect(buildSlideForScene(p.scenes, idxBig, { age: 'child' }).lead).toBe(lesson.levels.child);
+    expect(buildSlideForScene(p.scenes, idxBig, { age: 'teen' }).lead).toBe(lesson.levels.teen);
+  });
+});
+
+describe('resolveAudienceLead — live age re-pitch of one slide', () => {
+  it('returns the band variant when present, else the base lead', () => {
+    const a = { lead: 'base', leadByAge: { child: 'kid', teen: 'teen', adult: 'grown' } };
+    expect(resolveAudienceLead(a, 'child')).toBe('kid');
+    expect(resolveAudienceLead(a, 'adult')).toBe('grown');
+    expect(resolveAudienceLead(a, 'missing')).toBe('base'); // unknown band -> base
+    expect(resolveAudienceLead({ lead: 'base' }, 'child')).toBe('base'); // no variants -> base
+    expect(resolveAudienceLead(null, 'child')).toBe(''); // safe on empty
   });
 });
 
