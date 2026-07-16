@@ -253,8 +253,15 @@ export default function AccessUsageMetrics() {
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', snap: s.snap }));
-    const snap = await fetchAccessSnapshot();
-    setState({ phase: 'ready', snap });
+    try {
+      const snap = await fetchAccessSnapshot();
+      setState({ phase: 'ready', snap });
+    } catch (e) {
+      // Never hang on "Loading…": if the snapshot itself throws, resolve to an
+      // honest empty state (signed-in, zero rows, error flag) so the panel renders
+      // its "couldn't load — tap Refresh" surface instead of freezing forever.
+      setState({ phase: 'ready', snap: { signedIn: true, instances: [], members: [], presence: [], invites: [], subscriptions: [], domains: [], errors: { load: e?.message || String(e) } } });
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
