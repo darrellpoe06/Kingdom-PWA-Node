@@ -61,7 +61,12 @@ import BiblicalTimeline from './BiblicalTimeline.jsx';
 import { epochsForLesson, getEpoch } from '../lib/biblical-timeline.js';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
-import { coursePresentable } from '../lib/presentable.js';
+import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
+
+// The learner's chosen age band -> (present-mode pace, lesson-level key). One lesson
+// is presented at the pace already picked, so present mode never re-asks it.
+const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
+const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
@@ -833,6 +838,10 @@ function CourseView({
   const [openTutorId, setOpenTutorId] = useState(null);
   const [exportNote, setExportNote] = useState('');
   const [teaching, setTeaching] = useState(false);
+  // The ONE lesson the presenter is teaching (a schedule module), or null. Distinct
+  // from `teaching` (the whole-series overview): pushing a single lesson presents THAT
+  // lesson's own parts, timed to itself (Darrell 2026-07-16).
+  const [presentLesson, setPresentLesson] = useState(null);
   // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
   // from the user's own device-local UX history (ux-signals).
   const [recentTick, setRecentTick] = useState(0);
@@ -891,8 +900,20 @@ function CourseView({
   // Generalized: the shared <Presenter> renders ANY course from a presentable built
   // off this course's own meta + schedule — so every course can teach live, not just
   // the A.I. one. (Was gated to meta.key === 'ai'; Darrell 2026-06-23.)
+  // Push ONE lesson -> present THAT lesson: its own parts are the scenes, timed to the
+  // lesson itself (up to whatever the room has), NOT all 16 crushed into one budget.
+  // The pace already chosen (ageBand) rides in, so nothing is re-introduced.
+  if (presentLesson) {
+    return (
+      <Presenter
+        presentable={lessonPresentable(presentLesson, { level: AGEBAND_TO_LEVEL_KEY[ageBand] || null, handsOnLabel })}
+        initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'}
+        onClose={() => setPresentLesson(null)}
+      />
+    );
+  }
   if (teaching) {
-    return <Presenter presentable={coursePresentable(course)} onClose={() => setTeaching(false)} />;
+    return <Presenter presentable={coursePresentable(course)} initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'} onClose={() => setTeaching(false)} />;
   }
 
   // The course body, reorganized behind third-row sliding chips (Darrell
@@ -969,8 +990,11 @@ function CourseView({
             onClick={() => setTeaching(true)}
             className="ml-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
-            ▶ Teach live (presenter + class screen)
+            ▶ Series overview (all {meta.weeks} at a glance)
           </button>
+          <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            To teach a single session, use <strong className="text-[#5A6E3D]">▶ Present this {U.noun}</strong> on any {U.noun} below — it opens the presenter on that {U.noun} alone, timed to itself (up to 45–60 min), at the pace you’ve set. The {meta.weeks}-{U.noun} total is the whole series, not one sitting.
+          </p>
         </div>
       )}
       {/* Pick-a-lesson-by-title index (Darrell 2026-07-15: "Titles etc so users
@@ -1101,6 +1125,18 @@ function CourseView({
                 >
                   {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
                 </button>
+                {/* Present THIS lesson — the presenter opens on the chosen lesson,
+                    timed to itself, at the pace already set. Governor-only (same gate
+                    as the whole-series overview). Darrell 2026-07-16. */}
+                {isGovernor && (
+                  <button
+                    type="button"
+                    onClick={() => setPresentLesson(m)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    ▶ Present this {U.noun}
+                  </button>
+                )}
                 {m.launch && onLaunch && !tutorOpen && (
                   <button
                     type="button"

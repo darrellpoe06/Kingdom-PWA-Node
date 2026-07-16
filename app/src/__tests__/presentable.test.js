@@ -3,7 +3,7 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide,
-  coursePresentable, wordLibrary, messagePresentable, parseRunOfShow,
+  coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
   ageHint, PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE,
@@ -105,6 +105,62 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
     const bare = coursePresentable({ meta: { title: 'X', key: 'x' }, schedule: [{ id: 'a', title: 'A', bigIdea: 'idea', week: 1 }] });
     expect(bare.scenes[0].notes).toEqual([]);
     expect(bare.scenes[0].audience.title).toBe('A');
+  });
+});
+
+describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min series)', () => {
+  const lesson = {
+    id: 'mit1',
+    title: 'The Design in Time',
+    bigIdea: 'God made us to grow through stages.',
+    inApp: 'Feed your stage the Word this week.',
+    anchor: { ref: 'Ecclesiastes 3:1', theme: 'a time to every purpose' },
+    levels: { child: 'God made you to grow!', teen: 'You are still forming — on purpose.', senior: 'Every stage is His design.' },
+    facilitator: {
+      talkingPoints: ['Growth is design, not deficiency.'],
+      discussionPrompts: ['Where have you treated a normal stage as a flaw?'],
+      howToRun: 'Open in prayer + read the Scripture (3): Ecclesiastes 3:1 | The big idea (15): the maturing brain as witness | Go deeper (10): what changes | Reflect together (8): use the prompts | Take it with you (2): one input',
+    },
+  };
+
+  it('makes the LESSON its own presentation — scenes are its run-of-show parts, not weeks', () => {
+    const p = lessonPresentable(lesson);
+    expect(p.id).toBe('lesson:mit1');
+    expect(p.title).toBe('The Design in Time');
+    // 5 authored segments -> 5 scenes (this lesson's parts), each an "Part i of N"
+    expect(p.scenes.length).toBe(5);
+    expect(p.scenes[0].indexLabel).toBe('Part 1 of 5');
+    // targetMin is THIS lesson's own length (3+15+10+8+2 = 38), never the series 607
+    expect(p.targetMin).toBe(38);
+  });
+
+  it('a time budget reflows THIS lesson only (45 min lands per-part, not ~2.8)', () => {
+    const p = lessonPresentable(lesson);
+    const fit = fitToBudget(p.scenes, 45);
+    // every part keeps a real share of 45 — the heavy "big idea" gets the most,
+    // and no part is crushed to a 2.8-min series-slice
+    const big = fit.plan.find((s) => /big idea/i.test(s.audience?.title || ''));
+    expect(big.allocatedMin).toBeGreaterThan(10);
+    expect(fit.plan.every((s) => s.skipped || s.allocatedMin >= 1)).toBe(true);
+  });
+
+  it('pitches the big-idea slide to the chosen pace and puts the anchor on the opener', () => {
+    const p = lessonPresentable(lesson, { level: 'child' });
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    expect(big.audience.lead).toBe(lesson.levels.child); // paced, not re-introduced
+    expect(p.scenes[0].audience.anchorRef).toBe('Ecclesiastes 3:1');
+    // talking points ride as presenter-only notes on the teaching part
+    expect(big.notes.some((n) => n.heading === 'Say this')).toBe(true);
+    // discussion prompts land on the reflect part
+    const reflect = p.scenes.find((s) => /reflect/i.test(s.audience.title));
+    expect(reflect.notes.some((n) => n.heading === 'Ask the room')).toBe(true);
+  });
+
+  it('falls back to a single big-idea scene when a lesson has no run-of-show', () => {
+    const bare = lessonPresentable({ id: 'x', title: 'X', bigIdea: 'idea' });
+    expect(bare.scenes.length).toBe(1);
+    expect(bare.scenes[0].audience.lead).toBe('idea');
+    expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
   });
 });
 

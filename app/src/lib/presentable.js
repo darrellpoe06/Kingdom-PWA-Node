@@ -601,6 +601,93 @@ export function coursePresentable(course) {
 }
 
 // -----------------------------------------------------------------------------
+// Adapter: a SINGLE Learn lesson -> a presentable (present ONE lesson, not all 16)
+// -----------------------------------------------------------------------------
+// The course-level presentable above makes each WEEK one scene, so the whole 16-week
+// series is one presentation whose full time is the SUM of every week (~607 min). You
+// do not teach all sixteen in one sitting, and squeezing "I have 45 minutes" across
+// all of them gives each lesson ~2.8 min — nonsense (Darrell 2026-07-16: "607 is too
+// long for any human; the time should be PER LESSON... each lesson can be taught, not
+// all lessons for 2 min each"). This is the SAME pattern the The Word library already
+// uses (pick ONE message, present THAT one): here the scenes are the CHOSEN lesson's
+// own run-of-show segments (Open -> Big idea -> Go deeper -> Reflect -> Take it), so a
+// time budget reflows THIS lesson (its ~38 authored minutes) up to whatever the room
+// has — never the whole series. The series total stays context; a lesson is the unit.
+//
+// opts.level is a module.levels KEY ('child'|'teen'|'senior', or null for the general
+// big idea) — the pace already chosen in the lesson, so the presenter does not
+// re-introduce it. handsOnLabel labels the in-app detail line.
+export function lessonPresentable(module, opts = {}) {
+  const m = module || {};
+  const handsOnLabel = opts.handsOnLabel || 'In the app';
+  const levelText = opts.level && m.levels && m.levels[opts.level] ? m.levels[opts.level] : null;
+  const tp = Array.isArray(m.facilitator?.talkingPoints) ? m.facilitator.talkingPoints : [];
+  const dp = Array.isArray(m.facilitator?.discussionPrompts) ? m.facilitator.discussionPrompts : [];
+  const anchorRef = m.anchor?.ref || null;
+  const anchorTheme = m.anchor?.theme || null;
+
+  const ros = parseRunOfShow(m.facilitator?.howToRun);
+  // Which segment carries the actual teaching / the discussion, by its authored name.
+  const isBigIdea = (name) => /big idea|the core|teach|main/i.test(name || '');
+  const isReflect = (name) => /reflect|discuss|respond|apply|go deeper|engage/i.test(name || '');
+  const isTakeaway = (name) => /take it|with you|send|send-off|close|charge/i.test(name || '');
+
+  let scenes;
+  if (ros.length) {
+    const total = ros.length;
+    scenes = ros.map((seg, i) => {
+      const big = isBigIdea(seg.name);
+      const notes = [];
+      if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
+      if (isReflect(seg.name) && dp.length) notes.push({ kind: 'list', heading: 'Ask the room', items: dp });
+      return {
+        id: `${m.id || 'lesson'}-s${i + 1}`,
+        indexLabel: `Part ${i + 1} of ${total}`,
+        estimatedMin: seg.estimatedMin,
+        audience: {
+          // On the big-idea part the room sees the real teaching (pitched to the pace);
+          // elsewhere the room sees that part's own one-line detail.
+          title: seg.name || `Part ${i + 1}`,
+          lead: big ? (levelText || m.bigIdea || seg.detail || '') : (seg.detail || ''),
+          detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
+          detailLabel: handsOnLabel,
+          anchorRef: i === 0 ? anchorRef : null,
+          anchorTheme: i === 0 ? anchorTheme : null,
+        },
+        notes,
+        runOfShow: [],
+      };
+    });
+  } else {
+    // A lesson with no authored run-of-show still presents as one big-idea scene.
+    scenes = [{
+      id: `${m.id || 'lesson'}-s1`,
+      indexLabel: 'Part 1 of 1',
+      audience: {
+        title: m.title || 'The lesson',
+        lead: levelText || m.bigIdea || '',
+        detail: m.inApp || null,
+        detailLabel: handsOnLabel,
+        anchorRef, anchorTheme,
+      },
+      notes: tp.length ? [{ kind: 'list', heading: 'Say this', items: tp }] : [],
+      runOfShow: [],
+    }];
+  }
+
+  const fullMin = ros.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
+  return {
+    id: `lesson:${m.id || 'lesson'}`,
+    title: m.title || 'Lesson',
+    kicker: DEFAULT_KICKER,
+    // The lesson's OWN length is the target (its authored run-of-show sum, ~38 min);
+    // fall back to 45 when a lesson has no timed segments. NEVER the 607-min series sum.
+    targetMin: fullMin > 0 ? fullMin : (opts.targetMin || 45),
+    scenes: backfillTiming(scenes),
+  };
+}
+
+// -----------------------------------------------------------------------------
 // The Word — Migdal: a LIBRARY of messages, each its OWN presentation
 // -----------------------------------------------------------------------------
 // BG's area. A collection is NOT one presentation containing every message — you do
