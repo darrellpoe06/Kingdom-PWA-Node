@@ -210,6 +210,10 @@ export default function Presenter({
   // presenter grow its curriculum passes canEdit={false} (the add/edit controls then
   // never render). Default true — present mode is already behind each surface's gate.
   canEdit = true,
+  // The pace already chosen on the surface (child/teen/adult), so present mode does
+  // NOT re-ask it (Darrell 2026-07-16: "shouldn't have to reintroduce everything we
+  // wanted before presenting"). Presenter-only; never changes the audience screen.
+  initialAge = DEFAULT_PRESENT_AGE,
   // Persistence seam. By default the living-curriculum overlay is saved to the
   // presenter's own localStorage; a surface that wants server-shared curriculum
   // passes onCurriculumChange to persist the overlay itself.
@@ -245,7 +249,7 @@ export default function Presenter({
   const [elapsed, setElapsed] = useState(0);      // seconds
   const [running, setRunning] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
-  const [age, setAge] = useState(DEFAULT_PRESENT_AGE);
+  const [age, setAge] = useState(PRESENT_AGE_BANDS.some((b) => b.id === initialAge) ? initialAge : DEFAULT_PRESENT_AGE);
   const [audienceState, setAudienceState] = useState('closed'); // closed | open | blocked | live | blank
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------
