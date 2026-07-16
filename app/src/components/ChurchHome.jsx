@@ -269,8 +269,8 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               <div
                 className={floating
                   ? 'fixed z-[60] bottom-20 right-2 sm:right-4 w-[46vw] max-w-[320px] aspect-video bg-[#1A1815] border-2 border-[#B85838] shadow-2xl'
-                  : 'mt-2 aspect-video bg-[#1A1815] mx-auto'}
-                style={floating ? undefined : { maxWidth: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
+                  : 'mt-2 aspect-video bg-[#1A1815]'}
+                style={floating ? undefined : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
               >
                 {/* iframe stays FIRST + keyed so toggling size/float never remounts it
                     (a remount would restart the stream). The Dock button is rendered
@@ -296,11 +296,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                 )}
               </div>
               {floating && (
-                <div className="mt-2 aspect-video bg-[#1A1815] border border-dashed border-[#B85838] flex items-center justify-center text-center px-3" style={{ maxWidth: '80%' }}>
-                  <p className="text-[0.6875rem] text-[#CFC9BD]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    Playing in the corner — read the Word below while you watch. Tap <span className="font-semibold text-[#EBA77E]">Dock</span> to bring it back.
-                  </p>
-                </div>
+                <p className="mt-2 text-[0.6875rem] text-[#CFC9BD] flex items-center gap-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B85838]" aria-hidden="true" />
+                  Playing in the corner — read the Word below. Tap <span className="font-semibold text-[#EBA77E]">Dock</span> to bring it back.
+                </p>
               )}
             </>
           ) : (
