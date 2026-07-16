@@ -42,6 +42,14 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // navigating to the Scripture tab moved you off the live player). The ref lets
   // us scroll the reader into view when it opens, without leaving the video.
   const [followAlong, setFollowAlong] = useState(false);
+  // Size + float the live player so the Word shows alongside the livestream
+  // (Darrell 2026-07-16: "size the video player or even pop-out while still
+  // playing... see the Word at the same time"). playerScale sizes the pinned
+  // player (s/m/l); floating pops it to a corner MINI-player so the Word reads
+  // full-width underneath. Both are pure layout on the SAME iframe — never a
+  // remount, so the stream keeps playing while you resize/float.
+  const [playerScale, setPlayerScale] = useState('m'); // 's' | 'm' | 'l'
+  const [floating, setFloating] = useState(false);
   const followRef = useRef(null);
   const openFollowAlong = useCallback(() => {
     setFollowAlong(true);
@@ -232,17 +240,69 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           )}
 
           {playerSrc ? (
-            <div className="mt-3 aspect-video bg-[#1A1815]">
-              <iframe
-                key={playerSrc}
-                src={playerSrc}
-                title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
-                className="w-full h-full border border-[#1A1815]"
-                allow="encrypted-media; picture-in-picture; fullscreen"
-                allowFullScreen
-                loading="lazy"
-              />
-            </div>
+            <>
+              {/* Size + float controls — pure layout on the SAME iframe (no reload).
+                  Shown whenever there's a player; float pops it to a corner mini so
+                  the Word reads full-width. */}
+              <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
+                <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
+                {!floating && ['s', 'm', 'l'].map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => setPlayerScale(sz)}
+                    aria-pressed={playerScale === sz}
+                    className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${playerScale === sz ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                  >
+                    {sz === 's' ? 'Small' : sz === 'm' ? 'Medium' : 'Large'}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setFloating((f) => !f)}
+                  aria-pressed={floating}
+                  className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                >
+                  {floating ? '⤡ Dock' : '⤢ Pop out'}
+                </button>
+              </div>
+              <div
+                className={floating
+                  ? 'fixed z-[60] bottom-20 right-2 sm:right-4 w-[46vw] max-w-[320px] aspect-video bg-[#1A1815] border-2 border-[#B85838] shadow-2xl'
+                  : 'mt-2 aspect-video bg-[#1A1815] mx-auto'}
+                style={floating ? undefined : { maxWidth: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
+              >
+                {/* iframe stays FIRST + keyed so toggling size/float never remounts it
+                    (a remount would restart the stream). The Dock button is rendered
+                    AFTER and absolutely positioned, so it never shifts the iframe. */}
+                <iframe
+                  key={playerSrc}
+                  src={playerSrc}
+                  title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
+                  className="w-full h-full border border-[#1A1815]"
+                  allow="encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  loading="lazy"
+                />
+                {floating && (
+                  <button
+                    type="button"
+                    onClick={() => setFloating(false)}
+                    aria-label="Dock the player back"
+                    className="absolute -top-3 -right-2 z-10 w-7 h-7 rounded-full bg-[#B85838] text-white text-xs font-bold shadow flex items-center justify-center focus:outline focus:outline-2 focus:outline-white"
+                  >
+                    ⤡
+                  </button>
+                )}
+              </div>
+              {floating && (
+                <div className="mt-2 aspect-video bg-[#1A1815] border border-dashed border-[#B85838] flex items-center justify-center text-center px-3" style={{ maxWidth: '80%' }}>
+                  <p className="text-[0.6875rem] text-[#CFC9BD]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Playing in the corner — read the Word below while you watch. Tap <span className="font-semibold text-[#EBA77E]">Dock</span> to bring it back.
+                  </p>
+                </div>
+              )}
+            </>
           ) : (
             /* Fallback ONLY when no embeddable source resolves (e.g. a
                non-standard channel id with no derivable uploads playlist):
