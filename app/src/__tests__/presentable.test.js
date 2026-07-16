@@ -127,15 +127,29 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     },
   };
 
-  it('makes the LESSON its own presentation — scenes are its run-of-show parts, not weeks', () => {
+  it('makes the LESSON its own presentation — its parts + a closing Scripture recap', () => {
     const p = lessonPresentable(lesson);
     expect(p.id).toBe('lesson:mit1');
     expect(p.title).toBe('The Design in Time');
-    // 5 authored segments -> 5 scenes (this lesson's parts), each an "Part i of N"
-    expect(p.scenes.length).toBe(5);
-    expect(p.scenes[0].indexLabel).toBe('Part 1 of 5');
-    // targetMin is THIS lesson's own length (3+15+10+8+2 = 38), never the series 607
-    expect(p.targetMin).toBe(38);
+    // 5 authored segments + the "The Word we stood on" recap = 6 scenes
+    expect(p.scenes.length).toBe(6);
+    expect(p.scenes[0].indexLabel).toBe('Part 1 of 6');
+    expect(p.scenes[5].audience.title).toBe('The Word we stood on');
+    // targetMin is THIS lesson's own length (3+15+10+8+2 + 2 recap = 40), not 607
+    expect(p.targetMin).toBe(40);
+  });
+
+  it('shows the anchor Word VERBATIM on the opener class screen and repeats it as a recap', () => {
+    const p = lessonPresentable(lesson);
+    // opener carries the verbatim anchor on the audience payload (the room reads it)
+    expect(p.scenes[0].audience.scripture).toContain('Ecclesiastes 3:1');
+    // Ecclesiastes 3:1 is in the fetched KJV store, so the actual verse text rides along
+    expect(p.scenes[0].audience.scripture).toMatch(/to every thing there is a season/i);
+    // the closing recap repeats the sourced Scriptures for a refresher
+    const recap = p.scenes[p.scenes.length - 1];
+    expect(recap.audience.scripture).toMatch(/to every thing there is a season/i);
+    // and the built slide carries scripture through to the projector
+    expect(buildSlideForScene(p.scenes, 0, {}).scripture).toBeTruthy();
   });
 
   it('a time budget reflows THIS lesson only (45 min lands per-part, not ~2.8)', () => {

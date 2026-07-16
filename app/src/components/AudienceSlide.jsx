@@ -76,6 +76,16 @@ export default function AudienceSlide({ slide = null, hold = null }) {
           <strong>{slide.anchorRef}</strong>{slide.anchorTheme ? ` — ${slide.anchorTheme}` : ''}
         </p>
       )}
+
+      {/* Verbatim Scripture the room reads — each line is one reference + its KJV
+          text (built from the fetched public-domain KJV; DR-0076). */}
+      {slide.scripture && (
+        <div style={{ marginTop: 'clamp(20px, 3vw, 40px)', borderLeft: '3px solid #4A453D', paddingLeft: 'clamp(14px, 1.6vw, 22px)' }}>
+          {String(slide.scripture).split('\n').filter(Boolean).map((line, i) => (
+            <p key={i} style={{ fontSize: 'clamp(15px, 1.9vw, 28px)', lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0', color: '#FAF8F4', fontStyle: 'italic' }}>{line}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

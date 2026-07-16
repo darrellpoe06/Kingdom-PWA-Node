@@ -42,24 +42,6 @@
 import { TEACH_CHANNEL, formatClock } from './teach-present.js';
 import { formatClassDate } from './church-classes.js';
 import { kjvText } from './scriptures.js';
-
-// A presenter-only note listing each anchor Scripture WITH its verbatim KJV text,
-// so the minister can recall/read the actual Word, not just the location (Darrell
-// 2026-07-16). VERBATIM ONLY (DR-0076): the text comes from the fetched KJV store
-// (lib/scripture-kjv.js) — a reference not yet in the store shows its location alone,
-// never a verse typed from memory. Splits a compound anchor ("A 1:2; B 3:4") on ';'.
-export function anchorScriptureNote(anchorRef) {
-  if (!anchorRef) return null;
-  const items = String(anchorRef)
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((ref) => {
-      const t = kjvText(ref);
-      return t ? `${ref} — "${t}"` : ref;
-    });
-  return items.length ? { kind: 'list', heading: 'Scriptures to read (KJV)', items } : null;
-}
 import { serviceKindLabel } from './service-day.js';
 
 // Re-export the shared, versioned channel + clock so callers import one module.
@@ -108,6 +90,9 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     detailLabel: a.detailLabel || 'In the app',
     anchorRef: a.anchorRef || null,
     anchorTheme: a.anchorTheme || null,
+    // Verbatim Scripture the ROOM reads (opener + the closing recap) — the Word on
+    // the class screen, not just the location (Darrell 2026-07-16).
+    scripture: a.scripture || null,
     dateLabel: scene.dateLabel || null,
     kicker: opts.kicker || DEFAULT_KICKER,
   };
@@ -701,6 +686,14 @@ export function lessonPresentable(module, opts = {}) {
   const dp = Array.isArray(m.facilitator?.discussionPrompts) ? m.facilitator.discussionPrompts : [];
   const anchorRef = m.anchor?.ref || null;
   const anchorTheme = m.anchor?.theme || null;
+  // The lesson's anchor Scriptures, resolved to VERBATIM KJV (DR-0076: from the
+  // fetched store, never memory). One sourced list serves all three: the room reads
+  // it on the opener, the speaker recalls it in notes the whole way, and the closing
+  // "The Word we stood on" recap gives the room a refresher (Darrell 2026-07-16).
+  const scriptureLines = String(anchorRef || '')
+    .split(';').map((s) => s.trim()).filter(Boolean)
+    .map((ref) => { const t = kjvText(ref); return t ? `${ref} — "${t}"` : ref; });
+  const scriptureBlock = scriptureLines.join('\n');
 
   const ros = parseRunOfShow(m.facilitator?.howToRun);
   // Which segment carries the actual teaching / go-deeper / discussion, by name.
@@ -718,7 +711,7 @@ export function lessonPresentable(module, opts = {}) {
       const notes = [];
       // The opener carries the anchor Scriptures VERBATIM so the minister can recall
       // and read the Word, not just the location.
-      if (i === 0) { const sn = anchorScriptureNote(anchorRef); if (sn) notes.push(sn); }
+      if (i === 0 && scriptureLines.length) notes.push({ kind: 'list', heading: 'Scriptures to read (KJV)', items: scriptureLines });
       if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
       if (isReflect(seg.name) && dp.length) notes.push({ kind: 'list', heading: 'Ask the room', items: dp });
       // The teaching beats show the age-appropriate lesson; other beats show that
@@ -738,11 +731,34 @@ export function lessonPresentable(module, opts = {}) {
           detailLabel: handsOnLabel,
           anchorRef: i === 0 ? anchorRef : null,
           anchorTheme: i === 0 ? anchorTheme : null,
+          // The opener puts the anchor Word VERBATIM on the class screen for the room
+          // to read together — not just the location.
+          scripture: i === 0 ? (scriptureBlock || null) : null,
         },
         notes,
         runOfShow: [],
       };
     });
+    // Closing recap the ROOM sees — "The Word we stood on" — a refresher of every
+    // anchor Scripture, verbatim, to take home (Darrell's design choice 2026-07-16).
+    if (scriptureBlock) {
+      scenes.push({
+        id: `${m.id || 'lesson'}-recap`,
+        indexLabel: `Part ${scenes.length + 1}`,
+        estimatedMin: 2,
+        audience: {
+          title: 'The Word we stood on',
+          lead: 'The Scriptures from today — take them with you.',
+          scripture: scriptureBlock,
+          detailLabel: handsOnLabel,
+        },
+        notes: [{ kind: 'list', heading: 'Scriptures (KJV)', items: scriptureLines }],
+        runOfShow: [],
+      });
+    }
+    // Re-label every part now the count is final (the recap may have been appended).
+    const finalTotal = scenes.length;
+    scenes = scenes.map((sc, i) => ({ ...sc, indexLabel: `Part ${i + 1} of ${finalTotal}` }));
   } else {
     // A lesson with no authored run-of-show still presents as one big-idea scene —
     // the FULL age text (both halves) at the chosen band, re-pitchable live.
@@ -765,13 +781,15 @@ export function lessonPresentable(module, opts = {}) {
     }];
   }
 
-  const fullMin = ros.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
+  // The lesson's OWN length = the sum of its parts (authored run-of-show + the recap),
+  // so the timer target matches the "full = N min" the reflow shows. NEVER the 607
+  // series sum.
+  const fullMin = scenes.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
   return {
     id: `lesson:${m.id || 'lesson'}`,
     title: m.title || 'Lesson',
     kicker: DEFAULT_KICKER,
-    // The lesson's OWN length is the target (its authored run-of-show sum, ~38 min);
-    // fall back to 45 when a lesson has no timed segments. NEVER the 607-min series sum.
+    // Fall back to 45 when a lesson has no timed segments.
     targetMin: fullMin > 0 ? fullMin : (opts.targetMin || 45),
     scenes: backfillTiming(scenes),
   };
