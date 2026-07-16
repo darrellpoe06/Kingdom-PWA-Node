@@ -685,7 +685,9 @@ export default function Presenter({
           <div style={{ ...card, background: '#fff', opacity: 0.95 }}>
             <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
             <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem' }}>{nxt.audience?.title}</strong>
-            {nxt.audience?.lead && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{nxt.audience.lead}</p>}
+            {/* the next slide, pitched to the CURRENT age band too (so the preview
+                matches what the room will see after you advance). */}
+            {resolveAudienceLead(nxt.audience, age) && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{resolveAudienceLead(nxt.audience, age)}</p>}
           </div>
         )}
 

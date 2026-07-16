@@ -41,6 +41,25 @@
 // =============================================================================
 import { TEACH_CHANNEL, formatClock } from './teach-present.js';
 import { formatClassDate } from './church-classes.js';
+import { kjvText } from './scriptures.js';
+
+// A presenter-only note listing each anchor Scripture WITH its verbatim KJV text,
+// so the minister can recall/read the actual Word, not just the location (Darrell
+// 2026-07-16). VERBATIM ONLY (DR-0076): the text comes from the fetched KJV store
+// (lib/scripture-kjv.js) — a reference not yet in the store shows its location alone,
+// never a verse typed from memory. Splits a compound anchor ("A 1:2; B 3:4") on ';'.
+export function anchorScriptureNote(anchorRef) {
+  if (!anchorRef) return null;
+  const items = String(anchorRef)
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((ref) => {
+      const t = kjvText(ref);
+      return t ? `${ref} — "${t}"` : ref;
+    });
+  return items.length ? { kind: 'list', heading: 'Scriptures to read (KJV)', items } : null;
+}
 import { serviceKindLabel } from './service-day.js';
 
 // Re-export the shared, versioned channel + clock so callers import one module.
@@ -629,27 +648,65 @@ export function coursePresentable(course) {
 // opts.level is a module.levels KEY ('child'|'teen'|'senior', or null for the general
 // big idea) — the pace already chosen in the lesson, so the presenter does not
 // re-introduce it. handsOnLabel labels the in-app detail line.
+// Split a block of teaching text into two balanced halves on a sentence boundary,
+// so a lesson's big-idea + go-deeper parts EACH carry real content at the age level
+// (not one scaled slide and four unscaled ones). Never drops content.
+export function splitTeachingText(text) {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return ['', ''];
+  const sentences = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  if (sentences.length < 2) return [clean, ''];
+  const totalLen = clean.length;
+  let acc = 0; let cut = 1;
+  for (let i = 0; i < sentences.length; i += 1) {
+    acc += sentences[i].length;
+    if (acc >= totalLen / 2) { cut = i + 1; break; }
+  }
+  cut = Math.min(Math.max(cut, 1), sentences.length - 1);
+  return [sentences.slice(0, cut).join('').trim(), sentences.slice(cut).join('').trim()];
+}
+
+// A presenter band ('child'|'teen'|'adult') -> the module.levels KEY it reads. The
+// course authors child/teen/senior rewrites, so the ADULT band presents the mature
+// 'senior' rewrite (not the general big idea) — the whole lesson lands at the class's
+// level, every part, not just the opener.
+const LEVEL_KEY_TO_BAND = { child: 'child', teen: 'teen', senior: 'adult', standard: 'adult' };
+
 export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
   const lv = m.levels || {};
-  const levelText = opts.level && lv[opts.level] ? lv[opts.level] : null;
-  // Per-band variants so the speaker can switch age LIVE on the big-idea slide
-  // (child/teen from the lesson's own level copy; adult = the general big idea).
-  const leadByAge = {
+  // The FULL age-appropriate lesson text per presenter band (falls back to the big
+  // idea when a band has no authored rewrite).
+  const textByBand = {
     child: lv.child || m.bigIdea || '',
     teen: lv.teen || m.bigIdea || '',
-    adult: m.bigIdea || lv.senior || '',
+    adult: lv.senior || m.bigIdea || '',
   };
+  // Each band's text split across the two teaching beats (big idea -> go deeper), so
+  // BOTH scale to the room and both re-pitch when the band is switched live.
+  const halves = {
+    child: splitTeachingText(textByBand.child),
+    teen: splitTeachingText(textByBand.teen),
+    adult: splitTeachingText(textByBand.adult),
+  };
+  const bigLeadByAge = { child: halves.child[0], teen: halves.teen[0], adult: halves.adult[0] };
+  const deeperLeadByAge = {
+    child: halves.child[1] || halves.child[0],
+    teen: halves.teen[1] || halves.teen[0],
+    adult: halves.adult[1] || halves.adult[0],
+  };
+  const baseBand = LEVEL_KEY_TO_BAND[opts.level] || 'teen';
   const tp = Array.isArray(m.facilitator?.talkingPoints) ? m.facilitator.talkingPoints : [];
   const dp = Array.isArray(m.facilitator?.discussionPrompts) ? m.facilitator.discussionPrompts : [];
   const anchorRef = m.anchor?.ref || null;
   const anchorTheme = m.anchor?.theme || null;
 
   const ros = parseRunOfShow(m.facilitator?.howToRun);
-  // Which segment carries the actual teaching / the discussion, by its authored name.
-  const isBigIdea = (name) => /big idea|the core|teach|main/i.test(name || '');
-  const isReflect = (name) => /reflect|discuss|respond|apply|go deeper|engage/i.test(name || '');
+  // Which segment carries the actual teaching / go-deeper / discussion, by name.
+  const isBigIdea = (name) => /big idea|the core|main|^teach/i.test(name || '');
+  const isDeeper = (name) => /deeper|dig|explore|unpack/i.test(name || '');
+  const isReflect = (name) => /reflect|discuss|respond|engage|prompt|apply/i.test(name || '');
   const isTakeaway = (name) => /take it|with you|send|send-off|close|charge/i.test(name || '');
 
   let scenes;
@@ -657,21 +714,26 @@ export function lessonPresentable(module, opts = {}) {
     const total = ros.length;
     scenes = ros.map((seg, i) => {
       const big = isBigIdea(seg.name);
+      const deeper = isDeeper(seg.name);
       const notes = [];
+      // The opener carries the anchor Scriptures VERBATIM so the minister can recall
+      // and read the Word, not just the location.
+      if (i === 0) { const sn = anchorScriptureNote(anchorRef); if (sn) notes.push(sn); }
       if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
       if (isReflect(seg.name) && dp.length) notes.push({ kind: 'list', heading: 'Ask the room', items: dp });
+      // The teaching beats show the age-appropriate lesson; other beats show that
+      // part's own one-line facilitator detail.
+      const teachingLead = big ? bigLeadByAge : (deeper ? deeperLeadByAge : null);
       return {
         id: `${m.id || 'lesson'}-s${i + 1}`,
         indexLabel: `Part ${i + 1} of ${total}`,
         estimatedMin: seg.estimatedMin,
         audience: {
-          // On the big-idea part the room sees the real teaching (pitched to the pace);
-          // elsewhere the room sees that part's own one-line detail.
           title: seg.name || `Part ${i + 1}`,
-          lead: big ? (levelText || m.bigIdea || seg.detail || '') : (seg.detail || ''),
-          // The big-idea part carries every band's copy so the speaker re-pitches it
-          // to the room mid-talk without leaving the slide.
-          leadByAge: big ? leadByAge : null,
+          lead: teachingLead ? (teachingLead[baseBand] || m.bigIdea || seg.detail || '') : (seg.detail || ''),
+          // Both teaching beats carry every band's copy so switching the band mid-talk
+          // re-pitches the WHOLE lesson to the room, without leaving the slide.
+          leadByAge: teachingLead,
           detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
           detailLabel: handsOnLabel,
           anchorRef: i === 0 ? anchorRef : null,
@@ -682,14 +744,18 @@ export function lessonPresentable(module, opts = {}) {
       };
     });
   } else {
-    // A lesson with no authored run-of-show still presents as one big-idea scene.
+    // A lesson with no authored run-of-show still presents as one big-idea scene —
+    // the FULL age text (both halves) at the chosen band, re-pitchable live.
+    const wholeByAge = {
+      child: textByBand.child, teen: textByBand.teen, adult: textByBand.adult,
+    };
     scenes = [{
       id: `${m.id || 'lesson'}-s1`,
       indexLabel: 'Part 1 of 1',
       audience: {
         title: m.title || 'The lesson',
-        lead: levelText || m.bigIdea || '',
-        leadByAge,
+        lead: wholeByAge[baseBand] || m.bigIdea || '',
+        leadByAge: wholeByAge,
         detail: m.inApp || null,
         detailLabel: handsOnLabel,
         anchorRef, anchorTheme,
