@@ -57,9 +57,11 @@ r2 = video_to_row({"id": "vid22222222", "title": "Sunday Worship", "published": 
 ok &= check("row date from upload fallback", r2["service_date"] == "2026-07-12")
 ok &= check("dateless title still has readable title", r2["title"] == "Sunday Worship")
 
-# No date ANYWHERE -> reported/skipped (None), never guessed.
+# No date ANYWHERE -> STILL imported (dateless), so the archive matches the channel.
 r3 = video_to_row({"id": "vid33333333", "title": "Choir rehearsal clip"}, "inst-1")
-ok &= check("no date anywhere -> None", r3 is None)
+ok &= check("no date anywhere -> still imported", r3 is not None)
+ok &= check("dateless row has null service_date", r3["service_date"] is None)
+ok &= check("dateless row keeps its title", r3["title"] == "Choir rehearsal clip")
 
 # No id -> None.
 ok &= check("no id -> None", video_to_row({"title": "6 -10 - 2026 x"}, "inst-1") is None)

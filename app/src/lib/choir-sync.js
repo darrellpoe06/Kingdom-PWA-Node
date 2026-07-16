@@ -380,22 +380,22 @@ export function selectNewSermonImports(items, existingVideoIds) {
   for (const it of items || []) {
     if (!it.videoId || have.has(it.videoId)) continue;
     const p = _parseTitle(it.title);
-    // Every video lands WITH a date "so users know" (Darrell 2026-07-14): prefer
-    // the date in the title; fall back to the YouTube UPLOAD date (publishedAt).
-    // Only skip if there is genuinely no date anywhere — no more dropping a real
-    // service just because its title didn't spell out the date.
+    // EVERY new channel video is imported — the archive must match the channel
+    // (Darrell 2026-07-16: "there are 850 videos on YouTube... get the others").
+    // Date, best-effort: the title's date, else the YouTube UPLOAD date; a video
+    // with no date anywhere still lands (dateless, sorted last) — never dropped.
     const uploadDate = (typeof it.publishedAt === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.publishedAt)) ? it.publishedAt.slice(0, 10) : null;
-    const serviceDate = p.serviceDate || uploadDate;
-    if (!serviceDate) continue;
+    const serviceDate = p.serviceDate || uploadDate || null;
     out.push({
       videoId: it.videoId,
       youtubeUrl: `https://www.youtube.com/watch?v=${it.videoId}`,
       serviceDate,
       serviceType: p.serviceType,
-      title: p.title || String(it.title || '').trim(),
+      title: p.title || String(it.title || '').trim() || 'Untitled message',
       speaker: p.speaker,
       source: 'youtube',
     });
+    have.add(it.videoId); // dedup WITHIN this call too (the same video across pages)
   }
   return out;
 }
@@ -448,19 +448,31 @@ export async function getChoirAccess(displayName) {
 // --- Generic fetch + realtime subscribe --------------------------------------
 
 function makeSubscriber(table, mapRow, orderBy) {
-  return function subscribe(onChange) {
+  return function subscribe(onChange, onError) {
     let channel = null;
     let cancelled = false;
     (async () => {
-      const session = await currentSession();
-      if (!session || cancelled) return;
+      // Cold-start race (Darrell 2026-07-15, "we don't have any Word in the Word
+      // Tab"): getSession() can return null for a beat on a fresh load, BEFORE
+      // the persisted session is read. The old code bailed silently on that null
+      // -> onChange never fired -> the list sat at "No messages yet." though the
+      // session and the rows were both there a moment later. Retry briefly; only
+      // after the session truly doesn't arrive do we report an honest empty.
+      let session = null;
+      for (let i = 0; i < 8 && !cancelled; i += 1) {
+        session = await currentSession();
+        if (session) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (cancelled) return;
+      if (!session) { onChange([]); return; } // genuinely signed out -> honest empty, never a hang
       const myUserId = session.user.id;
       const fetchAll = async () => {
         const q = supabase.from(table).select('*');
         const { data, error } = orderBy
           ? await q.order(orderBy.col, { ascending: orderBy.asc })
           : await q;
-        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); return null; }
+        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); if (onError) onError(error); return null; }
         return (data || []).map((r) => mapRow(r, myUserId));
       };
       const initial = await fetchAll();
@@ -1029,7 +1041,9 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
   if (!key) return { skipped: 'no-key' };
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
-  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 12;
+  // Scan the WHOLE channel by default (~850 videos = 17 pages of 50); 40 pages
+  // is 2000-video headroom so nothing older is left unscanned (Darrell 2026-07-16).
+  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 40;
   try {
     // Resolve the channel's uploads playlist from its handle.
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
@@ -1051,11 +1065,21 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
       title: r.title,
       speaker: r.speaker,
       source: 'youtube',
+      // PUBLISHED, not draft. An archived channel video is already public on
+      // YouTube, and The Word library is public by design (migration 0029/0103):
+      // it must be watchable the moment it is archived. BG's prep (points /
+      // scriptures) stays private separately (0101) and fills in over the next
+      // days — the video does not wait on it.
+      status: 'active',
     }));
     const { error } = await supabase.from('choir_sermons').insert(rows);
     if (error) return { skipped: 'insert-error', error };
     return { imported: rows.length, scanned: items.length, more };
   } catch (e) {
-    return { skipped: 'api-error', error: e };
+    // Surface the REAL reason (status + body) so a manager can fix it from the
+    // screen (DR-0076). ytApi throws "YouTube API 403: ..." — a 403 is almost
+    // always the key's HTTP-referrer restriction not allowing this site, or the
+    // "YouTube Data API v3" not being enabled on the key's Google Cloud project.
+    return { skipped: 'api-error', error: e, detail: (e && e.message) || String(e) };
   }
 }

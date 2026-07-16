@@ -290,33 +290,34 @@ describe('selectNewSermonImports (idempotent channel import)', () => {
   const items = [
     { videoId: 'vNEW1', title: '6 -10 - 2026 Bishop E. Gwin "LET GO"' },          // new, dated, sunday
     { videoId: 'vHAVE', title: '6 -3 - 2026 Bishop Gwin Wednesday Bible Study "X"' }, // already stored
-    { videoId: 'vNODATE', title: 'Black History Month at The Love Corner' },        // no date -> skip
+    { videoId: 'vNODATE', title: 'Black History Month at The Love Corner' },        // no date -> still imported (dateless)
     { videoId: 'vNEW2', title: '5/28/2026 Bishop Gwin Wednesday Bible Study "Y"' },  // new, slash date
   ];
-  it('keeps only new, dated videos and shapes them for insert', () => {
+  it('imports EVERY new video (dateless included) and shapes them for insert', () => {
     const out = selectNewSermonImports(items, ['vHAVE']);
-    expect(out.map((r) => r.videoId)).toEqual(['vNEW1', 'vNEW2']);
+    expect(out.map((r) => r.videoId)).toEqual(['vNEW1', 'vNODATE', 'vNEW2']); // all 3 new, incl. dateless
     expect(out[0]).toMatchObject({ serviceType: 'sunday', serviceDate: '2026-06-10', source: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=vNEW1' });
-    expect(out[1].serviceType).toBe('wednesday');
+    expect(out[1]).toMatchObject({ videoId: 'vNODATE', serviceDate: null }); // dateless -> null, but present
+    expect(out[2].serviceType).toBe('wednesday');
   });
   it('returns nothing when every video is already stored', () => {
-    expect(selectNewSermonImports(items, ['vNEW1', 'vHAVE', 'vNEW2'])).toEqual([]);
+    expect(selectNewSermonImports(items, ['vNEW1', 'vNODATE', 'vHAVE', 'vNEW2'])).toEqual([]);
   });
   it('is safe on empty inputs', () => {
     expect(selectNewSermonImports(null, null)).toEqual([]);
   });
-  // Every video lands WITH a date "so users know" (Darrell 2026-07-14): a title with
-  // no spelled-out date still archives, dated from the YouTube UPLOAD date
-  // (contentDetails.videoPublishedAt), instead of being silently dropped. Only a
-  // video with NO date anywhere is skipped.
-  it('falls back to the upload date (publishedAt) when the title has no date', () => {
+  // A title with no spelled-out date is dated from the YouTube UPLOAD date
+  // (contentDetails.videoPublishedAt); a video with NO date anywhere still imports
+  // (dateless) so the archive matches the channel — never dropped.
+  it('dates from the upload date when the title has none, and still imports the truly dateless', () => {
     const withUpload = [
       { videoId: 'vUP', title: 'Sunday Worship at The Love Corner', publishedAt: '2026-07-12T15:30:00Z' },
-      { videoId: 'vNONE', title: 'Choir rehearsal clip' }, // no title date, no upload date -> still skip
+      { videoId: 'vNONE', title: 'Choir rehearsal clip' }, // no title date, no upload date -> imported dateless
     ];
     const out = selectNewSermonImports(withUpload, []);
-    expect(out.map((r) => r.videoId)).toEqual(['vUP']);
+    expect(out.map((r) => r.videoId)).toEqual(['vUP', 'vNONE']);
     expect(out[0].serviceDate).toBe('2026-07-12');
+    expect(out[1].serviceDate).toBe(null);
   });
 });
 

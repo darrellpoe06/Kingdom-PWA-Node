@@ -212,7 +212,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           Data API — Reality-Trace P15). A real live/offline detector
           (same-origin n8n proxy, no key) is the follow-up. */}
       {hasWorshipPlayer && (
-        <section aria-labelledby="live-worship-h" className="bg-white border-2 border-[#B85838] p-4">
+        // When "Follow along" is open, the player PINS to the top (sticky) and goes
+        // compact — so it stays watchable while you scroll + work the Word below it,
+        // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
+        <section aria-labelledby="live-worship-h" className={`bg-white border-2 border-[#B85838] p-4${followAlong ? ' sticky top-0 z-30 shadow-xl' : ''}`}>
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
             <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
               Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
@@ -222,9 +225,11 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               {showLive ? 'Live service' : 'Latest message'}
             </span>
           </div>
-          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
-          </p>
+          {!followAlong && (
+            <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
+            </p>
+          )}
 
           {playerSrc ? (
             <div className="mt-3 aspect-video bg-[#1A1815]">

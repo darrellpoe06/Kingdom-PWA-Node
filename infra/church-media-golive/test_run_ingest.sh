@@ -1,16 +1,15 @@
 #!/bin/sh
 # =============================================================================
-# test_run_ingest.sh -- proves the three brakes on run_ingest.sh actually CATCH
-# (DR-0076 proven-to-catch). No network: the python loaders are replaced by a
-# stub that exits 0, so this tests the BRAKE + CHAIN control flow only. POSIX sh.
-#   sh test_run_ingest.sh
+# test_run_ingest.sh -- proves run_ingest.sh RUNS by default and that its
+# malfunction brakes still catch (DR-0076 proven-to-catch, DR-0186). No network:
+# the python loaders are a stub that exits 0, so this tests brake + chain control
+# flow only. POSIX sh.  sh test_run_ingest.sh
 # =============================================================================
 set -eu
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# Stub "python": ignores args, exits 0. Makes the chain "run" without network.
 STUB="$TMP/py"
 printf '#!/bin/sh\nexit 0\n' > "$STUB"
 chmod +x "$STUB"
@@ -24,43 +23,40 @@ check() { # name  needle  present|absent
     absent)  case "$_hay" in *"$2"*) echo "FAIL $1 (present: $2)"; fail=$((fail+1));; *) echo "ok   $1"; ok=$((ok+1));; esac ;;
   esac
 }
-run() { # state-setup already done by caller
+run() {
   rm -f "$EV" 2>/dev/null || true
   STATE_DIR="$TMP/state" EVENTS_DIR="$TMP/events" PY="$STUB" \
     sh "$HERE/run_ingest.sh" >/dev/null 2>&1 || true
 }
 reset_state() { rm -rf "$TMP/state"; mkdir -p "$TMP/state"; }
 
-# --- Case A: SHIPS INERT -- kill-switch present (the shipped default) ----------
-reset_state; touch "$TMP/state/KILL_SWITCH"; touch "$TMP/state/INGEST_ARMED"
+# --- Case A: RUNS by default (no arming ceremony) -> commits to production -----
+reset_state
 run
-check "A kill-switch => inert"        "kill-switch engaged" present
-check "A kill-switch => never runs"   '"event":"go"'        absent
-check "A kill-switch => no archive"   '"event":"done"'      absent
+check "A default => runs"                 '"event":"go"'   present
+check "A default => commit (production)"  "mode=commit"    present
+check "A default => chain completes"      '"event":"done"' present
 
-# --- Case B: not armed (no INGEST_ARMED) -> inert -----------------------------
-reset_state   # no KILL_SWITCH, no INGEST_ARMED
-run
-check "B not armed => inert"          "not armed"           present
-check "B not armed => never runs"     '"event":"go"'        absent
+# --- Case B: DRY-RUN override (rehearsal, no writes) ---------------------------
+reset_state
+rm -f "$EV" 2>/dev/null || true
+STATE_DIR="$TMP/state" EVENTS_DIR="$TMP/events" PY="$STUB" INGEST_DRYRUN=1 \
+  sh "$HERE/run_ingest.sh" >/dev/null 2>&1 || true
+check "B dryrun flag => dry-run mode"      "mode=dry-run"  present
+check "B dryrun flag => still runs"        '"event":"go"'  present
 
-# --- Case C: ARMED (kill-switch removed + INGEST_ARMED) -> runs the chain ------
-reset_state; touch "$TMP/state/INGEST_ARMED"
+# --- Case C: KILL-SWITCH (the stop valve) -> halts instantly -------------------
+reset_state; touch "$TMP/state/KILL_SWITCH"
 run
-check "C armed => go"                 '"event":"go"'        present
-check "C armed => dry-run by default" "mode=dry-run"        present
-check "C armed => chain completes"    '"event":"done"'      present
+check "C kill-switch => stopped"           "kill-switch engaged" present
+check "C kill-switch => does NOT run"      '"event":"go"'  absent
+check "C kill-switch => no archive"        '"event":"done"' absent
 
-# --- Case C2: armed + INGEST_COMMIT -> commit mode ----------------------------
-reset_state; touch "$TMP/state/INGEST_ARMED"; touch "$TMP/state/INGEST_COMMIT"
+# --- Case D: SINGLE-FLIGHT LOCK held -> skip (never stacks) --------------------
+reset_state; mkdir -p "$TMP/state/ingest.lock"
 run
-check "C2 commit flag => commit mode" "mode=commit"         present
-
-# --- Case D: SINGLE-FLIGHT LOCK held -> skip ----------------------------------
-reset_state; touch "$TMP/state/INGEST_ARMED"; mkdir -p "$TMP/state/ingest.lock"
-run
-check "D lock held => skip"           "single-flight lock"  present
-check "D lock held => does not run"   '"event":"go"'        absent
+check "D lock held => skip"                "single-flight lock" present
+check "D lock held => does not run"        '"event":"go"'  absent
 
 echo ""
 if [ "$fail" -eq 0 ]; then echo "ALL PASS ($ok checks)"; exit 0; else echo "FAILURES: $fail"; exit 1; fi
