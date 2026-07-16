@@ -1065,6 +1065,12 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
       title: r.title,
       speaker: r.speaker,
       source: 'youtube',
+      // PUBLISHED, not draft. An archived channel video is already public on
+      // YouTube, and The Word library is public by design (migration 0029/0103):
+      // it must be watchable the moment it is archived. BG's prep (points /
+      // scriptures) stays private separately (0101) and fills in over the next
+      // days — the video does not wait on it.
+      status: 'active',
     }));
     const { error } = await supabase.from('choir_sermons').insert(rows);
     if (error) return { skipped: 'insert-error', error };
