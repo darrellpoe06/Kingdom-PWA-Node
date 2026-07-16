@@ -34,11 +34,12 @@
 // #5A6E3D + #7A1F1F + #B85838 accents (>=4.5:1), focus ring #B85838, controls >=36px.
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide,
+  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide, resolveAudienceLead,
   PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE, ageHint,
   PRIORITY, fitToBudget, makeScene,
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
+import AudienceSlide from './AudienceSlide.jsx';
 
 // The presenter's own device localStorage, guarded (SSR / private-mode safe). The
 // living-curriculum overlay is personal to the presenter and never touches the
@@ -251,6 +252,10 @@ export default function Presenter({
   const [showNotes, setShowNotes] = useState(true);
   const [age, setAge] = useState(PRESENT_AGE_BANDS.some((b) => b.id === initialAge) ? initialAge : DEFAULT_PRESENT_AGE);
   const [audienceState, setAudienceState] = useState('closed'); // closed | open | blocked | live | blank
+  // Clean present-on-THIS-screen mode: the room's slide fills this device (a tablet
+  // held up / cast to a TV), no popup, no second browser. The age toggle + nav stay
+  // reachable so the speaker adjusts the pitch to the room live (Darrell 2026-07-16).
+  const [onScreen, setOnScreen] = useState(false);
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------
   const [budgetMin, setBudgetMin] = useState(0);  // 0 = no budget (full curriculum)
@@ -286,22 +291,24 @@ export default function Presenter({
   const effectiveTarget = budgetMin > 0 ? budgetMin : targetMin;
 
   // Refs so the once-bound channel handler + resend timeouts read the LIVE index /
-  // blank state without stale closures.
+  // blank state / age without stale closures.
   const idxRef = useRef(idx);
   useEffect(() => { idxRef.current = idx; }, [idx]);
   const blankRef = useRef(false);
   useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
+  const ageRef = useRef(age);
+  useEffect(() => { ageRef.current = age; }, [age]);
 
   // The single broadcast path. Honors "blank": while blanked it sends the holding
-  // slide, NOT the scene — so navigating (or a ready/resend) never pops content
-  // back onto a deliberately-held projector.
+  // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
+  // room's slide instantly (leadByAge), without leaving the current slide.
   const sendCurrent = useCallback(() => {
     const ch = chRef.current;
     if (!ch) return;
     try {
       ch.postMessage(blankRef.current
         ? holdingSlide(title, kicker)
-        : buildSlideForScene(scenes, idxRef.current, { kicker }));
+        : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current }));
     } catch (e) { /* non-fatal */ }
   }, [scenes, title, kicker]);
 
@@ -320,8 +327,9 @@ export default function Presenter({
     return () => { try { ch.removeEventListener('message', onMsg); ch.close(); } catch (e) { /* noop */ } chRef.current = null; };
   }, [sendCurrent]);
 
-  // Broadcast on scene change (and on mount) — blank-aware via sendCurrent.
-  useEffect(() => { sendCurrent(); }, [idx, sendCurrent]);
+  // Broadcast on scene change, on AGE change (live re-pitch to the room), and on
+  // mount — blank-aware via sendCurrent.
+  useEffect(() => { sendCurrent(); }, [idx, age, sendCurrent]);
 
   // If the projector window is closed (or the display unplugged), reflect it.
   useEffect(() => {
@@ -376,12 +384,20 @@ export default function Presenter({
 
   const resumeAudience = useCallback(() => {
     blankRef.current = false;
-    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker })); } catch (e) { /* noop */ }
+    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current })); } catch (e) { /* noop */ }
     setAudienceState('live');
   }, [scenes, kicker]);
 
   const overMin = Math.floor(elapsed / 60) >= effectiveTarget;
   const a = cur?.audience || {};
+  // The lead pitched to the CURRENT age band — switching the band re-pitches the
+  // mirror + the projector + the on-screen view instantly, on this same slide.
+  const liveLead = resolveAudienceLead(a, age);
+  const canRepitch = !!(a.leadByAge && (a.leadByAge.child || a.leadByAge.teen || a.leadByAge.adult));
+  // A live PREVIEW of exactly what the class screen shows (age-resolved), so the
+  // presenter view holds the slide AND the notes together — no window to drag, no
+  // backing out (Darrell 2026-07-16).
+  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age }) : null;
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
 
@@ -429,6 +445,42 @@ export default function Presenter({
     );
   }
 
+  // PRESENT ON THIS SCREEN — the room's slide fills THIS device, no popup, no second
+  // browser. The speaker taps to advance; the age chips stay on the bar the whole way,
+  // so the pitch can be switched to the room instantly, on the same slide, never
+  // leaving to the top (Darrell 2026-07-16). A connected class-screen window still
+  // mirrors this via the broadcast (age + index carry through sendCurrent).
+  if (onScreen) {
+    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, age });
+    const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
+    const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Presenting — ${title}`}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
+          <AudienceSlide slide={cleanSlide} />
+        </div>
+        {/* Always-on speaker bar — never projected content, just the controls. */}
+        <div style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+          onClick={(e) => e.stopPropagation()}>
+          <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous" style={{ ...navBtn, opacity: idx === 0 ? 0.4 : 1 }}>←</button>
+          <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#CFC9BD', minWidth: 88, textAlign: 'center' }}>{idx + 1} / {scenes.length}</span>
+          <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" style={{ ...navBtn, opacity: idx === last ? 0.4 : 1 }}>→</button>
+          {/* THE audience choice, reachable the whole way through — switch instantly */}
+          <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 6, marginLeft: 6, flexWrap: 'wrap' }}>
+            {PRESENT_AGE_BANDS.map((b) => (
+              <button key={b.id} type="button" role="radio" aria-checked={age === b.id} onClick={() => setAge(b.id)} style={chip(age === b.id)}>{b.label}</button>
+            ))}
+          </div>
+          {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#C9D9A6', fontFamily: '"JetBrains Mono", monospace' }}>re-pitches live</span>}
+          <span aria-live="polite" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>{formatClock(elapsed)}</span>
+          <button type="button" onClick={() => setRunning((r) => !r)} style={chip(false)}>{running ? 'Pause' : 'Start'}</button>
+          <button type="button" onClick={() => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* F11 */ } }} style={chip(false)}>Full screen</button>
+          <button type="button" onClick={() => setOnScreen(false)} style={{ ...chip(false), borderColor: '#EBA77E', color: '#EBA77E' }}>Speaker view ✕</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
       {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
@@ -449,8 +501,12 @@ export default function Presenter({
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(16px, 3vw, 32px)' }}>
         {/* audience-screen controls + "through the church" framing */}
         <div style={{ ...card, background: '#fff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.875rem' }}>Class screen (projector):</strong>
-          {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.base}>Open class screen →</button>}
+          {/* The no-setup path: present on THIS device (tablet held up / cast to a TV) —
+              no popup, no second browser, no second person. */}
+          <button type="button" onClick={() => setOnScreen(true)} style={btn.base}>▶ Present on this screen</button>
+          <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>fills this screen — cast or hold it up; the age toggle stays with you.</span>
+          <strong style={{ flexBasis: '100%', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', marginTop: 4 }}>Two screens? Class screen (projector):</strong>
+          {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.ghost}>Open class screen →</button>}
           {audienceState !== 'closed' && audienceState !== 'blocked' && (
             <>
               <span style={{ fontSize: '0.8125rem', color: '#5A6E3D' }}>● {audienceState === 'blank' ? 'holding slide up' : 'live & synced'}</span>
@@ -488,6 +544,7 @@ export default function Presenter({
               );
             })}
           </div>
+          {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>· switches the room’s wording live</span>}
           <span style={{ flexBasis: '100%', margin: 0, fontSize: '0.8125rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
         </div>
 
@@ -574,18 +631,27 @@ export default function Presenter({
           )}
         </div>
 
-        {/* what the room sees right now (mirror) */}
+        {/* PRESENTER VIEW — a live preview of exactly what the class screen shows,
+            ABOVE the readable copy + the flow + notes, so the presenter sees the
+            room's slide and their own notes together, automatically (no window to
+            drag onto a second display, no backing out). */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
-          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <span>On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 8, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <span>What the class screen shows{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
             {curPlan && budgetMin > 0 && (
               <span style={{ color: curPlan.skipped ? '#7A1F1F' : (curPlan.atFloor ? '#B85838' : '#5A6E3D') }}>
                 {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min${curPlan.atFloor ? ' (floor)' : ''}`}
               </span>
             )}
           </div>
+          {/* the real audience slide, miniaturized — a faithful mirror of the projector */}
+          <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
+              <AudienceSlide slide={previewSlide} />
+            </div>
+          </div>
           <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(1.375rem, 3vw, 2rem)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
-          {a.lead && <p style={{ fontSize: '1.0625rem', lineHeight: 1.5, margin: '0 0 10px' }}>{a.lead}</p>}
+          {liveLead && <p style={{ fontSize: '1.0625rem', lineHeight: 1.5, margin: '0 0 10px' }}>{liveLead}</p>}
           {a.detail && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
           {a.anchorRef && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
         </div>
@@ -619,7 +685,9 @@ export default function Presenter({
           <div style={{ ...card, background: '#fff', opacity: 0.95 }}>
             <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
             <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem' }}>{nxt.audience?.title}</strong>
-            {nxt.audience?.lead && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{nxt.audience.lead}</p>}
+            {/* the next slide, pitched to the CURRENT age band too (so the preview
+                matches what the room will see after you advance). */}
+            {resolveAudienceLead(nxt.audience, age) && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{resolveAudienceLead(nxt.audience, age)}</p>}
           </div>
         )}
 

@@ -77,6 +77,24 @@ export async function reportPresence() {
   }
 }
 
+// Wait for the auth session to be READY before firing the RLS SELECTs. On a
+// resumed / cold-started tab (especially mobile), getSession() can return null for
+// a beat — or briefly stall — while the persisted token is applied; if the queries
+// fire in that window they run WITHOUT a valid token and every one hits the ceiling
+// ("Access couldn't load — admin_*-timeout", observed 2026-07-16). Retry a few
+// times, each attempt bounded, until a session appears; mirrors choir-sync's
+// session-retry (the same cold-start race that stranded The Word). Bounded so the
+// panel always proceeds: at most ~8 * (1s cap + 250ms) then falls back to the
+// synchronous persisted read.
+export async function readySession() {
+  for (let i = 0; i < 8; i += 1) {
+    const res = await withTimeout(supabase.auth.getSession(), 1000, null);
+    if (res && res.data && res.data.session) return res.data.session;
+    await new Promise((r) => { setTimeout(r, 250); });
+  }
+  return null;
+}
+
 // ── snapshot fetch ───────────────────────────────────────────────────────────
 // Run one RLS-gated SELECT, map rows with `map`, and degrade to [] on any error
 // (recording the failure so the UI can say "couldn't load X" honestly).
@@ -103,13 +121,13 @@ async function safeSelect(table, columns, map, errors) {
 export async function fetchAccessSnapshot() {
   const errors = {};
 
-  // getSession() can hang on a resumed tab (auth-boot-gate-hang). Race it against
-  // the ceiling and, if it stalls/errors, decide sign-in from the SYNCHRONOUS
-  // persisted read (never hangs) so the panel resolves either way.
-  const sessionRes = await withTimeout(supabase.auth.getSession(), SNAPSHOT_TIMEOUT_MS, null);
-  const signedIn = sessionRes && sessionRes.data
-    ? !!(sessionRes.data.session)
-    : !!readPersistedSession();
+  // WAIT for the session to be ready before the RLS SELECTs, so they carry a valid
+  // token instead of firing token-less and timing out (the "Access couldn't load"
+  // symptom on a resumed mobile tab). readySession() is bounded and falls through to
+  // the synchronous persisted read, so the panel always resolves either way.
+  let session;
+  try { session = await readySession(); } catch (e) { session = null; }
+  const signedIn = session ? true : !!readPersistedSession();
   if (!signedIn) {
     return {
       signedIn: false,

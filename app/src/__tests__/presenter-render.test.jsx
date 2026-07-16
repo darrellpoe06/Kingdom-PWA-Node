@@ -124,4 +124,33 @@ describe('Presenter — time-adaptive render', () => {
     const addBtn = [...container.querySelectorAll('button')].find((b) => /add a section/i.test(b.textContent));
     expect(addBtn).toBeFalsy();
   });
+
+  it('presents on THIS screen (no popup) with the age toggle reachable, and re-pitches live', () => {
+    // A slide that carries per-band wording so switching the band changes the room's text.
+    const aged = {
+      id: 'aged:deck', title: 'Aged deck', targetMin: 10,
+      scenes: [{
+        id: 's1', indexLabel: 'Part 1 of 1', estimatedMin: 10,
+        audience: { title: 'The big idea', lead: 'grown-up wording', leadByAge: { child: 'kid wording', teen: 'teen wording', adult: 'grown-up wording' } },
+        notes: [],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: aged, storage: store, initialAge: 'adult' })));
+    // enter present-on-this-screen (no window.open needed)
+    const onScreenBtn = [...container.querySelectorAll('button')].find((b) => /present on this screen/i.test(b.textContent));
+    expect(onScreenBtn).toBeTruthy();
+    act(() => onScreenBtn.click());
+    // the room sees the adult wording, and the age toggle is right there on the bar
+    expect(container.textContent).toMatch(/grown-up wording/);
+    const childChip = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Children');
+    expect(childChip).toBeTruthy();
+    // switch the room to Children mid-slide -> the wording re-pitches instantly, no navigation
+    act(() => childChip.click());
+    expect(container.textContent).toMatch(/kid wording/);
+    expect(container.textContent).not.toMatch(/grown-up wording/);
+    // and back out to the speaker console without losing the place
+    const exitBtn = [...container.querySelectorAll('button')].find((b) => /speaker view/i.test(b.textContent));
+    act(() => exitBtn.click());
+    expect(container.querySelector('input[aria-label="Minutes available"]')).toBeTruthy();
+  });
 });

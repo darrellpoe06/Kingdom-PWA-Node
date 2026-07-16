@@ -5,9 +5,16 @@
 // that never resolves used to strand the panel on "Loading…" forever. withTimeout
 // is the guard: a promise that never settles MUST resolve to the fallback.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { withTimeout, SNAPSHOT_TIMEOUT_MS } from '../lib/access-metrics-sync.js';
 
-afterEach(() => { vi.useRealTimers(); });
+vi.mock('../lib/supabase.js', () => ({
+  default: { auth: { getSession: vi.fn() } },
+  readPersistedSession: vi.fn(() => null),
+}));
+
+import supabase from '../lib/supabase.js';
+import { withTimeout, SNAPSHOT_TIMEOUT_MS, readySession } from '../lib/access-metrics-sync.js';
+
+afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
 
 describe('withTimeout — the Access & Usage snapshot can never hang', () => {
   it('resolves to the fallback when the promise NEVER settles (THE hang)', async () => {
@@ -30,5 +37,31 @@ describe('withTimeout — the Access & Usage snapshot can never hang', () => {
   it('uses a bounded, sane ceiling', () => {
     expect(SNAPSHOT_TIMEOUT_MS).toBeGreaterThan(0);
     expect(SNAPSHOT_TIMEOUT_MS).toBeLessThanOrEqual(15000);
+  });
+});
+
+// Proven-to-catch for the "Access couldn't load — admin_*-timeout" symptom
+// (2026-07-16): on a resumed mobile tab the RLS queries fired BEFORE the token was
+// ready and all timed out. readySession waits for the session first.
+describe('readySession — the RLS queries get a token before they fire', () => {
+  it('returns the session once it appears after a beat (cold-tab race)', async () => {
+    vi.useFakeTimers();
+    const sess = { user: { id: 'u1' } };
+    supabase.auth.getSession
+      .mockResolvedValueOnce({ data: { session: null } })
+      .mockResolvedValueOnce({ data: { session: null } })
+      .mockResolvedValue({ data: { session: sess } });
+    const p = readySession();
+    await vi.advanceTimersByTimeAsync(2000); // let the null retries + 250ms gaps run
+    expect(await p).toEqual(sess);
+  });
+
+  it('returns null (bounded, no hang) when the session never arrives', async () => {
+    vi.useFakeTimers();
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null } });
+    const p = readySession();
+    await vi.advanceTimersByTimeAsync(8 * (1000 + 250) + 200);
+    expect(await p).toBeNull();
+    expect(supabase.auth.getSession).toHaveBeenCalledTimes(8); // bounded retries
   });
 });

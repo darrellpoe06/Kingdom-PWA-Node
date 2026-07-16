@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
-  buildSlideForScene, holdingSlide,
+  buildSlideForScene, holdingSlide, resolveAudienceLead,
   coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
@@ -115,7 +115,11 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     bigIdea: 'God made us to grow through stages.',
     inApp: 'Feed your stage the Word this week.',
     anchor: { ref: 'Ecclesiastes 3:1', theme: 'a time to every purpose' },
-    levels: { child: 'God made you to grow!', teen: 'You are still forming — on purpose.', senior: 'Every stage is His design.' },
+    levels: {
+      child: 'God made you to grow. That is on purpose!',
+      teen: 'You are still forming, on purpose. Feed it well.',
+      senior: 'Every stage is His design. Honor the frame He gave.',
+    },
     facilitator: {
       talkingPoints: ['Growth is design, not deficiency.'],
       discussionPrompts: ['Where have you treated a normal stage as a flaw?'],
@@ -123,15 +127,29 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     },
   };
 
-  it('makes the LESSON its own presentation — scenes are its run-of-show parts, not weeks', () => {
+  it('makes the LESSON its own presentation — its parts + a closing Scripture recap', () => {
     const p = lessonPresentable(lesson);
     expect(p.id).toBe('lesson:mit1');
     expect(p.title).toBe('The Design in Time');
-    // 5 authored segments -> 5 scenes (this lesson's parts), each an "Part i of N"
-    expect(p.scenes.length).toBe(5);
-    expect(p.scenes[0].indexLabel).toBe('Part 1 of 5');
-    // targetMin is THIS lesson's own length (3+15+10+8+2 = 38), never the series 607
-    expect(p.targetMin).toBe(38);
+    // 5 authored segments + the "The Word we stood on" recap = 6 scenes
+    expect(p.scenes.length).toBe(6);
+    expect(p.scenes[0].indexLabel).toBe('Part 1 of 6');
+    expect(p.scenes[5].audience.title).toBe('The Word we stood on');
+    // targetMin is THIS lesson's own length (3+15+10+8+2 + 2 recap = 40), not 607
+    expect(p.targetMin).toBe(40);
+  });
+
+  it('shows the anchor Word VERBATIM on the opener class screen and repeats it as a recap', () => {
+    const p = lessonPresentable(lesson);
+    // opener carries the verbatim anchor on the audience payload (the room reads it)
+    expect(p.scenes[0].audience.scripture).toContain('Ecclesiastes 3:1');
+    // Ecclesiastes 3:1 is in the fetched KJV store, so the actual verse text rides along
+    expect(p.scenes[0].audience.scripture).toMatch(/to every thing there is a season/i);
+    // the closing recap repeats the sourced Scriptures for a refresher
+    const recap = p.scenes[p.scenes.length - 1];
+    expect(recap.audience.scripture).toMatch(/to every thing there is a season/i);
+    // and the built slide carries scripture through to the projector
+    expect(buildSlideForScene(p.scenes, 0, {}).scripture).toBeTruthy();
   });
 
   it('a time budget reflows THIS lesson only (45 min lands per-part, not ~2.8)', () => {
@@ -144,10 +162,11 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(fit.plan.every((s) => s.skipped || s.allocatedMin >= 1)).toBe(true);
   });
 
-  it('pitches the big-idea slide to the chosen pace and puts the anchor on the opener', () => {
+  it('pitches the teaching to the chosen pace and puts the anchor on the opener', () => {
     const p = lessonPresentable(lesson, { level: 'child' });
     const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
-    expect(big.audience.lead).toBe(lesson.levels.child); // paced, not re-introduced
+    // the big-idea part shows the FIRST half of the child lesson (whole lesson scales)
+    expect(big.audience.lead).toBe('God made you to grow.');
     expect(p.scenes[0].audience.anchorRef).toBe('Ecclesiastes 3:1');
     // talking points ride as presenter-only notes on the teaching part
     expect(big.notes.some((n) => n.heading === 'Say this')).toBe(true);
@@ -156,11 +175,43 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(reflect.notes.some((n) => n.heading === 'Ask the room')).toBe(true);
   });
 
-  it('falls back to a single big-idea scene when a lesson has no run-of-show', () => {
+  it('scales the WHOLE lesson — go-deeper carries the rest of the age text, not one scaled slide', () => {
+    const p = lessonPresentable(lesson);
+    const deeper = p.scenes.find((s) => /deeper/i.test(s.audience.title));
+    // go-deeper is a teaching beat too: it re-pitches per band (second half of the text)
+    expect(deeper.audience.leadByAge).toBeTruthy();
+    expect(resolveAudienceLead(deeper.audience, 'child')).toBe('That is on purpose!');
+    expect(resolveAudienceLead(deeper.audience, 'adult')).toBe('Honor the frame He gave.');
+  });
+
+  it('the ADULT band presents the senior rewrite (the whole lesson at the class level)', () => {
+    const p = lessonPresentable(lesson);
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    // adult -> senior rewrite (first half), NOT the generic big idea
+    expect(resolveAudienceLead(big.audience, 'adult')).toBe('Every stage is His design.');
+    expect(resolveAudienceLead(big.audience, 'child')).toBe('God made you to grow.');
+    expect(resolveAudienceLead(big.audience, 'teen')).toBe('You are still forming, on purpose.');
+    // the opener carries the anchor Scripture note for the minister to read
+    const sn = p.scenes[0].notes.find((n) => /Scriptures to read/i.test(n.heading || ''));
+    expect(sn).toBeTruthy();
+  });
+
+  it('falls back to a single scene (full age text) when a lesson has no run-of-show', () => {
     const bare = lessonPresentable({ id: 'x', title: 'X', bigIdea: 'idea' });
     expect(bare.scenes.length).toBe(1);
     expect(bare.scenes[0].audience.lead).toBe('idea');
     expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
+  });
+});
+
+describe('resolveAudienceLead — live age re-pitch of one slide', () => {
+  it('returns the band variant when present, else the base lead', () => {
+    const a = { lead: 'base', leadByAge: { child: 'kid', teen: 'teen', adult: 'grown' } };
+    expect(resolveAudienceLead(a, 'child')).toBe('kid');
+    expect(resolveAudienceLead(a, 'adult')).toBe('grown');
+    expect(resolveAudienceLead(a, 'missing')).toBe('base'); // unknown band -> base
+    expect(resolveAudienceLead({ lead: 'base' }, 'child')).toBe('base'); // no variants -> base
+    expect(resolveAudienceLead(null, 'child')).toBe(''); // safe on empty
   });
 });
 
