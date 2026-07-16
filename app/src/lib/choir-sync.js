@@ -380,22 +380,22 @@ export function selectNewSermonImports(items, existingVideoIds) {
   for (const it of items || []) {
     if (!it.videoId || have.has(it.videoId)) continue;
     const p = _parseTitle(it.title);
-    // Every video lands WITH a date "so users know" (Darrell 2026-07-14): prefer
-    // the date in the title; fall back to the YouTube UPLOAD date (publishedAt).
-    // Only skip if there is genuinely no date anywhere — no more dropping a real
-    // service just because its title didn't spell out the date.
+    // EVERY new channel video is imported — the archive must match the channel
+    // (Darrell 2026-07-16: "there are 850 videos on YouTube... get the others").
+    // Date, best-effort: the title's date, else the YouTube UPLOAD date; a video
+    // with no date anywhere still lands (dateless, sorted last) — never dropped.
     const uploadDate = (typeof it.publishedAt === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.publishedAt)) ? it.publishedAt.slice(0, 10) : null;
-    const serviceDate = p.serviceDate || uploadDate;
-    if (!serviceDate) continue;
+    const serviceDate = p.serviceDate || uploadDate || null;
     out.push({
       videoId: it.videoId,
       youtubeUrl: `https://www.youtube.com/watch?v=${it.videoId}`,
       serviceDate,
       serviceType: p.serviceType,
-      title: p.title || String(it.title || '').trim(),
+      title: p.title || String(it.title || '').trim() || 'Untitled message',
       speaker: p.speaker,
       source: 'youtube',
     });
+    have.add(it.videoId); // dedup WITHIN this call too (the same video across pages)
   }
   return out;
 }
@@ -1041,7 +1041,9 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
   if (!key) return { skipped: 'no-key' };
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
-  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 12;
+  // Scan the WHOLE channel by default (~850 videos = 17 pages of 50); 40 pages
+  // is 2000-video headroom so nothing older is left unscanned (Darrell 2026-07-16).
+  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 40;
   try {
     // Resolve the channel's uploads playlist from its handle.
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);

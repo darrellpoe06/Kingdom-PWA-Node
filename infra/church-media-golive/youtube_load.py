@@ -121,12 +121,12 @@ def video_to_row(video, instance_id):
     p = parse_service_title(raw_title)
     upload = video.get("published")
     upload = upload if (isinstance(upload, str) and re.match(r"^\d{4}-\d{2}-\d{2}", upload)) else None
-    service_date = p["service_date"] or upload
-    if not service_date:
-        return None
-    # A readable title even when the video has no quoted message title: fall back
-    # to the cleaned raw title so the card never shows a blank.
-    title = p["title"] or html.unescape(raw_title).strip() or None
+    # EVERY video is archived so The Word matches the channel (Darrell 2026-07-16:
+    # "850 videos on YouTube... get the others"). Date best-effort: title, else the
+    # upload date, else None — a dateless video still lands, never dropped.
+    service_date = p["service_date"] or upload or None
+    # A readable title even when the video has no quoted message title.
+    title = p["title"] or html.unescape(raw_title).strip() or "Untitled message"
     return {
         "instance_id": instance_id,
         "video_id": vid,
@@ -240,7 +240,7 @@ def main():
         row = video_to_row(v, instance_id or f"<{args.slug}>")
         if not row:
             skipped += 1
-            print(f"  SKIP (no date anywhere): {v.get('id')} {v.get('title')}")
+            print(f"  SKIP (no video id): {v.get('title')}")
             continue
         label = f"{row['service_date']} · {row['service_type']} · {row['title']} [{row['video_id']}]"
         if not args.commit:
