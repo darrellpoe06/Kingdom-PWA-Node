@@ -290,4 +290,11 @@ export const KJV = {
   "James 1:22-25": "But be ye doers of the word, and not hearers only, deceiving your own selves. For if any be a hearer of the word, and not a doer, he is like unto a man beholding his natural face in a glass: For he beholdeth himself, and goeth his way, and straightway forgetteth what manner of man he was. But whoso looketh into the perfect law of liberty, and continueth therein, he being not a forgetful hearer, but a doer of the work, this man shall be blessed in his deed.",
   "Matthew 7:24": "Therefore whosoever heareth these sayings of mine, and doeth them, I will liken him unto a wise man, which built his house upon a rock:",
   "John 13:17": "If ye know these things, happy are ye if ye do them.",
+
+  // --- Appended for the "Made in Time" course anchors (lib/made-in-time-course.js) ---
+  // Sourced VERBATIM from the in-repo public-domain KJV (app/public/bible/kjv/*.json,
+  // materialized by scripts/fetch-full-kjv.mjs), never typed from memory (DR-0076).
+  "2 Corinthians 3:18": "But we all, with open face beholding as in a glass the glory of the Lord, are changed into the same image from glory to glory, even as by the Spirit of the LORD.",
+  "Colossians 2:14-15": "Blotting out the handwriting of ordinances that was against us, which was contrary to us, and took it out of the way, nailing it to his cross; And having spoiled principalities and powers, he made a shew of them openly, triumphing over them in it.",
+  "Ezekiel 18:20": "The soul that sinneth, it shall die. The son shall not bear the iniquity of the father, neither shall the father bear the iniquity of the son: the righteousness of the righteous shall be upon him, and the wickedness of the wicked shall be upon him.",
 };
