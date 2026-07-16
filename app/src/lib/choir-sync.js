@@ -1070,6 +1070,10 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
     if (error) return { skipped: 'insert-error', error };
     return { imported: rows.length, scanned: items.length, more };
   } catch (e) {
-    return { skipped: 'api-error', error: e };
+    // Surface the REAL reason (status + body) so a manager can fix it from the
+    // screen (DR-0076). ytApi throws "YouTube API 403: ..." — a 403 is almost
+    // always the key's HTTP-referrer restriction not allowing this site, or the
+    // "YouTube Data API v3" not being enabled on the key's Google Cloud project.
+    return { skipped: 'api-error', error: e, detail: (e && e.message) || String(e) };
   }
 }

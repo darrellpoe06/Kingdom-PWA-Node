@@ -343,6 +343,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     const r = await onImport();
     if (r?.imported >= 0 && r.imported !== undefined) setImportMsg(`Imported ${r.imported} new message(s) from the channel.`);
     else if (r?.skipped === 'no-key') setImportMsg('Add VITE_YOUTUBE_API_KEY (Vercel env) to enable channel import.');
+    else if (r?.skipped === 'api-error') setImportMsg(`YouTube API error — ${r?.detail || 'request failed'}. A 403 usually means the key's referrer restriction blocks this site, or "YouTube Data API v3" is not enabled for the key.`);
     else setImportMsg(`Import skipped (${r?.skipped || 'error'}).`);
   };
   // Display-dedupe (migration 0061 mirror): collapse the harvest's duplicate
