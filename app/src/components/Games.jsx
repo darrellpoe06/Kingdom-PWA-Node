@@ -21,6 +21,7 @@ import TextSizeControl from './TextSizeControl.jsx';
 import GamePlayer from './GamePlayer.jsx';
 import AssetAllocator from './games/AssetAllocator.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
+import TimelineGame from './games/TimelineGame.jsx';
 import { START_CASH } from '../lib/games/asset-allocation.js';
 import { FamilyPortrait } from './games/GameArt.jsx';
 import { GAME_LEVELS, levelMeta } from '../lib/games/difficulty.js';
@@ -128,6 +129,18 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
           <TextSizeControl />
         </div>
         <StoryExplorer level={level} onExit={() => setMini(null)} />
+      </div>
+    );
+  }
+
+  // ---- the "Yahweh's Story, in order" timeline game takes over the Play tab --
+  if (tab === 'play' && mini === 'timeline') {
+    return (
+      <div className="mx-auto max-w-2xl px-1 sm:px-0 py-2">
+        <div className="flex items-center justify-end gap-3 mb-3">
+          <TextSizeControl />
+        </div>
+        <TimelineGame onExit={() => setMini(null)} />
       </div>
     );
   }
@@ -283,6 +296,26 @@ export default function Games({ saves = [], addSave, updateSave, deleteSave }) {
             <div className="mt-4">
               <button onClick={() => setMini('story')} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
                 <UiIcon name="dove" /> Explore your story
+              </button>
+            </div>
+          </div>
+
+          {/* Yahweh's Story, in order — a game of timelines (Darrell 2026-07-15).
+              Reads the same verified timeline spine as the surface + master lesson. */}
+          <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4`}>
+            <div className="flex items-center gap-2">
+              <UiIcon name="bookOpen" className={T_ACCENT} />
+              <h3 className={`text-lg font-semibold ${T_INK}`} style={{ fontFamily: 'Fraunces, serif' }}>Yahweh&rsquo;s Story, in order</h3>
+              <span className={`text-[0.625rem] uppercase tracking-wide ${T_ACCENT} ${BG_CREAM} px-1.5 py-0.5 rounded`}>timeline</span>
+            </div>
+            <p className={`text-sm ${T_ACCENT} mt-1`}>Put the whole story in order &mdash; before time to the end.</p>
+            <p className={`text-sm leading-relaxed ${T_MUTE} mt-2`}>
+              From before time, through the Fall, Babel, the cross and Pentecost, to the day He dwells with us again &mdash;
+              tap the era that comes next and rebuild the one story the Word tells. See where WE are on the line.
+            </p>
+            <div className="mt-4">
+              <button onClick={() => setMini('timeline')} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium inline-flex items-center gap-2`}>
+                <UiIcon name="bookOpen" /> Play the timeline
               </button>
             </div>
           </div>

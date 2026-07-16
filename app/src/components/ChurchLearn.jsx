@@ -57,11 +57,14 @@ import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-alg
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
+import BiblicalTimeline from './BiblicalTimeline.jsx';
+import { epochsForLesson, getEpoch } from '../lib/biblical-timeline.js';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable } from '../lib/presentable.js';
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
+import { recordUse, recentUsed } from '../lib/ux-signals.js';
 
 const fmtDate = formatClassDate;
 
@@ -671,6 +674,35 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 )}
               </div>
             )}
+            {/* The master timeline, made interactive (module.explore === 'timeline'):
+                the whole story as one line, connecting every OTHER lesson at its
+                place -- surfaced INSIDE this lesson, in the Learn section (Darrell
+                2026-07-15: "add it into the Learn section as a lesson that connects
+                the others ... on their respective timelines"). */}
+            {module.explore === 'timeline' && (
+              <div className="mt-3 border-t border-[#E8E4DC] pt-3">
+                {!showExplore ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowExplore(true)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    Open the timeline &mdash; see where every lesson sits →
+                  </button>
+                ) : (
+                  <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+                    <BiblicalTimeline />
+                    <button
+                      type="button"
+                      onClick={() => setShowExplore(false)}
+                      className="mt-3 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      Close the timeline
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         );
       case 'send':
@@ -801,6 +833,9 @@ function CourseView({
   const [openTutorId, setOpenTutorId] = useState(null);
   const [exportNote, setExportNote] = useState('');
   const [teaching, setTeaching] = useState(false);
+  // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
+  // from the user's own device-local UX history (ux-signals).
+  const [recentTick, setRecentTick] = useState(0);
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -938,12 +973,76 @@ function CourseView({
           </button>
         </div>
       )}
+      {/* Pick-a-lesson-by-title index (Darrell 2026-07-15: "Titles etc so users
+          can pick a lesson from their titles"). Every lesson renders in full
+          below, so with many lessons the list is a long scroll -- this scannable
+          title index jumps straight to any one. Follows the current SORT (it maps
+          the already-sorted `schedule`). Shown once a course has enough lessons to
+          be worth an index. */}
+      {schedule.length > 4 && (
+        <nav aria-label={`Pick a ${U.noun} by title`} className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
+            Pick a {U.noun} by title · {schedule.length}
+          </div>
+          {/* "Recently opened" — the view adapts to the user's OWN history (Darrell
+              2026-07-15: "users preferences based on historical data about uiux").
+              Device-local + private (ux-signals); empty until they open lessons. */}
+          {(() => {
+            void recentTick; // re-derive when a lesson is opened
+            const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
+            if (recentIds.length === 0) return null;
+            return (
+              <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Recently opened</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {recentIds.map((id) => {
+                    const m = schedule.find((x) => x.id === id);
+                    const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="text-[0.6875rem] px-2 py-1 border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        style={{ fontFamily: '"Fraunces", serif' }}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+          <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
+            {schedule.map((m) => (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${m.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="w-full text-left py-1 text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  style={{ fontFamily: '"Fraunces", serif' }}
+                >
+                  <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
+                  {' · '}{m.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
       <ol className="space-y-3">
         {schedule.map((m) => {
           const done = !!progress[m.id];
           const tutorOpen = openTutorId === m.id;
           return (
-            <li key={m.id} className="border border-[#E8E4DC] p-4">
+            <li key={m.id} id={`learn-lesson-${m.id}`} className="border border-[#E8E4DC] p-4 scroll-mt-28">
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {m.week} · {m.title}
@@ -954,6 +1053,18 @@ function CourseView({
                   </span>
                 )}
               </div>
+              {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
+                  "a lesson ... that connects the others ... on their respective
+                  timelines"). Only Living Lessons are anchored on the spine, so this
+                  is inert for other courses. */}
+              {(() => {
+                const eras = epochsForLesson(m.id).map((eid) => (getEpoch(eid) || {}).era).filter(Boolean);
+                return eras.length ? (
+                  <div className="mt-1 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">
+                    <span className="font-semibold">On the timeline:</span> {eras.join(' · ')}
+                  </div>
+                ) : null;
+              })()}
               <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
@@ -983,7 +1094,7 @@ function CourseView({
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <button
                   type="button"
-                  onClick={() => setOpenTutorId(tutorOpen ? null : m.id)}
+                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); } setOpenTutorId(tutorOpen ? null : m.id); }}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
                   className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}

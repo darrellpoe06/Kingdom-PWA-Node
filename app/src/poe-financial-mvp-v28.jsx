@@ -3668,7 +3668,7 @@ export default function PoeFinancialSystem() {
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
-  // one tap away (AuthBanner) for staff / a ride account; staff surfaces self-gate.
+  // one tap away (HeaderAuthButton) for staff / a ride account; staff surfaces self-gate.
   if (__gate !== 'app' && !churchDoorOnly) {
     return (
       <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
