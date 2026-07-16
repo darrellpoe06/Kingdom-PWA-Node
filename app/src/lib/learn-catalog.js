@@ -26,6 +26,7 @@ import { INFRA_META, INFRA_SESSION_FLOW, buildInfraSchedule, infraProgressSummar
 import { SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown, SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META } from './sovereign-ai-class.js';
 import { AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown, AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META } from './ai-legal-blueprint-class.js';
 import { LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW, buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown, LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META } from './living-lessons-class.js';
+import { MADE_IN_TIME_META, MADE_IN_TIME_SESSION_FLOW, buildMadeInTimeSchedule, madeInTimeProgressSummary, exportMadeInTimeCurriculumMarkdown, MADE_IN_TIME_INTEREST_TAG, MADE_IN_TIME_HELPER_TAG, MADE_IN_TIME_TUTOR_META } from './made-in-time-course.js';
 import { SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW, buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown, SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META } from './sound-board-class.js';
 import { WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW, buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown, WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META } from './world-issues-class.js';
 import { DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW, buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown, DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META } from './datasystems-course.js';
@@ -84,6 +85,20 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
       cta: 'I’d like more',
       sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
+    },
+  },
+  {
+    key: 'made-in-time', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...MADE_IN_TIME_META, key: 'made-in-time', category: 'The Word & The Way' }, sessionFlow: MADE_IN_TIME_SESSION_FLOW,
+    buildScheduleRows: () => buildMadeInTimeSchedule(), progressSummary: (p) => madeInTimeProgressSummary(p),
+    exportMarkdown: () => exportMadeInTimeCurriculumMarkdown(), downloadName: 'made-in-time.md',
+    interestTag: MADE_IN_TIME_INTEREST_TAG, helperTag: MADE_IN_TIME_HELPER_TAG, tutorCourseMeta: MADE_IN_TIME_TUTOR_META,
+    interestText: (who) => `${MADE_IN_TIME_INTEREST_TAG} ${who} wants more of Made in Time.`,
+    interestCopy: {
+      heading: 'Want more of this course?',
+      blurb: 'Tell Darrell which ages, mind-and-brain questions, or spiritual-warfare topics to cover next, and he’ll add them — Word-first, with science as a witness, never over the Word.',
+      cta: 'I’d like more',
+      sent: '✓ Sent — Darrell will see what you’re hungry for.',
     },
   },
   {
