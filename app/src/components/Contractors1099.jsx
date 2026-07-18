@@ -176,12 +176,17 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
                 )}
                 {/* Tax identity: the masked ID (never the full number) + a W-9-needed
                     flag when a 1099 is due (threshold crossed) but no W-9 is on file. */}
-                {c.direction === 'outbound' && (c.taxIdLast4 || c.w9OnFile || (thr && thr.tone === 'due')) && (
-                  <div className="text-[0.625rem] leading-snug" style={{ color: (thr && thr.tone === 'due' && !c.w9OnFile) ? TONE_COLOR.warn : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
-                    {c.taxIdLast4 ? maskedLabel(c.taxIdType, c.taxIdLast4) : 'No taxpayer ID on file'}
-                    {c.w9OnFile ? ' · W-9 on file' : (thr && thr.tone === 'due' ? ' · W-9 NEEDED to file' : ' · no W-9 yet')}
-                  </div>
-                )}
+                {c.direction === 'outbound' && (c.taxIdLast4 || c.w9OnFile || (thr && thr.tone === 'due')) && (() => {
+                  const needsW9 = thr && thr.tone === 'due' && !c.w9OnFile;
+                  // Default color from a THEMEABLE class (text-[#5A5751] remaps in
+                  // dark theme); inline color ONLY for the coral warn (passes AA).
+                  return (
+                    <div className={`text-[0.625rem] leading-snug ${needsW9 ? '' : 'text-[#5A5751]'}`} style={needsW9 ? { color: TONE_COLOR.warn, fontFamily: '"JetBrains Mono", monospace' } : { fontFamily: '"JetBrains Mono", monospace' }}>
+                      {c.taxIdLast4 ? maskedLabel(c.taxIdType, c.taxIdLast4) : 'No taxpayer ID on file'}
+                      {c.w9OnFile ? ' · W-9 on file' : (thr && thr.tone === 'due' ? ' · W-9 NEEDED to file' : ' · no W-9 yet')}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
