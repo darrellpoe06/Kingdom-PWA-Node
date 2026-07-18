@@ -42,9 +42,27 @@ export function parseInviteEmails(text) {
   return { valid, invalid };
 }
 
+// Build the claim link the guardian DELIVERS to the invitee however they already
+// reach them (their own text / WhatsApp / email / in person — "DMs not SMS",
+// DR-0187). The invitee opens it, signs in, and it records a PENDING claim that
+// the guardian then re-confirms. Uses the current origin so it works on any host.
+export function buildClaimLink(token, origin) {
+  const base = origin || (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+  return `${base}/?join=${encodeURIComponent(String(token || ''))}`;
+}
+
+// Read a claim token out of the current URL (?join=... , set when the invitee
+// opens the delivered link). Returns '' when absent. Pure over an injected href.
+export function readClaimTokenFromUrl(href) {
+  try {
+    const url = new URL(href || (typeof window !== 'undefined' ? window.location.href : ''), 'https://x');
+    return String(url.searchParams.get('join') || '').trim();
+  } catch { return ''; }
+}
+
 // Invite ONE email to the caller's (non-church) instance with a role. Returns a
-// tagged result; never throws. role defaults to 'member' and can never be
-// 'owner' (the RPC enforces this too).
+// tagged result carrying the one-time claim LINK to deliver; never throws. role
+// defaults to 'member' and can never be 'owner' (the RPC enforces this too).
 export async function inviteToInstance(email, role = 'member') {
   if (!isValidInviteEmail(email)) return { email, ok: false, reason: 'bad-email' };
   const safeRole = INVITE_ROLES.includes(role) ? role : 'member';
@@ -53,7 +71,37 @@ export async function inviteToInstance(email, role = 'member') {
     role_in: safeRole,
   });
   if (error) return { email, ok: false, reason: 'rpc-error', error: error.message || String(error) };
-  return { email, ok: true, id: data };
+  // 0104 returns { id, token, email, role }; tolerate a bare uuid from an
+  // un-migrated backend so the app never crashes mid-rollout.
+  const id = data && typeof data === 'object' ? data.id : data;
+  const token = data && typeof data === 'object' ? data.token : null;
+  return { email, ok: true, id, token, link: token ? buildClaimLink(token) : null };
+}
+
+// The invitee presents the delivered token (must be signed in). Records a PENDING
+// claim only — grants nothing until a guardian confirms. Returns a tagged status.
+export async function claimInvite(token) {
+  const t = String(token || '').trim();
+  if (!t) return { ok: false, reason: 'no-token' };
+  const { data, error } = await supabase.rpc('claim_invite', { token_in: t });
+  if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
+  return { ok: true, status: data?.status || 'pending-confirm', instanceName: data?.instance_name || null, role: data?.role || null };
+}
+
+// The inviting guardian/admin lists claims awaiting their re-confirmation.
+export async function listPendingClaims() {
+  const { data, error } = await supabase.rpc('list_pending_claims');
+  if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error), claims: [] };
+  return { ok: true, claims: Array.isArray(data) ? data : [] };
+}
+
+// The guardian/admin re-confirms a pending claim — ONLY THEN is membership
+// granted to the person who claimed. Two-party binding (DR-0187).
+export async function confirmInvite(inviteId) {
+  if (!inviteId) return { ok: false, reason: 'no-id' };
+  const { data, error } = await supabase.rpc('confirm_invite', { invite_id_in: inviteId });
+  if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
+  return { ok: true, instanceId: data };
 }
 
 // Invite MANY emails (a person + their family) in one action. Runs them

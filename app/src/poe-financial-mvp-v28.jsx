@@ -24,6 +24,7 @@ import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
 import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
+import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
 import { accessState } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
@@ -3713,6 +3714,7 @@ ${THEME_CSS}
       </div>
 
       <AuthBanner />
+      <ClaimInviteBanner />
       {persistIssue && (
         <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
           <span>⚠ {persistIssue.message}</span>
