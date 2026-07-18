@@ -11,7 +11,7 @@ import InstallAppButton from './components/InstallAppButton.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
-import { REMINDER_OPTIONS } from './lib/calendar-shared.js';
+import { dueReminders } from './lib/reminders.js';
 import { fmt, monthLabel } from './lib/format.js';
 import { recordError } from './lib/error-journal.js';
 import { recordView } from './lib/usage-events.js';
@@ -2354,30 +2354,18 @@ export default function PoeFinancialSystem() {
     }
   }, [data]);
 
-  // v7: Reminder checking loop — fires browser notifications for upcoming events
+  // v7: Reminder loop — thin wiring over the extracted pure engine (lib/reminders
+  // dueReminders). The engine decides WHICH reminders are due now; the shell only
+  // records the fired key + raises the browser Notification. Fires only while the
+  // tab is open (a service worker calling dueReminders() is the next step).
   useEffect(() => {
     if (notifPermission !== 'granted') return;
     const checkReminders = () => {
-      const now = new Date();
-      (data.events || []).filter(e => !e.completedAt).forEach(event => {
-        const eDate = eventDateTime(event);
-        (event.reminders || []).forEach(reminderKey => {
-          const opt = REMINDER_OPTIONS.find(o => o.key === reminderKey);
-          if (!opt) return;
-          const reminderTime = new Date(eDate.getTime() - opt.offsetMinutes * 60000);
-          const firedKey = `${event.id}-${reminderKey}`;
-          // Fire if reminder time has passed but event hasn't, and we haven't fired this one
-          if (now >= reminderTime && now <= eDate && !firedRemindersRef.current.has(firedKey)) {
-            firedRemindersRef.current.add(firedKey);
-            try {
-              new Notification(`PoeTech reminder: ${event.title}`, {
-                body: opt.label === 'At event time' ? `Happening now · ${event.description || event.category}` : `${opt.label} · ${event.description || event.category}`,
-                tag: firedKey,
-              });
-            } catch (e) { console.warn('Notification failed', e); }
-          }
-        });
-      });
+      for (const r of dueReminders(data.events || [], Date.now(), firedRemindersRef.current)) {
+        firedRemindersRef.current.add(r.firedKey);
+        try { new Notification(r.title, { body: r.body, tag: r.tag }); }
+        catch (e) { console.warn('Notification failed', e); }
+      }
     };
     checkReminders(); // run once on mount
     const interval = setInterval(checkReminders, 30000); // every 30s
