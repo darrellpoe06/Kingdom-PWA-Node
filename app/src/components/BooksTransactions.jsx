@@ -720,7 +720,12 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) reason = 'unreadable or blank date';
       else if (!desc) reason = 'missing description';
       const ok = !reason;
-      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok, reason };
+      // Capture the bank's running balance when the export has it (Chase does), so
+      // the single-file import carries it too and the account-of-record "reconciles"
+      // badge can verify this account (2026-07-18). Absent -> undefined (unchanged).
+      const balance = (idx.balance !== undefined && idx.balance !== -1 && cells[idx.balance] != null && String(cells[idx.balance]).trim() !== '')
+        ? parseAmount(cells[idx.balance]) : undefined;
+      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok, reason, balance };
     });
     return { rows, headers, idx, errors };
   })();
@@ -737,6 +742,9 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         amount: r.amount,
         description: r.desc.slice(0, 200),
         category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+        // Carry the bank's running balance so the account-of-record "reconciles"
+        // badge can verify this account, matching the bulk path (2026-07-18).
+        ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
       });
     });
     // Emit the run-state outcome for the Loops watching layer (DR-0083) —
@@ -798,6 +806,34 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     ids.forEach(id => deleteTransaction(id));
     recordLoopRun({ key: 'account-reset', status: 'success', processed: ids.length, detail: acct });
     alert(`Cleared ${ids.length} transaction(s) from ${acct}. Now pick the bank file above to import a clean register.`);
+  };
+  // One-tap "Reset & re-import clean" — the whole fix in a SINGLE confirmed action
+  // (Darrell 2026-07-18: "you do it"). Combines clearAccountRegister + importCsv so a
+  // bad/collapsed import is replaced in one step: remove the account's current rows,
+  // then import the chosen file's valid rows to that account. Same strict account
+  // scope (accountTxnIds) + same irreversible warning. Needs a picked account AND a
+  // parsed file; the button only shows when both are ready.
+  const resetAndImport = () => {
+    if (!csvAccountId) { setCsvError('Pick the account (step 1) first.'); return; }
+    const valid = csvParsed.rows.filter(r => r.ok);
+    if (valid.length === 0) { setCsvError('Choose a bank file with importable rows first (step 2).'); return; }
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    const ids = accountTxnIds(data.transactions || [], csvAccountId);
+    if (!confirm(`Replace ${acct}: permanently remove its ${ids.length} current transaction(s) and import ${valid.length} clean row(s) from this file?\n\nThe removal CANNOT be undone.`)) return;
+    ids.forEach(id => deleteTransaction(id));
+    valid.forEach(r => {
+      addTransaction({
+        date: r.date,
+        accountId: csvAccountId,
+        amount: r.amount,
+        description: r.desc.slice(0, 200),
+        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+        ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
+      });
+    });
+    recordLoopRun({ key: 'account-reset-reimport', status: 'success', processed: valid.length, detail: `${acct} · replaced ${ids.length}` });
+    setCsvOpen(false); setCsvRaw(''); setCsvError('');
+    alert(`Replaced ${acct}: removed ${ids.length}, imported ${valid.length} clean transaction(s).`);
   };
   const onCsvFile = (file) => {
     if (!file) return;
@@ -1482,6 +1518,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   transactions" (Christina 2026-07-03: "how do I upload it? I
                   don't see where it says upload"). Step 3 completes the 1-2-3. */}
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">3. Import into the ledger</div>
+              {/* One-tap fix for a bad/collapsed earlier import: reset this account
+                  AND import the chosen file in a single confirmed action (Darrell
+                  2026-07-18). Only appears when an account + a parseable file are both
+                  ready AND the account already has rows to replace. */}
+              {csvAccountId && csvParsed.rows.filter(r => r.ok).length > 0 && accountTxnIds(data.transactions || [], csvAccountId).length > 0 && (
+                <button type="button" onClick={resetAndImport} className="w-full bg-[#B85838] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                  title="Remove this account's current transactions and import the chosen file — the one-step fix for a bad earlier import (cannot be undone).">
+                  ↺ Reset &amp; re-import — replace {accountTxnIds(data.transactions || [], csvAccountId).length} with {csvParsed.rows.filter(r => r.ok).length} clean
+                </button>
+              )}
               <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                 {(() => {
                   const n = csvParsed.rows.filter(r => r.ok).length;
