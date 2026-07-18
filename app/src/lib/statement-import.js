@@ -56,6 +56,12 @@ const HEADER_MATCHERS = {
   amount: /\b(amount|debit|transaction amount)\b/,
   credit: /\bcredit\b/,
   category: /\b(category|type)\b/,
+  // The running account balance AFTER the transaction (Chase checking exports it).
+  // It is the deterministic disambiguator that lets us tell a TRUE re-import (same
+  // balance) from a GENUINE repeat purchase (same date+amount+desc but a DIFFERENT
+  // running balance) — so no legitimate second identical charge is dropped as a
+  // "duplicate" (Christina's books, 2026-07-18). Optional: absent on many exports.
+  balance: /\b(running balance|balance)\b/,
 };
 const HEADER_SCAN_LINES = 10;
 
@@ -273,7 +279,15 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
       return;
     }
     if (!desc) { rejected.push({ line: i + 2, reason: 'missing-description', raw: line }); return; }
-    rows.push({ date, description: desc, amount: amt, category, ok: true });
+    // Carry the running balance through when the export has it (Chase does). It is
+    // the dedupe disambiguator (see HEADER_MATCHERS.balance) AND the input to the
+    // balance-continuity audit. Only attached when the cell is actually present +
+    // numeric, so exports without a balance column are unchanged.
+    const row = { date, description: desc, amount: amt, category, ok: true };
+    if (idx.balance !== -1 && cells[idx.balance] != null && String(cells[idx.balance]).trim() !== '') {
+      row.balance = parseAmount(cells[idx.balance]);
+    }
+    rows.push(row);
   });
   return { rows, rejected, reconciliation: reconcile(dataLines.length, rows.length, rejected.length), headers, errors: [] };
 }

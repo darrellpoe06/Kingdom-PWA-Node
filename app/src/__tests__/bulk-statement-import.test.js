@@ -98,6 +98,36 @@ describe('planBulkImport — dedupe (no double-count)', () => {
     expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true); // no undefined ids
     expect(new Set(ids).size).toBe(60);                                            // all unique — no collapse
   });
+  // Proven-to-catch (Christina's books, 2026-07-18): two GENUINE same-day,
+  // same-amount purchases must BOTH survive — the old content key (date|amount|
+  // desc) collapsed them into one, silently deleting a real transaction. The
+  // bank's running BALANCE differs between them (each moves the account), so with
+  // balance in the key they are correctly kept apart. On her real 1520-row file
+  // this recovered 17 wrongly-dropped transactions.
+  it('keeps TWO genuine same-amount repeats apart by their running balance (no false dedupe)', () => {
+    const rows = [
+      { date: '2026-07-17', amount: 200, description: 'online deposit', balance: 1000 },
+      { date: '2026-07-17', amount: 200, description: 'online deposit', balance: 1200 }, // real 2nd deposit
+    ];
+    const plan = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, []);
+    expect(plan.totalNew).toBe(2);      // both kept — NOT collapsed to 1
+    expect(plan.duplicates).toBe(0);
+    const ids = plan.routed[0].txns.map((t) => t.id);
+    expect(new Set(ids).size).toBe(2);  // distinct ids (balance is in the key)
+    expect(plan.routed[0].txns.every((t) => t.balance != null)).toBe(true); // balance persisted
+  });
+  it('a TRUE re-import (identical rows AND balances) still dedupes — idempotent with balance', () => {
+    const rows = [
+      { date: '2026-07-17', amount: 200, description: 'online deposit', balance: 1000 },
+      { date: '2026-07-17', amount: 200, description: 'online deposit', balance: 1200 },
+    ];
+    const first = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, []);
+    const committed = first.routed.flatMap((b) => b.txns); // now in the ledger, WITH balance
+    const second = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, committed);
+    expect(first.totalNew).toBe(2);
+    expect(second.totalNew).toBe(0);    // same file again = no-op
+    expect(second.duplicates).toBe(2);
+  });
   it('the SAME bulk import run twice is a no-op the second time (idempotent onboarding)', () => {
     const files = [file('ledger-chase7206.csv', [r('2026-05-01', 500, 'deposit', 'F1'), r('2026-05-02', -20, 'coffee', 'F2')])];
     const first = planBulkImport(files, ACCOUNTS, []);
