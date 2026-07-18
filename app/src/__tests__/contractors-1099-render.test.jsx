@@ -136,3 +136,20 @@ describe('Contractors1099 — worker voice never swallows the words', () => {
     expect(container.textContent).toContain('Pick the worker and write what they said.');
   });
 });
+
+// Proven-to-catch (review, 2026-07-18): the 1099-NEC threshold on the cards must
+// follow the SELECTED TAX YEAR, not the library default (2026 / $2,000). Before
+// the fix the component called classificationAdvisory/necThresholdLabel with NO
+// year, so a $900 contractor paid in 2025 (where the threshold is $600) wrongly
+// read "under threshold, no filing" — wrong tax guidance during filing season.
+describe('Contractors1099 — 1099-NEC threshold honors the tax year (not hardwired to 2026)', () => {
+  const paid900 = { id: 'k9', direction: 'outbound', type: 'contractor', name: 'Roof Co', role: 'roofer', ytdPaid: 900, status: 'active' };
+  it('TY2025 ($600 line): a $900 contractor reads CROSSED — a 1099-NEC IS required', async () => {
+    await mount({ ...baseProps, contractors: [paid900], currentDate: new Date(2025, 0, 1) });
+    expect(container.textContent).toMatch(/Crossed the \$600 1099-NEC threshold \(2025\)/);
+  });
+  it('TY2026 ($2,000 line): the same $900 does NOT read crossed — the year is honored', async () => {
+    await mount({ ...baseProps, contractors: [paid900], currentDate: new Date(2026, 0, 1) });
+    expect(container.textContent).not.toMatch(/Crossed/);
+  });
+});

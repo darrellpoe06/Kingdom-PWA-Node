@@ -58,9 +58,9 @@ const CONTRACTOR_TYPES = ['contractor', 'vendor'];
 // for outbound, the 1099-NEC threshold read from the real YTD-paid. Text uses
 // REM font sizes on purpose (consistency guard freezes this file's fixed-px
 // count; new text must scale with the large-print control).
-function ClassificationNote({ kind, ytdPaid, direction }) {
-  const a = classificationAdvisory(kind, { ytdPaid });
-  const thr = direction === 'outbound' ? necThresholdLabel(ytdPaid) : null;
+function ClassificationNote({ kind, ytdPaid, direction, year }) {
+  const a = classificationAdvisory(kind, { ytdPaid, year });
+  const thr = direction === 'outbound' ? necThresholdLabel(ytdPaid, year) : null;
   return (
     <div className="mt-1 space-y-1">
       <div className="text-[0.6875rem] leading-snug" style={{ color: TONE_COLOR[a.tone] || '#5A5751', fontFamily: '"Fraunces", serif' }}>
@@ -96,7 +96,7 @@ const BLANK_CONTRACTOR = {
   notes: '',
 };
 
-function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork }) {
+function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork, taxYear }) {
   const value = c.direction === 'outbound' ? c.ytdPaid : c.ytdReceived;
   const rateLabel = c.direction === 'outbound' ? 'YTD paid' : `YTD received · ${fmt(c.monthlyExpected)}/mo expected`;
   return (
@@ -121,8 +121,8 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
               rem sizes keep the consistency-guard px baseline frozen. */}
           {(() => {
             const kindLabel = (WORKER_KINDS.find(k => k.id === (c.kind || 'business')) || WORKER_KINDS[0]).label;
-            const adv = classificationAdvisory(c.kind || 'business', { ytdPaid: c.ytdPaid });
-            const thr = c.direction === 'outbound' ? necThresholdLabel(c.ytdPaid) : null;
+            const adv = classificationAdvisory(c.kind || 'business', { ytdPaid: c.ytdPaid, year: taxYear });
+            const thr = c.direction === 'outbound' ? necThresholdLabel(c.ytdPaid, taxYear) : null;
             return (
               <div className="mt-1 space-y-0.5">
                 <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{kindLabel}</div>
@@ -198,7 +198,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
           <div>
             <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
             <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.kind || 'business'} onChange={e => setEditForm({ ...editForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
-            <ClassificationNote kind={editForm.kind || 'business'} ytdPaid={editForm.ytdPaid} direction={editForm.direction} />
+            <ClassificationNote kind={editForm.kind || 'business'} ytdPaid={editForm.ytdPaid} direction={editForm.direction} year={taxYear} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
@@ -362,7 +362,16 @@ function WorkerVoice({ workers = [], incidents }) {
   );
 }
 
-export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents }) {
+export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents, currentDate }) {
+  // TAX YEAR drives the 1099-NEC threshold ($600 for 2024-2025; $2,000 for 2026+
+  // under the OBBBA). The advisory + threshold calls MUST be told the year — the
+  // library defaults to the latest known (2026/$2,000), so filing a PRIOR year
+  // (e.g. TY2025 during the 2026 filing season) would wrongly read a $900 payment
+  // as "under threshold, no 1099 needed" when $600 was the real line. This selector
+  // makes the year explicit and correct (verified fix, 2026-07-18).
+  const nowYear = (currentDate instanceof Date && !isNaN(currentDate)) ? currentDate.getFullYear() : 2026;
+  const [taxYear, setTaxYear] = useState(nowYear);
+  const TAX_YEARS = Array.from(new Set([nowYear, nowYear - 1, 2026, 2025, 2024])).filter(y => y >= 2024).sort((a, b) => b - a);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ ...BLANK_CONTRACTOR, entityId: entities[0]?.id || 'e-personal' });
   const [addError, setAddError] = useState('');
@@ -413,9 +422,19 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
           <div>
             <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{contractors.length} contractor{contractors.length === 1 ? '' : 's'} · {outbound.length} we pay, {inbound.length} we receive from</div>
           </div>
-          <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
-            {showAdd ? '× Cancel' : '+ Add contractor'}
-          </button>
+          <div className="flex items-baseline gap-3">
+            {/* Tax year — sets which 1099-NEC threshold the cards check ($600 for
+                2024-2025, $2,000 for 2026+). Filing a prior year? Pick it here so a
+                $600-2,000 payment isn't wrongly cleared. */}
+            <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Tax year
+              <select value={taxYear} onChange={e => setTaxYear(Number(e.target.value))} className="ml-1 border border-[#E8E4DC] bg-[#FAF8F4] text-[0.625rem] uppercase tracking-wider p-1">
+                {TAX_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+            <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+              {showAdd ? '× Cancel' : '+ Add contractor'}
+            </button>
+          </div>
         </div>
         {showAdd && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-2">
@@ -427,7 +446,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             <div>
               <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.kind || 'business'} onChange={e => setAddForm({ ...addForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
-              <ClassificationNote kind={addForm.kind || 'business'} ytdPaid={addForm.ytdPaid} direction={addForm.direction} />
+              <ClassificationNote kind={addForm.kind || 'business'} ytdPaid={addForm.ytdPaid} direction={addForm.direction} year={taxYear} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>
@@ -484,7 +503,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {outbound.map((c, i) => (
-              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} openWork={incidentsProvided ? workerOpenIncidents(c.id, incidents) : undefined} />
+              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} openWork={incidentsProvided ? workerOpenIncidents(c.id, incidents) : undefined} taxYear={taxYear} />
             ))}
           </div>
         )}
@@ -503,7 +522,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {inbound.map((c, i) => (
-              <ContractorRow key={c.id} c={c} isLast={i === inbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} />
+              <ContractorRow key={c.id} c={c} isLast={i === inbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} taxYear={taxYear} />
             ))}
           </div>
         )}
