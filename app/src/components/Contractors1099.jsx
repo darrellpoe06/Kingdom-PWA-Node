@@ -29,7 +29,7 @@ import {
 import {
   WORKER_KINDS, necThresholdLabel, classificationAdvisory,
 } from '../lib/worker-classification.js';
-import { setFullTaxId, hasFullTaxId, maskedLabel } from '../lib/tax-id-vault.js';
+import { setFullTaxId, hasFullTaxId, maskedLabel, vaultCount, exportForBackup, importFromBackup } from '../lib/tax-id-vault.js';
 
 // tone -> foreground color for the classification/threshold notes. Uses the
 // house palette; true red is reserved (Color Theology) so 'warn' uses the
@@ -103,6 +103,56 @@ function TaxIdentityFields({ form, setForm, bg, contractorId }) {
         <input type="checkbox" checked={!!form.w9OnFile} onChange={e => setForm({ ...form, w9OnFile: e.target.checked })} />
         W-9 collected and on file
       </label>
+    </div>
+  );
+}
+
+// Tax-ID vault backup — the FULL taxpayer ids live only on this device
+// (tax-id-vault.js). This is the ONLY sanctioned way they leave it: export a
+// JSON file the family saves to their OWN NAS, and import it back on another
+// device. Never a cloud round-trip. Rem fonts + themeable classes on purpose
+// (consistency + legibility guards). Export/import are user-gesture only.
+function TaxIdVaultBackup() {
+  const [msg, setMsg] = useState('');
+  const count = vaultCount();
+  const doExport = () => {
+    try {
+      const data = JSON.stringify(exportForBackup(), null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'poe-tax-ids-backup.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setMsg(`Exported ${count} taxpayer ID${count === 1 ? '' : 's'}. Save this file to your NAS — it holds the full IDs, so keep it on hardware you own.`);
+    } catch { setMsg('Could not export on this device.'); }
+  };
+  const doImport = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const added = importFromBackup(JSON.parse(String(e.target.result || '{}')));
+        setMsg(`Restored ${added} taxpayer ID${added === 1 ? '' : 's'} to this device from the backup.`);
+      } catch { setMsg('That file was not a readable vault backup.'); }
+    };
+    reader.onerror = () => setMsg('Could not read that file.');
+    reader.readAsText(file);
+  };
+  return (
+    <div className="border border-dashed border-[#E8E4DC] p-3 space-y-2">
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Taxpayer-ID backup · {count} full ID{count === 1 ? '' : 's'} on this device</div>
+      <div className="text-[0.625rem] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
+        Full SSN/EIN numbers are stored ONLY on this device — never in the cloud. Export them to a file and save it to your NAS so they survive a lost phone and reach your other devices. Nothing here is uploaded.
+      </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <button type="button" onClick={doExport} disabled={count === 0} className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] border border-[#1A1815] px-3 py-1.5 hover:bg-[#1A1815] hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Export to file (for NAS)</button>
+        <label className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] border border-[#1A1815] px-3 py-1.5 hover:bg-[#1A1815] hover:text-white cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
+          Import from NAS file
+          <input type="file" accept="application/json,.json" className="hidden" onChange={e => doImport(e.target.files && e.target.files[0])} />
+        </label>
+      </div>
+      {msg && <div className="text-[0.625rem] text-[#5A6E3D] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{msg}</div>}
     </div>
   );
 }
@@ -511,6 +561,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             </button>
           </div>
         </div>
+        <div className="mb-3"><TaxIdVaultBackup /></div>
         {showAdd && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-2">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New 1099 relationship</div>
