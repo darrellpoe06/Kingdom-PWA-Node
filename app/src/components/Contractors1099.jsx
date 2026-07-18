@@ -29,6 +29,7 @@ import {
 import {
   WORKER_KINDS, necThresholdLabel, classificationAdvisory,
 } from '../lib/worker-classification.js';
+import { setFullTaxId, hasFullTaxId, maskedLabel } from '../lib/tax-id-vault.js';
 
 // tone -> foreground color for the classification/threshold notes. Uses the
 // house palette; true red is reserved (Color Theology) so 'warn' uses the
@@ -74,6 +75,38 @@ function ClassificationNote({ kind, ytdPaid, direction, year }) {
   );
 }
 
+// Tax-identity inputs — the fields a 1099 actually needs. SOVEREIGN: the full
+// SSN/EIN typed here is written to the on-device vault on save (never to the
+// record, never to the cloud); only the last 4 + type + W-9 flag persist. Shown
+// with rem fonts on purpose (this file's fixed-px count is frozen by the
+// consistency guard). `bg` matches the surrounding form (add vs edit).
+function TaxIdentityFields({ form, setForm, bg, contractorId }) {
+  const onDevice = contractorId ? hasFullTaxId(contractorId) : false;
+  return (
+    <div className="border border-dashed border-[#E8E4DC] p-2 space-y-2">
+      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Tax identity (for the 1099) — the full ID stays on THIS device only, never the cloud</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Legal name (as on the W-9)</label><input className={`w-full p-2 border border-[#E8E4DC] text-sm ${bg}`} placeholder="Legal / business name" value={form.legalName || ''} onChange={e => setForm({ ...form, legalName: e.target.value })} /></div>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mailing address</label><input className={`w-full p-2 border border-[#E8E4DC] text-sm ${bg}`} placeholder="Street, city, state, ZIP" value={form.mailingAddress || ''} onChange={e => setForm({ ...form, mailingAddress: e.target.value })} /></div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">ID type</label>
+          <select className={`w-full p-2 border border-[#E8E4DC] text-sm ${bg}`} value={form.taxIdType || 'ein'} onChange={e => setForm({ ...form, taxIdType: e.target.value })}><option value="ein">EIN (business)</option><option value="ssn">SSN (individual)</option></select>
+        </div>
+        <div>
+          <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Taxpayer ID {form.taxIdLast4 ? `(on file: ····${form.taxIdLast4}${onDevice ? '' : ' — last-4 only on this device'})` : ''}</label>
+          <input type="password" inputMode="numeric" autoComplete="off" className={`w-full p-2 border border-[#E8E4DC] text-sm ${bg}`} placeholder={form.taxIdLast4 ? 'Re-enter to change' : 'Full SSN/EIN — saved to this device only'} value={form.taxIdFull || ''} onChange={e => setForm({ ...form, taxIdFull: e.target.value })} />
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-[0.625rem] text-[#5A5751]">
+        <input type="checkbox" checked={!!form.w9OnFile} onChange={e => setForm({ ...form, w9OnFile: e.target.checked })} />
+        W-9 collected and on file
+      </label>
+    </div>
+  );
+}
+
 const BLANK_CONTRACTOR = {
   direction: 'outbound',
   entityId: 'e-personal',
@@ -94,6 +127,15 @@ const BLANK_CONTRACTOR = {
   monthlyExpected: 0,
   status: 'active',
   notes: '',
+  // Tax identity — what the 1099 needs. The full SSN/EIN is NEVER put on the
+  // record (and so never synced): `taxIdFull` is a transient form field, written
+  // to the on-device vault on save; only `taxIdLast4` (+ type + w9OnFile) persist.
+  legalName: '',
+  mailingAddress: '',
+  taxIdType: 'ein',
+  taxIdFull: '',
+  taxIdLast4: '',
+  w9OnFile: false,
 };
 
 function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork, taxYear }) {
@@ -132,6 +174,19 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
                 {thr && thr.tone !== 'ok' && (
                   <div className="text-[0.625rem] leading-snug" style={{ color: TONE_COLOR[thr.tone] || '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>{thr.text}</div>
                 )}
+                {/* Tax identity: the masked ID (never the full number) + a W-9-needed
+                    flag when a 1099 is due (threshold crossed) but no W-9 is on file. */}
+                {c.direction === 'outbound' && (c.taxIdLast4 || c.w9OnFile || (thr && thr.tone === 'due')) && (() => {
+                  const needsW9 = thr && thr.tone === 'due' && !c.w9OnFile;
+                  // Default color from a THEMEABLE class (text-[#5A5751] remaps in
+                  // dark theme); inline color ONLY for the coral warn (passes AA).
+                  return (
+                    <div className={`text-[0.625rem] leading-snug ${needsW9 ? '' : 'text-[#5A5751]'}`} style={needsW9 ? { color: TONE_COLOR.warn, fontFamily: '"JetBrains Mono", monospace' } : { fontFamily: '"JetBrains Mono", monospace' }}>
+                      {c.taxIdLast4 ? maskedLabel(c.taxIdType, c.taxIdLast4) : 'No taxpayer ID on file'}
+                      {c.w9OnFile ? ' · W-9 on file' : (thr && thr.tone === 'due' ? ' · W-9 NEEDED to file' : ' · no W-9 yet')}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
@@ -199,6 +254,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
             <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
             <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.kind || 'business'} onChange={e => setEditForm({ ...editForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
             <ClassificationNote kind={editForm.kind || 'business'} ytdPaid={editForm.ytdPaid} direction={editForm.direction} year={taxYear} />
+            <TaxIdentityFields form={editForm} setForm={setEditForm} bg="bg-white" contractorId={c.id} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
@@ -381,7 +437,12 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
   const submitAdd = () => {
     if (!addForm.name.trim()) { setAddError('Name is required.'); return; }
     setAddError('');
-    addContractor && addContractor(addForm);
+    // Generate the id here so the FULL taxpayer id can be vaulted on THIS DEVICE
+    // under the same id — the record itself only ever carries the last 4.
+    const id = `k-${Date.now()}`;
+    const last4 = addForm.taxIdFull ? setFullTaxId(id, addForm.taxIdFull, { type: addForm.taxIdType }) : (addForm.taxIdLast4 || '');
+    const { taxIdFull, ...rest } = addForm;
+    addContractor && addContractor({ ...rest, id, taxIdLast4: last4 });
     setAddForm({ ...BLANK_CONTRACTOR, entityId: entities[0]?.id || 'e-personal' });
     setShowAdd(false);
   };
@@ -400,11 +461,25 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
       monthlyExpected: c.monthlyExpected || 0,
       status: c.status || 'active',
       notes: c.notes || '',
+      legalName: c.legalName || '',
+      mailingAddress: c.mailingAddress || '',
+      taxIdType: c.taxIdType || 'ein',
+      taxIdFull: '', // never prefilled from storage — the full id stays vaulted
+      taxIdLast4: c.taxIdLast4 || '',
+      w9OnFile: !!c.w9OnFile,
     });
     setEditingId(c.id);
   };
   const cancelEdit = () => setEditingId(null);
-  const saveEdit = () => { if (!editingId) return; updateContractor && updateContractor(editingId, editForm); setEditingId(null); };
+  const saveEdit = () => {
+    if (!editingId) return;
+    // A newly-typed full id is vaulted on-device; otherwise the existing last-4
+    // is kept. The full id never lands on the record (never syncs).
+    const last4 = editForm.taxIdFull ? setFullTaxId(editingId, editForm.taxIdFull, { type: editForm.taxIdType }) : (editForm.taxIdLast4 || '');
+    const { taxIdFull, ...rest } = editForm;
+    updateContractor && updateContractor(editingId, { ...rest, taxIdLast4: last4 });
+    setEditingId(null);
+  };
 
   const outbound = contractors.filter(c => c.direction === 'outbound');
   const inbound = contractors.filter(c => c.direction === 'inbound');
@@ -447,6 +522,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
               <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.kind || 'business'} onChange={e => setAddForm({ ...addForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
               <ClassificationNote kind={addForm.kind || 'business'} ytdPaid={addForm.ytdPaid} direction={addForm.direction} year={taxYear} />
+              <TaxIdentityFields form={addForm} setForm={setAddForm} bg="bg-[#FAF8F4]" contractorId={null} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>

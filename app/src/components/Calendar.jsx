@@ -20,21 +20,55 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
   const [editRecurForm, setEditRecurForm] = useState({ name: '', amount: 0, frequency: 'monthly', category: 'compliance', nextDue: '', entityId: 'e-personal' });
   const [editingEventId, setEditingEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ title: '', date: '', time: '', notes: '' });
-  const startEditRecur = (r) => { setEditRecurForm({ name: r.name || '', amount: r.amount || 0, frequency: r.frequency || 'monthly', category: r.category || 'other', nextDue: r.nextDue || '', entityId: r.entityId || 'e-personal' }); setEditingRecurId(r.id); setEditingEventId(null); };
-  const cancelEditRecur = () => { setEditingRecurId(null); };
-  const saveEditRecur = () => { if (!editingRecurId) return; updateRecurring(editingRecurId, editRecurForm); setEditingRecurId(null); };
-  const startEditEvent = (e) => { setEditEventForm({ title: e.title || '', date: e.date || '', time: e.time || '', notes: e.notes || '' }); setEditingEventId(e.id); setEditingRecurId(null); };
-  const cancelEditEvent = () => { setEditingEventId(null); };
-  const saveEditEvent = () => { if (!editingEventId) return; updateEvent(editingEventId, editEventForm); setEditingEventId(null); };
+  // Inline-edit validation error (was: silent no-op / silent data loss). A blank
+  // date on an event made it VANISH from the list; a cleared amount silently
+  // became $0. Surface a message and BLOCK the save instead (review, 2026-07-18).
+  const [editError, setEditError] = useState('');
+  const startEditRecur = (r) => { setEditError(''); setEditRecurForm({ name: r.name || '', amount: r.amount || 0, frequency: r.frequency || 'monthly', category: r.category || 'other', nextDue: r.nextDue || '', entityId: r.entityId || 'e-personal' }); setEditingRecurId(r.id); setEditingEventId(null); };
+  const cancelEditRecur = () => { setEditingRecurId(null); setEditError(''); };
+  const saveEditRecur = () => {
+    if (!editingRecurId) return;
+    if (!String(editRecurForm.name).trim()) { setEditError('Name is required.'); return; }
+    const amt = parseFloat(editRecurForm.amount);
+    if (!Number.isFinite(amt) || amt < 0) { setEditError('Enter a valid amount (0 or more).'); return; }
+    setEditError('');
+    updateRecurring(editingRecurId, { ...editRecurForm, amount: amt });
+    setEditingRecurId(null);
+  };
+  const startEditEvent = (e) => { setEditError(''); setEditEventForm({ title: e.title || '', date: e.date || '', time: e.time || '', notes: e.notes || '' }); setEditingEventId(e.id); setEditingRecurId(null); };
+  const cancelEditEvent = () => { setEditingEventId(null); setEditError(''); };
+  const saveEditEvent = () => {
+    if (!editingEventId) return;
+    // Title AND date are required — a blank date computes an Invalid Date and the
+    // event drops out of the upcoming list forever (silent loss). Block it.
+    if (!String(editEventForm.title).trim() || !String(editEventForm.date).trim()) { setEditError('Title and date are both required — an event with no date disappears.'); return; }
+    setEditError('');
+    updateEvent(editingEventId, editEventForm);
+    setEditingEventId(null);
+  };
   const [showRecurForm, setShowRecurForm] = useState(false);
   const [showIncidentForm, setShowIncidentForm] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
+  // Local YYYY-MM-DD (was new Date().toISOString().slice(0,10), which is UTC — an
+  // evening entry rolled to "tomorrow"). Local matches DateField + eventDateTime.
+  const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const [newRecur, setNewRecur] = useState({ name: '', amount: '', frequency: 'annual', nextDue: '', entityId: 'e-personal', category: 'other' });
-  const [newIncident, setNewIncident] = useState({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] });
+  const [newIncident, setNewIncident] = useState({ date: localToday(), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] });
   const [newEvent, setNewEvent] = useState({ title: '', date: '', time: '', allDay: true, description: '', entityId: 'e-personal', category: 'appointment', reminders: ['1d-before', 'at-time'], repeat: 'none' });
 
-  const submitRecur = () => { if (!newRecur.name || !newRecur.amount) return; addRecurring({ ...newRecur, amount: parseFloat(newRecur.amount) }); setNewRecur({ name: '', amount: '', frequency: 'annual', nextDue: '', entityId: 'e-personal', category: 'other' }); setShowRecurForm(false); };
-  const submitIncident = () => { if (!newIncident.description || !newIncident.amount) return; addIncident({ ...newIncident, amount: parseFloat(newIncident.amount) }); setNewIncident({ date: new Date().toISOString().slice(0,10), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] }); setShowIncidentForm(false); };
+  // Create-form guards: surface WHY nothing happened instead of a silent no-op.
+  const submitRecur = () => {
+    if (!String(newRecur.name).trim()) { alert('Give the obligation a name.'); return; }
+    const amt = parseFloat(newRecur.amount);
+    if (!Number.isFinite(amt) || amt < 0) { alert('Enter a valid amount (0 or more).'); return; }
+    addRecurring({ ...newRecur, amount: amt }); setNewRecur({ name: '', amount: '', frequency: 'annual', nextDue: '', entityId: 'e-personal', category: 'other' }); setShowRecurForm(false);
+  };
+  const submitIncident = () => {
+    if (!String(newIncident.description).trim()) { alert('Describe the expense first.'); return; }
+    const amt = parseFloat(newIncident.amount);
+    if (!Number.isFinite(amt) || amt < 0) { alert('Enter a valid amount (0 or more).'); return; }
+    addIncident({ ...newIncident, amount: amt }); setNewIncident({ date: localToday(), amount: '', category: 'other', entityId: 'e-personal', description: '', contractorIds: [] }); setShowIncidentForm(false);
+  };
   const submitEvent = () => {
     if (!newEvent.title || !newEvent.date) { alert('Title and date are required.'); return; }
     addEvent(newEvent);
@@ -103,6 +137,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                     <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.entityId} onChange={e => setEditRecurForm({ ...editRecurForm, entityId: e.target.value })}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                   </div>
                   <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Next due date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.nextDue} onChange={e => setEditRecurForm({ ...editRecurForm, nextDue: e.target.value })} /></div>
+                  {editError && <div className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{editError}</div>}
                   <div className="flex gap-2">
                     <button type="button" onClick={saveEditRecur} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                     <button type="button" onClick={cancelEditRecur} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
@@ -284,6 +319,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                       <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Time (optional)</label><input type="time" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editEventForm.time} onChange={ev => setEditEventForm({ ...editEventForm, time: ev.target.value })} /></div>
                     </div>
                     <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" value={editEventForm.notes} onChange={ev => setEditEventForm({ ...editEventForm, notes: ev.target.value })} /></div>
+                    {editError && <div className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{editError}</div>}
                     <div className="flex gap-2">
                       <button type="button" onClick={saveEditEvent} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                       <button type="button" onClick={cancelEditEvent} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>

@@ -23,6 +23,7 @@ import { filterTransactions, sortTransactions, categorySummary, reviewStatus } f
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
+import { runningBalanceByTxId } from '../lib/imported-view.js';
 import LedgerProof from './LedgerProof.jsx';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -554,6 +555,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     return map;
   })();
 
+  // Historical running balance per transaction — the balance AS OF each row, so
+  // the register shows a statement-style column that CHANGES date to date instead
+  // of repeating the account's single current balance on every line (Christina's
+  // books, 2026-07-18). Prefers the bank's own imported balance per row; chains
+  // the rest off the opening balance. Pure helper, unit-tested.
+  const runningBalByTx = runningBalanceByTxId(data.transactions || [], accounts || []);
+
   // Round 7 — 30/60/90 forecast revised:
   //   · Cash-only (bank/savings/cash/investment). Credit + loan are tracked
   //     separately because they don't hold cash you can spend; mixing them
@@ -873,6 +881,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const accLabel = acc
       ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}`
       : (t._source === 'recurring' ? 'Recurring obligation' : (ingestLabel || '—'));
+    // Per-row balance: the account's running balance AS OF this transaction, from
+    // the bank statement's own Balance column (imported per row). This is the
+    // historical running balance a statement shows — it changes date to date
+    // (Christina's books, 2026-07-18: the row used to repeat the account's SINGLE
+    // current balance on every line, so every row read the same number). Falls
+    // back to the account's current balance only for manual rows with no bank
+    // balance, so nothing is painted where there's no real per-row figure.
+    const rowBal = runningBalByTx[t.id] !== undefined ? runningBalByTx[t.id] : null;
     const currentBal = acc ? balanceByAccount[acc.id] : null;
     const afterBal = txView === 'upcoming' && acc && projectedAfter[t.id] !== undefined ? projectedAfter[t.id] : null;
     return (
@@ -883,7 +899,9 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
           <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
             <span>{accLabel}</span>
-            {currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>(now {fmt(currentBal)})</span>}
+            {rowBal !== null
+              ? <span className={`ml-1 ${rowBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account balance as of this transaction (from the bank statement)">(bal {fmt(rowBal)})</span>
+              : (currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account's current balance">(now {fmt(currentBal)})</span>)}
             {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
             {/* Phase 2A — ingest provenance + reconcile status pills. Stays
@@ -1120,7 +1138,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
             </div>
             <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Full balances for every account live at the bottom of this tab. Each row also shows that account's current balance inline.
+              Full balances for every account live at the bottom of this tab. Each imported row shows the account's running balance AS OF that transaction — "(bal $…)", straight from the bank statement — so it changes date to date like a statement. Manual rows with no bank balance show the account's current balance "(now $…)" instead.
             </p>
           </section>
         );
