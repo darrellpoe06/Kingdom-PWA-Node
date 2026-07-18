@@ -4,7 +4,7 @@
 // Darrell, live: "storage is full — changes are NOT being saved"; and "we want
 // images to leave our phone and go to the NAS ... not losing anything" (2026-07-18).
 import { describe, it, expect } from 'vitest';
-import { slimSnapshotData, snapshotByteSize } from '../lib/snapshot-slim.js';
+import { slimSnapshotData, snapshotByteSize, persistSnapshot } from '../lib/snapshot-slim.js';
 
 const bigDataUrl = 'data:image/jpeg;base64,' + 'A'.repeat(2_000_000); // ~2MB inline photo
 
@@ -61,5 +61,37 @@ describe('slimSnapshotData', () => {
     expect(slim.photos[0].dataUrl).toBe('');
     expect(slim.photos[0].note).toBe('keep me');
     expect(slim.photos[0].srcDropped).toBe(true);
+  });
+});
+
+describe('persistSnapshot — keep photos when they fit, protect the books when they do not', () => {
+  it('writes the FULL snapshot (photos kept) when there is room', async () => {
+    const writes = [];
+    const setItem = async (k, v) => { writes.push(v); };
+    const data = { transactions: [{ id: 't1' }], lifePhotos: [{ id: 'p', src: 'data:image/png;base64,AAAA' }] };
+    const mode = await persistSnapshot(setItem, 'key', { savedAt: 'now' }, data);
+    expect(mode).toBe('full');
+    expect(writes[0]).toContain('data:image/png;base64,AAAA'); // photo bytes kept
+  });
+
+  it('falls back to SLIM (books saved, photo bytes dropped) when the full write overflows', async () => {
+    let call = 0;
+    const writes = [];
+    const setItem = async (k, v) => {
+      call += 1;
+      if (call === 1) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } // full overflows
+      writes.push(v);
+    };
+    const data = { transactions: [{ id: 't1', amount: -9 }], lifePhotos: [{ id: 'p', src: bigDataUrl }] };
+    const mode = await persistSnapshot(setItem, 'key', { savedAt: 'now' }, data);
+    expect(mode).toBe('slim');
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain('"t1"');           // the FINANCIAL data was saved
+    expect(writes[0]).not.toContain(bigDataUrl);   // the photo bytes were dropped to make it fit
+  });
+
+  it('re-throws only when even the slim copy cannot be written (true out-of-space)', async () => {
+    const setItem = async () => { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; };
+    await expect(persistSnapshot(setItem, 'key', {}, { transactions: [] })).rejects.toThrow();
   });
 });

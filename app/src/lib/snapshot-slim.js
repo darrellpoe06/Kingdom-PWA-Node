@@ -54,6 +54,25 @@ export function slimSnapshotData(data) {
   return out;
 }
 
+// persistSnapshot(setItem, key, envelope, data) — write the snapshot, PREFERRING
+// the full copy (photos kept) and only falling back to the slim copy (inline photo
+// bytes stripped) when the full one exceeds the storage quota. So photos are kept
+// whenever there is room (nothing lost unless the device is genuinely out of
+// space), and a photo can NEVER cost the family their financial data. `setItem` is
+// the async storage writer (e.g. window.storage.set); `envelope` is the snapshot
+// metadata (owner/savedAt/pressure/…) that wraps `data`. Returns 'full' | 'slim';
+// re-throws only when even the slim copy can't be written (true out-of-space).
+export async function persistSnapshot(setItem, key, envelope, data) {
+  const json = (d) => JSON.stringify({ ...envelope, data: d });
+  try {
+    await setItem(key, json(data));
+    return 'full';
+  } catch (_) {
+    await setItem(key, json(slimSnapshotData(data)));
+    return 'slim';
+  }
+}
+
 // snapshotByteSize(obj) -> the UTF-8 byte length of the serialized object, so a
 // caller can measure the real weight (VERIFICATION-DOCTRINE: measure, don't guess)
 // and decide whether the slim worked. Returns 0 on a serialization failure.
