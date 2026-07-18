@@ -350,3 +350,22 @@ export function auditBalanceContinuity(rows) {
     breaks: ok ? [] : { unmatchedBefore, unmatchedAfter },
   };
 }
+
+// reconcileAccounts — run the balance-continuity audit PER account across a flat
+// ledger. Returns { [accountId]: auditResult }. This is the "correct account of
+// record" proof (Darrell 2026-07-18): each account's rows must form ONE self-
+// consistent balance chain, so if a transaction were filed to the WRONG account,
+// that account's chain would not reconcile. A per-account `ok:true` (with real
+// checked>0) therefore means those rows genuinely belong to that account. Pure;
+// accounts whose rows carry no bank balance return the honest "not enough" result.
+export function reconcileAccounts(transactions) {
+  const byAcct = new Map();
+  for (const t of transactions || []) {
+    if (!t || !t.accountId) continue;
+    if (!byAcct.has(t.accountId)) byAcct.set(t.accountId, []);
+    byAcct.get(t.accountId).push(t);
+  }
+  const out = {};
+  for (const [accountId, rows] of byAcct) out[accountId] = auditBalanceContinuity(rows);
+  return out;
+}
