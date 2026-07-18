@@ -33,25 +33,28 @@ function setValue(el, value) {
 }
 
 describe('FamilyInvitePanel — governor grant control', () => {
-  it('renders the emails field, role select, and send button', async () => {
+  it('renders the emails field, role select, and make-link button', async () => {
     await mount(FamilyInvitePanel);
     expect(container.querySelector('#fi-emails')).not.toBeNull();
     expect(container.querySelector('#fi-role')).not.toBeNull();
-    const btn = [...container.querySelectorAll('button')].find((b) => /send invite/i.test(b.textContent));
+    const btn = [...container.querySelectorAll('button')].find((b) => /make link/i.test(b.textContent));
     expect(btn).toBeTruthy();
   });
 
-  it('the send button is disabled until a valid email is entered', async () => {
+  it('the make-link button is disabled until a valid email is entered', async () => {
     await mount(FamilyInvitePanel);
-    const btn = [...container.querySelectorAll('button')].find((b) => /send invite/i.test(b.textContent));
+    const btn = [...container.querySelectorAll('button')].find((b) => /make link/i.test(b.textContent));
     expect(btn.disabled).toBe(true);
     await act(async () => { setValue(container.querySelector('#fi-emails'), 'son@example.com'); });
     expect(btn.disabled).toBe(false);
     expect(container.textContent).toMatch(/1 valid email ready/i);
   });
 
-  it('states the steward posture — they join on their next sign-in', async () => {
+  it('states the two-party posture — no one is added until you approve (DR-0187)', async () => {
     await mount(FamilyInvitePanel);
-    expect(container.textContent.toLowerCase()).toContain('next sign-in');
+    const text = container.textContent.toLowerCase();
+    expect(text).toContain('no one is added until you approve');
+    // and it surfaces the guardian re-confirm section
+    expect(text).toContain('approve who claimed');
   });
 });
