@@ -223,7 +223,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         // When "Follow along" is open, the player PINS to the top (sticky) and goes
         // compact — so it stays watchable while you scroll + work the Word below it,
         // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
-        <section aria-labelledby="live-worship-h" className={`bg-white border-2 border-[#B85838] p-4${followAlong ? ' sticky top-0 z-30 shadow-xl' : ''}`}>
+        <section aria-labelledby="live-worship-h" className={`bg-white border-2 border-[#B85838] ${followAlong ? 'p-2 sticky top-0 z-30 shadow-xl' : 'p-4'}`}>
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
             <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
               Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
@@ -246,7 +246,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                   the Word reads full-width. */}
               <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
                 <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
-                {!floating && ['s', 'm', 'l'].map((sz) => (
+                {!floating && !followAlong && ['s', 'm', 'l'].map((sz) => (
                   <button
                     key={sz}
                     type="button"
@@ -334,6 +334,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
             <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
           </button>
 
+          {!followAlong && (
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             {onlineServices.length > 0 && (
               <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -364,6 +365,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               </a>
             )}
           </div>
+          )}
         </section>
       )}
 
