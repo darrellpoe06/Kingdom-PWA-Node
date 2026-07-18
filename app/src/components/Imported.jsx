@@ -36,6 +36,7 @@ import {
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
+import { varianceReport } from '../lib/balance-variance.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -205,7 +206,7 @@ export default function Imported({ data = {} }) {
     return next;
   });
 
-  const accounts = Array.isArray(data?.accounts) ? data.accounts : [];
+  const accounts = useMemo(() => (Array.isArray(data?.accounts) ? data.accounts : []), [data?.accounts]);
   const view = useMemo(() => buildImportedView(data, filters, Date.now()), [data, filters]);
 
   // Auto default: the month of the newest transaction (or All if none). Keeps the
@@ -244,6 +245,16 @@ export default function Imported({ data = {} }) {
     groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
     return { groups, windowed, windowTotals: totals(windowed), matched: windowed.length };
   }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode]);
+
+  // Material-change watch (Darrell 2026-07-18: "always have a data-driven reason
+  // for more or less than $500 in each account and overall, so we notice major
+  // changes easily"). Over the SAME active window, decompose each account's net
+  // move — and the overall external flow — into its biggest payee drivers, and
+  // surface only the ones that cross the $500 materiality line, already explained.
+  const variance = useMemo(
+    () => varianceReport(data.transactions || [], accounts, { sinceMs, untilMs, threshold: 500, maxDrivers: 3 }),
+    [data.transactions, accounts, sinceMs, untilMs]
+  );
 
   // Report meta (period + active filters + generated stamp) and the export models.
   // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
@@ -322,6 +333,35 @@ export default function Imported({ data = {} }) {
               <div className={`text-lg font-medium ${grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.net)}</div>
             </div>
           </div>
+
+          {/* Material changes ($500+) — each mover already explained by its top
+              drivers, so a big swing per account or overall is noticed at a glance
+              with a data-driven reason, never a bare number (Darrell 2026-07-18). */}
+          {variance.materialCount > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">
+                Material changes · {periodLabel(activePeriod)} · ≥ {fmtMoney(variance.threshold)}
+              </div>
+              {variance.overall.material && (
+                <div className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">Overall (external): </span>
+                  <span className={variance.overall.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{variance.overall.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(variance.overall.net))}</span>
+                  {variance.overall.drivers.length > 0 && (
+                    <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                  )}
+                </div>
+              )}
+              {variance.accounts.filter((a) => a.material).map((a) => (
+                <div key={a.accountId} className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">{a.name}: </span>
+                  <span className={a.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(a.net))}</span>
+                  {a.drivers.length > 0 && (
+                    <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Segmented period control + ‹ month › quick-jump — the standard bank /
               budgeting-app time picker. */}
