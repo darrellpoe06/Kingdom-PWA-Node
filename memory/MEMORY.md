@@ -129,6 +129,26 @@ relying on it; memories reflect what was true when written.
   in the SAME change that builds it (its test + any new guard), so the adaptive
   loop closes per-component. CI is the merge/deploy lane — any speed change to it
   is DR-0107-sensitive: prove the site still deploys before calling it done.
+- **feedback_lessons_explain_worlds_view_then_why_yahwehs_is_better_and_eternal** —
+  LAW-TIER lesson-writing standard, declared by Darrell 2026-07-18 (all caps): "nuances
+  explained in ALL lessons so we know why these perspectives are powerful and why
+  Yahweh's Way IS BETTER AND ETERNAL... ALWAYS explain the world's perspectives and
+  WHY Yahweh's Perspectives are Better." Every lesson (and teaching surface) does BOTH,
+  explicitly: (1) explain the WORLD'S perspective FAIRLY and name WHY IT IS POWERFUL --
+  the nuance, the grain of truth it rides, why it draws and "works" on people (the
+  "understand the how" / "discern the device" discipline generalized -- "get
+  understanding," Proverbs 4:7); then (2) show WHY YAHWEH'S WAY IS BETTER **and**
+  ETERNAL -- not merely asserted but reasoned: His ways are higher ("as the heavens are
+  higher than the earth, so are my ways higher than your ways," Isaiah 55:8-9), and His
+  endure when the world's pass ("Heaven and earth shall pass away, but my words shall
+  not pass away," Matthew 24:35; "the words of eternal life," John 6:68). This is NOT
+  platforming the world's view as co-equal (DR-0098 still holds -- name it to teach PAST
+  it); it is grounding the teach-past in understanding, "with meekness and fear" (1 Peter
+  3:15). Applies to ALL NEW/upgraded lessons immediately (L40, the L37 athletics
+  upgrade, forward); recent ones already embody it (L37 "why the lie is desired + why it
+  works," L39 "discern the device," mit18 "understanding the how"); EXISTING lessons get
+  it on the perpetual-improvement re-review pass (DR-0075 -- improve or a why + re-review
+  date, never a silent skip). Pairs with DR-0098 / DR-0100 / the Source-of-Answers spine.
 - **feedback_speak_established_fact** — SPEAK the truth; do not debate statistically-
   established data or hedge real, documented damage into "contested / can't verify /
   no one knows." Declared 2026-07-04 (DR-0100), correcting the Game Changers handling:
