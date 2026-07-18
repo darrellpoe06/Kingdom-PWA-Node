@@ -94,6 +94,41 @@ relying on it; memories reflect what was true when written.
   404s). The in-app DB Health panel reads the `_schema_migrations` ledger the
   lane writes. So: put SQL in a migration file and let the lane run it; read the
   run log / ledger for the receipt — do NOT improvise a manual apply path.
+- **feedback_review_code_before_building** — REVIEW THE REAL CODE FIRST, ALWAYS,
+  before making a change — "so we always do it right the first time... add to
+  documentation and Ways so no AI will undermine us" (Darrell 2026-07-18). Build
+  ON the mechanism that already exists; NEVER stand up a parallel/duplicate one.
+  Reality-trace the actual implementation and cite it (file:line) before writing
+  (DR-0061 P15, feedback-research-first P7, VERIFICATION-DOCTRINE DR-0076). This
+  is the standing correction behind the recurring misses (the manual-migration
+  guess REV-0093; scoping to the agent's own limits DR-0108). PROVEN 2026-07-18:
+  the "1099 access exceptions" Darrell asked for were ALREADY built and would
+  have been duplicated if not checked — child money-education is `finance.view`
+  with guardian `maxGrant: ALLOW` (DR-0094, relationships.js CHILD_CAPABILITY_
+  POLICY); the successor "sees the books, cannot transact" role exists
+  (relationships.js:419, DR-0111); the legacy/succession GAME exists
+  (lib/games/generations.js + heritage.js). The agent ADDS only the genuinely
+  missing piece and surfaces what already exists. Undermining = re-building or
+  contradicting existing, working, governed mechanisms; the guard against it is
+  reading the code first.
+- **feedback_gates_are_governance_grow_and_speed_never_remove** — the 5,000+ CI
+  checks are NOT redundant ceremony — they are the accumulated ERROR-CORRECTING
+  memory of every past failure: each incident becomes a post-work review (a REV /
+  LESSONS entry) that becomes a new deterministic gate after the component ships
+  (Darrell 2026-07-18: "we keep adding our reviews about failures so Ari and
+  claude... get better results... flow adaptive strategies include error
+  correcting code after each built component"). They ARE the governance — the
+  deterministic brake that lets the no-human auto-merge lane ship to PRODUCTION
+  safely (DR-0076, DR-0103). "Fast to production" = a no-human lane + a FAST
+  green, NEVER no-checks. So: GROW the checks (every failure -> a gate) and make
+  them FAST (shard/parallelize the run — ~3min serial -> ~1min), but NEVER delete
+  the suite. Removing it is the one thing that "hurts us" (Darrell's own caveat)
+  — it is the exact down-site worst-outcome (DR-0107/0125), and the suite catches
+  real bugs (proven 2026-07-18: completion.test caught the 5445-vs-5447 mismatch
+  before it shipped). BUILD DISCIPLINE: add the component's error-correcting gate
+  in the SAME change that builds it (its test + any new guard), so the adaptive
+  loop closes per-component. CI is the merge/deploy lane — any speed change to it
+  is DR-0107-sensitive: prove the site still deploys before calling it done.
 - **feedback_speak_established_fact** — SPEAK the truth; do not debate statistically-
   established data or hedge real, documented damage into "contested / can't verify /
   no one knows." Declared 2026-07-04 (DR-0100), correcting the Game Changers handling:
