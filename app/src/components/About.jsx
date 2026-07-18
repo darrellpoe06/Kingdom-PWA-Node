@@ -95,7 +95,89 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     try { window.location.href = url; } catch (e) {}
     closeCart();
   };
+  // The opening tab — the FIRST look (Darrell 2026-07-18: "the process should be
+  // the first look in the About page and the other tabs can give more of the
+  // breakdown"). Voiced USER-FIRST (the promise TO the person), with the builder
+  // mechanics named underneath as the PROOF — the synthesis he chose. Same spine
+  // as the "How PoeTech Is Built" field-guide artifact, re-voiced for a first-time
+  // family / COLG reader. Three sub-tabs so no panel is a long read-down (the
+  // beloved sliding pattern). All static explanatory copy by design.
+  const HOW_PROMISES = [
+    { p: 'You speak, it gets built', d: 'A teaching, a need, a fix — you say it, and it becomes real in the app, usually the same day.', k: 'your words are the blueprint' },
+    { p: 'Every number is real', d: "Nothing on your screen is painted. A figure you see is read from your actual records — or it plainly says it's an estimate.", k: 'reality-traced, never faked' },
+    { p: 'Nothing broken reaches you', d: 'Every change passes thousands of automatic checks before it can go live. A failing change simply cannot get to you.', k: '~5,900 checks on every change' },
+    { p: 'It improves without a gatekeeper', d: 'A good change goes live the moment it is proven safe — no bottleneck, no waiting on one person to click.', k: 'verified, then live' },
+    { p: 'The site stays up', d: 'Being reachable matters most. Every update is confirmed live on the real site before it is called done.', k: 'uptime comes first' },
+    { p: 'You see it as you will use it', d: 'The family checks each change on the real, signed-in app — the way you will actually meet it — before trusting it.', k: 'reviewed as a user' },
+  ];
   const sections = [
+    { id: 'how-it-works', label: 'How it works', icon: 'sliders', render: () => (
+      <>
+      <section>
+        <SectionTitle>How PoeTech works</SectionTitle>
+        <p className="text-sm text-[#5A5751] leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          PoeTech is a <strong>Family Operating System</strong> — one place to run your household's money, life, and church, built to serve you and never to sell you. Before anything else, here is how it actually works, and why you can trust it with your family.
+        </p>
+        <SectionTabs variant="sub" idBase="about-how" ariaLabel="How it works" defaultId="loop" sections={[
+          { id: 'loop', label: 'How it works', icon: 'sliders', render: () => (
+            <div className="space-y-3">
+              <p className="text-sm text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                Every change to the app walks the same path — and each step is a promise to you.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {HOW_PROMISES.map((it, i) => (
+                  <div key={i} className="bg-[#FAF8F4] border border-[#E8E4DC] p-4">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{it.p}</div>
+                    <p className="text-sm text-[#1A1815] mt-1.5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{it.d}</p>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]">The proof · {it.k}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-[#5A5751] italic leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                And it keeps getting better: every rough edge is improved, or it says why — with a date to revisit. Nothing stalls quietly.
+              </p>
+            </div>
+          ) },
+          { id: 'data', label: 'Your data', icon: 'lock', render: () => (
+            <div className="space-y-3">
+              <p className="text-sm text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                Your information exists to serve your family — never to be sold or mined. Three layers keep it yours.
+              </p>
+              {[
+                { t: 'Your app', d: 'The same app on every phone, always free to open. You are never locked out of your own space.' },
+                { t: 'The wall', d: "Your family's records are walled off in the database itself — another family can never see yours. The wall is real, not just a screen that hides things." },
+                { t: 'Your own hardware', d: 'The heavy, private parts run on hardware your family owns. Nothing private has to leave home to make the app work.' },
+                { t: 'Isolation by default', d: 'A hired worker sees only their own job. The books stay private unless you deliberately open them — and you can close them again.' },
+              ].map((it, i) => (
+                <div key={i} className="bg-[#FAF8F4] border border-[#E8E4DC] p-4">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{it.t}</div>
+                  <p className="text-sm text-[#1A1815] mt-1.5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{it.d}</p>
+                </div>
+              ))}
+            </div>
+          ) },
+          { id: 'trust', label: 'Why trust it', icon: 'check', render: () => (
+            <div className="space-y-3">
+              {[
+                { t: 'It is grounded in the Word', d: 'Answers come from Scripture, quoted exactly — not improvised, and not staged as a debate for attention.' },
+                { t: 'Honest when unfinished', d: "When something is not built yet, the app says so plainly — an honest 'not yet,' never a fake number or a painted 'done.'" },
+                { t: 'Evidence, not claims', d: '"It works" means proof is attached — a passing check, a real measurement, a live look. Not someone\'s word.' },
+                { t: 'Built to empower, not extract', d: 'No ads, no engagement traps, no selling your data. That posture is the whole point — it is the difference from the apps that take from you.' },
+              ].map((it, i) => (
+                <div key={i} className="bg-[#FAF8F4] border border-[#E8E4DC] p-4">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{it.t}</div>
+                  <p className="text-sm text-[#1A1815] mt-1.5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{it.d}</p>
+                </div>
+              ))}
+              <p className="text-xs text-[#5A5751] italic leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                New here? The other tabs go deeper — what you get and the plans, the Mission, the Modules, who we serve, and Ari.
+              </p>
+            </div>
+          ) },
+        ]} />
+      </section>
+      </>
+    ) },
     { id: 'pricing', label: 'Plans & pricing', icon: 'coins', render: () => (
       <>
       <section>
@@ -649,7 +731,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
       {authCreatedAt && (
         <div className="mb-2"><TrialStatus createdAt={authCreatedAt} /></div>
       )}
-      <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="pricing" />
+      <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="how-it-works" />
 
       {cartTier && (
         <div className="fixed inset-0 z-50 bg-[#1A1815]/60 flex items-center justify-center p-4" onClick={closeCart}>

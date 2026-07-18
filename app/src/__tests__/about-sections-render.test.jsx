@@ -4,7 +4,7 @@
 // page — the app's worst "everything buried down a long scroll" surface — is now
 // SectionTabs like the other ~30 surfaces. This proves the behavior end-to-end
 // (DR-0076 §7, the verification the anonymous profile-gate blocks in a real
-// browser): the tablist mounts, the default panel (pricing) shows, a non-active
+// browser): the tablist mounts, the default panel (how-it-works, the first look) shows, a non-active
 // section's copy is NOT in the DOM until its tab is opened (lazy panel mount),
 // clicking a tab swaps the panel, and the steward-only tabs appear only with data.
 import { describe, it, expect, vi } from 'vitest';
@@ -45,25 +45,25 @@ describe('About — sideways section tabs', () => {
     // The nine always-on sections, in order.
     const tabs = [...host.querySelectorAll('[id^="about-tab-"]')].map((b) => b.id);
     expect(tabs).toEqual([
-      'about-tab-pricing', 'about-tab-mission', 'about-tab-modules',
+      'about-tab-how-it-works', 'about-tab-pricing', 'about-tab-mission', 'about-tab-modules',
       'about-tab-serve', 'about-tab-ari', 'about-tab-community',
       'about-tab-bookstore', 'about-tab-sponsors', 'about-tab-settings',
     ]);
     cleanup();
   });
 
-  it('shows pricing by default and lazily mounts other panels only when opened', () => {
+  it('shows How it works by default (the first look) and lazily mounts other panels only when opened', () => {
     const { host, cleanup } = mount();
-    // Default panel: pricing content is present.
-    expect(host.textContent).toContain('What you actually get');
-    // A different section's distinctive copy is NOT in the DOM yet (lazy mount).
-    expect(host.textContent).not.toContain('A stronghold for relationships with Yahweh');
-
-    // Open Mission → its copy appears, pricing panel unmounts.
-    const missionTab = host.querySelector('#about-tab-mission');
-    act(() => { missionTab.click(); });
-    expect(host.textContent).toContain('A stronghold for relationships with Yahweh');
+    // Default panel: the How-it-works opener is present (Darrell 2026-07-18).
+    expect(host.textContent).toContain('How PoeTech works');
+    // Pricing copy is NOT in the DOM yet — it is no longer the default (lazy mount).
     expect(host.textContent).not.toContain('What you actually get');
+
+    // Open Pricing → its copy appears, the How-it-works panel unmounts.
+    const pricingTab = host.querySelector('#about-tab-pricing');
+    act(() => { pricingTab.click(); });
+    expect(host.textContent).toContain('What you actually get');
+    expect(host.textContent).not.toContain('How PoeTech works');
     cleanup();
   });
 
@@ -79,7 +79,12 @@ describe('About — sideways section tabs', () => {
 
   it('long panels carry a 3rd-row sub-tab strip (DR-0116 rule 1)', () => {
     const { host, cleanup } = mount();
-    // Pricing (default panel) nests a sub-row that splits the long tier lists.
+    // The default How-it-works opener nests its own 3rd-row (loop / data / trust).
+    expect(host.querySelector('[role="tablist"][aria-label="How it works"]')).toBeTruthy();
+
+    // Pricing nests a sub-row that splits the long tier lists — open it first
+    // (it is no longer the default panel).
+    act(() => { host.querySelector('#about-tab-pricing').click(); });
     const pricingSub = host.querySelector('[role="tablist"][aria-label="Plan options"]');
     expect(pricingSub).toBeTruthy();
     expect([...host.querySelectorAll('[id^="about-pricing-tab-"]')].map((b) => b.id)).toEqual([
