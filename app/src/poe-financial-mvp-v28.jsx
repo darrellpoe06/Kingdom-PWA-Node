@@ -12,6 +12,7 @@ import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
 import { dueReminders } from './lib/reminders.js';
+import { commitWithRepair } from './lib/import-commit.js';
 import { fmt, monthLabel } from './lib/format.js';
 import { recordError } from './lib/error-journal.js';
 import { recordView } from './lib/usage-events.js';
@@ -3120,6 +3121,18 @@ export default function PoeFinancialSystem() {
       }).catch(e => syncWarn('[transactions-sync] upload failed', e));
     }
   };
+  // Batch import commit with VERIFICATION (Christina's books, 2026-07-18): add all
+  // rows locally at once, then await every cloud upload, re-upload the misses, and
+  // return a "N of M saved" summary so a partial save is visible + self-healing —
+  // never the silent per-row fire-and-forget that dropped June's rows.
+  const commitImportedRows = async (items) => {
+    const seeded = (items || []).map(item => ({ ...item, id: item.id || `t-${Date.now()}-${Math.random().toString(36).slice(2)}`, amount: parseFloat(item.amount) || 0 }));
+    setData(d => ({ ...d, transactions: [...(d.transactions || []), ...seeded] }));
+    if (!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode)) return { total: seeded.length, saved: seeded.length, failed: 0, offline: true };
+    const summary = await commitWithRepair(seeded, (row) => transactionsSync.upload(row), { passes: 2 });
+    if (summary.remoteIds && Object.keys(summary.remoteIds).length) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => summary.remoteIds[t.id] ? { ...t, remoteUuid: summary.remoteIds[t.id] } : t) }));
+    return summary;
+  };
   // Verified-ledger sync (DR-0083) — INACTIVE unless VITE_VERIFIED_LEDGER_URL is set (armed). Pulls the sovereign NAS verified ledger into the durable cloud ledger on sign-in: idempotent (FITID), fail-safe (unreachable=no-op), authenticated write (correct instance/RLS). The balance always derives from the durable ledger, never a live fetch.
   useEffect(() => {
     const url = import.meta.env.VITE_VERIFIED_LEDGER_URL;
@@ -4585,7 +4598,7 @@ ${THEME_CSS}
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
-            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
+            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed
               ? <Imported data={data} />
               : <ImportedDemoGuard setBooksView={setBooksView} />)}

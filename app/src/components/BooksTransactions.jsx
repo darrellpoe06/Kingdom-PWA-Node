@@ -24,6 +24,19 @@ import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import { runningBalanceByTxId } from '../lib/imported-view.js';
+import { commitReadout } from '../lib/import-commit.js';
+
+// Commit a batch of imported rows and REPORT how many actually saved to the cloud
+// (Christina's books). Uses the verifying batch commit when available; falls back
+// to the per-row path so nothing breaks if the prop isn't wired.
+async function commitBatch(rows, commitImportedRows, addTransaction) {
+  if (typeof commitImportedRows === 'function') {
+    const summary = await commitImportedRows(rows);
+    return commitReadout(summary);
+  }
+  (rows || []).forEach(r => addTransaction(r));
+  return `Imported ${(rows || []).length} transaction(s).`;
+}
 import LedgerProof from './LedgerProof.jsx';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -196,7 +209,7 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
   );
 }
 
-export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
+export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, commitImportedRows = null, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
   // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
   // this view assumed `data.accounts` and `data.entities` were always present
   // arrays. They are not guaranteed: a signed-in user's merged cloud data can
@@ -738,33 +751,30 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     return { rows, headers, idx, errors };
   })();
 
-  const importCsv = () => {
+  const rowFromCsv = (r) => ({
+    date: r.date,
+    accountId: csvAccountId,
+    amount: r.amount,
+    description: r.desc.slice(0, 200),
+    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+    // Carry the bank's running balance so the account-of-record "reconciles" badge
+    // can verify this account, matching the bulk path (2026-07-18).
+    ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
+  });
+  const importCsv = async () => {
     if (!csvAccountId) { setCsvError('Pick a target account first.'); return; }
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
     if (!confirm(`Import ${valid.length} transaction(s) into ${(accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
-    valid.forEach(r => {
-      addTransaction({
-        date: r.date,
-        accountId: csvAccountId,
-        amount: r.amount,
-        description: r.desc.slice(0, 200),
-        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
-        // Carry the bank's running balance so the account-of-record "reconciles"
-        // badge can verify this account, matching the bulk path (2026-07-18).
-        ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
-      });
-    });
-    // Emit the run-state outcome for the Loops watching layer (DR-0083) —
-    // ran-when / rows / status, read-only + non-blocking so observing can never
-    // break the import. The balance already moved off the addTransaction calls;
-    // this only RECORDS that it happened.
+    // Commit + VERIFY: the readout reports how many actually saved to the cloud
+    // (Christina's books) instead of a silent per-row fire-and-forget.
+    const msg = await commitBatch(valid.map(rowFromCsv), commitImportedRows, addTransaction);
     const acctName = (accounts.find(a => a.id === csvAccountId) || {}).name || 'account';
     recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel` });
     setCsvOpen(false);
     setCsvRaw('');
     setCsvError('');
-    alert(`Imported ${valid.length} transaction(s).`);
+    alert(msg);
   };
   // Bulk import — drop MANY statement files at once, each AUTO-ROUTED to its
   // account by filename, deduped (FITID/content) so a re-upload or overlapping
@@ -792,13 +802,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       setBulkPlan(null); setCsvError(`Could not read files: ${e.message || 'error'}`);
     } finally { setBulkBusy(''); }
   };
-  const commitBulk = () => {
+  const commitBulk = async () => {
     if (!bulkPlan || !bulkPlan.totalNew) return;
     if (!confirm(`Import ${bulkPlan.totalNew} transaction(s) across ${bulkPlan.routed.length} account(s)? ${bulkPlan.duplicates} duplicate(s) will be skipped.`)) return;
-    bulkPlan.routed.forEach(b => b.txns.forEach(t => addTransaction(t)));
+    const allTxns = bulkPlan.routed.flatMap(b => b.txns);
+    const msg = await commitBatch(allTxns, commitImportedRows, addTransaction);
     recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts` });
     setBulkPlan(null); setBulkRecon(null); setCsvOpen(false);
-    alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
+    alert(msg);
   };
   // Reset ONE account's register so a clean statement can be re-imported after a
   // bad/collapsed earlier import (Christina's books, 2026-07-18). The family owns
@@ -821,7 +832,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // then import the chosen file's valid rows to that account. Same strict account
   // scope (accountTxnIds) + same irreversible warning. Needs a picked account AND a
   // parsed file; the button only shows when both are ready.
-  const resetAndImport = () => {
+  const resetAndImport = async () => {
     if (!csvAccountId) { setCsvError('Pick the account (step 1) first.'); return; }
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('Choose a bank file with importable rows first (step 2).'); return; }
@@ -829,19 +840,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const ids = accountTxnIds(data.transactions || [], csvAccountId);
     if (!confirm(`Replace ${acct}: permanently remove its ${ids.length} current transaction(s) and import ${valid.length} clean row(s) from this file?\n\nThe removal CANNOT be undone.`)) return;
     ids.forEach(id => deleteTransaction(id));
-    valid.forEach(r => {
-      addTransaction({
-        date: r.date,
-        accountId: csvAccountId,
-        amount: r.amount,
-        description: r.desc.slice(0, 200),
-        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
-        ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
-      });
-    });
+    // Commit + VERIFY the re-import — reports how many of the clean rows saved.
+    const msg = await commitBatch(valid.map(rowFromCsv), commitImportedRows, addTransaction);
     recordLoopRun({ key: 'account-reset-reimport', status: 'success', processed: valid.length, detail: `${acct} · replaced ${ids.length}` });
     setCsvOpen(false); setCsvRaw(''); setCsvError('');
-    alert(`Replaced ${acct}: removed ${ids.length}, imported ${valid.length} clean transaction(s).`);
+    alert(`Replaced ${acct}: removed ${ids.length}. ${msg}`);
   };
   const onCsvFile = (file) => {
     if (!file) return;
