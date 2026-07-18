@@ -350,3 +350,21 @@ relying on it; memories reflect what was true when written.
   Central time FIRST and put UTC in parentheses second — never UTC alone. The
   scheduling tools store RFC3339/UTC internally; that is an implementation detail
   the agent translates away, not a reason to surface UTC. `feedback_communicate_in_local_central_time`.
+
+- **2026-07-18 — Run the GUARD suite (+ full lint + build) before pushing, not
+  just the feature tests.** Two CI bounces in one session came from scoped
+  checking: (1) `eslint src --max-warnings 0` lints ALL of src INCLUDING tests, so
+  an unused import in a test file failed CI while a scoped `npx eslint <changed
+  files>` passed locally; (2) the per-theme WCAG contrast gate (legibility-guard)
+  failed on an inline dark hex (`style={{color:'#5A5751'}}`) that the feature
+  tests never exercise. CI's `app - lint + vitest` runs the WHOLE suite + full
+  lint; a feature-tests-only local run does not. So BEFORE every push, run what CI
+  runs, at least: `npm run lint` (full src, from app/), `npm run build`, and the
+  guard tests the change could touch — **legibility-guard** (per-theme contrast:
+  any new inline text color must be a themeable `text-[#hex]` class, never an
+  inline `style={{color:'#hex'}}`), **consistency-guard** (new text uses rem not
+  px; no device-emoji-as-icon), **quality-manifest** (REVIEWS `### REV-` count ==
+  `- **Source:**` count), **completion** (persistent-share.json synced to the
+  monolith budget), **monolith-budget-guard** (shell may only shrink). When unsure
+  which guards a change touches, run the full `vitest run`. Green feature tests are
+  NOT a green build. `feedback_run_full_guard_suite_before_push`.
