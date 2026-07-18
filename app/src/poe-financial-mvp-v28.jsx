@@ -152,6 +152,7 @@ import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
+import { persistSnapshot } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { reconcileAccounts } from './lib/imported-view.js';
@@ -2013,8 +2014,11 @@ export default function PoeFinancialSystem() {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
         // account so a different account on a shared device can't hydrate it.
         // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
-        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
-        setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+        // Keep the FULL snapshot (photos) when it fits; fall back to slim (photo bytes
+        // stripped) ONLY on quota overflow — a photo never costs the family their books, yet photos stay when there's room (2026-07-18).
+        const envelope = { owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
+        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), 'poe-financial-v28', envelope, data);
+        setPersistIssue(savedMode === 'slim' ? { kind: 'storage', message: 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Back up photos to the NAS (Big Picture → photos) to free space.' } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
         // v2.15 family snapshot push — the non-table-synced remainder follows
         // the account. Leading-edge throttle (15s). Two hard guards: the pull
         // must have completed (snapshotPulledRef), and a world whose remainder

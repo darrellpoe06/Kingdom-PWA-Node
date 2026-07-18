@@ -36,6 +36,9 @@ import {
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
+import { varianceReport } from '../lib/balance-variance.js';
+import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
+import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -205,7 +208,7 @@ export default function Imported({ data = {} }) {
     return next;
   });
 
-  const accounts = Array.isArray(data?.accounts) ? data.accounts : [];
+  const accounts = useMemo(() => (Array.isArray(data?.accounts) ? data.accounts : []), [data?.accounts]);
   const view = useMemo(() => buildImportedView(data, filters, Date.now()), [data, filters]);
 
   // Auto default: the month of the newest transaction (or All if none). Keeps the
@@ -244,6 +247,44 @@ export default function Imported({ data = {} }) {
     groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
     return { groups, windowed, windowTotals: totals(windowed), matched: windowed.length };
   }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode]);
+
+  // Material-change watch (Darrell 2026-07-18: "always have a data-driven reason
+  // for more or less than $500 in each account and overall, so we notice major
+  // changes easily"). Over the SAME active window, decompose each account's net
+  // move — and the overall external flow — into its biggest payee drivers, and
+  // surface only the ones that cross the $500 materiality line, already explained.
+  const variance = useMemo(
+    () => varianceReport(data.transactions || [], accounts, { sinceMs, untilMs, threshold: 500, maxDrivers: 3 }),
+    [data.transactions, accounts, sinceMs, untilMs]
+  );
+
+  // Internal circulation — money the family moves between its OWN accounts
+  // (transfers, credit-card payments, LOC draws/paydowns) is not income or spend;
+  // counting it across all accounts inflated gross in/out to ~$70-85k/mo (Darrell
+  // 2026-07-18). Detect the matched pairs over the FULL ledger, then the tile
+  // totals report TRUE external flow and name what was excluded (transparent, not
+  // hidden). The register still lists every row.
+  const internalIds = useMemo(
+    () => internalTransferIds(data.transactions || [], accounts),
+    [data.transactions, accounts]
+  );
+  const windowExternal = useMemo(
+    () => externalTotals(grouped.windowed, internalIds),
+    [grouped.windowed, internalIds]
+  );
+
+  // Month-over-month baseline watch (Darrell 2026-07-18: "monitor changes in the
+  // totals month to month for excess or lack based on their usual amounts — this
+  // would be caught"). Each month's TRUE external in/out vs the leave-one-out
+  // median of the others; flag the months that deviate past 40% AND $2k so an off
+  // month (a $69k-received glitch, a missed import) surfaces on sight.
+  const anomalies = useMemo(() => {
+    const months = monthlyExternalTotals(data.transactions || [], accounts);
+    return [
+      ...baselineAnomalies(months, { metric: 'in', tolerancePct: 0.4, floor: 2000 }),
+      ...baselineAnomalies(months, { metric: 'out', tolerancePct: 0.4, floor: 2000 }),
+    ].sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+  }, [data.transactions, accounts]);
 
   // Report meta (period + active filters + generated stamp) and the export models.
   // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
@@ -311,17 +352,64 @@ export default function Imported({ data = {} }) {
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">In · {periodLabel(activePeriod)}</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.in)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.in)}</div>
+              {windowExternal.internalIn > 0 && <div className="text-[0.5625rem] text-[#5A5751]">+ {fmtMoney(windowExternal.internalIn)} internal (excluded)</div>}
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">Out · {periodLabel(activePeriod)}</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.out)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.out)}</div>
+              {windowExternal.internalOut > 0 && <div className="text-[0.5625rem] text-[#5A5751]">+ {fmtMoney(windowExternal.internalOut)} internal (excluded)</div>}
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net · {periodLabel(activePeriod)}</div>
-              <div className={`text-lg font-medium ${grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.net)}</div>
+              <div className={`text-lg font-medium ${windowExternal.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.net)}</div>
             </div>
           </div>
+
+          {/* Material changes ($500+) — each mover already explained by its top
+              drivers, so a big swing per account or overall is noticed at a glance
+              with a data-driven reason, never a bare number (Darrell 2026-07-18). */}
+          {variance.materialCount > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">
+                Material changes · {periodLabel(activePeriod)} · ≥ {fmtMoney(variance.threshold)}
+              </div>
+              {variance.overall.material && (
+                <div className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">Overall (external): </span>
+                  <span className={variance.overall.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{variance.overall.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(variance.overall.net))}</span>
+                  {variance.overall.drivers.length > 0 && (
+                    <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                  )}
+                </div>
+              )}
+              {variance.accounts.filter((a) => a.material).map((a) => (
+                <div key={a.accountId} className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">{a.name}: </span>
+                  <span className={a.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(a.net))}</span>
+                  {a.drivers.length > 0 && (
+                    <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Month-over-month baseline watch — months whose received/spent is far
+              off the usual, so an off month (a data glitch, a missed import, a
+              genuinely unusual month) is caught on sight (Darrell 2026-07-18). */}
+          {anomalies.length > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Unusual months vs the usual</div>
+              {anomalies.slice(0, 6).map((f) => (
+                <div key={`${f.month}-${f.metric}`} className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">{f.label}</span> · {f.metric === 'in' ? 'received' : 'spent'}{' '}
+                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(f.value)}</span>{' '}
+                  <span className="text-[#5A5751]">vs usual {fmtMoney(f.baseline)} — {f.kind === 'excess' ? 'above' : 'below'} by {fmtMoney(Math.abs(f.deviation))}{f.deviationPct != null ? ` (${f.deviationPct > 0 ? '+' : ''}${f.deviationPct}%)` : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Segmented period control + ‹ month › quick-jump — the standard bank /
               budgeting-app time picker. */}
@@ -432,9 +520,10 @@ export default function Imported({ data = {} }) {
 
           <div className="text-[0.625rem] text-[#5A5751]">
             Showing {grouped.matched.toLocaleString()} of {view.total.toLocaleString()} transactions
-            {' · '}<span className="text-[#166534]">in {fmtMoney(grouped.windowTotals.in)}</span>
-            {' · '}<span className="text-[#B85838]">out {fmtMoney(grouped.windowTotals.out)}</span>
-            {' · '}<span className={grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(grouped.windowTotals.net)}</span>
+            {' · '}<span className="text-[#166534]">in {fmtMoney(windowExternal.in)}</span>
+            {' · '}<span className="text-[#B85838]">out {fmtMoney(windowExternal.out)}</span>
+            {' · '}<span className={windowExternal.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(windowExternal.net)}</span>
+            {windowExternal.internalCount > 0 ? ` · excludes ${fmtMoney(windowExternal.internalIn)} internal transfers` : ''}
             {view.firstDate ? ` · ledger spans ${formatDate(view.firstDate)} – ${formatDate(view.lastDate)}` : ''}
           </div>
 

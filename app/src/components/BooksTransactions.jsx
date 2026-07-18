@@ -25,6 +25,7 @@ import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import { runningBalanceByTxId } from '../lib/imported-view.js';
 import { commitReadout } from '../lib/import-commit.js';
+import { reconcileStatement } from '../lib/statement-reconciliation.js';
 
 // Commit a batch of imported rows and REPORT how many actually saved to the cloud
 // (Christina's books). Uses the verifying batch commit when available; falls back
@@ -846,6 +847,31 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setCsvOpen(false); setCsvRaw(''); setCsvError('');
     alert(`Replaced ${acct}: removed ${ids.length}. ${msg}`);
   };
+  // Validate the STORED ledger against the chosen statement, per month, BEFORE any
+  // write (Christina 2026-07-18: "validate the application against the source data
+  // rather than assuming the source data is incomplete... before asking me to
+  // reset"). A month that reads short (June's 166 of a real 323) is residue of an
+  // older buggy import; this proves the exact gap and offers the NON-destructive
+  // fix — add only the missing rows through the verified commit, never a reset.
+  const recon = useMemo(() => {
+    if (!csvAccountId) return null;
+    const valid = csvParsed.rows.filter(r => r.ok);
+    if (valid.length === 0) return null;
+    return reconcileStatement(valid, data.transactions || [], csvAccountId);
+  }, [csvAccountId, csvParsed, data.transactions]);
+  // Add ONLY the rows the statement lists that are absent from the store — the
+  // non-destructive repair. Goes through the SAME verified commit path (unique
+  // ids + retry + "N of M saved" readout), so a short month is healed and proven
+  // without removing anything. Idempotent: rows already present are never re-added.
+  const addMissingRows = async () => {
+    if (!recon || !recon.totalMissing) return;
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    if (!confirm(`Add ${recon.totalMissing} missing transaction(s) to ${acct} from this statement? Rows already in the ledger are skipped — nothing is removed.`)) return;
+    const msg = await commitBatch(recon.missingRows.map(rowFromCsv), commitImportedRows, addTransaction);
+    recordLoopRun({ key: 'statement-repair', status: 'success', processed: recon.totalMissing, detail: `${acct} · added missing` });
+    setCsvOpen(false); setCsvRaw(''); setCsvError('');
+    alert(`Repaired ${acct}: ${msg}`);
+  };
   const onCsvFile = (file) => {
     if (!file) return;
     // A photo/PDF from the tablet's picker is not a statement — say so plainly
@@ -1517,6 +1543,52 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     </table>
                   </div>
                   {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — the {csvParsed.rows.filter(r => r.ok).length} valid rows will import.</p>}
+                </div>
+              )}
+
+              {/* Validate against source — per-month reconciliation of the stored
+                  ledger vs THIS statement, before any write (Christina 2026-07-18).
+                  A short month (June 166 of 323) is diagnosed and repaired by adding
+                  ONLY the missing rows — non-destructive, verified, no blind reset. */}
+              {recon && (recon.totalMissing > 0 || recon.totalExtra > 0) && (
+                <div className="border border-[#1A1815] bg-white">
+                  <div className="px-3 py-2 border-b border-[#E8E4DC] text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">
+                    Validate against this statement · {(accounts.find(a => a.id === csvAccountId) || {}).name || 'account'}
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E8E4DC]">
+                        <th className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Month</th>
+                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In ledger</th>
+                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In file</th>
+                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Missing</th>
+                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Extra</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recon.byMonth.map((m) => (
+                        <tr key={m.month} className="border-b border-[#E8E4DC]">
+                          <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.label}</td>
+                          <td className="p-2 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.stored}</td>
+                          <td className="p-2 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.inFile}</td>
+                          <td className={`p-2 text-right ${m.missing > 0 ? 'text-[#B85838] font-semibold' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.missing}</td>
+                          <td className={`p-2 text-right ${m.extra > 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.extra}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-3 py-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {recon.totalMissing > 0
+                      ? `${recon.totalMissing} transaction(s) the bank lists are absent from the ledger — add them back without touching what's already there.`
+                      : 'Every row this statement lists is already in the ledger.'}
+                    {recon.totalExtra > 0 && ` ${recon.totalExtra} stored row(s) have no matching line in this statement (possible earlier double-count) — review before a reset.`}
+                  </div>
+                  {recon.totalMissing > 0 && (
+                    <button type="button" onClick={addMissingRows} className="w-full bg-[#5A6E3D] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                      title="Add only the transactions the bank lists that are missing from the ledger — nothing is removed.">
+                      + Add {recon.totalMissing} missing transaction{recon.totalMissing === 1 ? '' : 's'} (nothing removed)
+                    </button>
+                  )}
                 </div>
               )}
 
