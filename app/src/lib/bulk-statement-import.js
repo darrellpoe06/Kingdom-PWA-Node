@@ -69,6 +69,18 @@ function seedSeen(existingTxns) {
   return seen;
 }
 
+// accountTxnIds — the transaction ids that belong to ONE account. Used by the
+// "reset this account's register" control (Christina's books, 2026-07-18): after
+// a bad/collapsed earlier import, the family clears a single account and re-imports
+// a clean statement. Scoped STRICTLY to the chosen account so a reset can NEVER
+// reach another account's ledger, and it returns ids (the delete unit) so the
+// caller just loops deleteTransaction. Pure + deterministic — the destructive act
+// stays the family's own confirmed click; this only decides the exact, minimal set.
+export function accountTxnIds(txns, accountId) {
+  if (!accountId) return [];
+  return (txns || []).filter((t) => t && t.accountId === accountId && t.id).map((t) => t.id);
+}
+
 // planBulkImport — route + dedupe a batch of parsed files into an import plan.
 //   files: [{ name, rows: [{ date, description, amount, category?, fitid? }] }]
 //   accounts, existingTxns: the app's accounts + current ledger (for routing + dedupe)

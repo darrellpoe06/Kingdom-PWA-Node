@@ -7,7 +7,7 @@
 // double-count); unmatched files are reported, not misfiled. This is the "a human
 // can't get it wrong" guarantee.
 import { describe, it, expect } from 'vitest';
-import { detectAccount, planBulkImport } from '../lib/bulk-statement-import.js';
+import { detectAccount, planBulkImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { parseDelimitedToRows } from '../lib/statement-import.js';
 
 const ACCOUNTS = [
@@ -22,6 +22,25 @@ describe('detectAccount', () => {
     expect(detectAccount('ledger-chase7206-2026-05.csv', ACCOUNTS)).toBe('a-7206');
     expect(detectAccount('chase3322_activity.csv', ACCOUNTS)).toBe('a-3322');
     expect(detectAccount('mystery.csv', ACCOUNTS)).toBe(null);
+  });
+});
+
+describe('accountTxnIds — reset ONE account only', () => {
+  const LEDGER = [
+    { id: 't1', accountId: 'a-7206', amount: -5 },
+    { id: 't2', accountId: 'a-7206', amount: 9 },
+    { id: 't3', accountId: 'a-3322', amount: 100 }, // a DIFFERENT account
+    { id: 't4', accountId: 'a-7206', amount: -2 },
+    { accountId: 'a-7206', amount: -1 }, // no id — skipped
+  ];
+  it('returns only the chosen account ids — never touches another account', () => {
+    expect(accountTxnIds(LEDGER, 'a-7206')).toEqual(['t1', 't2', 't4']);
+    expect(accountTxnIds(LEDGER, 'a-3322')).toEqual(['t3']);
+  });
+  it('empty for no account / empty ledger (nothing cleared by accident)', () => {
+    expect(accountTxnIds(LEDGER, '')).toEqual([]);
+    expect(accountTxnIds(LEDGER, null)).toEqual([]);
+    expect(accountTxnIds([], 'a-7206')).toEqual([]);
   });
 });
 

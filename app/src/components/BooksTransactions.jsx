@@ -17,7 +17,7 @@ import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile, parseAmount } from '../lib/statement-import.js';
-import { planBulkImport } from '../lib/bulk-statement-import.js';
+import { planBulkImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
@@ -784,6 +784,21 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setBulkPlan(null); setBulkRecon(null); setCsvOpen(false);
     alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
   };
+  // Reset ONE account's register so a clean statement can be re-imported after a
+  // bad/collapsed earlier import (Christina's books, 2026-07-18). The family owns
+  // this destructive click: a plain confirm names the exact count + account, and
+  // the scope is STRICTLY the chosen account (accountTxnIds) so no other account's
+  // ledger is ever touched. Non-negotiably irreversible, so it says so.
+  const clearAccountRegister = () => {
+    if (!csvAccountId) { setCsvError('Pick the account to reset (step 1) first.'); return; }
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    const ids = accountTxnIds(data.transactions || [], csvAccountId);
+    if (ids.length === 0) { alert(`${acct} has no transactions to clear — you can import a statement now.`); return; }
+    if (!confirm(`Reset ${acct}: permanently remove all ${ids.length} transaction(s) so you can re-import a clean bank statement?\n\nThis CANNOT be undone. Manual entries in this account will also be removed.`)) return;
+    ids.forEach(id => deleteTransaction(id));
+    recordLoopRun({ key: 'account-reset', status: 'success', processed: ids.length, detail: acct });
+    alert(`Cleared ${ids.length} transaction(s) from ${acct}. Now pick the bank file above to import a clean register.`);
+  };
   const onCsvFile = (file) => {
     if (!file) return;
     // A photo/PDF from the tablet's picker is not a statement — say so plainly
@@ -1346,6 +1361,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   {accounts.length === 0 && <option value="">— Add an account first —</option>}
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
                 </select>
+                {csvAccountId && (
+                  <button type="button" onClick={clearAccountRegister}
+                    className="mt-1 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] underline hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    title="Permanently remove every transaction in this account so you can re-import a clean bank statement (cannot be undone).">
+                    ↺ Reset this account &amp; re-import clean ({accountTxnIds(data.transactions || [], csvAccountId).length} in it now)
+                  </button>
+                )}
               </div>
 
               <div>
