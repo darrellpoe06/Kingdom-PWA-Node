@@ -37,6 +37,7 @@ import {
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { varianceReport } from '../lib/balance-variance.js';
+import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -256,6 +257,21 @@ export default function Imported({ data = {} }) {
     [data.transactions, accounts, sinceMs, untilMs]
   );
 
+  // Internal circulation — money the family moves between its OWN accounts
+  // (transfers, credit-card payments, LOC draws/paydowns) is not income or spend;
+  // counting it across all accounts inflated gross in/out to ~$70-85k/mo (Darrell
+  // 2026-07-18). Detect the matched pairs over the FULL ledger, then the tile
+  // totals report TRUE external flow and name what was excluded (transparent, not
+  // hidden). The register still lists every row.
+  const internalIds = useMemo(
+    () => internalTransferIds(data.transactions || [], accounts),
+    [data.transactions, accounts]
+  );
+  const windowExternal = useMemo(
+    () => externalTotals(grouped.windowed, internalIds),
+    [grouped.windowed, internalIds]
+  );
+
   // Report meta (period + active filters + generated stamp) and the export models.
   // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
   // downloaded/printed report ties out to the view (RLS-scoped — no leak).
@@ -322,15 +338,17 @@ export default function Imported({ data = {} }) {
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">In · {periodLabel(activePeriod)}</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.in)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.in)}</div>
+              {windowExternal.internalIn > 0 && <div className="text-[0.5625rem] text-[#5A5751]">+ {fmtMoney(windowExternal.internalIn)} internal (excluded)</div>}
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">Out · {periodLabel(activePeriod)}</div>
-              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.out)}</div>
+              <div className="text-lg font-medium" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.out)}</div>
+              {windowExternal.internalOut > 0 && <div className="text-[0.5625rem] text-[#5A5751]">+ {fmtMoney(windowExternal.internalOut)} internal (excluded)</div>}
             </div>
             <div className="border border-[#E8E4DC] bg-white p-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net · {periodLabel(activePeriod)}</div>
-              <div className={`text-lg font-medium ${grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(grouped.windowTotals.net)}</div>
+              <div className={`text-lg font-medium ${windowExternal.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.net)}</div>
             </div>
           </div>
 
@@ -472,9 +490,10 @@ export default function Imported({ data = {} }) {
 
           <div className="text-[0.625rem] text-[#5A5751]">
             Showing {grouped.matched.toLocaleString()} of {view.total.toLocaleString()} transactions
-            {' · '}<span className="text-[#166534]">in {fmtMoney(grouped.windowTotals.in)}</span>
-            {' · '}<span className="text-[#B85838]">out {fmtMoney(grouped.windowTotals.out)}</span>
-            {' · '}<span className={grouped.windowTotals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(grouped.windowTotals.net)}</span>
+            {' · '}<span className="text-[#166534]">in {fmtMoney(windowExternal.in)}</span>
+            {' · '}<span className="text-[#B85838]">out {fmtMoney(windowExternal.out)}</span>
+            {' · '}<span className={windowExternal.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(windowExternal.net)}</span>
+            {windowExternal.internalCount > 0 ? ` · excludes ${fmtMoney(windowExternal.internalIn)} internal transfers` : ''}
             {view.firstDate ? ` · ledger spans ${formatDate(view.firstDate)} – ${formatDate(view.lastDate)}` : ''}
           </div>
 
