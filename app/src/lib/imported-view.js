@@ -298,3 +298,55 @@ export function runningBalances(rows, openingBalance = 0) {
   }
   return map;
 }
+
+// auditBalanceContinuity — prove ONE account's ledger is complete and NOT
+// double-counted, using ONLY the bank's own arithmetic (Christina's books,
+// 2026-07-18; Darrell: "so no two transactions are the same... it should have
+// metadata"). This is the quantitative integrity engine: data validates data,
+// no human judgment that could be gamed or undermined.
+//
+// Every row that carries the bank's running `balance` implies two facts:
+//   before = balance - amount   (the balance the instant BEFORE it posted)
+//   after  = balance            (the balance the instant AFTER it posted)
+// In a complete, un-duplicated statement the rows form ONE chain: each row's
+// `after` is exactly the next row's `before`. So across the whole set, every
+// `after` value is consumed as some other row's `before` value EXACTLY once —
+// leaving exactly ONE unmatched `before` (the opening balance) and exactly ONE
+// unmatched `after` (the closing balance). This is ORDER-INDEPENDENT (it never
+// re-sorts, so same-day ordering can't create a false alarm) and it localizes a
+// break: if a row was dropped or double-counted, the chain splits and MORE than
+// one balance is left unmatched on each side — those unmatched values bracket the
+// gap. Integer cents throughout so float drift (0.1+0.2) can never fake a break.
+//
+// Pass ONE account's full row set (like runningBalances). Rows without a numeric
+// balance are ignored (honest: an export without a balance column can't be
+// audited this way — ok:true with reason, never a fake pass). Truthful-or-absent.
+export function auditBalanceContinuity(rows) {
+  const cents = (v) => Math.round(Number(v) * 100);
+  const withBal = (rows || []).filter((r) => r && r.balance != null && r.balance !== '' && Number.isFinite(Number(r.balance)));
+  if (withBal.length < 2) {
+    return { ok: true, checked: withBal.length, breaks: [], reason: 'not enough balance data to audit' };
+  }
+  const after = new Map();  // 'balance after' value (cents) -> count
+  const before = new Map(); // 'balance before' value (cents) -> count
+  const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
+  for (const r of withBal) {
+    const bal = cents(r.balance);
+    const amt = Number.isFinite(Number(r.amount)) ? cents(r.amount) : 0;
+    bump(after, bal);
+    bump(before, bal - amt);
+  }
+  const unmatchedBefore = []; // opening candidate(s)
+  for (const [k, c] of before) { const d = c - (after.get(k) || 0); for (let j = 0; j < d; j++) unmatchedBefore.push(k / 100); }
+  const unmatchedAfter = [];  // closing candidate(s)
+  for (const [k, c] of after) { const d = c - (before.get(k) || 0); for (let j = 0; j < d; j++) unmatchedAfter.push(k / 100); }
+  const ok = unmatchedBefore.length === 1 && unmatchedAfter.length === 1;
+  return {
+    ok,
+    checked: withBal.length,
+    opening: ok ? unmatchedBefore[0] : null,   // the account's starting balance
+    closing: ok ? unmatchedAfter[0] : null,    // the account's current balance
+    // On a break, these unmatched balances bracket the missing/duplicated row(s).
+    breaks: ok ? [] : { unmatchedBefore, unmatchedAfter },
+  };
+}

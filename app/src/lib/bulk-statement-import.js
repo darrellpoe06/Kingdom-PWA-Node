@@ -41,12 +41,22 @@ export function detectAccount(filename, accounts) {
 }
 
 // A stable dedupe key for a row on an account. FITID is authoritative when the
-// source carries it; otherwise content (date + amount + first 40 chars of the
-// description) is a robust fallback for plain bank/CSV exports.
+// source carries it; otherwise content is the fallback for plain bank/CSV exports.
+//
+// The content key is date + amount + first 40 chars of the description AND, when
+// the export carries it, the running BALANCE after the transaction. The balance
+// is the deterministic disambiguator (Christina's books, 2026-07-18): two GENUINE
+// same-day same-amount purchases (e.g. two $200 deposits) leave DIFFERENT running
+// balances, so they get DIFFERENT keys and are BOTH kept — while a true re-import
+// of the same file computes the SAME balance, so it still dedupes (idempotent).
+// Without the balance, the old key wrongly collapsed 17 of Christina's real
+// repeat transactions into one. Balance is content-derived, not human-entered, so
+// it can't be gamed: identity is decided by the bank's own arithmetic.
 export function txnDedupeKey(accountId, t) {
   const amt = (Number(t.amount) || 0).toFixed(2);
   const desc = String(t.description || t.desc || '').slice(0, 40).toLowerCase().trim();
-  return [accountId, t.date, amt, desc].join('|');
+  const bal = (t.balance == null || t.balance === '') ? '' : (Number(t.balance) || 0).toFixed(2);
+  return [accountId, t.date, amt, desc, bal].join('|');
 }
 
 function seedSeen(existingTxns) {
@@ -104,6 +114,10 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
         // re-imports, since seedSeen dedupes against the existing ledger).
         id: r.fitid ? 'vl-' + r.fitid : 'imp-' + cKey,
         ...(r.fitid ? { fitid: String(r.fitid) } : {}),
+        // Persist the running balance so (a) a later re-import rebuilds the SAME
+        // dedupe key (idempotent) and (b) the balance-continuity audit can verify
+        // the ledger is complete + un-double-counted. Only when the source had it.
+        ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
       });
       bucket.count += 1;
       totalNew += 1;

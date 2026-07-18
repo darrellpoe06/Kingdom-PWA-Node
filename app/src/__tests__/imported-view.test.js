@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
+  auditBalanceContinuity,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -283,5 +284,63 @@ describe('groupByField — repeated payees roll up to ONE subtotaled group', () 
     const dash = groups.find((g) => g.key === '—');
     expect(dash.rows).toHaveLength(2);
     expect(dash.label).toBe('Uncategorized');
+  });
+});
+
+// auditBalanceContinuity — the quantitative integrity engine (Christina's books).
+// It proves ONE account's ledger is complete and un-double-counted using ONLY the
+// bank's own running balances, order-independently. Proven-to-catch: a dropped row
+// and a double-counted row each break the chain; a clean chain (even with a genuine
+// same-amount repeat) passes and reports the real opening + closing.
+describe('auditBalanceContinuity', () => {
+  // A clean chain: opening 900, then -20, +500, -80  ->  880, 1380, 1300.
+  const CHAIN = [
+    { id: '1', date: '2026-06-01', amount: -20, balance: 880 },
+    { id: '2', date: '2026-06-02', amount: 500, balance: 1380 },
+    { id: '3', date: '2026-06-03', amount: -80, balance: 1300 },
+  ];
+  it('passes a complete chain and reports the real opening + closing', () => {
+    const res = auditBalanceContinuity(CHAIN);
+    expect(res.ok).toBe(true);
+    expect(res.checked).toBe(3);
+    expect(res.opening).toBe(900);   // 880 - (-20)
+    expect(res.closing).toBe(1300);  // newest balance
+  });
+  it('passes even with a GENUINE same-day same-amount repeat (different balances)', () => {
+    const rows = [
+      { id: '1', date: '2026-07-17', amount: 200, balance: 1000 },
+      { id: '2', date: '2026-07-17', amount: 200, balance: 1200 }, // real 2nd deposit
+    ];
+    const res = auditBalanceContinuity(rows);
+    expect(res.ok).toBe(true);
+    expect(res.opening).toBe(800);
+    expect(res.closing).toBe(1200);
+  });
+  it('CATCHES a dropped transaction (chain splits — more than one unmatched balance)', () => {
+    const dropped = [CHAIN[0], CHAIN[2]]; // the +500 row is missing
+    const res = auditBalanceContinuity(dropped);
+    expect(res.ok).toBe(false);
+    // The gap is bracketed: 880 (after row 1) and 1380 (before row 3) don't meet.
+    expect(res.breaks.unmatchedAfter).toContain(880);
+    expect(res.breaks.unmatchedBefore).toContain(1380);
+  });
+  it('CATCHES a double-counted transaction (same row twice breaks the chain)', () => {
+    const dup = [CHAIN[0], CHAIN[1], CHAIN[1], CHAIN[2]]; // row 2 imported twice
+    const res = auditBalanceContinuity(dup);
+    expect(res.ok).toBe(false);
+  });
+  it('float-safe: cents that would drift under + still reconcile', () => {
+    const rows = [
+      { id: '1', date: '2026-06-01', amount: 0.1, balance: 0.1 },
+      { id: '2', date: '2026-06-02', amount: 0.2, balance: 0.3 }, // 0.1+0.2 !== 0.3 in float
+    ];
+    const res = auditBalanceContinuity(rows);
+    expect(res.ok).toBe(true);
+    expect(res.closing).toBe(0.3);
+  });
+  it('is honest when there is no balance data to audit (never a fake pass)', () => {
+    const res = auditBalanceContinuity([{ id: '1', date: '2026-06-01', amount: -20 }]);
+    expect(res.ok).toBe(true);
+    expect(res.reason).toMatch(/not enough balance/);
   });
 });
