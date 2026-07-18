@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   lastFour, maskedLabel, setFullTaxId, getFullTaxId, hasFullTaxId,
-  exportForBackup, importFromBackup,
+  exportForBackup, importFromBackup, vaultCount,
 } from '../lib/tax-id-vault.js';
 import { contractorColumns } from '../lib/contractors-sync.js';
 
@@ -76,6 +76,14 @@ describe('NAS backup — the only sanctioned way the full ids leave the device',
     const added = importFromBackup({ k1: { full: '000000000' } });
     expect(added).toBe(0);
     expect(getFullTaxId('k1')).toBe('111223333');
+  });
+  it('vaultCount reports how many full ids this device holds (drives the backup control)', () => {
+    expect(vaultCount()).toBe(0);
+    setFullTaxId('k1', '111223333');
+    setFullTaxId('k2', '998887777');
+    expect(vaultCount()).toBe(2);
+    setFullTaxId('k1', ''); // clear one
+    expect(vaultCount()).toBe(1);
   });
 });
 

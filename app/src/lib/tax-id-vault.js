@@ -85,6 +85,12 @@ export function clearFullTaxId(contractorId) {
   if (vault[contractorId]) { delete vault[contractorId]; writeVault(vault); }
 }
 
+// How many full taxpayer ids this device holds — for the backup control ("N on
+// this device; back them up to your NAS").
+export function vaultCount() {
+  return Object.keys(readVault()).length;
+}
+
 // The whole vault as a plain object, for the family to BACK UP to their NAS
 // (device -> NAS, never cloud). The only sanctioned way the full ids leave the
 // device, and it goes to hardware the family owns.
