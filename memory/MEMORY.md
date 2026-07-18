@@ -111,6 +111,24 @@ relying on it; memories reflect what was true when written.
   missing piece and surfaces what already exists. Undermining = re-building or
   contradicting existing, working, governed mechanisms; the guard against it is
   reading the code first.
+- **feedback_gates_are_governance_grow_and_speed_never_remove** — the 5,000+ CI
+  checks are NOT redundant ceremony — they are the accumulated ERROR-CORRECTING
+  memory of every past failure: each incident becomes a post-work review (a REV /
+  LESSONS entry) that becomes a new deterministic gate after the component ships
+  (Darrell 2026-07-18: "we keep adding our reviews about failures so Ari and
+  claude... get better results... flow adaptive strategies include error
+  correcting code after each built component"). They ARE the governance — the
+  deterministic brake that lets the no-human auto-merge lane ship to PRODUCTION
+  safely (DR-0076, DR-0103). "Fast to production" = a no-human lane + a FAST
+  green, NEVER no-checks. So: GROW the checks (every failure -> a gate) and make
+  them FAST (shard/parallelize the run — ~3min serial -> ~1min), but NEVER delete
+  the suite. Removing it is the one thing that "hurts us" (Darrell's own caveat)
+  — it is the exact down-site worst-outcome (DR-0107/0125), and the suite catches
+  real bugs (proven 2026-07-18: completion.test caught the 5445-vs-5447 mismatch
+  before it shipped). BUILD DISCIPLINE: add the component's error-correcting gate
+  in the SAME change that builds it (its test + any new guard), so the adaptive
+  loop closes per-component. CI is the merge/deploy lane — any speed change to it
+  is DR-0107-sensitive: prove the site still deploys before calling it done.
 - **feedback_speak_established_fact** — SPEAK the truth; do not debate statistically-
   established data or hedge real, documented damage into "contested / can't verify /
   no one knows." Declared 2026-07-04 (DR-0100), correcting the Game Changers handling:
