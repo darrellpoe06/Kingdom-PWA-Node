@@ -368,3 +368,16 @@ relying on it; memories reflect what was true when written.
   monolith budget), **monolith-budget-guard** (shell may only shrink). When unsure
   which guards a change touches, run the full `vitest run`. Green feature tests are
   NOT a green build. `feedback_run_full_guard_suite_before_push`.
+
+- **2026-07-18 — Don't "stand by" when an authorized roadmap exists — PULL the
+  next item forward and keep working until it's done.** Darrell (frustrated,
+  repeatedly): "Why not use the Ways and keep going... continue to finish the
+  work." Ending a turn with "standing by / here's the roadmap when you want it"
+  after already-agreed work is the DR-0111 failure (re-asking settled work) AND a
+  DR-0103 stall (motion is the default; silence from Darrell is room to advance,
+  not a stop). When a roadmap of authorized items is on the table (agreed
+  features, dated re-reviews, open audit findings), the agent EXECUTES them one
+  after another — reset branch from main, build, full guard suite, push, repeat —
+  until the roadmap is finished or a genuine DR-0089 bright line is hit. Do not
+  narrate a menu and wait. The only legitimate stop is a NEW decision, a value
+  only Darrell holds, or a verified premise conflict. `feedback_finish_the_roadmap_dont_stand_by`.

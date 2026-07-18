@@ -30,6 +30,7 @@ import {
   WORKER_KINDS, necThresholdLabel, classificationAdvisory,
 } from '../lib/worker-classification.js';
 import { setFullTaxId, hasFullTaxId, maskedLabel, vaultCount, exportForBackup, importFromBackup } from '../lib/tax-id-vault.js';
+import { effectiveYtdPaid } from '../lib/contractor-ytd.js';
 
 // tone -> foreground color for the classification/threshold notes. Uses the
 // house palette; true red is reserved (Color Theology) so 'warn' uses the
@@ -188,7 +189,7 @@ const BLANK_CONTRACTOR = {
   w9OnFile: false,
 };
 
-function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork, taxYear }) {
+function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editForm, setEditForm, onSave, onCancel, openWork, taxYear, transactions }) {
   const value = c.direction === 'outbound' ? c.ytdPaid : c.ytdReceived;
   const rateLabel = c.direction === 'outbound' ? 'YTD paid' : `YTD received · ${fmt(c.monthlyExpected)}/mo expected`;
   return (
@@ -213,8 +214,13 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
               rem sizes keep the consistency-guard px baseline frozen. */}
           {(() => {
             const kindLabel = (WORKER_KINDS.find(k => k.id === (c.kind || 'business')) || WORKER_KINDS[0]).label;
-            const adv = classificationAdvisory(c.kind || 'business', { ytdPaid: c.ytdPaid, year: taxYear });
-            const thr = c.direction === 'outbound' ? necThresholdLabel(c.ytdPaid, taxYear) : null;
+            // YTD-paid for the threshold: the LEDGER-derived amount when real
+            // payments match this contractor (interconnectedness — REV-0106
+            // finding), else the typed value. So the 1099 line reads off actual
+            // money movement, not a hand-typed guess.
+            const eff = effectiveYtdPaid(c, transactions || [], taxYear);
+            const adv = classificationAdvisory(c.kind || 'business', { ytdPaid: eff.value, year: taxYear });
+            const thr = c.direction === 'outbound' ? necThresholdLabel(eff.value, taxYear) : null;
             return (
               <div className="mt-1 space-y-0.5">
                 <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{kindLabel}</div>
@@ -223,6 +229,9 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
                 )}
                 {thr && thr.tone !== 'ok' && (
                   <div className="text-[0.625rem] leading-snug" style={{ color: TONE_COLOR[thr.tone] || '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>{thr.text}</div>
+                )}
+                {c.direction === 'outbound' && eff.source === 'ledger' && (
+                  <div className="text-[0.625rem] leading-snug text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>Ledger: {fmt(eff.value)} from {eff.derived.count} payment{eff.derived.count === 1 ? '' : 's'} in {taxYear}{eff.typed && Math.abs(eff.typed - eff.value) >= 1 ? ` (typed ${fmt(eff.typed)})` : ''}</div>
                 )}
                 {/* Tax identity: the masked ID (never the full number) + a W-9-needed
                     flag when a 1099 is due (threshold crossed) but no W-9 is on file. */}
@@ -468,7 +477,7 @@ function WorkerVoice({ workers = [], incidents }) {
   );
 }
 
-export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents, currentDate }) {
+export function Contractors1099({ contractors = [], entities = [], addContractor, updateContractor, deleteContractor, incidents, currentDate, transactions = [] }) {
   // TAX YEAR drives the 1099-NEC threshold ($600 for 2024-2025; $2,000 for 2026+
   // under the OBBBA). The advisory + threshold calls MUST be told the year — the
   // library defaults to the latest known (2026/$2,000), so filing a PRIOR year
@@ -630,7 +639,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {outbound.map((c, i) => (
-              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} openWork={incidentsProvided ? workerOpenIncidents(c.id, incidents) : undefined} taxYear={taxYear} />
+              <ContractorRow key={c.id} c={c} isLast={i === outbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} openWork={incidentsProvided ? workerOpenIncidents(c.id, incidents) : undefined} taxYear={taxYear} transactions={transactions} />
             ))}
           </div>
         )}
@@ -649,7 +658,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         ) : (
           <div className="bg-white border border-[#1A1815]">
             {inbound.map((c, i) => (
-              <ContractorRow key={c.id} c={c} isLast={i === inbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} taxYear={taxYear} />
+              <ContractorRow key={c.id} c={c} isLast={i === inbound.length - 1} entities={entities} onEdit={startEdit} onDelete={deleteContractor} editing={editingId === c.id} editForm={editForm} setEditForm={setEditForm} onSave={saveEdit} onCancel={cancelEdit} taxYear={taxYear} transactions={transactions} />
             ))}
           </div>
         )}
