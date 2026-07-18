@@ -152,6 +152,7 @@ import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
+import { slimSnapshotData } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { reconcileAccounts } from './lib/imported-view.js';
@@ -2013,7 +2014,10 @@ export default function PoeFinancialSystem() {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
         // account so a different account on a shared device can't hydrate it.
         // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
-        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
+        // Slim the persisted copy so heavy inline photo bytes (a local-only Big
+        // Picture photo not yet offloaded to the NAS) can NEVER overflow the quota
+        // and block the FINANCIAL save (2026-07-18); the NAS/cloud holds the bytes.
+        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data: slimSnapshotData(data), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
         setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
         // v2.15 family snapshot push — the non-table-synced remainder follows
         // the account. Leading-edge throttle (15s). Two hard guards: the pull
