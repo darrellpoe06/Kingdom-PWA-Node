@@ -94,6 +94,23 @@ relying on it; memories reflect what was true when written.
   404s). The in-app DB Health panel reads the `_schema_migrations` ledger the
   lane writes. So: put SQL in a migration file and let the lane run it; read the
   run log / ledger for the receipt — do NOT improvise a manual apply path.
+- **feedback_review_code_before_building** — REVIEW THE REAL CODE FIRST, ALWAYS,
+  before making a change — "so we always do it right the first time... add to
+  documentation and Ways so no AI will undermine us" (Darrell 2026-07-18). Build
+  ON the mechanism that already exists; NEVER stand up a parallel/duplicate one.
+  Reality-trace the actual implementation and cite it (file:line) before writing
+  (DR-0061 P15, feedback-research-first P7, VERIFICATION-DOCTRINE DR-0076). This
+  is the standing correction behind the recurring misses (the manual-migration
+  guess REV-0093; scoping to the agent's own limits DR-0108). PROVEN 2026-07-18:
+  the "1099 access exceptions" Darrell asked for were ALREADY built and would
+  have been duplicated if not checked — child money-education is `finance.view`
+  with guardian `maxGrant: ALLOW` (DR-0094, relationships.js CHILD_CAPABILITY_
+  POLICY); the successor "sees the books, cannot transact" role exists
+  (relationships.js:419, DR-0111); the legacy/succession GAME exists
+  (lib/games/generations.js + heritage.js). The agent ADDS only the genuinely
+  missing piece and surfaces what already exists. Undermining = re-building or
+  contradicting existing, working, governed mechanisms; the guard against it is
+  reading the code first.
 - **feedback_speak_established_fact** — SPEAK the truth; do not debate statistically-
   established data or hedge real, documented damage into "contested / can't verify /
   no one knows." Declared 2026-07-04 (DR-0100), correcting the Game Changers handling:

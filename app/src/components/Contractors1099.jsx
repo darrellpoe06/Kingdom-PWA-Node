@@ -26,6 +26,14 @@ import {
   WORKER_VOICE_AREA, workerOpenIncidents, buildFollowUpMessage,
   buildWorkerVoiceRecord, isWorkerVoice, voiceEntries,
 } from '../lib/worker-ops.js';
+import {
+  WORKER_KINDS, necThresholdLabel, classificationAdvisory,
+} from '../lib/worker-classification.js';
+
+// tone -> foreground color for the classification/threshold notes. Uses the
+// house palette; true red is reserved (Color Theology) so 'warn' uses the
+// coral accent, not red.
+const TONE_COLOR = { warn: '#B85838', due: '#B85838', caution: '#8A6D3B', ok: '#5A5751' };
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 
@@ -45,10 +53,35 @@ const CONTRACTOR_STATUSES = ['active', 'pipeline', 'possible', 'paused', 'inacti
 // from this, so the crew on a job reads right (who's labor, who's supply).
 const CONTRACTOR_TYPES = ['contractor', 'vendor'];
 
+// The honest, plain-language note for a chosen relationship kind: the tax
+// advisory (household -> may be an EMPLOYEE; clergy -> dual status; etc.) plus,
+// for outbound, the 1099-NEC threshold read from the real YTD-paid. Text uses
+// REM font sizes on purpose (consistency guard freezes this file's fixed-px
+// count; new text must scale with the large-print control).
+function ClassificationNote({ kind, ytdPaid, direction }) {
+  const a = classificationAdvisory(kind, { ytdPaid });
+  const thr = direction === 'outbound' ? necThresholdLabel(ytdPaid) : null;
+  return (
+    <div className="mt-1 space-y-1">
+      <div className="text-[0.6875rem] leading-snug" style={{ color: TONE_COLOR[a.tone] || '#5A5751', fontFamily: '"Fraunces", serif' }}>
+        {a.tone === 'warn' ? 'Caution — ' : ''}{a.headline}
+      </div>
+      <div className="text-[0.625rem] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{a.detail}</div>
+      {thr && (
+        <div className="text-[0.625rem] leading-snug" style={{ color: TONE_COLOR[thr.tone] || '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>{thr.text}</div>
+      )}
+    </div>
+  );
+}
+
 const BLANK_CONTRACTOR = {
   direction: 'outbound',
   entityId: 'e-personal',
   type: 'contractor',
+  // kind = the 1099 relationship classification (worker-classification.js).
+  // Drives the tax advisory + the safe-access default (isolation for all,
+  // finance-read only for the tax accountant).
+  kind: 'business',
   name: '',
   role: '',
   // Phone is what makes one-tap dispatch work (DispatchPanel texts the job
@@ -81,6 +114,27 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
             </div>
           )}
           {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+          {/* Classification read on the collapsed card: the kind tag, plus (for
+              outbound) the 1099-NEC threshold flag from the REAL YTD paid, plus
+              the safety WARNING headline when one applies (household -> may be an
+              employee; clergy -> dual status) so it is visible without editing.
+              rem sizes keep the consistency-guard px baseline frozen. */}
+          {(() => {
+            const kindLabel = (WORKER_KINDS.find(k => k.id === (c.kind || 'business')) || WORKER_KINDS[0]).label;
+            const adv = classificationAdvisory(c.kind || 'business', { ytdPaid: c.ytdPaid });
+            const thr = c.direction === 'outbound' ? necThresholdLabel(c.ytdPaid) : null;
+            return (
+              <div className="mt-1 space-y-0.5">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{kindLabel}</div>
+                {adv.tone === 'warn' && (
+                  <div className="text-[0.625rem] leading-snug" style={{ color: TONE_COLOR.warn, fontFamily: '"Fraunces", serif' }}>Caution — {adv.headline}</div>
+                )}
+                {thr && thr.tone !== 'ok' && (
+                  <div className="text-[0.625rem] leading-snug" style={{ color: TONE_COLOR[thr.tone] || '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>{thr.text}</div>
+                )}
+              </div>
+            );
+          })()}
           {/* Manager state: this worker's open work orders. Renders ONLY when the
               shell provides incidents (openWork is an array) — never painted. The
               assignment slice is theirs, so "their piece done, order still open"
@@ -140,6 +194,11 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} /></div>
+          </div>
+          <div>
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
+            <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.kind || 'business'} onChange={e => setEditForm({ ...editForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
+            <ClassificationNote kind={editForm.kind || 'business'} ytdPaid={editForm.ytdPaid} direction={editForm.direction} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
@@ -364,6 +423,11 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Person or company" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} /></div>
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What they do for the business" value={addForm.role} onChange={e => setAddForm({ ...addForm, role: e.target.value })} /></div>
+            </div>
+            <div>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.kind || 'business'} onChange={e => setAddForm({ ...addForm, kind: e.target.value })}>{WORKER_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
+              <ClassificationNote kind={addForm.kind || 'business'} ytdPaid={addForm.ytdPaid} direction={addForm.direction} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>

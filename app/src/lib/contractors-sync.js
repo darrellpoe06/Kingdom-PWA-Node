@@ -24,6 +24,10 @@ export function contractorColumns(item) {
     direction:        item.direction === 'inbound' ? 'inbound' : 'outbound',
     type:             item.type === 'vendor' ? 'vendor' : 'contractor',
     name:             item.name || '',
+    // kind = the 1099 relationship classification (worker-classification.js):
+    // business | family | household | church | clergy | accountant. Drives the
+    // tax advisory + the safe-access default; unknown/blank falls back safe.
+    kind:             item.kind || 'business',
     phone:            item.phone || null,
     email:            item.email || null,
     role:             item.role || null,
@@ -55,6 +59,7 @@ export const contractorsSync = createTableSync({
       entityId:        row.entity_slug || 'e-personal',
       direction:       row.direction,
       type:            row.type || 'contractor',
+      kind:            row.kind || 'business',
       name:            row.name,
       phone:           row.phone || '',
       email:           row.email || '',
