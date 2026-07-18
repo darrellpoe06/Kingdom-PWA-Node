@@ -2975,7 +2975,7 @@ export default function PoeFinancialSystem() {
   // v2.13 — contractors sync to contractors_1099 so the worker roster (and
   // the phones one-tap dispatch depends on) is shared across the family.
   const addContractor = (item) => {
-    const seeded = { ...item, id: `k-${Date.now()}` };
+    const seeded = { ...item, id: item.id || `k-${Date.now()}` };
     setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       contractorsSync.upload(seeded).then((res) => {

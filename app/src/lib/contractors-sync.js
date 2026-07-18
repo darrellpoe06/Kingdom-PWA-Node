@@ -37,6 +37,15 @@ export function contractorColumns(item) {
     monthly_expected: Number(item.monthlyExpected) || 0,
     status:           item.status || 'active',
     notes:            item.notes ?? null,
+    // Tax-identity: the NON-SECRET tracking fields only. The full SSN/EIN is NEVER
+    // synced — it lives on-device (tax-id-vault.js). Here we carry legal name +
+    // address + id TYPE + LAST 4 + the W-9-on-file flag. Guard: only ever the last
+    // 4 digits leave, so a full id can't slip into the cloud through this mapper.
+    legal_name:       item.legalName || null,
+    mailing_address:  item.mailingAddress || null,
+    tax_id_type:      (item.taxIdType === 'ein' || item.taxIdType === 'ssn') ? item.taxIdType : null,
+    tax_id_last4:     item.taxIdLast4 ? String(item.taxIdLast4).replace(/\D/g, '').slice(-4) : null,
+    w9_on_file:       !!item.w9OnFile,
   };
 }
 
@@ -70,6 +79,14 @@ export const contractorsSync = createTableSync({
       monthlyExpected: Number(row.monthly_expected) || 0,
       status:          row.status,
       notes:           row.notes ?? '',
+      // Tax-identity NON-SECRET fields (the full id is never here — it lives in
+      // the on-device vault). last-4 + type + W-9 flag identify the payee and
+      // drive the "W-9 needed" prompt.
+      legalName:       row.legal_name || '',
+      mailingAddress:  row.mailing_address || '',
+      taxIdType:       row.tax_id_type || '',
+      taxIdLast4:      row.tax_id_last4 || '',
+      w9OnFile:        !!row.w9_on_file,
       createdAt:       row.created_at,
       updatedAt:       row.updated_at,
     };
