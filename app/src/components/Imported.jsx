@@ -38,6 +38,7 @@ import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
+import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -272,6 +273,19 @@ export default function Imported({ data = {} }) {
     [grouped.windowed, internalIds]
   );
 
+  // Month-over-month baseline watch (Darrell 2026-07-18: "monitor changes in the
+  // totals month to month for excess or lack based on their usual amounts — this
+  // would be caught"). Each month's TRUE external in/out vs the leave-one-out
+  // median of the others; flag the months that deviate past 40% AND $2k so an off
+  // month (a $69k-received glitch, a missed import) surfaces on sight.
+  const anomalies = useMemo(() => {
+    const months = monthlyExternalTotals(data.transactions || [], accounts);
+    return [
+      ...baselineAnomalies(months, { metric: 'in', tolerancePct: 0.4, floor: 2000 }),
+      ...baselineAnomalies(months, { metric: 'out', tolerancePct: 0.4, floor: 2000 }),
+    ].sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+  }, [data.transactions, accounts]);
+
   // Report meta (period + active filters + generated stamp) and the export models.
   // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
   // downloaded/printed report ties out to the view (RLS-scoped — no leak).
@@ -376,6 +390,22 @@ export default function Imported({ data = {} }) {
                   {a.drivers.length > 0 && (
                     <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Month-over-month baseline watch — months whose received/spent is far
+              off the usual, so an off month (a data glitch, a missed import, a
+              genuinely unusual month) is caught on sight (Darrell 2026-07-18). */}
+          {anomalies.length > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Unusual months vs the usual</div>
+              {anomalies.slice(0, 6).map((f) => (
+                <div key={`${f.month}-${f.metric}`} className="text-[0.75rem] text-[#1A1815]">
+                  <span className="font-semibold">{f.label}</span> · {f.metric === 'in' ? 'received' : 'spent'}{' '}
+                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(f.value)}</span>{' '}
+                  <span className="text-[#5A5751]">vs usual {fmtMoney(f.baseline)} — {f.kind === 'excess' ? 'above' : 'below'} by {fmtMoney(Math.abs(f.deviation))}{f.deviationPct != null ? ` (${f.deviationPct > 0 ? '+' : ''}${f.deviationPct}%)` : ''}</span>
                 </div>
               ))}
             </div>
