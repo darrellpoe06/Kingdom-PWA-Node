@@ -195,6 +195,20 @@ relying on it; memories reflect what was true when written.
   proceeding genuinely undermine or hurt the app/project?" — never a now-or-later
   hedge already answered. A pause that fails that test is a constraint on the
   work; route around the impulse and ship.
+- **feedback_keep_moving_order_agnostic** — KEEP MOVING; the ORDER does not
+  matter, only that the work keeps advancing. Darrell 2026-07-18: "keep working I
+  dont care about the order just that it keeps moving... period." When multiple
+  authorized items are queued (parked features, dated re-reviews, roadmap, the
+  next friction item), do NOT stop to sequence them or ask which comes first —
+  pick any one and ship it, then the next, and the next. Do not report a clean
+  "stopping point" and hand back a menu while authorized work remains; a
+  reported pause with items still in the queue is the exact stall this corrects
+  (the "I'll stop here rather than rush" hand-back on 2026-07-18 that prompted
+  this). The gates (DR-0076) + `hold` (DR-0103) are the safety, so momentum is
+  safe: keep landing work on green. Sibling of feedback_finish_the_roadmap_dont_
+  stand_by and feedback_do_not_re_ask_settled_work; pairs with DR-0111 / DR-0103.
+  The only stops remain the narrow DR-0111 carve-outs (new bright line, a value
+  only he holds, a verifiably-wrong premise). Otherwise: next item, now.
 
 ## Session-learned additions (append per session, newest first)
 

@@ -3416,15 +3416,15 @@ export default function PoeFinancialSystem() {
     if (authSession && !isAnyDemoMode) uploadWatchlistSymbol(s).catch(e => syncWarn('[watchlist-sync] upload failed', e));
   };
   const removeWatchlistSymbol = (sym) => { setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) })); if (authSession && !isAnyDemoMode) removeWatchlistSymbolRemote(sym).catch(e => syncWarn('[watchlist-sync] remove failed', e)); };
-  // Life Gallery — the curated hero photos on the Big Picture page. Device-
-  // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
-  // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
-  // and they are NOT safe from a phone change until the sovereign photo
-  // write-path (phone → NAS) lands. This device is the only copy; the
+  // Life Gallery — the curated hero photos on the Big Picture page. Device-local
+  // data URLs in the poe-financial-v28 snapshot. HONEST LIMIT (2026-06-12): photos
+  // do NOT ride cloud sync — no table carries them yet — and are NOT safe from a
+  // phone change until the sovereign photo write-path (phone → NAS) lands; the
   // per-photo export button is the interim backup.
   const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
   const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
   const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
+  const setPayeeEntityRules = (fn) => setData(d => ({ ...d, payeeEntityRules: fn(d.payeeEntityRules || {}) })); // Christina's "Who is this payment for?" learned rules (rides the snapshot)
   // Conference (COLG 77th National Assembly) — local-first like the rest of
   // the Church tab; merges onto the seed so partial saves never lose fields.
   const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
@@ -4602,7 +4602,7 @@ ${THEME_CSS}
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
-            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
+            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed
               ? <Imported data={data} />
               : <ImportedDemoGuard setBooksView={setBooksView} />)}

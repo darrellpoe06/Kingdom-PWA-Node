@@ -26,6 +26,7 @@ import { receiptShape, loadPending, addPending, removePending, suggestMatches, m
 import { runningBalanceByTxId } from '../lib/imported-view.js';
 import { commitReadout } from '../lib/import-commit.js';
 import { reconcileStatement } from '../lib/statement-reconciliation.js';
+import { matchParty, needsPartyPrompt, learnParty, forgetParty, PARTY_TYPES, PARTY_AUTO_CONFIDENCE } from '../lib/payee-entity-learning.js';
 
 // Commit a batch of imported rows and REPORT how many actually saved to the cloud
 // (Christina's books). Uses the verifying batch commit when available; falls back
@@ -210,7 +211,7 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
   );
 }
 
-export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, commitImportedRows = null, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
+export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, commitImportedRows = null, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null, payeeEntityRules = {}, setPayeeEntityRules = null }) {
   // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
   // this view assumed `data.accounts` and `data.entities` were always present
   // arrays. They are not guaranteed: a signed-in user's merged cloud data can
@@ -1103,6 +1104,36 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 );
               })()}
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
+              {/* "Who is this payment for?" — user-assisted learning (Christina 2026-07-18).
+                  When this payee isn't confidently known, ask once; the choice becomes a
+                  learned rule (confidence grows as it's confirmed) so future imports from
+                  the same/similar payee are recognized without asking again. */}
+              {setPayeeEntityRules && needsPartyPrompt(payeeEntityRules, form.description) && (
+                <div className="bg-white border border-[#5A6E3D] p-2 space-y-1.5">
+                  <div className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Who is this payment for? <span className="text-[#5A5751]">Teach it once — future imports from this payee learn it.</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PARTY_TYPES.map((pt) => (
+                      <button key={pt} type="button"
+                        onClick={() => setPayeeEntityRules((rules) => learnParty(rules, { description: form.description, partyType: pt, name: form.description }))}
+                        className="px-2.5 py-1 text-[0.625rem] uppercase tracking-wider border border-[#5A6E3D] text-[#3F5226] bg-white hover:bg-[#5A6E3D] hover:text-white rounded-full min-h-[32px]">
+                        {pt === 'personal' ? 'Personal / Ignore' : pt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {setPayeeEntityRules && (() => {
+                const m = matchParty(payeeEntityRules, form.description);
+                if (!m || m.confidence < PARTY_AUTO_CONFIDENCE) return null;
+                return (
+                  <div className="text-[0.6875rem] text-[#3F5226] bg-white border border-[#E8E4DC] p-2">
+                    Learned: this payee is a <strong className="capitalize">{m.rule.partyType}</strong> · confidence {Math.round(m.confidence * 100)}%{m.kind === 'similar' ? ' (matched a known payee)' : ''}.{' '}
+                    <button type="button" onClick={() => setPayeeEntityRules((rules) => forgetParty(rules, m.key))} className="underline hover:text-[#B85838]">Forget</button>
+                  </div>
+                );
+              })()}
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                 <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
