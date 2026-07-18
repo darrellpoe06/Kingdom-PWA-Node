@@ -34,6 +34,7 @@
 // localStorage alone, sync resumes when the user signs back in.
 // =============================================================================
 import supabase from './supabase.js';
+import { withUploadRetry } from './upload-retry.js';
 
 // -----------------------------------------------------------------------------
 // createDebouncer — coalesce a burst of calls into a single trailing run.
@@ -115,13 +116,16 @@ export function createTableSync(spec) {
       return { skipped: 'no-tenant', error: e };
     }
     const row = toRow(item, { tenantId, userId: session.user.id });
-    const { data, error } = await supabase
-      .from(remoteTable)
-      .insert(row)
-      .select()
-      .single();
+    // Retry TRANSIENT failures (rate-limit / network blip / timeout) so a burst of
+    // inserts — a reset-and-re-import fires hundreds at once — no longer silently
+    // drops a row that hit a momentary error (Christina's books, 2026-07-18).
+    // Permanent errors (unique/RLS/validation) stop immediately; a retry can't fix
+    // them. INSERT stays idempotent-safe: a permanent unique_violation is NOT
+    // retried, so a re-import can't double-write.
+    const { data, error } = await withUploadRetry(() =>
+      supabase.from(remoteTable).insert(row).select().single());
     if (error) {
-      console.warn(`[table-sync:${remoteTable}] upload failed:`, error);
+      console.warn(`[table-sync:${remoteTable}] upload failed (after retries):`, error);
       return { skipped: 'insert-error', error };
     }
     return { uploaded: true, remoteId: data.id, row: data };
