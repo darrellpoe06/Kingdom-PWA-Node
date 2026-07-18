@@ -229,19 +229,29 @@ describe('Follow along in the Word', () => {
     expect(btn).toBeTruthy();
   });
 
-  // Watch + work the Word together (Darrell 2026-07-15): when follow-along is open,
-  // the live player PINS (sticky) so it stays watchable while you scroll the Word
-  // below it. Proven-to-catch: opening follow-along makes the live-worship section
-  // sticky; closing it releases the pin.
-  it('pins the live player (sticky) while following along, releases it on close', () => {
+  // The orange box is GONE and follow-along floats a draggable mini instead of
+  // pinning a big sticky orange panel (Darrell 2026-07-18: "STILL THE ORANGE
+  // BOX... why cant the video only size like small MOVE ANYWHERE... and go back
+  // whenever"). Proven-to-catch: the live-worship section never carries the thick
+  // orange box (border-2 / #B85838) and never goes sticky — including while the
+  // Word reader is open. Opening follow-along still opens the Word (Close the Word
+  // appears); the player pops to a small DRAGGABLE mini-player instead of a pin.
+  it('follow-along shows no sticky orange box; the Word still opens', () => {
     mount();
     const section = () => container.querySelector('#live-worship-h').closest('section');
-    expect(section().className).not.toMatch(/\bsticky\b/); // normal card by default
+    // No orange box, ever: no thick border, no #B85838 frame, not sticky.
+    expect(section().className).not.toMatch(/border-2/);
+    expect(section().className).not.toMatch(/#B85838/);
+    expect(section().className).not.toMatch(/\bsticky\b/);
     const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(section().className).toMatch(/\bsticky\b/);     // pinned while reading
+    // Word reader opened...
     const close = [...container.querySelectorAll('button')].find((b) => /Close the Word/i.test(b.textContent || ''));
+    expect(close).toBeTruthy();
+    // ...and STILL no sticky orange box while reading.
+    expect(section().className).not.toMatch(/\bsticky\b/);
+    expect(section().className).not.toMatch(/border-2/);
     act(() => close.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(section().className).not.toMatch(/\bsticky\b/); // released
+    expect(section().className).not.toMatch(/\bsticky\b/);
   });
 });
