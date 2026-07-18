@@ -50,9 +50,35 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // remount, so the stream keeps playing while you resize/float.
   const [playerScale, setPlayerScale] = useState('m'); // 's' | 'm' | 'l'
   const [floating, setFloating] = useState(false);
+  // The floating mini-player is DRAGGABLE anywhere (Darrell 2026-07-18: "why cant
+  // the video only size like small MOVE ANYWHERE we want and go back whenever").
+  // floatPos = {x,y} once dragged; null = the default bottom-right resting spot.
+  // Dragging never remounts the iframe (the drag handle is a sibling bar in the
+  // SAME wrapper), so the stream keeps playing while you move it.
+  const [floatPos, setFloatPos] = useState(null);
+  const floatDrag = useRef({ on: false, offX: 0, offY: 0, w: 0, h: 0 });
+  const onFloatPointerDown = useCallback((e) => {
+    const wrap = e.currentTarget.parentElement;
+    if (!wrap) return;
+    const r = wrap.getBoundingClientRect();
+    floatDrag.current = { on: true, offX: e.clientX - r.left, offY: e.clientY - r.top, w: r.width, h: r.height };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* non-fatal */ }
+  }, []);
+  const onFloatPointerMove = useCallback((e) => {
+    const d = floatDrag.current;
+    if (!d.on) return;
+    const x = Math.max(4, Math.min(e.clientX - d.offX, window.innerWidth - d.w - 4));
+    const y = Math.max(4, Math.min(e.clientY - d.offY, window.innerHeight - d.h - 4));
+    setFloatPos({ x, y });
+  }, []);
+  const onFloatPointerUp = useCallback((e) => {
+    floatDrag.current.on = false;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) { /* non-fatal */ }
+  }, []);
   const followRef = useRef(null);
   const openFollowAlong = useCallback(() => {
     setFollowAlong(true);
+    setFloating(true); // pop the video to a small DRAGGABLE mini-player so the Word reads clean below (no big orange box)
     setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
   }, []);
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
@@ -223,7 +249,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         // When "Follow along" is open, the player PINS to the top (sticky) and goes
         // compact — so it stays watchable while you scroll + work the Word below it,
         // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
-        <section aria-labelledby="live-worship-h" className={`bg-white border-2 border-[#B85838] ${followAlong ? 'p-2 sticky top-0 z-30 shadow-xl' : 'p-4'}`}>
+        <section aria-labelledby="live-worship-h" className="bg-white border border-[#E8E4DC] p-4">
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
             <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
               Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
@@ -268,37 +294,52 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               </div>
               <div
                 className={floating
-                  ? 'fixed z-[60] bottom-20 right-2 sm:right-4 w-[46vw] max-w-[320px] aspect-video bg-[#1A1815] border-2 border-[#B85838] shadow-2xl'
+                  ? 'fixed z-[60] w-[46vw] max-w-[300px] bg-[#1A1815] shadow-2xl rounded-md overflow-hidden'
                   : 'mt-2 aspect-video bg-[#1A1815]'}
-                style={floating ? undefined : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
+                style={floating
+                  ? (floatPos ? { left: `${floatPos.x}px`, top: `${floatPos.y}px` } : { right: '0.75rem', bottom: '5rem' })
+                  : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
               >
-                {/* iframe stays FIRST + keyed so toggling size/float never remounts it
-                    (a remount would restart the stream). The Dock button is rendered
-                    AFTER and absolutely positioned, so it never shifts the iframe. */}
-                <iframe
-                  key={playerSrc}
-                  src={playerSrc}
-                  title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
-                  className="w-full h-full border border-[#1A1815]"
-                  allow="encrypted-media; picture-in-picture; fullscreen"
-                  allowFullScreen
-                  loading="lazy"
-                />
+                {/* Drag grip — ONLY when floating. Lets you move the mini-player
+                    ANYWHERE on screen (touch + mouse). It is a sibling BAR in the
+                    SAME wrapper as the keyed iframe, so dragging/floating never
+                    remounts the iframe — the stream keeps playing (Darrell 2026-07-18). */}
                 {floating && (
-                  <button
-                    type="button"
-                    onClick={() => setFloating(false)}
-                    aria-label="Dock the player back"
-                    className="absolute -top-3 -right-2 z-10 w-7 h-7 rounded-full bg-[#B85838] text-white text-xs font-bold shadow flex items-center justify-center focus:outline focus:outline-2 focus:outline-white"
+                  <div
+                    onPointerDown={onFloatPointerDown}
+                    onPointerMove={onFloatPointerMove}
+                    onPointerUp={onFloatPointerUp}
+                    onPointerCancel={onFloatPointerUp}
+                    className="flex items-center justify-between gap-2 px-2 h-7 bg-[#26211d] cursor-move touch-none select-none"
                   >
-                    ⤡
-                  </button>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#CFC9BD] flex items-center gap-1 pointer-events-none" aria-hidden="true">⠿ Drag</span>
+                    <button
+                      type="button"
+                      onClick={() => { setFloating(false); setFloatPos(null); }}
+                      aria-label="Dock the player back into the page"
+                      className="text-[0.5625rem] uppercase tracking-wider text-[#EBA77E] hover:text-white font-semibold px-1.5 py-0.5 focus:outline focus:outline-2 focus:outline-white"
+                    >
+                      ⤡ Dock
+                    </button>
+                  </div>
                 )}
+                {/* iframe stays keyed + in the SAME wrapper so toggling size/float/drag
+                    never remounts it (a remount would restart the stream). */}
+                <div className={floating ? 'aspect-video' : 'contents'}>
+                  <iframe
+                    key={playerSrc}
+                    src={playerSrc}
+                    title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
+                    className="w-full h-full border-0"
+                    allow="encrypted-media; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                </div>
               </div>
-              {floating && (
-                <p className="mt-2 text-[0.6875rem] text-[#CFC9BD] flex items-center gap-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#B85838]" aria-hidden="true" />
-                  Playing in the corner — read the Word below. Tap <span className="font-semibold text-[#EBA77E]">Dock</span> to bring it back.
+              {floating && !floatPos && (
+                <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back.
                 </p>
               )}
             </>
@@ -373,7 +414,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           as the live player above, so watching + following along happen together
           (never a navigate-away). Public: works signed in or not. */}
       {followAlong && (
-        <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#B85838] p-3 sm:p-4">
+        <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#E8E4DC] p-3 sm:p-4">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
             <button
