@@ -339,3 +339,14 @@ relying on it; memories reflect what was true when written.
   his real authored content, never fabricates him saying what he did not say,
   consent revocable. Extracting points from his real transcript (descriptive) is
   separate and needs no voice-clone. `project_bg_voice_consent_granted`.
+
+- **2026-07-18 — Communicate ALL times in Darrell's LOCAL time (Central /
+  America/Chicago), never make him translate.** Darrell: "use our local time so
+  we know without needing to translate it... obviously... document and add it
+  into our Ways." Every time shown to the family — check-in fire times, deploy
+  timestamps, "I'll follow up at…", schedules — is stated in Central and labeled
+  (CDT in daylight ≈ Mar-Nov = UTC-5; CST otherwise = UTC-6), e.g. "4:12 PM CT".
+  If a raw UTC value is genuinely needed (a tool argument, a log line), give the
+  Central time FIRST and put UTC in parentheses second — never UTC alone. The
+  scheduling tools store RFC3339/UTC internally; that is an implementation detail
+  the agent translates away, not a reason to surface UTC. `feedback_communicate_in_local_central_time`.
