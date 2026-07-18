@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
-  auditBalanceContinuity, reconcileAccounts,
+  auditBalanceContinuity, reconcileAccounts, runningBalanceByTxId,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -342,6 +342,50 @@ describe('auditBalanceContinuity', () => {
     const res = auditBalanceContinuity([{ id: '1', date: '2026-06-01', amount: -20 }]);
     expect(res.ok).toBe(true);
     expect(res.reason).toMatch(/not enough balance/);
+  });
+});
+
+describe('runningBalanceByTxId — a per-row balance that CHANGES date to date', () => {
+  const accounts = [{ id: 'A', openingBalance: 1000 }];
+  it('uses the bank imported balance per row when present (authoritative, distinct per row)', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 980 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 500, balance: 1480 },
+      { id: 't3', accountId: 'A', date: '2026-06-03', amount: -80, balance: 1400 },
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);
+    expect(map.t2).toBe(1480);
+    expect(map.t3).toBe(1400);
+    // the whole point: NOT the same number on every row
+    expect(new Set([map.t1, map.t2, map.t3]).size).toBe(3);
+  });
+  it('computes a running balance from opening when rows have NO bank balance', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 500 },
+      { id: 't3', accountId: 'A', date: '2026-06-03', amount: -80 },
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);   // 1000 - 20
+    expect(map.t2).toBe(1480);  // 980 + 500
+    expect(map.t3).toBe(1400);  // 1480 - 80
+  });
+  it('chains a manual (no-balance) row off the last bank balance', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 980 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: -30 }, // no bank balance
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);
+    expect(map.t2).toBe(950);   // chained off 980
+  });
+  it('is float-safe (0.1 + 0.2 kind of drift)', () => {
+    const map = runningBalanceByTxId([
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: 0.1 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 0.2 },
+    ], [{ id: 'A', openingBalance: 0 }]);
+    expect(map.t2).toBe(0.3);
   });
 });
 

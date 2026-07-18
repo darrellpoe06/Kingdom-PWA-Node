@@ -351,6 +351,35 @@ export function auditBalanceContinuity(rows) {
   };
 }
 
+// runningBalanceByTxId — the balance AS OF each transaction, keyed by tx id, so a
+// register can show a statement-style running-balance column that CHANGES date to
+// date (Christina's books, 2026-07-18: the row used to repeat the account's single
+// current balance on every line). Per account, oldest-first from the opening
+// balance: the bank's OWN imported balance (t.balance) is authoritative and used
+// as-is when present; rows without it accumulate their amount off the last known
+// balance, so a manual row between two bank rows still chains correctly. Pure.
+export function runningBalanceByTxId(transactions, accounts) {
+  const byAccount = {};
+  for (const t of transactions || []) {
+    if (t && t.accountId) (byAccount[t.accountId] = byAccount[t.accountId] || []).push(t);
+  }
+  const out = {};
+  for (const a of accounts || []) {
+    const rows = byAccount[a.id] || [];
+    const asc = [...rows].sort((x, y) => String(x.date || '').localeCompare(String(y.date || '')));
+    let bal = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
+    for (const t of asc) {
+      if (typeof t.balance === 'number' && Number.isFinite(t.balance)) {
+        bal = t.balance;                    // bank's own running balance — authoritative
+      } else {
+        bal += Number(t.amount) || 0;       // no bank balance — chain off the last known
+      }
+      out[t.id] = Math.round(bal * 100) / 100;
+    }
+  }
+  return out;
+}
+
 // reconcileAccounts — run the balance-continuity audit PER account across a flat
 // ledger. Returns { [accountId]: auditResult }. This is the "correct account of
 // record" proof (Darrell 2026-07-18): each account's rows must form ONE self-
