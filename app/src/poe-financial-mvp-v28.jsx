@@ -3128,7 +3128,7 @@ export default function PoeFinancialSystem() {
   // v28+ Session A: Transactions CRUD
   const addTransaction = (item) => {
     // Keep a caller-provided STABLE id (verified-sync's `vl-<fitid>`) so it persists as the cloud slug -> idempotent; manual/CSV adds pass none.
-    const seeded = { ...item, id: item.id || `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
+    const seeded = { ...item, id: item.id || `t-${Date.now()}-${Math.random().toString(36).slice(2)}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       transactionsSync.upload(seeded).then((res) => {

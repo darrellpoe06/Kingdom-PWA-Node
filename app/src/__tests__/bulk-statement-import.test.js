@@ -80,6 +80,24 @@ describe('planBulkImport — dedupe (no double-count)', () => {
     expect(plan.routed.find((b) => b.accountId === 'a-7206').count).toBe(2);
     expect(plan.routed.find((b) => b.accountId === 'a-3322').count).toBe(1);
   });
+  // Proven-to-catch (Christina's books, 2026-07-18): EVERY planned row must carry a
+  // UNIQUE, defined id. Before the fix, rows WITHOUT a fitid got no id, so a
+  // synchronous import loop fell back to addTransaction's `t-${Date.now()}` and many
+  // rows collided on the same millisecond id -> they collapsed on cloud upsert and in
+  // the merge, so imports "did not appear" and only a few dates survived. This many-row
+  // no-fitid import would have produced undefined/duplicate ids without the fix.
+  it('gives every planned row a UNIQUE, defined id — even with NO fitid (no import collapse)', () => {
+    const rows = [];
+    for (let i = 1; i <= 60; i++) {
+      const dd = String((i % 28) + 1).padStart(2, '0');
+      rows.push(r(`2026-06-${dd}`, -(i + 0.11), `payee number ${i}`)); // NO fitid arg
+    }
+    const plan = planBulkImport([file('ledger-chase7206-june.csv', rows)], ACCOUNTS, []);
+    const ids = plan.routed.flatMap((b) => b.txns).map((t) => t.id);
+    expect(ids).toHaveLength(60);
+    expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true); // no undefined ids
+    expect(new Set(ids).size).toBe(60);                                            // all unique — no collapse
+  });
   it('the SAME bulk import run twice is a no-op the second time (idempotent onboarding)', () => {
     const files = [file('ledger-chase7206.csv', [r('2026-05-01', 500, 'deposit', 'F1'), r('2026-05-02', -20, 'coffee', 'F2')])];
     const first = planBulkImport(files, ACCOUNTS, []);

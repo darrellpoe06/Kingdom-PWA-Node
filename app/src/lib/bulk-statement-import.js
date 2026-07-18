@@ -95,7 +95,15 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
         amount: Number(r.amount) || 0,
         description: String(r.description || r.desc || '').slice(0, 200),
         category: r.category || 'other',
-        ...(r.fitid ? { id: 'vl-' + r.fitid, fitid: String(r.fitid) } : {}),
+        // Every planned row gets a STABLE, UNIQUE id (Christina's books, 2026-07-18).
+        // Without one, a synchronous import loop hit addTransaction's `t-${Date.now()}`
+        // fallback, so MANY rows collided on the SAME millisecond id -> they collapsed
+        // on cloud upsert (one slug) and in the merge, so imports "did not appear" and
+        // only a few dates survived. Use fitid when the source has it; otherwise the
+        // content dedupe key (already unique per distinct txn AND idempotent across
+        // re-imports, since seedSeen dedupes against the existing ledger).
+        id: r.fitid ? 'vl-' + r.fitid : 'imp-' + cKey,
+        ...(r.fitid ? { fitid: String(r.fitid) } : {}),
       });
       bucket.count += 1;
       totalNew += 1;
