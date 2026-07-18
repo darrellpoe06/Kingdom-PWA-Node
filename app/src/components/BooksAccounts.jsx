@@ -11,7 +11,7 @@ import { fmt } from "../lib/format.js";
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-export default function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null }) {
+export default function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null, accountReconciliation = {} }) {
   // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),
   // current balance is slider-driven (continuous, live feedback).
   const [editingTarget, setEditingTarget] = useState(false);
@@ -324,6 +324,28 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                     bank-linked
                   </span>
                 )}
+                {/* Account-of-record proof (Darrell 2026-07-18): this account's
+                    imported rows must form ONE self-consistent bank-balance chain.
+                    Reconciles = the register is complete + un-double-counted AND
+                    every row genuinely belongs here; a break points to a misfiled,
+                    missing, or duplicated transaction. Truthful-or-absent: no badge
+                    unless the rows actually carry bank balances to audit. */}
+                {(() => {
+                  const rec = accountReconciliation[a.id];
+                  if (!rec || rec.checked < 2) return null;
+                  const nUnmatched = rec.ok ? 0 : ((rec.breaks?.unmatchedBefore?.length || 0) + (rec.breaks?.unmatchedAfter?.length || 0));
+                  return (
+                    <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                      style={rec.ok
+                        ? { backgroundColor: '#16A34A22', color: '#16A34A', border: '1px solid #16A34A' }
+                        : { backgroundColor: '#D9770622', color: '#D97706', border: '1px solid #D97706' }}
+                      title={rec.ok
+                        ? `Register reconciles: ${rec.checked} rows form one continuous bank-balance chain (${fmt(rec.opening)} → ${fmt(rec.closing)}) — complete, not double-counted, all belong to this account.`
+                        : `Register has ${nUnmatched} balance break(s) — a transaction may be misfiled to another account, missing, or duplicated. Reset this account and re-import a clean statement.`}>
+                      {rec.ok ? '✓ reconciles' : '⚠ check register'}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="text-right">
                 <div className={`${acctBal < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(acctBal)}</div>

@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
-  auditBalanceContinuity,
+  auditBalanceContinuity, reconcileAccounts,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -342,5 +342,26 @@ describe('auditBalanceContinuity', () => {
     const res = auditBalanceContinuity([{ id: '1', date: '2026-06-01', amount: -20 }]);
     expect(res.ok).toBe(true);
     expect(res.reason).toMatch(/not enough balance/);
+  });
+});
+
+describe('reconcileAccounts — correct account of record', () => {
+  it('audits each account independently and flags the one that does not reconcile', () => {
+    const txns = [
+      // account A — a clean chain (opening 900): -20 -> 880, +500 -> 1380
+      { id: 'a1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 880 },
+      { id: 'a2', accountId: 'A', date: '2026-06-02', amount: 500, balance: 1380 },
+      // account B — a broken chain (a row misfiled/missing): balances don't meet
+      { id: 'b1', accountId: 'B', date: '2026-06-01', amount: -10, balance: 200 },
+      { id: 'b2', accountId: 'B', date: '2026-06-03', amount: -10, balance: 50 }, // 200-10 != 50
+    ];
+    const rec = reconcileAccounts(txns);
+    expect(rec.A.ok).toBe(true);
+    expect(rec.A.opening).toBe(900);
+    expect(rec.B.ok).toBe(false); // the misfiled/missing row is caught, per account
+  });
+  it('ignores rows with no accountId and returns {} for an empty ledger', () => {
+    expect(reconcileAccounts([{ id: 'x', amount: 5 }])).toEqual({});
+    expect(reconcileAccounts([])).toEqual({});
   });
 });

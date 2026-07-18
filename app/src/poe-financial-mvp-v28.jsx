@@ -153,6 +153,7 @@ import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
+import { reconcileAccounts } from './lib/imported-view.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
@@ -3543,6 +3544,7 @@ export default function PoeFinancialSystem() {
   // below reads this, so an entered or imported transaction moves all of them
   // (Big Picture, Accounts, Entities) in lockstep with Tx + Forecast (DR-0076).
   const derivedBalances = useMemo(() => deriveAccountBalances(data, currentDate), [data, currentDate]);
+  const accountReconciliation = useMemo(() => reconcileAccounts(data.transactions || []), [data.transactions]); // per-account "account of record" proof (reconcileAccounts docs it)
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
     // v28+ Real Estate restructure: only income-producing properties feed rental math.
@@ -4594,7 +4596,7 @@ ${THEME_CSS}
               also catches that lazy chunk's load failures. */}
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} />}
             {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
