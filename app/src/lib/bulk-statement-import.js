@@ -59,14 +59,40 @@ export function txnDedupeKey(accountId, t) {
   return [accountId, t.date, amt, desc, bal].join('|');
 }
 
+// Seed the dedupe set from the existing ledger. Each content key is stored with
+// an OCCURRENCE INDEX (contentKey#0, #1, ...) so that N genuine identical rows in
+// the ledger occupy slots #0..#(N-1). This is what lets two truly-identical rows
+// that carry NO disambiguating metadata — same date+amount+desc, no balance yet
+// (a PENDING transaction), no FITID — still BOTH survive: the bank listed two line
+// items, so we keep two (Christina's 7/17 twin $200 deposits). Balance-carrying
+// rows are unaffected (their balance is already in the content key, so genuine
+// repeats land on different keys and never need the occurrence slot).
 function seedSeen(existingTxns) {
   const seen = new Set();
+  const occ = new Map(); // contentKey -> how many ledger rows already occupy it
   for (const t of existingTxns || []) {
     if (!t) continue;
     if (t.fitid) seen.add('fit:' + t.fitid);
-    if (t.accountId && t.date) seen.add(txnDedupeKey(t.accountId, t));
+    if (t.accountId && t.date) {
+      const ck = txnDedupeKey(t.accountId, t);
+      const n = occ.get(ck) || 0;
+      seen.add(ck + '#' + n);
+      occ.set(ck, n + 1);
+    }
   }
   return seen;
+}
+
+// accountTxnIds — the transaction ids that belong to ONE account. Used by the
+// "reset this account's register" control (Christina's books, 2026-07-18): after
+// a bad/collapsed earlier import, the family clears a single account and re-imports
+// a clean statement. Scoped STRICTLY to the chosen account so a reset can NEVER
+// reach another account's ledger, and it returns ids (the delete unit) so the
+// caller just loops deleteTransaction. Pure + deterministic — the destructive act
+// stays the family's own confirmed click; this only decides the exact, minimal set.
+export function accountTxnIds(txns, accountId) {
+  if (!accountId) return [];
+  return (txns || []).filter((t) => t && t.accountId === accountId && t.id).map((t) => t.id);
 }
 
 // planBulkImport — route + dedupe a batch of parsed files into an import plan.
@@ -91,13 +117,22 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
       continue;
     }
     const acc = (accounts || []).find((a) => a.id === accId);
+    // Occurrence index is counted PER FILE (reset here): two identical line items
+    // in ONE statement are two real transactions (#0, #1) and both survive, while
+    // the SAME row appearing in two overlapping files (each its own #0) dedupes
+    // against the shared `seen` set — so re-imports and overlaps never double-count,
+    // but genuine same-statement repeats are never dropped.
+    const fileOcc = new Map();
     for (const r of rows) {
       if (!r || !r.date) continue;
       const fitKey = r.fitid ? 'fit:' + r.fitid : null;
       const cKey = txnDedupeKey(accId, r);
-      if ((fitKey && seen.has(fitKey)) || seen.has(cKey)) { duplicates += 1; continue; }
+      const idx = fileOcc.get(cKey) || 0;
+      fileOcc.set(cKey, idx + 1); // advance for EVERY row (dup or kept) so twins get #0,#1
+      const occKey = cKey + '#' + idx;
+      if ((fitKey && seen.has(fitKey)) || seen.has(occKey)) { duplicates += 1; continue; }
       if (fitKey) seen.add(fitKey);
-      seen.add(cKey);
+      seen.add(occKey);
       const bucket = routed[accId] || (routed[accId] = { accountId: accId, accountName: (acc && acc.name) || accId, count: 0, txns: [] });
       bucket.txns.push({
         date: r.date,
@@ -110,9 +145,10 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
         // fallback, so MANY rows collided on the SAME millisecond id -> they collapsed
         // on cloud upsert (one slug) and in the merge, so imports "did not appear" and
         // only a few dates survived. Use fitid when the source has it; otherwise the
-        // content dedupe key (already unique per distinct txn AND idempotent across
-        // re-imports, since seedSeen dedupes against the existing ledger).
-        id: r.fitid ? 'vl-' + r.fitid : 'imp-' + cKey,
+        // content dedupe key + occurrence index (already unique per distinct txn AND
+        // idempotent across re-imports, since seedSeen dedupes against the existing
+        // ledger). The occurrence index keeps two truly-identical pending twins apart.
+        id: r.fitid ? 'vl-' + r.fitid : 'imp-' + occKey,
         ...(r.fitid ? { fitid: String(r.fitid) } : {}),
         // Persist the running balance so (a) a later re-import rebuilds the SAME
         // dedupe key (idempotent) and (b) the balance-continuity audit can verify

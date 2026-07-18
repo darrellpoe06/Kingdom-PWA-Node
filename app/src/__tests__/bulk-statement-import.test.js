@@ -7,7 +7,7 @@
 // double-count); unmatched files are reported, not misfiled. This is the "a human
 // can't get it wrong" guarantee.
 import { describe, it, expect } from 'vitest';
-import { detectAccount, planBulkImport } from '../lib/bulk-statement-import.js';
+import { detectAccount, planBulkImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { parseDelimitedToRows } from '../lib/statement-import.js';
 
 const ACCOUNTS = [
@@ -22,6 +22,25 @@ describe('detectAccount', () => {
     expect(detectAccount('ledger-chase7206-2026-05.csv', ACCOUNTS)).toBe('a-7206');
     expect(detectAccount('chase3322_activity.csv', ACCOUNTS)).toBe('a-3322');
     expect(detectAccount('mystery.csv', ACCOUNTS)).toBe(null);
+  });
+});
+
+describe('accountTxnIds — reset ONE account only', () => {
+  const LEDGER = [
+    { id: 't1', accountId: 'a-7206', amount: -5 },
+    { id: 't2', accountId: 'a-7206', amount: 9 },
+    { id: 't3', accountId: 'a-3322', amount: 100 }, // a DIFFERENT account
+    { id: 't4', accountId: 'a-7206', amount: -2 },
+    { accountId: 'a-7206', amount: -1 }, // no id — skipped
+  ];
+  it('returns only the chosen account ids — never touches another account', () => {
+    expect(accountTxnIds(LEDGER, 'a-7206')).toEqual(['t1', 't2', 't4']);
+    expect(accountTxnIds(LEDGER, 'a-3322')).toEqual(['t3']);
+  });
+  it('empty for no account / empty ledger (nothing cleared by accident)', () => {
+    expect(accountTxnIds(LEDGER, '')).toEqual([]);
+    expect(accountTxnIds(LEDGER, null)).toEqual([]);
+    expect(accountTxnIds([], 'a-7206')).toEqual([]);
   });
 });
 
@@ -115,6 +134,51 @@ describe('planBulkImport — dedupe (no double-count)', () => {
     const ids = plan.routed[0].txns.map((t) => t.id);
     expect(new Set(ids).size).toBe(2);  // distinct ids (balance is in the key)
     expect(plan.routed[0].txns.every((t) => t.balance != null)).toBe(true); // balance persisted
+  });
+  // Proven-to-catch (Christina's 7/17 twins, 2026-07-18): two GENUINE identical
+  // PENDING deposits — same date+amount+desc, NO balance posted yet, NO FITID —
+  // are indistinguishable by content, yet the bank listed TWO line items. The
+  // occurrence index keeps both; without it, one real deposit was dropped.
+  it('keeps two truly-identical PENDING twins (no balance, no fitid) — occurrence index', () => {
+    const rows = [
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' }, // no balance, no fitid
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' }, // its real twin
+    ];
+    const plan = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, []);
+    expect(plan.totalNew).toBe(2);     // both kept — the bank showed two line items
+    expect(plan.duplicates).toBe(0);
+    expect(new Set(plan.routed[0].txns.map((t) => t.id)).size).toBe(2); // distinct ids
+  });
+  it('re-importing the pending-twins file is still a no-op (occurrence index is idempotent)', () => {
+    const rows = [
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' },
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' },
+    ];
+    const first = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, []);
+    const committed = first.routed.flatMap((b) => b.txns);
+    const second = planBulkImport([file('ledger-chase7206-jul.csv', rows)], ACCOUNTS, committed);
+    expect(second.totalNew).toBe(0);
+    expect(second.duplicates).toBe(2);
+  });
+  it('the SAME pending row in two OVERLAPPING files dedupes to one (not two)', () => {
+    const row = { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' };
+    const plan = planBulkImport([
+      file('ledger-chase7206-a.csv', [row]),
+      file('ledger-chase7206-b.csv', [row]), // overlap: same single txn in both files
+    ], ACCOUNTS, []);
+    expect(plan.totalNew).toBe(1);     // one real transaction, not doubled
+    expect(plan.duplicates).toBe(1);
+  });
+  it('a genuine THIRD identical deposit in a later import is kept (occurrence #2 is new)', () => {
+    const two = [
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' },
+      { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' },
+    ];
+    const committed = planBulkImport([file('ledger-chase7206-a.csv', two)], ACCOUNTS, []).routed.flatMap((b) => b.txns);
+    const three = [...two, { date: '2026-07-17', amount: 200, description: 'ONLINE DEPOSIT' }];
+    const plan = planBulkImport([file('ledger-chase7206-b.csv', three)], ACCOUNTS, committed);
+    expect(plan.totalNew).toBe(1);     // only the NEW third deposit
+    expect(plan.duplicates).toBe(2);
   });
   it('a TRUE re-import (identical rows AND balances) still dedupes — idempotent with balance', () => {
     const rows = [
