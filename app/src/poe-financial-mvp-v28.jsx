@@ -154,6 +154,7 @@ import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoo
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { reconcileAccounts } from './lib/imported-view.js';
+import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
@@ -244,13 +245,7 @@ export const SEED_DATA = {
     { id: 'k5', direction: 'inbound', entityId: 'e-poetech', name: 'Mid-market churches · AV + streaming systems', role: 'Multi-site AV install + ongoing managed services retainer', ytdReceived: 0, monthlyExpected: 4500, status: 'pipeline' },
     { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'Regional University Facilities (1099)', role: 'BAS / Siemens controls consulting — senior architect rate', ytdReceived: 0, monthlyExpected: 12000, status: 'possible' },
   ],
-  taxCalendar: [
-    { id: 'tx-1099-nec', month: 1, day: 31, name: '1099-NEC issuance', desc: 'Issue 1099-NEC to all contractors paid ≥ $600', entityIds: ['e-tlc'], applies: true },
-    { id: 'tx-1096-paper', month: 2, day: 28, name: '1096 paper transmittal', desc: 'IRS Form 1096 for paper 1099s', entityIds: ['e-tlc'], applies: true },
-    { id: 'tx-1040', month: 4, day: 15, name: 'Form 1040 due', desc: 'Joint return with Schedule C × 2, Schedule E', entityIds: ['e-personal'], applies: true },
-    { id: 'tx-il-llc', month: 4, day: 30, name: 'IL LLC annual reports', desc: 'Illinois Secretary of State — $75/yr × 3 LLCs', entityIds: ['e-poeprops','e-poetech','e-tlc'], applies: true, amount: 225 },
-    { id: 'tx-yearend', month: 12, day: 31, name: 'Year-end tax planning', desc: 'Charitable timing, Section 179, HSA, retirement max', entityIds: ['e-personal','e-tlc','e-poetech'], applies: true },
-  ],
+  taxCalendar: TAX_CALENDAR_SEED,
   recurringObligations: [
     { id: 'ro-il-llc-3', name: 'Illinois LLC annual reports (3 LLCs)', amount: 225, frequency: 'annual', nextDue: '2026-08-01', entityId: 'e-poeprops', category: 'compliance', enabled: true },
     { id: 'ro-veh-reg-2', name: 'Vehicle registration (2 vehicles)', amount: 302, frequency: 'annual', nextDue: '2026-12-01', entityId: 'e-personal', category: 'vehicle', enabled: true },

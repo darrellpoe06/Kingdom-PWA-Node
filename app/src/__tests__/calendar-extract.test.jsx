@@ -82,3 +82,45 @@ describe('Calendar — renders its sections from props', () => {
     expect(options).toContain('church');
   });
 });
+
+// Review fixes (2026-07-18): the preloaded tax calendar now carries all four
+// quarterly estimated-tax dates (was missing 3 of 4 — ANXIETY-CLARITY), and the
+// create forms no longer no-op silently.
+import { TAX_CALENDAR_SEED } from '../lib/tax-calendar-seed.js';
+
+describe('tax-calendar-seed — all four quarterly estimated-tax dates are preloaded', () => {
+  it('carries Q1-Q4 (1040-ES) so a busy parent is not forced to know them', () => {
+    const ids = TAX_CALENDAR_SEED.map(t => t.id);
+    expect(ids).toContain('tx-est-q1');
+    expect(ids).toContain('tx-est-q2');
+    expect(ids).toContain('tx-est-q3');
+    expect(ids).toContain('tx-est-q4-prior');
+  });
+  it('does not state a stale 1099 threshold ($600 only) — the copy is year-aware', () => {
+    const nec = TAX_CALENDAR_SEED.find(t => t.id === 'tx-1099-nec');
+    expect(nec.desc).toContain('2,000'); // names the 2026 figure, not just $600
+  });
+});
+
+describe('Calendar — create forms surface WHY nothing happened (no silent no-op)', () => {
+  const baseProps = {
+    data: minimalData, reserves: {}, addRecurring: () => {}, addIncident: () => {},
+    addEvent: () => {}, completeEvent: () => {}, deleteRecurring: () => {},
+    deleteIncident: () => {}, deleteEvent: () => {}, updateRecurring: () => {},
+    updateEvent: () => {}, notifPermission: 'default', requestNotif: () => {},
+    upcomingEvents: [],
+  };
+  it('adding a recurring obligation with no amount alerts instead of silently doing nothing', async () => {
+    let added = 0; const alerts = [];
+    const orig = globalThis.alert; globalThis.alert = (m) => alerts.push(m);
+    try {
+      await mount({ ...baseProps, addRecurring: () => { added += 1; } });
+      const addToggle = findButton(/\+ Add/);
+      await click(addToggle);
+      const submit = findButton(/^Add$/);
+      await click(submit); // name + amount blank
+      expect(added).toBe(0);            // NOT silently added
+      expect(alerts.length).toBeGreaterThan(0); // a reason was surfaced
+    } finally { globalThis.alert = orig; }
+  });
+});
