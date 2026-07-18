@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   lastFour, maskedLabel, setFullTaxId, getFullTaxId, hasFullTaxId,
-  clearFullTaxId, exportForBackup, importFromBackup,
+  exportForBackup, importFromBackup,
 } from '../lib/tax-id-vault.js';
 import { contractorColumns } from '../lib/contractors-sync.js';
 
