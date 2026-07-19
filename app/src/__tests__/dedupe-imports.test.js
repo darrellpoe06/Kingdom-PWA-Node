@@ -45,15 +45,21 @@ describe('findImportDuplicates', () => {
     expect(findImportDuplicates(txns).count).toBe(0); // no real original -> keep both
   });
 
-  it('removes at most (number of real) generic twins — extra generics survive', () => {
+  it('ONE PASS removes ALL generic twins in an anchored group (the re-import case)', () => {
+    // Darrell re-imported the same statement several times, so a real row can have
+    // MANY generic "DEBIT" copies. The old capped slice removed only real-count per
+    // tap, forcing round after round ("not fixed" from the user's chair though the
+    // count was dropping). One anchored real row now sweeps every generic twin.
     const txns = [
       { id: 'r1', accountId: 'a1', date: '2026-07-16', amount: -12, description: 'SKATELAND SAVOY' },
       { id: 'g1', accountId: 'a1', date: '2026-07-16', amount: -12, description: 'DEBIT' },
-      { id: 'g2', accountId: 'a1', date: '2026-07-16', amount: -12, description: 'DEBIT' }, // one genuine extra
+      { id: 'g2', accountId: 'a1', date: '2026-07-16', amount: -12, description: 'DEBIT' },
+      { id: 'g3', accountId: 'a1', date: '2026-07-16', amount: -12, description: 'DEBIT' },
     ];
     const r = findImportDuplicates(txns);
-    expect(r.count).toBe(1);                 // only one real -> only one twin removed
-    expect(r.removeIds).toEqual(['g1']);     // stable by id; g2 (the extra) survives
+    expect(r.count).toBe(3);                        // all three generic copies, one pass
+    expect(r.removeIds).toEqual(['g1', 'g2', 'g3']); // stable by id; the real row is kept
+    // PROVEN-TO-CATCH: restore `.slice(0, real.length)` and this drops to 1.
   });
 
   it('respects account, date, and SIGN — a deposit twin does not cancel a withdrawal', () => {
