@@ -17,7 +17,7 @@ import { N8N_BASE } from '../lib/n8n-base.js';
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile, parseAmount } from '../lib/statement-import.js';
-import { planBulkImport, accountTxnIds } from '../lib/bulk-statement-import.js';
+import { planBulkImport, planAccountImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
 import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
@@ -769,11 +769,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
     if (!confirm(`Import ${valid.length} transaction(s) into ${(accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
+    // IDEMPOTENT import (2026-07-19): give every row a stable content-addressed id and
+    // dedupe against the existing ledger, so re-importing the same statement (or the
+    // Reset & re-import repair) can NEVER stack duplicate rows — the root fix for the
+    // "many DEBIT copies though I don't re-upload" leak. Rows already present are
+    // skipped; genuine new rows commit with a deterministic id.
+    const { txns, duplicates } = planAccountImport(valid.map(rowFromCsv), csvAccountId, data.transactions || []);
     // Commit + VERIFY: the readout reports how many actually saved to the cloud
     // (Christina's books) instead of a silent per-row fire-and-forget.
-    const msg = await commitBatch(valid.map(rowFromCsv), commitImportedRows, addTransaction);
+    const saveMsg = await commitBatch(txns, commitImportedRows, addTransaction);
+    const msg = duplicates > 0 ? `${saveMsg} (${duplicates} already in the ledger — skipped, no duplicates added.)` : saveMsg;
     const acctName = (accounts.find(a => a.id === csvAccountId) || {}).name || 'account';
-    recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel` });
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: txns.length, detail: `${acctName} · CSV/Excel · ${duplicates} dup skipped` });
     setCsvOpen(false);
     setCsvRaw('');
     setCsvError('');
@@ -843,9 +850,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const ids = accountTxnIds(data.transactions || [], csvAccountId);
     if (!confirm(`Replace ${acct}: permanently remove its ${ids.length} current transaction(s) and import ${valid.length} clean row(s) from this file?\n\nThe removal CANNOT be undone.`)) return;
     ids.forEach(id => deleteTransaction(id));
+    // Stable content-addressed ids so a LATER re-import is idempotent. Dedupe against
+    // the ledger EXCLUDING this account (its rows are being deleted in this same
+    // action), so the clean re-import is never wrongly skipped against the copies it
+    // is replacing.
+    const otherAccounts = (data.transactions || []).filter(t => t.accountId !== csvAccountId);
+    const { txns } = planAccountImport(valid.map(rowFromCsv), csvAccountId, otherAccounts);
     // Commit + VERIFY the re-import — reports how many of the clean rows saved.
-    const msg = await commitBatch(valid.map(rowFromCsv), commitImportedRows, addTransaction);
-    recordLoopRun({ key: 'account-reset-reimport', status: 'success', processed: valid.length, detail: `${acct} · replaced ${ids.length}` });
+    const msg = await commitBatch(txns, commitImportedRows, addTransaction);
+    recordLoopRun({ key: 'account-reset-reimport', status: 'success', processed: txns.length, detail: `${acct} · replaced ${ids.length}` });
     setCsvOpen(false); setCsvRaw(''); setCsvError('');
     alert(`Replaced ${acct}: removed ${ids.length}. ${msg}`);
   };
@@ -869,8 +882,10 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     if (!recon || !recon.totalMissing) return;
     const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
     if (!confirm(`Add ${recon.totalMissing} missing transaction(s) to ${acct} from this statement? Rows already in the ledger are skipped — nothing is removed.`)) return;
-    const msg = await commitBatch(recon.missingRows.map(rowFromCsv), commitImportedRows, addTransaction);
-    recordLoopRun({ key: 'statement-repair', status: 'success', processed: recon.totalMissing, detail: `${acct} · added missing` });
+    // Stable ids + a final content-dedup pass so the repair is idempotent even if run twice.
+    const { txns } = planAccountImport(recon.missingRows.map(rowFromCsv), csvAccountId, data.transactions || []);
+    const msg = await commitBatch(txns, commitImportedRows, addTransaction);
+    recordLoopRun({ key: 'statement-repair', status: 'success', processed: txns.length, detail: `${acct} · added missing` });
     setCsvOpen(false); setCsvRaw(''); setCsvError('');
     alert(`Repaired ${acct}: ${msg}`);
   };

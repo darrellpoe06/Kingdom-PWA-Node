@@ -35,8 +35,18 @@ export function mergeTransactionsPreferCloud(currentLocal, remoteItems, idOf = (
     const lid = idOf(l);
     if (!lid || UUID_RE.test(String(lid))) return false;
     if (remoteIds.has(lid)) return false;               // same row by slug -> cloud copy used
+    // A row that was SYNCED (carries a remoteUuid) but is now ABSENT from the cloud
+    // list was DELETED remotely — propagate the deletion, do NOT re-add it. This is
+    // the fix for "the duplicates leave and come back after the clear" (Darrell
+    // 2026-07-19): when the device is OUT OF LOCAL SPACE the snapshot can't save, so
+    // stale localStorage still holds the just-deleted rows; without this guard the
+    // merge re-hydrated them as "local-only" (their generic "DEBIT" content-key
+    // doesn't match the surviving real row, so the content check below missed them).
+    // Keying on the remoteUuid FIELD, not the id format, is what catches them —
+    // cloud rows carry a slug id (not a UUID), so the UUID_RE check above never did.
+    if (l.remoteUuid) return false;
     if (remoteKeys.has(txnContentKey(l))) return false; // stale dupe by content -> cloud wins
-    return true;                                        // genuinely local-only
+    return true;                                        // genuinely local-only (never synced)
   });
   return keep.length ? [...remote, ...keep] : remote;
 }

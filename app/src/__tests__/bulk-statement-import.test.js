@@ -7,7 +7,7 @@
 // double-count); unmatched files are reported, not misfiled. This is the "a human
 // can't get it wrong" guarantee.
 import { describe, it, expect } from 'vitest';
-import { detectAccount, planBulkImport, accountTxnIds } from '../lib/bulk-statement-import.js';
+import { detectAccount, planBulkImport, planAccountImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { parseDelimitedToRows } from '../lib/statement-import.js';
 
 const ACCOUNTS = [
@@ -200,5 +200,33 @@ describe('planBulkImport — dedupe (no double-count)', () => {
     expect(first.totalNew).toBe(2);
     expect(second.totalNew).toBe(0);
     expect(second.duplicates).toBe(2);
+  });
+});
+
+describe('planAccountImport — single-file import is idempotent (the leak fix)', () => {
+  // The single-file path used to map rows with NO id, so every import minted a fresh
+  // `t-${Date.now()}` random id -> re-importing the same statement (or the Reset &
+  // re-import repair) stacked BRAND-NEW rows the unique (tenant,slug) index could not
+  // catch. Routing single-file imports through the stable-id + content-dedupe engine
+  // makes a re-import a no-op (Darrell 2026-07-19: many DEBIT copies "I don't re-upload").
+  const rows = [
+    { date: '2026-06-01', amount: -50, description: 'COUNTY MARKET', balance: 1000 },
+    { date: '2026-06-02', amount: 200, description: 'DEPOSIT', balance: 1200 },
+  ];
+  it('assigns stable content-addressed ids (not random t-<timestamp>)', () => {
+    const { txns } = planAccountImport(rows, 'a-7206', []);
+    expect(txns).toHaveLength(2);
+    expect(txns.every((t) => /^imp-/.test(t.id))).toBe(true); // deterministic, not t-<Date.now()>
+    expect(txns[0].accountId).toBe('a-7206');
+  });
+  it('PROVEN-TO-CATCH: re-importing the same file is a NO-OP against the existing ledger', () => {
+    const first = planAccountImport(rows, 'a-7206', []);
+    const second = planAccountImport(rows, 'a-7206', first.txns); // pretend first is now in the ledger
+    expect(first.txns).toHaveLength(2);
+    expect(second.txns).toHaveLength(0);   // nothing new — no duplicate stacking
+    expect(second.duplicates).toBe(2);
+    // Idempotent even against LEGACY random-id rows (dedup keys on content, not id):
+    const legacy = rows.map((rr, i) => ({ ...rr, accountId: 'a-7206', id: `t-legacy-${i}` }));
+    expect(planAccountImport(rows, 'a-7206', legacy).txns).toHaveLength(0);
   });
 });
