@@ -74,6 +74,7 @@ export function buildSlideForScene(scenes, index, opts = {}) {
   const total = list.length;
   const a = scene.audience || {};
   const lead = resolveAudienceLead(a, opts.age);
+  const points = resolveAudiencePoints(a, opts.age);
   return {
     type: 'slide',
     index: index + 1,
@@ -85,6 +86,9 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     // `bigIdea`/`inApp` keys so an un-upgraded AudienceWindow still renders.
     lead,
     bigIdea: lead,
+    // Bullet/numbered points shown UNDER the main idea for details + note-takers.
+    points: points.length ? points : null,
+    ordered: !!a.ordered,
     detail: a.detail || null,
     inApp: a.detail || null,
     detailLabel: a.detailLabel || 'In the app',
@@ -651,6 +655,32 @@ export function splitTeachingText(text) {
   return [sentences.slice(0, cut).join('').trim(), sentences.slice(cut).join('').trim()];
 }
 
+// slideOutline — turn a block of teaching prose into a projectable slide: ONE concise
+// MAIN IDEA (the lead / headline) + a few BULLET POINTS under it for details and
+// note-takers (Darrell 2026-07-19: "some of the audience slides look too wordy for an
+// audience... add points as bullet or numbered under the main idea for each slide...
+// for details and note takers"). The first sentence is the main idea; the following
+// sentences become the points, capped so the screen stays scannable — the FULL text
+// still rides in presenter NOTES, so nothing is lost or summarized (DR-0076: this only
+// re-shapes what the ROOM sees; no word is invented). Pure + deterministic.
+export function slideOutline(text, opts = {}) {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return { lead: '', points: [] };
+  const sentences = (clean.match(/[^.!?]+[.!?]*\s*/g) || [clean]).map((s) => s.trim()).filter(Boolean);
+  if (sentences.length <= 1) return { lead: clean, points: [] };
+  const maxPoints = Number(opts.maxPoints) > 0 ? Number(opts.maxPoints) : 6;
+  return { lead: sentences[0], points: sentences.slice(1, 1 + maxPoints) };
+}
+
+// Resolve the audience POINTS for the room at the current band (the bullet sibling of
+// resolveAudienceLead): pointsByAge wins when present so a live band-switch re-pitches
+// the bullets too; else the base `points`; else none.
+export function resolveAudiencePoints(audience, age) {
+  const a = audience || {};
+  if (a.pointsByAge && typeof a.pointsByAge === 'object' && age && Array.isArray(a.pointsByAge[age])) return a.pointsByAge[age];
+  return Array.isArray(a.points) ? a.points : [];
+}
+
 // A presenter band ('child'|'teen'|'adult') -> the module.levels KEY it reads. The
 // course authors child/teen/senior rewrites, so the ADULT band presents the mature
 // 'senior' rewrite (not the general big idea) — the whole lesson lands at the class's
@@ -712,21 +742,47 @@ export function lessonPresentable(module, opts = {}) {
       // The opener carries the anchor Scriptures VERBATIM so the minister can recall
       // and read the Word, not just the location.
       if (i === 0 && scriptureLines.length) notes.push({ kind: 'list', heading: 'Scriptures to read (KJV)', items: scriptureLines });
-      if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
       if (isReflect(seg.name) && dp.length) notes.push({ kind: 'list', heading: 'Ask the room', items: dp });
-      // The teaching beats show the age-appropriate lesson; other beats show that
-      // part's own one-line facilitator detail.
-      const teachingLead = big ? bigLeadByAge : (deeper ? deeperLeadByAge : null);
+      // The teaching beats (big idea / go deeper) become a CONCISE main idea + bullet
+      // POINTS for the room (Darrell 2026-07-19: audience slides were too wordy — a
+      // headline + points, not a paragraph). The FULL age text moves into presenter
+      // NOTES so nothing is lost; every band is outlined so a live band-switch
+      // re-pitches BOTH the main idea and the points.
+      const teachingFull = big ? bigLeadByAge : (deeper ? deeperLeadByAge : null);
+      let lead; let leadByAge = null; let points = null; let pointsByAge = null;
+      if (teachingFull) {
+        const outByAge = {
+          child: slideOutline(teachingFull.child),
+          teen: slideOutline(teachingFull.teen),
+          adult: slideOutline(teachingFull.adult),
+        };
+        leadByAge = { child: outByAge.child.lead, teen: outByAge.teen.lead, adult: outByAge.adult.lead };
+        pointsByAge = { child: outByAge.child.points, teen: outByAge.teen.points, adult: outByAge.adult.points };
+        lead = leadByAge[baseBand] || m.bigIdea || seg.detail || '';
+        points = pointsByAge[baseBand] || [];
+        // Full teaching text (this band) -> presenter notes, so the room sees the
+        // outline while the speaker keeps every word. Skip when there's nothing extra.
+        const fullText = teachingFull[baseBand] || '';
+        if (fullText && (points.length || fullText !== lead)) {
+          notes.unshift({ kind: 'body', heading: big ? 'The teaching — say it in your own words' : 'Go deeper — say it in your own words', body: fullText });
+        }
+      } else {
+        lead = seg.detail || '';
+      }
+      // Talking points ride as presenter-only notes on the big-idea beat.
+      if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
       return {
         id: `${m.id || 'lesson'}-s${i + 1}`,
         indexLabel: `Part ${i + 1} of ${total}`,
         estimatedMin: seg.estimatedMin,
         audience: {
           title: seg.name || `Part ${i + 1}`,
-          lead: teachingLead ? (teachingLead[baseBand] || m.bigIdea || seg.detail || '') : (seg.detail || ''),
-          // Both teaching beats carry every band's copy so switching the band mid-talk
-          // re-pitches the WHOLE lesson to the room, without leaving the slide.
-          leadByAge: teachingLead,
+          lead,
+          // Every band's main idea + points, so switching the band mid-talk re-pitches
+          // the WHOLE slide to the room without leaving it.
+          leadByAge,
+          points,
+          pointsByAge,
           detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
           detailLabel: handsOnLabel,
           anchorRef: i === 0 ? anchorRef : null,
@@ -760,23 +816,39 @@ export function lessonPresentable(module, opts = {}) {
     const finalTotal = scenes.length;
     scenes = scenes.map((sc, i) => ({ ...sc, indexLabel: `Part ${i + 1} of ${finalTotal}` }));
   } else {
-    // A lesson with no authored run-of-show still presents as one big-idea scene —
-    // the FULL age text (both halves) at the chosen band, re-pitchable live.
+    // A lesson with no authored run-of-show still presents as one scene — a concise
+    // main idea + points for the room, the FULL age text kept in presenter notes.
     const wholeByAge = {
       child: textByBand.child, teen: textByBand.teen, adult: textByBand.adult,
     };
+    const outByAge = {
+      child: slideOutline(wholeByAge.child),
+      teen: slideOutline(wholeByAge.teen),
+      adult: slideOutline(wholeByAge.adult),
+    };
+    const leadByAge = { child: outByAge.child.lead, teen: outByAge.teen.lead, adult: outByAge.adult.lead };
+    const pointsByAge = { child: outByAge.child.points, teen: outByAge.teen.points, adult: outByAge.adult.points };
+    const fullText = wholeByAge[baseBand] || '';
+    const lead = leadByAge[baseBand] || m.bigIdea || '';
+    const notes = [];
+    if (fullText && (pointsByAge[baseBand].length || fullText !== lead)) {
+      notes.push({ kind: 'body', heading: 'The teaching — say it in your own words', body: fullText });
+    }
+    if (tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
     scenes = [{
       id: `${m.id || 'lesson'}-s1`,
       indexLabel: 'Part 1 of 1',
       audience: {
         title: m.title || 'The lesson',
-        lead: wholeByAge[baseBand] || m.bigIdea || '',
-        leadByAge: wholeByAge,
+        lead,
+        leadByAge,
+        points: pointsByAge[baseBand] || [],
+        pointsByAge,
         detail: m.inApp || null,
         detailLabel: handsOnLabel,
         anchorRef, anchorTheme,
       },
-      notes: tp.length ? [{ kind: 'list', heading: 'Say this', items: tp }] : [],
+      notes,
       runOfShow: [],
     }];
   }

@@ -3,6 +3,7 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide, resolveAudienceLead,
+  slideOutline, resolveAudiencePoints,
   coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
@@ -201,6 +202,59 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(bare.scenes.length).toBe(1);
     expect(bare.scenes[0].audience.lead).toBe('idea');
     expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
+  });
+});
+
+describe('slideOutline + concise audience slides (Darrell 2026-07-19: not-too-wordy + points)', () => {
+  it('splits prose into a main-idea lead + bullet points, capped', () => {
+    const o = slideOutline('The main idea here. First supporting detail. Second detail. Third detail.');
+    expect(o.lead).toBe('The main idea here.');
+    expect(o.points).toEqual(['First supporting detail.', 'Second detail.', 'Third detail.']);
+    // single sentence -> all lead, no points; empty -> empty
+    expect(slideOutline('Just one thought.')).toEqual({ lead: 'Just one thought.', points: [] });
+    expect(slideOutline('')).toEqual({ lead: '', points: [] });
+    // caps the number of points so the screen never becomes a wall
+    const many = slideOutline('Lead. A. B. C. D. E. F. G. H.', { maxPoints: 3 });
+    expect(many.lead).toBe('Lead.');
+    expect(many.points).toEqual(['A.', 'B.', 'C.']);
+  });
+
+  it('resolveAudiencePoints re-pitches bullets by band, falling back to base', () => {
+    const a = { points: ['base1'], pointsByAge: { child: ['kid1', 'kid2'], adult: ['grown1'] } };
+    expect(resolveAudiencePoints(a, 'child')).toEqual(['kid1', 'kid2']);
+    expect(resolveAudiencePoints(a, 'adult')).toEqual(['grown1']);
+    expect(resolveAudiencePoints(a, 'teen')).toEqual(['base1']); // no teen variant -> base
+    expect(resolveAudiencePoints({}, 'child')).toEqual([]);      // nothing -> empty
+  });
+
+  it('a LONG teaching beat projects a SHORT main idea + points, with the full beat text in notes', () => {
+    const longText = 'The one thing to hold is this. Pride is the first danger. Frustration is the second. '
+      + 'The body coming together is God to grant. Self-control is a fruit not willpower. '
+      + 'Accountability is never the judge bench. The standard must be equal. '
+      + 'The greatest servant is the king.';
+    const lesson = {
+      id: 'wordy', title: 'A wordy lesson', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: { child: longText, teen: longText, senior: longText },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach it | Go deeper (10): more | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    // the ROOM sees a short main idea (one sentence) + bullet points, NOT the paragraph
+    expect(big.audience.lead).toBe('The one thing to hold is this.');
+    expect(big.audience.lead.length).toBeLessThan(60);
+    expect(Array.isArray(big.audience.points)).toBe(true);
+    expect(big.audience.points.length).toBeGreaterThan(0);
+    big.audience.points.forEach((pt) => expect(longText).toContain(pt)); // real sentences, not invented
+    // the full beat text rides in presenter notes (nothing lost), longer than the lead
+    const teachNote = big.notes.find((n) => /the teaching/i.test(n.heading || ''));
+    expect(teachNote).toBeTruthy();
+    expect(teachNote.body.startsWith('The one thing to hold is this.')).toBe(true);
+    expect(teachNote.body.length).toBeGreaterThan(big.audience.lead.length);
+    // the projected slide carries lead + points for the room
+    const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
+    expect(slide.lead).toBe('The one thing to hold is this.');
+    expect(Array.isArray(slide.points) && slide.points.length > 0).toBe(true);
   });
 });
 

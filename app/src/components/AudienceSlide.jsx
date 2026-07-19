@@ -65,6 +65,18 @@ export default function AudienceSlide({ slide = null, hold = null }) {
         </p>
       )}
 
+      {/* Bullet / numbered points UNDER the main idea — details for the room and for
+          note-takers (Darrell 2026-07-19). Full teaching stays in the presenter notes. */}
+      {Array.isArray(slide.points) && slide.points.length > 0 && (
+        React.createElement(
+          slide.ordered ? 'ol' : 'ul',
+          { style: { margin: 'clamp(16px, 2.2vw, 28px) 0 0', paddingLeft: 'clamp(24px, 2.4vw, 40px)', color: '#FAF8F4' } },
+          slide.points.map((pt, i) => (
+            <li key={i} style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.32, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0' }}>{pt}</li>
+          )),
+        )
+      )}
+
       {(slide.detail || slide.inApp) && (
         <p style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>
           <span style={{ color: '#C9D9A6', fontWeight: 600 }}>{slide.detailLabel || 'In the app'}: </span>{slide.detail || slide.inApp}

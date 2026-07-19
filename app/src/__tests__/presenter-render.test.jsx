@@ -153,4 +153,39 @@ describe('Presenter — time-adaptive render', () => {
     act(() => exitBtn.click());
     expect(container.querySelector('input[aria-label="Minutes available"]')).toBeTruthy();
   });
+
+  it('shows bullet POINTS under the main idea on the class screen, re-pitched by band', () => {
+    const deck = {
+      id: 'points:deck', title: 'Points deck', targetMin: 10,
+      scenes: [{
+        id: 's1', indexLabel: 'Part 1 of 1', estimatedMin: 10,
+        audience: {
+          title: 'The big idea',
+          lead: 'Keep pride out of the music.',
+          leadByAge: { child: 'Keep pride out of the music.', teen: 'Keep pride out of the music.', adult: 'Keep pride out of the music.' },
+          points: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+          pointsByAge: {
+            child: ['Stay kind when notes go wrong.'],
+            teen: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+            adult: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+          },
+        },
+        notes: [{ kind: 'body', heading: 'The teaching — say it in your own words', body: 'FULL PRESENTER-ONLY TEACHING TEXT' }],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: deck, storage: store, initialAge: 'adult' })));
+    const onScreenBtn = [...container.querySelectorAll('button')].find((b) => /present on this screen/i.test(b.textContent));
+    act(() => onScreenBtn.click());
+    // the room sees the main idea + the bullet points (real list items)
+    expect(container.textContent).toMatch(/Keep pride out of the music/);
+    expect(container.querySelectorAll('li').length).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toMatch(/the greatest servant is the king/i);
+    // presenter-only full text NEVER reaches the projected class screen (no-leak)
+    expect(container.textContent).not.toMatch(/FULL PRESENTER-ONLY TEACHING TEXT/);
+    // switch to Children -> the bullets re-pitch to the child variant
+    const childChip = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Children');
+    act(() => childChip.click());
+    expect(container.textContent).toMatch(/Stay kind when notes go wrong/);
+    expect(container.textContent).not.toMatch(/the greatest servant is the king/i);
+  });
 });
