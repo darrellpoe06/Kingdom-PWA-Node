@@ -50,6 +50,32 @@ describe('slimSnapshotData', () => {
     expect(data.lifePhotos[0].src).toBe(bigDataUrl); // original still has the bytes for the session
   });
 
+  it('strips base64 RECEIPT images off transactions but keeps the receipt metadata + the txn', () => {
+    const data = {
+      transactions: [
+        { id: 't1', amount: -42, category: 'groceries', receipt: { src: bigDataUrl, merchant: 'County Market', amount: -42 } },
+        { id: 't2', amount: -10, category: 'fuel' }, // no receipt — untouched
+      ],
+    };
+    const slim = slimSnapshotData(data);
+    expect(slim.transactions[0].amount).toBe(-42);                 // financial data kept
+    expect(slim.transactions[0].receipt.src).toBe('');             // heavy bytes dropped
+    expect(slim.transactions[0].receipt.srcDropped).toBe(true);
+    expect(slim.transactions[0].receipt.merchant).toBe('County Market'); // metadata kept
+    expect(slim.transactions[1]).toEqual(data.transactions[1]);    // receiptless txn untouched
+    expect(data.transactions[0].receipt.src).toBe(bigDataUrl);     // original not mutated
+  });
+
+  it('a ledger full of receipt photos slims to a size that fits', () => {
+    const data = {
+      transactions: Array.from({ length: 40 }, (_, i) => ({
+        id: 't' + i, amount: i, receipt: { src: bigDataUrl, merchant: 'M' + i },
+      })),
+    };
+    expect(snapshotByteSize(data)).toBeGreaterThan(6_000_000); // 40 x ~2MB receipts overflow
+    expect(snapshotByteSize(slimSnapshotData(data))).toBeLessThan(20_000); // slims to fit
+  });
+
   it('handles a snapshot with no photos, and non-object input, safely', () => {
     expect(slimSnapshotData({ transactions: [] })).toEqual({ transactions: [] });
     expect(slimSnapshotData(null)).toBe(null);
