@@ -70,19 +70,29 @@ export function baselineAnomalies(months, opts = {}) {
   const tol = opts.tolerancePct ?? 0.4;
   const floor = opts.floor ?? 2000;
   const minMonths = opts.minMonths ?? 3;
-  if (!Array.isArray(months) || months.length < minMonths) return [];
-  const vals = months.map((m) => Number(m[metric]) || 0);
+  if (!Array.isArray(months)) return [];
+  // Baseline over ACTIVE months only. A ledger that started mid-history has many
+  // EMPTY early months (no statements imported yet — an ABSENCE of data, not a real
+  // $0 month); including them collapses the median "usual" to near-zero, so every
+  // real month reads as a false +thousands% anomaly (Darrell 2026-07-19: "usual
+  // $1,026" while every active month is $30-44k). Judge only months that have real
+  // activity, against the median of the OTHER active months — "usual" = a typical
+  // ACTIVE month, so the monitor flags a genuine outlier, not the start of history.
+  const active = months
+    .map((m) => ({ month: m.month, value: Number(m[metric]) || 0 }))
+    .filter((x) => x.value !== 0);
+  if (active.length < minMonths) return [];
   const out = [];
-  months.forEach((m, i) => {
-    const others = vals.filter((_, j) => j !== i);
+  active.forEach((cur, i) => {
+    const others = active.filter((_, j) => j !== i).map((x) => x.value);
     const base = median(others);
-    const value = Number(m[metric]) || 0;
+    const value = cur.value;
     const dev = value - base;
     const pct = base !== 0 ? dev / base : (value !== 0 ? Infinity : 0);
     if (Math.abs(dev) >= floor && Math.abs(pct) >= tol) {
       out.push({
-        month: m.month,
-        label: baselineMonthLabel(m.month),
+        month: cur.month,
+        label: baselineMonthLabel(cur.month),
         metric,
         value: round2(value),
         baseline: round2(base),

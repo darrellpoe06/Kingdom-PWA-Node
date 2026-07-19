@@ -63,6 +63,39 @@ describe('baselineAnomalies — flag the unusual month', () => {
     expect(baselineAnomalies([{ month: '2026-01', in: 30000 }, { month: '2026-02', in: 99000 }], { minMonths: 3 })).toHaveLength(0);
   });
 
+  it('baselines over ACTIVE months when the ledger starts mid-history (empty early months excluded)', () => {
+    // The real bug (Darrell 2026-07-19): the ledger spans back to 2024 but statements
+    // were only imported for recent months, so early months are EMPTY ($0). Baselining
+    // over ALL months makes "usual" ~$0, so every real ~$30-44k month reads as a
+    // +thousands% anomaly. Excluding empties makes "usual" a typical ACTIVE month.
+    const withEmptyHistory = [
+      { month: '2024-06', out: 0 }, { month: '2024-07', out: 0 }, { month: '2024-08', out: 0 },
+      { month: '2024-09', out: 0 }, { month: '2024-10', out: 0 }, { month: '2024-11', out: 0 },
+      { month: '2026-03', out: 28642 }, { month: '2026-04', out: 32297 },
+      { month: '2026-05', out: 44387 }, { month: '2026-06', out: 44655 }, { month: '2026-07', out: 30508 },
+    ];
+    const flags = baselineAnomalies(withEmptyHistory, { metric: 'out', tolerancePct: 0.4, floor: 2000 });
+    // PROVEN-TO-CATCH: with the empty months INCLUDED the baseline is 0 and every
+    // active month flags at Infinity% (deviationPct null). Excluded, "usual" is the
+    // active-month median (~$31.4k) and only the genuinely-higher months flag, at a
+    // SANE percentage — no near-zero baseline, no Infinity deviation.
+    expect(flags.every((f) => f.baseline > 25000)).toBe(true);       // usual is a real month, not ~$0
+    expect(flags.every((f) => f.deviationPct !== null && f.deviationPct < 100)).toBe(true); // sane %, not +thousands
+    expect(flags.map((f) => f.month).sort()).toEqual(['2026-05', '2026-06']); // only the two highest months
+  });
+
+  it('still flags a genuine outlier among active months (a truly doubled month)', () => {
+    const oneDoubled = [
+      { month: '2024-06', out: 0 }, { month: '2024-07', out: 0 },
+      { month: '2026-04', out: 30000 }, { month: '2026-05', out: 31000 },
+      { month: '2026-06', out: 29000 }, { month: '2026-07', out: 66000 }, // the real outlier
+    ];
+    const flags = baselineAnomalies(oneDoubled, { metric: 'out', tolerancePct: 0.4, floor: 2000 });
+    expect(flags).toHaveLength(1);
+    expect(flags[0].month).toBe('2026-07');
+    expect(flags[0].kind).toBe('excess');
+  });
+
   it('baselineMonthLabel renders a friendly month', () => {
     expect(baselineMonthLabel('2026-04')).toBe('April 2026');
   });
