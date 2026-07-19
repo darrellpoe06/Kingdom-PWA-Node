@@ -20,7 +20,7 @@ import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatem
 import { planBulkImport, planAccountImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
-import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
+import { categorize, payeeKey, countPayeeMatches, categoryLabel } from '../lib/categorize.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
 import { runningBalanceByTxId } from '../lib/imported-view.js';
@@ -977,7 +977,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             {rowBal !== null
               ? <span className={`ml-1 ${rowBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account balance as of this transaction (from the bank statement)">(bal {fmt(rowBal)})</span>
               : (currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account's current balance">(now {fmt(currentBal)})</span>)}
-            {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
+            {t.category && <span className="ml-2 uppercase tracking-wider">· {categoryLabel(t.category)}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
             {/* Phase 2A — ingest provenance + reconcile status pills. Stays
                 quiet on plain manual entries so the existing UX is unchanged. */}
@@ -1136,7 +1136,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
-                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</select></div>
               </div>
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
               {recategorizePayee && (() => {
@@ -1358,7 +1358,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               <div>
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {TX_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
                 </select>
               </div>
             </div>
@@ -1436,7 +1436,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   <tbody>
                     {evalSummary.categories.map(c => (
                       <tr key={c.category} className="border-b border-[#E8E4DC]">
-                        <td className="p-2 capitalize" style={{ fontFamily: '"Fraunces", serif' }}>{c.category}</td>
+                        <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{categoryLabel(c.category)}</td>
                         <td className="p-2 text-right text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.income ? fmt(c.income) : '—'}</td>
                         <td className="p-2 text-right text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.outflow ? fmt(c.outflow) : '—'}</td>
                         <td className={`p-2 text-right ${c.net < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(c.net)}</td>
@@ -1624,7 +1624,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                             <td className="p-2 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.date || r.rawDate}</td>
                             <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.desc.slice(0, 60)}</td>
                             <td className={`p-2 text-right whitespace-nowrap ${r.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.amount > 0 ? '+' : ''}{fmt(r.amount)}</td>
-                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.category}</td>
+                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{categoryLabel(r.category)}</td>
                             <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.ok ? <span className="text-[#5A6E3D]">✓</span> : <span className="text-[#B85838]">skip</span>}</td>
                           </tr>
                         ))}

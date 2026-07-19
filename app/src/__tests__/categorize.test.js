@@ -4,7 +4,7 @@
 // (WF HOME MTG AUTO PAY tagged Vehicle by a naive "auto" substring) now reads
 // debt-payment; real auto payees still read vehicle; specificity + learned rules.
 import { describe, it, expect } from 'vitest';
-import { categorize, payeeKey, learnRule, LOW_CONFIDENCE } from '../lib/categorize.js';
+import { categorize, payeeKey, learnRule, LOW_CONFIDENCE, categoryLabel } from '../lib/categorize.js';
 
 describe('categorize — the mortgage-as-Vehicle class of bug', () => {
   it('the confirmed row: WF HOME MTG AUTO PAY -> debt-payment, NOT vehicle', () => {
@@ -43,5 +43,41 @@ describe('learned rules — one correction, applied everywhere', () => {
     expect(c.category).toBe('household');
     expect(c.confidence).toBe(1);
     expect(c.rule).toBe('learned');
+  });
+});
+
+describe('categoryLabel — clean display names for raw Chase Type codes', () => {
+  it('the reported codes read as words, not machine noise', () => {
+    // Darrell 2026-07-19: the Chase "Type" column stored acct_xfer/ach_credit/atm/
+    // billpay verbatim, so the ledger showed "Acct_xfer" / "Ach_credit" under CSS
+    // capitalize. PROVEN-TO-CATCH: without the map these fall to a raw slug.
+    expect(categoryLabel('acct_xfer')).toBe('Transfer');
+    expect(categoryLabel('ACCT_XFER')).toBe('Transfer');   // case-insensitive
+    expect(categoryLabel('ach_credit')).toBe('ACH Deposit');
+    expect(categoryLabel('ach_debit')).toBe('ACH Payment');
+    expect(categoryLabel('atm')).toBe('ATM / Cash');
+    expect(categoryLabel('billpay')).toBe('Bill Pay');
+  });
+  it('the additional codes seen in the live ledger (2026-07-19 screenshot) read clean too', () => {
+    // Observed on Darrell's real Imported filter chips — reality-trace, not a guess.
+    expect(categoryLabel('atm_deposit')).toBe('ATM Deposit');
+    expect(categoryLabel('chase_to_partnerfi')).toBe('Transfer');
+  });
+  it('the app\'s own slugs get their proper label', () => {
+    expect(categoryLabel('debt-payment')).toBe('Debt Payment');
+    expect(categoryLabel('rental-income')).toBe('Rental Income');
+  });
+  it('an unmapped slug still reads as Title-Case words, never raw', () => {
+    expect(categoryLabel('groceries')).toBe('Groceries');
+    expect(categoryLabel('some_new_bank_code')).toBe('Some New Bank Code');
+    expect(categoryLabel('')).toBe('');
+    expect(categoryLabel(null)).toBe('');
+  });
+  it('DISPLAY-ONLY: the label never mutates the stored slug (totals stay keyed on it)', () => {
+    // categoryLabel is presentational — the internal-transfer / external-total
+    // logic keys on the STORED category, so relabeling must not change the value.
+    const stored = 'acct_xfer';
+    categoryLabel(stored);
+    expect(stored).toBe('acct_xfer');
   });
 });
