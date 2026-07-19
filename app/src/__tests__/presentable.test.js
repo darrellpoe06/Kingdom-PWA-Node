@@ -294,6 +294,28 @@ describe('cited Scripture — the room reads the Word directly (Darrell 2026-07-
     const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
     expect(slide.citedRefs).toContain('1 Corinthians 12:18'); // rides to the projector payload
   });
+
+  it('builds a RUNNING scripture list (cumulative, deduped) + a lesson total', () => {
+    const lesson = {
+      id: 'run', title: 'Running', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: {
+        child: 'God sets the body (1 Corinthians 12:18). More here.',
+        teen: 'God sets the body (1 Corinthians 12:18). More here.',
+        senior: 'God sets the body (1 Corinthians 12:18). Except the LORD build the house (Psalm 127:1). More here.',
+      },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const bigIdx = p.scenes.findIndex((s) => /big idea/i.test(s.audience.title));
+    const s0 = buildSlideForScene(p.scenes, 0, { age: 'adult' });       // title (carries the anchor)
+    const sBig = buildSlideForScene(p.scenes, bigIdx, { age: 'adult' }); // after teaching
+    expect(s0.scripturesSoFar).toContain('Psalm 1:1');                  // anchor shown from the title
+    expect(sBig.scripturesSoFar).toEqual(expect.arrayContaining(['Psalm 1:1', '1 Corinthians 12:18']));
+    expect(sBig.scripturesSoFar.length).toBeGreaterThanOrEqual(s0.scripturesSoFar.length); // grows
+    expect(sBig.scripturesSoFar.filter((r) => r === 'Psalm 1:1')).toHaveLength(1);          // deduped
+    expect(sBig.scripturesTotal).toBeGreaterThanOrEqual(sBig.scripturesSoFar.length);       // running of total
+  });
 });
 
 describe('resolveAudienceLead — live age re-pitch of one slide', () => {

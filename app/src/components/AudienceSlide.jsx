@@ -40,6 +40,18 @@ export default function AudienceSlide({ slide = null, hold = null }) {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [citedKey]);
+
+  // The running "Scriptures so far" rail (Darrell 2026-07-19): every reference cited up
+  // to THIS slide, with the lesson's total; the current slide's own references glow.
+  const soFar = (slide && Array.isArray(slide.scripturesSoFar)) ? slide.scripturesSoFar : [];
+  const scriptureTotal = (slide && slide.scripturesTotal) || soFar.length;
+  const currentRefs = new Set([
+    ...((slide && Array.isArray(slide.citedRefs)) ? slide.citedRefs : []),
+    ...String((slide && slide.anchorRef) || '').split(';').map((s) => s.trim()).filter(Boolean),
+  ]);
+  const RAIL_MAX = 16;
+  const railShown = soFar.slice(-RAIL_MAX);
+  const railHidden = soFar.length - railShown.length;
   if (showHold) {
     return (
       <div style={{ textAlign: 'center', margin: 'auto' }}>
@@ -56,7 +68,8 @@ export default function AudienceSlide({ slide = null, hold = null }) {
     );
   }
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', display: 'flex', gap: 'clamp(20px, 3vw, 52px)', alignItems: 'flex-start' }}>
+      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 'clamp(16px, 2vw, 28px)' }}>
         {/* Generic position label (indexLabel) for any surface; falls back to the
             original "Week X of Y" if an older presenter posts the legacy shape. */}
@@ -144,6 +157,26 @@ export default function AudienceSlide({ slide = null, hold = null }) {
             </p>
           ))}
         </div>
+      )}
+      </div>
+
+      {/* The running Scripture index — its OWN space to the side, the list of every
+          reference cited so far + the lesson total, growing to the end. The current
+          slide's references glow; the rest are the trail behind them. */}
+      {soFar.length > 0 && (
+        <aside style={{ flex: '0 0 clamp(150px, 20vw, 300px)', alignSelf: 'stretch', borderLeft: '2px solid #4A453D', paddingLeft: 'clamp(14px, 1.4vw, 22px)' }}>
+          <div style={{ fontSize: 'clamp(11px, 1.1vw, 15px)', letterSpacing: '0.22em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 'clamp(10px, 1.2vw, 16px)' }}>
+            Scriptures · {soFar.length}{scriptureTotal > soFar.length ? ` of ${scriptureTotal}` : ''}
+          </div>
+          {railHidden > 0 && (
+            <div style={{ fontSize: 'clamp(11px, 1.1vw, 15px)', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace', marginBottom: 'clamp(6px, 0.8vw, 10px)' }}>+{railHidden} earlier</div>
+          )}
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(6px, 0.8vw, 11px)' }}>
+            {railShown.map((r, i) => (
+              <li key={`${r}-${i}`} style={{ fontSize: 'clamp(13px, 1.3vw, 19px)', lineHeight: 1.25, fontFamily: '"JetBrains Mono", monospace', color: currentRefs.has(r) ? '#C9D9A6' : '#CFC9BD', fontWeight: currentRefs.has(r) ? 700 : 400 }}>{r}</li>
+            ))}
+          </ol>
+        </aside>
       )}
     </div>
   );

@@ -45,4 +45,20 @@ describe('AudienceSlide — cited Scripture shown verbatim', () => {
     expect(container.textContent).not.toMatch(/Nowhere 9:9/); // unresolved -> not shown
     cleanup();
   });
+
+  it('renders the running Scripture rail — count of total, current refs highlighted', async () => {
+    __setBibleFetcher(fakeFetch);
+    const slide = {
+      title: 'Go deeper', lead: 'idea', citedRefs: ['Mark 10:43-45'],
+      scripturesSoFar: ['Psalm 1:1', '1 Corinthians 12:18', 'Mark 10:43-45'], scripturesTotal: 8,
+    };
+    const { container, cleanup } = await mountAndFlush(createElement(AudienceSlide, { slide }));
+    // its own side space: a running count of the total, and the trail of references
+    expect(container.textContent).toMatch(/Scriptures · 3 of 8/);
+    const rail = container.querySelector('aside');
+    expect(rail).toBeTruthy();
+    expect(rail.textContent).toMatch(/Psalm 1:1/);
+    expect(rail.textContent).toMatch(/Mark 10:43-45/);
+    cleanup();
+  });
 });

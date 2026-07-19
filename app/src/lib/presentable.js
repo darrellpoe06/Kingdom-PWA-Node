@@ -67,6 +67,16 @@ export function resolveAudienceLead(audience, age) {
   return a.lead || '';
 }
 
+// Every Scripture reference a scene puts before the room — its anchor (split on ';')
+// plus any references it cites. Used to build the running "Scriptures so far" rail.
+function sceneScriptureRefs(scene) {
+  const a = (scene && scene.audience) || {};
+  const out = [];
+  if (a.anchorRef) String(a.anchorRef).split(';').forEach((r) => { const t = r.trim(); if (t) out.push(t); });
+  if (Array.isArray(a.citedRefs)) a.citedRefs.forEach((r) => { if (r) out.push(String(r).trim()); });
+  return out;
+}
+
 export function buildSlideForScene(scenes, index, opts = {}) {
   const list = Array.isArray(scenes) ? scenes : [];
   const scene = list[index];
@@ -75,6 +85,15 @@ export function buildSlideForScene(scenes, index, opts = {}) {
   const a = scene.audience || {};
   const lead = resolveAudienceLead(a, opts.age);
   const points = resolveAudiencePoints(a, opts.age);
+  // The RUNNING list of Scriptures cited through THIS slide (deduped, in order), and
+  // the lesson's grand total — a growing index the room can follow (Darrell 2026-07-19).
+  const soFar = [];
+  const seenSoFar = new Set();
+  for (let k = 0; k <= index && k < list.length; k += 1) {
+    for (const r of sceneScriptureRefs(list[k])) { if (!seenSoFar.has(r)) { seenSoFar.add(r); soFar.push(r); } }
+  }
+  const allRefs = new Set();
+  for (const sc of list) for (const r of sceneScriptureRefs(sc)) allRefs.add(r);
   return {
     type: 'slide',
     index: index + 1,
@@ -92,6 +111,10 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     // Scripture references cited on this slide — AudienceSlide resolves them to
     // verbatim KJV so the room reads the Word directly, in context.
     citedRefs: Array.isArray(a.citedRefs) && a.citedRefs.length ? a.citedRefs : null,
+    // The running list of every Scripture cited up to (and including) this slide, and
+    // the lesson's total — the side-rail index the room follows to the end.
+    scripturesSoFar: soFar.length ? soFar : null,
+    scripturesTotal: allRefs.size,
     detail: a.detail || null,
     inApp: a.detail || null,
     detailLabel: a.detailLabel || 'In the app',
