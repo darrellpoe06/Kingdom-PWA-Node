@@ -111,3 +111,56 @@ export function applyCategoryToPayee(transactions, key, category) {
 export function countPayeeMatches(transactions, key) {
   return (transactions || []).filter((t) => payeeKey(t.description) === key).length;
 }
+
+// categoryLabel — a clean, human-readable DISPLAY name for a stored category
+// (Darrell 2026-07-19, family books). A Chase checking export carries a "Type"
+// column whose raw codes (ACCT_XFER, ACH_CREDIT/ACH_DEBIT, ATM, BILLPAY, …) were
+// stored verbatim as the category, so the ledger showed "Acct_xfer" / "Ach_credit"
+// under CSS-capitalize — machine noise where a person expects a word. This is a
+// PURE DISPLAY relabel: it never rewrites the stored category, so the internal-
+// transfer / external-total logic (which keys on the stored slug) is untouched —
+// only what the eye reads changes. Unknown values fall through to a generic
+// Title-Case of the slug (underscores/hyphens -> spaces), so nothing renders raw.
+const CATEGORY_LABELS = {
+  // Raw bank transaction-type codes (Chase "Type" column, lowercased on import).
+  acct_xfer: 'Transfer',
+  account_transfer: 'Transfer',
+  ach_credit: 'ACH Deposit',
+  ach_debit: 'ACH Payment',
+  atm: 'ATM / Cash',
+  atm_deposit: 'ATM Deposit',
+  billpay: 'Bill Pay',
+  bill_pay: 'Bill Pay',
+  // Chase's code for a transfer out to another (partner) financial institution.
+  chase_to_partnerfi: 'Transfer',
+  partnerfi_to_chase: 'Transfer',
+  debit_card: 'Card',
+  credit_card: 'Card',
+  pos: 'Card',
+  check: 'Check',
+  check_paid: 'Check',
+  deposit: 'Deposit',
+  wire_incoming: 'Wire',
+  wire_outgoing: 'Wire',
+  fee_transaction: 'Fee',
+  misc_credit: 'Deposit',
+  misc_debit: 'Payment',
+  // The app's own category slugs that read better with a set label than a raw
+  // Title-Case (the rest Title-Case fine: groceries, dining, utilities, …).
+  'debt-payment': 'Debt Payment',
+  'rental-income': 'Rental Income',
+};
+
+export function categoryLabel(category) {
+  const raw = String(category ?? '').trim();
+  if (!raw) return '';
+  const key = raw.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, key)) return CATEGORY_LABELS[key];
+  // Generic: split on separators and Title-Case each word so any unmapped slug
+  // (or a future bank code) still reads as words, never "Acct_xfer".
+  return key
+    .split(/[_\-\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}

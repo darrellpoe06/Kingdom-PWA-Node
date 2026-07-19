@@ -40,6 +40,7 @@ import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
+import { categoryLabel } from '../lib/categorize.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -242,7 +243,8 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
       const getKey = groupMode === 'payee' ? (r) => r.name
         : groupMode === 'account' ? (r) => r.institution
           : (r) => r.category;
-      groups = groupByField(windowed, getKey, { labelFn: (k) => k || '—' });
+      const labelFn = groupMode === 'category' ? (k) => (k ? categoryLabel(k) : '—') : (k) => k || '—';
+      groups = groupByField(windowed, getKey, { labelFn });
     }
     // Rows within each group sort by the active column (date/account/payee/…).
     groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
@@ -510,7 +512,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
             <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by category">
               <button type="button" onClick={() => setFilters(f => ({ ...f, category: '' }))} className={chipCls(!filters.category)}>All categories</button>
               {view.categories.map(cat => (
-                <button key={cat} type="button" onClick={() => setFilters(f => ({ ...f, category: cat }))} className={`${chipCls(filters.category === cat)} capitalize`}>{cat}</button>
+                <button key={cat} type="button" onClick={() => setFilters(f => ({ ...f, category: cat }))} className={chipCls(filters.category === cat)}>{categoryLabel(cat)}</button>
               ))}
             </div>
           )}
@@ -583,7 +585,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
                   >
                     <span className="flex items-baseline gap-2">
                       <span className="text-[#5A5751] text-xs" aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
-                      <span className={`text-[#1A1815] ${groupMode === 'category' ? 'capitalize' : ''}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
+                      <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
                       <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} tx</span>
                     </span>
                     <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -619,7 +621,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
                               {t.name}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-[#5A5751] capitalize">{t.category || '—'}</td>
+                            <td className="px-2 py-1.5 text-[#5A5751]">{t.category ? categoryLabel(t.category) : '—'}</td>
                             <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
                             {showBalance && (
                               <td className="px-2 py-1.5 text-right font-mono text-[#5A5751]">
@@ -634,7 +636,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[0.6875rem]">
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815] capitalize">{t.category || '—'}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815]">{t.category ? categoryLabel(t.category) : '—'}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className={`font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`}>{formatAmount(t.amount)}</div></div>
                                   <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
