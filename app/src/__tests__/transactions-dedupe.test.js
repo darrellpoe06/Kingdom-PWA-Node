@@ -63,6 +63,19 @@ describe('mergeTransactionsPreferCloud', () => {
     // PROVEN-TO-CATCH: remove the `if (l.remoteUuid) return false` guard and the
     // 't-dupe-9' assertion fails — the generic "DEBIT" twin resurrects.
   });
+  it('SAFETY: an EMPTY cloud list never blanks the local ledger (out-of-space read hiccup)', () => {
+    // Post-incident (Darrell 2026-07-19): a cloud read on a full device came back
+    // empty and the "drop synced rows absent from cloud" rule wiped every Books tab +
+    // wedged the app. An empty remote is NOT an authoritative delete — keep local.
+    const localSynced = [
+      { id: 't-1', remoteUuid: 'u-1', date: '2026-06-01', amount: -50, description: 'COUNTY MARKET', accountId: 'a1' },
+      { id: 't-2', remoteUuid: 'u-2', date: '2026-06-02', amount: 200, description: 'PAYROLL', accountId: 'a1' },
+    ];
+    expect(mergeTransactionsPreferCloud(localSynced, [])).toHaveLength(2);   // NOT blanked
+    expect(mergeTransactionsPreferCloud(localSynced, null)).toHaveLength(2);
+    // PROVEN-TO-CATCH: without the empty guard, both synced rows (remoteUuid, absent
+    // from the empty cloud) would be dropped -> length 0 -> the blank-ledger incident.
+  });
   it('txnContentKey matches across local + remote field names', () => {
     expect(txnContentKey({ date: '2026-05-18', amount: -50, description: 'A B', accountId: 'x' }))
       .toBe(txnContentKey({ txn_date: '2026-05-18', amount: -50, description: 'a b', account_slug: 'x' }));

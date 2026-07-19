@@ -29,6 +29,14 @@ export function txnContentKey(t) {
 
 export function mergeTransactionsPreferCloud(currentLocal, remoteItems, idOf = (item) => item?.id) {
   const remote = remoteItems || [];
+  // SAFETY (Darrell 2026-07-19, post-incident): an EMPTY cloud list is NOT an
+  // authoritative "everything was deleted." On a device that's out of local space a
+  // read can hiccup and come back empty; without this guard the "drop synced rows
+  // absent from cloud" rule below would treat ALL rows as deleted and BLANK the whole
+  // ledger (every Books tab went empty + the app wedged). If the cloud returns
+  // nothing, keep what we have on screen and wait for a real (non-empty) sync — a
+  // genuine full-delete is vanishingly rare and still self-heals on the next add.
+  if (!remote.length) return currentLocal || [];
   const remoteIds = new Set(remote.map((r) => idOf(r)));
   const remoteKeys = new Set(remote.map(txnContentKey));
   const keep = (currentLocal || []).filter((l) => {

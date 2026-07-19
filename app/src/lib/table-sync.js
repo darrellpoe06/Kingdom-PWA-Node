@@ -346,6 +346,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export function unionPreservingLocal(currentLocal, remoteItems, idOf = (item) => item?.id) {
   const remote = remoteItems || [];
+  // SAFETY (Darrell 2026-07-19, post-incident): an EMPTY cloud list is NOT proof the
+  // rows were deleted — a read on an out-of-space device can hiccup to empty. Without
+  // this, the "drop UUID rows absent from remote" rule below would BLANK every synced
+  // table at once (all Books tabs went empty + the app wedged). No authoritative
+  // update from an empty read: keep the current rows and wait for a real sync.
+  if (!remote.length) return currentLocal || [];
   const remoteIds = new Set(remote.map((r) => idOf(r)));
   const keep = (currentLocal || []).filter((l) => {
     const lid = idOf(l);

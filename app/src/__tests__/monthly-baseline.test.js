@@ -84,6 +84,31 @@ describe('baselineAnomalies — flag the unusual month', () => {
     expect(flags.map((f) => f.month).sort()).toEqual(['2026-05', '2026-06']); // only the two highest months
   });
 
+  it('excludes SPARSE partial months by transaction COUNT — a few stray rows do not set "usual"', () => {
+    // Darrell 2026-07-19, "Almost right...": excluding empty ($0) months was not
+    // enough — the ledger also has SPARSE partial months (a statement half-imported,
+    // or a stray reconciled row) whose FEW transactions are non-zero but tiny, still
+    // dragging the median "usual" down to ~$1,547 while every real month is $30-44k.
+    // A real month has activity on the order of the busy months; restrict the baseline
+    // to months carrying >= 25% of the busiest month's transaction count.
+    const withSparseMonths = [
+      { month: '2026-01', out: 1200, count: 3 },   // sparse: 3 stray rows, tiny $ -> NOT "usual"
+      { month: '2026-02', out: 1547, count: 4 },   // sparse
+      { month: '2026-03', out: 28642, count: 210 },
+      { month: '2026-04', out: 32297, count: 240 },
+      { month: '2026-05', out: 44387, count: 260 },
+      { month: '2026-06', out: 44655, count: 255 }, // busiest
+      { month: '2026-07', out: 30508, count: 220 },
+    ];
+    const flags = baselineAnomalies(withSparseMonths, { metric: 'out', tolerancePct: 0.4, floor: 2000 });
+    // PROVEN-TO-CATCH: with the sparse (count 3/4) months in the baseline, the median
+    // "usual" collapses toward ~$1,547 and every real $30-44k month flags at +2000%+.
+    // Excluded by count, "usual" is a real busy-month median (~$31k), so a genuinely
+    // higher month reads as a SANE +40-ish% (real signal) instead of a bogus +2786%.
+    expect(flags.every((f) => f.baseline > 25000)).toBe(true);   // usual is a busy month, not ~$1,547
+    expect(flags.every((f) => f.deviationPct !== null && f.deviationPct < 100)).toBe(true); // sane %, not +thousands
+  });
+
   it('still flags a genuine outlier among active months (a truly doubled month)', () => {
     const oneDoubled = [
       { month: '2024-06', out: 0 }, { month: '2024-07', out: 0 },
