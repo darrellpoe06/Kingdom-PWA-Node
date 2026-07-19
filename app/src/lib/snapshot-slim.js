@@ -126,8 +126,18 @@ export async function persistSnapshot(setItem, key, envelope, data) {
 // (DR-0100: state the truth; do not over-alarm a synced ledger). Pure.
 export function storageBannerMessage(mode, cloudSafe) {
   if (mode === 'full') return null;
-  if (mode === 'slim') return 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Back up photos to the NAS (Big Picture → photos) to free space.';
-  if (mode === 'extra') return 'This device is low on space — your books are saving' + (cloudSafe ? ' and synced to the cloud' : '') + '; older edit-history and photos aren’t cached on this phone. Back up photos to the NAS to free space.';
+  // Honest, family-friendly remedy (Darrell 2026-07-19: "Backup is not user
+  // friendly"). The old copy commanded "Back up photos to the NAS to free space",
+  // but that routes to a bridge-TOKEN paste (not novice-friendly) for a NAS backup
+  // the app itself still labels "coming next" — and when the ledger is the space
+  // hog (the 'extra' tier drops HISTORY, not just photos), backing up photos frees
+  // nothing. So: when the books are cloud-safe, REASSURE and prescribe nothing (no
+  // action is actually required — DR-0100, don't over-alarm); otherwise point to a
+  // remedy the family can actually do today — remove/export a few photos.
+  if (mode === 'slim') return 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
+  if (mode === 'extra') return cloudSafe
+    ? 'This device is low on space, but your books are synced to the cloud and safe — nothing is lost. This phone just isn’t caching older edit-history or photos locally.'
+    : 'This device is low on space; older edit-history and photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
   return cloudSafe
     ? 'This device is out of local space, but your transactions are synced to the cloud and safe. Remove a few photos (Big Picture → photos) to restore local caching.'
     : 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.';

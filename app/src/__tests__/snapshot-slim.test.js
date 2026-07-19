@@ -167,4 +167,20 @@ describe('storageBannerMessage — honest wording, no false alarm on a synced le
   it('on a hard FAIL with NO cloud sync, the real data-loss alarm IS shown', () => {
     expect(storageBannerMessage('fail', false)).toMatch(/NOT being saved/);
   });
+  it('never commands the not-friendly "Back up photos to the NAS" token flow (Darrell 2026-07-19)', () => {
+    // "Backup is not user friendly" — the NAS backup is a bridge-token paste the app
+    // labels "coming next", and when the LEDGER is the space hog it frees nothing.
+    // PROVEN-TO-CATCH: no tier's message may command backing up to the NAS.
+    for (const mode of ['slim', 'extra', 'fail']) {
+      for (const cloudSafe of [true, false]) {
+        const msg = storageBannerMessage(mode, cloudSafe) || '';
+        expect(msg).not.toMatch(/back up .*nas|nas.*(free|back up)/i);
+      }
+    }
+  });
+  it('extra tier on a CLOUD-SAFE ledger reassures and prescribes no fiddly action', () => {
+    const msg = storageBannerMessage('extra', true);
+    expect(msg).toMatch(/synced to the cloud and safe|nothing is lost/i);
+    expect(msg).not.toMatch(/remove or export|back up/i); // nothing is at risk → don't send the user chasing a remedy
+  });
 });
