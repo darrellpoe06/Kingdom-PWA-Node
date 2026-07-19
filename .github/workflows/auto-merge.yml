@@ -57,15 +57,23 @@ permissions:
   pull-requests: write
   actions: write   # to dispatch db-migrate after a migration auto-merges
 
-# One sweep at a time; a newer run supersedes an in-flight one.
-concurrency:
-  group: auto-merge-sweep
-  cancel-in-progress: true
+# Concurrency is SCOPED PER JOB, not workflow-wide (2026-07-19, P25/P26 fix).
+# A workflow-level `cancel-in-progress: true` used to cancel the ENTIRE run when a
+# newer sweep started — including the in-flight deploy/migrate wait-loop in the
+# heal job — so during rapid successive merges the deploy dispatch was killed
+# mid-poll and auto-merged commits sat undeployed (the exact gap that had to be
+# hand-dispatched all through 2026-07-18 night). Now: the ENABLE job supersedes
+# (only the latest matters — idempotent), while the HEAL job NEVER cancels (its
+# wait-loop must run to completion to win the merge race — the 2026-07-14 lesson).
 
 jobs:
   enable-auto-merge:
     name: enable auto-merge (squash) on eligible PRs
     runs-on: ubuntu-latest
+    # Supersede: only the newest enable-sweep matters; enabling is idempotent.
+    concurrency:
+      group: auto-merge-enable
+      cancel-in-progress: true
     steps:
       - name: Enable native auto-merge on every eligible open PR
         env:
@@ -103,6 +111,19 @@ jobs:
             fi
           done
 
+  heal:
+    name: dispatch deploy + migrations for main's tip (GITHUB_TOKEN push gap)
+    runs-on: ubuntu-latest
+    # NON-cancelling (2026-07-19): the deploy/migrate wait-loops below MUST run to
+    # completion to win the merge race (the 2026-07-14 lesson); a newer enable-sweep
+    # must NEVER cancel an in-flight heal — that cancellation is exactly what left
+    # auto-merged commits undeployed during rapid successive merges. New runs QUEUE
+    # (single-instance), never stack. Runs independently of enable (no `needs`), so
+    # it heals main's tip whether or not this run also enabled a PR.
+    concurrency:
+      group: auto-merge-heal
+      cancel-in-progress: false
+    steps:
       # db-migrate (push: main, paths: migrations) does NOT fire when auto-merge
       # lands a migration, because the merge push is by GITHUB_TOKEN and GitHub
       # suppresses push-triggered runs from the token (anti-recursion). That gap
