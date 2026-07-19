@@ -26,6 +26,11 @@
 #   Authorization: Bearer <poetech-chat-bridge-token>
 #   -> { count, total, photos: [{ id, date, name, text, thumb }] }
 #      `thumb` is a data:image/jpeg;base64 URL or null (listed honestly).
+#   POST /upload  Authorization: Bearer <token>  { dest, filename, dataUrl }
+#   -> { ok, id, dest }   (the sovereign WRITE path; replaces n8n wf-photo-upload
+#      so "+ Add photos" is Python end-to-end, off n8n. Magic-byte image check,
+#      dest/filename sanitized + path-contained, 8 MB cap. Writes to
+#      PHOTO_UPLOAD_ROOT/<dest>/<name>.)
 #   GET /healthz -> { ok: true }   (no auth; liveness only)
 #
 # The path is matched by SUFFIX (".../property-photos"), so it works whether the
@@ -58,6 +63,7 @@
 import argparse
 import base64
 import glob
+import hashlib
 import hmac
 import io
 import json
@@ -110,6 +116,65 @@ DOWNSCALE_MAX = 480           # px longest edge for the on-the-fly fallback
 # bridge). Reuse it -- no second copy of the secret, no re-seeding. The PWA
 # stores the same value in localStorage["poetech-chat-bridge-token"].
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+
+# --- Upload (sovereign write-path; REPLACES the n8n wf-photo-upload bridge) ----
+# The PWA's "+ Add photos" POSTs {dest, filename, dataUrl} here so a photo leaves
+# the phone and lands on the NAS, sharing the SAME bearer token as the reads.
+# This is the Python-first sibling of the read path (Ways: sovereign Python, not
+# n8n). Same guarantees the old n8n workflow gave: bearer-gated, dest/filename
+# sanitized, path-containment asserted, size-capped, and a MAGIC-BYTE image check
+# so the endpoint can only ever write a real JPEG/PNG/WebP -- never an arbitrary
+# file. Written to PHOTO_UPLOAD_ROOT/<dest>/<name>; the family gallery reads it back.
+UPLOAD_ROOT_DEFAULT = "/volume1/PoeTech/family-photos"
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024            # decoded image cap (matches old bridge)
+SAFE_DEST = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+DATA_URL_RE = re.compile(r"^data:image/[A-Za-z0-9.+-]+;base64,(.+)$", re.DOTALL)
+
+
+def upload_root():
+    return os.environ.get("PHOTO_UPLOAD_ROOT", UPLOAD_ROOT_DEFAULT).rstrip("/") or UPLOAD_ROOT_DEFAULT
+
+
+def sniff_image(data):
+    """Return 'jpg' | 'png' | 'webp' from the bytes' MAGIC NUMBER, else None. The
+    bytes decide the type, not the caller's claimed name -- so the write path can
+    never be used to drop a script/arbitrary file."""
+    if not data or len(data) < 12:
+        return None
+    if data[:3] == b"\xff\xd8\xff":
+        return "jpg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+def upload_filename(filename, ext, blob):
+    """A safe, collision-resistant name: sanitized stem + a short content hash +
+    the sniffed extension. Content-hash => the SAME image re-uploaded overwrites
+    itself (idempotent, no duplicate) while different images never collide."""
+    stem = re.sub(r"[^A-Za-z0-9._-]", "_", filename or "").lstrip(".")
+    stem = re.sub(r"\.(jpe?g|png|webp)$", "", stem, flags=re.IGNORECASE)[:60] or "photo"
+    digest = hashlib.sha256(blob).hexdigest()[:12]
+    return "%s-%s.%s" % (stem, digest, ext)
+
+
+def safe_upload_path(root, dest, filename):
+    """Resolve root/dest/filename and ASSERT the result stays inside root/dest --
+    no traversal out of the photo folder. Returns the absolute path or None."""
+    if not SAFE_DEST.match(dest or "") or ".." in (dest or ""):
+        return None
+    if not filename or "/" in filename or "\\" in filename or filename in (".", ".."):
+        return None
+    base = os.path.realpath(root)
+    destdir = os.path.realpath(os.path.join(base, dest))
+    if destdir != base and not destdir.startswith(base + os.sep):
+        return None
+    target = os.path.realpath(os.path.join(destdir, filename))
+    if not target.startswith(destdir + os.sep):
+        return None
+    return target
 
 
 def roots():
@@ -351,6 +416,62 @@ def make_handler(args):
                 self._send(500, {"error": "resolve failed: %s" % type(err).__name__,
                                  "photos": [], "count": 0})
 
+        def do_POST(self):
+            # Sovereign photo UPLOAD (replaces the n8n wf-photo-upload bridge).
+            # POST .../upload  Authorization: Bearer <token>
+            #   { dest, filename, dataUrl } -> { ok, id, dest }
+            parsed = urlparse(self.path)
+            path = parsed.path.rstrip("/")
+            if not (path.endswith("/upload") or path == "/upload"):
+                self._send(404, {"ok": False, "error": "not found"})
+                return
+            if not bearer_ok(self.headers.get("Authorization"), token):
+                self._send(401, {"ok": False, "error": "unauthorized"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            # base64 is ~4/3 of the raw bytes; cap the request accordingly.
+            if length <= 0 or length > MAX_UPLOAD_BYTES * 2:
+                self._send(413, {"ok": False, "error": "too large"})
+                return
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8", "replace"))
+            except (ValueError, OSError):
+                self._send(400, {"ok": False, "error": "bad json"})
+                return
+            dest = (str(body.get("dest", "family")).strip() or "family")
+            m = DATA_URL_RE.match(str(body.get("dataUrl", "")))
+            if not m:
+                self._send(400, {"ok": False, "error": "bad dataUrl"})
+                return
+            try:
+                blob = base64.b64decode(m.group(1), validate=True)
+            except (ValueError, TypeError):  # binascii.Error subclasses ValueError
+                self._send(400, {"ok": False, "error": "bad base64"})
+                return
+            if not blob or len(blob) > MAX_UPLOAD_BYTES:
+                self._send(413, {"ok": False, "error": "too large"})
+                return
+            ext = sniff_image(blob)
+            if not ext:
+                self._send(415, {"ok": False, "error": "not an image"})
+                return
+            name = upload_filename(str(body.get("filename", "")), ext, blob)
+            target = safe_upload_path(upload_root(), dest, name)
+            if not target:
+                self._send(400, {"ok": False, "error": "bad path"})
+                return
+            try:
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, "wb") as fh:
+                    fh.write(blob)
+            except OSError as err:
+                self._send(500, {"ok": False, "error": "write failed: %s" % type(err).__name__})
+                return
+            self._send(200, {"ok": True, "id": name, "dest": dest})
+
     return Handler
 
 
@@ -451,6 +572,29 @@ def selftest():
     ok("bearer is scheme-insensitive", bearer_ok("bearer secret", "secret"))
     ok("roots default non-empty", len(roots()) >= 1)
     ok("undated roots default non-empty", len(undated_roots()) >= 1)
+    # --- Upload write-path (sovereign, replaces n8n) -------------------------
+    ok("sniff detects JPEG", sniff_image(b"\xff\xd8\xff\xe0" + b"\x00" * 12) == "jpg")
+    ok("sniff detects PNG", sniff_image(b"\x89PNG\r\n\x1a\n" + b"\x00" * 12) == "png")
+    ok("sniff detects WebP", sniff_image(b"RIFF\x00\x00\x00\x00WEBP" + b"\x00" * 4) == "webp")
+    ok("sniff rejects a text/script blob", sniff_image(b"#!/bin/sh\necho hi\n" + b"\x00" * 8) is None)
+    ok("sniff rejects too-short", sniff_image(b"\xff\xd8") is None)
+    ok("upload name carries a content hash + sniffed ext",
+       upload_filename("My Photo.png", "jpg", b"abc").endswith(".jpg")
+       and upload_filename("My Photo.png", "jpg", b"abc") == upload_filename("x.png", "jpg", b"abc").replace("x", "My_Photo"))
+    ok("same bytes -> same upload name (idempotent)",
+       upload_filename("a.jpg", "jpg", b"same") == upload_filename("a.jpg", "jpg", b"same"))
+    ok("different bytes -> different upload name",
+       upload_filename("a.jpg", "jpg", b"one") != upload_filename("a.jpg", "jpg", b"two"))
+    _r = "/volume1/PoeTech/family-photos"
+    ok("upload path accepts a clean dest+name",
+       safe_upload_path(_r, "family", "photo-abc123.jpg") == os.path.realpath(_r + "/family/photo-abc123.jpg"))
+    ok("upload path rejects dest traversal", safe_upload_path(_r, "../secrets", "x.jpg") is None)
+    ok("upload path rejects slash in name", safe_upload_path(_r, "family", "a/b.jpg") is None)
+    ok("upload path rejects backslash in name", safe_upload_path(_r, "family", "a\\b.jpg") is None)
+    ok("upload path rejects dotdot name", safe_upload_path(_r, "family", "..") is None)
+    ok("upload root honors env override",
+       (os.environ.__setitem__("PHOTO_UPLOAD_ROOT", "/tmp/pu"), upload_root() == "/tmp/pu",
+        os.environ.pop("PHOTO_UPLOAD_ROOT"))[1])
     os.environ["PHOTO_ROOTS"] = "/a/{y}/{m};/b/{y}/{m}"
     ok("roots honors env override", roots() == ["/a/{y}/{m}", "/b/{y}/{m}"])
     del os.environ["PHOTO_ROOTS"]
