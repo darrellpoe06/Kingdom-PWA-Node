@@ -13,6 +13,7 @@ import {
   uploadsPlaylistId,
   liveStreamEmbedUrl,
   latestUploadEmbedUrl,
+  worshipPlayerSrc,
 } from '../lib/church-live.js';
 
 // COLG / The Love Corner — the real channel id wired in the seed church config
@@ -148,5 +149,29 @@ describe('latestUploadEmbedUrl', () => {
   it('returns null when no uploads playlist can be derived (caller links out)', () => {
     expect(latestUploadEmbedUrl('')).toBeNull();
     expect(latestUploadEmbedUrl('not-a-channel')).toBeNull();
+  });
+});
+
+describe('worshipPlayerSrc — the ONE reliable Live Worship embed (Darrell 2026-07-19)', () => {
+  it('mounts the uploads-playlist embed, NOT the broken /embed/live_stream form', () => {
+    // "YouTube is streaming and working independently... it's just not connecting
+    // to the app." The live_stream?channel= embed read "This video is unavailable"
+    // even while the church WAS live, so the player uses the uploads playlist —
+    // newest-first, so a currently-live broadcast (the newest item) plays on its own.
+    // PROVEN-TO-CATCH: point this back at live_stream?channel= and the live service
+    // shows "unavailable" again.
+    expect(worshipPlayerSrc(COLG_CHANNEL_ID)).toBe(
+      'https://www.youtube.com/embed/videoseries?list=UU821pJh7YR5llBNnWUJj-ZA&rel=0',
+    );
+    expect(worshipPlayerSrc(COLG_CHANNEL_ID)).not.toContain('live_stream');
+  });
+  it('falls back to the live_stream form ONLY for a non-standard id with no uploads playlist', () => {
+    // A hypothetical legacy/user id that is truthy but not a UC… channel id: no
+    // uploads playlist derivable, so the last-resort live embed is used rather than
+    // rendering nothing.
+    expect(worshipPlayerSrc('LegacyHandleNoUC')).toBe(
+      'https://www.youtube.com/embed/live_stream?channel=LegacyHandleNoUC',
+    );
+    expect(worshipPlayerSrc('')).toBeNull();
   });
 });
