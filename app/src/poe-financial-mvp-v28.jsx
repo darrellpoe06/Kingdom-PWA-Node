@@ -1161,11 +1161,8 @@ export default function PoeFinancialSystem() {
   const [snowballExtra, setSnowballExtra] = useState(2000);
   const [debtSnowballSort, setDebtSnowballSort] = useState('snowball');
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
-  // Theme is per-device and SHARED with the business doors (lib/theme-css.js):
-  // the choice made here follows the user to /moore and every future door.
-  // First-run default is the LIGHT (cream) theme; dark (Midnight) is a user
-  // choice, and readThemePref returns the LAST chosen theme once one is picked
-  // — so the default simply follows the last color chosen (Darrell 2026-07-19).
+  // Theme is per-device and SHARED with the business doors (lib/theme-css.js).
+  // First-run default is LIGHT (cream); then it follows the last chosen theme.
   const [theme, setTheme] = useState(() => readThemePref('cream'));
   useEffect(() => { saveThemePref(theme); }, [theme]);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
