@@ -27,6 +27,7 @@ import { runningBalanceByTxId } from '../lib/imported-view.js';
 import { commitReadout } from '../lib/import-commit.js';
 import { reconcileStatement } from '../lib/statement-reconciliation.js';
 import { matchParty, needsPartyPrompt, learnParty, forgetParty, PARTY_TYPES, PARTY_AUTO_CONFIDENCE } from '../lib/payee-entity-learning.js';
+import { findImportDuplicates } from '../lib/dedupe-imports.js';
 
 // Commit a batch of imported rows and REPORT how many actually saved to the cloud
 // (Christina's books). Uses the verifying batch commit when available; falls back
@@ -873,6 +874,21 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setCsvOpen(false); setCsvRaw(''); setCsvError('');
     alert(`Repaired ${acct}: ${msg}`);
   };
+  // The system removes duplicate imports ITSELF — no account-by-account reset
+  // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
+  // findImportDuplicates flags a generic-type twin ("DEBIT"/"CREDIT") only when a
+  // real-payee row with the identical account+date+amount exists; deleting those
+  // ids drops the junk copy and halves the doubled totals. Deletes hit the cloud
+  // too (deleteTransaction). Recomputed live so the count is always current.
+  const dupPreview = useMemo(() => findImportDuplicates(data.transactions || []), [data.transactions]);
+  const removeDuplicateImports = () => {
+    const { removeIds, count } = dupPreview;
+    if (!count) { alert('No duplicate imports found — your ledger is clean.'); return; }
+    if (!confirm(`Remove ${count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept, nothing else is touched.`)) return;
+    removeIds.forEach((id) => deleteTransaction(id));
+    recordLoopRun({ key: 'dedupe-imports', status: 'success', processed: count, detail: 'removed duplicate imports' });
+    alert(`Removed ${count} duplicate import(s). The real transactions are kept; your totals should drop toward the true number.`);
+  };
   const onCsvFile = (file) => {
     if (!file) return;
     // A photo/PDF from the tablet's picker is not a statement — say so plainly
@@ -1225,6 +1241,19 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
+
+        {/* One-tap duplicate cleanup — the system finds + removes the "DEBIT" twin
+            copies itself, so no account-by-account Reset & re-import (2026-07-19). */}
+        {dupPreview.count > 0 && (
+          <div className="mb-3 border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Found <strong>{dupPreview.count.toLocaleString()}</strong> duplicate imported row{dupPreview.count === 1 ? '' : 's'} — generic “DEBIT/CREDIT” copies of transactions you already have with the real payee. Remove them to fix the doubled totals.
+            </span>
+            <button type="button" onClick={removeDuplicateImports} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">
+              ✓ Remove {dupPreview.count.toLocaleString()} duplicate{dupPreview.count === 1 ? '' : 's'}
+            </button>
+          </div>
+        )}
 
         {/* Work-the-data filter bar — account / date range / text. Drives both
             History (the table) and Evaluate (the income-vs-outflow math) since
