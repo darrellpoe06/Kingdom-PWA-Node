@@ -291,11 +291,22 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
   // generic "DEBIT/CREDIT" twin of a real-payee row is removed, the real row kept
   // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
   const dupPreview = useMemo(() => findImportDuplicates(data.transactions || []), [data.transactions]);
-  const removeDuplicateImports = () => {
+  // Delete by re-deriving duplicates from the LIVE CLOUD rows and deleting their
+  // CURRENT cloud ids (see BooksTransactions for the full rationale — stale local
+  // cloud-ids after the churn made a local-id delete miss the cloud junk). AWAITS +
+  // reports the ACTUAL deleted count (DR-0076).
+  const removeDuplicateImports = async () => {
     if (!deleteTransaction || !dupPreview.count) return;
-    if (!confirm(`Remove ${dupPreview.count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept.`)) return;
-    deleteTransaction(dupPreview.removeIds); // ONE batched cloud delete (chunked)
-    alert(`Removed ${dupPreview.count} duplicate import(s). Your totals should drop toward the true number.`);
+    if (!confirm(`Remove duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept.`)) return;
+    const { transactionsSync } = await import('../lib/transactions-sync.js'); // lazy: keep supabase out of pure-fn imports
+    const cloud = await transactionsSync.fetchAll().catch(() => null);
+    const plan = findImportDuplicates(cloud || data.transactions || []);
+    if (!plan.count) { alert('No duplicates found in the cloud ledger — it is already clean. Refresh to see the current numbers.'); return; }
+    const idSet = new Set(plan.removeIds);
+    const uuids = (cloud || data.transactions || []).filter(t => idSet.has(t.id)).map(t => t.remoteUuid).filter(Boolean);
+    const res = uuids.length ? await transactionsSync.deleteRows(uuids) : { deleted: 0 };
+    deleteTransaction(plan.removeIds);
+    alert(`Removed ${res.deleted || 0} of ${plan.count} duplicate(s) from the cloud ledger. Refresh — your totals should drop toward the true number and STAY there.`);
   };
 
   // Report meta (period + active filters + generated stamp) and the export models.

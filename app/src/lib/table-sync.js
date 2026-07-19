@@ -327,7 +327,7 @@ export function createTableSync(spec) {
     return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
-  return { localKey, remoteTable, upload, updateRow, deleteRow, deleteRows, subscribe, initialSync };
+  return { localKey, remoteTable, upload, updateRow, deleteRow, deleteRows, fetchAll, subscribe, initialSync };
 }
 
 // -----------------------------------------------------------------------------

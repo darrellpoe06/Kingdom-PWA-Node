@@ -896,13 +896,27 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // ids drops the junk copy and halves the doubled totals. Deletes hit the cloud
   // too (deleteTransaction). Recomputed live so the count is always current.
   const dupPreview = useMemo(() => findImportDuplicates(data.transactions || []), [data.transactions]);
-  const removeDuplicateImports = () => {
-    const { removeIds, count } = dupPreview;
-    if (!count) { alert('No duplicate imports found — your ledger is clean.'); return; }
-    if (!confirm(`Remove ${count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept, nothing else is touched.`)) return;
-    deleteTransaction(removeIds); // ONE batched cloud delete (chunked), not thousands of single ones
-    recordLoopRun({ key: 'dedupe-imports', status: 'success', processed: count, detail: 'removed duplicate imports' });
-    alert(`Removed ${count} duplicate import(s). The real transactions are kept; your totals should drop toward the true number.`);
+  // Delete duplicates by re-deriving them from the LIVE CLOUD rows and deleting those
+  // rows' CURRENT cloud ids — not the local copy's (Darrell 2026-07-19: after all the
+  // reset/re-import churn, the device's local rows carried stale/missing cloud ids, so
+  // a local-id delete removed the wrong rows or none and the cloud junk survived —
+  // "cleared to 3,307 then back to 6,341" on the fully-patched build). Fetching the
+  // cloud first guarantees the ids match. It AWAITS + reports the ACTUAL deleted count
+  // (DR-0076) so a partial result is visible, not a false "removed" — then drops them
+  // locally too. Falls back to the local view only if the cloud fetch is unavailable.
+  const removeDuplicateImports = async () => {
+    if (!dupPreview.count) { alert('No duplicate imports found — your ledger is clean.'); return; }
+    if (!confirm(`Remove duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept, nothing else is touched.`)) return;
+    const { transactionsSync } = await import('../lib/transactions-sync.js'); // lazy: keep supabase out of pure-fn imports
+    const cloud = await transactionsSync.fetchAll().catch(() => null);
+    const plan = findImportDuplicates(cloud || data.transactions || []);
+    if (!plan.count) { alert('No duplicates found in the cloud ledger — it is already clean. Refresh to see the current numbers.'); return; }
+    const idSet = new Set(plan.removeIds);
+    const uuids = (cloud || data.transactions || []).filter(t => idSet.has(t.id)).map(t => t.remoteUuid).filter(Boolean);
+    const res = uuids.length ? await transactionsSync.deleteRows(uuids) : { deleted: 0 };
+    deleteTransaction(plan.removeIds); // drop them from the local view too
+    recordLoopRun({ key: 'dedupe-imports', status: 'success', processed: res.deleted || 0, detail: `cloud-deleted ${res.deleted || 0}/${plan.count}` });
+    alert(`Removed ${res.deleted || 0} of ${plan.count} duplicate(s) from the cloud ledger. Refresh — your totals should drop toward the true number and STAY there.`);
   };
   const onCsvFile = (file) => {
     if (!file) return;
