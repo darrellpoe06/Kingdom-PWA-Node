@@ -217,8 +217,16 @@ export default function NetworkStatus() {
 
   const deviceState = net.online ? 'ok' : 'failed';
   const connLabel = connectionLabel(net);
+  // Recede when healthy (DR-0075): all-green collapses to ONE quiet dot so the
+  // status stops competing with content and stops stacking a loud 3-dot pill
+  // above the Feedback button. It SHOUTS (full 3-dot + label) the instant any
+  // check is pending/failed — the diagnostic value (Darrell's travel "no
+  // network" scenario) is exactly when it goes loud. Tap opens the detail panel
+  // in either state. NAS not-configured counts as healthy (nothing to reach).
+  const healthy = deviceState === 'ok' && probes.internet === 'ok'
+    && (probes.nas === 'ok' || probes.nas === 'not-configured');
 
-  // Compact pill: 3 dots side-by-side, plus the connection label on wider screens.
+  // Compact pill: one dot when healthy; 3 dots + connection label when not.
   return (
     <div
       className="fixed bottom-20 left-4 z-30 print:hidden"
@@ -233,20 +241,30 @@ export default function NetworkStatus() {
         title="Network status — tap for details"
         aria-expanded={expanded}
       >
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
-        </span>
-        {/* Color must mirror the pill background, which is OS-color-scheme driven
-            (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
-            remap doesn't touch these variant classes. So the label color tracks the
-            same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
-            for the light pill because the midnight remap lightens text-[#1A1815] to
-            #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
-        <span className="text-[10px] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
-          {connLabel}
-        </span>
+        {healthy ? (
+          <span
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: dotColor('ok') }}
+            aria-label="All connections healthy — tap for detail"
+          />
+        ) : (
+          <>
+            <span className="inline-flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
+            </span>
+            {/* Color must mirror the pill background, which is OS-color-scheme driven
+                (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
+                remap doesn't touch these variant classes. So the label color tracks the
+                same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
+                for the light pill because the midnight remap lightens text-[#1A1815] to
+                #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
+            <span className="text-[10px] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
+              {connLabel}
+            </span>
+          </>
+        )}
       </button>
 
       {expanded && (
