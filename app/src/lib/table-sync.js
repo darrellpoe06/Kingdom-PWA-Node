@@ -149,12 +149,23 @@ export function createTableSync(spec) {
   async function deleteRow(id) {
     const session = await currentSession();
     if (!session) return { skipped: 'signed-out' };
-    const { error } = await supabase.from(remoteTable).delete().eq('id', id);
+    // Ask for the deleted rows back (.select) so a 0-row delete is DETECTED rather
+    // than reported as a false success. A DELETE the RLS USING clause blocks — a
+    // non-owner on the books (0100: DELETE is owner/admin only), or a row on
+    // another instance — returns NO error but removes NOTHING. That silent no-op is
+    // exactly what let cleared transactions resurrect on the next cloud merge
+    // (Darrell 2026-07-19). Honest result so the caller can surface it (DR-0076).
+    const { data, error } = await supabase.from(remoteTable).delete().eq('id', id).select('id');
     if (error) {
       console.warn(`[table-sync:${remoteTable}] delete failed:`, error);
       return { skipped: 'delete-error', error };
     }
-    return { deleted: true };
+    const affected = Array.isArray(data) ? data.length : 0;
+    if (affected === 0) {
+      console.warn(`[table-sync:${remoteTable}] delete removed 0 rows (RLS-blocked or already gone):`, id);
+      return { skipped: 'no-op', affected: 0 };
+    }
+    return { deleted: true, affected };
   }
 
   // 2026-06-12 fix (review finding): reads used to rely on RLS alone, which

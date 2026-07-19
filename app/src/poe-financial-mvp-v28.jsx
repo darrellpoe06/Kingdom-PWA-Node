@@ -3152,20 +3152,19 @@ export default function PoeFinancialSystem() {
     const before = (data.transactions || []).find(t => t.id === id) || null;
     const after = before ? { ...before, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : before.amount } : null;
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.transactions || []).find(t => t.id === id);
-      if (local && local.remoteUuid) {
-        const patch = {};
-        if (updates.date !== undefined)           patch.txn_date = updates.date;
-        if (updates.accountId !== undefined)      patch.account_slug = updates.accountId;
-        if (updates.entityOverride !== undefined) patch.entity_override_slug = updates.entityOverride;
-        if (updates.amount !== undefined)         patch.amount = parseFloat(updates.amount) || 0;
-        if (updates.description !== undefined)    patch.description = updates.description;
-        if (updates.category !== undefined)       patch.category = updates.category;
-        if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
-        if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
-        transactionsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[transactions-sync] update failed', e));
-      }
+    // Same synced-row invariant as delete: a remoteUuid row's edit MUST reach the
+    // cloud whenever signed in, or a refresh overwrites it with the stale value.
+    if (authSession && !isAnyDemoMode && before && before.remoteUuid) {
+      const patch = {};
+      if (updates.date !== undefined)           patch.txn_date = updates.date;
+      if (updates.accountId !== undefined)      patch.account_slug = updates.accountId;
+      if (updates.entityOverride !== undefined) patch.entity_override_slug = updates.entityOverride;
+      if (updates.amount !== undefined)         patch.amount = parseFloat(updates.amount) || 0;
+      if (updates.description !== undefined)    patch.description = updates.description;
+      if (updates.category !== undefined)       patch.category = updates.category;
+      if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
+      if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
+      transactionsSync.updateRow(before.remoteUuid, patch).catch(e => syncWarn('[transactions-sync] update failed', e));
     }
     if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
   };
@@ -3195,11 +3194,13 @@ export default function PoeFinancialSystem() {
   };
   const deleteTransaction = (id) => {
     const before = (data.transactions || []).find(t => t.id === id) || null;
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.transactions || []).find(t => t.id === id);
-      if (local && local.remoteUuid) {
-        transactionsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[transactions-sync] delete failed', e));
-      }
+    // A remoteUuid row is a synced CLOUD row: removing it locally while the cloud
+    // copy survives RESURRECTS it on the next merge ("duplicates come back no
+    // matter how many times I clear them", Darrell 2026-07-19). So the cloud delete
+    // fires whenever signed in + not demo — NOT gated on numericSyncVerifiedAt,
+    // which a Reset / fresh device leaves false while real cloud rows still exist.
+    if (authSession && !isAnyDemoMode && before && before.remoteUuid) {
+      transactionsSync.deleteRow(before.remoteUuid).catch(e => syncWarn('[transactions-sync] delete failed', e));
     }
     setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
     // The deletion is recoverable: its `before` snapshot is preserved in the
