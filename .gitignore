@@ -127,3 +127,6 @@ __pycache__/
 # and reproducible, so they are not committed; the script + explainer + README are.
 notebooklm-bundle/0*.md
 notebooklm-bundle/MANIFEST.md
+
+# Generated PDFs of the bundle (regenerable via scripts/bundle-to-pdf.mjs)
+notebooklm-bundle/pdf/
