@@ -121,3 +121,9 @@ infra/nas-sme-pipeline/out/
 # Python bytecode (left behind by any run/import of the pipeline scripts)
 __pycache__/
 *.pyc
+
+# NotebookLM bundle — generated, redacted spine for external upload (regenerable via
+# scripts/build-notebooklm-bundle.mjs). The concatenated sources + manifest are large
+# and reproducible, so they are not committed; the script + explainer + README are.
+notebooklm-bundle/0*.md
+notebooklm-bundle/MANIFEST.md
