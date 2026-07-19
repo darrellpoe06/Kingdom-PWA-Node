@@ -16,8 +16,9 @@
 // ChurchOneVoice) came along untouched; COLG_DEFAULT_CHURCH moved to
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
+import { parseYoutubeFeed } from '../lib/youtube-feed.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import AppShareQR from './AppShareQR.jsx';
@@ -159,6 +160,26 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const showLive = liveNow.live;
   // Render the section whenever we have a source at all.
   const hasWorshipPlayer = !!playerSrc;
+
+  // Recent livestreams straight from the channel (Darrell 2026-07-19: "keep each of
+  // the 5 last livestreams right below the current livestream... whenever the other
+  // tab pulls it in it'll be there too"). Source is the channel's no-key public RSS
+  // via the same-origin /api/church-recent proxy — always current, independent of
+  // the curated sermon library (which is sometimes missing recent streams). The
+  // newest item is what the player above is showing, so the strip lists the ones
+  // BELOW it. Degrades to nothing on any failure — never blocks the page.
+  const [recentVids, setRecentVids] = useState([]);
+  useEffect(() => {
+    if (!/^UC[A-Za-z0-9_-]{22}$/.test(liveChannelId)) { setRecentVids([]); return undefined; }
+    let cancelled = false;
+    fetch(`/api/church-recent?channel=${encodeURIComponent(liveChannelId)}`)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((xml) => { if (!cancelled) setRecentVids(parseYoutubeFeed(xml, 6)); })
+      .catch(() => { if (!cancelled) setRecentVids([]); });
+    return () => { cancelled = true; };
+  }, [liveChannelId]);
+  // The 5 BELOW the one now playing (the player shows the newest item).
+  const priorStreams = recentVids.slice(1, 6);
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
@@ -393,6 +414,36 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               </a>
             )}
           </div>
+          )}
+          {/* Recent livestreams — the last 5 below the one now playing, pulled
+              straight from the channel so they're always here (Darrell 2026-07-19). */}
+          {!followAlong && priorStreams.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-2">Recent livestreams</div>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 list-none p-0 m-0">
+                {priorStreams.map((v) => (
+                  <li key={v.videoId}>
+                    <a
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      title={v.title}
+                    >
+                      <div className="relative aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
+                        {v.thumbnail && (
+                          <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover opacity-95 group-hover:opacity-100" />
+                        )}
+                        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-2xl drop-shadow">▶</span>
+                      </div>
+                      <div className="mt-1 text-[0.6875rem] leading-tight text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        {v.title || 'Livestream'}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
       )}
