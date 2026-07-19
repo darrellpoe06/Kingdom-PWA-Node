@@ -155,9 +155,17 @@ describe('storageBannerMessage — honest wording, no false alarm on a synced le
   it('says nothing when the full snapshot saved', () => {
     expect(storageBannerMessage('full', true)).toBe(null);
   });
-  it('slim → a calm photos note, never an alarm', () => {
-    expect(storageBannerMessage('slim', true)).toMatch(/saving fine/);
-    expect(storageBannerMessage('slim', true)).not.toMatch(/NOT being saved/);
+  it('cloud-safe slim/extra → NO banner at all: the system handled it silently (Darrell 2026-07-19)', () => {
+    // "verify that the banner is gone... don't expect users to tell the systems."
+    // When the books are cloud-safe, the slim/extra trim already saved them and
+    // nothing is at risk — there is nothing to act on, so show no banner.
+    // PROVEN-TO-CATCH: return a string here and the red banner nags a safe user.
+    expect(storageBannerMessage('slim', true)).toBe(null);
+    expect(storageBannerMessage('extra', true)).toBe(null);
+  });
+  it('when the local trim is NOT cloud-backed, slim still gives a calm, doable note', () => {
+    expect(storageBannerMessage('slim', false)).toMatch(/remove or export/i);
+    expect(storageBannerMessage('slim', false)).not.toMatch(/NOT being saved/);
   });
   it('on a hard FAIL, a CLOUD-SYNCED ledger is told it is SAFE — not "changes are NOT being saved"', () => {
     const msg = storageBannerMessage('fail', true);
@@ -178,9 +186,9 @@ describe('storageBannerMessage — honest wording, no false alarm on a synced le
       }
     }
   });
-  it('extra tier on a CLOUD-SAFE ledger reassures and prescribes no fiddly action', () => {
-    const msg = storageBannerMessage('extra', true);
-    expect(msg).toMatch(/synced to the cloud and safe|nothing is lost/i);
-    expect(msg).not.toMatch(/remove or export|back up/i); // nothing is at risk → don't send the user chasing a remedy
+  it('a hard FAIL that IS cloud-safe still speaks (local save fully failed) — but calmly, no NAS token', () => {
+    const msg = storageBannerMessage('fail', true);
+    expect(msg).toMatch(/safe/i);
+    expect(msg).not.toMatch(/back up|nas/i);
   });
 });
