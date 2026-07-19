@@ -294,7 +294,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
   const removeDuplicateImports = () => {
     if (!deleteTransaction || !dupPreview.count) return;
     if (!confirm(`Remove ${dupPreview.count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept.`)) return;
-    dupPreview.removeIds.forEach((id) => deleteTransaction(id));
+    deleteTransaction(dupPreview.removeIds); // ONE batched cloud delete (chunked)
     alert(`Removed ${dupPreview.count} duplicate import(s). Your totals should drop toward the true number.`);
   };
 

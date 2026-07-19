@@ -3192,20 +3192,20 @@ export default function PoeFinancialSystem() {
     }
     return changed.length;
   };
-  const deleteTransaction = (id) => {
-    const before = (data.transactions || []).find(t => t.id === id) || null;
-    // A remoteUuid row is a synced CLOUD row: removing it locally while the cloud
-    // copy survives RESURRECTS it on the next merge ("duplicates come back no
-    // matter how many times I clear them", Darrell 2026-07-19). So the cloud delete
-    // fires whenever signed in + not demo — NOT gated on numericSyncVerifiedAt,
-    // which a Reset / fresh device leaves false while real cloud rows still exist.
-    if (authSession && !isAnyDemoMode && before && before.remoteUuid) {
-      transactionsSync.deleteRow(before.remoteUuid).catch(e => syncWarn('[transactions-sync] delete failed', e));
+  const deleteTransaction = (idOrIds) => {
+    // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
+    // many single cloud deletes floods the ~6-connection cap + rate limit so most
+    // never land (cloud stays doubled, "back on refresh", Darrell 2026-07-19) — one
+    // BATCHED .in() delete (deleteRows, chunked) clears them. A remoteUuid row is a
+    // synced CLOUD row, so its delete MUST reach the cloud when signed in + not demo.
+    const idSet = new Set(Array.isArray(idOrIds) ? idOrIds : [idOrIds]);
+    const rows = (data.transactions || []).filter(t => idSet.has(t.id));
+    if (authSession && !isAnyDemoMode) {
+      const uuids = rows.map(t => t.remoteUuid).filter(Boolean);
+      if (uuids.length) transactionsSync.deleteRows(uuids).catch(e => syncWarn('[transactions-sync] batch delete failed', e));
     }
-    setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
-    // The deletion is recoverable: its `before` snapshot is preserved in the
-    // append-only history (the row leaves the live ledger, not the record).
-    if (before) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
+    setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => !idSet.has(t.id)) }));
+    for (const before of rows) recordHistoryEvent({ recordKind: 'transaction', recordId: before.id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
   };
   // v28+ Rentals expansion: Rental property CRUD
   // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
