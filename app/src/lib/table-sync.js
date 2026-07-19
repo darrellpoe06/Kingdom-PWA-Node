@@ -273,6 +273,15 @@ export function createTableSync(spec) {
     // for entities that haven't been uploaded yet (local ids are non-UUID).
     const remoteIds = new Set(remoteItems.map((r) => r.id));
     const toUpload = (localItems || []).filter((local) => {
+      // 2026-07-19 RESURRECTION FIX (the cloud half). A row that was SYNCED
+      // (carries a remoteUuid) but is now ABSENT from the cloud was DELETED
+      // remotely — it must NOT be re-uploaded, or a delete resurrects itself in
+      // the cloud on the next sign-in. This is the second half of the "duplicates
+      // leave and come back" fix: on a storage-full device the stale localStorage
+      // still holds the deleted rows, and without this guard initialSync re-INSERTED
+      // them (their old slug was freed by the delete, so the unique index didn't
+      // stop it). Only genuinely-new local rows (no remoteUuid) are ever uploaded.
+      if (local && local.remoteUuid) return false;
       const lid = idOf(local);
       return !lid || !remoteIds.has(lid);
     });
