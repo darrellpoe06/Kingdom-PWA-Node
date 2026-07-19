@@ -39,6 +39,7 @@ import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
+import { findImportDuplicates } from '../lib/dedupe-imports.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -181,7 +182,7 @@ export function buildImportedView(data, filters, nowMs) {
   };
 }
 
-export default function Imported({ data = {} }) {
+export default function Imported({ data = {}, deleteTransaction = null }) {
   const [filters, setFilters] = useState({ institution: '', category: '', search: '' });
   // View controls. period === null means "auto" (open on the newest month that
   // has data — the Mint pattern of landing on the latest activity). Any explicit
@@ -286,6 +287,17 @@ export default function Imported({ data = {} }) {
     ].sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
   }, [data.transactions, accounts]);
 
+  // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
+  // generic "DEBIT/CREDIT" twin of a real-payee row is removed, the real row kept
+  // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
+  const dupPreview = useMemo(() => findImportDuplicates(data.transactions || []), [data.transactions]);
+  const removeDuplicateImports = () => {
+    if (!deleteTransaction || !dupPreview.count) return;
+    if (!confirm(`Remove ${dupPreview.count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept.`)) return;
+    dupPreview.removeIds.forEach((id) => deleteTransaction(id));
+    alert(`Removed ${dupPreview.count} duplicate import(s). Your totals should drop toward the true number.`);
+  };
+
   // Report meta (period + active filters + generated stamp) and the export models.
   // DISPLAY/EXPORT only; deterministic; built from the same rows on screen so a
   // downloaded/printed report ties out to the view (RLS-scoped — no leak).
@@ -365,6 +377,19 @@ export default function Imported({ data = {} }) {
               <div className={`text-lg font-medium ${windowExternal.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(windowExternal.net)}</div>
             </div>
           </div>
+
+          {/* One-tap duplicate cleanup — the system removes the "DEBIT/CREDIT"
+              twin copies itself, no account-by-account reset (2026-07-19). */}
+          {deleteTransaction && dupPreview.count > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Found <strong>{dupPreview.count.toLocaleString()}</strong> duplicate imported row{dupPreview.count === 1 ? '' : 's'} — generic “DEBIT/CREDIT” copies of transactions you already have with the real payee.
+              </span>
+              <button type="button" onClick={removeDuplicateImports} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">
+                ✓ Remove {dupPreview.count.toLocaleString()} duplicate{dupPreview.count === 1 ? '' : 's'}
+              </button>
+            </div>
+          )}
 
           {/* Material changes ($500+) — each mover already explained by its top
               drivers, so a big swing per account or overall is noticed at a glance
