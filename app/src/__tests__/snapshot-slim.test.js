@@ -4,7 +4,7 @@
 // Darrell, live: "storage is full — changes are NOT being saved"; and "we want
 // images to leave our phone and go to the NAS ... not losing anything" (2026-07-18).
 import { describe, it, expect } from 'vitest';
-import { slimSnapshotData, snapshotByteSize, persistSnapshot } from '../lib/snapshot-slim.js';
+import { slimSnapshotData, snapshotByteSize, persistSnapshot, extraSlimSnapshotData, storageBannerMessage } from '../lib/snapshot-slim.js';
 
 const bigDataUrl = 'data:image/jpeg;base64,' + 'A'.repeat(2_000_000); // ~2MB inline photo
 
@@ -116,8 +116,55 @@ describe('persistSnapshot — keep photos when they fit, protect the books when 
     expect(writes[0]).not.toContain(bigDataUrl);   // the photo bytes were dropped to make it fit
   });
 
-  it('re-throws only when even the slim copy cannot be written (true out-of-space)', async () => {
+  it('falls to EXTRA-slim (drops recoverable history) when even the slim copy overflows', async () => {
+    let call = 0;
+    const writes = [];
+    const setItem = async (k, v) => {
+      call += 1;
+      if (call <= 2) { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; } // full + slim overflow
+      writes.push(v);
+    };
+    const data = {
+      transactions: [{ id: 't1', amount: -5 }],
+      recordEvents: Array.from({ length: 5000 }, (_, i) => ({ id: 'e' + i, blob: 'x'.repeat(500) })),
+    };
+    const mode = await persistSnapshot(setItem, 'key', {}, data);
+    expect(mode).toBe('extra');
+    expect(writes[0]).toContain('"t1"');          // the current ledger saved
+    expect(writes[0]).not.toContain('"e4999"');   // the recoverable history was shed
+  });
+
+  it('re-throws only when even the EXTRA-slim copy cannot be written (genuinely out of space)', async () => {
     const setItem = async () => { const e = new Error('quota'); e.name = 'QuotaExceededError'; throw e; };
     await expect(persistSnapshot(setItem, 'key', {}, { transactions: [] })).rejects.toThrow();
+  });
+});
+
+describe('extraSlimSnapshotData — shed recoverable history so the ledger always fits', () => {
+  it('drops recordEvents (cloud-recoverable) and flags what was shed, keeping the ledger', () => {
+    const data = { transactions: [{ id: 't1', amount: -9 }], recordEvents: [{ id: 'e1' }, { id: 'e2' }] };
+    const x = extraSlimSnapshotData(data);
+    expect(x.transactions).toEqual(data.transactions); // current ledger kept
+    expect(x.recordEvents).toEqual([]);                // history shed
+    expect(x.localCacheShed).toContain('recordEvents');
+    expect(data.recordEvents.length).toBe(2);          // original not mutated
+  });
+});
+
+describe('storageBannerMessage — honest wording, no false alarm on a synced ledger', () => {
+  it('says nothing when the full snapshot saved', () => {
+    expect(storageBannerMessage('full', true)).toBe(null);
+  });
+  it('slim → a calm photos note, never an alarm', () => {
+    expect(storageBannerMessage('slim', true)).toMatch(/saving fine/);
+    expect(storageBannerMessage('slim', true)).not.toMatch(/NOT being saved/);
+  });
+  it('on a hard FAIL, a CLOUD-SYNCED ledger is told it is SAFE — not "changes are NOT being saved"', () => {
+    const msg = storageBannerMessage('fail', true);
+    expect(msg).toMatch(/synced to the cloud and safe/);
+    expect(msg).not.toMatch(/NOT being saved/);
+  });
+  it('on a hard FAIL with NO cloud sync, the real data-loss alarm IS shown', () => {
+    expect(storageBannerMessage('fail', false)).toMatch(/NOT being saved/);
   });
 });

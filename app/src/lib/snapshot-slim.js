@@ -68,23 +68,69 @@ export function slimSnapshotData(data) {
   return out;
 }
 
+// Heavy collections that are RECOVERABLE from the cloud (each has its own sync),
+// so they can be dropped from the LOCAL cache as a last resort without losing
+// anything — the current ledger (transactions/accounts/entities) must save even on
+// a device with years of history. recordEvents is the append-only edit-history log
+// (record-events-sync); it grows without bound and reconstructs from the cloud.
+const RECOVERABLE_HEAVY = ['recordEvents'];
+
+// extraSlimSnapshotData(data) -> the slim copy with the recoverable-heavy
+// collections ALSO dropped (a marker records that they were shed so the UI can say
+// so). This is the final tier: it guarantees the current financial state fits even
+// when images are already stripped and the sheer volume of history is the weight.
+export function extraSlimSnapshotData(data) {
+  const out = slimSnapshotData(data);
+  if (!out || typeof out !== 'object') return out;
+  const shed = [];
+  for (const key of RECOVERABLE_HEAVY) {
+    if (Array.isArray(out[key]) && out[key].length) { out[key] = []; shed.push(key); }
+  }
+  if (shed.length) out.localCacheShed = shed;
+  return out;
+}
+
 // persistSnapshot(setItem, key, envelope, data) — write the snapshot, PREFERRING
 // the full copy (photos kept) and only falling back to the slim copy (inline photo
 // bytes stripped) when the full one exceeds the storage quota. So photos are kept
 // whenever there is room (nothing lost unless the device is genuinely out of
 // space), and a photo can NEVER cost the family their financial data. `setItem` is
 // the async storage writer (e.g. window.storage.set); `envelope` is the snapshot
-// metadata (owner/savedAt/pressure/…) that wraps `data`. Returns 'full' | 'slim';
-// re-throws only when even the slim copy can't be written (true out-of-space).
+// metadata (owner/savedAt/pressure/…) that wraps `data`. Returns 'full' | 'slim' |
+// 'extra' (which tier fit). Tiers: full (photos kept) -> slim (image bytes stripped)
+// -> extra (recoverable history ALSO dropped) so the current ledger saves even on a
+// device with years of data. Re-throws only when even the extra-slim copy can't be
+// written (genuinely out of space — and even then cloud-synced data is not lost).
 export async function persistSnapshot(setItem, key, envelope, data) {
   const json = (d) => JSON.stringify({ ...envelope, data: d });
   try {
     await setItem(key, json(data));
     return 'full';
   } catch (_) {
-    await setItem(key, json(slimSnapshotData(data)));
-    return 'slim';
+    try {
+      await setItem(key, json(slimSnapshotData(data)));
+      return 'slim';
+    } catch (_2) {
+      await setItem(key, json(extraSlimSnapshotData(data)));
+      return 'extra';
+    }
   }
+}
+
+// storageBannerMessage(mode, cloudSafe) -> the HONEST storage banner for a save
+// outcome, or null when nothing needs saying. mode: 'full' (all good) | 'slim'
+// (image bytes dropped) | 'extra' (recoverable history also dropped) | 'fail'
+// (even the trimmed save could not be written). cloudSafe = the financial data is
+// cloud-synced, so it is NOT lost even when the local cache can't hold it — the
+// message must NOT falsely alarm "changes are NOT being saved" in that case
+// (DR-0100: state the truth; do not over-alarm a synced ledger). Pure.
+export function storageBannerMessage(mode, cloudSafe) {
+  if (mode === 'full') return null;
+  if (mode === 'slim') return 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Back up photos to the NAS (Big Picture → photos) to free space.';
+  if (mode === 'extra') return 'This device is low on space — your books are saving' + (cloudSafe ? ' and synced to the cloud' : '') + '; older edit-history and photos aren’t cached on this phone. Back up photos to the NAS to free space.';
+  return cloudSafe
+    ? 'This device is out of local space, but your transactions are synced to the cloud and safe. Remove a few photos (Big Picture → photos) to restore local caching.'
+    : 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.';
 }
 
 // snapshotByteSize(obj) -> the UTF-8 byte length of the serialized object, so a
