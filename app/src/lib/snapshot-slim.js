@@ -51,6 +51,20 @@ export function slimSnapshotData(data) {
   const out = { ...data };
   if (Array.isArray(data.lifePhotos)) out.lifePhotos = data.lifePhotos.map(slimPhoto);
   if (Array.isArray(data.photos)) out.photos = data.photos.map(slimPhoto);
+  // Transaction RECEIPT images are the OTHER heavy inline bytes in the ledger — a
+  // books user (Christina) can attach a photo to every transaction, and those
+  // base64 receipts bloat the snapshot exactly like gallery photos do. Strip the
+  // receipt's inline bytes from the persisted copy (its amount/merchant/note/date
+  // stay) so a ledger full of receipt photos can't block the financial save. The
+  // receipt src also syncs to the cloud, so the image itself is not lost.
+  if (Array.isArray(data.transactions)) {
+    out.transactions = data.transactions.map((t) => {
+      if (t && t.receipt && isInlineImage(t.receipt.src)) {
+        return { ...t, receipt: { ...t.receipt, src: '', srcDropped: true } };
+      }
+      return t;
+    });
+  }
   return out;
 }
 
