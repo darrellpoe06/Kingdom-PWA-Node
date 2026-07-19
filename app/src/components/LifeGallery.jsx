@@ -13,7 +13,7 @@
 // images) reference the NAS in place rather than copy it.
 import React, { useState, useEffect } from 'react';
 import { compressImageFile } from '../lib/image.js';
-import { fetchChannelPhotos, fetchFamilyPhotos, fetchAlbumPhotos, uploadPhoto, hasBridgeToken, chatChannelFor, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
+import { fetchChannelPhotos, fetchFamilyPhotos, fetchAlbumPhotos, uploadPhoto, hasBridgeToken, setBridgeToken, chatChannelFor, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
 import Lightbox from './Lightbox.jsx';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
@@ -237,6 +237,13 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
   const [nasNote, setNasNote] = useState('');
   const [familyRefresh, setFamilyRefresh] = useState(0);
   const [lightbox, setLightbox] = useState(null);
+  // NAS photo-backup wiring (Darrell 2026-07-18): paste the device's bridge token
+  // once, and every new photo uploads to the NAS instead of piling up on the phone.
+  const [nasConnected, setNasConnected] = useState(() => hasBridgeToken());
+  const [tokenDraft, setTokenDraft] = useState('');
+  const [showTokenField, setShowTokenField] = useState(false);
+  const saveToken = () => { setBridgeToken(tokenDraft); setNasConnected(hasBridgeToken()); setTokenDraft(''); setShowTokenField(false); };
+  const disconnectNas = () => { setBridgeToken(''); setNasConnected(false); };
 
   const onFiles = async (fileList) => {
     if (!fileList || fileList.length === 0 || !addLifePhotos) return;
@@ -317,6 +324,35 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
 
       {!readOnly && nasNote && (
         <div className="mb-3 text-[11px] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
+      )}
+
+      {/* NAS photo backup — the wiring Darrell asked for (2026-07-18). Connected =
+          every new photo uploads to the NAS (shared + backed up, off the phone).
+          Not connected = paste the device's bridge token once to turn it on. */}
+      {!readOnly && (
+        <div className="mb-3 text-[0.6875rem] border border-[#E8E4DC] bg-white px-3 py-2">
+          {nasConnected ? (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>✓ NAS backup on — new photos upload to your NAS and leave the phone.</span>
+              <button type="button" onClick={disconnectNas} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline hover:text-[#B85838]">Disconnect</button>
+            </div>
+          ) : showTokenField ? (
+            <div className="space-y-1.5">
+              <label className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Paste this device&apos;s NAS bridge token</label>
+              <input type="password" value={tokenDraft} onChange={e => setTokenDraft(e.target.value)} placeholder="bridge token" className="w-full p-2 border border-[#1A1815] text-sm bg-white" />
+              <div className="flex gap-2">
+                <button type="button" onClick={saveToken} disabled={!tokenDraft.trim()} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-40">Connect</button>
+                <button type="button" onClick={() => { setShowTokenField(false); setTokenDraft(''); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Cancel</button>
+              </div>
+              <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The token is stored only on this device and never synced. Until it&apos;s set, photos stay on the phone.</p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Photos are staying on this phone. Connect your NAS to back them up and free space.</span>
+              <button type="button" onClick={() => setShowTokenField(true)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">Connect NAS</button>
+            </div>
+          )}
+        </div>
       )}
 
       <CuratedAlbumGallery readOnly={readOnly} onOpen={(items, index) => setLightbox({ items, index })} />

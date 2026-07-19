@@ -2,7 +2,7 @@
 // user-influenced, so isValidDest is the device-side belt (the workflow is the
 // real gate); these lock that no traversal or junk dest leaves the device.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum, propertyPhotosUrl, NAS_PHOTO_BASE } from '../lib/nas-photos.js';
+import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum, propertyPhotosUrl, NAS_PHOTO_BASE, setBridgeToken, bridgeToken, hasBridgeToken } from '../lib/nas-photos.js';
 
 // 2026-07-01 regression fix: property photos moved OFF the n8n bridge onto the
 // sovereign Python image server, reached via the same-origin `/nas-photos`
@@ -93,5 +93,30 @@ describe('bigPictureAlbum get/set', () => {
   it('refuses to persist an invalid (traversal) album name', () => {
     setBigPictureAlbum('../secret');
     expect(bigPictureAlbum()).toBe('');
+  });
+});
+
+describe('setBridgeToken get/set — wiring the NAS photo bridge (Darrell 2026-07-18)', () => {
+  beforeEach(() => { try { localStorage.clear(); } catch (_) { /* jsdom */ } });
+
+  it('starts empty, persists a token, and reports hasBridgeToken', () => {
+    expect(hasBridgeToken()).toBe(false);
+    const now = setBridgeToken('  secret-abc123  ');
+    expect(now).toBe('secret-abc123');       // trimmed
+    expect(bridgeToken()).toBe('secret-abc123');
+    expect(hasBridgeToken()).toBe(true);
+  });
+
+  it('clears the token when given a blank value', () => {
+    setBridgeToken('secret');
+    expect(hasBridgeToken()).toBe(true);
+    expect(setBridgeToken('   ')).toBe('');   // blank clears
+    expect(hasBridgeToken()).toBe(false);
+    expect(bridgeToken()).toBe('');
+  });
+
+  it('length-caps a runaway paste', () => {
+    const huge = 'x'.repeat(2000);
+    expect(setBridgeToken(huge).length).toBe(512);
   });
 });

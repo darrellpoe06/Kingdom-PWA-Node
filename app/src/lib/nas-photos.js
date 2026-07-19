@@ -52,6 +52,21 @@ export function hasBridgeToken() {
   return !!bridgeToken();
 }
 
+// Set (or clear) the NAS photo-bridge token on THIS device (Darrell 2026-07-18:
+// "the bridge needs wiring"). Once set, uploadPhoto() authenticates and new
+// photos flow to the NAS instead of piling up in localStorage. Per-device by
+// design (the token is a device credential, never synced). A blank/whitespace
+// value clears it. Returns the trimmed token that is now in effect ('' if
+// cleared). Trims + length-caps so a stray paste can't store garbage.
+export function setBridgeToken(token) {
+  const clean = String(token || '').trim().slice(0, 512);
+  try {
+    if (clean) localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, clean);
+    else localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY);
+  } catch (_) { /* private mode / quota — non-fatal, the field just won't persist */ }
+  return clean;
+}
+
 // Map a property to its Synology Chat channel name (the project-base channels
 // Darrell used for years). His display names ("805 N Prospect (multi-unit)")
 // don't match the channel names ("805NProspect"), and the photo/history bridge
