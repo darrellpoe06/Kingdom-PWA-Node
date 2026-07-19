@@ -152,7 +152,7 @@ import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
-import { persistSnapshot } from './lib/snapshot-slim.js';
+import { persistSnapshot, storageBannerMessage } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
 import { reconcileAccounts } from './lib/imported-view.js';
@@ -2017,8 +2017,10 @@ export default function PoeFinancialSystem() {
         // Keep the FULL snapshot (photos) when it fits; fall back to slim (photo bytes
         // stripped) ONLY on quota overflow — a photo never costs the family their books, yet photos stay when there's room (2026-07-18).
         const envelope = { owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
+        const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
         const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), 'poe-financial-v28', envelope, data);
-        setPersistIssue(savedMode === 'slim' ? { kind: 'storage', message: 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Back up photos to the NAS (Big Picture → photos) to free space.' } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
+        const bannerMsg = storageBannerMessage(savedMode, cloudSafe);
+        setPersistIssue(bannerMsg ? { kind: 'storage', message: bannerMsg } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
         // v2.15 family snapshot push — the non-table-synced remainder follows
         // the account. Leading-edge throttle (15s). Two hard guards: the pull
         // must have completed (snapshotPulledRef), and a world whose remainder
@@ -2040,13 +2042,10 @@ export default function PoeFinancialSystem() {
         }
       } catch (e) {
         console.error('Storage failed', e);
-        // QuotaExceededError here means NOTHING is being saved anymore —
-        // photos are usually the weight. Say so instead of losing a week
-        // of entries silently (review finding, 2026-06-12).
-        setPersistIssue({
-          kind: 'storage',
-          message: 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.',
-        });
+        // Even the extra-slim save failed. Only a genuine data-loss risk when the
+        // ledger is NOT cloud-synced; a synced ledger is safe (DR-0100 — no false alarm).
+        const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
+        setPersistIssue({ kind: 'storage', message: storageBannerMessage('fail', cloudSafe) });
       }
     })();
   }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, reviewerMode, authSession, authHydrated]);
