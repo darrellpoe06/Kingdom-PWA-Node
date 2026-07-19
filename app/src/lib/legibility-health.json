@@ -6,26 +6,17 @@
   ],
   "summary": {
     "pages": 184,
-    "passing": 169,
-    "trackedDebtPages": 15,
+    "passing": 170,
+    "trackedDebtPages": 14,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 107
+    "debtViolations": 79
   },
   "pages": [
     {
       "page": "components/Presenter.jsx",
       "status": "TRACKED-DEBT",
       "violations": 40,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/CreationWorkspace.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 28,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"

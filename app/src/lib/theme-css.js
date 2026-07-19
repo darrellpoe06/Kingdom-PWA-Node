@@ -160,6 +160,7 @@ export const THEME_CSS = `
 [data-theme="midnight"] .text-\\[\\#216E39\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#2F6B3A\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#16A34A\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#3F7A4F\\]{color:#86EFAC!important}
 /* gold / amber / brown text -> bright amber */
 [data-theme="midnight"] .text-\\[\\#8A6E1F\\]{color:#FCD34D!important}
 [data-theme="midnight"] .text-\\[\\#8B6F47\\]{color:#FCD34D!important}
@@ -206,9 +207,12 @@ const THEME_KEYS = new Set(THEMES.map((t) => t.key));
 
 // Per-device theme preference — the same fail-soft localStorage pattern as
 // text-size. Shared by every shell so the user's choice follows them between
-// the app and the business doors on this device.
+// the app and the business doors on this device. First-run default is the
+// LIGHT (cream) theme; dark (Midnight) is a user choice, and once a theme is
+// picked this returns THAT — so the default follows the last chosen color
+// (Darrell 2026-07-19).
 const THEME_PREF_KEY = 'poe-theme-pref';
-export function readThemePref(fallback = 'midnight') {
+export function readThemePref(fallback = 'cream') {
   try {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_PREF_KEY) : null;
     return v && THEME_KEYS.has(v) ? v : fallback;
