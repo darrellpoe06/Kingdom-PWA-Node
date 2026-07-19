@@ -160,6 +160,7 @@ export const THEME_CSS = `
 [data-theme="midnight"] .text-\\[\\#216E39\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#2F6B3A\\]{color:#86EFAC!important}
 [data-theme="midnight"] .text-\\[\\#16A34A\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#3F7A4F\\]{color:#86EFAC!important}
 /* gold / amber / brown text -> bright amber */
 [data-theme="midnight"] .text-\\[\\#8A6E1F\\]{color:#FCD34D!important}
 [data-theme="midnight"] .text-\\[\\#8B6F47\\]{color:#FCD34D!important}
