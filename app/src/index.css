@@ -3,6 +3,22 @@
 @tailwind utilities;
 
 /* ===========================================================================
+   Opt out of Android Chrome "Auto dark theme" / Force Dark (Darrell 2026-07-19)
+   ===========================================================================
+   A page that never declares color-scheme is treated by Android Chrome as
+   theme-unaware, so its "Auto dark theme" force-darkens every white surface.
+   On the Create workspace this inverted the bg-white toolbar buttons, the
+   workspace-type <select>, and the title <input> into illegible black boxes
+   with black-on-black glyphs, while the cream chrome (#FAF8F4) and the mat
+   (#EDE9E1) survived — the signature of Force Dark, not a CSS bug. Declaring
+   color-scheme here (paired with the matching <meta> in index.html) tells the
+   browser the app manages its own theming (midnight + cream, switched in JS)
+   and to stop force-darkening. */
+:root {
+  color-scheme: light dark;
+}
+
+/* ===========================================================================
    Text-size scope split — CONTENT scales, CHROME is capped (Darrell 2026-06-17)
    ===========================================================================
    The large-print primitive (lib/text-size.js) scales the document root, so all
