@@ -126,18 +126,18 @@ export async function persistSnapshot(setItem, key, envelope, data) {
 // (DR-0100: state the truth; do not over-alarm a synced ledger). Pure.
 export function storageBannerMessage(mode, cloudSafe) {
   if (mode === 'full') return null;
-  // Honest, family-friendly remedy (Darrell 2026-07-19: "Backup is not user
-  // friendly"). The old copy commanded "Back up photos to the NAS to free space",
-  // but that routes to a bridge-TOKEN paste (not novice-friendly) for a NAS backup
-  // the app itself still labels "coming next" — and when the ledger is the space
-  // hog (the 'extra' tier drops HISTORY, not just photos), backing up photos frees
-  // nothing. So: when the books are cloud-safe, REASSURE and prescribe nothing (no
-  // action is actually required — DR-0100, don't over-alarm); otherwise point to a
-  // remedy the family can actually do today — remove/export a few photos.
+  // The system handles low space SILENTLY — don't make the user tell/fix the system
+  // (Darrell 2026-07-19: "verify that the banner is gone... don't expect users to
+  // tell the systems"). When the books are cloud-safe, the slim/extra tiers already
+  // did their job (the ledger saved by trimming local-only cache) and NOTHING is at
+  // risk, so there is nothing for the user to act on — show NO banner at all. A
+  // banner appears ONLY when the user genuinely must act: local space that is NOT
+  // cloud-backed (slim/extra), or a hard save FAIL. This is the sibling of the old
+  // over-promising copy (which routed to a not-friendly NAS-token backup the app
+  // still labels "coming next") — now the honest default is silence when safe.
+  if (cloudSafe && (mode === 'slim' || mode === 'extra')) return null;
   if (mode === 'slim') return 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
-  if (mode === 'extra') return cloudSafe
-    ? 'This device is low on space, but your books are synced to the cloud and safe — nothing is lost. This phone just isn’t caching older edit-history or photos locally.'
-    : 'This device is low on space; older edit-history and photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
+  if (mode === 'extra') return 'This device is low on space; older edit-history and photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
   return cloudSafe
     ? 'This device is out of local space, but your transactions are synced to the cloud and safe. Remove a few photos (Big Picture → photos) to restore local caching.'
     : 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.';
