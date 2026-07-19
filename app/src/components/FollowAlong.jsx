@@ -44,14 +44,16 @@ export default function FollowAlong({ code: codeProp = null }) {
 
   const frame = {
     minHeight: '100vh', background: '#14110E', color: '#FAF8F4',
-    display: 'flex', flexDirection: 'column', justifyContent: 'center',
+    // Top-aligned like the LED wall — words at the top, so a follow view cast onto a
+    // wall matches the room and the speaker (below the words) never blocks the text.
+    display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
     padding: 'clamp(24px, 5vw, 72px)', fontFamily: '"Fraunces", Georgia, serif',
   };
 
   // Disabled or no code yet -> a small, warm join box (no auth, no data).
   if (!FOLLOW_ALONG_ENABLED || !code) {
     return (
-      <div style={{ ...frame, alignItems: 'center', textAlign: 'center' }}>
+      <div style={{ ...frame, justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ fontSize: 12, letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 20 }}>
           The Church of the Living God
         </div>

@@ -485,7 +485,7 @@ export default function Presenter({
     const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Presenting — ${title}`}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
           <AudienceSlide slide={cleanSlide} />
         </div>
         {/* Always-on speaker bar — never projected content, just the controls. */}
@@ -695,7 +695,7 @@ export default function Presenter({
           </div>
           {/* the real audience slide, miniaturized — a faithful mirror of the projector */}
           <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
               <AudienceSlide slide={previewSlide} />
             </div>
           </div>
