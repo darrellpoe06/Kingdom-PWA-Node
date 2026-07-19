@@ -129,6 +129,27 @@ describe('findStatementHeader — the header row is found wherever it is', () =>
     expect(h.idx.desc).toBe(1);
     expect(h.idx.amount).toBe(2);
   });
+  it('Chase checking (Details BEFORE Description): maps the PAYEE column, not "DEBIT/CREDIT" (Christina 2026-07-19)', () => {
+    const h = findStatementHeader([
+      'Details,Posting Date,Description,Amount,Type,Balance',
+      'DEBIT,07/16/2026,MCDONALD\'S F15879 CHAMPAIGN IL,-30.60,ACH_DEBIT,1234.56',
+    ]);
+    expect(h.errors).toEqual([]);
+    expect(h.idx.desc).toBe(2);   // "Description" (payee) — NOT column 0 ("Details" = DEBIT/CREDIT)
+    expect(h.idx.date).toBe(1);
+    expect(h.idx.amount).toBe(3);
+    expect(h.idx.balance).toBe(5);
+    // And the row parses the real merchant, not the transaction type.
+    const p = parseDelimitedToRows(
+      'Details,Posting Date,Description,Amount,Type,Balance\nDEBIT,07/16/2026,MCDONALD\'S F15879 CHAMPAIGN IL,-30.60,ACH_DEBIT,1234.56'
+    );
+    expect(p.rows[0].description).toContain("MCDONALD'S");
+    expect(p.rows[0].description).not.toBe('DEBIT');
+  });
+  it('falls back to Details/Memo when there is NO Description/Payee column', () => {
+    const h = findStatementHeader(['Date,Details,Amount', '07/16/2026,SOME MEMO,-5.00']);
+    expect(h.idx.desc).toBe(1); // Details is still accepted when it's the only description-ish column
+  });
   it('a file with no usable header anywhere still fails loudly with the column errors', () => {
     const h = findStatementHeader(['just,some,garbage', 'more,random,cells']);
     expect(h.errors.join(' ')).toMatch(/No Date column/);

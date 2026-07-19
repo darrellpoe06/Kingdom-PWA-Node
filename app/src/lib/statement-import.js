@@ -63,6 +63,12 @@ const HEADER_MATCHERS = {
   // "duplicate" (Christina's books, 2026-07-18). Optional: absent on many exports.
   balance: /\b(running balance|balance)\b/,
 };
+// A REAL payee column, preferred over the generic "Details"/type column. Chase
+// CHECKING exports carry BOTH ("Details" = DEBIT/CREDIT/CHECK, "Description" =
+// the merchant), and a first-match scan would otherwise grab "Details" — so every
+// row's description came through as "DEBIT" (Christina's books, 2026-07-19). When a
+// payee column exists it wins; otherwise the broad `desc` match still applies.
+const DESC_PRIMARY = /\b(description|payee|merchant)\b/;
 const HEADER_SCAN_LINES = 10;
 
 // lines: the file's non-empty lines. Returns { headerRow, headers, idx, errors }
@@ -76,6 +82,10 @@ export function findStatementHeader(lines) {
     for (const [kind, re] of Object.entries(HEADER_MATCHERS)) {
       idx[kind] = cells.findIndex((c) => re.test(c));
     }
+    // Prefer a real payee column over the generic "Details"/type column when both
+    // exist, so a Chase-checking export maps the merchant, not "DEBIT/CREDIT".
+    const descPrimary = cells.findIndex((c) => DESC_PRIMARY.test(c));
+    if (descPrimary !== -1) idx.desc = descPrimary;
     const score = (idx.date !== -1 ? 1 : 0) + (idx.desc !== -1 ? 1 : 0)
       + ((idx.amount !== -1 || idx.credit !== -1) ? 1 : 0);
     if (!best || score > best.score) best = { headerRow: row, headers: cells, idx, score };
