@@ -832,7 +832,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const ids = accountTxnIds(data.transactions || [], csvAccountId);
     if (ids.length === 0) { alert(`${acct} has no transactions to clear — you can import a statement now.`); return; }
     if (!confirm(`Reset ${acct}: permanently remove all ${ids.length} transaction(s) so you can re-import a clean bank statement?\n\nThis CANNOT be undone. Manual entries in this account will also be removed.`)) return;
-    ids.forEach(id => deleteTransaction(id));
+    deleteTransaction(ids); // ONE batched cloud delete (chunked), not thousands of single ones
     recordLoopRun({ key: 'account-reset', status: 'success', processed: ids.length, detail: acct });
     alert(`Cleared ${ids.length} transaction(s) from ${acct}. Now pick the bank file above to import a clean register.`);
   };
@@ -849,7 +849,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
     const ids = accountTxnIds(data.transactions || [], csvAccountId);
     if (!confirm(`Replace ${acct}: permanently remove its ${ids.length} current transaction(s) and import ${valid.length} clean row(s) from this file?\n\nThe removal CANNOT be undone.`)) return;
-    ids.forEach(id => deleteTransaction(id));
+    deleteTransaction(ids); // ONE batched cloud delete (chunked), not thousands of single ones
     // Stable content-addressed ids so a LATER re-import is idempotent. Dedupe against
     // the ledger EXCLUDING this account (its rows are being deleted in this same
     // action), so the clean re-import is never wrongly skipped against the copies it
@@ -900,7 +900,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const { removeIds, count } = dupPreview;
     if (!count) { alert('No duplicate imports found — your ledger is clean.'); return; }
     if (!confirm(`Remove ${count} duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept, nothing else is touched.`)) return;
-    removeIds.forEach((id) => deleteTransaction(id));
+    deleteTransaction(removeIds); // ONE batched cloud delete (chunked), not thousands of single ones
     recordLoopRun({ key: 'dedupe-imports', status: 'success', processed: count, detail: 'removed duplicate imports' });
     alert(`Removed ${count} duplicate import(s). The real transactions are kept; your totals should drop toward the true number.`);
   };

@@ -146,6 +146,29 @@ export function createTableSync(spec) {
     return { updated: true };
   }
 
+  // deleteRows(ids) — BATCH delete, chunked + awaited. The books dedupe removes
+  // THOUSANDS of rows at once; firing that many single deleteRow() calls floods the
+  // browser's ~6-connection-per-origin cap and the PostgREST rate limit, so most
+  // silently never land and the cloud stays doubled ("removed" on screen but back on
+  // refresh, Darrell 2026-07-19). One `.in()` delete per CHUNK ids (sequential, so it
+  // never floods) reliably clears them. Returns the count actually deleted (via
+  // .select) so a partial/RLS-blocked result is visible, not a false success (DR-0076).
+  async function deleteRows(ids) {
+    const session = await currentSession();
+    if (!session) return { skipped: 'signed-out', deleted: 0 };
+    const list = [...new Set((ids || []).filter(Boolean))];
+    if (!list.length) return { deleted: 0 };
+    const CHUNK = 200;
+    let deleted = 0;
+    for (let i = 0; i < list.length; i += CHUNK) {
+      const chunk = list.slice(i, i + CHUNK);
+      const { data, error } = await supabase.from(remoteTable).delete().in('id', chunk).select('id');
+      if (error) { console.warn(`[table-sync:${remoteTable}] batch delete failed:`, error); continue; }
+      deleted += Array.isArray(data) ? data.length : 0;
+    }
+    return { deleted, requested: list.length };
+  }
+
   async function deleteRow(id) {
     const session = await currentSession();
     if (!session) return { skipped: 'signed-out' };
@@ -304,7 +327,7 @@ export function createTableSync(spec) {
     return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
-  return { localKey, remoteTable, upload, updateRow, deleteRow, subscribe, initialSync };
+  return { localKey, remoteTable, upload, updateRow, deleteRow, deleteRows, subscribe, initialSync };
 }
 
 // -----------------------------------------------------------------------------
