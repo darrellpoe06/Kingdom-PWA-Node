@@ -95,6 +95,31 @@ export function accountTxnIds(txns, accountId) {
   return (txns || []).filter((t) => t && t.accountId === accountId && t.id).map((t) => t.id);
 }
 
+// planAccountImport — the SINGLE-FILE counterpart of planBulkImport (one account,
+// one file). This is the leak-fix (Darrell 2026-07-19: many generic "DEBIT" copies
+// with "I don't even re-upload"). The single-file importer used to map rows with NO
+// id, so commitImportedRows fell back to a fresh `t-${Date.now()}` random id on every
+// run — the same statement imported again (or the Reset & re-import repair) minted
+// BRAND-NEW rows with new slugs, and the unique (tenant, slug) index could not catch
+// them because the slugs differed. Routing single-file imports through the SAME
+// stable-id + content-dedupe machinery makes a re-import IDEMPOTENT: a row already in
+// the ledger (matched by content key — works even for the legacy random-id rows,
+// since seedSeen keys on content, not id) is dropped, and only genuinely-new rows are
+// committed, each with a deterministic `imp-<occKey>` / `vl-<fitid>` id. Genuine
+// same-day/same-amount twins still both survive (occurrence index). Returns
+// { txns, duplicates } — the new rows to commit + how many were already present.
+export function planAccountImport(rows, accountId, existingTxns = []) {
+  if (!accountId) return { txns: [], duplicates: 0 };
+  const plan = planBulkImport(
+    [{ name: 'single', rows: rows || [] }],
+    [{ id: accountId }],           // name resolves to the id; routing uses the fallback
+    existingTxns,
+    accountId,                     // fallbackAccountId — the file the user picked
+  );
+  const bucket = (plan.routed || []).find((r) => r.accountId === accountId);
+  return { txns: bucket ? bucket.txns : [], duplicates: plan.duplicates };
+}
+
 // planBulkImport — route + dedupe a batch of parsed files into an import plan.
 //   files: [{ name, rows: [{ date, description, amount, category?, fitid? }] }]
 //   accounts, existingTxns: the app's accounts + current ledger (for routing + dedupe)
