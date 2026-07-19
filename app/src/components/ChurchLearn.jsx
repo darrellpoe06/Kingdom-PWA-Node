@@ -55,6 +55,7 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
 import BiblicalTimeline from './BiblicalTimeline.jsx';
@@ -1343,19 +1344,22 @@ function CourseView({
               No engagement signals yet. As learners use the courses, each age band’s real use shows here — and the pacing defaults get tuned from it.
             </p>
           ) : (
+            /* EVERY age band shows — a zero-signal band (Youth/Teen with no use
+               yet) reads dimmed as "no signals yet", never dropped. "Explain all
+               levels, leaves out teen" (Darrell 2026-07-19): an invisible band
+               hides a gap in the pacing data instead of naming it. Rows come from
+               engagementRowsByAge so the all-bands rule is proven-to-catch. */
             <ul className="space-y-1.5">
-              {AGE_BANDS.map((b) => {
-                const row = engagementByAge.byBand?.[b.id];
-                if (!row || row.total === 0) return null;
-                return (
-                  <li key={b.id} className="text-xs text-[#1A1815] flex items-baseline justify-between gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span>{b.label} <span className="text-[#5A5751]">{b.range}</span></span>
-                    <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      {row.total} signals · score {row.score} · {row.counts['completed'] || 0} completed
-                    </span>
-                  </li>
-                );
-              })}
+              {engagementRowsByAge(engagementByAge).map((row) => (
+                <li key={row.id} className={`text-xs flex items-baseline justify-between gap-2 ${row.quiet ? 'text-[#8A857D]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span>{row.label} <span className="text-[#5A5751]">{row.range}</span></span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    {row.quiet
+                      ? 'no signals yet'
+                      : `${row.total} signals · score ${row.score} · ${row.completed} completed`}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </div>
