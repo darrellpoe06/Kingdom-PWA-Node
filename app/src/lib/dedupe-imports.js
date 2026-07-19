@@ -19,10 +19,11 @@
 //     purchases that are ALL real, or ALL generic, are NEVER touched. When a group
 //     has a real anchor, EVERY generic twin in it is junk (payee-less residue of the
 //     Details-column mis-map) and is removed in one pass. (It used to cap removal at
-//     the real-count, which under-removed when a statement was re-imported several
-//     times — many generic copies per real row — forcing the family to tap "remove"
-//     round after round. The balance-continuity audit, REV-0101, backstops any rare
-//     over-removal.)
+//     the real-count, which under-removed when a group held MORE generic copies than
+//     real rows — forcing the family to tap "remove" round after round. Those extra
+//     copies are app-generated, NOT the user re-importing — Darrell 2026-07-19: "I
+//     don't even re-upload"; the mechanism that mints them is a separate open item.
+//     The balance-continuity audit, REV-0101, backstops any rare over-removal.)
 //   * Rows carrying a remoteUuid are still removable (the caller deletes them from
 //     the cloud too); rows with no id are skipped (nothing to delete).
 // Pure + deterministic. The caller deletes the returned ids in the family session.
