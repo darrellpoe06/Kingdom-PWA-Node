@@ -66,13 +66,29 @@ export default function AudienceSlide({ slide = null, hold = null }) {
       )}
 
       {/* Bullet / numbered points UNDER the main idea — details for the room and for
-          note-takers (Darrell 2026-07-19). Full teaching stays in the presenter notes. */}
+          note-takers (Darrell 2026-07-19). Each point is its OWN visual block (a tinted
+          card with an accent marker) so it STANDS ALONE, and the uniform style + column
+          keeps them reading TOGETHER as one set. Full teaching stays in presenter notes. */}
       {Array.isArray(slide.points) && slide.points.length > 0 && (
         React.createElement(
           slide.ordered ? 'ol' : 'ul',
-          { style: { margin: 'clamp(16px, 2.2vw, 28px) 0 0', paddingLeft: 'clamp(24px, 2.4vw, 40px)', color: '#FAF8F4' } },
+          { style: { listStyle: 'none', margin: 'clamp(20px, 2.8vw, 40px) 0 0', padding: 0, color: '#FAF8F4', display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.6vw, 22px)' } },
           slide.points.map((pt, i) => (
-            <li key={i} style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.32, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0' }}>{pt}</li>
+            <li
+              key={i}
+              style={{
+                display: 'flex', alignItems: 'baseline', gap: 'clamp(12px, 1.4vw, 20px)',
+                background: 'rgba(255,255,255,0.05)', borderLeft: '4px solid #C9D9A6', borderRadius: 8,
+                padding: 'clamp(12px, 1.5vw, 20px) clamp(14px, 1.8vw, 24px)',
+              }}
+            >
+              {slide.ordered ? (
+                <span aria-hidden="true" style={{ flexShrink: 0, minWidth: '1.3em', color: '#C9D9A6', fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', fontSize: 'clamp(15px, 1.8vw, 26px)' }}>{i + 1}</span>
+              ) : (
+                <span aria-hidden="true" style={{ flexShrink: 0, marginTop: '0.5em', width: 'clamp(9px, 1vw, 15px)', height: 'clamp(9px, 1vw, 15px)', borderRadius: '50%', background: '#C9D9A6' }} />
+              )}
+              <span style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.3 }}>{pt}</span>
+            </li>
           )),
         )
       )}

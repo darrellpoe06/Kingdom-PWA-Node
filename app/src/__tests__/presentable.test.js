@@ -128,29 +128,35 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     },
   };
 
-  it('makes the LESSON its own presentation — its parts + a closing Scripture recap', () => {
+  it('leads with a TITLE card, then its parts + a closing Scripture recap', () => {
     const p = lessonPresentable(lesson);
     expect(p.id).toBe('lesson:mit1');
     expect(p.title).toBe('The Design in Time');
-    // 5 authored segments + the "The Word we stood on" recap = 6 scenes
-    expect(p.scenes.length).toBe(6);
-    expect(p.scenes[0].indexLabel).toBe('Part 1 of 6');
-    expect(p.scenes[5].audience.title).toBe('The Word we stood on');
-    // targetMin is THIS lesson's own length (3+15+10+8+2 + 2 recap = 40), not 607
+    // a title card + 5 authored segments + the "The Word we stood on" recap = 7 scenes
+    expect(p.scenes.length).toBe(7);
+    // the FIRST slide is the lesson TITLE — the standing background until the speaker begins
+    expect(p.scenes[0].id).toMatch(/-title$/);
+    expect(p.scenes[0].audience.title).toBe('The Design in Time');
+    expect(p.scenes[0].indexLabel).toBe('Part 1 of 7');
+    expect(p.scenes[6].audience.title).toBe('The Word we stood on');
+    // targetMin is THIS lesson's TEACHING length (3+15+10+8+2 + 2 recap = 40) — the
+    // title card is a standing background, NOT counted in the teaching time.
     expect(p.targetMin).toBe(40);
   });
 
   it('shows the anchor Word VERBATIM on the opener class screen and repeats it as a recap', () => {
     const p = lessonPresentable(lesson);
+    const opener = p.scenes.find((s) => /open in prayer/i.test(s.audience.title));
     // opener carries the verbatim anchor on the audience payload (the room reads it)
-    expect(p.scenes[0].audience.scripture).toContain('Ecclesiastes 3:1');
+    expect(opener.audience.scripture).toContain('Ecclesiastes 3:1');
     // Ecclesiastes 3:1 is in the fetched KJV store, so the actual verse text rides along
-    expect(p.scenes[0].audience.scripture).toMatch(/to every thing there is a season/i);
+    expect(opener.audience.scripture).toMatch(/to every thing there is a season/i);
     // the closing recap repeats the sourced Scriptures for a refresher
     const recap = p.scenes[p.scenes.length - 1];
     expect(recap.audience.scripture).toMatch(/to every thing there is a season/i);
     // and the built slide carries scripture through to the projector
-    expect(buildSlideForScene(p.scenes, 0, {}).scripture).toBeTruthy();
+    const openerIdx = p.scenes.indexOf(opener);
+    expect(buildSlideForScene(p.scenes, openerIdx, {}).scripture).toBeTruthy();
   });
 
   it('a time budget reflows THIS lesson only (45 min lands per-part, not ~2.8)', () => {
@@ -193,15 +199,18 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(resolveAudienceLead(big.audience, 'child')).toBe('God made you to grow.');
     expect(resolveAudienceLead(big.audience, 'teen')).toBe('You are still forming, on purpose.');
     // the opener carries the anchor Scripture note for the minister to read
-    const sn = p.scenes[0].notes.find((n) => /Scriptures to read/i.test(n.heading || ''));
+    const opener = p.scenes.find((s) => /open in prayer/i.test(s.audience.title));
+    const sn = opener.notes.find((n) => /Scriptures to read/i.test(n.heading || ''));
     expect(sn).toBeTruthy();
   });
 
-  it('falls back to a single scene (full age text) when a lesson has no run-of-show', () => {
+  it('falls back to a title card + a single content scene when a lesson has no run-of-show', () => {
     const bare = lessonPresentable({ id: 'x', title: 'X', bigIdea: 'idea' });
-    expect(bare.scenes.length).toBe(1);
-    expect(bare.scenes[0].audience.lead).toBe('idea');
-    expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
+    expect(bare.scenes.length).toBe(2); // title card + the lesson
+    expect(bare.scenes[0].id).toMatch(/-title$/);
+    const content = bare.scenes.find((s) => !String(s.id).endsWith('-title'));
+    expect(content.audience.lead).toBe('idea');
+    expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607 (title untimed)
   });
 });
 

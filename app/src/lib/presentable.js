@@ -731,6 +731,26 @@ export function lessonPresentable(module, opts = {}) {
     .map((ref) => { const t = kjvText(ref); return t ? `${ref} — "${t}"` : ref; });
   const scriptureBlock = scriptureLines.join('\n');
 
+  // The FIRST slide is a TITLE CARD — the lesson's title (+ today's text) — so the
+  // room has a standing background on the wall as people gather, until the speaker
+  // begins and advances (Darrell 2026-07-19). Weightless-ish + supplementary, so it
+  // never steals teaching minutes and is the first thing dropped when time is tight.
+  const titleScene = {
+    id: `${m.id || 'lesson'}-title`,
+    estimatedMin: 1,
+    priority: PRIORITY.SUPPLEMENTARY,
+    audience: {
+      title: m.title || 'The lesson',
+      lead: '',
+      detail: null,
+      detailLabel: handsOnLabel,
+      anchorRef: anchorRef || null,
+      anchorTheme: null, // a clean title card: the reference only, not the full theme
+    },
+    notes: [{ kind: 'body', heading: 'Title slide — the standing background', body: 'Leave this up as the room gathers; advance when you begin.' }],
+    runOfShow: [],
+  };
+
   const ros = parseRunOfShow(m.facilitator?.howToRun);
   // Which segment carries the actual teaching / go-deeper / discussion, by name.
   const isBigIdea = (name) => /big idea|the core|main|^teach/i.test(name || '');
@@ -814,7 +834,9 @@ export function lessonPresentable(module, opts = {}) {
         runOfShow: [],
       });
     }
-    // Re-label every part now the count is final (the recap may have been appended).
+    // The title card leads — the standing background until the speaker begins.
+    scenes.unshift(titleScene);
+    // Re-label every part now the count is final (title prepended, recap may be appended).
     const finalTotal = scenes.length;
     scenes = scenes.map((sc, i) => ({ ...sc, indexLabel: `Part ${i + 1} of ${finalTotal}` }));
   } else {
@@ -831,28 +853,33 @@ export function lessonPresentable(module, opts = {}) {
       notes.push({ kind: 'body', heading: 'The teaching — say it in your own words', body: fullText });
     }
     if (tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
-    scenes = [{
-      id: `${m.id || 'lesson'}-s1`,
-      indexLabel: 'Part 1 of 1',
-      audience: {
-        title: m.title || 'The lesson',
-        lead,
-        leadByAge,
-        points: pointsByAge[baseBand] || [],
-        pointsByAge,
-        detail: m.inApp || null,
-        detailLabel: handsOnLabel,
-        anchorRef, anchorTheme,
+    scenes = [
+      titleScene, // the standing title background, then the lesson
+      {
+        id: `${m.id || 'lesson'}-s1`,
+        audience: {
+          title: m.title || 'The lesson',
+          lead,
+          leadByAge,
+          points: pointsByAge[baseBand] || [],
+          pointsByAge,
+          detail: m.inApp || null,
+          detailLabel: handsOnLabel,
+          anchorRef, anchorTheme,
+        },
+        notes,
+        runOfShow: [],
       },
-      notes,
-      runOfShow: [],
-    }];
+    ].map((sc, i, arr) => ({ ...sc, indexLabel: `Part ${i + 1} of ${arr.length}` }));
   }
 
-  // The lesson's OWN length = the sum of its parts (authored run-of-show + the recap),
-  // so the timer target matches the "full = N min" the reflow shows. NEVER the 607
-  // series sum.
-  const fullMin = scenes.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
+  // The lesson's OWN length = the sum of its TEACHING parts (authored run-of-show +
+  // the recap), so the timer target matches the "full = N min" the reflow shows. NEVER
+  // the 607 series sum. The title card is a standing background, not teaching time, so
+  // it is excluded from the target (it still reflows as a 1-min supplementary in fit).
+  const fullMin = scenes.reduce((t, s) => (
+    t + (String(s.id || '').endsWith('-title') ? 0 : (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0))
+  ), 0);
   return {
     id: `lesson:${m.id || 'lesson'}`,
     title: m.title || 'Lesson',
