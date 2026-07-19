@@ -229,7 +229,9 @@ export async function uploadPhoto(dataUrl, { dest = 'family', filename = '' } = 
   // Keep the name to image chars only; the workflow re-sanitizes.
   const safeName = (filename || `photo-${Date.now()}.jpg`).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80);
   try {
-    const resp = await fetch('/n8n/webhook/photo-upload', {
+    // Sovereign Python photo server (same-origin /nas-photos rewrite), NOT n8n —
+    // the write path now matches the read path (Ways: Python-first, off n8n).
+    const resp = await fetch(`${NAS_PHOTO_BASE}/upload`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ dest, filename: safeName, dataUrl }),
