@@ -71,6 +71,51 @@ describe('findImportDuplicates', () => {
     expect(findImportDuplicates(txns).count).toBe(0); // no same account+date+SIGNED-amount real+generic pair
   });
 
+  it('BALANCE-ANCHORED: catches two REAL twins with differing descriptions that share a running balance (Darrell 2026-07-19)', () => {
+    // The CONNECTYOURCARE case Rule 1 misses (BOTH rows are real, not generic):
+    // same account+date+$amount, one "OPTUMCLAIM" + one "OPTUMCLAIM PPD ID: …", one
+    // categorized Other + one ACH Deposit — the SAME deposit imported twice, so both
+    // carry the SAME post-balance. Keep the richer (longer) description; drop the twin.
+    const txns = [
+      { id: 'short', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM', category: 'other', balance: 5200.00 },
+      { id: 'rich', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM PPD ID: 7261274092', category: 'ach_credit', balance: 5200.00 },
+    ];
+    const r = findImportDuplicates(txns);
+    expect(r.count).toBe(1);
+    expect(r.removeIds).toEqual(['short']);  // the less-informative twin; the PPD-ID row is kept
+    // PROVEN-TO-CATCH: without Rule 2 (balance-anchored), both are "real" so the
+    // group is skipped and the duplicate survives — count 0, totals stay doubled.
+  });
+
+  it('NEVER removes two GENUINE same-day/same-amount deposits with DIFFERENT balances', () => {
+    // Two real $600 CONNECTYOURCARE reimbursements the SAME day ARE possible; the
+    // running balance moved between them, so they are kept. Balance is the truth.
+    const txns = [
+      { id: 'a', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM', balance: 5200.00 },
+      { id: 'b', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM', balance: 5800.00 },
+    ];
+    expect(findImportDuplicates(txns).count).toBe(0);
+  });
+
+  it('leaves same-amount twins UNTOUCHED when neither carries a balance (cannot anchor → never guess)', () => {
+    const txns = [
+      { id: 'x', accountId: 'chk', date: '2026-06-17', amount: 208.33, description: 'CONNECTYOURCARE OPTUMCLAIM' },
+      { id: 'y', accountId: 'chk', date: '2026-06-17', amount: 208.33, description: 'CONNECTYOURCARE OPTUMCLAIM PPD ID: 7261274092' },
+    ];
+    expect(findImportDuplicates(txns).count).toBe(0); // no balance on either → safe, kept
+  });
+
+  it('catches a generic twin AND a balance twin in the same ledger, one pass', () => {
+    const txns = [
+      { id: 'r', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM PPD ID: 7261274092', balance: 5200 },
+      { id: 'baldupe', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'CONNECTYOURCARE OPTUMCLAIM', balance: 5200 }, // balance twin
+      { id: 'genericdupe', accountId: 'chk', date: '2026-06-04', amount: 600, description: 'ACH_CREDIT', balance: 5200 },             // generic twin
+    ];
+    const r = findImportDuplicates(txns);
+    expect(r.removeIds.sort()).toEqual(['baldupe', 'genericdupe']);
+    expect(r.count).toBe(2); // both kinds cleared, the richest real row kept
+  });
+
   it('skips rows with no id (nothing to delete) and handles empty input', () => {
     expect(findImportDuplicates([]).count).toBe(0);
     const txns = [
