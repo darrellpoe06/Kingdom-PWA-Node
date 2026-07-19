@@ -78,9 +78,20 @@ export function baselineAnomalies(months, opts = {}) {
   // $1,026" while every active month is $30-44k). Judge only months that have real
   // activity, against the median of the OTHER active months — "usual" = a typical
   // ACTIVE month, so the monitor flags a genuine outlier, not the start of history.
-  const active = months
-    .map((m) => ({ month: m.month, value: Number(m[metric]) || 0 }))
-    .filter((x) => x.value !== 0);
+  const activeNonZero = months.filter((m) => (Number(m[metric]) || 0) !== 0);
+  // Sharpen "active" using transaction COUNT when the months carry it. A ledger that
+  // started mid-history has sparse/partial early months whose FEW stray rows are
+  // non-zero but tiny, still dragging the median "usual" low (Darrell 2026-07-19:
+  // "usual $1,547" while every real month is $30-44k). A real month has activity on
+  // the order of the busy months; a startup/partial month does not. Restrict the
+  // baseline to months with >= 25% of the busiest month's count. Fall back to plain
+  // non-zero when counts are absent (tests) or too few substantial months remain.
+  const maxCount = Math.max(0, ...months.map((m) => Number(m.count) || 0));
+  const substantial = maxCount > 0
+    ? activeNonZero.filter((m) => (Number(m.count) || 0) >= 0.25 * maxCount)
+    : activeNonZero;
+  const active = (substantial.length >= minMonths ? substantial : activeNonZero)
+    .map((m) => ({ month: m.month, value: Number(m[metric]) || 0 }));
   if (active.length < minMonths) return [];
   const out = [];
   active.forEach((cur, i) => {
