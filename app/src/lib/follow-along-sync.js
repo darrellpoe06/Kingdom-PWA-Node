@@ -25,8 +25,13 @@
 // PURE helpers (code shape, channel name, share link, the follower state reducer) are
 // node-tested; the I/O takes an injectable `client` so the publish/subscribe wiring is
 // tested against a fake channel, not the network.
+//
+// NO TOP-LEVEL supabase import (on purpose): the Presenter imports this module, and
+// the Presenter is in turn imported by node-environment tests (via ChurchLearn) that
+// must never pull the browser supabase client (it touches window.localStorage). So the
+// real client is LAZY-loaded only on the browser I/O path; an injected client (tests)
+// wires up synchronously and never triggers the import.
 // =============================================================================
-import { supabase } from './supabase.js';
 
 // Single kill-switch. true = the presenter's "Go live for the congregation" toggle
 // and the ?follow=CODE view both mount.
@@ -86,64 +91,81 @@ export function applyFollowEvent(state = FOLLOW_INIT, event = {}) {
 
 // --- I/O: fail-soft, client injectable (mirrors tv-time-sync) ---------------
 
+// Wire a channel from whatever client is available. An injected client (tests) runs
+// this synchronously; the app has no client, so it lazy-loads the real one and wires
+// up a tick later — never touching supabase at module-eval time.
+function withClient(opts, wire) {
+  if (opts && opts.client) { wire(opts.client); return; }
+  import('./supabase.js').then((m) => { if (m && m.supabase) wire(m.supabase); }).catch(() => { /* offline / no realtime */ });
+}
+
 // PRESENTER side: open the session channel and push the current slide to followers.
-// Returns a controller; every method is a no-op-safe wrapper (never throws).
+// Returns a controller; every method is a no-op-safe wrapper (never throws). Slides
+// published before the (lazy) client is ready are buffered in `last` and flushed on
+// wire-up — the same buffer that catches late joiners up on their `hello`.
 export function createFollowBroadcaster(code, opts = {}) {
-  const client = opts.client || supabase;
   const name = followChannelName(code);
   let channel = null;
+  let client = null;
   let last = null; // the current slide, re-sent to late joiners on their `hello`
   function send(kind, slide) {
     if (!channel) return false;
     try { channel.send({ type: 'broadcast', event: EVENT, payload: { kind, slide: slide || null } }); return true; } catch { return false; }
   }
   if (name) {
-    try {
-      channel = client.channel(name, { config: { broadcast: { self: false } } });
-      // a joining follower pings HELLO -> resend the current slide so it catches up.
-      channel.on('broadcast', { event: HELLO }, () => { if (last) send('slide', last); });
-      channel.subscribe();
-    } catch { channel = null; }
+    withClient(opts, (c) => {
+      try {
+        client = c;
+        channel = c.channel(name, { config: { broadcast: { self: false } } });
+        // a joining follower pings HELLO -> resend the current slide so it catches up.
+        channel.on('broadcast', { event: HELLO }, () => { if (last) send('slide', last); });
+        channel.subscribe();
+        if (last) send('slide', last); // flush a slide published before the client was ready
+      } catch { channel = null; }
+    });
   }
   return {
     code: normalizeFollowCode(code),
     channelName: name,
-    live: !!channel,
     publish(slide) { last = slide || null; return send('slide', last); },
     hold() { last = null; return send('hold', null); },
     end() { send('end', null); },
-    close() { try { if (channel) client.removeChannel(channel); } catch { /* already closed */ } channel = null; },
+    close() { try { if (channel && client) client.removeChannel(channel); } catch { /* already closed */ } channel = null; },
   };
 }
 
 // FOLLOWER side: subscribe by code and receive live slides. handlers:
 //   { onSlide(slide), onHold(), onEnd(), onStatus(status) }. Returns unsubscribe().
 export function subscribeFollow(code, handlers = {}, opts = {}) {
-  const client = opts.client || supabase;
   const name = followChannelName(code);
   let channel = null;
+  let client = null;
   let cancelled = false;
   if (name) {
-    try {
-      channel = client.channel(name, { config: { broadcast: { self: false } } });
-      channel.on('broadcast', { event: EVENT }, (msg) => {
-        if (cancelled) return;
-        const p = (msg && msg.payload) || {};
-        if (p.kind === 'slide') handlers.onSlide && handlers.onSlide(p.slide || null);
-        else if (p.kind === 'hold') handlers.onHold && handlers.onHold();
-        else if (p.kind === 'end') handlers.onEnd && handlers.onEnd();
-      });
-      channel.subscribe((status) => {
-        if (cancelled) return;
-        handlers.onStatus && handlers.onStatus(status);
-        // On join, ping HELLO so the presenter re-sends the current slide.
-        if (status === 'SUBSCRIBED') { try { channel.send({ type: 'broadcast', event: HELLO, payload: {} }); } catch { /* non-fatal */ } }
-      });
-    } catch { channel = null; }
+    withClient(opts, (c) => {
+      if (cancelled) return;
+      try {
+        client = c;
+        channel = c.channel(name, { config: { broadcast: { self: false } } });
+        channel.on('broadcast', { event: EVENT }, (msg) => {
+          if (cancelled) return;
+          const p = (msg && msg.payload) || {};
+          if (p.kind === 'slide') handlers.onSlide && handlers.onSlide(p.slide || null);
+          else if (p.kind === 'hold') handlers.onHold && handlers.onHold();
+          else if (p.kind === 'end') handlers.onEnd && handlers.onEnd();
+        });
+        channel.subscribe((status) => {
+          if (cancelled) return;
+          handlers.onStatus && handlers.onStatus(status);
+          // On join, ping HELLO so the presenter re-sends the current slide.
+          if (status === 'SUBSCRIBED') { try { channel.send({ type: 'broadcast', event: HELLO, payload: {} }); } catch { /* non-fatal */ } }
+        });
+      } catch { channel = null; }
+    });
   }
   return function unsubscribe() {
     cancelled = true;
-    try { if (channel) client.removeChannel(channel); } catch { /* already closed */ }
+    try { if (channel && client) client.removeChannel(channel); } catch { /* already closed */ }
     channel = null;
   };
 }

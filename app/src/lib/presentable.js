@@ -115,12 +115,22 @@ export function holdingSlide(title, kicker) {
 // rendering is research-gated (see the follow-on doc); this is the shippable hook:
 // a one-line coaching note the PRESENTER sees, tuned to who is in the room. It never
 // changes what the audience sees — it only changes how the presenter is coached.
+// Every authored VERSION of the lesson is selectable, not just the three ages
+// (Darrell 2026-07-19: "why limit the speakers when we have all versions of the
+// curriculum for any audiences?"). A lesson authors four audience registers — the
+// general big idea (for a MIXED room, any age) plus the child / teen / senior
+// rewrites — so the presenter exposes all four. `everyone` = the big idea; `adult`
+// = the mature "senior" rewrite (the deeper register). Switching re-pitches the
+// room's wording live; it never changes the presenter's depth notes.
 export const PRESENT_AGE_BANDS = [
+  { id: 'everyone', label: 'Everyone', hint: 'The one big idea, pitched for a mixed room — the version written for anyone, any age.' },
   { id: 'child', label: 'Children', hint: 'One idea per slide. Read it aloud, ask a question, keep it short and warm.' },
   { id: 'teen', label: 'Teens', hint: 'Move at a good clip. Invite reactions, connect each slide to something real to them.' },
-  { id: 'adult', label: 'Adults', hint: 'Give room for the deeper idea and discussion; the notes panel carries the depth.' },
+  { id: 'adult', label: 'Adults', hint: 'The mature, seasoned-believer rewrite — give room for the deeper idea and discussion; the notes panel carries the depth.' },
 ];
-export const DEFAULT_PRESENT_AGE = 'teen';
+// A mixed congregation is the common case, so the general "Everyone" register is the
+// natural default; the speaker switches to a specific age with one tap.
+export const DEFAULT_PRESENT_AGE = 'everyone';
 
 export function ageHint(bandId) {
   const b = PRESENT_AGE_BANDS.find((x) => x.id === bandId) || PRESENT_AGE_BANDS.find((x) => x.id === DEFAULT_PRESENT_AGE);
@@ -691,26 +701,22 @@ export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
   const lv = m.levels || {};
-  // The FULL age-appropriate lesson text per presenter band (falls back to the big
-  // idea when a band has no authored rewrite).
+  // The FULL text per presenter register. `everyone` = the general big idea (a mixed
+  // room); child/teen/adult = the authored rewrites (adult -> the mature "senior"
+  // one). Every register falls back to the big idea when its rewrite is absent, so a
+  // lesson with only a big idea still presents at every choice.
   const textByBand = {
+    everyone: m.bigIdea || lv.senior || lv.teen || '',
     child: lv.child || m.bigIdea || '',
     teen: lv.teen || m.bigIdea || '',
     adult: lv.senior || m.bigIdea || '',
   };
-  // Each band's text split across the two teaching beats (big idea -> go deeper), so
-  // BOTH scale to the room and both re-pitch when the band is switched live.
-  const halves = {
-    child: splitTeachingText(textByBand.child),
-    teen: splitTeachingText(textByBand.teen),
-    adult: splitTeachingText(textByBand.adult),
-  };
-  const bigLeadByAge = { child: halves.child[0], teen: halves.teen[0], adult: halves.adult[0] };
-  const deeperLeadByAge = {
-    child: halves.child[1] || halves.child[0],
-    teen: halves.teen[1] || halves.teen[0],
-    adult: halves.adult[1] || halves.adult[0],
-  };
+  const BANDS = Object.keys(textByBand);
+  // Each register's text split across the two teaching beats (big idea -> go deeper),
+  // so BOTH scale to the room and both re-pitch when the register is switched live.
+  const halves = Object.fromEntries(BANDS.map((b) => [b, splitTeachingText(textByBand[b])]));
+  const bigLeadByAge = Object.fromEntries(BANDS.map((b) => [b, halves[b][0]]));
+  const deeperLeadByAge = Object.fromEntries(BANDS.map((b) => [b, halves[b][1] || halves[b][0]]));
   const baseBand = LEVEL_KEY_TO_BAND[opts.level] || 'teen';
   const tp = Array.isArray(m.facilitator?.talkingPoints) ? m.facilitator.talkingPoints : [];
   const dp = Array.isArray(m.facilitator?.discussionPrompts) ? m.facilitator.discussionPrompts : [];
@@ -751,13 +757,9 @@ export function lessonPresentable(module, opts = {}) {
       const teachingFull = big ? bigLeadByAge : (deeper ? deeperLeadByAge : null);
       let lead; let leadByAge = null; let points = null; let pointsByAge = null;
       if (teachingFull) {
-        const outByAge = {
-          child: slideOutline(teachingFull.child),
-          teen: slideOutline(teachingFull.teen),
-          adult: slideOutline(teachingFull.adult),
-        };
-        leadByAge = { child: outByAge.child.lead, teen: outByAge.teen.lead, adult: outByAge.adult.lead };
-        pointsByAge = { child: outByAge.child.points, teen: outByAge.teen.points, adult: outByAge.adult.points };
+        const outByAge = Object.fromEntries(BANDS.map((b) => [b, slideOutline(teachingFull[b])]));
+        leadByAge = Object.fromEntries(BANDS.map((b) => [b, outByAge[b].lead]));
+        pointsByAge = Object.fromEntries(BANDS.map((b) => [b, outByAge[b].points]));
         lead = leadByAge[baseBand] || m.bigIdea || seg.detail || '';
         points = pointsByAge[baseBand] || [];
         // Full teaching text (this band) -> presenter notes, so the room sees the
@@ -818,16 +820,10 @@ export function lessonPresentable(module, opts = {}) {
   } else {
     // A lesson with no authored run-of-show still presents as one scene — a concise
     // main idea + points for the room, the FULL age text kept in presenter notes.
-    const wholeByAge = {
-      child: textByBand.child, teen: textByBand.teen, adult: textByBand.adult,
-    };
-    const outByAge = {
-      child: slideOutline(wholeByAge.child),
-      teen: slideOutline(wholeByAge.teen),
-      adult: slideOutline(wholeByAge.adult),
-    };
-    const leadByAge = { child: outByAge.child.lead, teen: outByAge.teen.lead, adult: outByAge.adult.lead };
-    const pointsByAge = { child: outByAge.child.points, teen: outByAge.teen.points, adult: outByAge.adult.points };
+    const wholeByAge = { ...textByBand };
+    const outByAge = Object.fromEntries(BANDS.map((b) => [b, slideOutline(wholeByAge[b])]));
+    const leadByAge = Object.fromEntries(BANDS.map((b) => [b, outByAge[b].lead]));
+    const pointsByAge = Object.fromEntries(BANDS.map((b) => [b, outByAge[b].points]));
     const fullText = wholeByAge[baseBand] || '';
     const lead = leadByAge[baseBand] || m.bigIdea || '';
     const notes = [];

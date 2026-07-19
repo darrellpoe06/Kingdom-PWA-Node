@@ -334,10 +334,29 @@ describe('The Word — a LIBRARY of messages, each its OWN presentation', () => 
 });
 
 describe('age-adaptive presenter hook', () => {
-  it('exposes child/teen/adult bands with a coaching hint each', () => {
-    expect(PRESENT_AGE_BANDS.map((b) => b.id)).toEqual(['child', 'teen', 'adult']);
+  it('exposes EVERY authored version — everyone (the big idea) + child/teen/adult — each with a hint', () => {
+    expect(PRESENT_AGE_BANDS.map((b) => b.id)).toEqual(['everyone', 'child', 'teen', 'adult']);
+    expect(DEFAULT_PRESENT_AGE).toBe('everyone'); // a mixed room is the common case
     expect(ageHint('child')).toMatch(/one idea/i);
+    expect(ageHint('everyone')).toMatch(/mixed room|anyone/i);
     expect(ageHint('nonsense')).toBe(ageHint(DEFAULT_PRESENT_AGE)); // falls back
+  });
+
+  it('lessonPresentable exposes the "everyone" register (the general big idea) alongside the ages', () => {
+    const lesson = {
+      id: 'reg', title: 'Registers', bigIdea: 'The general big idea, for anyone. It has a second sentence.',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: { child: 'Kid text here. And more.', teen: 'Teen text here. And more.', senior: 'Senior text here. And more.' },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson);
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    // all four registers are present on the same slide, so the speaker can pick any live
+    expect(Object.keys(big.audience.leadByAge).sort()).toEqual(['adult', 'child', 'everyone', 'teen']);
+    // the "everyone" register is the general big idea; "adult" is the senior rewrite
+    expect(resolveAudienceLead(big.audience, 'everyone')).toBe('The general big idea, for anyone.');
+    expect(resolveAudienceLead(big.audience, 'adult')).toBe('Senior text here.');
+    expect(resolveAudienceLead(big.audience, 'child')).toBe('Kid text here.');
   });
 });
 
