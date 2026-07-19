@@ -225,6 +225,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // surface must not throw at all.
   const accounts = useMemo(() => (Array.isArray(data?.accounts) ? data.accounts : []), [data?.accounts]);
   const entities = useMemo(() => (Array.isArray(data?.entities) ? data.entities : []), [data?.entities]);
+  // The category pick-list: the canonical set PLUS any category already present in
+  // the ledger (so a raw import code or a category the user CREATED earlier stays
+  // pickable). The Category field is a pick-or-type combobox, so a brand-new name
+  // typed here becomes a real category — recategorizePayee remembers it and
+  // back-applies it (Darrell 2026-07-19: "if a user creates a new category").
+  const allCategories = useMemo(() => {
+    const seen = new Set(TX_CATEGORIES);
+    for (const t of (data?.transactions || [])) { const c = t && t.category; if (c) seen.add(String(c).toLowerCase()); }
+    return [...seen].sort();
+  }, [data?.transactions]);
   // Safe entity label — never assume a string `name` exists.
   const entityLabel = (e) => ((e && e.name) || (e && e.id) || '—').split('(')[0].trim();
   const [txView, setTxView] = useState('history');
@@ -324,8 +334,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   // "Apply this category to every transaction from this payee" — learns the rule
-  // + back-applies (recategorizePayee). Reset each time an edit opens/closes.
-  const [applyToPayee, setApplyToPayee] = useState(false);
+  // + back-applies (recategorizePayee). Default ON (Darrell 2026-07-19: "auto-apply
+  // ... change all like it ... then retroactively change all of them"): one category
+  // change re-labels every same-payee row and teaches future imports. The user can
+  // untick it for a one-off row. Only fires when the category actually CHANGED.
+  const [applyToPayee, setApplyToPayee] = useState(true);
   const todayISO = currentDate.toISOString().slice(0, 10);
   const blank = { date: todayISO, accountId: accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
@@ -335,17 +348,21 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const startAdd = () => { setForm({ ...blank, accountId: accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
   // r32 — Inline edit per IN-PLACE-FIRST: edit form drops down under the row,
   // top form reserved for Add only.
-  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setApplyToPayee(false); setShowForm(false); };
-  const cancel = () => { setShowForm(false); setEditingId(null); setApplyToPayee(false); setForm(blank); };
+  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setApplyToPayee(true); setShowForm(false); };
+  const cancel = () => { setShowForm(false); setEditingId(null); setApplyToPayee(true); setForm(blank); };
   const submit = () => {
     if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
     const payload = { ...form, amount: parseFloat(form.amount) || 0 };
     if (!payload.entityOverride) delete payload.entityOverride;
     if (editingId) {
+      // Only back-apply when the CATEGORY actually changed — so editing a row's
+      // amount/date never silently re-labels its same-payee siblings.
+      const orig = (data.transactions || []).find((t) => t.id === editingId);
+      const catChanged = !orig || (orig.category || 'other') !== payload.category;
       updateTransaction(editingId, payload);
       // Learn + back-apply: one correction re-labels every row from this payee
       // and teaches the rule for future imports.
-      if (applyToPayee && recategorizePayee && payload.category) recategorizePayee(payload.description, payload.category);
+      if (applyToPayee && recategorizePayee && payload.category && catChanged) recategorizePayee(payload.description, payload.category);
     } else {
       addTransaction(payload);
     }
@@ -1136,7 +1153,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
-                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</select></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><input list="tx-category-options" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} placeholder="Pick or type a new one" onChange={e => setForm({ ...form, category: e.target.value.toLowerCase().trimStart() })} /><datalist id="tx-category-options">{allCategories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</datalist></div>
               </div>
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
               {recategorizePayee && (() => {
@@ -1144,7 +1161,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 return (
                   <label className="flex items-start gap-2 text-[0.6875rem] text-[#5A5751] cursor-pointer bg-white border border-[#E8E4DC] p-2">
                     <input type="checkbox" checked={applyToPayee} onChange={e => setApplyToPayee(e.target.checked)} className="mt-0.5" />
-                    <span>Apply <strong className="capitalize">{form.category}</strong> to all <strong>{n}</strong> transaction{n === 1 ? '' : 's'} from this payee — and remember it so future imports from this payee categorize the same way.</span>
+                    <span>Apply <strong>{categoryLabel(form.category)}</strong> to all <strong>{n}</strong> transaction{n === 1 ? '' : 's'} from this payee — and remember it so future imports from this payee categorize the same way. <span className="text-[#8A857C]">On by default; untick to change only this row.</span></span>
                   </label>
                 );
               })()}
@@ -1357,9 +1374,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
               <div>
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
-                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {TX_CATEGORIES.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}
-                </select>
+                <input list="tx-category-options-add" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} placeholder="Pick or type a new one" onChange={e => setForm({ ...form, category: e.target.value.toLowerCase().trimStart() })} />
+                <datalist id="tx-category-options-add">{allCategories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</datalist>
               </div>
             </div>
             <div>

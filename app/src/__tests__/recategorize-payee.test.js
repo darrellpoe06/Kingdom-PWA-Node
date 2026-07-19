@@ -5,7 +5,7 @@
 // re-labeled (across account-tail variants), the count reflects only the rows
 // that actually changed, and non-matching rows are untouched.
 import { describe, it, expect } from 'vitest';
-import { applyCategoryToPayee, countPayeeMatches, payeeKey } from '../lib/categorize.js';
+import { applyCategoryToPayee, countPayeeMatches, payeeKey, categoryLabel } from '../lib/categorize.js';
 
 const TX = [
   { id: '1', description: 'WF HOME MTG AUTO PAY 0511', category: 'vehicle' },
@@ -28,5 +28,15 @@ describe('back-apply by payee', () => {
     const once = applyCategoryToPayee(TX, payeeKey('WF HOME MTG AUTO PAY 1'), 'debt-payment').transactions;
     // running again changes nothing (idempotent)
     expect(applyCategoryToPayee(once, payeeKey('WF HOME MTG AUTO PAY 1'), 'debt-payment').count).toBe(0);
+  });
+  it('a brand-new category the user CREATES back-applies + renders clean (Darrell 2026-07-19)', () => {
+    // "if a user creates a new category" — an arbitrary category (not in the
+    // canonical list) must flow through the same back-apply engine and display
+    // readably. PROVEN-TO-CATCH: the engine is category-string-agnostic, and
+    // categoryLabel Title-Cases the custom slug rather than leaving it raw.
+    const { transactions, count } = applyCategoryToPayee(TX, payeeKey('WF HOME MTG AUTO PAY 7'), 'kids-school');
+    expect(count).toBe(2);
+    expect(transactions.find((t) => t.id === '1').category).toBe('kids-school');
+    expect(categoryLabel('kids-school')).toBe('Kids School'); // reads clean, not "kids-school"
   });
 });

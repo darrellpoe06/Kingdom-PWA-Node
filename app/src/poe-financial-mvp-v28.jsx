@@ -3182,7 +3182,7 @@ export default function PoeFinancialSystem() {
       categoryRules: { ...(d.categoryRules || {}), [key]: category },
       transactions: applyCategoryToPayee(d.transactions || [], key, category).transactions,
     }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if (authSession && !isAnyDemoMode) { // synced re-label MUST reach cloud or a refresh reverts it (as update/delete)
       for (const t of changed) {
         if (t.remoteUuid) transactionsSync.updateRow(t.remoteUuid, { category }).catch(e => syncWarn('[transactions-sync] recategorize failed', e));
       }
