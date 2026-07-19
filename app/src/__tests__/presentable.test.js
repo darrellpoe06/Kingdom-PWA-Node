@@ -3,7 +3,7 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide, resolveAudienceLead,
-  slideOutline, resolveAudiencePoints,
+  slideOutline, resolveAudiencePoints, scriptureRefsInText,
   coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
@@ -264,6 +264,35 @@ describe('slideOutline + concise audience slides (Darrell 2026-07-19: not-too-wo
     const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
     expect(slide.lead).toBe('The one thing to hold is this.');
     expect(Array.isArray(slide.points) && slide.points.length > 0).toBe(true);
+  });
+});
+
+describe('cited Scripture — the room reads the Word directly (Darrell 2026-07-19)', () => {
+  it('scriptureRefsInText pulls the cited references, deduped + capped', () => {
+    const refs = scriptureRefsInText('the body (1 Corinthians 12:18); build the house (Psalm 127:1); great (Mark 10:43-45); again (Psalm 127:1)');
+    expect(refs).toEqual(['1 Corinthians 12:18', 'Psalm 127:1', 'Mark 10:43-45']); // Psalm 127:1 deduped
+    expect(scriptureRefsInText('no scripture here at all')).toEqual([]);
+    expect(scriptureRefsInText('Mark 1:1 John 2:2 Luke 3:3 Acts 4:4 James 5:5', { max: 3 })).toHaveLength(3);
+    // multi-word + numbered books resolve
+    expect(scriptureRefsInText('see Song of Solomon 2:1 and 2 Timothy 1:7')).toEqual(['Song of Solomon 2:1', '2 Timothy 1:7']);
+  });
+
+  it('a teaching beat carries the Scriptures it cites, and they flow to the built slide', () => {
+    const lesson = {
+      id: 'cite', title: 'Cited', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: {
+        child: 'God sets the body (1 Corinthians 12:18). And more here.',
+        teen: 'God sets the body (1 Corinthians 12:18). And more here.',
+        senior: 'God sets the body (1 Corinthians 12:18). Except the LORD build the house (Psalm 127:1). And more here.',
+      },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    expect(big.audience.citedRefs).toContain('1 Corinthians 12:18');
+    const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
+    expect(slide.citedRefs).toContain('1 Corinthians 12:18'); // rides to the projector payload
   });
 });
 

@@ -19,10 +19,27 @@
 //
 // Contrast (WCAG AA, on #14110E near-black): #FAF8F4 body (>16:1), #CFC9BD
 // secondary (~9:1), #C9D9A6 green + #EBA77E orange accents (>=4.5:1).
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { verseText } from '../lib/bible-kjv.js';
 
 export default function AudienceSlide({ slide = null, hold = null }) {
   const showHold = !!hold || !slide;
+
+  // Resolve any Scripture the slide CITES to its VERBATIM KJV text (from the sovereign
+  // in-app corpus), so the room reads the Word directly, in context (Darrell 2026-07-19).
+  // Fail-soft: a ref that doesn't resolve is simply dropped, never invented (DR-0076).
+  const citedRefs = (slide && Array.isArray(slide.citedRefs)) ? slide.citedRefs : null;
+  const citedKey = citedRefs ? citedRefs.join('|') : '';
+  const [cited, setCited] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    if (!citedRefs || !citedRefs.length) { setCited([]); return undefined; }
+    Promise.all(citedRefs.map(async (ref) => ({ ref, text: await verseText(ref).catch(() => '') })))
+      .then((rows) => { if (alive) setCited(rows.filter((r) => r.text)); })
+      .catch(() => { if (alive) setCited([]); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citedKey]);
   if (showHold) {
     return (
       <div style={{ textAlign: 'center', margin: 'auto' }}>
@@ -111,6 +128,20 @@ export default function AudienceSlide({ slide = null, hold = null }) {
         <div style={{ marginTop: 'clamp(20px, 3vw, 40px)', borderLeft: '3px solid #4A453D', paddingLeft: 'clamp(14px, 1.6vw, 22px)' }}>
           {String(slide.scripture).split('\n').filter(Boolean).map((line, i) => (
             <p key={i} style={{ fontSize: 'clamp(15px, 1.9vw, 28px)', lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0', color: '#FAF8F4', fontStyle: 'italic' }}>{line}</p>
+          ))}
+        </div>
+      )}
+
+      {/* The Scriptures this slide CITES, shown VERBATIM so the room reads the Word
+          directly, in context (Darrell 2026-07-19). Reference labelled, verse italic;
+          resolved from the sovereign KJV corpus, dropped if it doesn't resolve. */}
+      {cited.length > 0 && (
+        <div style={{ marginTop: 'clamp(20px, 3vw, 40px)', borderLeft: '3px solid #C9D9A6', paddingLeft: 'clamp(14px, 1.6vw, 22px)' }}>
+          {cited.map((row, i) => (
+            <p key={row.ref} style={{ fontSize: 'clamp(15px, 1.85vw, 27px)', lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(12px, 1.6vw, 20px) 0 0', color: '#FAF8F4' }}>
+              <span style={{ color: '#C9D9A6', fontWeight: 700 }}>{row.ref} — </span>
+              <span style={{ fontStyle: 'italic' }}>&ldquo;{row.text}&rdquo;</span>
+            </p>
           ))}
         </div>
       )}

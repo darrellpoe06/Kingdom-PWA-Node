@@ -89,6 +89,9 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     // Bullet/numbered points shown UNDER the main idea for details + note-takers.
     points: points.length ? points : null,
     ordered: !!a.ordered,
+    // Scripture references cited on this slide — AudienceSlide resolves them to
+    // verbatim KJV so the room reads the Word directly, in context.
+    citedRefs: Array.isArray(a.citedRefs) && a.citedRefs.length ? a.citedRefs : null,
     detail: a.detail || null,
     inApp: a.detail || null,
     detailLabel: a.detailLabel || 'In the app',
@@ -682,6 +685,29 @@ export function slideOutline(text, opts = {}) {
   return { lead: sentences[0], points: sentences.slice(1, 1 + maxPoints) };
 }
 
+// Pull the Scripture REFERENCES a block of teaching text cites (Darrell 2026-07-19:
+// "each scripture should be shown so it can be seen in context when cited... for the
+// audience to see and eat the Word directly"). Matches "Book Ch:V", an optional
+// leading 1-3, a "of" (Song of Solomon), and a -verse range. Over-matches are harmless:
+// the slide resolves each against the real KJV corpus and simply drops any that don't
+// resolve, so a non-book capture never shows. Deduped, order-preserving, capped.
+const SCRIPTURE_REF_RE = /(?:[1-3]\s)?[A-Z][a-z]+(?:\s(?:of\s)?[A-Z][a-z]+){0,2}\s\d+:\d+(?:-\d+)?/g;
+export function scriptureRefsInText(text, opts = {}) {
+  const clean = typeof text === 'string' ? text : '';
+  if (!clean) return [];
+  const cap = Number(opts.max) > 0 ? Number(opts.max) : 4;
+  const seen = new Set();
+  const out = [];
+  for (const m of clean.match(SCRIPTURE_REF_RE) || []) {
+    const ref = m.trim();
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    out.push(ref);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
 // Resolve the audience POINTS for the room at the current band (the bullet sibling of
 // resolveAudienceLead): pointsByAge wins when present so a live band-switch re-pitches
 // the bullets too; else the base `points`; else none.
@@ -793,6 +819,9 @@ export function lessonPresentable(module, opts = {}) {
       }
       // Talking points ride as presenter-only notes on the big-idea beat.
       if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
+      // The Scriptures this beat CITES -> shown verbatim on the slide (resolved from the
+      // sovereign KJV corpus in AudienceSlide), so the room reads the Word directly.
+      const citedRefs = teachingFull ? scriptureRefsInText(teachingFull[baseBand] || '') : [];
       return {
         id: `${m.id || 'lesson'}-s${i + 1}`,
         indexLabel: `Part ${i + 1} of ${total}`,
@@ -805,6 +834,7 @@ export function lessonPresentable(module, opts = {}) {
           leadByAge,
           points,
           pointsByAge,
+          citedRefs: citedRefs.length ? citedRefs : null,
           detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
           detailLabel: handsOnLabel,
           anchorRef: i === 0 ? anchorRef : null,
