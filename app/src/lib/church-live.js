@@ -68,6 +68,24 @@ export function latestUploadEmbedUrl(channelId) {
   return list ? `https://www.youtube.com/embed/videoseries?list=${list}&rel=0` : null;
 }
 
+// worshipPlayerSrc(channelId) — the ONE embed the Live Worship slot mounts.
+//
+// It uses the uploads-playlist embed (videoseries?list=UU…), NOT the
+// /embed/live_stream?channel= form. The uploads playlist is newest-first, so a
+// broadcast that is CURRENTLY LIVE — the newest item on the channel — plays here
+// automatically, and between services the most recent message keeps playing, with
+// no API key and no weekly video-id edits.
+//
+// Why not live_stream? (Darrell 2026-07-19: "YouTube is streaming and working
+// independently... it's just not connecting to the app.") The church was live on
+// YouTube while the app's /embed/live_stream?channel= frame still read "This video
+// is unavailable" — YouTube renders that endpoint unavailable even when the channel
+// IS live, so it is abandoned. It stays only as the last-resort fallback for a
+// non-standard channel id from which no uploads playlist can be derived.
+export function worshipPlayerSrc(channelId) {
+  return latestUploadEmbedUrl(channelId) || liveStreamEmbedUrl(channelId);
+}
+
 // A stream may begin a little before the posted start time (pre-roll / praise
 // & worship) and run well past it (a long service + the stream lingering on
 // "stream ended" before YouTube tears it down). Generous on both sides so we

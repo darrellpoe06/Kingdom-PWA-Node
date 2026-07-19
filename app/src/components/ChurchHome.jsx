@@ -17,7 +17,7 @@
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
 import React, { useState, useRef, useCallback } from 'react';
-import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
+import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
 import AppShareQR from './AppShareQR.jsx';
@@ -87,10 +87,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const [ministryInterest, setMinistryInterest] = useState({ name: '', email: '', interest: '', skills: '' });
   const [showMinistryForm, setShowMinistryForm] = useState(false);
   const [ministryNote, setMinistryNote] = useState('');
-  // Live Worship: the player auto-mounts only inside a plausible service window
-  // (see lib/church-live.js). Outside it, the visitor can still open the player
-  // on demand for an off-schedule stream — this latches that explicit choice.
-  const [openLivePlayer, setOpenLivePlayer] = useState(false);
 
   // D21 — Multi-church directory "invite your church" form (skeleton; full
   // partner-onboarding flow ships V2). Local-only, no backend — submit shows an
@@ -147,19 +143,22 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // detect live state without the YouTube Data API (Reality-Trace P15). A real
   // live/offline detector (same-origin n8n proxy, no key) is the follow-up.
   const liveChannelId = (c.youtubeChannelId || '').trim();
-  const liveSrc = liveStreamEmbedUrl(liveChannelId);     // live broadcast embed
-  const latestSrc = latestUploadEmbedUrl(liveChannelId); // rolling latest upload
   const channelUrl = c.media?.youtube || (liveChannelId ? `https://www.youtube.com/channel/${liveChannelId}` : null);
   const onlineServices = (c.services || []).filter(s => s && s.online !== false);
-  // Honest, no-API-key live gate: are we inside a published online-service
-  // window right now? Inside it (or on explicit open) we show the live embed;
-  // otherwise we roll the latest upload — never a blank/waiting frame.
+  // The ONE reliable embed: the uploads-playlist player (newest-first). A broadcast
+  // that is currently LIVE is the channel's newest item, so it plays here on its
+  // own, and the most recent message keeps playing between services — no API key,
+  // no weekly edits. The old /embed/live_stream?channel= form is abandoned: YouTube
+  // rendered it "This video is unavailable" even while the church WAS live on
+  // YouTube (Darrell 2026-07-19). See worshipPlayerSrc.
+  const playerSrc = worshipPlayerSrc(liveChannelId);
+  // Honest, no-API-key window gate — used ONLY for the "Live service"/"Latest
+  // message" label and heading, never to swap the source (the one embed covers
+  // both states). Inside a published online-service window we call it live.
   const liveNow = liveStatus(onlineServices);
-  const showLive = !!liveSrc && (liveNow.live || openLivePlayer);
-  // The source actually mounted: live broadcast in-window, else latest upload.
-  const playerSrc = showLive ? liveSrc : latestSrc;
-  // Render the section whenever we have ANY honest source (live or latest).
-  const hasWorshipPlayer = !!liveSrc || !!latestSrc;
+  const showLive = liveNow.live;
+  // Render the section whenever we have a source at all.
+  const hasWorshipPlayer = !!playerSrc;
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
@@ -382,18 +381,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                 <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
                 {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
               </p>
-            )}
-            {/* Escape hatch: an off-schedule stream may be live outside the
-                published window. While we're showing the latest upload, let the
-                visitor switch to the live broadcast on demand. */}
-            {!showLive && liveSrc && (
-              <button
-                type="button"
-                onClick={() => setOpenLivePlayer(true)}
-                className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                Streaming now? Switch to the live player
-              </button>
             )}
             {channelUrl && (
               <a
