@@ -15,9 +15,14 @@
 //   * Within a group, a row is "generic" only when its whole description is a bank
 //     TYPE word (debit/credit/check/dslip/ach/…). Anything with a real merchant is
 //     "real".
-//   * It removes AT MOST (number of real rows) generic rows per group — so it can
-//     never remove more junk copies than there are real originals, and two GENUINE
-//     same-day/same-amount purchases (both real, or both generic) are NEVER touched.
+//   * A group needs BOTH kinds to dedupe — so two GENUINE same-day/same-amount
+//     purchases that are ALL real, or ALL generic, are NEVER touched. When a group
+//     has a real anchor, EVERY generic twin in it is junk (payee-less residue of the
+//     Details-column mis-map) and is removed in one pass. (It used to cap removal at
+//     the real-count, which under-removed when a statement was re-imported several
+//     times — many generic copies per real row — forcing the family to tap "remove"
+//     round after round. The balance-continuity audit, REV-0101, backstops any rare
+//     over-removal.)
 //   * Rows carrying a remoteUuid are still removable (the caller deletes them from
 //     the cloud too); rows with no id are skipped (nothing to delete).
 // Pure + deterministic. The caller deletes the returned ids in the family session.
@@ -64,12 +69,13 @@ export function findImportDuplicates(transactions) {
       if (isGenericDescription(t.description || t.desc)) generic.push(t); else real.push(t);
     }
     if (!real.length || !generic.length) continue; // need BOTH kinds to be a mis-map twin
-    // Remove at most (number of real rows) generic twins — never more junk than
-    // there are real originals. Deterministic order: by id so it's stable.
+    // Remove EVERY generic twin in this anchored group (not a capped slice): the
+    // generics are payee-less residue and the real row(s) carry the truth, so ONE
+    // tap fully cleans a re-imported statement instead of peeling off real-count at
+    // a time. Deterministic order: by id so it's stable.
     const removable = generic
       .filter((t) => t.id != null)
-      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
-      .slice(0, real.length);
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
     for (const t of removable) {
       removeIds.push(t.id);
       byAccount[t.accountId] = (byAccount[t.accountId] || 0) + 1;
