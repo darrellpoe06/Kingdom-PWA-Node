@@ -154,6 +154,21 @@ describe('Presenter — time-adaptive render', () => {
     expect(container.querySelector('input[aria-label="Minutes available"]')).toBeTruthy();
   });
 
+  it('goes live for the congregation — shows a session code, a follow link, and a Stop', () => {
+    act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
+    const goLive = [...container.querySelectorAll('button')].find((b) => /go live for the congregation/i.test(b.textContent));
+    expect(goLive).toBeTruthy();
+    act(() => goLive.click());
+    // a code appears, the shareable ?follow= link is shown, and Stop is offered
+    expect(container.textContent).toMatch(/\bcode\b/i);
+    expect(container.textContent).toMatch(/\?follow=[A-Z0-9]+/);
+    const stop = [...container.querySelectorAll('button')].find((b) => /^stop$/i.test(b.textContent.trim()));
+    expect(stop).toBeTruthy();
+    act(() => stop.click());
+    // stopping returns to the "Go live" offer
+    expect([...container.querySelectorAll('button')].some((b) => /go live for the congregation/i.test(b.textContent))).toBe(true);
+  });
+
   it('shows bullet POINTS under the main idea on the class screen, re-pitched by band', () => {
     const deck = {
       id: 'points:deck', title: 'Points deck', targetMin: 10,

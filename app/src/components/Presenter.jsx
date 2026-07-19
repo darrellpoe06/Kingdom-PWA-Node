@@ -40,6 +40,9 @@ import {
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
 import AudienceSlide from './AudienceSlide.jsx';
+import {
+  FOLLOW_ALONG_ENABLED, makeFollowCode, createFollowBroadcaster, followLink,
+} from '../lib/follow-along-sync.js';
 
 // The presenter's own device localStorage, guarded (SSR / private-mode safe). The
 // living-curriculum overlay is personal to the presenter and never touches the
@@ -256,6 +259,7 @@ export default function Presenter({
   // held up / cast to a TV), no popup, no second browser. The age toggle + nav stay
   // reachable so the speaker adjusts the pitch to the room live (Darrell 2026-07-16).
   const [onScreen, setOnScreen] = useState(false);
+  const [followCode, setFollowCode] = useState(null); // set when broadcasting to congregation devices
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------
   const [budgetMin, setBudgetMin] = useState(0);  // 0 = no budget (full curriculum)
@@ -295,6 +299,7 @@ export default function Presenter({
   const idxRef = useRef(idx);
   useEffect(() => { idxRef.current = idx; }, [idx]);
   const blankRef = useRef(false);
+  const followRef = useRef(null); // the congregation follow-along broadcaster, when live
   useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
   const ageRef = useRef(age);
   useEffect(() => { ageRef.current = age; }, [age]);
@@ -303,13 +308,15 @@ export default function Presenter({
   // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
   // room's slide instantly (leadByAge), without leaving the current slide.
   const sendCurrent = useCallback(() => {
+    const payload = blankRef.current
+      ? holdingSlide(title, kicker)
+      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
+    // 1) the same-browser projector (BroadcastChannel)
     const ch = chRef.current;
-    if (!ch) return;
-    try {
-      ch.postMessage(blankRef.current
-        ? holdingSlide(title, kicker)
-        : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current }));
-    } catch (e) { /* non-fatal */ }
+    if (ch) { try { ch.postMessage(payload); } catch (e) { /* non-fatal */ } }
+    // 2) the congregation on their OWN devices (Supabase Realtime), when live
+    const f = followRef.current;
+    if (f) { try { if (blankRef.current) f.hold(); else f.publish(payload); } catch (e) { /* non-fatal */ } }
   }, [scenes, title, kicker]);
 
   // --- BroadcastChannel: own it, answer the audience's "ready" handshake ---
@@ -387,6 +394,28 @@ export default function Presenter({
     try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current })); } catch (e) { /* noop */ }
     setAudienceState('live');
   }, [scenes, kicker]);
+
+  // --- congregation follow-along: broadcast the live slide to their own devices ---
+  const goLiveForCongregation = useCallback(() => {
+    if (!FOLLOW_ALONG_ENABLED || followRef.current) return;
+    const code = makeFollowCode();
+    followRef.current = createFollowBroadcaster(code);
+    setFollowCode(code);
+    // push the current slide immediately so a follower who joins right away sees it
+    const payload = blankRef.current
+      ? holdingSlide(title, kicker)
+      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
+    try { if (blankRef.current) followRef.current.hold(); else followRef.current.publish(payload); } catch (e) { /* non-fatal */ }
+  }, [scenes, title, kicker]);
+
+  const stopFollow = useCallback(() => {
+    try { followRef.current?.end(); followRef.current?.close(); } catch (e) { /* non-fatal */ }
+    followRef.current = null;
+    setFollowCode(null);
+  }, []);
+
+  // Close the follow channel if the presenter unmounts mid-session.
+  useEffect(() => () => { try { followRef.current?.close(); } catch (e) { /* noop */ } followRef.current = null; }, []);
 
   const overMin = Math.floor(elapsed / 60) >= effectiveTarget;
   const a = cur?.audience || {};
@@ -525,6 +554,26 @@ export default function Presenter({
           <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
             ← / → or a clicker to advance
           </span>
+          {/* Congregation follows the LIVE slide on their OWN phones/tablets (Love
+              Corner staging) — a shareable code/link, synced to whatever slide you're on. */}
+          {FOLLOW_ALONG_ENABLED && (
+            <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid #EFEADF', marginTop: 8, paddingTop: 12 }}>
+              <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.875rem' }}>Congregation follows on their phones:</strong>
+              {!followCode ? (
+                <button type="button" onClick={goLiveForCongregation} style={btn.base}>Go live for the congregation</button>
+              ) : (
+                <>
+                  <span style={{ fontSize: '0.8125rem', color: '#5A6E3D' }}>● live · code <strong style={{ fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.15em' }}>{followCode}</strong></span>
+                  <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace', wordBreak: 'break-all' }}>{followLink(followCode)}</span>
+                  <button type="button" onClick={() => { try { navigator.clipboard?.writeText(followLink(followCode)); } catch (e) { /* noop */ } }} style={btn.ghost}>Copy link</button>
+                  <button type="button" onClick={stopFollow} style={btn.ghost}>Stop</button>
+                </>
+              )}
+              <span style={{ flexBasis: '100%', margin: 0, fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+                They open the link (or enter the code) — they see the same clean slide you do, following whatever you're on.
+              </span>
+            </div>
+          )}
           <p style={{ flexBasis: '100%', margin: '4px 0 0', fontSize: '0.75rem', color: '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
             Presented through {kicker || 'The Church of the Living God'} — the works of every family, every age, go up on the screen here.
           </p>
