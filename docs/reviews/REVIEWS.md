@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0164 · Extend — L46: the non-father's takeaway + what the father takes from the watchers
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/living-lessons-class.js (L46 benefits/lesson/quiz/facilitator extended) · docs/decisions/DR-0194-*.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** Extend-a-lesson (DR-0168 harvest lineage), declared by Darrell 2026-07-20 ("How should other who are not fathers understand the Will of Yahweh for them... and what should the father take away from the watchers?"). Built two reciprocal takeaways into L46: (a) NON-FATHERS carry the same verb with wider hands — "provoke... unto love and to good works" is to the whole Body (Heb 10:24), spiritual parenthood is real without a child (1 Cor 4:15; 2 Tim 1:5; Titus 2:3-4), all father the fatherless (Jas 1:27; Ps 68:5-6), the childless bear eternal fruit (Isa 56:4-5); (b) THE FATHER takes humility FROM the watchers — he is a watched, fathered SON not a lone patriarch (Ecc 4:9-12; Heb 12:9; Heb 5:8), the Body's correction is grace not surveillance (Prov 27:6,17), even his children disciple him (Matt 21:16). The full circle: watchers become active spiritual parents; the father becomes a humble son. Every verse KJV-verbatim from public/bible/kjv (DR-0076); lint + lesson-flow + research-integrity + presentable green.
+- **Source:** docs/decisions/DR-0194-the-non-father-takeaway-and-the-father-and-the-watchers.md
+
 ### REV-0163 · Harvest — Living Lesson L46: "Ye Fathers — Provoke to Good Works, Not to Wrath" (spoken teaching + verified neuroscience)
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/living-lessons-class.js (L46 new module + meta.weeks 45→46) · docs/decisions/DR-0193-*.md · docs/99-session-notes/2026-07-20-ye-fathers-provoke-to-good-works.md

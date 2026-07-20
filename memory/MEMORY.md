@@ -484,3 +484,16 @@ relying on it; memories reflect what was true when written.
   TIER C REFUSED the viral fatherless-home stats (untraceable), and "father shapes
   child's God-image" held as theology not science. Pairs with
   FATHERS-PROVOKE-TO-GOOD-WORKS.md + DR-0094. `feedback_ye_fathers_provoke_to_good_works`.
+
+- **2026-07-20 — L46 extended: the non-father's takeaway + the father-from-watchers
+  (DR-0194).** Darrell asked how those who are NOT fathers understand Yahweh's will
+  on this, and what the father takes from the watchers. Two reciprocal halves: (a)
+  NON-FATHERS carry the SAME verb with wider hands — "provoke... unto love and to
+  good works" is to the whole Body (Heb 10:24); spiritual parenthood is real without
+  a child (1 Cor 4:15; 2 Tim 1:5; Titus 2:3-4); all father the fatherless (Jas 1:27;
+  Ps 68:5-6); the childless bear eternal fruit (Isa 56:4-5). (b) THE FATHER takes
+  HUMILITY from the watchers — he is a watched, fathered SON, not a lone patriarch
+  (Ecc 4:9-12; Heb 12:9; Heb 5:8); the Body's correction is grace not surveillance
+  (Prov 27:6,17); even his children disciple him (Matt 21:16). Full circle: the
+  watcher becomes an active spiritual parent, the father a humble son.
+  `feedback_non_fathers_and_the_watchers_takeaway`.
