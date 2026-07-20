@@ -37,6 +37,49 @@ describe('deriveDebts', () => {
     const data = { accounts: [{ id: 'a', type: 'checking', balance: -20, entityId: 'e1' }], transactions: [] };
     expect(deriveDebts(data, ASOF)).toHaveLength(0);
   });
+  it('surfaces a MIS-TYPED imported credit card (name-classified + owed) on Debts', () => {
+    // The bank feed synced this card as 'checking'; nothing auto-types it, so it
+    // never reached Debts before. Name + a genuinely owed (negative) balance now do.
+    const data = {
+      accounts: [{ id: 'a-cc', name: 'Chase Credit Card', fragment: '8168', type: 'checking', balance: -2400, entityId: 'e1' }],
+      transactions: [],
+    };
+    const debts = deriveDebts(data, ASOF);
+    expect(debts).toHaveLength(1);
+    expect(debts[0].balance).toBeCloseTo(2400, 2);
+    expect(debts[0].debtType).toBe('credit');
+    expect(debts[0].accountId).toBe('a-cc');
+  });
+  it('does NOT name-classify a debt-worded account that is in the positive (not owed)', () => {
+    const data = { accounts: [{ id: 'a', name: 'Discover Savings', type: 'savings', balance: 500 }], transactions: [] };
+    expect(deriveDebts(data, ASOF)).toHaveLength(0);
+  });
+  it('uses the DATA-derived APR over any stored rate (no human can undermine it)', () => {
+    const data = {
+      accounts: [{ id: 'a-cc', name: 'Visa', type: 'credit', balance: -3000, rate: 9.99, entityId: 'e1' }],
+      transactions: [
+        { id: 'i1', accountId: 'a-cc', date: '2026-05-15', amount: -60, description: 'INTEREST CHARGE' },
+        { id: 'i2', accountId: 'a-cc', date: '2026-06-15', amount: -60, description: 'INTEREST CHARGE' },
+        { id: 'p1', accountId: 'a-cc', date: '2026-05-01', amount: 400, description: 'PAYMENT' },
+        { id: 'p2', accountId: 'a-cc', date: '2026-06-01', amount: 400, description: 'PAYMENT' },
+        { id: 'p3', accountId: 'a-cc', date: '2026-06-30', amount: 400, description: 'PAYMENT' },
+      ],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rateSource).toBe('derived');
+    expect(d.rate).toBeGreaterThan(9.99);   // the real ~24% APR, not the typed 9.99
+    expect(d.hasPayments).toBe(true);
+    expect(d.payPace).toBeGreaterThan(0);
+  });
+  it('falls back to the stored (user-editable) rate when the data shows no interest', () => {
+    const data = {
+      accounts: [{ id: 'a-cc', name: 'Visa', type: 'credit', balance: -3000, rate: 18.99 }],
+      transactions: [{ id: 'p1', accountId: 'a-cc', date: '2026-06-01', amount: 400, description: 'PAYMENT' }],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rate).toBe(18.99);
+    expect(d.rateSource).toBe('manual');
+  });
   it('pulls rental mortgages with a real balance + carries their terms', () => {
     const data = {
       accounts: [],

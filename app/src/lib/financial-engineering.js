@@ -27,6 +27,8 @@
 // poe-financial-mvp-v28.jsx (which would drag React into the projection math).
 // =============================================================================
 
+import { deriveApr, debtPayoffInsight, looksLikeDebtAccount } from './debt-payments.js';
+
 const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Cash = spendable balances only. Mirrors the Big Picture `allAccountsCash`
@@ -138,19 +140,42 @@ export function liveCashOnHand(data, currentDate = new Date()) {
 // -----------------------------------------------------------------------------
 export function deriveDebts(data, asOf = new Date()) {
   const balances = deriveAccountBalances(data, asOf);
+  const txns = data?.transactions || [];
   const out = [];
   for (const a of (data?.accounts || [])) {
-    if (a.type !== 'credit' && a.type !== 'loan') continue;
     const bal = balances[a.id] != null ? balances[a.id] : (a.balance || 0);
     const owed = bal < 0 ? -bal : 0; // only the owed (negative) side is debt
+    // A debt account is either TYPED as one (authoritative), OR reads as one by
+    // name AND is genuinely owed (negative balance) — the latter surfaces imported
+    // credit cards / LOCs that synced as 'checking' and so never reached this tab
+    // (Darrell 2026-07-20). Name-classification is non-destructive: the stored
+    // account is untouched; it only adds the row here, and the owed-balance gate
+    // keeps a positive 'Cardinal Checking' out.
+    const typedDebt = a.type === 'credit' || a.type === 'loan';
+    const nameDebt = !typedDebt && owed > 0.01 && looksLikeDebtAccount(a);
+    if (!typedDebt && !nameDebt) continue;
     if (owed <= 0.01) continue;
-    const rate = Number(a.rate) || 0;
+    // Interest RATE: the account's OWN interest charges are authoritative — a rate
+    // read from the data can't be undermined by a wrong manual entry (Darrell
+    // 2026-07-20). Fall back to the stored (user-editable) rate ONLY when the data
+    // shows no interest line. rateSource tells the UI which it is.
+    const derived = deriveApr(txns, a.id, owed, asOf);
+    const storedRate = Number(a.rate) || 0;
+    const rate = derived.apr != null ? derived.apr : storedRate;
+    const rateSource = derived.apr != null ? 'derived' : (storedRate > 0 ? 'manual' : 'none');
+    // Expected payoff from their REAL payments (not a fabricated minimum): the pace
+    // they actually pay, the net paydown, and the truthful reach-zero date.
+    const insight = debtPayoffInsight(txns, a.id, owed, asOf);
     const minPayment = Number(a.minPayment) || 0;
     out.push({
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
-      balance: round2(owed), rate, minPayment, entityId: a.entityId ?? null,
-      debtType: a.type, source: 'account', leaveAlone: false,
-      needsTerms: !(rate > 0 && minPayment > 0),
+      balance: round2(owed), rate, rateSource, minPayment, entityId: a.entityId ?? null,
+      debtType: typedDebt ? a.type : 'credit', accountId: a.id, source: 'account',
+      leaveAlone: false, needsTerms: !(rate > 0 && minPayment > 0),
+      // Payment-derived payoff — independent of the rate-based snowball engine.
+      payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
+      estPayoffMonths: insight.payoffMonths, estPayoffOnTrack: insight.onTrack,
+      growing: insight.growing, hasPayments: insight.hasPayments,
     });
   }
   for (const r of (data?.inflows?.rentals || [])) {
