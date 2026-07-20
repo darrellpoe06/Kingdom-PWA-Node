@@ -36,6 +36,7 @@ import {
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
+import { loadReportUsage, bumpReportUsage, rankReports } from '../lib/report-usage.js';
 import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
@@ -206,6 +207,15 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // How the register is grouped, and which group headers are collapsed.
   const [groupMode, setGroupMode] = useState('month');
   const [collapsed, setCollapsed] = useState(() => new Set());
+  // The KPI money-insight panels (material changes / unusual months / recurring)
+  // are grouped under one collapsible "KPIs · Standard reports" header so they
+  // don't eat the top of the tab; collapsed by default, one shown at a time, and
+  // ORDERED BY USAGE so the most-used surfaces first (Ari's recognition = the
+  // frequency ranking; report-usage.js). `stdReportId` null = follow the ranking.
+  const [stdReportsOpen, setStdReportsOpen] = useState(false);
+  const [stdReportId, setStdReportId] = useState(null);
+  const [reportUsage, setReportUsage] = useState(() => loadReportUsage());
+  const pickStdReport = (id) => { setStdReportId(id); setReportUsage((u) => bumpReportUsage(id, undefined, u)); };
   const toggleGroup = (key) => setCollapsed((prev) => {
     const next = new Set(prev);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -538,70 +548,131 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             </div>
           )}
 
-          {/* Material changes ($500+) — each mover already explained by its top
-              drivers, so a big swing per account or overall is noticed at a glance
-              with a data-driven reason, never a bare number (Darrell 2026-07-18). */}
-          {variance.materialCount > 0 && (
-            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
-              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">
-                Material changes · {periodLabel(activePeriod)} · ≥ {fmtMoney(variance.threshold)}
-              </div>
-              {variance.overall.material && (
-                <div className="text-[0.75rem] text-[#1A1815]">
-                  <span className="font-semibold">Overall (external): </span>
-                  <span className={variance.overall.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{variance.overall.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(variance.overall.net))}</span>
-                  {variance.overall.drivers.length > 0 && (
-                    <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+          {/* Standard reports — the money-insight panels (material changes,
+              unusual months, recurring payments) are grouped under ONE collapsible
+              header and shown one at a time, so they stop eating the top of the tab
+              (Darrell 2026-07-20). Collapsed by default; each panel is data-driven
+              off the live ledger — no static data (DR-0061 / P15). */}
+          {(() => {
+            const stdReports = [];
+            if (variance.materialCount > 0) stdReports.push({
+              id: 'material', label: 'Material changes',
+              node: (
+                <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">
+                    Material changes · {periodLabel(activePeriod)} · ≥ {fmtMoney(variance.threshold)}
+                  </div>
+                  {variance.overall.material && (
+                    <div className="text-[0.75rem] text-[#1A1815]">
+                      <span className="font-semibold">Overall (external): </span>
+                      <span className={variance.overall.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{variance.overall.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(variance.overall.net))}</span>
+                      {variance.overall.drivers.length > 0 && (
+                        <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                      )}
+                    </div>
                   )}
+                  {variance.accounts.filter((a) => a.material).map((a) => (
+                    <div key={a.accountId} className="text-[0.75rem] text-[#1A1815]">
+                      <span className="font-semibold">{a.name}: </span>
+                      <span className={a.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(a.net))}</span>
+                      {a.drivers.length > 0 && (
+                        <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-              {variance.accounts.filter((a) => a.material).map((a) => (
-                <div key={a.accountId} className="text-[0.75rem] text-[#1A1815]">
-                  <span className="font-semibold">{a.name}: </span>
-                  <span className={a.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(a.net))}</span>
-                  {a.drivers.length > 0 && (
-                    <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
-                  )}
+              ),
+            });
+            if (anomalies.length > 0) stdReports.push({
+              id: 'unusual', label: 'Unusual months',
+              node: (
+                <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Unusual months vs the usual</div>
+                  {anomalies.slice(0, 6).map((f) => (
+                    <div key={`${f.month}-${f.metric}`} className="text-[0.75rem] text-[#1A1815]">
+                      <span className="font-semibold">{f.label}</span> · {f.metric === 'in' ? 'received' : 'spent'}{' '}
+                      <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(f.value)}</span>{' '}
+                      <span className="text-[#5A5751]">vs usual {fmtMoney(f.baseline)} — {f.kind === 'excess' ? 'above' : 'below'} by {fmtMoney(Math.abs(f.deviation))}{f.deviationPct != null ? ` (${f.deviationPct > 0 ? '+' : ''}${f.deviationPct}%)` : ''}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Month-over-month baseline watch — months whose received/spent is far
-              off the usual, so an off month (a data glitch, a missed import, a
-              genuinely unusual month) is caught on sight (Darrell 2026-07-18). */}
-          {anomalies.length > 0 && (
-            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1">
-              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Unusual months vs the usual</div>
-              {anomalies.slice(0, 6).map((f) => (
-                <div key={`${f.month}-${f.metric}`} className="text-[0.75rem] text-[#1A1815]">
-                  <span className="font-semibold">{f.label}</span> · {f.metric === 'in' ? 'received' : 'spent'}{' '}
-                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(f.value)}</span>{' '}
-                  <span className="text-[#5A5751]">vs usual {fmtMoney(f.baseline)} — {f.kind === 'excess' ? 'above' : 'below'} by {fmtMoney(Math.abs(f.deviation))}{f.deviationPct != null ? ` (${f.deviationPct > 0 ? '+' : ''}${f.deviationPct}%)` : ''}</span>
+              ),
+            });
+            if (recurring.length > 0) stdReports.push({
+              id: 'recurring', label: 'Recurring payments',
+              node: (
+                <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
+                  </div>
+                  {recurring.slice(0, 8).map((g) => (
+                    <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
+                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
+                    </div>
+                  ))}
+                  {recurring.length > 8 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {recurring.length - 8} more recurring pattern{recurring.length - 8 === 1 ? '' : 's'}</div>}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Repetitive payment patterns — the recurring obligations the family
-              pays on a rhythm (card autopay, subscriptions, loan payments), so a
-              repeating charge is never a surprise and a card's real payment pace is
-              visible (Darrell 2026-07-20). Detected from the whole ledger. */}
-          {recurring.length > 0 && (
-            <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
-                <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
+              ),
+            });
+            if (stdReports.length === 0) return null;
+            // Ordered by USAGE so the most-used KPI surfaces first (learning
+            // method, Darrell 2026-07-20); registry order is only the tiebreak.
+            const ranked = rankReports(stdReports, reportUsage);
+            const active = ranked.find((r) => r.id === stdReportId) || ranked[0];
+            const openReports = () => {
+              setStdReportsOpen((o) => {
+                // Opening counts as a "use" of the report shown (the most-used,
+                // or the one the family last picked) — that keeps the ranking live.
+                if (!o) setReportUsage((u) => bumpReportUsage(active.id, undefined, u));
+                return !o;
+              });
+            };
+            return (
+              <div className="border border-[#E8E4DC] bg-[#FAF8F4]">
+                <button
+                  type="button"
+                  onClick={openReports}
+                  aria-expanded={stdReportsOpen}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                >
+                  <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">KPIs · Standard reports</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-[0.5625rem] text-[#5A5751] truncate hidden sm:inline">{ranked.map((r) => r.label).join(' · ')}</span>
+                    <span className="text-[0.5625rem] text-[#5A5751] whitespace-nowrap">{ranked.length} report{ranked.length === 1 ? '' : 's'}</span>
+                    <span className="text-[#5A5751] text-xs" aria-hidden="true">{stdReportsOpen ? '▾' : '▸'}</span>
+                  </span>
+                </button>
+                {stdReportsOpen && (
+                  <div className="px-3 pb-3 pt-1 space-y-2">
+                    {/* Teach what's under the hood (Darrell 2026-07-20): the surface
+                        explains its own mechanism — live data + the usage learning. */}
+                    <p className="text-[0.5625rem] text-[#5A5751] leading-snug">
+                      These KPIs read live from your ledger — no static numbers — and reorder by what you open most, so your most-used report stays on top.
+                    </p>
+                    {ranked.length > 1 && (
+                      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPIs · Standard reports">
+                        {ranked.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={active.id === r.id}
+                            onClick={() => pickStdReport(r.id)}
+                            className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1 border ${active.id === r.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:bg-white'}`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {active.node}
+                  </div>
+                )}
               </div>
-              {recurring.slice(0, 8).map((g) => (
-                <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                  <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
-                  <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
-                </div>
-              ))}
-              {recurring.length > 8 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {recurring.length - 8} more recurring pattern{recurring.length - 8 === 1 ? '' : 's'}</div>}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Auto-categorize — the system pulls every category it can determine from
               the data, in one tap (learned per-payee rules win). Only shows when

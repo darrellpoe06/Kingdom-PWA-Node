@@ -497,3 +497,26 @@ relying on it; memories reflect what was true when written.
   (Prov 27:6,17); even his children disciple him (Matt 21:16). Full circle: the
   watcher becomes an active spiritual parent, the father a humble son.
   `feedback_non_fathers_and_the_watchers_takeaway`.
+
+- **2026-07-20 — KPIs · Standard Reports + the usage-learning + Teach-Through-the-System
+  (DR-0195).** Books › Imported: the three insight panels (material changes / unusual
+  months / recurring) were eating the top; regrouped under ONE collapsible "KPIs ·
+  Standard reports" header, collapsed by default, one shown at a time. LEARNING METHOD
+  (app/src/lib/report-usage.js): a device-local, deterministic frequency counter ranks
+  a KNOWN report registry by use so the most-used surfaces first + is the default shown
+  ("even sorting isn't needed" — Ari's recognition = the ranking); manual selector kept
+  ("always keep our sorted"); registry GROWS by adding an entry (iterative, DR-0075). No
+  timer / no autonomous compute (not the three-brakes class). Proven-to-catch:
+  report-usage.test.js + an imported-render case (collapse/expand/teach/learn).
+  `feedback_kpis_standard_reports_usage_learning`.
+
+- **2026-07-20 — Teach Through the System (the Way, DR-0195, declared by Darrell).**
+  "We want to teach with the systems as much as possible... titles, locations, and
+  names should reflect their business practices... the tabs should be teaching what is
+  under the hood." The platform teaches through its own surfaces: names/titles/locations
+  reflect the REAL practice, and each tab teaches its own mechanism, so using PoeTech
+  makes the family more able to run the system themselves. Sibling of APP-IS-PRIMARY
+  (DR-0065): the app is the primary artifact AND the primary teacher. Applied first on
+  the KPIs panel (the live-data + learning explainer); a standing lens for every surface
+  going forward. re-review 2026-10-20 for where else to apply.
+  `feedback_teach_through_the_system`.

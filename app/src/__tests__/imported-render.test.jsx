@@ -154,4 +154,37 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(html).toContain('in $4,200');
     expect(html).not.toContain('2,099.93');             // itemized rows hidden while collapsed
   });
+
+  it('KPIs · Standard reports: collapsed by default, expands on tap (reclaims the top)', async () => {
+    // 3 monthly same-payee outflows → a recurring pattern → the KPI panel exists.
+    const RECUR = {
+      accounts: [{ id: 'a1', name: 'Chase 7206', openingBalance: 5000 }],
+      transactions: [
+        { id: 'r1', accountId: 'a1', date: '2026-05-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+        { id: 'r2', accountId: 'a1', date: '2026-06-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+        { id: 'r3', accountId: 'a1', date: '2026-07-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+      ],
+    };
+    localStorage.removeItem('poe.imported.reportUsage.v1'); // start with no learned usage
+    const { container, click } = await mount(RECUR);
+    const toggle = [...container.querySelectorAll('button')].find((b) => /KPIs · Standard reports/.test(b.textContent));
+    expect(toggle, 'the KPIs · Standard reports header renders').toBeTruthy();
+    // collapsed by default — the panel bodies are hidden, so they do NOT eat the top
+    expect(container.innerHTML).not.toContain('repeating patterns');
+    expect(container.innerHTML).not.toContain('Material changes · July 2026');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // one tap expands; with no learned usage the first registry report (Material changes) shows
+    await click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(container.innerHTML).toContain('Material changes · July 2026');
+    expect(container.innerHTML).toContain('read live from your ledger'); // teaches what's under the hood
+    // selecting the Recurring tab swaps the shown report (and records the use)
+    const recurTab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === 'Recurring payments');
+    expect(recurTab).toBeTruthy();
+    await click(recurTab);
+    expect(container.innerHTML).toContain('repeating patterns');
+    // the usage was learned (persisted), so Recurring now outranks Material
+    const usage = JSON.parse(localStorage.getItem('poe.imported.reportUsage.v1') || '{}');
+    expect(usage.recurring).toBeGreaterThanOrEqual(1);
+  });
 });
