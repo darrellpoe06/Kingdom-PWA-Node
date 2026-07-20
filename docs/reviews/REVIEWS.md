@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0168 · Improvement — KPI reports show the FULL list (uncap recurring + unusual months)
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/Imported.jsx · docs/decisions/DR-0197-*.md
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 (live screenshot: Recurring payments showed 8 + "＋ 24 more"). The KPI · Standard Reports were capped (recurring slice(0,8), unusual slice(0,6)) back when they were three always-open panels sharing top real-estate. Now they're collapsed-by-default and shown one opt-in report at a time, so the cap only hides real obligations. Uncapped both to show every row and grow to whatever the data becomes; the count+total header stays. The Way (DR-0197): an opt-in / drill-in report shows its FULL list; sweep slice(0,N)+"＋ N more" truncations on opt-in surfaces continuously as low-hanging fruit (DR-0075). Lint + imported-render + recurring-payments + full suite green.
+- **Source:** docs/decisions/DR-0197-show-the-full-list-opt-in-reports-grow-to-any.md
+
 ### REV-0167 · Fix + feature — Notes (Thinking Space): make Edit discoverable + add "Add update" (append)
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/ThinkingSpace.jsx · scripts/consistency-baseline.json · app/src/__tests__/thinking-space-edit.test.jsx
