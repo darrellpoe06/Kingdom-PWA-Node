@@ -481,7 +481,7 @@
   },
   "components/ThinkingSpace.jsx": {
     "emoji": 11,
-    "fixedPx": 20,
+    "fixedPx": 23,
     "widthCap": 2
   },
   "components/ThoughtFinalizer.jsx": {
