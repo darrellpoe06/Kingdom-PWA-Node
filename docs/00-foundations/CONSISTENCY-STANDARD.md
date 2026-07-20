@@ -75,6 +75,17 @@ The senior rule, from Darrell's reinforcement the same day:
   load-bearing chrome.
 - **Enforced:** NEW emoji over the frozen baseline **fails the build**
   (`scripts/consistency-guard.mjs`).
+- **Kingdom-first (DR-0198, Darrell 2026-07-20):** iconography is welcome where it
+  serves the work, and the palette must carry **Kingdom glyphs — not only secular
+  ones** (`cross`, `dove`, `flame`, `crown`, `bookOpen` = the Word, …). Because the
+  very Kingdom glyphs we want (🕊 ✝ ⛪ 📖) are the ones that box out as **tofu** on
+  COLG's older phones, the reliable, COMMUNITY-FIRST way to "have Kingdom emoji" is
+  to add the glyph to `UiIcon` as SVG (renders on every device) — that is *how* we
+  grow the Kingdom palette. The guard is a **ratchet, not a ban:** a raw emoji that
+  genuinely serves a *decorative/inline* spot ships by an **intentional, recorded
+  baseline bump** (the same ratchet, e.g. ThinkingSpace 20→23) — intentional-and-
+  recorded is the bar; silent drift is what fails. Load-bearing chrome still must be
+  `UiIcon`. The test for any glyph: *does it serve the meaning of the work?*
 
 ### 3. COLOR / CONTRAST — one themeable token set
 

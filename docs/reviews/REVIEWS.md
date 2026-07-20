@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0169 · Way + feature — Kingdom-First Iconography (grow the UiIcon Kingdom palette)
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/UiIcon.jsx · docs/00-foundations/CONSISTENCY-STANDARD.md · docs/decisions/DR-0198-*.md · app/src/__tests__/ui-icon-kingdom.test.jsx
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 ("we can have new emojis, we just have to have Kingdom ones too... if they make sense... Ways and documentation"). Documented the Kingdom-First Iconography Way (DR-0198): iconography welcome where it serves the work; the palette must carry Kingdom glyphs, not only secular; reliability-first — because the Kingdom emoji we want (🕊✝⛪📖) tofu on COLG's older phones, add them to UiIcon as SVG (renders everywhere, COMMUNITY-FIRST); the guard is a ratchet not a ban (raw decorative emoji ship by an intentional, recorded baseline bump). Grew UiIcon with cross / flame / crown. Honest limit (DR-0076): no browser was available in-session to pixel-verify flame/crown, so a render re-review is dated (2026-10-20); the render test proves they produce real <svg> geometry. Proven-to-catch: ui-icon-kingdom.test.jsx (3). Lint + consistency-guard + full suite green.
+- **Source:** app/src/__tests__/ui-icon-kingdom.test.jsx
+
 ### REV-0168 · Improvement — KPI reports show the FULL list (uncap recurring + unusual months)
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/Imported.jsx · docs/decisions/DR-0197-*.md
