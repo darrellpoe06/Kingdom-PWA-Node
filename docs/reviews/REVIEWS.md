@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0170 · Fix + refine — KPI header reads "KPI's" (not the mangled "KPIS") + the explainer teaches the CONCEPT for learners
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/Imported.jsx · app/src/__tests__/imported-render.test.jsx
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 (live screenshot): the header wrote "KPIs" but `uppercase` mangled it to "KPIS" (ignorant-looking); and the teaching line explained the obvious UI mechanics ("reorder by what you open most"). Correction mid-turn: "I want the explanations for our learners... context" — so KEEP a teaching line, but make it real learner context, not obvious-mechanics narration (refines DR-0195, does not remove teach-through-the-system). Fixes: header renders "KPI's · Standard reports" with no uppercase transform (proper case, curly apostrophe); explainer rewritten to define the term and say what each report reveals — "KPI means key performance indicator — the few numbers that tell you the most... Material changes (biggest moves + what drove them), Unusual months (a month far off normal), Recurring payments (what repeats every cycle, so nothing hides)." rem sizing (not px) — consistency guard unaffected. Lint + imported-render + consistency-guard + full suite (6219) green.
+- **Source:** app/src/__tests__/imported-render.test.jsx
+
 ### REV-0169 · Way + feature — Kingdom-First Iconography (grow the UiIcon Kingdom palette)
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/UiIcon.jsx · docs/00-foundations/CONSISTENCY-STANDARD.md · docs/decisions/DR-0198-*.md · app/src/__tests__/ui-icon-kingdom.test.jsx
