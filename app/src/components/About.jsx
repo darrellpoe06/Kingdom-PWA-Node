@@ -7,6 +7,7 @@ import TrialStatus from './TrialStatus.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
+import BlueprintFieldGuide from './BlueprintFieldGuide.jsx';
 import { ARI } from '../lib/ari.js';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
@@ -177,6 +178,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         ]} />
       </section>
       </>
+    ) },
+    { id: 'blueprint', label: "How it's built", icon: 'landmark', render: () => (
+      <BlueprintFieldGuide />
     ) },
     { id: 'pricing', label: 'Plans & pricing', icon: 'coins', render: () => (
       <>

@@ -42,10 +42,11 @@ describe('About — sideways section tabs', () => {
     const { host, cleanup } = mount();
     const tablist = host.querySelector('[role="tablist"][aria-label="About sections"]');
     expect(tablist).toBeTruthy();
-    // The nine always-on sections, in order.
+    // The always-on sections, in order. "How it's built" (the Blueprint field
+    // guide) sits right after the How-it-works opener as the "go deeper" tab.
     const tabs = [...host.querySelectorAll('[id^="about-tab-"]')].map((b) => b.id);
     expect(tabs).toEqual([
-      'about-tab-how-it-works', 'about-tab-pricing', 'about-tab-mission', 'about-tab-modules',
+      'about-tab-how-it-works', 'about-tab-blueprint', 'about-tab-pricing', 'about-tab-mission', 'about-tab-modules',
       'about-tab-serve', 'about-tab-ari', 'about-tab-community',
       'about-tab-bookstore', 'about-tab-sponsors', 'about-tab-settings',
     ]);
