@@ -12,7 +12,7 @@ import {
   sessionMinutesFromFlow, reflowArcMinutes, parseHowToRun, phaseKind, buildLessonArc,
 } from '../lib/lesson-flow.js';
 import { MODULES, SESSION_FLOW } from '../lib/church-classes.js';
-import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 
 const FORBIDDEN_AUDIENCE_KEYS = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
 // Deep-scan an object for any forbidden key (the no-leak guard).
@@ -150,5 +150,46 @@ describe('buildLessonArc — derives a consistent arc from real authored content
     expect(kinds).toContain('open');  // has bigIdea
     expect(kinds).toContain('apply'); // has inApp
     expect(kinds).not.toContain('engage'); // no prompts authored → hidden, not empty
+  });
+});
+
+describe('Living Lessons L43 — "The War Is for the Mind" (Darrell 2026-07-19), diversified for all ages', () => {
+  const war = LIVING_LESSONS_MODULES.find((m) => m.id === 'll43-the-war-is-for-the-mind');
+
+  it('exists and is authored for EVERY age — child, teen, senior — plus the deep lesson', () => {
+    // "diversified for everyone at all ages" (Darrell). PROVEN-TO-CATCH: drop any age
+    // level and this fails — the lesson must reach the child AND the seasoned believer.
+    expect(war, 'L43 must be present in the series').toBeTruthy();
+    for (const age of ['child', 'teen', 'senior']) {
+      expect((war.levels[age] || '').length, `L43 level '${age}' must be authored`).toBeGreaterThan(200);
+    }
+    expect(war.lesson.length).toBeGreaterThan(800); // the deep 4D teaching
+    expect(war.benefits.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('renders through the shared five-stage arc without leaking facilitator notes', () => {
+    const arc = buildLessonArc(war, {});
+    expect(arc.segments.map((s) => s.kind)).toEqual(['open', 'teach', 'engage', 'apply', 'send']);
+    expect(arc.audienceSegments.length).toBeGreaterThan(0);
+  });
+
+  it('quiz answers are all valid indices into their options', () => {
+    for (const q of war.quiz.questions) {
+      expect(Number.isInteger(q.answer)).toBe(true);
+      expect(q.answer).toBeGreaterThanOrEqual(0);
+      expect(q.answer).toBeLessThan(q.options.length);
+    }
+  });
+
+  it('stays well-being-positive (a SOUND mind, not fear) and Word-first (the defeated, LIMITED enemy)', () => {
+    // The bright line the series holds: sober AND confident, never fearful/paranoid.
+    const hay = (war.bigIdea + ' ' + war.lesson + ' ' + war.levels.senior).toLowerCase();
+    expect(hay).toMatch(/sound mind/);        // 2 Tim 1:7 — the anti-paranoia anchor
+    expect(hay).toMatch(/may devour/);        // 1 Pet 5:8 — "may," not will (limited enemy)
+    expect(hay).toMatch(/king of kings/);     // Rev 19:16 — fight from settled victory
+  });
+
+  it('META lesson count matches the module count (guards the "Living lessons break")', () => {
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 });

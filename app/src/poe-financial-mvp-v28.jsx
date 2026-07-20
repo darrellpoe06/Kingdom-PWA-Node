@@ -72,7 +72,7 @@ import TextSizeControl from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView } from './lib/nav-history.js';
 import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
@@ -1134,7 +1134,7 @@ export default function PoeFinancialSystem() {
     try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
     setSelfServeWelcomeDismissed(true);
   };
-  const [booksView, setBooksView] = useState('calendar');
+  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'calendar' : initialBooksView(window.location.search); } catch (e) { return 'calendar'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
   const [churchView, setChurchView] = useState(getInitialChurchView());
   // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
   // Whole TLC App... one single tab that holds all of it"). One office, three
@@ -1161,9 +1161,9 @@ export default function PoeFinancialSystem() {
   const [snowballExtra, setSnowballExtra] = useState(2000);
   const [debtSnowballSort, setDebtSnowballSort] = useState('snowball');
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
-  // Theme is per-device and SHARED with the business doors (lib/theme-css.js):
-  // the choice made here follows the user to /moore and every future door.
-  const [theme, setTheme] = useState(() => readThemePref('midnight'));
+  // Theme is per-device and SHARED with the business doors (lib/theme-css.js).
+  // First-run default is LIGHT (cream); then it follows the last chosen theme.
+  const [theme, setTheme] = useState(() => readThemePref('cream'));
   useEffect(() => { saveThemePref(theme); }, [theme]);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
