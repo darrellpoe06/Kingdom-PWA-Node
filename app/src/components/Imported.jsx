@@ -341,6 +341,34 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     recategorizePayee(row.name, category);
   };
 
+  // Combine duplicates the family SPOTS themselves — "without needing to update the
+  // app" (Darrell 2026-07-20). The auto-remover only clears specific hardcoded
+  // patterns (generic-type twins, balance-anchored copies); it is conservative by
+  // design and leaves two real same-day/same-amount rows alone. This is the general,
+  // runtime escape hatch: tick the rows that are the same charge, Combine keeps the
+  // most complete one and removes the rest — no new detection rule (no app update)
+  // is ever needed for a new duplicate shape.
+  const canCombine = !!deleteTransaction;
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const toggleSelect = (id) => setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearSelection = () => setSelectedIds(new Set());
+  const combineSelected = () => {
+    if (!canCombine || selectedIds.size < 2) return;
+    const rows = view.rows.filter((r) => selectedIds.has(r.id));
+    if (rows.length < 2) return;
+    // Keep the most-informative row (longest description; tie → first), remove the rest.
+    const keep = [...rows].sort((a, b) => (String(b.name || '').length - String(a.name || '').length))[0];
+    const removeIds = rows.filter((r) => r.id !== keep.id).map((r) => r.id);
+    const cents = (n) => Math.round((Number(n) || 0) * 100);
+    const sameAmt = rows.every((r) => cents(r.amount) === cents(rows[0].amount));
+    const msg = sameAmt
+      ? `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies.`
+      : `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
+    if (typeof confirm === 'function' && !confirm(msg)) return;
+    deleteTransaction(removeIds);
+    clearSelection();
+  };
+
   // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
   // generic "DEBIT/CREDIT" twin of a real-payee row is removed, the real row kept
   // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
@@ -550,6 +578,20 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             </div>
           )}
 
+          {/* Combine duplicates the family selected — the runtime escape hatch for
+              dupes the auto-remover conservatively leaves alone (Darrell 2026-07-20). */}
+          {canCombine && selectedIds.size >= 2 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>{selectedIds.size}</strong> rows selected — combine the duplicates you found into one (keeps the most complete row, removes the rest).
+              </span>
+              <div className="flex gap-2">
+                <button type="button" onClick={clearSelection} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 border border-[#5A5751] text-[#5A5751] hover:bg-white">Clear</button>
+                <button type="button" onClick={combineSelected} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Combine {selectedIds.size}</button>
+              </div>
+            </div>
+          )}
+
           {/* Segmented period control + ‹ month › quick-jump — the standard bank /
               budgeting-app time picker. */}
           <div className="flex flex-wrap items-center gap-2">
@@ -716,7 +758,12 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                           return (
                           <React.Fragment key={t.id}>
                           <tr className="border-t border-[#E8E4DC] hover:bg-[#FAF8F4] cursor-pointer" onClick={() => setExpandedId(open ? null : t.id)} aria-expanded={open}>
-                            <td className="px-2 py-1.5 whitespace-nowrap">{formatDate(t.posted)}</td>
+                            <td className="px-2 py-1.5 whitespace-nowrap">
+                              {canCombine && (
+                                <input type="checkbox" checked={selectedIds.has(t.id)} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelect(t.id)} className="mr-1.5 align-middle" aria-label={`Select ${t.name} to combine`} />
+                              )}
+                              {formatDate(t.posted)}
+                            </td>
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
                             <td className="px-2 py-1.5 truncate max-w-[16.25rem]" title={t.name}>
                               {t.name}
