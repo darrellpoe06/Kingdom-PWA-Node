@@ -1,0 +1,102 @@
+// @vitest-environment node
+//
+// debt-payments — payoff dated off REAL payments + APR read from the account's own
+// interest charges (Darrell 2026-07-20). Pins: the payment pace, the truthful
+// reach-zero date (net of new charges, never a rosy fiction), the data-derived APR
+// (authoritative over a manual entry), and the name classifier that surfaces a
+// mis-typed imported card.
+import { describe, it, expect } from 'vitest';
+import {
+  debtPaymentStats, estimatePayoff, deriveApr, debtPayoffInsight,
+  isInterestCharge, looksLikeDebtAccount,
+} from '../lib/debt-payments.js';
+
+const asOf = new Date('2026-07-15T00:00:00');
+// Six monthly $500 payments to card account 'cc', plus a couple of charges.
+const CC = 'cc';
+const txns = [
+  { id: 'p1', accountId: CC, date: '2026-02-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'p2', accountId: CC, date: '2026-03-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'p3', accountId: CC, date: '2026-04-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'p4', accountId: CC, date: '2026-05-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'p5', accountId: CC, date: '2026-06-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'p6', accountId: CC, date: '2026-07-01', amount: 500, description: 'PAYMENT THANK YOU' },
+  { id: 'c1', accountId: CC, date: '2026-06-10', amount: -100, description: 'AMAZON' },
+  { id: 'i1', accountId: CC, date: '2026-06-15', amount: -60, description: 'INTEREST CHARGE ON PURCHASES' },
+  { id: 'x1', accountId: 'other', date: '2026-06-01', amount: 500, description: 'not this account' },
+];
+
+describe('debtPaymentStats', () => {
+  it('averages the real payments and new charges per month over the row span', () => {
+    const s = debtPaymentStats(txns, CC, asOf, 6);
+    expect(s.paymentCount).toBe(6);
+    // 6 payments across a ~5-month span; pace is a positive monthly figure.
+    expect(s.grossPaymentPerMonth).toBeGreaterThan(0);
+    // new charges (100 + 60 interest) pull the net paydown below the gross pace.
+    expect(s.netPaydownPerMonth).toBeLessThan(s.grossPaymentPerMonth);
+  });
+  it('ignores other accounts', () => {
+    expect(debtPaymentStats(txns, CC, asOf, 6).paymentCount).toBe(6); // x1 excluded
+  });
+});
+
+describe('estimatePayoff', () => {
+  it('dates the payoff off the net paydown', () => {
+    const r = estimatePayoff(1000, 500, asOf);
+    expect(r.onTrack).toBe(true);
+    expect(r.months).toBe(2);
+    expect(r.date).toBeInstanceOf(Date);
+  });
+  it('is honest when the balance is not going down (net <= 0)', () => {
+    const r = estimatePayoff(1000, 0, asOf);
+    expect(r.onTrack).toBe(false);
+    expect(r.date).toBeNull();
+  });
+  it('reports already-clear for a non-positive owed', () => {
+    expect(estimatePayoff(0, 500, asOf).clear).toBe(true);
+  });
+});
+
+describe('deriveApr — the rate read from the data, authoritative', () => {
+  it('reads the APR from the statement interest charge', () => {
+    // $60 interest/mo on ~$3,000 owed ≈ 2%/mo ≈ 24% APR.
+    const r = deriveApr(txns, CC, 3000, asOf, 6);
+    expect(r.source).toBe('derived');
+    expect(r.apr).toBeGreaterThan(15);
+    expect(r.apr).toBeLessThan(35);
+  });
+  it('returns null (fall back to manual) when there is no interest line', () => {
+    const noInterest = txns.filter((t) => !isInterestCharge(t));
+    expect(deriveApr(noInterest, CC, 3000, asOf, 6).apr).toBeNull();
+  });
+  it('rejects a nonsense rate from a tiny balance (falls back to manual)', () => {
+    expect(deriveApr(txns, CC, 5, asOf, 6).apr).toBeNull();
+  });
+});
+
+describe('debtPayoffInsight', () => {
+  it('combines pace + payoff and flags a growing balance', () => {
+    const growing = [
+      { id: 'p1', accountId: CC, date: '2026-05-01', amount: 200, description: 'PAYMENT' },
+      { id: 'p2', accountId: CC, date: '2026-06-01', amount: 200, description: 'PAYMENT' },
+      { id: 'p3', accountId: CC, date: '2026-07-01', amount: 200, description: 'PAYMENT' },
+      { id: 'c1', accountId: CC, date: '2026-06-15', amount: -900, description: 'BIG CHARGE' },
+    ];
+    const g = debtPayoffInsight(growing, CC, 1000, asOf);
+    expect(g.hasPayments).toBe(true);
+    expect(g.growing).toBe(true);       // charges outpaced payments
+    expect(g.onTrack).toBe(false);
+  });
+});
+
+describe('looksLikeDebtAccount', () => {
+  it('matches real debt names', () => {
+    for (const name of ['Chase Credit Card', 'Chase Line of Credit 1818', 'Discover it', 'Home Equity LOC', 'Auto Loan']) {
+      expect(looksLikeDebtAccount({ name })).toBe(true);
+    }
+  });
+  it('does NOT match a checking account that merely contains "card"-ish text', () => {
+    expect(looksLikeDebtAccount({ name: 'Cardinal Checking' })).toBe(false);
+    expect(looksLikeDebtAccount({ name: 'Chase Personal Checking' })).toBe(false);
+  });
+});

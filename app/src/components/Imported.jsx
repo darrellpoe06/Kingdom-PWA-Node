@@ -40,6 +40,7 @@ import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
+import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel } from '../lib/categorize.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
@@ -289,6 +290,18 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
     ].sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
   }, [data.transactions, accounts]);
 
+  // Repetitive payment patterns (Darrell 2026-07-20: "repetitive patterns of
+  // payments should also be highlighted"). Detect the family's recurring OUTGOING
+  // payments — same payee, regular cadence, steady amount (a card autopay, a
+  // subscription, a loan payment) — over the FULL ledger so a monthly rhythm is
+  // seen even from a one-month window. The ids badge those rows in the register.
+  const recurring = useMemo(() => detectRecurring(data.transactions || [], { direction: 'out', nowMs: Date.now() }), [data.transactions]);
+  const recurringIds = useMemo(() => {
+    const s = new Set();
+    for (const g of recurring) for (const id of g.txIds) s.add(id);
+    return s;
+  }, [recurring]);
+
   // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
   // generic "DEBIT/CREDIT" twin of a real-payee row is removed, the real row kept
   // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
@@ -464,6 +477,26 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
             </div>
           )}
 
+          {/* Repetitive payment patterns — the recurring obligations the family
+              pays on a rhythm (card autopay, subscriptions, loan payments), so a
+              repeating charge is never a surprise and a card's real payment pace is
+              visible (Darrell 2026-07-20). Detected from the whole ledger. */}
+          {recurring.length > 0 && (
+            <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
+              </div>
+              {recurring.slice(0, 8).map((g) => (
+                <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                  <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
+                  <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
+                </div>
+              ))}
+              {recurring.length > 8 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {recurring.length - 8} more recurring pattern{recurring.length - 8 === 1 ? '' : 's'}</div>}
+            </div>
+          )}
+
           {/* Segmented period control + ‹ month › quick-jump — the standard bank /
               budgeting-app time picker. */}
           <div className="flex flex-wrap items-center gap-2">
@@ -634,6 +667,7 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
                             <td className="px-2 py-1.5 truncate max-w-[16.25rem]" title={t.name}>
                               {t.name}
+                              {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
                             </td>
                             <td className="px-2 py-1.5 text-[#5A5751]">{t.category ? categoryLabel(t.category) : '—'}</td>

@@ -15,9 +15,31 @@ const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
 function yearsAndMonths(months) { const y = Math.floor(months / 12); const m = months % 12; if (y === 0) return `${m}mo`; if (m === 0) return `${y}yr`; return `${y}yr ${m}mo`; }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0 }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null }) {
   // v28+ All Debts table - excel-style sort by rate / balance / payoff date
   const [allDebtsSort, setAllDebtsSort] = useState('rate');
+  // Inline interest-rate edit (the FALLBACK when the rate can't be read from the
+  // statement's own interest charges — a DERIVED rate wins and is not editable, so
+  // no human can undermine the data; Darrell 2026-07-20).
+  const [editingRateId, setEditingRateId] = useState(null);
+  const [rateInput, setRateInput] = useState('');
+  const saveRate = (d) => {
+    const v = parseFloat(rateInput);
+    if (isFinite(v) && v >= 0 && v < 100 && d.accountId && updateAccount) updateAccount(d.accountId, { rate: v });
+    setEditingRateId(null);
+  };
+  // The expected payoff date the user asked for — from their REAL payments, not a
+  // fabricated minimum. On-track: their net paydown clears it by this month. If new
+  // charges keep pace with payments the balance isn't going down — say so plainly
+  // (never a rosy date). Falls back to the rate-based snowball, then to honest '?'.
+  const payoffCell = (d) => {
+    if (d.estPayoffOnTrack && d.estPayoffMonths) return { text: monthLabel(currentDate, d.estPayoffMonths), sub: 'at your pace' };
+    if (d.growing) return { text: 'not going down', sub: 'charges match payments', warn: true };
+    const cleared = debtSnowball.activeDebts.find(p => p.id === d.id);
+    if (cleared?.clearedAtMonth) return { text: monthLabel(currentDate, cleared.clearedAtMonth), sub: 'with snowball' };
+    if (d.hasPayments === false && !d.leaveAlone) return { text: '—', sub: 'no payments seen' };
+    return { text: d.leaveAlone ? '—' : '?', sub: '' };
+  };
   // r18 — editable snowball slider max. Default $5000; user can expand to
   // explore what-if scenarios (extra income, war chest, forecasted boost) per
   // founder feedback: "$5000 isn't the only amount; let them brainstorm with a
@@ -107,16 +129,37 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
             <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Payoff</th></tr></thead>
             <tbody>
               {sorted.map((d) => {
-                const cleared = debtSnowball.activeDebts.find(p => p.id === d.id);
-                const payoff = cleared?.clearedAtMonth ? monthLabel(currentDate, cleared.clearedAtMonth) : (d.leaveAlone ? '—' : '?');
+                const po = payoffCell(d);
+                const canEditRate = d.rateSource !== 'derived' && d.accountId && updateAccount;
                 return (
                   <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
                     <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
-                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{pct(d.rate)}</td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {editingRateId === d.id ? (
+                        <input type="number" min="0" max="99" step="0.01" value={rateInput} autoFocus
+                          onChange={(e) => setRateInput(e.target.value)} onBlur={() => saveRate(d)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveRate(d); if (e.key === 'Escape') setEditingRateId(null); }}
+                          className="w-16 text-right text-xs px-1 py-0.5 border border-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          aria-label={`Interest rate for ${d.name}`} />
+                      ) : (
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {pct(d.rate)}
+                          {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it, so it can't be mis-typed">data</span>}
+                          {canEditRate && (
+                            <button type="button" onClick={() => { setEditingRateId(d.id); setRateInput(d.rate > 0 ? String(d.rate) : ''); }}
+                              className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
+                              title="No interest charge in the data yet — enter the rate">{d.rate > 0 ? 'edit' : '+ rate'}</button>
+                          )}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</td>
-                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{payoff}</td>
+                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <div className={po.warn ? 'text-[#B85838]' : ''}>{po.text}</div>
+                      {po.sub && <div className="text-[0.5625rem] text-[#5A5751] normal-case" style={{ fontFamily: '"Fraunces", serif' }}>{po.sub}</div>}
+                    </td>
                   </tr>
                 );
               })}
