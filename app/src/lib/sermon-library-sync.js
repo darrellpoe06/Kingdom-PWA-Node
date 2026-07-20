@@ -15,6 +15,7 @@
 // library shows videos + title scriptures + an honest empty state, never throwing.
 // =============================================================================
 import supabase from './supabase.js';
+import { publicRpc } from './public-rpc.js';
 import { toHarvestShape } from './harvest-ledger.js';
 import { toStatsShape } from './sermon-engagement.js';
 
@@ -74,7 +75,11 @@ export async function fetchPrepBySermon() {
 // public library shows BG's key points + scriptures without exposing the prep
 // itself (Darrell 2026-07-14). Keyed by sermon id, same shape as fetchPrepBySermon.
 export async function fetchPublicPoints() {
-  const { data, error } = await supabase.rpc('theword_public_points');
+  // Rides publicRpc (anon + hard deadline), NEVER the shared client — same
+  // cross-tab auth-lock hang that stranded the public library (fetchPublicSermons).
+  // This is enrichment (points under each video), so absence is fine: it keeps the
+  // {}-on-error contract and never strands the surface.
+  const { data, error } = await publicRpc('theword_public_points');
   if (error) { console.warn('[sermon-library] public points fetch failed:', error); return {}; }
   const out = {};
   for (const r of data || []) {

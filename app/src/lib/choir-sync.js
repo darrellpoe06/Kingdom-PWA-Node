@@ -14,6 +14,7 @@
 // real enforcement either way.
 // =============================================================================
 import supabase from './supabase.js';
+import { publicRpc } from './public-rpc.js';
 import { churchInstanceId } from './church-instance.js';
 
 async function currentSession() {
@@ -507,10 +508,23 @@ export const subscribeSpeakers = makeSubscriber('church_speakers', toSpeakerShap
 // Works for ANYONE, including signed-out/anon (the RPC is granted to anon), so
 // the congregation + the unchurched can watch the sermon library (Father's-
 // Business reach). The table itself stays owner/admin (RLS), so prep/drafts never
-// leak. Degrades to [] on error — the public surface never throws.
+// leak.
+//
+// Rides publicRpc (anon key + hard 12s deadline), NEVER the shared supabase
+// client: the shared client awaits auth.getSession() first, which waits on a
+// CROSS-TAB navigator lock shared by every PoeTech window on this origin. A
+// wedged/backgrounded PoeTech tab holds that lock and — because browser fetch()
+// has no timeout — the library request never returns, stranding the surface on
+// "Loading the Word…" forever with no Retry (Darrell 2026-07-19, many PoeTech
+// tabs open). Same fix as fetchShowcase (2026-07-07 gallery hang).
+//
+// On a hard error/timeout this THROWS so the caller lights up its honest
+// error+Retry state — a false "No messages yet." on a real failure is exactly
+// the dishonest empty the three-state design forbids (DR-0076). A genuine empty
+// library still resolves to [].
 export async function fetchPublicSermons() {
-  const { data, error } = await supabase.rpc('theword_public_sermons');
-  if (error) { console.warn('[the-word] public library fetch failed:', error); return []; }
+  const { data, error } = await publicRpc('theword_public_sermons');
+  if (error) throw new Error(error.message || 'theword-public-library-failed');
   return (data || []).map((r) => toSermonShape(r));
 }
 
