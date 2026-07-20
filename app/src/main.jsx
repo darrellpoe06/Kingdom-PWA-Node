@@ -117,6 +117,12 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/AudienceWindow.jsx').then(({ default: AudienceWindow }) => {
     __root.render(<React.StrictMode><ErrorBoundary><AudienceWindow /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('follow')) {
+  // The congregation follows the presenter's LIVE slide on their own device (a lean,
+  // no-auth renderer that subscribes to the session's Realtime channel by code).
+  import('./components/FollowAlong.jsx').then(({ default: FollowAlong }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><FollowAlong /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('output') === '1') {
   // NDI-ready program output: OBS ingests this as a Browser Source; DistroAV
   // republishes it as an NDI source on the church LAN. Lazy-imported like every

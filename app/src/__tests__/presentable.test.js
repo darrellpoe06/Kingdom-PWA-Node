@@ -3,6 +3,7 @@ import { MODULES, CLASS_META, buildSchedule } from '../lib/church-classes.js';
 import {
   TEACH_CHANNEL, formatClock, DEFAULT_KICKER,
   buildSlideForScene, holdingSlide, resolveAudienceLead,
+  slideOutline, resolveAudiencePoints, scriptureRefsInText,
   coursePresentable, lessonPresentable, wordLibrary, messagePresentable, parseRunOfShow,
   studyPresentable, conferencePresentable, documentPresentable,
   stripTags, splitHtmlSections,
@@ -127,29 +128,35 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     },
   };
 
-  it('makes the LESSON its own presentation — its parts + a closing Scripture recap', () => {
+  it('leads with a TITLE card, then its parts + a closing Scripture recap', () => {
     const p = lessonPresentable(lesson);
     expect(p.id).toBe('lesson:mit1');
     expect(p.title).toBe('The Design in Time');
-    // 5 authored segments + the "The Word we stood on" recap = 6 scenes
-    expect(p.scenes.length).toBe(6);
-    expect(p.scenes[0].indexLabel).toBe('Part 1 of 6');
-    expect(p.scenes[5].audience.title).toBe('The Word we stood on');
-    // targetMin is THIS lesson's own length (3+15+10+8+2 + 2 recap = 40), not 607
+    // a title card + 5 authored segments + the "The Word we stood on" recap = 7 scenes
+    expect(p.scenes.length).toBe(7);
+    // the FIRST slide is the lesson TITLE — the standing background until the speaker begins
+    expect(p.scenes[0].id).toMatch(/-title$/);
+    expect(p.scenes[0].audience.title).toBe('The Design in Time');
+    expect(p.scenes[0].indexLabel).toBe('Part 1 of 7');
+    expect(p.scenes[6].audience.title).toBe('The Word we stood on');
+    // targetMin is THIS lesson's TEACHING length (3+15+10+8+2 + 2 recap = 40) — the
+    // title card is a standing background, NOT counted in the teaching time.
     expect(p.targetMin).toBe(40);
   });
 
   it('shows the anchor Word VERBATIM on the opener class screen and repeats it as a recap', () => {
     const p = lessonPresentable(lesson);
+    const opener = p.scenes.find((s) => /open in prayer/i.test(s.audience.title));
     // opener carries the verbatim anchor on the audience payload (the room reads it)
-    expect(p.scenes[0].audience.scripture).toContain('Ecclesiastes 3:1');
+    expect(opener.audience.scripture).toContain('Ecclesiastes 3:1');
     // Ecclesiastes 3:1 is in the fetched KJV store, so the actual verse text rides along
-    expect(p.scenes[0].audience.scripture).toMatch(/to every thing there is a season/i);
+    expect(opener.audience.scripture).toMatch(/to every thing there is a season/i);
     // the closing recap repeats the sourced Scriptures for a refresher
     const recap = p.scenes[p.scenes.length - 1];
     expect(recap.audience.scripture).toMatch(/to every thing there is a season/i);
     // and the built slide carries scripture through to the projector
-    expect(buildSlideForScene(p.scenes, 0, {}).scripture).toBeTruthy();
+    const openerIdx = p.scenes.indexOf(opener);
+    expect(buildSlideForScene(p.scenes, openerIdx, {}).scripture).toBeTruthy();
   });
 
   it('a time budget reflows THIS lesson only (45 min lands per-part, not ~2.8)', () => {
@@ -192,15 +199,122 @@ describe('lessonPresentable — ONE lesson, timed to itself (not the 607-min ser
     expect(resolveAudienceLead(big.audience, 'child')).toBe('God made you to grow.');
     expect(resolveAudienceLead(big.audience, 'teen')).toBe('You are still forming, on purpose.');
     // the opener carries the anchor Scripture note for the minister to read
-    const sn = p.scenes[0].notes.find((n) => /Scriptures to read/i.test(n.heading || ''));
+    const opener = p.scenes.find((s) => /open in prayer/i.test(s.audience.title));
+    const sn = opener.notes.find((n) => /Scriptures to read/i.test(n.heading || ''));
     expect(sn).toBeTruthy();
   });
 
-  it('falls back to a single scene (full age text) when a lesson has no run-of-show', () => {
+  it('falls back to a title card + a single content scene when a lesson has no run-of-show', () => {
     const bare = lessonPresentable({ id: 'x', title: 'X', bigIdea: 'idea' });
-    expect(bare.scenes.length).toBe(1);
-    expect(bare.scenes[0].audience.lead).toBe('idea');
-    expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607
+    expect(bare.scenes.length).toBe(2); // title card + the lesson
+    expect(bare.scenes[0].id).toMatch(/-title$/);
+    const content = bare.scenes.find((s) => !String(s.id).endsWith('-title'));
+    expect(content.audience.lead).toBe('idea');
+    expect(bare.targetMin).toBe(45); // sensible default, not 0 and not 607 (title untimed)
+  });
+});
+
+describe('slideOutline + concise audience slides (Darrell 2026-07-19: not-too-wordy + points)', () => {
+  it('splits prose into a main-idea lead + bullet points, capped', () => {
+    const o = slideOutline('The main idea here. First supporting detail. Second detail. Third detail.');
+    expect(o.lead).toBe('The main idea here.');
+    expect(o.points).toEqual(['First supporting detail.', 'Second detail.', 'Third detail.']);
+    // single sentence -> all lead, no points; empty -> empty
+    expect(slideOutline('Just one thought.')).toEqual({ lead: 'Just one thought.', points: [] });
+    expect(slideOutline('')).toEqual({ lead: '', points: [] });
+    // caps the number of points so the screen never becomes a wall
+    const many = slideOutline('Lead. A. B. C. D. E. F. G. H.', { maxPoints: 3 });
+    expect(many.lead).toBe('Lead.');
+    expect(many.points).toEqual(['A.', 'B.', 'C.']);
+  });
+
+  it('resolveAudiencePoints re-pitches bullets by band, falling back to base', () => {
+    const a = { points: ['base1'], pointsByAge: { child: ['kid1', 'kid2'], adult: ['grown1'] } };
+    expect(resolveAudiencePoints(a, 'child')).toEqual(['kid1', 'kid2']);
+    expect(resolveAudiencePoints(a, 'adult')).toEqual(['grown1']);
+    expect(resolveAudiencePoints(a, 'teen')).toEqual(['base1']); // no teen variant -> base
+    expect(resolveAudiencePoints({}, 'child')).toEqual([]);      // nothing -> empty
+  });
+
+  it('a LONG teaching beat projects a SHORT main idea + points, with the full beat text in notes', () => {
+    const longText = 'The one thing to hold is this. Pride is the first danger. Frustration is the second. '
+      + 'The body coming together is God to grant. Self-control is a fruit not willpower. '
+      + 'Accountability is never the judge bench. The standard must be equal. '
+      + 'The greatest servant is the king.';
+    const lesson = {
+      id: 'wordy', title: 'A wordy lesson', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: { child: longText, teen: longText, senior: longText },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach it | Go deeper (10): more | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    // the ROOM sees a short main idea (one sentence) + bullet points, NOT the paragraph
+    expect(big.audience.lead).toBe('The one thing to hold is this.');
+    expect(big.audience.lead.length).toBeLessThan(60);
+    expect(Array.isArray(big.audience.points)).toBe(true);
+    expect(big.audience.points.length).toBeGreaterThan(0);
+    big.audience.points.forEach((pt) => expect(longText).toContain(pt)); // real sentences, not invented
+    // the full beat text rides in presenter notes (nothing lost), longer than the lead
+    const teachNote = big.notes.find((n) => /the teaching/i.test(n.heading || ''));
+    expect(teachNote).toBeTruthy();
+    expect(teachNote.body.startsWith('The one thing to hold is this.')).toBe(true);
+    expect(teachNote.body.length).toBeGreaterThan(big.audience.lead.length);
+    // the projected slide carries lead + points for the room
+    const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
+    expect(slide.lead).toBe('The one thing to hold is this.');
+    expect(Array.isArray(slide.points) && slide.points.length > 0).toBe(true);
+  });
+});
+
+describe('cited Scripture — the room reads the Word directly (Darrell 2026-07-19)', () => {
+  it('scriptureRefsInText pulls the cited references, deduped + capped', () => {
+    const refs = scriptureRefsInText('the body (1 Corinthians 12:18); build the house (Psalm 127:1); great (Mark 10:43-45); again (Psalm 127:1)');
+    expect(refs).toEqual(['1 Corinthians 12:18', 'Psalm 127:1', 'Mark 10:43-45']); // Psalm 127:1 deduped
+    expect(scriptureRefsInText('no scripture here at all')).toEqual([]);
+    expect(scriptureRefsInText('Mark 1:1 John 2:2 Luke 3:3 Acts 4:4 James 5:5', { max: 3 })).toHaveLength(3);
+    // multi-word + numbered books resolve
+    expect(scriptureRefsInText('see Song of Solomon 2:1 and 2 Timothy 1:7')).toEqual(['Song of Solomon 2:1', '2 Timothy 1:7']);
+  });
+
+  it('a teaching beat carries the Scriptures it cites, and they flow to the built slide', () => {
+    const lesson = {
+      id: 'cite', title: 'Cited', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: {
+        child: 'God sets the body (1 Corinthians 12:18). And more here.',
+        teen: 'God sets the body (1 Corinthians 12:18). And more here.',
+        senior: 'God sets the body (1 Corinthians 12:18). Except the LORD build the house (Psalm 127:1). And more here.',
+      },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    expect(big.audience.citedRefs).toContain('1 Corinthians 12:18');
+    const slide = buildSlideForScene(p.scenes, p.scenes.indexOf(big), { age: 'adult' });
+    expect(slide.citedRefs).toContain('1 Corinthians 12:18'); // rides to the projector payload
+  });
+
+  it('builds a RUNNING scripture list (cumulative, deduped) + a lesson total', () => {
+    const lesson = {
+      id: 'run', title: 'Running', bigIdea: 'idea',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: {
+        child: 'God sets the body (1 Corinthians 12:18). More here.',
+        teen: 'God sets the body (1 Corinthians 12:18). More here.',
+        senior: 'God sets the body (1 Corinthians 12:18). Except the LORD build the house (Psalm 127:1). More here.',
+      },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson, { level: 'adult' });
+    const bigIdx = p.scenes.findIndex((s) => /big idea/i.test(s.audience.title));
+    const s0 = buildSlideForScene(p.scenes, 0, { age: 'adult' });       // title (carries the anchor)
+    const sBig = buildSlideForScene(p.scenes, bigIdx, { age: 'adult' }); // after teaching
+    expect(s0.scripturesSoFar).toContain('Psalm 1:1');                  // anchor shown from the title
+    expect(sBig.scripturesSoFar).toEqual(expect.arrayContaining(['Psalm 1:1', '1 Corinthians 12:18']));
+    expect(sBig.scripturesSoFar.length).toBeGreaterThanOrEqual(s0.scripturesSoFar.length); // grows
+    expect(sBig.scripturesSoFar.filter((r) => r === 'Psalm 1:1')).toHaveLength(1);          // deduped
+    expect(sBig.scripturesTotal).toBeGreaterThanOrEqual(sBig.scripturesSoFar.length);       // running of total
   });
 });
 
@@ -280,10 +394,29 @@ describe('The Word — a LIBRARY of messages, each its OWN presentation', () => 
 });
 
 describe('age-adaptive presenter hook', () => {
-  it('exposes child/teen/adult bands with a coaching hint each', () => {
-    expect(PRESENT_AGE_BANDS.map((b) => b.id)).toEqual(['child', 'teen', 'adult']);
+  it('exposes EVERY authored version — everyone (the big idea) + child/teen/adult — each with a hint', () => {
+    expect(PRESENT_AGE_BANDS.map((b) => b.id)).toEqual(['everyone', 'child', 'teen', 'adult']);
+    expect(DEFAULT_PRESENT_AGE).toBe('everyone'); // a mixed room is the common case
     expect(ageHint('child')).toMatch(/one idea/i);
+    expect(ageHint('everyone')).toMatch(/mixed room|anyone/i);
     expect(ageHint('nonsense')).toBe(ageHint(DEFAULT_PRESENT_AGE)); // falls back
+  });
+
+  it('lessonPresentable exposes the "everyone" register (the general big idea) alongside the ages', () => {
+    const lesson = {
+      id: 'reg', title: 'Registers', bigIdea: 'The general big idea, for anyone. It has a second sentence.',
+      anchor: { ref: 'Psalm 1:1', theme: 't' },
+      levels: { child: 'Kid text here. And more.', teen: 'Teen text here. And more.', senior: 'Senior text here. And more.' },
+      facilitator: { howToRun: 'Open (3): pray | The big idea (15): teach | Take it with you (2): go' },
+    };
+    const p = lessonPresentable(lesson);
+    const big = p.scenes.find((s) => /big idea/i.test(s.audience.title));
+    // all four registers are present on the same slide, so the speaker can pick any live
+    expect(Object.keys(big.audience.leadByAge).sort()).toEqual(['adult', 'child', 'everyone', 'teen']);
+    // the "everyone" register is the general big idea; "adult" is the senior rewrite
+    expect(resolveAudienceLead(big.audience, 'everyone')).toBe('The general big idea, for anyone.');
+    expect(resolveAudienceLead(big.audience, 'adult')).toBe('Senior text here.');
+    expect(resolveAudienceLead(big.audience, 'child')).toBe('Kid text here.');
   });
 });
 

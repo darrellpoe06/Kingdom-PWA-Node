@@ -56,7 +56,10 @@ export default function AudienceWindow() {
     <div
       style={{
         minHeight: '100vh', background: '#14110E', color: '#FAF8F4',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        // Top-aligned on purpose: on an LED wall the speaker stands BELOW the words,
+        // so the slide sits at the TOP and the black fills the bottom — the speaker
+        // never blocks the text (Darrell 2026-07-19, Love Corner).
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
         padding: 'clamp(24px, 5vw, 72px)', fontFamily: '"Fraunces", Georgia, serif',
         cursor: (!showHold && isFs) ? 'none' : 'default', // only hide the pointer once projected fullscreen
       }}

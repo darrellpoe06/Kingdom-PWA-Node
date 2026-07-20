@@ -5,18 +5,18 @@
     "midnight"
   ],
   "summary": {
-    "pages": 185,
-    "passing": 171,
+    "pages": 186,
+    "passing": 172,
     "trackedDebtPages": 14,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 79
+    "debtViolations": 82
   },
   "pages": [
     {
       "page": "components/Presenter.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 40,
+      "violations": 43,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
