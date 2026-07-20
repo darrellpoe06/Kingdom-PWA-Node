@@ -807,13 +807,15 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           )}
 
           {/* Combine duplicates the family selected — the runtime escape hatch for
-              dupes the auto-remover conservatively leaves alone (Darrell 2026-07-20). */}
+              dupes the auto-remover conservatively leaves alone (Darrell 2026-07-20).
+              A FLOATING action bar so it's always in view while you check rows deep
+              in the list — the "how do I merge after checking" answer. */}
           {canCombine && selectedIds.size >= 2 && (
-            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,34rem)] border-2 border-[#B85838] bg-[#FAF8F4] shadow-xl p-3 flex items-center justify-between gap-3 flex-wrap" role="region" aria-label="Combine selected transactions">
               <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong>{selectedIds.size}</strong> rows selected — combine the duplicates you found into one (keeps the most complete row, removes the rest).
+                <strong>{selectedIds.size}</strong> selected — combine into one (keeps the fullest row, removes the rest).
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button type="button" onClick={clearSelection} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 border border-[#5A5751] text-[#5A5751] hover:bg-white">Clear</button>
                 <button type="button" onClick={combineSelected} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Combine {selectedIds.size}</button>
               </div>
@@ -994,7 +996,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                               {formatDate(t.posted)}
                             </td>
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
-                            <td className="px-2 py-1.5 truncate max-w-[16.25rem]" title={t.name}>
+                            <td className={`px-2 py-1.5 ${selectedIds.has(t.id) ? 'whitespace-normal break-words' : 'truncate max-w-[16.25rem]'}`} title={t.name}>
                               {t.name}
                               {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}

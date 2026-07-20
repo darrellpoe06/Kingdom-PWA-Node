@@ -533,6 +533,21 @@ relying on it; memories reflect what was true when written.
   proves they render real <svg>. Honest limit: no browser in-session to pixel-verify flame/crown
   (re-review 2026-10-20). `feedback_kingdom_first_iconography`.
 
+- **2026-07-20 — Inline, No Jumping (DR-0201, the Way) + merge-duplicates UX fix.** Darrell (dup
+  salary rows checked at the BOTTOM, "Combine 2" bar was at the TOP → eye-jump): "everything is
+  inline, no jumping to another place in the same screen, changes appear where the eye already
+  expects, not outside the screen." THE WAY: an action/change (confirmation, bulk-action bar,
+  revealed control, updated value) appears WHERE THE EYE ALREADY IS — in the flow, next to the
+  thing acted on, on-screen; never a forced jump, never off-screen. A selection/action bar
+  floats/pins to stay in view (not parked at top); a revealed control opens at its trigger; a
+  value updates in place. ONE exception: an EXPLICIT "take me there" via smooth scroll (continuity,
+  not a jump). In UX-PATTERNS.md (Design Principle 6). FIXES applied: Imported combine bar is now
+  a floating fixed bar (bottom, above FABs); a SELECTED row un-truncates to full text so PPD IDs
+  are verifiable before merging (tap-to-expand also shows "Full description"). Combine logic was
+  already comprehensive (keeps fullest, warns on amount mismatch). NOTE: flags the KPI-View
+  scrollIntoView as a candidate to re-review (it's an explicit go-there, so it stands for now).
+  `feedback_inline_no_jumping`.
+
 - **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
   "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
   believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions

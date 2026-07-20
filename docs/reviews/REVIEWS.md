@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0173 · Fix + Way — merge duplicates: floating Combine bar (no jump) + full text on selected rows; "Inline, No Jumping"
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/Imported.jsx · docs/decisions/DR-0201-*.md · docs/00-foundations/_root/UX-PATTERNS.md · app/src/__tests__/imported-render.test.jsx
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 (screenshot: two duplicate Jul-01 payroll rows checked at the BOTTOM of the register, but the "Combine 2" bar sat at the TOP — forcing an eye-jump; and descriptions truncated so PPD IDs couldn't be verified). The combine LOGIC was already comprehensive (keeps the fullest row, warns if amounts differ). Fixes: (1) the combine action bar is now a FLOATING bar (fixed, bottom, above the corner FABs) so it's always in view while checking rows anywhere; (2) a SELECTED row un-truncates to full text (whitespace-normal break-words) so the family can verify the full PPD ID before merging — and the tap-to-expand detail already shows "Full description". Declared the Way (DR-0201): "Inline, No Jumping" — an action/change appears where the eye already is, never a jump to another screen region, never off-screen; the one allowed movement is an explicit "take me there" via smooth scroll. Added to UX-PATTERNS.md (Design Principle 6). Noted the KPI-View scroll for re-review against the Way (it's an explicit go-there, so it stands). Proven-to-catch: imported-render (+1: combine bar has `fixed`, selected row un-truncated, combine keeps fullest). Lint + consistency + full suite green.
+- **Source:** app/src/__tests__/imported-render.test.jsx
+
 ### REV-0172 · Feature — the subscription audit moves onto the Imported Recurring-payments KPI (real auto-detected data)
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/recurring-decisions.js · app/src/components/Imported.jsx · app/src/__tests__/recurring-decisions.test.js · app/src/__tests__/imported-render.test.jsx · docs/decisions/DR-0200-*.md

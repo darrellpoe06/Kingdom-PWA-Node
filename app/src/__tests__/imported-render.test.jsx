@@ -242,4 +242,34 @@ describe('Imported — bank-convention view (real mount)', () => {
     const saved = JSON.parse(localStorage.getItem('poe.imported.recurringDecisions.v1') || '{}');
     expect(Object.values(saved)).toContain('cancel');
   });
+
+  it('merge UX: the Combine bar floats into view (not stuck at top) + selected rows show full text', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const del = vi.fn();
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        { id: 'p1', accountId: 'a1', date: '2026-07-01', amount: -2271.97, description: 'UNIVERSITY OF IL PAYROLL PPD ID: 137600051' },
+        { id: 'p2', accountId: 'a1', date: '2026-07-01', amount: -2271.97, description: 'UNIVERSITY OF IL PAYROLL PPD ID: 137600051 CHAMPAIGN IL 07/01' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+    const boxes = [...container.querySelectorAll('input[type="checkbox"][aria-label^="Select"]')];
+    await click(boxes[0]);
+    // one selected → its description cell is un-truncated (full PPD text visible to verify)
+    const cellClass = [...container.querySelectorAll('td')].find((td) => /PPD ID: 137600051/.test(td.textContent))?.className || '';
+    expect(cellClass).toContain('whitespace-normal'); // full text, not truncate
+    expect(cellClass).not.toContain('truncate');
+    await click(boxes[1]);
+    // the combine action bar floats (fixed) into view rather than sitting at the top of the page
+    const bar = container.querySelector('[aria-label="Combine selected transactions"]');
+    expect(bar, 'the floating Combine bar renders when 2+ selected').toBeTruthy();
+    expect(bar.className).toContain('fixed');
+    await click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Combine 2'));
+    expect(del).toHaveBeenCalledWith(['p1']); // keeps the fullest, removes the other
+    vi.unstubAllGlobals();
+  });
 });
