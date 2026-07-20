@@ -520,3 +520,28 @@ relying on it; memories reflect what was true when written.
   the KPIs panel (the live-data + learning explainer); a standing lens for every surface
   going forward. re-review 2026-10-20 for where else to apply.
   `feedback_teach_through_the_system`.
+
+- **2026-07-20 — Data Integrity standard report (DR-0196).** Darrell: "add these
+  data-driven audits to the reports as a standard so we can see our growth." The
+  DR-0061/P15 painted-data audit is now a permanent in-app scoreboard on OpsBoard:
+  a committed LEDGER (app/src/data/data-integrity-audit.json — per-area verdict +
+  severities + append-only history) → pure summarizer (app/src/lib/data-integrity-audit.js,
+  scoped to AUDITED areas so pending never counts clean or dirty) → DataIntegrityReport.jsx.
+  The report paints nothing — all numbers derived from real audit records (DR-0076).
+  NOTE the naming: `data-integrity-audit.*` (painted-data audit) is DISTINCT from the
+  pre-existing `data-integrity.test.js` (data-consistency helpers). Method: independent
+  read-only audit per surface slice; growth = coverage up + open findings down, run over
+  run. Next iteration (re-review 2026-10-20): a deterministic smell-scanner canary.
+  `feedback_data_integrity_audit_standard_report`.
+
+- **2026-07-20 — Static-data audit sweep results (DR-0061/P15 verification).** A 10-slice
+  independent audit of the app's live-state surfaces found NO high/med painted data in the
+  4 slices verified at first ship: app root/Big Picture (poe-financial-mvp-v28 — KPI tiles
+  all useMemo-derived from real `data`; buffer figure replaced a former painted slider),
+  inbound/business (Inbound/FeedbackCenter/MooreDivahs/MooreDoor/CohortPrograms/ServiceProgram
+  — all real, several with "nothing painted" comments), learn/progress (PracticeLearn/
+  ChurchLearn/Practice/EternalAlgorithmsStudy — real; 1 LOW: Practice.jsx:436 hardcoded 50%
+  conv under an "Estimates" banner), church/media (Choir/Pulpit/Presenter/ChurchVideoWall/
+  TVTime/ScriptureLibrary — real subscriptions/state). The discipline has largely held. Six
+  slices (dashboards, ops-health, boards-projects, books-money, real-estate, community) were
+  still in review — see the ledger for final verdicts.

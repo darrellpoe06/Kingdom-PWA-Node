@@ -1,0 +1,107 @@
+{
+  "updatedAt": "2026-07-20",
+  "standard": "DR-0061 / P15 — every value on a trust surface traces to real state; no painted data",
+  "method": "Independent read-only audit of each surface slice against its real data source (props/state/query/records); painted-live-state distinguished from legit authored content + gated seed data (SEED-DATA-AS-ASPIRATION).",
+  "areas": [
+    {
+      "id": "monolith-root",
+      "label": "App root · Big Picture dashboard",
+      "files": ["poe-financial-mvp-v28.jsx"],
+      "verdict": "clean",
+      "high": 0, "med": 0, "low": 0,
+      "note": "Big Picture KPI tiles are all useMemo-derived from real `data`; buffer figure carries a comment noting it replaced a former painted slider (DR-0061).",
+      "auditedAt": "2026-07-20"
+    },
+    {
+      "id": "inbound-business",
+      "label": "Inbound & business metrics",
+      "files": ["Inbound.jsx", "FeedbackCenter.jsx", "MooreDivahs.jsx", "MooreDoor.jsx", "CohortPrograms.jsx", "ServiceProgram.jsx"],
+      "verdict": "clean",
+      "high": 0, "med": 0, "low": 0,
+      "note": "Every count/dollar/status traces to real props, hook state, or live RPC/query; several files carry explicit 'nothing painted' enforcement comments.",
+      "auditedAt": "2026-07-20"
+    },
+    {
+      "id": "learn-progress",
+      "label": "Learn & progress",
+      "files": ["PracticeLearn.jsx", "ChurchLearn.jsx", "Practice.jsx", "EternalAlgorithmsStudy.jsx"],
+      "verdict": "findings",
+      "high": 0, "med": 0, "low": 1,
+      "note": "No painted progress found — every %/streak/done-count traces to real records. LOW: Practice.jsx:436 substitutes a hardcoded 50% conversion under an 'Estimates until Acuity sync' banner (non-progress revenue estimate seam).",
+      "auditedAt": "2026-07-20"
+    },
+    {
+      "id": "church-media",
+      "label": "Church ops & media",
+      "files": ["Choir.jsx", "Pulpit.jsx", "Presenter.jsx", "ChurchVideoWall.jsx", "TVTime.jsx", "ScriptureLibrary.jsx"],
+      "verdict": "clean",
+      "high": 0, "med": 0, "low": 0,
+      "note": "Every count/status/budget/schedule traces to a real subscription, state, or record; hardcoded material is authored content (Scripture, CapEx record, curated catalog) honestly framed as such.",
+      "auditedAt": "2026-07-20"
+    },
+    {
+      "id": "dashboards",
+      "label": "Dashboards & metrics",
+      "files": ["BigPictureDashboard.jsx", "About.jsx", "AccessUsageMetrics.jsx", "TrialStatus.jsx", "ClientGrowth.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    },
+    {
+      "id": "ops-health",
+      "label": "Ops & health",
+      "files": ["OpsBoard.jsx", "DevOps.jsx", "DispatchPanel.jsx", "DbHealth.jsx", "LlmHealth.jsx", "LoopHealth.jsx", "NetworkStatus.jsx", "WorkflowStatus.jsx", "MinistryOps.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    },
+    {
+      "id": "boards-projects",
+      "label": "Build & project boards",
+      "files": ["BuildBoard.jsx", "ProjectBoards.jsx", "Projects.jsx", "ConcernsBoard.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    },
+    {
+      "id": "books-money",
+      "label": "Books & money",
+      "files": ["BooksTransactions.jsx", "BooksAccounts.jsx", "BooksEntities.jsx", "Debts.jsx", "Contractors1099.jsx", "BudgetPlanner.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    },
+    {
+      "id": "real-estate",
+      "label": "Real estate · Rentals",
+      "files": ["Rentals.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    },
+    {
+      "id": "community",
+      "label": "Community surfaces",
+      "files": ["Cart.jsx", "Calendar.jsx", "ChurchHome.jsx", "BusMinistry.jsx", "KitchenInventory.jsx", "EventCenterModule.jsx"],
+      "verdict": "pending",
+      "high": 0, "med": 0, "low": 0,
+      "note": "In review.",
+      "auditedAt": null
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-07-20",
+      "areasAudited": 4,
+      "areasClean": 3,
+      "openHigh": 0,
+      "openMed": 0,
+      "openLow": 1
+    }
+  ]
+}
