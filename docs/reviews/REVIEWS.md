@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0160 · Trust but Verify — external research is independently checked before the platform teaches it
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/living-lessons-class.js (L44 Safe to Speak + the trust-but-verify harvest note) · app/src/__tests__/living-lessons-research-integrity.test.js · docs/decisions/DR-0190-*.md · memory/MEMORY.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** How-we-worked review (DR-0108), declared by Darrell 2026-07-20 ("do our own separate research on the cited research... trust but verify... add to our Ways and implement"). Friction/gap: a lesson was built from a forwarded newsletter, and without a standard the agent could have taught the newsletter's claims (incl. a cluster of circulated %-stats) on the platform's own authority. Action taken (not a note): the agent independently verified the primary sources — Project Aristotle (2012, 180+ teams) + Edmondson (1999) as established fact; the 381-employee AI/depression study as REAL (Kim/Kim/Lee, Humanities & Social Sciences Communications, Nature 2025) with an ethical-leadership buffer the newsletter under-played; the circulated %-stats as un-traceable and therefore NOT asserted. Recorded the standard as DR-0190, added the memory `feedback_trust_but_verify_external_research`, and shipped the proven-to-catch gate (a lesson stating a statistic without an attributing source fails the build). Re-review: retroactively apply the tier lens to the other research-sourced lessons (L15/L34/L36/L38/L41) on the standing cadence.
+- **Source:** app/src/__tests__/living-lessons-research-integrity.test.js
+
 ### REV-0159 · The re-ask relapse — extending an approved capability got treated as a bright line
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/ari-integrity-guard.js · app/src/__tests__/ari-integrity-guard.test.js · docs/decisions/DR-0189-*.md · memory/MEMORY.md
