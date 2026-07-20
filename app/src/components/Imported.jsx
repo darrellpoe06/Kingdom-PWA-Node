@@ -430,12 +430,24 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     const removeIds = rows.filter((r) => r.id !== keep.id).map((r) => r.id);
     const cents = (n) => Math.round((Number(n) || 0) * 100);
     const sameAmt = rows.every((r) => cents(r.amount) === cents(rows[0].amount));
-    const msg = sameAmt
-      ? `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies. The system will remember this payee so it spots the same duplicate next time.`
-      : `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
+    // Date guard: bank rows carry a DATE (no clock time), so same-date is the
+    // strongest "same charge" signal we have. Different dates almost always mean
+    // SEPARATE payments — e.g. a salary that posts twice a month (Darrell
+    // 2026-07-20: "there should be two entries per month for this salary").
+    // Warn distinctly so two real paychecks are never merged into one.
+    const distinctDates = [...new Set(rows.map((r) => String(r.posted || '')).filter(Boolean))];
+    const sameDate = distinctDates.length <= 1;
+    let msg;
+    if (!sameDate) {
+      msg = `Heads up — these ${rows.length} rows are on DIFFERENT dates (${distinctDates.sort().join(', ')}). Different dates usually mean SEPARATE payments — like a salary that posts twice a month — not duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Combine anyway?`;
+    } else if (sameAmt) {
+      msg = `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} on ${distinctDates[0] || 'the same date'} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies. The system will remember this payee so it spots the same duplicate next time.`;
+    } else {
+      msg = `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
+    }
     if (typeof confirm === 'function' && !confirm(msg)) return;
     deleteTransaction(removeIds);
-    if (sameAmt) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same-amount) combine
+    if (sameAmt && sameDate) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same amount AND same date) combine
     clearSelection();
   };
   // What the learning now recognizes: other exact (payee+date+amount+account) repeats
@@ -444,6 +456,22 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     () => suggestLearnedDuplicates((data.transactions || []).map((t) => ({ ...t })), learnedDedupe),
     [data.transactions, learnedDedupe]
   );
+  // Inspect-before-merge: expand a learned group INLINE (DR-0201, no jumping) to
+  // reveal each candidate row's date · account · full description, so the family
+  // confirms they are the SAME charge before combining. Members of a learned group
+  // already share date+amount+account by signature, so the full description (the
+  // PPD-ID suffix) is what distinguishes a true duplicate from a coincidental match.
+  const [inspectDupSig, setInspectDupSig] = useState(null);
+  const txnById = useMemo(() => {
+    const m = new Map();
+    for (const t of (data.transactions || [])) if (t && t.id) m.set(t.id, t);
+    return m;
+  }, [data.transactions]);
+  const acctNameOf = (id) => (accounts.find((a) => a.id === id) || {}).name || id || '—';
+  const groupMembers = (g) => [g.keepId, ...(g.removeIds || [])]
+    .map((id) => txnById.get(id))
+    .filter(Boolean)
+    .map((t) => ({ id: t.id, posted: t.date, name: t.description || '—', institution: acctNameOf(t.accountId), amount: Number(t.amount) || 0 }));
   const combineLearnedGroup = (g) => {
     if (!canCombine || !g.removeIds.length) return;
     if (typeof confirm === 'function' && !confirm(`Combine ${g.count} copies of “${g.label}” (${formatAmount(g.amount)}) into one? This keeps the fullest row and removes ${g.extra} duplicate cop${g.extra === 1 ? 'y' : 'ies'} — the system recognized these because you taught it this payee.`)) return;
@@ -592,12 +620,41 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           {canCombine && learnedDupGroups.length > 0 && (
             <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
               <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Duplicates the system learned from you</div>
-              {learnedDupGroups.slice(0, 6).map((g) => (
-                <div key={g.signature} className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
-                  <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
-                  <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
+              {learnedDupGroups.slice(0, 6).map((g) => {
+                const open = inspectDupSig === g.signature;
+                const members = open ? groupMembers(g) : [];
+                const descsMatch = open && members.length > 1 && new Set(members.map((m) => m.name)).size === 1;
+                return (
+                <div key={g.signature} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
+                    <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button type="button" aria-expanded={open} onClick={() => setInspectDupSig(open ? null : g.signature)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#8B6F47] text-[#8B6F47] font-semibold hover:bg-[#8B6F47] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">{open ? 'Hide' : 'Inspect'} {open ? '▲' : '▾'}</button>
+                      <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
+                    </div>
+                  </div>
+                  {/* Inline inspection (DR-0201): the candidate rows appear right here,
+                      never off elsewhere. Bank rows carry a DATE, not a clock time —
+                      so we show the date honestly (DR-0076) and confirm same-date. */}
+                  {open && (
+                    <div className="mt-1.5 border border-[#E8E4DC] bg-white p-2 space-y-1">
+                      {members.map((m, i) => (
+                        <div key={m.id} className="text-[0.6875rem] text-[#1A1815] flex items-baseline justify-between gap-2">
+                          <span className="min-w-0"><span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(m.posted)}</span> <span className="text-[#5A5751]">· {m.institution} · {m.name}</span></span>
+                          <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatAmount(m.amount)}</span>
+                        </div>
+                      ))}
+                      <div className="text-[0.5625rem] text-[#5A5751] leading-snug pt-0.5">
+                        All {g.count} share the same date, amount, and account.{' '}
+                        {descsMatch
+                          ? 'Their descriptions match exactly — safe to combine.'
+                          : 'Their descriptions differ — check the details above before combining in case these are separate charges.'}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               {learnedDupGroups.length > 6 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {learnedDupGroups.length - 6} more learned group{learnedDupGroups.length - 6 === 1 ? '' : 's'}</div>}
             </div>
           )}

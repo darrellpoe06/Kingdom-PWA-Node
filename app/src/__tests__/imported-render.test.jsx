@@ -103,6 +103,68 @@ describe('Imported — bank-convention view (real mount)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('date guard: combining rows on DIFFERENT dates warns (two paychecks a month) and does not merge when declined', async () => {
+    // Two University-of-IL payroll rows, same amount, DIFFERENT dates — a salary
+    // that posts twice a month. These are NOT duplicates and must not silently merge.
+    const confirmSpy = vi.fn(() => false); // family reads the warning and cancels
+    vi.stubGlobal('confirm', confirmSpy);
+    const del = vi.fn();
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        { id: 'p_jul01', accountId: 'a1', date: '2026-07-01', amount: 2271.97, description: 'UNIVERSITY OF IL PAYROLL' },
+        { id: 'p_jul15', accountId: 'a1', date: '2026-07-15', amount: 2271.97, description: 'UNIVERSITY OF IL PAYROLL' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+    const boxes = [...container.querySelectorAll('input[type="checkbox"][aria-label^="Select"]')];
+    await click(boxes[0]);
+    await click(boxes[1]);
+    await click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Combine 2'));
+    // it warned about the different dates...
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(confirmSpy.mock.calls[0][0]).toMatch(/DIFFERENT dates/);
+    expect(confirmSpy.mock.calls[0][0]).toContain('2026-07-01');
+    expect(confirmSpy.mock.calls[0][0]).toContain('2026-07-15');
+    // ...and because the family declined, nothing was merged
+    expect(del).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('learned duplicates: Inspect expands INLINE to show each candidate row date + account before merging', async () => {
+    // Teach the payee so the learned-duplicate group surfaces.
+    localStorage.setItem('poe-learned-dedupe:p1', JSON.stringify({ 'zelle payment from marcus warren': true }));
+    const del = vi.fn();
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        { id: 'z1', accountId: 'a1', date: '2026-07-15', amount: 50, description: 'Zelle payment from Marcus Warren' },
+        { id: 'z2', accountId: 'a1', date: '2026-07-15', amount: 50, description: 'Zelle payment from Marcus Warren' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+    // the learned group + its Inspect affordance render
+    expect(container.textContent).toContain('Duplicates the system learned from you');
+    const inspectBtn = [...container.querySelectorAll('button')].find((b) => /Inspect/.test(b.textContent));
+    expect(inspectBtn, 'each learned group has an Inspect toggle').toBeTruthy();
+    expect(inspectBtn.getAttribute('aria-expanded')).toBe('false');
+    await click(inspectBtn);
+    // expanded INLINE (DR-0201): candidate rows show their date, account, and the
+    // same-date/same-amount confirmation — no jump elsewhere
+    expect(inspectBtn.getAttribute('aria-expanded')).toBe('true');
+    const html = container.innerHTML;
+    expect(html).toContain('Chase 7206');
+    expect(html).toContain('same date, amount, and account');
+    expect(html).toMatch(/safe to combine/);
+    vi.unstubAllGlobals();
+  });
+
   it('PII gate: without a profile it shows the private notice, never real rows', async () => {
     localStorage.clear();
     const { container } = await mount(DATA);

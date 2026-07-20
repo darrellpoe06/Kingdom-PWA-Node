@@ -548,6 +548,20 @@ relying on it; memories reflect what was true when written.
   scrollIntoView as a candidate to re-review (it's an explicit go-there, so it stands for now).
   `feedback_inline_no_jumping`.
 
+- **2026-07-20 — Inspect duplicates before merging + a different-dates guard (DR-0202).** Darrell:
+  "need to be able to inspect the dates of the duplicates... date time same exactly or differences";
+  and, with a Salary screenshot, "there should be two entries per month for this salary." Real
+  truth: a salary posts TWICE a month (University of IL: Jul 01 + Jul 15) — same payee, different
+  date/amount, NOT a duplicate. Reality-trace: learned-dup groups are keyed by
+  payeeKey|date|amount|account, so two-per-month can never enter a learned group; the gap was the
+  MANUAL Combine (warned on amount only, not date). FIXES: (1) each learned group has an INSPECT
+  toggle that expands INLINE (DR-0201) to show each candidate row's date · account · full
+  description · amount + a note on whether descriptions match; bank rows carry a DATE not a clock
+  time — shown honestly, never a fake timestamp (DR-0076). (2) Manual Combine now warns distinctly
+  on DIFFERENT dates ("separate payments — like a salary that posts twice a month") and lists the
+  dates; a combine TEACHES the payee only when same-amount AND same-date. imported-render 13/13
+  (+2 proven-to-catch). `feedback_inspect_duplicates_before_merge`.
+
 - **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
   "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
   believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions
