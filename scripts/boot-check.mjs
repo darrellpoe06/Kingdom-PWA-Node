@@ -23,8 +23,13 @@ const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGN
 // Recovery-screen headlines = the app did NOT boot.
 const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest version'];
 
-const ATTEMPTS = 3;          // deploy propagation can take a beat; retry before failing
-const RETRY_DELAY_MS = 20000;
+// The propagation gate in deploy-cloudflare-pages.yml already waits for every
+// boot chunk to serve as JavaScript before this runs, so a failure here is
+// meant to be real. These retries are the last cushion for edge-cache lag on a
+// URL the gate didn't name (a deep-link's own chunk): a generous budget keeps a
+// transient miss from filing a bogus incident + phone push.
+const ATTEMPTS = 5;
+const RETRY_DELAY_MS = 25000;
 // The app HEALS ITSELF by navigating (the stale-build ladder: reload, then
 // cache-clear + cache-busted fresh URL — DR-0137/DR-0145). Right after a deploy
 // the edge can still serve the previous index for a few minutes, so the ladder
