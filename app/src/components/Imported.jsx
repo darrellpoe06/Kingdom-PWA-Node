@@ -434,7 +434,13 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     { label: 'Grouped by', value: GROUP_MODES.find(([k]) => k === groupMode)?.[1] || 'Month' },
     { label: 'Generated', value: new Date().toLocaleString('en-US') },
   ]);
-  const presets = financePresets(grouped.windowed, reportMeta());
+  // The KPI reports (Material changes / Unusual months / Recurring payments) are
+  // the SAME analyses shown as panels above — handed to the Reports menu so every
+  // user can pull them as named reports (Darrell 2026-07-20: "those top reports…
+  // as options… KPIs… training each user on how to see the money flow algorithms
+  // of their lives"). Passing the already-computed objects ties the report to the
+  // screen exactly (DR-0076).
+  const presets = financePresets(grouped.windowed, reportMeta(), { variance, anomalies, recurring });
 
   // Running-balance column — only when a single account is in view AND it carries
   // a real opening balance to anchor to (truthful-or-absent). Computed over the

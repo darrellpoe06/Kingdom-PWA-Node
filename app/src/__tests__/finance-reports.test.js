@@ -117,3 +117,84 @@ describe('financePresets — the one-click report menu', () => {
     }
   });
 });
+
+// --- KPI reports (Darrell 2026-07-20): the money-flow signals surfaced as reports.
+import {
+  materialChangesModel, unusualMonthsModel, recurringPatternsModel,
+} from '../lib/finance-reports.js';
+import { reportToCSV, reportToPrintHTML } from '../lib/report-export.js';
+
+describe('materialChangesModel — movers with their drivers', () => {
+  const variance = {
+    threshold: 500,
+    materialCount: 2,
+    overall: { material: true, net: -7801, drivers: [{ label: 'UNIVERSITY PAYROLL', amount: 6819 }, { label: 'WF HOME MTG', amount: -5246 }] },
+    accounts: [
+      { accountId: 'a1', name: 'Chase Personal Checking', material: true, net: -1391, drivers: [{ label: 'CASH APP', amount: 6707 }] },
+      { accountId: 'a2', name: 'Savings', material: false, net: 20, drivers: [] },
+    ],
+  };
+  const m = materialChangesModel(variance, META);
+  it('lists the overall mover and each material account, not the immaterial one', () => {
+    expect(m.groups[0].rows.map((r) => r.scope)).toEqual(['Overall (external)', 'Chase Personal Checking']);
+  });
+  it('names the drivers in the row text', () => {
+    expect(m.groups[0].rows[0].drivers).toContain('UNIVERSITY PAYROLL +$6,819');
+    expect(m.groups[0].rows[0].drivers).toContain('WF HOME MTG −$5,246');
+  });
+  it('carries a teaching note and exports as CSV + print HTML', () => {
+    expect(m.note).toMatch(/Material changes/);
+    expect(reportToCSV(m)).toContain('Chase Personal Checking');
+    expect(reportToPrintHTML(m)).toContain('KPI');
+  });
+});
+
+describe('unusualMonthsModel — months off the usual', () => {
+  const anomalies = [
+    { month: '2026-04', label: 'May 2026', metric: 'out', value: 41219, baseline: 25669, kind: 'excess', deviation: 15550, deviationPct: 61 },
+  ];
+  const m = unusualMonthsModel(anomalies, META);
+  it('renders the month, metric, this-vs-usual, and the off-by text', () => {
+    const r = m.groups[0].rows[0];
+    expect(r.month).toBe('May 2026');
+    expect(r.metric).toBe('Spent');
+    expect(r.amount).toBe(41219);
+    expect(r.usual).toBe(25669);
+    expect(r.offby).toBe('above by $15,550 (+61%)');
+  });
+  it('has a teaching note', () => { expect(m.note).toMatch(/Unusual months/); });
+});
+
+describe('recurringPatternsModel — the repeating rhythms', () => {
+  const recurring = [
+    { key: 'k1', label: 'WF HOME MTG AUTO PAY', cadenceLabel: 'monthly', count: 13, amount: 2623, overdue: false },
+    { key: 'k2', label: 'GOODLEAP', cadenceLabel: 'monthly', count: 11, amount: 484, overdue: true },
+  ];
+  const m = recurringPatternsModel(recurring, META);
+  it('lists each payee with cadence, count, amount and flags overdue', () => {
+    expect(m.groups[0].rows[0]).toMatchObject({ payee: 'WF HOME MTG AUTO PAY', cadence: 'monthly', times: '13×', amount: 2623 });
+    expect(m.groups[0].rows[1].cadence).toBe('monthly · due');
+  });
+  it('labels the group with the per-cycle total', () => {
+    expect(m.groups[0].label).toContain('$3,107/cycle');
+  });
+});
+
+describe('financePresets — KPI reports prepend when analyses are supplied', () => {
+  it('adds the three KPI presets (first) only when their analysis is non-empty', () => {
+    const kpis = {
+      variance: { threshold: 500, materialCount: 1, overall: { material: true, net: -100, drivers: [] }, accounts: [] },
+      anomalies: [{ month: '2026-04', label: 'May 2026', metric: 'out', value: 41219, baseline: 25669, kind: 'excess', deviation: 15550, deviationPct: 61 }],
+      recurring: [{ key: 'k1', label: 'X', cadenceLabel: 'monthly', count: 3, amount: 100, overdue: false }],
+    };
+    const presets = financePresets(ROWS, META, kpis);
+    expect(presets.slice(0, 3).map((p) => p.key)).toEqual(['kpi-material', 'kpi-unusual', 'kpi-recurring']);
+    expect(presets.slice(0, 3).every((p) => p.kpi && p.hint)).toBe(true);
+    // the standard 5 still follow
+    expect(presets.slice(3).map((p) => p.key)).toEqual(['monthly', 'category', 'account', 'inc-exp', '1099']);
+  });
+  it('omits a KPI whose analysis is empty', () => {
+    const presets = financePresets(ROWS, META, { variance: { materialCount: 0 }, anomalies: [], recurring: [] });
+    expect(presets.some((p) => p.kpi)).toBe(false);
+  });
+});
