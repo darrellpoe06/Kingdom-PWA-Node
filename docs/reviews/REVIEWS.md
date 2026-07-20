@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0161 · Harvest — Living Lesson L45: recognition, credit, and equity meet the Word ("honour to whom honour")
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/living-lessons-class.js (L45 new module + meta.weeks 44→45 + cross-refs into L12/L42/L44) · docs/decisions/DR-0191-*.md · docs/99-session-notes/2026-07-20-recognition-power-equity-lesson.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** Harvest-to-lesson (DR-0168) + trust-but-verify (DR-0190), declared by Darrell 2026-07-20 ("Lesson for Ari and claude... review our Ways and documentation and create a new lesson and add this context to those that it will help add quality"). Source: the IT-workplace session "Recognition, Power, and Equity in IT Work" (Courtney Fleeger & Mark McCarthy) — credit FUNCTIONS AS POWER; uneven recognition sorts who advances and falls hardest on the overlooked across identities and career stages. Built as L45 "Give Honour Where It Is Due" on the tested module shape: the Word founded EQUITY deeper — God gives "more abundant honour to that part which lacked" (1 Cor 12:23-26); honour is a DUE (Rom 13:7; Prov 3:27; Jas 5:4); rest for the unthanked (Heb 6:10); guardrail against a credit-grab (Matt 6:1; Prov 27:2; John 5:44); no partiality (Jas 2:1-9); the servant-king (Mark 10:43-45; Luke 14:10-11); no reward stolen — God pays by labour (1 Cor 3:6-8; Gal 6:4). Bound as a CONDUCT STANDARD for Ari/Claude (render honour to whom honour, name the quiet contributor, never absorb the family's credit — GOVERNANCE-EXECUTION-ADVISORY/DR-0111). **Ways-review question answered honestly mid-session (Darrell: "did separate research occur like the last documents?"):** the first pass did only ONE verification search; on the challenge the agent ran the full DR-0190 pass and traced PRIMARY sources — Sarsons, *American Economic Review* 2017 107(5):141-45 (+ *JPE* 2021 129(1):101-147) and Ross et al., "Women are credited less in science than men," *Nature* 2022 (PMC9352587; ~13% attribution gap across almost all career stages) — folded into the lesson comment + DR-0191, audience text kept attributed-general with no bare stat. LESSON FOR THE WAYS: the DR-0190 separate-research pass is not optional on a research-sourced harvest and must run BEFORE first ship, not only when challenged. Every verse KJV-verbatim from public/bible/kjv (DR-0076); lint + lesson-flow + research-integrity + presentable gates green.
+- **Source:** docs/decisions/DR-0191-recognition-and-equity-honour-to-whom-honour.md
+
 ### REV-0160 · Trust but Verify — external research is independently checked before the platform teaches it
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/living-lessons-class.js (L44 Safe to Speak + the trust-but-verify harvest note) · app/src/__tests__/living-lessons-research-integrity.test.js · docs/decisions/DR-0190-*.md · memory/MEMORY.md
