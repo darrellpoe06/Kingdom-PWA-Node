@@ -4604,7 +4604,7 @@ ${THEME_CSS}
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
             {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
             {booksView === 'imported' && (importedAllowed
-              ? <Imported data={data} deleteTransaction={deleteTransaction} />
+              ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} />
               : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
