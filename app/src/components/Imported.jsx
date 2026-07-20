@@ -41,7 +41,7 @@ import { internalTransferIds, externalTotals } from '../lib/internal-transfers.j
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
 import { detectRecurring } from '../lib/recurring-payments.js';
-import { categoryLabel } from '../lib/categorize.js';
+import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -184,7 +184,7 @@ export function buildImportedView(data, filters, nowMs) {
   };
 }
 
-export default function Imported({ data = {}, deleteTransaction = null }) {
+export default function Imported({ data = {}, deleteTransaction = null, recategorizePayee = null }) {
   const [filters, setFilters] = useState({ institution: '', category: '', search: '' });
   // View controls. period === null means "auto" (open on the newest month that
   // has data — the Mint pattern of landing on the latest activity). Any explicit
@@ -301,6 +301,45 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
     for (const g of recurring) for (const id of g.txIds) s.add(id);
     return s;
   }, [recurring]);
+
+  // Category editing (Darrell 2026-07-20: "Users need to be able to update the
+  // category and add more and the system should pull the ones it can determine
+  // based on the data" — on the Imported tab, "where the sorting system is").
+  // Editing reuses the SAME recategorizePayee the Tx tab uses, so one correction
+  // learns the payee rule and back-applies to every matching row (+ syncs).
+  const canEditCat = !!recategorizePayee;
+  // The pick-list: the canonical set PLUS any category already in the ledger (a
+  // raw import code or one the user CREATED earlier stays selectable).
+  const categoryOptions = useMemo(() => {
+    const seen = new Set(TX_CATEGORIES);
+    for (const t of (data.transactions || [])) { const c = t && t.category; if (c) seen.add(String(c).toLowerCase()); }
+    return [...seen];
+  }, [data.transactions]);
+  // What the deterministic categorizer can CONFIDENTLY determine for the rows still
+  // sitting on 'other'/blank — the one-tap "pull them from the data" (learned rules win).
+  const suggestions = useMemo(
+    () => autoCategorizeSuggestions(data.transactions || [], data.categoryRules || null),
+    [data.transactions, data.categoryRules]
+  );
+  const autoCatCount = suggestions.reduce((s, x) => s + x.count, 0);
+  const runAutoCategorize = () => {
+    if (!canEditCat || !suggestions.length) return;
+    let n = 0;
+    for (const s of suggestions) n += recategorizePayee(s.description, s.category) || 0;
+    alert(`Auto-categorized ${n.toLocaleString()} transaction(s) the system could determine from the data. Every one is still editable if you want to change it.`);
+  };
+  // Set a row's category. '__new__' opens a prompt so the user can ADD a category;
+  // a real category learns the payee rule and back-applies (recategorizePayee).
+  const setRowCategory = (row, value) => {
+    if (!canEditCat || !value) return;
+    let category = value;
+    if (value === '__new__') {
+      const entered = (typeof prompt === 'function' ? prompt('New category name (letters, e.g. "tuition")') : '') || '';
+      category = entered.trim().toLowerCase().replace(/[^a-z0-9- ]/g, '').replace(/\s+/g, '-');
+      if (!category) return;
+    }
+    recategorizePayee(row.name, category);
+  };
 
   // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
   // generic "DEBIT/CREDIT" twin of a real-payee row is removed, the real row kept
@@ -497,6 +536,20 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
             </div>
           )}
 
+          {/* Auto-categorize — the system pulls every category it can determine from
+              the data, in one tap (learned per-payee rules win). Only shows when
+              there's uncategorized work it can confidently do (Darrell 2026-07-20). */}
+          {canEditCat && autoCatCount > 0 && (
+            <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                The system can categorize <strong>{autoCatCount.toLocaleString()}</strong> uncategorized transaction{autoCatCount === 1 ? '' : 's'} from the data — across {suggestions.length} payee{suggestions.length === 1 ? '' : 's'}. Every one stays editable.
+              </span>
+              <button type="button" onClick={runAutoCategorize} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">
+                Auto-categorize {autoCatCount.toLocaleString()}
+              </button>
+            </div>
+          )}
+
           {/* Segmented period control + ‹ month › quick-jump — the standard bank /
               budgeting-app time picker. */}
           <div className="flex flex-wrap items-center gap-2">
@@ -670,7 +723,20 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
                               {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-[#5A5751]">{t.category ? categoryLabel(t.category) : '—'}</td>
+                            <td className="px-2 py-1.5 text-[#5A5751]" onClick={(e) => { if (canEditCat) e.stopPropagation(); }}>
+                              {canEditCat ? (
+                                <select
+                                  value={(t.category || 'other').toLowerCase()}
+                                  onChange={(e) => setRowCategory(t, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="max-w-[8.5rem] text-[0.6875rem] bg-white border border-[#E8E4DC] px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                                  aria-label={`Category for ${t.name}`}
+                                >
+                                  {categoryOptions.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                                  <option value="__new__">+ New category…</option>
+                                </select>
+                              ) : (t.category ? categoryLabel(t.category) : '—')}
+                            </td>
                             <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
                             {showBalance && (
                               <td className="px-2 py-1.5 text-right font-mono text-[#5A5751]">

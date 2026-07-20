@@ -6,7 +6,7 @@
 // month with newest row first (the original "2026 isn't on top" complaint), the
 // PII gate hides real rows without a profile, and selecting a single account
 // reveals a truthful running Balance column.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -49,6 +49,30 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(html).not.toContain('May 2026'); // default lands on the latest month only
     // newest-first within the month: Jun 30 row appears before Jun 10 row
     expect(html.indexOf('Late June charge')).toBeLessThan(html.indexOf('June payroll'));
+  });
+
+  it('category is editable on Imported + offers auto-categorize from the data', async () => {
+    vi.stubGlobal('alert', vi.fn());
+    const recat = vi.fn(() => 1);
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        { id: 't1', accountId: 'a1', date: '2026-06-10', amount: -40, description: 'SHELL OIL 123', category: 'other' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, recategorizePayee: recat })); });
+    // the category cell is now a real editable select
+    const select = container.querySelector('select[aria-label^="Category for"]');
+    expect(select).toBeTruthy();
+    expect(select.querySelector('option[value="__new__"]')).toBeTruthy(); // "+ New category" -> add more
+    // the system offers to categorize what it can determine (SHELL -> fuel)
+    const autoBtn = [...container.querySelectorAll('button')].find((b) => /Auto-categorize/.test(b.textContent));
+    expect(autoBtn).toBeTruthy();
+    await act(async () => { autoBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(recat).toHaveBeenCalledWith('SHELL OIL 123', 'fuel');
+    vi.unstubAllGlobals();
   });
 
   it('PII gate: without a profile it shows the private notice, never real rows', async () => {

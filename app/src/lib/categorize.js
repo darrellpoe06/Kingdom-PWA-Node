@@ -112,6 +112,30 @@ export function countPayeeMatches(transactions, key) {
   return (transactions || []).filter((t) => payeeKey(t.description) === key).length;
 }
 
+// autoCategorizeSuggestions — "the system should pull the ones it can determine
+// based on the data" (Darrell 2026-07-20). For every row still UNCATEGORIZED
+// ('other' or blank), run the deterministic categorizer; keep only the CONFIDENT
+// determinations (> LOW_CONFIDENCE, so a guess never posts silently — the review
+// bar is respected), grouped by payee so one apply relabels every matching row.
+// Learned per-payee rules (data.categoryRules) win inside categorize(). Pure:
+// returns the suggestion list (biggest payee first); the caller applies each via
+// recategorizePayee, which learns + back-applies + syncs. Never mutates input.
+export function autoCategorizeSuggestions(transactions, learned = null, opts = {}) {
+  const minConf = opts.minConfidence != null ? opts.minConfidence : LOW_CONFIDENCE;
+  const isUncat = (c) => !c || String(c).toLowerCase() === 'other';
+  const byKey = new Map();
+  for (const t of (transactions || [])) {
+    if (!t || !isUncat(t.category)) continue;
+    const res = categorize(t.description, { learned });
+    if (res.category === 'other' || res.confidence <= minConf) continue;
+    const key = res.payeeKey;
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, { payeeKey: key, description: t.description, category: res.category, confidence: res.confidence, count: 0 });
+    byKey.get(key).count += 1;
+  }
+  return [...byKey.values()].sort((a, b) => b.count - a.count);
+}
+
 // categoryLabel — a clean, human-readable DISPLAY name for a stored category
 // (Darrell 2026-07-19, family books). A Chase checking export carries a "Type"
 // column whose raw codes (ACCT_XFER, ACH_CREDIT/ACH_DEBIT, ATM, BILLPAY, …) were

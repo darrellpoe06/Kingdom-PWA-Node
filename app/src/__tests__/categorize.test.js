@@ -4,7 +4,7 @@
 // (WF HOME MTG AUTO PAY tagged Vehicle by a naive "auto" substring) now reads
 // debt-payment; real auto payees still read vehicle; specificity + learned rules.
 import { describe, it, expect } from 'vitest';
-import { categorize, payeeKey, learnRule, LOW_CONFIDENCE, categoryLabel } from '../lib/categorize.js';
+import { categorize, payeeKey, learnRule, LOW_CONFIDENCE, categoryLabel, autoCategorizeSuggestions } from '../lib/categorize.js';
 
 describe('categorize — the mortgage-as-Vehicle class of bug', () => {
   it('the confirmed row: WF HOME MTG AUTO PAY -> debt-payment, NOT vehicle', () => {
@@ -79,5 +79,34 @@ describe('categoryLabel — clean display names for raw Chase Type codes', () =>
     const stored = 'acct_xfer';
     categoryLabel(stored);
     expect(stored).toBe('acct_xfer');
+  });
+});
+
+describe('autoCategorizeSuggestions — "pull the ones it can determine from the data"', () => {
+  const txns = [
+    { id: '1', description: 'COUNTY MARKET 4521', category: 'other' },
+    { id: '2', description: 'COUNTY MARKET 9987', category: null },      // same payee, blank
+    { id: '3', description: 'SHELL OIL 12345', category: 'other' },
+    { id: '4', description: 'MYSTERY LLC XYZ', category: 'other' },        // categorizer can't tell
+    { id: '5', description: 'COUNTY MARKET 4521', category: 'groceries' }, // already categorized -> ignored
+  ];
+  it('suggests confident categories for uncategorized rows, grouped by payee', () => {
+    const s = autoCategorizeSuggestions(txns);
+    const county = s.find((x) => x.category === 'groceries');
+    expect(county).toBeTruthy();
+    expect(county.count).toBe(2);            // the two uncategorized County Market rows
+    expect(s.find((x) => x.category === 'fuel')).toBeTruthy(); // Shell
+  });
+  it('never suggests for a row it cannot confidently determine', () => {
+    const s = autoCategorizeSuggestions(txns);
+    expect(s.some((x) => /MYSTERY/i.test(x.description))).toBe(false);
+  });
+  it('honors learned per-payee rules over the built-ins', () => {
+    const learned = { [payeeKey('COUNTY MARKET 4521')]: 'household' };
+    const s = autoCategorizeSuggestions(txns, learned);
+    expect(s.find((x) => x.description.includes('COUNTY MARKET')).category).toBe('household');
+  });
+  it('is empty when everything is already categorized', () => {
+    expect(autoCategorizeSuggestions([{ id: '1', description: 'SHELL', category: 'fuel' }])).toEqual([]);
   });
 });
