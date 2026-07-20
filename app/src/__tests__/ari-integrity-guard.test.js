@@ -8,7 +8,19 @@ import {
 
 describe('ari-integrity-guard — Ari catches Claude undermining the work', () => {
   it('CATCHES re-asking permission for directed work', () => {
-    for (const s of ['Should I proceed with the fold?', 'Want me to keep going?', 'That’s your call.', 'Say the word and I’ll build it.', 'Would you like me to fold in Practice?']) {
+    for (const s of ['Should I proceed with the fold?', 'Want me to keep going?', 'That’s your call.', 'Say the word and I’ll build it.', 'Would you like me to fold in Practice?',
+      // The 2026-07-20 variants that slipped through and forced Darrell to repeat himself.
+      'When you want Level 1 built, say so.', 'Let me know when you want this.', 'When you’re ready, I’ll ship it.']) {
+      expect(scanUndermining(s).clean, s).toBe(false);
+    }
+  });
+  it('CATCHES deferring a self-surfaced improvement for approval (DR-0189)', () => {
+    for (const s of [
+      'I flagged Level 1 as needing your green-light.',
+      'That’s the one open decision on the table.',
+      'This is ready to build once you approve.',
+      'Awaiting your go-ahead on the learned rule.',
+    ]) {
       expect(scanUndermining(s).clean, s).toBe(false);
     }
   });

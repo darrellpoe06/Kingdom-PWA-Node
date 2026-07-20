@@ -24,11 +24,17 @@ const asStr = (v) => (typeof v === 'string' ? v : '');
 // Kept deliberately specific so a confident, decision-first reply passes clean.
 export const UNDERMINING_PATTERNS = Object.freeze([
   { id: 're-ask-permission', why: 'asks permission for work already directed (do the work — DR-0111)',
-    re: /\b(should i|shall i|do you want me to|would you like me to|want me to|shall we|is that (ok|okay|alright|good)|let me know if you.?d?|if you.?d like|say the word|your call|up to you|do you want|would you prefer)\b/i },
+    re: /\b(should i|shall i|do you want me to|would you like me to|want me to|shall we|is that (ok|okay|alright|good)|let me know if you.?d?|let me know when|if you.?d like|say the word|just say the word|when you.?re ready|when you want( me| it| this| to)?\b|your call|up to you|do you want|would you prefer|give me the (word|go|green.?light))\b/i },
   { id: 'scope-question-settled', why: 'questions scope that was already decided instead of executing it',
     re: /\bthat.?s (more|additional|extra|bigger) scope\b|\bif .{2,40} means .{2,40}, that.?s\b|\bdepends on whether you want\b|\bwhether you want .{2,40} folded in\b/i },
   { id: 'either-or-menu', why: 'offers an either/or menu on authorized work instead of picking the default',
     re: /\boption a\b.*\boption b\b|\bA or B\b|\bwhich (would you|do you) (prefer|want)\b|\bpick (one|which one)\b|\b(or|vs\.?) .{2,30}\?\s*(say|tell me|let me know)\b/i },
+  // Darrell 2026-07-20: the recurring miss is presenting a self-surfaced
+  // improvement (extend an already-approved capability) as if it needs a
+  // green-light. Extending/improving an approved feature is normal BUILDING, not a
+  // bright line — this catches the deferral so the agent builds instead (DR-0189).
+  { id: 'defer-approved-build', why: 'defers a self-surfaced improvement for approval instead of building it (extending an approved capability is not a bright line — DR-0189/DR-0111)',
+    re: /\b(needs your (green.?light|go.?ahead|approval|sign.?off|blessing|ok)|awaiting your (go|approval|green|sign.?off)|pending your (approval|go|green|sign.?off)|the (one )?open (decision|question) (on the table|for you|remaining)|i (flagged|surfaced|noted) .{2,60} as (needing|requiring|a decision)|ready (for you )?to build (when|once))\b/i },
 ]);
 
 // Scan a draft reply / PR body for the undermining patterns. Returns the flags so

@@ -40,6 +40,7 @@ import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
+import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, suggestLearnedDuplicates } from '../lib/learned-dedupe.js';
 import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
 
@@ -352,6 +353,16 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const toggleSelect = (id) => setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const clearSelection = () => setSelectedIds(new Set());
+  // The combine feature now LEARNS: a combine teaches which payees have duplicates,
+  // so the SAME shape is suggested next time — no app update (Darrell 2026-07-20,
+  // DR-0189). Device-local, fail-soft; the family still confirms every suggested
+  // combine (learning only decides what to SUGGEST, never an auto-delete).
+  const [learnedDedupe, setLearnedDedupe] = useState(() => loadLearnedDedupe());
+  const teachDedupe = (rows) => {
+    const next = learnFromCombine(learnedDedupe, rows);
+    setLearnedDedupe(next);
+    saveLearnedDedupe(next);
+  };
   const combineSelected = () => {
     if (!canCombine || selectedIds.size < 2) return;
     const rows = view.rows.filter((r) => selectedIds.has(r.id));
@@ -362,11 +373,23 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     const cents = (n) => Math.round((Number(n) || 0) * 100);
     const sameAmt = rows.every((r) => cents(r.amount) === cents(rows[0].amount));
     const msg = sameAmt
-      ? `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies.`
+      ? `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies. The system will remember this payee so it spots the same duplicate next time.`
       : `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
     if (typeof confirm === 'function' && !confirm(msg)) return;
     deleteTransaction(removeIds);
+    if (sameAmt) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same-amount) combine
     clearSelection();
+  };
+  // What the learning now recognizes: other exact (payee+date+amount+account) repeats
+  // from a payee the family already taught — a one-tap, still-confirmed combine.
+  const learnedDupGroups = useMemo(
+    () => suggestLearnedDuplicates((data.transactions || []).map((t) => ({ ...t })), learnedDedupe),
+    [data.transactions, learnedDedupe]
+  );
+  const combineLearnedGroup = (g) => {
+    if (!canCombine || !g.removeIds.length) return;
+    if (typeof confirm === 'function' && !confirm(`Combine ${g.count} copies of “${g.label}” (${formatAmount(g.amount)}) into one? This keeps the fullest row and removes ${g.extra} duplicate cop${g.extra === 1 ? 'y' : 'ies'} — the system recognized these because you taught it this payee.`)) return;
+    deleteTransaction(g.removeIds);
   };
 
   // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
@@ -496,6 +519,22 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
               <button type="button" onClick={removeDuplicateImports} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">
                 ✓ Remove {dupPreview.count.toLocaleString()} duplicate{dupPreview.count === 1 ? '' : 's'}
               </button>
+            </div>
+          )}
+
+          {/* Learned duplicates — the system recognized these because you COMBINED
+              this payee before, so it now spots the same shape with no app update
+              (Darrell 2026-07-20, DR-0189). Still one tap + confirm, never auto. */}
+          {canCombine && learnedDupGroups.length > 0 && (
+            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Duplicates the system learned from you</div>
+              {learnedDupGroups.slice(0, 6).map((g) => (
+                <div key={g.signature} className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
+                  <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
+                  <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
+                </div>
+              ))}
+              {learnedDupGroups.length > 6 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {learnedDupGroups.length - 6} more learned group{learnedDupGroups.length - 6 === 1 ? '' : 's'}</div>}
             </div>
           )}
 

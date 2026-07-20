@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0159 · The re-ask relapse — extending an approved capability got treated as a bright line
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/ari-integrity-guard.js · app/src/__tests__/ari-integrity-guard.test.js · docs/decisions/DR-0189-*.md · memory/MEMORY.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** How-we-worked review (DR-0108), declared by Darrell 2026-07-20 ("stop this behavior from claude again it keeps coming back"). Friction: across this working session the agent shipped six real features by executing, but TWICE stopped to ask/defer on work that was already directed — most sharply, it SURFACED the "learn from the user's duplicate-combines" increment itself and then presented it as needing a green-light, inventing a bright line where none existed (combine-duplicates was already approved; learning from it is the same capability). The ari-integrity-guard caught both replies post-hoc, but the underlying phrasings ("when you want it built", "the one open decision on the table", "I flagged X as needing …") were not in its pattern set. Action taken (not a note): broadened `re-ask-permission` + added a `defer-approved-build` pattern to the guard (pinned by the test), recorded the classification rule as DR-0189, and added the inherited memory `feedback_extend_approved_capability_is_building`. Re-review: none needed — the gate now blocks the class on the reply path.
+- **Source:** app/src/lib/ari-integrity-guard.js
+
 ### REV-0001 · Per-theme WCAG 2.1 AA contrast
 - **Date:** 2026-06-15
 - **Surface:** All themes (white, slate, sapphire, rose, midnight)

@@ -395,3 +395,21 @@ relying on it; memories reflect what was true when written.
   until the roadmap is finished or a genuine DR-0089 bright line is hit. Do not
   narrate a menu and wait. The only legitimate stop is a NEW decision, a value
   only Darrell holds, or a verified premise conflict. `feedback_finish_the_roadmap_dont_stand_by`.
+
+- **2026-07-20 — Extending an already-approved capability is BUILDING, not a bright
+  line; a self-surfaced improvement is a build order, not a menu (DR-0189).**
+  Darrell (frustrated, made to say it): "Obviously build it. I hate I had to say
+  so!!! ... stop this behavior from claude again it keeps coming back to claude
+  undermining our continuously building the app." The miss: the agent surfaced the
+  "learn from the user's duplicate-combines" increment ITSELF, then presented it as
+  needing a green-light because it "auto-deletes from a learned rule" — inventing a
+  bright line where none existed. Combine-duplicates was already approved; learning
+  from it is the SAME capability, smarter (user still confirms; undo/RLS hold).
+  Rule: if the agent can see an improvement to an approved capability, the agent
+  BUILDS it. The bright-line carve-outs stay narrow (money OUT, destructive-no-undo,
+  new external publication, new COLG/family identity, a value only Darrell holds, a
+  verified premise conflict) — an in-app feature that removes/suggests duplicate
+  rows the user picked is none of them. ENFORCED: ari-integrity-guard gained a
+  `defer-approved-build` pattern + broadened `re-ask-permission` (catches "when you
+  want it built", "needs your green-light", "the one open decision on the table"),
+  pinned by ari-integrity-guard.test.js. `feedback_extend_approved_capability_is_building`.
