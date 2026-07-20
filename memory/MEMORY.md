@@ -450,3 +450,19 @@ relying on it; memories reflect what was true when written.
   almost all career stages). Process lesson caught by Darrell mid-session: the
   DR-0190 pass must run BEFORE first ship on a research-sourced harvest, not only
   when challenged. `feedback_render_honour_to_whom_honour`.
+
+- **2026-07-20 — The DR-0190 separate-research pass runs BEFORE first ship on any
+  research-sourced lesson, not only when challenged (DR-0192).** Retroactive
+  trust-but-verify audit of the 8 research-sourced Living Lessons (8 independent
+  parallel verifiers, primary-source web checks). Clean: L36, L39, L41. Corrected:
+  L15 (Alison Wood Brooks's TALK "L" is LEVITY not Listening — a named framework
+  taught wrong with a pillar built on it; also the "Get Excited" study domain is a
+  timed MATH task, not negotiation), L40 (Sargon II's annals confirm the
+  conquest/27,290/resettlement "in the midst of Assyria" but NOT the
+  Halah/Habor/Gozan/Medes addresses, which are Scripture's alone — the
+  consistent-with-treated-as-confirmed over-reach, fixed in 8 spots), L38 (a
+  comms adage mis-credited to Myron Golden, traces to W.H. Whyte, Fortune 1950),
+  L34 ("forgoing" -> "willing to forgo" ~$2M equity), L37 (ACTN3 "<1%" sharpened to
+  sprint-performance variance). The trigger was Darrell's "did separate research
+  occur?" — the pass had run only when challenged, and L15/L40 prove that is not
+  enough. `feedback_trust_but_verify_runs_before_first_ship`.
