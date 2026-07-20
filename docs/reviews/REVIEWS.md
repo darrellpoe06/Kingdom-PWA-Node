@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0163 · Harvest — Living Lesson L46: "Ye Fathers — Provoke to Good Works, Not to Wrath" (spoken teaching + verified neuroscience)
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/living-lessons-class.js (L46 new module + meta.weeks 45→46) · docs/decisions/DR-0193-*.md · docs/99-session-notes/2026-07-20-ye-fathers-provoke-to-good-works.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** Harvest-to-lesson (DR-0168) of Darrell's spoken teaching 2026-07-20 ("Bible says to the fathers to provoke their children to good works not wrath and why explicitly fathers... neuroscience"). Built as L46: the TWO provocations (forbidden to wrath Eph 6:4/Col 3:21, commanded "to provoke unto love and to good works" Heb 10:24); WHY "ye fathers" — first image of God the Father (Eph 3:15), the strength that builds/crushes "lest they be discouraged" (Col 3:21), the covenant hinge (Deut 6:6-7/Mal 4:6), the template of God's discipline (Heb 12:9); the active father PRAYS/TEACHES/TRAINS/PROVOKES (Job 1:5/Deut 6:7/Prov 22:6/3 John 1:4); comfort for the fatherless (Ps 68:5/Luke 11:13). NEUROSCIENCE verified BEFORE ship (the DR-0192 rule, first applied here from the start), tiered per DR-0100: TIER A — fatherhood lowers testosterone (Gettler PNAS 2011), involvement blesses child (Sarkadi 2008) real-but-modest (McLanahan 2013), paternal HARSHNESS most tied to child depression/low-worth (Kane & Garber 2004, the lab's witness to Col 3:21); TIER B — paternal brain (Feldman 2014), activation relationship (Paquette), rough-and-tumble play (StGeorge & Freeman 2017); TIER C REFUSED — the viral fatherless-home stats (untraceable, compiler conceded faulty) kept OUT, and "father shapes child's God-image" held as theology not science. Audience text attributed, no bare stat. Surfaces the FATHERS-PROVOKE-TO-GOOD-WORKS.md foundation (DR-0094 pair). Every verse KJV-verbatim from public/bible/kjv (DR-0076); lint + lesson-flow + research-integrity + presentable green.
+- **Source:** docs/decisions/DR-0193-ye-fathers-provoke-to-good-works-lesson.md
+
 ### REV-0162 · Trust but Verify — retroactive audit of the 8 research-sourced lessons (independent, primary-source)
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/living-lessons-class.js (L15, L34, L37, L38, L40 corrected; L36, L39, L41 verified clean) · docs/decisions/DR-0192-*.md · memory/MEMORY.md
