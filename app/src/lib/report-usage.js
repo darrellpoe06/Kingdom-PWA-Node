@@ -24,6 +24,8 @@ export const STANDARD_REPORTS = [
   { id: 'material', label: 'Material changes' },
   { id: 'unusual', label: 'Unusual months' },
   { id: 'recurring', label: 'Recurring payments' },
+  { id: 'categories', label: 'Top categories' },
+  { id: 'payees', label: 'Top payees' },
 ];
 
 // A safe storage accessor — returns null (never throws) when localStorage is

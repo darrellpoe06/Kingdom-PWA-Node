@@ -533,6 +533,19 @@ relying on it; memories reflect what was true when written.
   proves they render real <svg>. Honest limit: no browser in-session to pixel-verify flame/crown
   (re-review 2026-10-20). `feedback_kingdom_first_iconography`.
 
+- **2026-07-20 — KPI reports grow + View-on-screen + teach the concept (DR-0199 / REV-0170-0171).**
+  Books › Imported KPIs. (a) "KPIS"→"KPI's" everywhere (the `uppercase` transform mangled it) —
+  proper case, curly apostrophe, on the panel header AND the Reports-menu group header. (b) The
+  explainer teaches the CONCEPT for learners ("KPI means key performance indicator — the few
+  numbers that tell you the most...") not the obvious UI mechanics — Darrell corrected: "I want
+  the explanations for our learners... context" (keep teaching, DR-0195, drop condescension).
+  (c) Added Top categories + Top payees (computed from grouped.windowed, transfers excluded,
+  DR-0076; registered in STANDARD_REPORTS; full list DR-0197). (d) A KPI is meant to be SEEN not
+  DOWNLOADED to see — Reports-menu KPI items got a View action that opens the on-screen panel to
+  that report + scrolls (kpi-material→material via viewKpi/kpiPanelRef); CSV/PRINT stay. (e) "Groups
+  can have KPIs" = O&C only (GROUP BY subtotals are mini-KPIs; sort-by-size+% header enhancement
+  scoped 2026-10-20, not built — avoid clutter). `feedback_kpi_reports_grow_and_view_on_screen`.
+
 - **2026-07-20 — Show the full list (DR-0197).** Darrell: "we want the full list of 24
   to show up on its tab... grow to any that becomes... all low hanging fruit continuously."
   The KPI · Standard Reports (recurring, unusual months) were capped (slice 8/6) from when

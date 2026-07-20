@@ -29,7 +29,7 @@
 // the real component and proves 2026 lands on top.
 // =============================================================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
@@ -216,6 +216,22 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const [stdReportId, setStdReportId] = useState(null);
   const [reportUsage, setReportUsage] = useState(() => loadReportUsage());
   const pickStdReport = (id) => { setStdReportId(id); setReportUsage((u) => bumpReportUsage(id, undefined, u)); };
+  // A KPI is meant to be SEEN, not downloaded to see (Darrell 2026-07-20): the
+  // Reports-menu "View" opens the on-screen KPI panel to that report and scrolls
+  // to it; CSV/PRINT stay as the option. `kpi-material` -> the panel id `material`.
+  const kpiPanelRef = useRef(null);
+  const viewKpi = (key) => {
+    const id = String(key || '').replace(/^kpi-/, '');
+    setStdReportsOpen(true);
+    pickStdReport(id);
+    try {
+      requestAnimationFrame(() => {
+        if (kpiPanelRef.current && typeof kpiPanelRef.current.scrollIntoView === 'function') {
+          kpiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    } catch { /* scroll is a nicety; never let it break the view action */ }
+  };
   const toggleGroup = (key) => setCollapsed((prev) => {
     const next = new Set(prev);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -307,6 +323,33 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // subscription, a loan payment) — over the FULL ledger so a monthly rhythm is
   // seen even from a one-month window. The ids badge those rows in the register.
   const recurring = useMemo(() => detectRecurring(data.transactions || [], { direction: 'out', nowMs: Date.now() }), [data.transactions]);
+
+  // Standard KPI — where the money goes: external spending grouped by category,
+  // biggest first, with each category's share of total spend (Darrell 2026-07-20:
+  // "add any standard KPIs we can"). Computed from the SAME windowed external rows
+  // the register shows; transfers excluded (DR-0076, no re-derivation of a total).
+  const topCategories = useMemo(() => {
+    const out = (grouped.windowed || []).filter((r) => r.amount < 0 && !isTransferTxn(r));
+    const byCat = new Map();
+    for (const r of out) byCat.set(r.category || null, (byCat.get(r.category || null) || 0) + Math.abs(r.amount));
+    const total = [...byCat.values()].reduce((s, v) => s + v, 0);
+    const rows = [...byCat.entries()]
+      .map(([key, amount]) => ({ key: key || 'uncategorized', label: key ? categoryLabel(key) : 'Uncategorized', amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+    return { total, rows };
+  }, [grouped.windowed]);
+
+  // Standard KPI — who you pay most: external spending grouped by payee, biggest
+  // first, with how many times each was paid this window.
+  const topPayees = useMemo(() => {
+    const out = (grouped.windowed || []).filter((r) => r.amount < 0 && !isTransferTxn(r));
+    const byPayee = new Map();
+    for (const r of out) {
+      const prev = byPayee.get(r.name || '—') || { amount: 0, count: 0 };
+      byPayee.set(r.name || '—', { amount: prev.amount + Math.abs(r.amount), count: prev.count + 1 });
+    }
+    return [...byPayee.entries()].map(([label, v]) => ({ label, amount: v.amount, count: v.count })).sort((a, b) => b.amount - a.amount);
+  }, [grouped.windowed]);
   const recurringIds = useMemo(() => {
     const s = new Set();
     for (const g of recurring) for (const id of g.txIds) s.add(id);
@@ -627,6 +670,40 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                 </div>
               ),
             });
+            if (topCategories.rows.length > 0) stdReports.push({
+              id: 'categories', label: 'Top categories',
+              node: (
+                <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Top categories · where the money goes</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{topCategories.rows.length} categor{topCategories.rows.length === 1 ? 'y' : 'ies'} · {fmtMoney(topCategories.total)} out</div>
+                  </div>
+                  {topCategories.rows.map((c) => (
+                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
+                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(c.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ),
+            });
+            if (topPayees.length > 0) stdReports.push({
+              id: 'payees', label: 'Top payees',
+              node: (
+                <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Top payees · who you pay most</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{topPayees.length} payee{topPayees.length === 1 ? '' : 's'}</div>
+                  </div>
+                  {topPayees.map((p) => (
+                    <div key={p.label} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{p.label}</span> <span className="text-[#5A5751]">· {p.count}×</span></span>
+                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(p.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ),
+            });
             if (stdReports.length === 0) return null;
             // Ordered by USAGE so the most-used KPI surfaces first (learning
             // method, Darrell 2026-07-20); registry order is only the tiebreak.
@@ -641,7 +718,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
               });
             };
             return (
-              <div className="border border-[#E8E4DC] bg-[#FAF8F4]">
+              <div ref={kpiPanelRef} className="border border-[#E8E4DC] bg-[#FAF8F4] scroll-mt-2">
                 <button
                   type="button"
                   onClick={openReports}
@@ -661,7 +738,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                         what a KPI is and what each report reveals — context, not a
                         narration of the obvious UI mechanics. */}
                     <p className="text-[0.6875rem] text-[#5A5751] leading-snug">
-                      <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. These read from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (when a month ran far off your normal), and <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides).
+                      <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. Each reads live from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (a month far off your normal), <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides), <span className="font-semibold">Top categories</span> (where the money goes), and <span className="font-semibold">Top payees</span> (who you pay most).
                     </p>
                     {ranked.length > 1 && (
                       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPI&rsquo;s · Standard reports">
@@ -819,6 +896,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             buildModel={() => currentViewModel(grouped.groups, reportMeta())}
             filenameBase="imported-transactions"
             presets={presets}
+            onView={viewKpi}
           />
 
           <div className="text-[0.625rem] text-[#5A5751]">

@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0171 · Feature — grow the KPI set (Top categories + Top payees) + View-on-screen from the Reports menu
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/Imported.jsx · app/src/lib/report-usage.js · app/src/components/ReportActions.jsx · app/src/__tests__/imported-render.test.jsx · app/src/__tests__/report-actions-render.test.jsx · docs/decisions/DR-0199-*.md
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 ("add any standard KPIs we can"; "I don't want users to have to download the KPI's just to see the results... make it auto sort to the KPI and allow the option as usual"; "In Groups can have KPIs... O&C"). (1) Added two standard KPIs — Top categories (where the money goes, % of spend) and Top payees (who you pay most, count) — computed from the same windowed external rows, transfers excluded (DR-0076); registered in STANDARD_REPORTS for usage-ranking; full list per DR-0197. (2) Added a View action on each Reports-menu KPI item that opens the on-screen KPI panel to that report and scrolls to it (kpi-material→material), CSV/PRINT kept — a KPI is meant to be SEEN, not downloaded to see; wires #967's menu to the DR-0195 panel. (3) Fixed "KPIS"→"KPI's" in the Reports-menu group header too. (4) "Groups can have KPIs" captured as an O&C next step in DR-0199 (the GROUP BY subtotals are mini-KPIs; a sort-by-size + %-of-total header enhancement is scoped for 2026-10-20, not built this pass to avoid clutter). Proven-to-catch: imported-render (+categories/payees from real spend), report-actions-render (+View opens on screen / CSV stays / non-KPI has no View). Lint + consistency-guard + full suite green.
+- **Source:** app/src/__tests__/report-actions-render.test.jsx
+
 ### REV-0170 · Fix + refine — KPI header reads "KPI's" (not the mangled "KPIS") + the explainer teaches the CONCEPT for learners
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/Imported.jsx · app/src/__tests__/imported-render.test.jsx
