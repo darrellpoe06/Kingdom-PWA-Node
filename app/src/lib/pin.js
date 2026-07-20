@@ -37,9 +37,30 @@ export function isValidPinFormat(pin) {
   return true;
 }
 
+// The shared supabase client awaits auth.getSession() before EVERY call, and
+// getSession waits on a CROSS-TAB navigator lock shared by every PoeTech window
+// on the origin. A wedged/backgrounded PoeTech tab holds that lock and — because
+// browser fetch() has no timeout — supabase.rpc never settles. A PIN check that
+// never settles strands PrivateGate on its "loading" state, which renders NULL,
+// so the WHOLE private area (all of Books) goes blank with no heading and no way
+// out (Darrell 2026-07-19, many tabs open). Cap every PIN RPC so a hang degrades
+// to NO-LOCKOUT (backendAvailable:false -> privateGateState opens for the owner),
+// never an infinite blank. Same cross-tab-lock hang class as fetchShowcase /
+// fetchPublicSermons; PIN reads need the session so they can't use the anon path,
+// but a hard deadline makes the hang recoverable.
+const CALL_RPC_TIMEOUT_MS = 8000;
+
 async function callRpc(fn, args) {
   try {
-    const { data, error } = await supabase.rpc(fn, args);
+    let timer;
+    const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve({ __rpcTimedOut: true }), CALL_RPC_TIMEOUT_MS); });
+    const res = await Promise.race([supabase.rpc(fn, args), timeout]);
+    clearTimeout(timer);
+    if (res && res.__rpcTimedOut) {
+      console.warn(`[pin] ${fn} timed out — degrading to no-lockout`);
+      return { backendAvailable: false };
+    }
+    const { data, error } = res;
     if (error) {
       if (isMissingRpc(error)) return { backendAvailable: false };
       // Log metadata ONLY — never the args (they contain the PIN).

@@ -21,6 +21,13 @@ import { isPrivateUnlocked, subscribePrivateLock, unlockPrivate, privateGateStat
 export default function PrivateGate({ area = 'this area', onCancel, children }) {
   const unlocked = useSyncExternalStore(subscribePrivateLock, isPrivateUnlocked, isPrivateUnlocked);
   const [pinStatus, setPinStatus] = useState({ loaded: false, hasPin: false, backendAvailable: true });
+  // Structural NO-BLANK guarantee: the "loading" state renders null, so if the PIN
+  // check never resolves (a wedged cross-tab auth lock hangs supabase — the
+  // 2026-07-19 blank-Books report) this gate would hide the WHOLE private area
+  // forever. A hard deadline flips loading -> no-lockout (open) so the owner's
+  // area can never stay blank, independent of why the check stalled. pin.js caps
+  // the RPC too (defense in depth); this guarantees the SURFACE regardless.
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -30,10 +37,18 @@ export default function PrivateGate({ area = 'this area', onCancel, children }) 
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (pinStatus.loaded) return undefined;
+    const t = setTimeout(() => setLoadTimedOut(true), 6000);
+    return () => clearTimeout(t);
+  }, [pinStatus.loaded]);
+
   const state = privateGateState({
-    pinStatusLoaded: pinStatus.loaded,
+    // On a timed-out check, force "loaded" and report the backend as unavailable —
+    // privateGateState opens for the owner (never blocks), so Books renders.
+    pinStatusLoaded: pinStatus.loaded || loadTimedOut,
     hasPin: pinStatus.hasPin,
-    backendAvailable: pinStatus.backendAvailable,
+    backendAvailable: loadTimedOut ? false : pinStatus.backendAvailable,
     unlocked,
   });
 
