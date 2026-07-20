@@ -45,6 +45,21 @@ export function looksLikeDebtAccount(account) {
   return DEBT_NAME_RE.test(String(account.name || account.institution || ''));
 }
 
+// Tidy a raw payment description into an account name: drop the trailing ids/dates
+// and the "AUTOPAY/PAYMENT" noise, Title-Case the rest. "CHASE CREDIT CRD AUTOPAY
+// 0511" -> "Chase Credit Crd". Shared by the Accounts and Debts "add as debt"
+// flows so a suggested card is named the same on either surface.
+export function debtNameFromPayee(desc) {
+  const cleaned = String(desc || '')
+    .replace(/\b(auto\s*pay|autopay|payment|pmt|web|ppd|id|thank you|online)\b/ig, ' ')
+    .replace(/\b\d[\d/.-]*\b/g, ' ')
+    .replace(/[^A-Za-z ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const t = (cleaned || 'Debt').split(' ').slice(0, 4).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  return t || 'Debt';
+}
+
 // Parse a transaction's posted date to epoch ms ('YYYY-MM-DD' as local midnight,
 // or a full ISO string). Null when unparseable (handled honestly, never epoch 0).
 function txMs(t) {
