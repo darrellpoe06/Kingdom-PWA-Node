@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0172 · Feature — the subscription audit moves onto the Imported Recurring-payments KPI (real auto-detected data)
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/recurring-decisions.js · app/src/components/Imported.jsx · app/src/__tests__/recurring-decisions.test.js · app/src/__tests__/imported-render.test.jsx · docs/decisions/DR-0200-*.md
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 ("Can we add this function to Imported instead of its own tab? O&C" + "I don't believe it works, I believe it's static"). Verified first (DR-0076): the Cart is NOT painted — real `subscriptions` prop through the real subscriptionsSync doc-rail (monolith 2958-2959), audited clean this session — but manual-entry-only so it sits empty (feels static). The Imported Recurring KPI already auto-detects recurring charges from the real ledger. Chose "build in Imported, keep Cart": moved the keep/review/cancel audit ONTO the Recurring KPI — decisions persisted device-local (lib/recurring-decisions.js, keyed by pattern, fail-soft, no monolith growth), flagged (review+cancel) totals potential savings in the header, cancelled amount struck through. Cart palette reused (green/coral/brown, no true red per DR-0099). Cart kept as manual catch-all; tab-retirement deferred (nav decision). Device-local persistence + detector-coverage recorded as constraints (re-review 2026-10-20). Proven-to-catch: recurring-decisions.test.js (5) + imported-render (+1: Cancel flags + totals savings + persists). Lint + consistency + legibility (regenerated) + full suite (6228) green.
+- **Source:** app/src/__tests__/recurring-decisions.test.js
+
 ### REV-0171 · Feature — grow the KPI set (Top categories + Top payees) + View-on-screen from the Reports menu
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/Imported.jsx · app/src/lib/report-usage.js · app/src/components/ReportActions.jsx · app/src/__tests__/imported-render.test.jsx · app/src/__tests__/report-actions-render.test.jsx · docs/decisions/DR-0199-*.md

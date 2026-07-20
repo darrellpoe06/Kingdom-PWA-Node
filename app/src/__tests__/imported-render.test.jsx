@@ -170,7 +170,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
     expect(toggle, 'the KPI’s · Standard reports header renders').toBeTruthy();
     // collapsed by default — the panel bodies are hidden, so they do NOT eat the top
-    expect(container.innerHTML).not.toContain('repeating patterns');
+    expect(container.innerHTML).not.toContain('your subscription audit');
     expect(container.innerHTML).not.toContain('Material changes · July 2026');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     // one tap expands; with no learned usage the first registry report (Material changes) shows
@@ -182,7 +182,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     const recurTab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === 'Recurring payments');
     expect(recurTab).toBeTruthy();
     await click(recurTab);
-    expect(container.innerHTML).toContain('repeating patterns');
+    expect(container.innerHTML).toContain('your subscription audit');
     // the usage was learned (persisted), so Recurring now outranks Material
     const usage = JSON.parse(localStorage.getItem('poe.imported.reportUsage.v1') || '{}');
     expect(usage.recurring).toBeGreaterThanOrEqual(1);
@@ -213,5 +213,33 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(container.innerHTML).toContain('who you pay most');
     expect(container.innerHTML).toContain('KROGER');
     expect(container.innerHTML).toContain('2×');
+  });
+
+  it('Recurring payments IS the subscription audit — Cancel flags the pattern + totals savings, persisted', async () => {
+    const RECUR = {
+      accounts: [{ id: 'a1', name: 'Chase 7206', openingBalance: 5000 }],
+      transactions: [
+        { id: 'r1', accountId: 'a1', date: '2026-05-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+        { id: 'r2', accountId: 'a1', date: '2026-06-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+        { id: 'r3', accountId: 'a1', date: '2026-07-15', amount: -2623, description: 'WF HOME MTG AUTO PAY 0511', category: 'housing' },
+      ],
+    };
+    localStorage.removeItem('poe.imported.reportUsage.v1');
+    localStorage.removeItem('poe.imported.recurringDecisions.v1');
+    const { container, click } = await mount(RECUR);
+    await click([...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent)));
+    await click([...container.querySelectorAll('[role="tab"]')].find((t) => t.textContent.trim() === 'Recurring payments'));
+    expect(container.innerHTML).toContain('your subscription audit');
+    // before any decision: no "flagged" savings line
+    expect(container.innerHTML).not.toContain('to review/cut');
+    // Cancel the pattern → it's flagged and its amount totals the potential savings
+    const cancelBtn = [...container.querySelectorAll('button')].find((b) => /^Cancel /.test(b.getAttribute('aria-label') || ''));
+    expect(cancelBtn, 'each pattern has a Cancel control (the audit)').toBeTruthy();
+    await click(cancelBtn);
+    expect(container.innerHTML).toContain('1 flagged');
+    expect(container.innerHTML).toContain('to review/cut');
+    // persisted device-local, so it survives a reload
+    const saved = JSON.parse(localStorage.getItem('poe.imported.recurringDecisions.v1') || '{}');
+    expect(Object.values(saved)).toContain('cancel');
   });
 });

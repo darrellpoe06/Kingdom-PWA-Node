@@ -533,6 +533,21 @@ relying on it; memories reflect what was true when written.
   proves they render real <svg>. Honest limit: no browser in-session to pixel-verify flame/crown
   (re-review 2026-10-20). `feedback_kingdom_first_iconography`.
 
+- **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
+  "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
+  believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions
+  prop → real subscriptionsSync doc-rail, monolith 2958-2959; audited clean) — it's manual-entry-
+  ONLY so it sits EMPTY (feels static). The Imported Recurring KPI already auto-detects recurring
+  charges from the REAL ledger — the working version. Chose "build in Imported, keep Cart": the
+  keep/review/cancel audit now lives ON the Recurring KPI; decisions persist device-local
+  (lib/recurring-decisions.js, keyed by pattern.key, fail-soft, NO monolith growth); flagged
+  (review+cancel) totals potential savings; cancelled amount struck through; Cart palette
+  (green/coral/brown, no true red per DR-0099). Cart kept as manual catch-all; tab-retirement
+  deferred. Constraints: device-local (not synced), detector may miss annual/irregular
+  (re-review 2026-10-20). LESSON: "empty + heavy aspirational copy" reads as static/broken even
+  when the data path is live — put functions where the REAL data already is.
+  `feedback_subscription_audit_on_imported_recurring`.
+
 - **2026-07-20 — KPI reports grow + View-on-screen + teach the concept (DR-0199 / REV-0170-0171).**
   Books › Imported KPIs. (a) "KPIS"→"KPI's" everywhere (the `uppercase` transform mangled it) —
   proper case, curly apostrophe, on the panel header AND the Reports-menu group header. (b) The

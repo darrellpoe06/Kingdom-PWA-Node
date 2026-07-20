@@ -37,6 +37,7 @@ import {
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { loadReportUsage, bumpReportUsage, rankReports } from '../lib/report-usage.js';
+import { loadRecurringDecisions, setRecurringDecision, summarizeDecisions } from '../lib/recurring-decisions.js';
 import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
@@ -215,6 +216,10 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const [stdReportsOpen, setStdReportsOpen] = useState(false);
   const [stdReportId, setStdReportId] = useState(null);
   const [reportUsage, setReportUsage] = useState(() => loadReportUsage());
+  // The subscription audit lives ON the auto-detected Recurring payments KPI
+  // (Darrell 2026-07-20): keep / review / cancel per detected pattern, persisted.
+  const [recurringDecisions, setRecurringDecisions] = useState(() => loadRecurringDecisions());
+  const decideRecurring = (key, d) => setRecurringDecisions((m) => setRecurringDecision(key, d, undefined, m));
   const pickStdReport = (id) => { setStdReportId(id); setReportUsage((u) => bumpReportUsage(id, undefined, u)); };
   // A KPI is meant to be SEEN, not downloaded to see (Darrell 2026-07-20): the
   // Reports-menu "View" opens the on-screen KPI panel to that report and scrolls
@@ -649,24 +654,48 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                 </div>
               ),
             });
+            const recurAudit = summarizeDecisions(recurring, recurringDecisions);
             if (recurring.length > 0) stdReports.push({
               id: 'recurring', label: 'Recurring payments',
               node: (
                 <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
-                    <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · your subscription audit</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurAudit.total)}/cycle{recurAudit.flagged > 0 ? ` · ${recurAudit.flagged} flagged · ${fmtMoney(recurAudit.potentialSavings)} to review/cut` : ''}</div>
                   </div>
-                  {/* The FULL list on its tab — every recurring obligation the
-                      frequency detector found, and it grows to whatever the data
-                      becomes; no cap now that it's one opt-in report at a time
-                      (Darrell 2026-07-20). */}
-                  {recurring.map((g) => (
-                    <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
-                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
-                    </div>
-                  ))}
+                  {/* The audit lives on the REAL auto-detected list (Darrell 2026-07-20:
+                      the Cart asked you to add these by hand; here they detect
+                      themselves). Full list, grows to any (DR-0197); decide keep /
+                      review / cancel per pattern and the flagged ones total your
+                      potential savings. */}
+                  <p className="text-[0.5625rem] text-[#5A5751] leading-snug">Every charge that repeats on a rhythm, detected from your ledger. Mark each <span className="font-semibold">Keep</span>, <span className="font-semibold">Review</span>, or <span className="font-semibold">Cancel</span> — what you flag totals your potential savings.</p>
+                  {recurring.map((g) => {
+                    const d = recurringDecisions[g.key];
+                    const amtStyle = { fontFamily: '"JetBrains Mono", monospace', color: d === 'cancel' ? '#8B6F47' : d === 'review' ? '#B85838' : '#1A1815', textDecoration: d === 'cancel' ? 'line-through' : 'none' };
+                    return (
+                      <div key={g.key} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
+                        <div className="flex items-baseline justify-between gap-2 text-[0.75rem]">
+                          <span className="truncate text-[#1A1815]"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
+                          <span className="shrink-0" style={amtStyle}>{fmtMoney(g.amount)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[['keep', 'Keep', '#5A6E3D'], ['review', 'Review', '#B85838'], ['cancel', 'Cancel', '#8B6F47']].map(([val, lbl, color]) => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => decideRecurring(g.key, val)}
+                              aria-pressed={d === val}
+                              aria-label={`${lbl} ${g.label}`}
+                              className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border rounded"
+                              style={d === val ? { backgroundColor: color, color: '#FFFFFF', borderColor: color } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                            >
+                              {lbl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ),
             });
