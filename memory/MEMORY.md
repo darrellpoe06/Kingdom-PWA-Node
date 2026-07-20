@@ -466,3 +466,21 @@ relying on it; memories reflect what was true when written.
   sprint-performance variance). The trigger was Darrell's "did separate research
   occur?" — the pass had run only when challenged, and L15/L40 prove that is not
   enough. `feedback_trust_but_verify_runs_before_first_ship`.
+
+- **2026-07-20 — Ye Fathers: provoke to good works, not to wrath (DR-0193, Living
+  Lesson L46).** Darrell's spoken teaching. The TWO provocations (same active
+  stirring, opposite aim): FORBIDDEN to wrath/anger (Eph 6:4; Col 3:21), COMMANDED
+  "to provoke unto love and to good works" (Heb 10:24). WHY the Word says "ye
+  fathers" explicitly (his question "what about a man's makeup makes Yahweh speak
+  directly to him?"): (1) first image of God the Father (Eph 3:14-15); (2) the
+  strength that builds or crushes -- "lest they be discouraged" (Col 3:21); (3) the
+  covenant hinge (Deut 6:6-7; Ps 78:5-6; Mal 4:6); (4) the template of God's
+  discipline (Heb 12:9; Prov 3:12). The active father PRAYS/TEACHES/TRAINS/PROVOKES
+  (Job 1:5; Deut 6:7; Prov 22:6; joy = 3 John 1:4); comfort for the fatherless (Ps
+  68:5; Luke 11:13). Neuroscience verified BEFORE ship (DR-0192) + tiered: TIER A
+  fatherhood lowers testosterone (Gettler PNAS 2011), involvement blesses child
+  (Sarkadi 2008) real-but-modest (McLanahan 2013), paternal HARSHNESS most tied to
+  child depression/low-worth (Kane & Garber 2004 = the lab's witness to Col 3:21);
+  TIER C REFUSED the viral fatherless-home stats (untraceable), and "father shapes
+  child's God-image" held as theology not science. Pairs with
+  FATHERS-PROVOKE-TO-GOOD-WORKS.md + DR-0094. `feedback_ye_fathers_provoke_to_good_works`.
