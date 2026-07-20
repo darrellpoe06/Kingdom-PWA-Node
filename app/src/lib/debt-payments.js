@@ -25,6 +25,9 @@
 // pinned by debt-payments.test.js against real row shapes.
 // =============================================================================
 
+import { payeeKey, categorize } from './categorize.js';
+import { detectRecurring } from './recurring-payments.js';
+
 const DAY_MS = 86400000;
 const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -174,4 +177,38 @@ export function debtPayoffInsight(transactions, accountId, owed, asOf, windowMon
     growing: stats.paymentCount > 0 && stats.netPaydownPerMonth <= 0,
     hasPayments: stats.paymentCount > 0,
   };
+}
+
+// cardPaymentSuggestions — "you already PAY these; add them as debts to track the
+// payoff" (Darrell 2026-07-20 follow-through). The credit cards often aren't in the
+// imported feed as accounts — only as recurring autopay PAYMENTS out of checking.
+// This finds the recurring OUTGOING payments the categorizer recognizes as a
+// debt-payment (card/loan/BNPL/mortgage servicer — the tested lib/categorize rule),
+// skips any payee already covered by an existing debt account, and returns each as
+// a one-tap "add as a debt" with the observed monthly payment pre-filled (the user
+// then enters the total owed, and the timeline computes). Pure; nowMs injected.
+export function cardPaymentSuggestions(transactions, accounts = [], opts = {}) {
+  const nowMs = opts.nowMs != null ? opts.nowMs : Date.now();
+  const learned = opts.learned || null;
+  const covered = [];
+  for (const a of (accounts || [])) {
+    if (a && (a.type === 'credit' || a.type === 'loan' || a.treatAsDebt === true)) {
+      const k = payeeKey(a.name || '');
+      if (k) covered.push(k);
+    }
+  }
+  // A payment key and an account NAME key rarely match exactly ("chase credit crd
+  // autopay 0511" vs "chase credit crd"), so treat one containing the other as the
+  // same debt — don't re-suggest a card the family already tracks.
+  const isCovered = (pk) => covered.some((c) => pk.includes(c) || c.includes(pk));
+  const out = [];
+  const seen = new Set();
+  for (const g of detectRecurring(transactions || [], { direction: 'out', nowMs })) {
+    if (categorize(g.label, { learned }).category !== 'debt-payment') continue;
+    const pk = payeeKey(g.label);
+    if (!pk || isCovered(pk) || seen.has(pk)) continue;
+    seen.add(pk);
+    out.push({ label: g.label, payeeKey: pk, monthlyPayment: g.amount, cadence: g.cadence, cadenceLabel: g.cadenceLabel, count: g.count });
+  }
+  return out;
 }
