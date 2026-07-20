@@ -75,6 +75,34 @@ describe('Imported — bank-convention view (real mount)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('lets the family select duplicates and combine them into one (no app update needed)', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const del = vi.fn();
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        // Two REAL same-day/same-amount rows with no balance anchor — the auto-remover
+        // leaves them alone by design; the family combines them by hand.
+        { id: 'd1', accountId: 'a1', date: '2026-07-12', amount: -1.12, description: "AUNTIE ANNE'S IL131" },
+        { id: 'd2', accountId: 'a1', date: '2026-07-12', amount: -1.12, description: "AUNTIE ANNE'S IL131 CHAMPAIGN IL 07/12" },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+    const boxes = [...container.querySelectorAll('input[type="checkbox"][aria-label^="Select"]')];
+    expect(boxes).toHaveLength(2);
+    await click(boxes[0]);
+    await click(boxes[1]);
+    const combineBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Combine 2');
+    expect(combineBtn).toBeTruthy();
+    await click(combineBtn);
+    // Keeps the most-complete row (d2, longer description), removes the other.
+    expect(del).toHaveBeenCalledWith(['d1']);
+    vi.unstubAllGlobals();
+  });
+
   it('PII gate: without a profile it shows the private notice, never real rows', async () => {
     localStorage.clear();
     const { container } = await mount(DATA);
