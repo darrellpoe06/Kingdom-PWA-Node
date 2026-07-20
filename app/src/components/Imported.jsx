@@ -29,7 +29,7 @@
 // the real component and proves 2026 lands on top.
 // =============================================================================
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
@@ -37,6 +37,7 @@ import {
 import ReportActions from './ReportActions.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { loadReportUsage, bumpReportUsage, rankReports } from '../lib/report-usage.js';
+import { loadRecurringDecisions, setRecurringDecision, summarizeDecisions } from '../lib/recurring-decisions.js';
 import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
@@ -215,7 +216,27 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const [stdReportsOpen, setStdReportsOpen] = useState(false);
   const [stdReportId, setStdReportId] = useState(null);
   const [reportUsage, setReportUsage] = useState(() => loadReportUsage());
+  // The subscription audit lives ON the auto-detected Recurring payments KPI
+  // (Darrell 2026-07-20): keep / review / cancel per detected pattern, persisted.
+  const [recurringDecisions, setRecurringDecisions] = useState(() => loadRecurringDecisions());
+  const decideRecurring = (key, d) => setRecurringDecisions((m) => setRecurringDecision(key, d, undefined, m));
   const pickStdReport = (id) => { setStdReportId(id); setReportUsage((u) => bumpReportUsage(id, undefined, u)); };
+  // A KPI is meant to be SEEN, not downloaded to see (Darrell 2026-07-20): the
+  // Reports-menu "View" opens the on-screen KPI panel to that report and scrolls
+  // to it; CSV/PRINT stay as the option. `kpi-material` -> the panel id `material`.
+  const kpiPanelRef = useRef(null);
+  const viewKpi = (key) => {
+    const id = String(key || '').replace(/^kpi-/, '');
+    setStdReportsOpen(true);
+    pickStdReport(id);
+    try {
+      requestAnimationFrame(() => {
+        if (kpiPanelRef.current && typeof kpiPanelRef.current.scrollIntoView === 'function') {
+          kpiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    } catch { /* scroll is a nicety; never let it break the view action */ }
+  };
   const toggleGroup = (key) => setCollapsed((prev) => {
     const next = new Set(prev);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -307,6 +328,33 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // subscription, a loan payment) — over the FULL ledger so a monthly rhythm is
   // seen even from a one-month window. The ids badge those rows in the register.
   const recurring = useMemo(() => detectRecurring(data.transactions || [], { direction: 'out', nowMs: Date.now() }), [data.transactions]);
+
+  // Standard KPI — where the money goes: external spending grouped by category,
+  // biggest first, with each category's share of total spend (Darrell 2026-07-20:
+  // "add any standard KPIs we can"). Computed from the SAME windowed external rows
+  // the register shows; transfers excluded (DR-0076, no re-derivation of a total).
+  const topCategories = useMemo(() => {
+    const out = (grouped.windowed || []).filter((r) => r.amount < 0 && !isTransferTxn(r));
+    const byCat = new Map();
+    for (const r of out) byCat.set(r.category || null, (byCat.get(r.category || null) || 0) + Math.abs(r.amount));
+    const total = [...byCat.values()].reduce((s, v) => s + v, 0);
+    const rows = [...byCat.entries()]
+      .map(([key, amount]) => ({ key: key || 'uncategorized', label: key ? categoryLabel(key) : 'Uncategorized', amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+    return { total, rows };
+  }, [grouped.windowed]);
+
+  // Standard KPI — who you pay most: external spending grouped by payee, biggest
+  // first, with how many times each was paid this window.
+  const topPayees = useMemo(() => {
+    const out = (grouped.windowed || []).filter((r) => r.amount < 0 && !isTransferTxn(r));
+    const byPayee = new Map();
+    for (const r of out) {
+      const prev = byPayee.get(r.name || '—') || { amount: 0, count: 0 };
+      byPayee.set(r.name || '—', { amount: prev.amount + Math.abs(r.amount), count: prev.count + 1 });
+    }
+    return [...byPayee.entries()].map(([label, v]) => ({ label, amount: v.amount, count: v.count })).sort((a, b) => b.amount - a.amount);
+  }, [grouped.windowed]);
   const recurringIds = useMemo(() => {
     const s = new Set();
     for (const g of recurring) for (const id of g.txIds) s.add(id);
@@ -382,12 +430,24 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     const removeIds = rows.filter((r) => r.id !== keep.id).map((r) => r.id);
     const cents = (n) => Math.round((Number(n) || 0) * 100);
     const sameAmt = rows.every((r) => cents(r.amount) === cents(rows[0].amount));
-    const msg = sameAmt
-      ? `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies. The system will remember this payee so it spots the same duplicate next time.`
-      : `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
+    // Date guard: bank rows carry a DATE (no clock time), so same-date is the
+    // strongest "same charge" signal we have. Different dates almost always mean
+    // SEPARATE payments — e.g. a salary that posts twice a month (Darrell
+    // 2026-07-20: "there should be two entries per month for this salary").
+    // Warn distinctly so two real paychecks are never merged into one.
+    const distinctDates = [...new Set(rows.map((r) => String(r.posted || '')).filter(Boolean))];
+    const sameDate = distinctDates.length <= 1;
+    let msg;
+    if (!sameDate) {
+      msg = `Heads up — these ${rows.length} rows are on DIFFERENT dates (${distinctDates.sort().join(', ')}). Different dates usually mean SEPARATE payments — like a salary that posts twice a month — not duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Combine anyway?`;
+    } else if (sameAmt) {
+      msg = `Combine these ${rows.length} rows into one? They are all ${formatAmount(rows[0].amount)} on ${distinctDates[0] || 'the same date'} — this keeps “${keep.name}” and removes the ${removeIds.length} duplicate cop${removeIds.length === 1 ? 'y' : 'ies'}. Your totals drop by the removed copies. The system will remember this payee so it spots the same duplicate next time.`;
+    } else {
+      msg = `Heads up — the ${rows.length} selected rows are NOT all the same amount, so they may not be duplicates. Combining keeps “${keep.name}” and removes the other ${removeIds.length}. Continue anyway?`;
+    }
     if (typeof confirm === 'function' && !confirm(msg)) return;
     deleteTransaction(removeIds);
-    if (sameAmt) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same-amount) combine
+    if (sameAmt && sameDate) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same amount AND same date) combine
     clearSelection();
   };
   // What the learning now recognizes: other exact (payee+date+amount+account) repeats
@@ -396,6 +456,22 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     () => suggestLearnedDuplicates((data.transactions || []).map((t) => ({ ...t })), learnedDedupe),
     [data.transactions, learnedDedupe]
   );
+  // Inspect-before-merge: expand a learned group INLINE (DR-0201, no jumping) to
+  // reveal each candidate row's date · account · full description, so the family
+  // confirms they are the SAME charge before combining. Members of a learned group
+  // already share date+amount+account by signature, so the full description (the
+  // PPD-ID suffix) is what distinguishes a true duplicate from a coincidental match.
+  const [inspectDupSig, setInspectDupSig] = useState(null);
+  const txnById = useMemo(() => {
+    const m = new Map();
+    for (const t of (data.transactions || [])) if (t && t.id) m.set(t.id, t);
+    return m;
+  }, [data.transactions]);
+  const acctNameOf = (id) => (accounts.find((a) => a.id === id) || {}).name || id || '—';
+  const groupMembers = (g) => [g.keepId, ...(g.removeIds || [])]
+    .map((id) => txnById.get(id))
+    .filter(Boolean)
+    .map((t) => ({ id: t.id, posted: t.date, name: t.description || '—', institution: acctNameOf(t.accountId), amount: Number(t.amount) || 0 }));
   const combineLearnedGroup = (g) => {
     if (!canCombine || !g.removeIds.length) return;
     if (typeof confirm === 'function' && !confirm(`Combine ${g.count} copies of “${g.label}” (${formatAmount(g.amount)}) into one? This keeps the fullest row and removes ${g.extra} duplicate cop${g.extra === 1 ? 'y' : 'ies'} — the system recognized these because you taught it this payee.`)) return;
@@ -544,12 +620,41 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           {canCombine && learnedDupGroups.length > 0 && (
             <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
               <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Duplicates the system learned from you</div>
-              {learnedDupGroups.slice(0, 6).map((g) => (
-                <div key={g.signature} className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
-                  <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
-                  <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
+              {learnedDupGroups.slice(0, 6).map((g) => {
+                const open = inspectDupSig === g.signature;
+                const members = open ? groupMembers(g) : [];
+                const descsMatch = open && members.length > 1 && new Set(members.map((m) => m.name)).size === 1;
+                return (
+                <div key={g.signature} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
+                    <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button type="button" aria-expanded={open} onClick={() => setInspectDupSig(open ? null : g.signature)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#8B6F47] text-[#8B6F47] font-semibold hover:bg-[#8B6F47] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">{open ? 'Hide' : 'Inspect'} {open ? '▲' : '▾'}</button>
+                      <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
+                    </div>
+                  </div>
+                  {/* Inline inspection (DR-0201): the candidate rows appear right here,
+                      never off elsewhere. Bank rows carry a DATE, not a clock time —
+                      so we show the date honestly (DR-0076) and confirm same-date. */}
+                  {open && (
+                    <div className="mt-1.5 border border-[#E8E4DC] bg-white p-2 space-y-1">
+                      {members.map((m, i) => (
+                        <div key={m.id} className="text-[0.6875rem] text-[#1A1815] flex items-baseline justify-between gap-2">
+                          <span className="min-w-0"><span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(m.posted)}</span> <span className="text-[#5A5751]">· {m.institution} · {m.name}</span></span>
+                          <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatAmount(m.amount)}</span>
+                        </div>
+                      ))}
+                      <div className="text-[0.5625rem] text-[#5A5751] leading-snug pt-0.5">
+                        All {g.count} share the same date, amount, and account.{' '}
+                        {descsMatch
+                          ? 'Their descriptions match exactly — safe to combine.'
+                          : 'Their descriptions differ — check the details above before combining in case these are separate charges.'}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               {learnedDupGroups.length > 6 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {learnedDupGroups.length - 6} more learned group{learnedDupGroups.length - 6 === 1 ? '' : 's'}</div>}
             </div>
           )}
@@ -606,22 +711,80 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                 </div>
               ),
             });
+            const recurAudit = summarizeDecisions(recurring, recurringDecisions);
             if (recurring.length > 0) stdReports.push({
               id: 'recurring', label: 'Recurring payments',
               node: (
                 <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
-                    <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · your subscription audit</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurAudit.total)}/cycle{recurAudit.flagged > 0 ? ` · ${recurAudit.flagged} flagged · ${fmtMoney(recurAudit.potentialSavings)} to review/cut` : ''}</div>
                   </div>
-                  {/* The FULL list on its tab — every recurring obligation the
-                      frequency detector found, and it grows to whatever the data
-                      becomes; no cap now that it's one opt-in report at a time
-                      (Darrell 2026-07-20). */}
-                  {recurring.map((g) => (
-                    <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
-                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
+                  {/* The audit lives on the REAL auto-detected list (Darrell 2026-07-20:
+                      the Cart asked you to add these by hand; here they detect
+                      themselves). Full list, grows to any (DR-0197); decide keep /
+                      review / cancel per pattern and the flagged ones total your
+                      potential savings. */}
+                  <p className="text-[0.5625rem] text-[#5A5751] leading-snug">Every charge that repeats on a rhythm, detected from your ledger. Mark each <span className="font-semibold">Keep</span>, <span className="font-semibold">Review</span>, or <span className="font-semibold">Cancel</span> — what you flag totals your potential savings.</p>
+                  {recurring.map((g) => {
+                    const d = recurringDecisions[g.key];
+                    const amtStyle = { fontFamily: '"JetBrains Mono", monospace', color: d === 'cancel' ? '#8B6F47' : d === 'review' ? '#B85838' : '#1A1815', textDecoration: d === 'cancel' ? 'line-through' : 'none' };
+                    return (
+                      <div key={g.key} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
+                        <div className="flex items-baseline justify-between gap-2 text-[0.75rem]">
+                          <span className="truncate text-[#1A1815]"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
+                          <span className="shrink-0" style={amtStyle}>{fmtMoney(g.amount)}</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[['keep', 'Keep', '#5A6E3D'], ['review', 'Review', '#B85838'], ['cancel', 'Cancel', '#8B6F47']].map(([val, lbl, color]) => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => decideRecurring(g.key, val)}
+                              aria-pressed={d === val}
+                              aria-label={`${lbl} ${g.label}`}
+                              className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border rounded"
+                              style={d === val ? { backgroundColor: color, color: '#FFFFFF', borderColor: color } : { color: '#5A5751', borderColor: '#E8E4DC' }}
+                            >
+                              {lbl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ),
+            });
+            if (topCategories.rows.length > 0) stdReports.push({
+              id: 'categories', label: 'Top categories',
+              node: (
+                <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Top categories · where the money goes</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{topCategories.rows.length} categor{topCategories.rows.length === 1 ? 'y' : 'ies'} · {fmtMoney(topCategories.total)} out</div>
+                  </div>
+                  {topCategories.rows.map((c) => (
+                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
+                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(c.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ),
+            });
+            if (topPayees.length > 0) stdReports.push({
+              id: 'payees', label: 'Top payees',
+              node: (
+                <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Top payees · who you pay most</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{topPayees.length} payee{topPayees.length === 1 ? '' : 's'}</div>
+                  </div>
+                  {topPayees.map((p) => (
+                    <div key={p.label} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{p.label}</span> <span className="text-[#5A5751]">· {p.count}×</span></span>
+                      <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(p.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -641,7 +804,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
               });
             };
             return (
-              <div className="border border-[#E8E4DC] bg-[#FAF8F4]">
+              <div ref={kpiPanelRef} className="border border-[#E8E4DC] bg-[#FAF8F4] scroll-mt-2">
                 <button
                   type="button"
                   onClick={openReports}
@@ -661,7 +824,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                         what a KPI is and what each report reveals — context, not a
                         narration of the obvious UI mechanics. */}
                     <p className="text-[0.6875rem] text-[#5A5751] leading-snug">
-                      <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. These read from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (when a month ran far off your normal), and <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides).
+                      <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. Each reads live from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (a month far off your normal), <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides), <span className="font-semibold">Top categories</span> (where the money goes), and <span className="font-semibold">Top payees</span> (who you pay most).
                     </p>
                     {ranked.length > 1 && (
                       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPI&rsquo;s · Standard reports">
@@ -701,13 +864,15 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           )}
 
           {/* Combine duplicates the family selected — the runtime escape hatch for
-              dupes the auto-remover conservatively leaves alone (Darrell 2026-07-20). */}
+              dupes the auto-remover conservatively leaves alone (Darrell 2026-07-20).
+              A FLOATING action bar so it's always in view while you check rows deep
+              in the list — the "how do I merge after checking" answer. */}
           {canCombine && selectedIds.size >= 2 && (
-            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[min(94vw,34rem)] border-2 border-[#B85838] bg-[#FAF8F4] shadow-xl p-3 flex items-center justify-between gap-3 flex-wrap" role="region" aria-label="Combine selected transactions">
               <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong>{selectedIds.size}</strong> rows selected — combine the duplicates you found into one (keeps the most complete row, removes the rest).
+                <strong>{selectedIds.size}</strong> selected — combine into one (keeps the fullest row, removes the rest).
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button type="button" onClick={clearSelection} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 border border-[#5A5751] text-[#5A5751] hover:bg-white">Clear</button>
                 <button type="button" onClick={combineSelected} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Combine {selectedIds.size}</button>
               </div>
@@ -819,6 +984,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             buildModel={() => currentViewModel(grouped.groups, reportMeta())}
             filenameBase="imported-transactions"
             presets={presets}
+            onView={viewKpi}
           />
 
           <div className="text-[0.625rem] text-[#5A5751]">
@@ -887,7 +1053,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                               {formatDate(t.posted)}
                             </td>
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
-                            <td className="px-2 py-1.5 truncate max-w-[16.25rem]" title={t.name}>
+                            <td className={`px-2 py-1.5 ${selectedIds.has(t.id) ? 'whitespace-normal break-words' : 'truncate max-w-[16.25rem]'}`} title={t.name}>
                               {t.name}
                               {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}

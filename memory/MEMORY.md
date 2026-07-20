@@ -533,6 +533,63 @@ relying on it; memories reflect what was true when written.
   proves they render real <svg>. Honest limit: no browser in-session to pixel-verify flame/crown
   (re-review 2026-10-20). `feedback_kingdom_first_iconography`.
 
+- **2026-07-20 — Inline, No Jumping (DR-0201, the Way) + merge-duplicates UX fix.** Darrell (dup
+  salary rows checked at the BOTTOM, "Combine 2" bar was at the TOP → eye-jump): "everything is
+  inline, no jumping to another place in the same screen, changes appear where the eye already
+  expects, not outside the screen." THE WAY: an action/change (confirmation, bulk-action bar,
+  revealed control, updated value) appears WHERE THE EYE ALREADY IS — in the flow, next to the
+  thing acted on, on-screen; never a forced jump, never off-screen. A selection/action bar
+  floats/pins to stay in view (not parked at top); a revealed control opens at its trigger; a
+  value updates in place. ONE exception: an EXPLICIT "take me there" via smooth scroll (continuity,
+  not a jump). In UX-PATTERNS.md (Design Principle 6). FIXES applied: Imported combine bar is now
+  a floating fixed bar (bottom, above FABs); a SELECTED row un-truncates to full text so PPD IDs
+  are verifiable before merging (tap-to-expand also shows "Full description"). Combine logic was
+  already comprehensive (keeps fullest, warns on amount mismatch). NOTE: flags the KPI-View
+  scrollIntoView as a candidate to re-review (it's an explicit go-there, so it stands for now).
+  `feedback_inline_no_jumping`.
+
+- **2026-07-20 — Inspect duplicates before merging + a different-dates guard (DR-0202).** Darrell:
+  "need to be able to inspect the dates of the duplicates... date time same exactly or differences";
+  and, with a Salary screenshot, "there should be two entries per month for this salary." Real
+  truth: a salary posts TWICE a month (University of IL: Jul 01 + Jul 15) — same payee, different
+  date/amount, NOT a duplicate. Reality-trace: learned-dup groups are keyed by
+  payeeKey|date|amount|account, so two-per-month can never enter a learned group; the gap was the
+  MANUAL Combine (warned on amount only, not date). FIXES: (1) each learned group has an INSPECT
+  toggle that expands INLINE (DR-0201) to show each candidate row's date · account · full
+  description · amount + a note on whether descriptions match; bank rows carry a DATE not a clock
+  time — shown honestly, never a fake timestamp (DR-0076). (2) Manual Combine now warns distinctly
+  on DIFFERENT dates ("separate payments — like a salary that posts twice a month") and lists the
+  dates; a combine TEACHES the payee only when same-amount AND same-date. imported-render 13/13
+  (+2 proven-to-catch). `feedback_inspect_duplicates_before_merge`.
+
+- **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
+  "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
+  believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions
+  prop → real subscriptionsSync doc-rail, monolith 2958-2959; audited clean) — it's manual-entry-
+  ONLY so it sits EMPTY (feels static). The Imported Recurring KPI already auto-detects recurring
+  charges from the REAL ledger — the working version. Chose "build in Imported, keep Cart": the
+  keep/review/cancel audit now lives ON the Recurring KPI; decisions persist device-local
+  (lib/recurring-decisions.js, keyed by pattern.key, fail-soft, NO monolith growth); flagged
+  (review+cancel) totals potential savings; cancelled amount struck through; Cart palette
+  (green/coral/brown, no true red per DR-0099). Cart kept as manual catch-all; tab-retirement
+  deferred. Constraints: device-local (not synced), detector may miss annual/irregular
+  (re-review 2026-10-20). LESSON: "empty + heavy aspirational copy" reads as static/broken even
+  when the data path is live — put functions where the REAL data already is.
+  `feedback_subscription_audit_on_imported_recurring`.
+
+- **2026-07-20 — KPI reports grow + View-on-screen + teach the concept (DR-0199 / REV-0170-0171).**
+  Books › Imported KPIs. (a) "KPIS"→"KPI's" everywhere (the `uppercase` transform mangled it) —
+  proper case, curly apostrophe, on the panel header AND the Reports-menu group header. (b) The
+  explainer teaches the CONCEPT for learners ("KPI means key performance indicator — the few
+  numbers that tell you the most...") not the obvious UI mechanics — Darrell corrected: "I want
+  the explanations for our learners... context" (keep teaching, DR-0195, drop condescension).
+  (c) Added Top categories + Top payees (computed from grouped.windowed, transfers excluded,
+  DR-0076; registered in STANDARD_REPORTS; full list DR-0197). (d) A KPI is meant to be SEEN not
+  DOWNLOADED to see — Reports-menu KPI items got a View action that opens the on-screen panel to
+  that report + scrolls (kpi-material→material via viewKpi/kpiPanelRef); CSV/PRINT stay. (e) "Groups
+  can have KPIs" = O&C only (GROUP BY subtotals are mini-KPIs; sort-by-size+% header enhancement
+  scoped 2026-10-20, not built — avoid clutter). `feedback_kpi_reports_grow_and_view_on_screen`.
+
 - **2026-07-20 — Show the full list (DR-0197).** Darrell: "we want the full list of 24
   to show up on its tab... grow to any that becomes... all low hanging fruit continuously."
   The KPI · Standard Reports (recurring, unusual months) were capped (slice 8/6) from when
