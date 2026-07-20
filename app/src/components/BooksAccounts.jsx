@@ -8,23 +8,9 @@
 // =============================================================================
 import React, { useState, useMemo } from "react";
 import { fmt } from "../lib/format.js";
-import { cardPaymentSuggestions } from "../lib/debt-payments.js";
+import { cardPaymentSuggestions, debtNameFromPayee } from "../lib/debt-payments.js";
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
-
-// Tidy a raw payment description into an account name: drop the trailing ids/dates
-// and the "AUTOPAY/PAYMENT" noise, Title-Case the rest. "CHASE CREDIT CRD AUTOPAY
-// 0511" -> "Chase Credit Crd".
-function debtNameFromPayee(desc) {
-  const cleaned = String(desc || '')
-    .replace(/\b(auto\s*pay|autopay|payment|pmt|web|ppd|id|thank you|online)\b/ig, ' ')
-    .replace(/\b\d[\d/.-]*\b/g, ' ')
-    .replace(/[^A-Za-z ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const t = (cleaned || 'Debt').split(' ').slice(0, 4).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-  return t || 'Debt';
-}
 
 export default function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null, accountReconciliation = {}, transactions = [], categoryRules = {} }) {
   // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),

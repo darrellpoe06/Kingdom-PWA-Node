@@ -3,6 +3,7 @@
 // per EDITABLE-EVERYWHERE; was display-only.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
+import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -15,7 +16,41 @@ const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
 function yearsAndMonths(months) { const y = Math.floor(months / 12); const m = months % 12; if (y === 0) return `${m}mo`; if (m === 0) return `${y}yr`; return `${y}yr ${m}mo`; }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null }) {
+  // "All credit card and lines companies should be listed on [the Debts] Tab"
+  // (Darrell 2026-07-20). deriveDebts can only surface an account that EXISTS as a
+  // debt — but a family's other cards are often paid by autopay OUT of checking and
+  // were never set up as their own account, so nothing here finds them and the tab
+  // reads as empty. This brings the SAME "add as debt" mechanism the Accounts tab
+  // has ONTO the Debts tab, where the family actually looks:
+  //   · recurring debt-payments the categorizer recognizes but no account tracks yet
+  //     (cardPaymentSuggestions) → one-tap "Add as debt", payment pre-filled;
+  //   · existing accounts that READ like a card/loan but aren't marked a debt →
+  //     one-tap "Treat as debt" (updateAccount).
+  const nowMs = currentDate instanceof Date ? currentDate.getTime() : Date.now();
+  const debtAcctIds = useMemo(() => new Set(debts.map((d) => d.accountId).filter(Boolean)), [debts]);
+  const debtSuggestions = useMemo(
+    () => (addAccount ? cardPaymentSuggestions(transactions, accounts, { learned: categoryRules, nowMs }) : []),
+    [transactions, accounts, categoryRules, nowMs, addAccount],
+  );
+  // Accounts that read like a card/LOC/loan by name but aren't yet treated as a debt
+  // (and aren't already surfaced) — offer to mark each so it joins this tab.
+  const untrackedCards = useMemo(
+    () => (updateAccount ? (accounts || []).filter(
+      (a) => a && !debtAcctIds.has(a.id) && !a.treatAsDebt && a.type !== 'credit' && a.type !== 'loan' && !a.inLegal && looksLikeDebtAccount(a),
+    ) : []),
+    [accounts, debtAcctIds, updateAccount],
+  );
+  const defaultEntityId = (entities[0] && entities[0].id) || null;
+  const addSuggestedDebt = (s) => {
+    const name = debtNameFromPayee(s.label);
+    const raw = typeof prompt === 'function'
+      ? prompt(`Add "${name}" as a debt. You pay about ${fmt(s.monthlyPayment)}/mo — what is the current total OWED on it? (Leave blank to add it now and set the balance later.)`, '')
+      : '';
+    const owed = parseFloat(String(raw == null ? '' : raw).replace(/[$,\s]/g, ''));
+    addAccount({ name, type: 'credit', treatAsDebt: true, balance: isFinite(owed) && owed > 0 ? owed : 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
+  };
+  const showAddPanel = (addAccount && debtSuggestions.length > 0) || (updateAccount && untrackedCards.length > 0);
   // v28+ All Debts table - excel-style sort by rate / balance / payoff date
   const [allDebtsSort, setAllDebtsSort] = useState('rate');
   // Inline editing of a debt's terms so a timeline can be computed (Darrell
@@ -132,6 +167,47 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           The same snowball that pays off 11 rental properties also clears consumer debt — and the math here is even more motivating because the interest rates are much higher. Watch what gets freed up at each payoff.
         </p>
       </section>
+
+      {/* Get EVERY card + line of credit onto this tab (Darrell 2026-07-20). The
+          family's other cards are usually paid by autopay out of checking and were
+          never set up as accounts — so nothing above finds them. Add them right here. */}
+      {showAddPanel && (
+        <section className="bg-[#FAF8F4] border-2 border-[#B85838] p-4 sm:p-5 space-y-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium">Cards &amp; lines of credit not on this tab yet</div>
+          <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Only accounts set up as debts show above. Your other cards are often paid by autopay and aren't in the feed as accounts — add them here and each one's payoff timeline joins the list.
+          </p>
+          {debtSuggestions.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-medium">Recurring payments that look like debts</div>
+              {debtSuggestions.slice(0, 8).map((s) => (
+                <div key={s.payeeKey} className="flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <strong>{debtNameFromPayee(s.label)}</strong> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
+                  </span>
+                  <button type="button" onClick={() => addSuggestedDebt(s)} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Add as debt</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {untrackedCards.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-medium">Accounts that read like a card or loan</div>
+              {untrackedCards.slice(0, 8).map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <strong>{a.name}</strong>{a.institution ? <span className="text-[#5A5751]"> · {a.institution}</span> : null}{a.fragment ? <span className="text-[#5A5751]"> {a.fragment}</span> : null}
+                  </span>
+                  <button type="button" onClick={() => updateAccount(a.id, { treatAsDebt: true })} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Treat as debt</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            Have a card that isn't listed here at all? Add it on the <strong>Accounts</strong> tab (any account has a one-tap "Treat as debt").
+          </p>
+        </section>
+      )}
 
       {/* All Debts table — excel-style sort by rate / balance / payoff date */}
       <section>

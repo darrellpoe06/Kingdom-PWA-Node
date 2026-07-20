@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   debtPaymentStats, estimatePayoff, deriveApr, debtPayoffInsight,
-  isInterestCharge, looksLikeDebtAccount, cardPaymentSuggestions,
+  isInterestCharge, looksLikeDebtAccount, cardPaymentSuggestions, debtNameFromPayee,
 } from '../lib/debt-payments.js';
 
 const asOf = new Date('2026-07-15T00:00:00');
@@ -129,5 +129,18 @@ describe('cardPaymentSuggestions — "you pay these; add them as debts"', () => 
   it('skips a payee already covered by an existing debt account', () => {
     const accounts = [{ name: 'Chase Credit Crd', type: 'credit' }];
     expect(cardPaymentSuggestions(txns, accounts, { nowMs })).toHaveLength(0);
+  });
+});
+
+describe('debtNameFromPayee', () => {
+  it('tidies an autopay description into a card name', () => {
+    expect(debtNameFromPayee('CHASE CREDIT CRD AUTOPAY 0511')).toBe('Chase Credit Crd');
+  });
+  it('strips ids/dates and payment noise', () => {
+    expect(debtNameFromPayee('DISCOVER PAYMENT 1234567 WEB ID')).toBe('Discover');
+  });
+  it('never returns empty', () => {
+    expect(debtNameFromPayee('')).toBe('Debt');
+    expect(debtNameFromPayee('12345 0000')).toBe('Debt');
   });
 });
