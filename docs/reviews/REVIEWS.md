@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0166 · Feature — Data Integrity standard report (the painted-data audit, institutionalized on OpsBoard)
+- **Date:** 2026-07-20
+- **Surface:** app/src/data/data-integrity-audit.json · app/src/lib/data-integrity-audit.js · app/src/components/DataIntegrityReport.jsx · app/src/components/OpsBoard.jsx · app/src/__tests__/data-integrity-audit.test.js · app/src/__tests__/data-integrity-report-render.test.jsx · docs/decisions/DR-0196-*.md
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 ("add these data-driven audits to the reports as a standard so we can see our growth"). Made the DR-0061/P15 painted-data audit a permanent, in-app scoreboard: a committed audit LEDGER (real per-area verdicts + severities + append-only history) → a pure summarizer (coverage/clean%/open-findings/trend, scoped to audited areas per DR-0100) → a report on OpsBoard that renders it and teaches what it measures (DR-0195). The report is held to its own standard — paints nothing, all numbers derived from real records (DR-0076). First sweep (10 area slices): 4 verified clean (app root/Big Picture, inbound/business, learn/progress, church/media; 1 LOW seam Practice.jsx:436), 6 in review (pending, appended as agents complete). O&C in DR-0196 with re-review 2026-10-20 (deterministic smell-scanner canary is the next iteration). Proven-to-catch: data-integrity-audit.test.js (7) + render smoke (2); contrast/legibility green (health regenerated).
+- **Source:** app/src/__tests__/data-integrity-audit.test.js
+
 ### REV-0165 · Feature — Books › Imported: KPIs · Standard Reports (collapsed, usage-ranked, teaches under the hood)
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/Imported.jsx · app/src/lib/report-usage.js · app/src/__tests__/report-usage.test.js · app/src/__tests__/imported-render.test.jsx · docs/decisions/DR-0195-*.md

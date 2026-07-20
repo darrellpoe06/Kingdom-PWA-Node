@@ -15,6 +15,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
+import DataIntegrityReport from './DataIntegrityReport.jsx';
 
 function laneBadge(lane) {
   if (lane === 'parallel-safe') return { status: 'good', label: 'parallel-safe' };
@@ -140,6 +141,13 @@ export default function OpsBoard() {
 
       {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
       <UptimeStrip health={health} />
+
+      {/* Data-integrity standard report — how much of the app is verified
+          live-data vs painted, and the trend over time (DR-0196; Darrell
+          2026-07-20 "add these audits to the reports as a standard"). */}
+      <div className="mb-3">
+        <DataIntegrityReport />
+      </div>
 
       {state.phase === 'loading' && !data && (
         <p className="text-xs text-[#5A5751]">Reading live state from GitHub…</p>
