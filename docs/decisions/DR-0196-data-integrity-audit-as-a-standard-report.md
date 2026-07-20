@@ -49,15 +49,22 @@ that downward trend is the growth.
    from the ledger's real records; it paints nothing (DR-0076). The summarizer and
    the ledger's well-formedness are proven-to-catch tested.
 
-## First results (this sweep — 10 area slices)
+## First results (this sweep — 10 area slices, COMPLETE)
 
-Verified so far (4 of 10): **App root/Big Picture, Inbound & business, Learn &
-progress, Church ops & media — all clean**, only one LOW seam (Practice.jsx:436
-hardcoded 50% conversion under an explicit "Estimates" banner). Six areas
-(dashboards, ops-health, build/project boards, books-money, real-estate,
-community) were still in review at ship and carry `pending` verdicts; their real
-verdicts are appended as the audit completes. Coverage rising 4 → 10 and any HIGH
-finding fixed is the first visible growth increment.
+All 10 area slices (~45 surfaces) audited by independent read-only agents:
+**0 HIGH and 0 MED painted-data violations anywhere.** 9 of 10 areas clean; 1
+area (learn-progress) carries a single LOW seam (Practice.jsx:436 — a hardcoded
+50% conversion fallback under an explicit "Estimates until Acuity sync" banner,
+a non-progress revenue estimate). The "no painted data" discipline has held
+across the app; notably the P15-originating hand-typed Build ROADMAP is retired
+and the app-root buffer figure explicitly replaced a former painted slider.
+
+A handful of LOW watch-notes (not painted-live-state, recorded in the ledger
+area notes) are authored-copy staleness or by-design labeled models: About.jsx
+"~5,900 checks" marketing claim, DevOps.jsx business-narrative counts, Debts
+intro "11 rental properties" hero copy, and the room-income "collecting now"
+potential model. These are perpetual-improvement watch items (DR-0075), not
+violations. Baseline recorded; the trend line populates on the next audit run.
 
 ## Opportunities & Constraints
 
