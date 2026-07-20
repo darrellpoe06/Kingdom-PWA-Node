@@ -27,7 +27,7 @@
       "files": ["PracticeLearn.jsx", "ChurchLearn.jsx", "Practice.jsx", "EternalAlgorithmsStudy.jsx"],
       "verdict": "findings",
       "high": 0, "med": 0, "low": 1,
-      "note": "No painted progress found — every %/streak/done-count traces to real records. LOW: Practice.jsx:436 substitutes a hardcoded 50% conversion under an 'Estimates until Acuity sync' banner (non-progress revenue estimate seam).",
+      "note": "No painted progress — every %/streak/done-count traces to real records. LOW: Practice.jsx:436 substitutes a hardcoded 50% conversion under an 'Estimates until Acuity sync' banner (non-progress revenue estimate seam).",
       "auditedAt": "2026-07-20"
     },
     {
@@ -43,62 +43,62 @@
       "id": "dashboards",
       "label": "Dashboards & metrics",
       "files": ["BigPictureDashboard.jsx", "About.jsx", "AccessUsageMetrics.jsx", "TrialStatus.jsx", "ClientGrowth.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every trust number is prop/lib/real-record/real-localStorage derived or honestly framed. Watch (not painted): About.jsx '~5,900 checks' is an approximate marketing claim that could drift from the real test count.",
+      "auditedAt": "2026-07-20"
     },
     {
       "id": "ops-health",
       "label": "Ops & health",
       "files": ["OpsBoard.jsx", "DevOps.jsx", "DispatchPanel.jsx", "DbHealth.jsx", "LlmHealth.jsx", "LoopHealth.jsx", "NetworkStatus.jsx", "WorkflowStatus.jsx", "MinistryOps.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every health/status/count/timestamp traces to real props, live fetches, real RPC/queries, or the committed ledger, with honest 'not connected / never updated / not yet measured' fallbacks instead of painted green. DevOps.jsx is a business tab (authored projections/pricing), not a status surface.",
+      "auditedAt": "2026-07-20"
     },
     {
       "id": "boards-projects",
       "label": "Build & project boards",
       "files": ["BuildBoard.jsx", "ProjectBoards.jsx", "Projects.jsx", "ConcernsBoard.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every metric/%/count/status/date traces to real records, a build-time-derived stream, or a live store. The P15-originating hand-typed ROADMAP constant is explicitly retired; seed rows are flag-gated and labeled.",
+      "auditedAt": "2026-07-20"
     },
     {
       "id": "books-money",
       "label": "Books & money",
       "files": ["BooksTransactions.jsx", "BooksAccounts.jsx", "BooksEntities.jsx", "Debts.jsx", "Contractors1099.jsx", "BudgetPlanner.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every balance/total/count/%/status traces to real ledger/account/record state or a live engine; missing figures are flagged, not zeroed. Static values are labeled business-rule thresholds, user-editable defaults, or authored hero copy (e.g. Debts intro '11 rental properties').",
+      "auditedAt": "2026-07-20"
     },
     {
       "id": "real-estate",
       "label": "Real estate · Rentals",
       "files": ["Rentals.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every rent/count/%/total/status traces to real property/unit/lease records or a pure rollup; missing figures honestly flagged, not zeroed. The room-income 'collecting now' is a per-room-editable, labeled potential model (documented design, SEED-DATA-AS-ASPIRATION), not painted.",
+      "auditedAt": "2026-07-20"
     },
     {
       "id": "community",
       "label": "Community surfaces",
       "files": ["Cart.jsx", "Calendar.jsx", "ChurchHome.jsx", "BusMinistry.jsx", "KitchenInventory.jsx", "EventCenterModule.jsx"],
-      "verdict": "pending",
+      "verdict": "clean",
       "high": 0, "med": 0, "low": 0,
-      "note": "In review.",
-      "auditedAt": null
+      "note": "Every count/status/%/date traces to real props, derived computations, live subscriptions, or API fetches; the only hardcoded values are enum lists, authored copy, a documented V2 directory skeleton, or flag-gated local-fallback seed.",
+      "auditedAt": "2026-07-20"
     }
   ],
   "history": [
     {
       "date": "2026-07-20",
-      "areasAudited": 4,
-      "areasClean": 3,
+      "areasAudited": 10,
+      "areasClean": 9,
       "openHigh": 0,
       "openMed": 0,
       "openLow": 1
