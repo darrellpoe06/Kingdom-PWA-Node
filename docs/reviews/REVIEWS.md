@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0165 · Feature — Books › Imported: KPIs · Standard Reports (collapsed, usage-ranked, teaches under the hood)
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/Imported.jsx · app/src/lib/report-usage.js · app/src/__tests__/report-usage.test.js · app/src/__tests__/imported-render.test.jsx · docs/decisions/DR-0195-*.md
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-20 (screenshots): the three insight panels (Material changes, Unusual months, Recurring payments) ate the whole top of the Imported tab. Regrouped under ONE collapsible "KPIs · Standard reports" header, collapsed by default, one shown at a time — reclaims the top real-estate (register + filters reachable without scrolling past three tall panels). Added a LEARNING method (report-usage.js): a device-local, deterministic frequency counter ranks the KNOWN report registry by use so the most-used surfaces first and is the default shown ("even sorting isn't needed"); the manual selector stays. Added the TEACH-THROUGH-THE-SYSTEM Way (Darrell: "tabs should teach what's under the hood") — an in-panel explainer that the KPIs read live from the ledger and reorder by use. O&C recorded in DR-0195 with re-review 2026-10-20 (device-local vs synced house ranking; frequency-only vs richer needs-assessment; manual vs automated growth). No autonomous compute (not the three-brakes class). Proven-to-catch: report-usage.test.js (7) + a new imported-render case (collapse/expand/teach/learn). Lint + imported/reports suites (95) green.
+- **Source:** app/src/__tests__/report-usage.test.js
+
 ### REV-0164 · Extend — L46: the non-father's takeaway + what the father takes from the watchers
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/living-lessons-class.js (L46 benefits/lesson/quiz/facilitator extended) · docs/decisions/DR-0194-*.md
