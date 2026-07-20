@@ -338,16 +338,31 @@ export default function Imported({ data = {}, deleteTransaction = null }) {
 
   const chipCls = (active) => `px-2.5 py-1 text-[0.6875rem] rounded-full border whitespace-nowrap ${active ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
 
+  // Gate denied. This must render a CLEARLY VISIBLE, themed, self-explaining card
+  // — never the old thin low-contrast strip, which on the OLED-black (Midnight)
+  // theme was indistinguishable from a BROKEN blank tab (the 2026-07-19 report).
+  // A denied state that looks blank is a verification failure in the UI itself:
+  // it says WHY it is empty and WHAT to do. Pinned by imported-render.test.jsx.
   if (!isImportedViewAuthorized()) {
     return (
-      <div className="text-[0.75rem] text-[#5A5751] p-4">
-        Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
+      <div className="space-y-3" data-surface="imported">
+        <h2 className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontSize: '1.5rem', fontWeight: 600 }}>
+          Imported transactions
+        </h2>
+        <div className="border border-[#E8E4DC] bg-white p-6 text-center space-y-2">
+          <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Imported transactions are private to each family and show only when you are signed in on this device with your own data loaded.
+          </p>
+          <p className="text-[0.75rem] text-[#5A5751]">
+            Sign in with your family email on this device, then open <strong>Books → Imported</strong> again. Nothing here depends on any workflow being reachable.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-surface="imported">
       <div>
         <h2 className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontSize: '1.5rem', fontWeight: 600 }}>
           Imported transactions
