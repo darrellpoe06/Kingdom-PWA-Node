@@ -413,3 +413,20 @@ relying on it; memories reflect what was true when written.
   `defer-approved-build` pattern + broadened `re-ask-permission` (catches "when you
   want it built", "needs your green-light", "the one open decision on the table"),
   pinned by ari-integrity-guard.test.js. `feedback_extend_approved_capability_is_building`.
+
+- **2026-07-20 — Trust but verify EXTERNAL research before teaching it (DR-0190).**
+  Darrell, on building a lesson from a forwarded newsletter: "do our own separate
+  research on the cited research... Trust but verify... add to our Ways and
+  implement." Before the platform TEACHES an external claim, independently verify it
+  against the PRIMARY source (not the blog/newsletter that summarized it), tier it
+  (DR-0100: established fact / attributed / dropped-if-over-claimed), and attribute
+  it — a bare statistic ("43% of teams", "3.6x") is NEVER asserted as fact on the
+  platform's own authority; it sits next to "the research reports/a study found" or
+  it is dropped. The Word stays senior (research is a WITNESS, not the authority —
+  DR-0098). Worked example: L44 (Safe to Speak) — Project Aristotle + Edmondson
+  VERIFIED established fact; the 381-employee study VERIFIED real (Kim/Kim/Lee,
+  Humanities & Social Sciences Communications, Nature 2025, s41599-025-05040-2, incl.
+  the ethical-leadership buffer that maps to servant-leadership Mark 10:43-45); the
+  circulated %-stats deliberately NOT asserted (untraceable). ENFORCED:
+  living-lessons-research-integrity.test.js fails the build if any audience lesson
+  text states a statistic with no attributing source. `feedback_trust_but_verify_external_research`.
