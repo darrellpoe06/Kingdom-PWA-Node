@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   debtPaymentStats, estimatePayoff, deriveApr, debtPayoffInsight,
-  isInterestCharge, looksLikeDebtAccount,
+  isInterestCharge, looksLikeDebtAccount, cardPaymentSuggestions,
 } from '../lib/debt-payments.js';
 
 const asOf = new Date('2026-07-15T00:00:00');
@@ -98,5 +98,36 @@ describe('looksLikeDebtAccount', () => {
   it('does NOT match a checking account that merely contains "card"-ish text', () => {
     expect(looksLikeDebtAccount({ name: 'Cardinal Checking' })).toBe(false);
     expect(looksLikeDebtAccount({ name: 'Chase Personal Checking' })).toBe(false);
+  });
+});
+
+describe('cardPaymentSuggestions — "you pay these; add them as debts"', () => {
+  const nowMs = Date.parse('2026-07-20T00:00:00');
+  const txns = [
+    // a monthly credit-card autopay (categorizer -> debt-payment) x4
+    { id: 'a1', date: '2026-04-05', amount: -300, description: 'CHASE CREDIT CRD AUTOPAY 0511' },
+    { id: 'a2', date: '2026-05-05', amount: -300, description: 'CHASE CREDIT CRD AUTOPAY 0511' },
+    { id: 'a3', date: '2026-06-05', amount: -300, description: 'CHASE CREDIT CRD AUTOPAY 0511' },
+    { id: 'a4', date: '2026-07-05', amount: -300, description: 'CHASE CREDIT CRD AUTOPAY 0511' },
+    // a monthly subscription (NOT a debt) x4
+    { id: 'n1', date: '2026-04-05', amount: -15.49, description: 'NETFLIX.COM' },
+    { id: 'n2', date: '2026-05-05', amount: -15.49, description: 'NETFLIX.COM' },
+    { id: 'n3', date: '2026-06-05', amount: -15.49, description: 'NETFLIX.COM' },
+    { id: 'n4', date: '2026-07-05', amount: -15.49, description: 'NETFLIX.COM' },
+  ];
+
+  it('suggests a recurring card/loan payment as an addable debt, with the monthly amount', () => {
+    const s = cardPaymentSuggestions(txns, [], { nowMs });
+    expect(s).toHaveLength(1);
+    expect(/CHASE CREDIT/i.test(s[0].label)).toBe(true);
+    expect(s[0].monthlyPayment).toBeCloseTo(300, 2);
+    expect(s[0].cadence).toBe('monthly');
+  });
+  it('does NOT suggest a recurring non-debt (subscription)', () => {
+    expect(cardPaymentSuggestions(txns, [], { nowMs }).some((x) => /NETFLIX/i.test(x.label))).toBe(false);
+  });
+  it('skips a payee already covered by an existing debt account', () => {
+    const accounts = [{ name: 'Chase Credit Crd', type: 'credit' }];
+    expect(cardPaymentSuggestions(txns, accounts, { nowMs })).toHaveLength(0);
   });
 });

@@ -6,12 +6,27 @@
 // Moved verbatim (DR-0076 characterize-before-change); ACCOUNT_TYPES is
 // Books-only and travels with it. Depends on core only (fmt), never the shell.
 // =============================================================================
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { fmt } from "../lib/format.js";
+import { cardPaymentSuggestions } from "../lib/debt-payments.js";
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
-export default function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null, accountReconciliation = {} }) {
+// Tidy a raw payment description into an account name: drop the trailing ids/dates
+// and the "AUTOPAY/PAYMENT" noise, Title-Case the rest. "CHASE CREDIT CRD AUTOPAY
+// 0511" -> "Chase Credit Crd".
+function debtNameFromPayee(desc) {
+  const cleaned = String(desc || '')
+    .replace(/\b(auto\s*pay|autopay|payment|pmt|web|ppd|id|thank you|online)\b/ig, ' ')
+    .replace(/\b\d[\d/.-]*\b/g, ' ')
+    .replace(/[^A-Za-z ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const t = (cleaned || 'Debt').split(' ').slice(0, 4).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  return t || 'Debt';
+}
+
+export default function BooksAccounts({ entityRollups, entities, addAccount, updateAccount, deleteAccount, toggleAccountLegal, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, setBufferTarget, totals = {}, ingestData = null, accountReconciliation = {}, transactions = [], categoryRules = {} }) {
   // v28+ MVP v1.5 round 4 — Buffer target editing is deliberate (modal-style),
   // current balance is slider-driven (continuous, live feedback).
   const [editingTarget, setEditingTarget] = useState(false);
@@ -93,8 +108,44 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
   const bufferPct = bufferTarget > 0 ? Math.min(100, Math.round((bufferCurrent / bufferTarget) * 100)) : 0;
   const bufferGap = Math.max(0, bufferTarget - bufferCurrent);
 
+  // "You already PAY these; add them as debts to track the payoff" (Darrell
+  // 2026-07-20 follow-through). The credit cards often aren't in the imported feed
+  // as accounts — only as recurring autopay payments — so this offers each detected
+  // debt-payment as a one-tap addable debt with the observed payment pre-filled.
+  const debtSuggestions = useMemo(
+    () => cardPaymentSuggestions(transactions, allAccounts, { learned: categoryRules }),
+    [transactions, allAccounts, categoryRules],
+  );
+  const defaultEntityId = (entities[0] && entities[0].id) || null;
+  const addSuggestedDebt = (s) => {
+    const name = debtNameFromPayee(s.label);
+    const raw = typeof prompt === 'function'
+      ? prompt(`Add "${name}" as a debt. You pay about ${fmt(s.monthlyPayment)}/mo — what is the current total OWED on it? (Leave blank to add it now and set the balance later.)`, '')
+      : '';
+    const owed = parseFloat(String(raw == null ? '' : raw).replace(/[$,\s]/g, ''));
+    addAccount({ name, type: 'credit', treatAsDebt: true, balance: isFinite(owed) && owed > 0 ? owed : 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Payments that look like debts you don't yet track — add each as a debt
+          (payment pre-filled) so its payoff shows on the Debts tab (Darrell 2026-07-20). */}
+      {addAccount && debtSuggestions.length > 0 && (
+        <section className="bg-[#FAF8F4] border-2 border-[#B85838] p-4 sm:p-5 space-y-2">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium">Recurring payments that look like debts</div>
+          <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Your credit cards may not be in the imported feed as accounts — only as these autopays. Add one as a debt and its payoff timeline shows on the Debts tab.
+          </p>
+          {debtSuggestions.slice(0, 6).map((s) => (
+            <div key={s.payeeKey} className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>{debtNameFromPayee(s.label)}</strong> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
+              </span>
+              <button type="button" onClick={() => addSuggestedDebt(s)} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Add as debt</button>
+            </div>
+          ))}
+        </section>
+      )}
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
         <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Accounts · Add · Edit · Delete</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every account, every entity, every balance.</h2>
