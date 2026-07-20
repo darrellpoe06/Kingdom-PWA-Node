@@ -102,14 +102,115 @@ export function tax1099Model(rows, meta) {
     'Summary aid, not a filed 1099. Confirm 1099 eligibility, thresholds, and the correct form with your accountant.');
 }
 
+// ---- KPI reports — the money-flow signals every user should be able to pull ---
+// Darrell 2026-07-20: "I want those top reports to be in the reports section as
+// options so we always have the options every user will or should want to know…
+// KPIs… training each user on how to see the money flow algorithms of their lives
+// … seeing the unseen realm kind of." These three analyses already run on the
+// Imported tab as panels; here they become first-class, exportable KPI reports so
+// every user gets them — each carrying a plain-language teaching note (the note
+// prints on the PDF; the dropdown shows the short `hint`). They take the
+// ALREADY-COMPUTED analysis object the surface renders, so the report ties out to
+// the screen exactly (DR-0076 — no re-derivation, no drift).
+
+const wholeMoney = (n) => (n < 0 ? '−' : '+') + '$' + Math.abs(Math.round(Number(n) || 0)).toLocaleString('en-US');
+const driverText = (drivers) => (drivers || []).map((d) => `${d.label} ${wholeMoney(d.amount)}`).join(', ');
+
+// Material changes — every scope whose money moved ≥ the threshold, each already
+// explained by its top payee drivers. `variance` is varianceReport(...) output.
+export function materialChangesModel(variance, meta) {
+  const v = variance || {};
+  const rows = [];
+  if (v.overall && v.overall.material) {
+    rows.push({ scope: 'Overall (external)', net: v.overall.net, drivers: driverText(v.overall.drivers) });
+  }
+  for (const a of (v.accounts || []).filter((x) => x.material)) {
+    rows.push({ scope: a.name || 'Account', net: a.net, drivers: driverText(a.drivers) });
+  }
+  return {
+    title: 'KPI · Material changes (money movers)',
+    meta,
+    columns: [
+      { key: 'scope', label: 'Account', type: 'text' },
+      { key: 'net', label: 'Net move', type: 'money', align: 'right' },
+      { key: 'drivers', label: 'What drove it', type: 'text' },
+    ],
+    groups: [{ label: `Movers ≥ $${Math.round(Number(v.threshold) || 500).toLocaleString('en-US')}`, rows }],
+    note: 'KPI — Material changes. Every account whose money moved by the threshold or more in this window, each with the top payees that drove it. Read this one first: it turns a bare swing into "what changed, and why" — the few big movements that actually shaped the month, made visible.',
+  };
+}
+
+// Unusual months — each month's true external in/out vs the family's OWN usual,
+// flagging the ones far off. `anomalies` is baselineAnomalies(...) output (sorted).
+export function unusualMonthsModel(anomalies, meta) {
+  const rows = (anomalies || []).map((f) => ({
+    month: f.label,
+    metric: f.metric === 'in' ? 'Received' : 'Spent',
+    amount: f.value,
+    usual: f.baseline,
+    offby: `${f.kind === 'excess' ? 'above' : 'below'} by $${Math.abs(Math.round(f.deviation)).toLocaleString('en-US')}${f.deviationPct != null ? ` (${f.deviationPct > 0 ? '+' : ''}${f.deviationPct}%)` : ''}`,
+  }));
+  return {
+    title: 'KPI · Unusual months (off your usual)',
+    meta,
+    columns: [
+      { key: 'month', label: 'Month', type: 'text' },
+      { key: 'metric', label: 'In / Out', type: 'text' },
+      { key: 'amount', label: 'This month', type: 'money', align: 'right' },
+      { key: 'usual', label: 'Your usual', type: 'money', align: 'right' },
+      { key: 'offby', label: 'Off by', type: 'text' },
+    ],
+    groups: [{ label: 'Months off your baseline', rows }],
+    note: 'KPI — Unusual months. Each month\'s true external in/out measured against YOUR OWN usual (the median of your other months), flagging any off by more than 40% and $2,000. This is how an off month is caught on sight — a data glitch, a missed import, or a genuinely unusual season — instead of found late.',
+  };
+}
+
+// Recurring payments — the payments that repeat on a rhythm. `recurring` is
+// detectRecurring(...) output (each { label, cadenceLabel, count, amount, overdue }).
+export function recurringPatternsModel(recurring, meta) {
+  const list = recurring || [];
+  const rows = list.map((g) => ({
+    payee: g.label,
+    cadence: g.cadenceLabel + (g.overdue ? ' · due' : ''),
+    times: `${g.count}×`,
+    amount: g.amount,
+  }));
+  const perCycle = list.reduce((s, g) => s + (Number(g.amount) || 0), 0);
+  return {
+    title: 'KPI · Recurring payments (your rhythms)',
+    meta,
+    columns: [
+      { key: 'payee', label: 'Payee', type: 'text' },
+      { key: 'cadence', label: 'Cadence', type: 'text' },
+      { key: 'times', label: 'Seen', type: 'text' },
+      { key: 'amount', label: 'Amount', type: 'money', align: 'right' },
+    ],
+    groups: [{ label: `Repeating payments · ${wholeMoney(perCycle).replace('+', '')}/cycle`, rows }],
+    note: 'KPI — Recurring payments. The payments that repeat on a rhythm: card autopays, subscriptions, loan payments — with how often and how much. This is the money-flow "algorithm" of your fixed obligations: what leaves like clockwork, so nothing recurring is ever a surprise and every rhythm is a decision you can see.',
+  };
+}
+
 // The preset list handed to <ReportActions>. Each buildModel closes over the
-// current windowed rows + meta the surface supplies.
-export function financePresets(rows, meta) {
-  return [
+// current windowed rows + meta the surface supplies. `kpis` (optional) carries the
+// already-computed money-flow analyses; when present, the KPI reports are
+// PREPENDED so the signals every user should see sit at the top of the menu.
+export function financePresets(rows, meta, kpis = {}) {
+  const base = [
     { key: 'monthly', label: 'Monthly summary', filenameBase: 'monthly-summary', buildModel: () => monthlySummaryModel(rows, meta) },
     { key: 'category', label: 'By category', filenameBase: 'by-category', buildModel: () => byCategoryModel(rows, meta) },
     { key: 'account', label: 'By account', filenameBase: 'by-account', buildModel: () => byAccountModel(rows, meta) },
     { key: 'inc-exp', label: 'Income vs expense', filenameBase: 'income-vs-expense', buildModel: () => incomeVsExpenseModel(rows, meta) },
     { key: '1099', label: '1099 summary (by payee)', filenameBase: '1099-summary', buildModel: () => tax1099Model(rows, meta) },
   ];
+  const kpiPresets = [];
+  if (kpis.variance && kpis.variance.materialCount > 0) {
+    kpiPresets.push({ key: 'kpi-material', kpi: true, label: 'Material changes (money movers)', hint: 'What moved $500+ and the payees that drove it', filenameBase: 'kpi-material-changes', buildModel: () => materialChangesModel(kpis.variance, meta) });
+  }
+  if (kpis.anomalies && kpis.anomalies.length > 0) {
+    kpiPresets.push({ key: 'kpi-unusual', kpi: true, label: 'Unusual months vs your usual', hint: 'Months off your own baseline by 40% and $2k', filenameBase: 'kpi-unusual-months', buildModel: () => unusualMonthsModel(kpis.anomalies, meta) });
+  }
+  if (kpis.recurring && kpis.recurring.length > 0) {
+    kpiPresets.push({ key: 'kpi-recurring', kpi: true, label: 'Recurring payments (your rhythms)', hint: 'Card autopays, subscriptions, loans — cadence + amount', filenameBase: 'kpi-recurring-payments', buildModel: () => recurringPatternsModel(kpis.recurring, meta) });
+  }
+  return [...kpiPresets, ...base];
 }
