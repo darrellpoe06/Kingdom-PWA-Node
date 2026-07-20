@@ -369,6 +369,18 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               {toggleAccountLegal && (
                 <button type="button" onClick={() => { if (confirm(`Move "${a.name}" to Legal? It will be removed from cash totals and surface in the Legal tab. You can restore it from there.`)) toggleAccountLegal(a.id); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">🔒 Move to Legal</button>
               )}
+              {/* Manual debt declaration (Darrell 2026-07-20: "this is a debt account
+                  so it will be seen as a debt once chosen or removed"). One tap marks
+                  the account a debt — it leaves cash totals and shows on the Debts tab
+                  with its payoff from real payments; tap again to remove it. */}
+              {updateAccount && (
+                <button type="button" onClick={() => updateAccount(a.id, { treatAsDebt: !a.treatAsDebt })}
+                  aria-pressed={!!a.treatAsDebt}
+                  title={a.treatAsDebt ? 'Currently treated as a debt (shows on the Debts tab). Tap to stop treating it as a debt.' : 'Mark this account as a debt so it appears on the Debts tab with a payoff from your payments.'}
+                  className={`text-xs uppercase tracking-wider px-3 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${a.treatAsDebt ? 'text-[#B85838] border-[#B85838] bg-[#FAF8F4]' : 'text-[#5A5751] border-transparent hover:text-[#1A1815] hover:border-[#1A1815] hover:bg-[#FAF8F4]'}`}>
+                  {a.treatAsDebt ? 'Not a debt' : 'Treat as debt'}
+                </button>
+              )}
               <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
               <button type="button" onClick={() => confirmDelete(a)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
             </div>
