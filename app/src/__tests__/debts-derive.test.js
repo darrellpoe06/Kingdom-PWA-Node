@@ -5,7 +5,7 @@
 // categorize/verify step. Proven-to-catch: owed side only, needsTerms flag,
 // rental mortgages pulled, zero-balance skipped, no double-count of cash.
 import { describe, it, expect } from 'vitest';
-import { deriveDebts } from '../lib/financial-engineering.js';
+import { deriveDebts, liveCashOnHand } from '../lib/financial-engineering.js';
 import { reviewStatus } from '../lib/transaction-analysis.js';
 
 const ASOF = new Date('2026-06-30T00:00:00Z');
@@ -79,6 +79,31 @@ describe('deriveDebts', () => {
     const d = deriveDebts(data, ASOF)[0];
     expect(d.rate).toBe(18.99);
     expect(d.rateSource).toBe('manual');
+  });
+  it('MANUAL override: an account the user marks treatAsDebt shows on Debts (balance = owed)', () => {
+    const data = {
+      accounts: [{ id: 'a-card', name: 'My Credit Card', type: 'checking', balance: 1500, treatAsDebt: true, entityId: 'e1' }],
+      transactions: [],
+    };
+    const debts = deriveDebts(data, ASOF);
+    expect(debts).toHaveLength(1);
+    expect(debts[0].balance).toBeCloseTo(1500, 2); // magnitude counted as owed
+    expect(debts[0].accountId).toBe('a-card');
+  });
+  it('a treatAsDebt account leaves cash totals (no double-count as both cash and debt)', () => {
+    const data = {
+      accounts: [
+        { id: 'a-cash', name: 'Checking', type: 'checking', balance: 2000, entityId: 'e1' },
+        { id: 'a-card', name: 'Card', type: 'checking', balance: 1500, treatAsDebt: true, entityId: 'e1' },
+      ],
+      transactions: [],
+    };
+    expect(liveCashOnHand(data, ASOF).total).toBeCloseTo(2000, 2); // the marked account is NOT cash
+    expect(deriveDebts(data, ASOF)).toHaveLength(1);               // it IS a debt
+  });
+  it('unmarking (treatAsDebt false) removes it from Debts', () => {
+    const data = { accounts: [{ id: 'a', name: 'Checking', type: 'checking', balance: 1500, treatAsDebt: false }], transactions: [] };
+    expect(deriveDebts(data, ASOF)).toHaveLength(0);
   });
   it('pulls rental mortgages with a real balance + carries their terms', () => {
     const data = {

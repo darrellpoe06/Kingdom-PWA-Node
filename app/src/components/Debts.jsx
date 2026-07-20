@@ -18,16 +18,37 @@ function yearsAndMonths(months) { const y = Math.floor(months / 12); const m = m
 function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null }) {
   // v28+ All Debts table - excel-style sort by rate / balance / payoff date
   const [allDebtsSort, setAllDebtsSort] = useState('rate');
-  // Inline interest-rate edit (the FALLBACK when the rate can't be read from the
-  // statement's own interest charges — a DERIVED rate wins and is not editable, so
-  // no human can undermine the data; Darrell 2026-07-20).
-  const [editingRateId, setEditingRateId] = useState(null);
-  const [rateInput, setRateInput] = useState('');
-  const saveRate = (d) => {
-    const v = parseFloat(rateInput);
-    if (isFinite(v) && v >= 0 && v < 100 && d.accountId && updateAccount) updateAccount(d.accountId, { rate: v });
-    setEditingRateId(null);
+  // Inline editing of a debt's terms so a timeline can be computed (Darrell
+  // 2026-07-20: "have the debt need a total amount of debt owed ... and expected
+  // payoff based on the amount of money being paid"; "interest rates ... editable
+  // if necessary unless it is already available"). Three editable cells per debt:
+  //  · owed    — the total balance owed (only for a manually-declared debt, whose
+  //              balance IS the owed amount; a ledger-derived balance stays truthful);
+  //  · min     — the monthly payment (drives the payoff timeline when there's no
+  //              observed payment history yet);
+  //  · rate    — the interest rate, but ONLY when it is NOT derived from the data
+  //              (a DERIVED rate is authoritative and locked — no human undermines it).
+  // Each writes to the underlying account (updateAccount); the projection recomputes.
+  const [edit, setEdit] = useState(null); // { id, field } | null
+  const [editVal, setEditVal] = useState('');
+  const isEditing = (d, field) => !!edit && edit.id === d.id && edit.field === field;
+  const startEditCell = (d, field, current) => { setEdit({ id: d.id, field }); setEditVal(current != null && isFinite(current) ? String(current) : ''); };
+  const saveCell = (d) => {
+    const v = parseFloat(editVal);
+    if (isFinite(v) && v >= 0 && d.accountId && updateAccount) {
+      if (edit.field === 'rate' && v < 100) updateAccount(d.accountId, { rate: v });
+      else if (edit.field === 'min') updateAccount(d.accountId, { minPayment: v });
+      else if (edit.field === 'owed') updateAccount(d.accountId, { balance: v }); // manual debt: balance = owed
+    }
+    setEdit(null);
   };
+  const cellInput = (d, ariaLabel) => (
+    <input type="number" min="0" step="0.01" value={editVal} autoFocus
+      onChange={(e) => setEditVal(e.target.value)} onBlur={() => saveCell(d)}
+      onKeyDown={(e) => { if (e.key === 'Enter') saveCell(d); if (e.key === 'Escape') setEdit(null); }}
+      className="w-20 text-right text-xs px-1 py-0.5 border border-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      aria-label={ariaLabel} />
+  );
   // The expected payoff date the user asked for — from their REAL payments, not a
   // fabricated minimum. On-track: their net paydown clears it by this month. If new
   // charges keep pace with payments the balance isn't going down — say so plainly
@@ -136,26 +157,42 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      {editingRateId === d.id ? (
-                        <input type="number" min="0" max="99" step="0.01" value={rateInput} autoFocus
-                          onChange={(e) => setRateInput(e.target.value)} onBlur={() => saveRate(d)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') saveRate(d); if (e.key === 'Escape') setEditingRateId(null); }}
-                          className="w-16 text-right text-xs px-1 py-0.5 border border-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-                          aria-label={`Interest rate for ${d.name}`} />
-                      ) : (
+                      {isEditing(d, 'rate') ? cellInput(d, `Interest rate for ${d.name}`) : (
                         <span className="inline-flex items-center gap-1 justify-end">
                           {pct(d.rate)}
                           {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it, so it can't be mis-typed">data</span>}
                           {canEditRate && (
-                            <button type="button" onClick={() => { setEditingRateId(d.id); setRateInput(d.rate > 0 ? String(d.rate) : ''); }}
+                            <button type="button" onClick={() => startEditCell(d, 'rate', d.rate)}
                               className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
                               title="No interest charge in the data yet — enter the rate">{d.rate > 0 ? 'edit' : '+ rate'}</button>
                           )}
                         </span>
                       )}
                     </td>
-                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>
-                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</td>
+                    <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {isEditing(d, 'min') ? cellInput(d, `Monthly payment for ${d.name}`) : (
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {fmt(d.minPayment)}
+                          {d.accountId && updateAccount && (
+                            <button type="button" onClick={() => startEditCell(d, 'min', d.minPayment)}
+                              className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
+                              title="Monthly payment — sets the payoff timeline when there's no payment history yet">{d.minPayment > 0 ? 'edit' : '+ pay'}</button>
+                          )}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {isEditing(d, 'owed') ? cellInput(d, `Amount owed for ${d.name}`) : (
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {fmt(d.balance)}
+                          {d.manual && d.accountId && updateAccount && (
+                            <button type="button" onClick={() => startEditCell(d, 'owed', d.balance)}
+                              className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
+                              title="Total amount owed on this debt — the timeline is figured from this">{d.balance > 0 ? 'edit' : '+ owed'}</button>
+                          )}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <div className={po.warn ? 'text-[#B85838]' : ''}>{po.text}</div>
                       {po.sub && <div className="text-[0.5625rem] text-[#5A5751] normal-case" style={{ fontFamily: '"Fraunces", serif' }}>{po.sub}</div>}

@@ -114,7 +114,7 @@ export function deriveAccountBalances(data, asOf = new Date()) {
 export function liveCashOnHand(data, currentDate = new Date()) {
   const balances = deriveAccountBalances(data, currentDate);
   const accounts = (data?.accounts || []).filter(
-    (a) => CASH_TYPES.includes(a.type) && !a.inLegal,
+    (a) => CASH_TYPES.includes(a.type) && !a.inLegal && !a.treatAsDebt,
   );
   let total = 0;
   const byAccount = [];
@@ -144,16 +144,21 @@ export function deriveDebts(data, asOf = new Date()) {
   const out = [];
   for (const a of (data?.accounts || [])) {
     const bal = balances[a.id] != null ? balances[a.id] : (a.balance || 0);
-    const owed = bal < 0 ? -bal : 0; // only the owed (negative) side is debt
-    // A debt account is either TYPED as one (authoritative), OR reads as one by
-    // name AND is genuinely owed (negative balance) — the latter surfaces imported
-    // credit cards / LOCs that synced as 'checking' and so never reached this tab
-    // (Darrell 2026-07-20). Name-classification is non-destructive: the stored
-    // account is untouched; it only adds the row here, and the owed-balance gate
-    // keeps a positive 'Cardinal Checking' out.
+    // A debt account is one of three, most-authoritative first:
+    //  · TYPED credit/loan (bank feed / the account editor);
+    //  · MANUALLY declared a debt (treatAsDebt) — the user's own "this is a debt
+    //    account" toggle (Darrell 2026-07-20), which counts its balance MAGNITUDE
+    //    as the amount owed, so an account whose owed balance is stored positive
+    //    (a card the bank reports as a positive "balance owed") still shows;
+    //  · NAME-classified AND genuinely owed (negative) — surfaces an imported card
+    //    that synced as 'checking'. Non-destructive: the stored account is untouched.
     const typedDebt = a.type === 'credit' || a.type === 'loan';
-    const nameDebt = !typedDebt && owed > 0.01 && looksLikeDebtAccount(a);
-    if (!typedDebt && !nameDebt) continue;
+    const manualDebt = a.treatAsDebt === true;
+    // Type/name debts count only the negative (owed) side; a manually-declared debt
+    // treats its balance magnitude as owed (the user said it's a debt).
+    const owed = manualDebt ? Math.abs(bal) : (bal < 0 ? -bal : 0);
+    const nameDebt = !typedDebt && !manualDebt && owed > 0.01 && looksLikeDebtAccount(a);
+    if (!typedDebt && !manualDebt && !nameDebt) continue;
     if (owed <= 0.01) continue;
     // Interest RATE: the account's OWN interest charges are authoritative — a rate
     // read from the data can't be undermined by a wrong manual entry (Darrell
@@ -171,6 +176,9 @@ export function deriveDebts(data, asOf = new Date()) {
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
       balance: round2(owed), rate, rateSource, minPayment, entityId: a.entityId ?? null,
       debtType: typedDebt ? a.type : 'credit', accountId: a.id, source: 'account',
+      // manual = the user's own "treat as debt" declaration: its owed balance is
+      // hand-set (editable), vs a ledger-derived balance that stays truthful.
+      manual: manualDebt,
       leaveAlone: false, needsTerms: !(rate > 0 && minPayment > 0),
       // Payment-derived payoff — independent of the rate-based snowball engine.
       payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
@@ -209,8 +217,10 @@ export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
   const debts = data?.debts || [];
   const salaries = data?.inflows?.salaries || [];
   const rentals = data?.inflows?.rentals || [];
-  const isCash = (a) => CASH_TYPES.includes(a.type);
-  const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
+  // A manually-declared debt (treatAsDebt) is a debt, not cash — so it never
+  // double-counts as both (it leaves cash, joins credit).
+  const isCash = (a) => CASH_TYPES.includes(a.type) && !a.treatAsDebt;
+  const isCredit = (a) => a.type === 'credit' || a.type === 'loan' || a.treatAsDebt === true;
   const sorted = [...entities].sort((a, b) => (a.type === b.type ? 0 : a.type === 'personal' ? -1 : 1));
   return sorted.map((entity) => {
     const entAccounts = accounts
