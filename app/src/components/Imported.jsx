@@ -648,7 +648,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                   aria-expanded={stdReportsOpen}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815]"
                 >
-                  <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">KPIs · Standard reports</span>
+                  <span className="text-[0.6875rem] tracking-[0.12em] text-[#1A1815] font-semibold">KPI&rsquo;s &middot; Standard reports</span>
                   <span className="flex items-center gap-2 min-w-0">
                     <span className="text-[0.5625rem] text-[#5A5751] truncate hidden sm:inline">{ranked.map((r) => r.label).join(' · ')}</span>
                     <span className="text-[0.5625rem] text-[#5A5751] whitespace-nowrap">{ranked.length} report{ranked.length === 1 ? '' : 's'}</span>
@@ -657,13 +657,14 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                 </button>
                 {stdReportsOpen && (
                   <div className="px-3 pb-3 pt-1 space-y-2">
-                    {/* Teach what's under the hood (Darrell 2026-07-20): the surface
-                        explains its own mechanism — live data + the usage learning. */}
-                    <p className="text-[0.5625rem] text-[#5A5751] leading-snug">
-                      These KPIs read live from your ledger — no static numbers — and reorder by what you open most, so your most-used report stays on top.
+                    {/* Teach the CONCEPT for learners (Darrell 2026-07-20): explain
+                        what a KPI is and what each report reveals — context, not a
+                        narration of the obvious UI mechanics. */}
+                    <p className="text-[0.6875rem] text-[#5A5751] leading-snug">
+                      <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. These read from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (when a month ran far off your normal), and <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides).
                     </p>
                     {ranked.length > 1 && (
-                      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPIs · Standard reports">
+                      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPI&rsquo;s · Standard reports">
                         {ranked.map((r) => (
                           <button
                             key={r.id}

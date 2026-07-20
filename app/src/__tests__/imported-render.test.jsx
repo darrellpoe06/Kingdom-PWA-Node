@@ -167,8 +167,8 @@ describe('Imported — bank-convention view (real mount)', () => {
     };
     localStorage.removeItem('poe.imported.reportUsage.v1'); // start with no learned usage
     const { container, click } = await mount(RECUR);
-    const toggle = [...container.querySelectorAll('button')].find((b) => /KPIs · Standard reports/.test(b.textContent));
-    expect(toggle, 'the KPIs · Standard reports header renders').toBeTruthy();
+    const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
+    expect(toggle, 'the KPI’s · Standard reports header renders').toBeTruthy();
     // collapsed by default — the panel bodies are hidden, so they do NOT eat the top
     expect(container.innerHTML).not.toContain('repeating patterns');
     expect(container.innerHTML).not.toContain('Material changes · July 2026');
@@ -177,7 +177,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     await click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(container.innerHTML).toContain('Material changes · July 2026');
-    expect(container.innerHTML).toContain('read live from your ledger'); // teaches what's under the hood
+    expect(container.innerHTML).toContain('key performance indicator'); // teaches the CONCEPT for learners
     // selecting the Recurring tab swaps the shown report (and records the use)
     const recurTab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === 'Recurring payments');
     expect(recurTab).toBeTruthy();
