@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0162 · Trust but Verify — retroactive audit of the 8 research-sourced lessons (independent, primary-source)
+- **Date:** 2026-07-20
+- **Surface:** app/src/lib/living-lessons-class.js (L15, L34, L37, L38, L40 corrected; L36, L39, L41 verified clean) · docs/decisions/DR-0192-*.md · memory/MEMORY.md
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** How-we-worked review (DR-0108), declared by Darrell 2026-07-20 ("Apply the trust-but-verify pass to the other research-sourced lessons") — executing the retroactive lens DR-0190 named. Ran 8 INDEPENDENT parallel verifiers (one per lesson), each extracting every external claim and checking it against PRIMARY sources via live web research (DR-0076 §7 independent method), tiering per DR-0100. Clean: L36 (Halwell real/attributed), L39 (LXX/MT/Cainan/Ebionites/Amarna/Sennacherib/lions all accurate, fringe framed as refuted), L41 (Huff+Bartlett verified, apologetics framed as TIER-B witness, lament-fraction accurate). Corrected: **L15** — Brooks's TALK "L" is LEVITY not Listening (a named framework taught wrong, with a whole pillar built on it) + the "Get Excited" study domain is a timed MATH task not negotiation; **L40** — Sargon's annals confirm the conquest/27,290/resettlement "in the midst of Assyria" but NOT the Halah/Habor/Gozan/Medes addresses (Scripture's alone) — the "consistent-with = confirmed" over-reach, fixed in 8 spots; **L38** — a communication adage was mis-credited to Golden (traces to W.H. Whyte, Fortune 1950), reattributed; **L34** — "forgoing" → "willing to forgo" ~$2M equity (precision); **L37** — ACTN3 "<1%" sharpened to "sprint-performance variance." PROCESS LESSON (the durable output): Darrell's mid-session "did separate research occur?" showed the DR-0190 pass had run only when challenged; L15/L40 prove that's insufficient — the pass is now a PRE-SHIP gate on any research-sourced lesson, not a when-asked step. New verses (Prov 17:22, Eccl 3:4) fetched verbatim from public/bible/kjv (DR-0076); lint + lesson-flow + research-integrity + presentable gates green.
+- **Source:** docs/decisions/DR-0192-retroactive-trust-but-verify-audit-of-research-sourced-lessons.md
+
 ### REV-0161 · Harvest — Living Lesson L45: recognition, credit, and equity meet the Word ("honour to whom honour")
 - **Date:** 2026-07-20
 - **Surface:** app/src/lib/living-lessons-class.js (L45 new module + meta.weeks 44→45 + cross-refs into L12/L42/L44) · docs/decisions/DR-0191-*.md · docs/99-session-notes/2026-07-20-recognition-power-equity-lesson.md
