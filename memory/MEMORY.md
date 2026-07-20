@@ -430,3 +430,23 @@ relying on it; memories reflect what was true when written.
   circulated %-stats deliberately NOT asserted (untraceable). ENFORCED:
   living-lessons-research-integrity.test.js fails the build if any audience lesson
   text states a statistic with no attributing source. `feedback_trust_but_verify_external_research`.
+
+- **2026-07-20 — Render honour to whom honour: recognition/credit is a DUE and a
+  conduct standard (DR-0191, Living Lesson L45).** Harvested from the IT-workplace
+  session "Recognition, Power, and Equity in IT Work" (Fleeger & McCarthy): credit
+  FUNCTIONS AS POWER — who is recognized is who advances — and uneven recognition
+  falls hardest on the overlooked across identities and career stages. The Word
+  founded EQUITY deeper: God gives "more abundant honour to that part which lacked"
+  (1 Cor 12:23-26); honour is a DUE not a favor (Rom 13:7; Prov 3:27; Jas 5:4); the
+  unthanked have a Recorder (Heb 6:10); guarded from a credit-grab (Matt 6:1; Prov
+  27:2; John 5:44); no partiality (Jas 2:1-9); the servant-king takes the low seat
+  (Mark 10:43-45; Luke 14:10-11). CONDUCT STANDARD for Ari/Claude: name the human
+  contribution, give credit back to the family + the quiet contributor, attribute
+  not absorb, never let the machine take the applause for a person's labour
+  (GOVERNANCE-EXECUTION-ADVISORY / DR-0111 — the vision is the family's). Separate
+  research (DR-0190) traced to PRIMARY sources: Sarsons, American Economic Review
+  2017 107(5):141-45 (+ JPE 2021 129(1):101-147); Ross et al., "Women are credited
+  less in science than men," Nature 2022 (PMC9352587; ~13% attribution gap across
+  almost all career stages). Process lesson caught by Darrell mid-session: the
+  DR-0190 pass must run BEFORE first ship on a research-sourced harvest, not only
+  when challenged. `feedback_render_honour_to_whom_honour`.
