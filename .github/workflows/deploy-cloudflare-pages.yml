@@ -46,10 +46,15 @@ jobs:
     # credentials in place). Keeps the live Vercel serving untouched until then.
     if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
     outputs:
-      # This build's entry chunk path — the propagation sentinel verify-boot
-      # polls for on the domain (incident #722: the domain can serve the new
-      # shell minutes before the shell's own assets are reachable).
-      entry: ${{ steps.sentinel.outputs.entry }}
+      # This build's boot-critical JS chunk paths — the propagation sentinel
+      # verify-boot polls for on the domain (incident #722: the domain can serve
+      # the new shell minutes before the shell's own assets are reachable).
+      # ALL of them, not just the entry: index.html modulepreloads the entry,
+      # the react-vendor split, AND the monolith chunk, and the app can't boot
+      # until every one is served as JavaScript. Waiting on only the entry let
+      # boot-check race the vendor/monolith chunks and false-fail (filing bogus
+      # incidents + phone pushes) — the transient deploy failures this hardens.
+      assets: ${{ steps.sentinel.outputs.assets }}
     defaults:
       run:
         working-directory: app
@@ -83,9 +88,12 @@ jobs:
           # the same-origin "/n8n" path served by the Pages Function. Setting it
           # to the bare Funnel URL would re-open the cross-origin 503 throttle.
 
-      - name: Name this build's entry chunk (the propagation sentinel)
+      - name: Name this build's boot-critical chunks (the propagation sentinel)
         id: sentinel
-        run: echo "entry=$(grep -o 'assets/index-[^\"]*\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
+        # Every JS asset index.html references (entry + react-vendor + monolith),
+        # de-duped, space-separated. verify-boot waits for ALL of them to serve as
+        # JavaScript before it boots a real browser — see the assets output above.
+        run: echo "assets=$(grep -oE 'assets/[^\"]*\.js' dist/index.html | sort -u | tr '\n' ' ' | sed 's/ *$//')" >> "$GITHUB_OUTPUT"
 
       # Create the Direct-Upload Pages project on the FIRST run so no one has to
       # click through the dashboard's flaky "Connect to Git" flow (which we do not
@@ -147,27 +155,37 @@ jobs:
       # ------------------------------------------------------------------------
       - name: Wait for the domain to serve this deploy (measured propagation window)
         env:
-          ENTRY: ${{ needs.deploy.outputs.entry }}
+          ASSETS: ${{ needs.deploy.outputs.assets }}
         run: |
-          if [ -z "$ENTRY" ]; then
-            echo "no entry-chunk sentinel from the build — skipping the gate (boot-check below is still the judge)" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ -z "$ASSETS" ]; then
+            echo "no asset sentinel from the build — skipping the gate (boot-check below is still the judge)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          url="https://poetech.us/poetech-app/${ENTRY}"
+          # Wait for EVERY boot-critical chunk, on ONE shared 15-minute deadline —
+          # boot-check must not start until the entry, the react-vendor split, AND
+          # the monolith chunk are all reachable as JavaScript (else it races the
+          # slower-to-propagate chunk and false-fails).
           start=$(date +%s)
-          for i in $(seq 1 90); do
-            ctype=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "$url" || echo "unreachable")
-            now=$(date +%s); elapsed=$(( now - start ))
-            case "$ctype" in
-              *javascript*)
-                echo "domain served ${ENTRY} as JavaScript after ${elapsed}s" | tee -a "$GITHUB_STEP_SUMMARY"
-                exit 0 ;;
-            esac
-            echo "t+${elapsed}s: ${url} answered content-type '${ctype}' — still propagating"
-            sleep 10
+          deadline=$(( start + 900 ))
+          for asset in $ASSETS; do
+            url="https://poetech.us/poetech-app/${asset}"
+            while :; do
+              ctype=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "$url" || echo "unreachable")
+              now=$(date +%s); elapsed=$(( now - start ))
+              case "$ctype" in
+                *javascript*)
+                  echo "served ${asset} as JavaScript after ${elapsed}s" | tee -a "$GITHUB_STEP_SUMMARY"
+                  break ;;
+              esac
+              if [ "$now" -ge "$deadline" ]; then
+                echo "domain did NOT serve ${asset} within 15 minutes — propagation stuck (this is an incident)" | tee -a "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+              echo "t+${elapsed}s: ${url} answered content-type '${ctype}' — still propagating"
+              sleep 10
+            done
           done
-          echo "domain did NOT serve ${ENTRY} within 15 minutes — propagation stuck (this is an incident)" | tee -a "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "all boot chunks served as JavaScript — propagation complete" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Boot-check production (domain + pages.dev origin + the Moore door + the Church tab)
         # ?view=church added 2026-07-10 after the family photographed a white
         # screen on the Church tab during a deploy window — the tab the church
