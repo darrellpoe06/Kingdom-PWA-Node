@@ -72,7 +72,7 @@ import TextSizeControl from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView } from './lib/nav-history.js';
 import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
@@ -1134,7 +1134,7 @@ export default function PoeFinancialSystem() {
     try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
     setSelfServeWelcomeDismissed(true);
   };
-  const [booksView, setBooksView] = useState('calendar');
+  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'calendar' : initialBooksView(window.location.search); } catch (e) { return 'calendar'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
   const [churchView, setChurchView] = useState(getInitialChurchView());
   // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
   // Whole TLC App... one single tab that holds all of it"). One office, three

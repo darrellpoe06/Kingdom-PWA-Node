@@ -17,9 +17,35 @@ import { createElement, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import {
-  serializeNav, parseNav, navKey,
+  serializeNav, parseNav, navKey, initialBooksView, VALID_BOOKS_SUBS,
   useBrowserHistoryNav, useHistoryToggle, useHistoryValue,
 } from '../lib/nav-history.js';
+
+// ── Books deep-link resolver (the "blank Books tab" regression guard) ────────
+// Proven-to-catch (DR-0076): the shell used to boot booksView hard-coded to
+// 'calendar', ignoring ?sub=, so ?view=books&sub=imported opened Calendar and
+// the history seed dropped the sub — the deep-link "didn't work." initialBooksView
+// is what the shell now boots from; these cases fail if that regresses OR if an
+// unknown sub is ever allowed to route to a dead (blank) branch.
+describe('initialBooksView — Books deep-links resolve, unknown subs stay safe', () => {
+  it('opens the deep-linked Books sub-tab (the exact reported ?sub=imported case)', () => {
+    expect(initialBooksView('?view=books&sub=imported')).toBe('imported');
+  });
+  it('resolves every real Books sub-tab from its deep-link', () => {
+    for (const sub of VALID_BOOKS_SUBS) {
+      expect(initialBooksView(`?view=books&sub=${sub}`)).toBe(sub);
+    }
+  });
+  it('an unknown ?sub= falls back to the default, never a dead branch', () => {
+    expect(initialBooksView('?view=books&sub=bogus')).toBe('calendar');
+    expect(initialBooksView('?view=books')).toBe('calendar');
+  });
+  it('a ?sub= only counts when the view is actually books', () => {
+    // church also writes ?sub=; it must not leak into booksView.
+    expect(initialBooksView('?view=church&sub=engagement')).toBe('calendar');
+    expect(initialBooksView('')).toBe('calendar');
+  });
+});
 
 // ── pure helpers (no DOM) ───────────────────────────────────────────────────
 

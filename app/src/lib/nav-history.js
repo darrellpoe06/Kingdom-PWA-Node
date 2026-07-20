@@ -72,6 +72,27 @@ export function parseNav(search) {
   return out;
 }
 
+// The Books sub-tabs that are real routes, in nav order. Mirrors the Books
+// sub-nav id list in the shell; kept here beside VALID_VIEWS so a ?sub= deep-link
+// resolves through ONE validated source. An unknown sub must fall back to the
+// default, never route to a branch that renders nothing (the "blank Books tab"
+// class this module exists to prevent).
+export const VALID_BOOKS_SUBS = [
+  'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart', 'k1099', 'calendar', 'legal',
+];
+
+// initialBooksView — the Books sub-tab a URL deep-links to, validated. The shell
+// boots booksView from THIS (getInitialBooksView), restoring the parity that view
+// (getInitialView) and churchView (getInitialChurchView) already had: before, the
+// shell hard-coded 'calendar' and ignored ?sub=, so ?view=books&sub=imported
+// opened Calendar and the history seed then dropped the sub from the URL — the
+// deep-link "didn't work at all." Only honored when view is books; an unknown or
+// absent sub returns the default so no deep-link can route to a dead branch.
+export function initialBooksView(search) {
+  const { view, booksView } = parseNav(search);
+  return view === 'books' && VALID_BOOKS_SUBS.includes(booksView) ? booksView : DEFAULT_BOOKS;
+}
+
 // Stable equality key — keys off the ACTIVE view's sub only, so switching tabs
 // while an inactive tab retains its sub-state does not register a phantom change.
 export function navKey(loc) {
