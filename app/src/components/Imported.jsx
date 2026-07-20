@@ -594,7 +594,9 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
               node: (
                 <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1">
                   <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Unusual months vs the usual</div>
-                  {anomalies.slice(0, 6).map((f) => (
+                  {/* Full list on its tab, grows to whatever the data becomes
+                      (Darrell 2026-07-20; no cap on an opt-in report). */}
+                  {anomalies.map((f) => (
                     <div key={`${f.month}-${f.metric}`} className="text-[0.75rem] text-[#1A1815]">
                       <span className="font-semibold">{f.label}</span> · {f.metric === 'in' ? 'received' : 'spent'}{' '}
                       <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(f.value)}</span>{' '}
@@ -612,13 +614,16 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Recurring payments · repeating patterns</div>
                     <div className="text-[0.5625rem] text-[#5A5751]">{recurring.length} pattern{recurring.length === 1 ? '' : 's'} · {fmtMoney(recurring.reduce((s, g) => s + g.amount, 0))}/cycle</div>
                   </div>
-                  {recurring.slice(0, 8).map((g) => (
+                  {/* The FULL list on its tab — every recurring obligation the
+                      frequency detector found, and it grows to whatever the data
+                      becomes; no cap now that it's one opt-in report at a time
+                      (Darrell 2026-07-20). */}
+                  {recurring.map((g) => (
                     <div key={g.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
                       <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
                       <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(g.amount)}</span>
                     </div>
                   ))}
-                  {recurring.length > 8 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {recurring.length - 8} more recurring pattern{recurring.length - 8 === 1 ? '' : 's'}</div>}
                 </div>
               ),
             });

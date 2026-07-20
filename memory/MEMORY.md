@@ -521,6 +521,16 @@ relying on it; memories reflect what was true when written.
   going forward. re-review 2026-10-20 for where else to apply.
   `feedback_teach_through_the_system`.
 
+- **2026-07-20 — Show the full list (DR-0197).** Darrell: "we want the full list of 24
+  to show up on its tab... grow to any that becomes... all low hanging fruit continuously."
+  The KPI · Standard Reports (recurring, unusual months) were capped (slice 8/6) from when
+  they were always-open panels sharing top real-estate; now they're collapsed + one opt-in
+  report at a time, so the cap only hid real rows. Uncapped both (recurring.map / anomalies.map)
+  — full list, grows to whatever the data becomes; count+total header stays. WAY: an opt-in /
+  drill-in report shows its FULL list; sweep slice(0,N)+"＋N more" truncations on opt-in
+  surfaces continuously as low-hanging fruit (DR-0075). Does NOT mean uncapping passive
+  at-a-glance alerts where a cap is a deliberate real-estate choice. `feedback_show_the_full_list`.
+
 - **2026-07-20 — Data Integrity standard report (DR-0196).** Darrell: "add these
   data-driven audits to the reports as a standard so we can see our growth." The
   DR-0061/P15 painted-data audit is now a permanent in-app scoreboard on OpsBoard:
