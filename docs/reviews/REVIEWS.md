@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0167 · Fix + feature — Notes (Thinking Space): make Edit discoverable + add "Add update" (append)
+- **Date:** 2026-07-20
+- **Surface:** app/src/components/ThinkingSpace.jsx · scripts/consistency-baseline.json · app/src/__tests__/thinking-space-edit.test.jsx
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Christina (via Darrell) 2026-07-20: "I need to be able to edit notes." Reality-trace: the inline Edit already existed and was fully wired (updateNote, monolith 3507/4940) — but it rendered as a tiny 10px grey text link buried among six actions, easy to miss/mis-tap on a phone. Fix: Edit is now a clear bordered chip. Darrell then asked edit-vs-append (O&C); chose BOTH — added an "Add update" that appends a dated line ("— update YYYY-MM-DD: …") to the note's own text via the EXISTING updateNote, so the original stays first and the monolith stays frozen (no new handler — honors the budget guard). Plain-text chips (no new emoji — consistency guard); ThinkingSpace fixedPx baseline bumped 20→23 for the 3 consistent additions (surgical, not a whole-tree re-freeze). Proven-to-catch: thinking-space-edit.test.jsx (4 — edit prefills+overwrites, add-update blank+appends+original-first, empty no-op, both buttons discoverable); draft-autosave + consistency + monolith-budget + contrast + legibility all green.
+- **Source:** app/src/__tests__/thinking-space-edit.test.jsx
+
 ### REV-0166 · Feature — Data Integrity standard report (the painted-data audit, institutionalized on OpsBoard)
 - **Date:** 2026-07-20
 - **Surface:** app/src/data/data-integrity-audit.json · app/src/lib/data-integrity-audit.js · app/src/components/DataIntegrityReport.jsx · app/src/components/OpsBoard.jsx · app/src/__tests__/data-integrity-audit.test.js · app/src/__tests__/data-integrity-report-render.test.jsx · docs/decisions/DR-0196-*.md

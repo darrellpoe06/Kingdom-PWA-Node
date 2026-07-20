@@ -35,6 +35,8 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const [sourcesOnly, setSourcesOnly] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
+  const [updateText, setUpdateText] = useState('');
   const [testForId, setTestForId] = useState(null);
   const [query, setQuery] = useState('');
 
@@ -60,6 +62,39 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const cancelEdit = () => {
     if (editingId) clearDraft(editDraftKey(editingId)); // an abandoned edit is abandoned on purpose
     setEditingId(null);
+  };
+
+  // Add-onto (append) — a living note (a fast log, a prayer, the bills) grows
+  // with a dated update while the ORIGINAL stays intact above it (Darrell +
+  // Christina 2026-07-20: "edit AND add onto"). It appends a timestamped line to
+  // the note's own text via the existing updateNote (no separate store, so the
+  // monolith stays frozen); editing still gives full control over the whole
+  // note. Same Google-Doc draft contract as editing.
+  const updateDraftKey = (id) => `notes-addupdate:${id}`;
+  const startUpdate = (n) => {
+    const pending = readDraft(updateDraftKey(n.id));
+    setUpdatingId(n.id);
+    setUpdateText(pending ? pending.text : '');
+  };
+  const onUpdateText = (v) => {
+    setUpdateText(v);
+    if (updatingId) writeDraft(updateDraftKey(updatingId), { text: v });
+  };
+  const commitUpdate = () => {
+    const t = updateText.trim();
+    const base = notes.find(x => x.id === updatingId);
+    if (updatingId && t && base && updateNote) {
+      const today = new Date().toISOString().slice(0, 10);
+      updateNote(updatingId, `${base.text}\n\n— update ${today}: ${t}`);
+    }
+    if (updatingId) clearDraft(updateDraftKey(updatingId));
+    setUpdatingId(null);
+    setUpdateText('');
+  };
+  const cancelUpdate = () => {
+    if (updatingId) clearDraft(updateDraftKey(updatingId));
+    setUpdatingId(null);
+    setUpdateText('');
   };
 
   const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -130,11 +165,21 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                       <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(n.createdAt || '').slice(0, 10)}</span>
                       <button type="button" onClick={() => setTestForId(testForId === n.id ? null : n.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔎 Examine it</button>
                       <button type="button" onClick={() => toggleNoteSource && toggleNoteSource(n.id)} className={`text-[10px] uppercase tracking-wider ${n.spiritualSource ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'} hover:text-[#1A1815]`}>{n.spiritualSource ? '📖 Source ✓' : '📖 Mark source'}</button>
-                      <button type="button" onClick={() => startEdit(n)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                      <button type="button" onClick={() => { setUpdatingId(null); startEdit(n); }} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">Edit</button>
+                      <button type="button" onClick={() => startUpdate(n)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white">Add update</button>
                       <button type="button" onClick={() => togglePinNote && togglePinNote(n.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{n.pinned ? 'Unpin' : 'Pin'}</button>
                       {!n.sentToPoeTech && <button type="button" onClick={() => { if (sendToPoeTech) { sendToPoeTech(n.text, n.id); } }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">💡 Tell PoeTech</button>}
                       <button type="button" onClick={() => { if (window.confirm('Delete this note?') && deleteNote) deleteNote(n.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
                     </div>
+                    {updatingId === n.id && (
+                      <div className="mt-2">
+                        <textarea className={fieldCls} rows="2" placeholder="Add an update — the original stays; this appends below it with today's date…" value={updateText} onChange={e => onUpdateText(e.target.value)} />
+                        <div className="flex gap-2 mt-1.5">
+                          <button type="button" onClick={commitUpdate} className="bg-[#5A6E3D] text-white px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#1A1815]">Save update</button>
+                          <button type="button" onClick={cancelUpdate} className="border border-[#1A1815] px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                        </div>
+                      </div>
+                    )}
                     {testForId === n.id && (
                       <div className="mt-2 bg-[#FAF8F4] border border-[#5A6E3D] p-2.5">
                         <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Hold it to the light · Philippians 4:8</div>
