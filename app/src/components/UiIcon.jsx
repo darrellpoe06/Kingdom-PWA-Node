@@ -283,6 +283,27 @@ const ICONS = {
       <circle cx="12" cy="17" r="0.4" fill="currentColor" stroke="none" />
     </>
   ),
+  // ---- Kingdom glyphs (DR-0198): faith iconography carried as reliable SVG so
+  // it renders on every device — the palette is Kingdom-first, not only secular,
+  // and never boxes out as tofu on COLG's older phones (was ✝ / 🔥 / 👑). ----
+  // Latin cross — the cross / redemption / the Gospel
+  cross: (
+    <>
+      <path d="M12 3.5v17" />
+      <path d="M8 8.5h8" />
+    </>
+  ),
+  // flame — Pentecost fire / the refining of the Holy Spirit (Acts 2:3)
+  flame: (
+    <path d="M12 3.2c.3 2.4 1.7 3.8 2.9 5.4 1 1.4 1.8 2.9 1.8 4.6a4.7 4.7 0 0 1-9.4 0c0-1 .3-1.9.9-2.7.3 1 1 1.7 1.9 2 .3-1.5.1-3-.6-4.4C11.6 6.3 12 4.6 12 3.2Z" />
+  ),
+  // crown — the King / His Kingdom (Revelation 19:16)
+  crown: (
+    <>
+      <path d="M4 8l3.2 3.2L12 5l4.8 6.2L20 8l-1.6 10H5.6L4 8Z" />
+      <path d="M5.6 18h12.8" />
+    </>
+  ),
 };
 
 export const UI_ICON_NAMES = Object.keys(ICONS);

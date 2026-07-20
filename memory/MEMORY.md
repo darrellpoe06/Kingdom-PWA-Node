@@ -521,6 +521,18 @@ relying on it; memories reflect what was true when written.
   going forward. re-review 2026-10-20 for where else to apply.
   `feedback_teach_through_the_system`.
 
+- **2026-07-20 — Kingdom-First Iconography (DR-0198).** Darrell: "we can have new emojis,
+  we just have to have Kingdom ones too... if they make sense... Ways and documentation."
+  The consistency guard (DR-0079) is a RATCHET, not a ban. The Way: iconography welcome
+  where it serves the work; the palette must carry Kingdom glyphs (cross/dove/flame/crown/
+  bookOpen=the Word), not only secular. Reliability-first: the Kingdom emoji we want (🕊✝⛪📖)
+  are exactly the ones that TOFU on COLG's older phones, so add them to UiIcon.jsx as SVG
+  (renders everywhere — COMMUNITY-FIRST) — that's HOW we grow the Kingdom palette. Raw
+  decorative emoji ship by an intentional, RECORDED baseline bump (e.g. ThinkingSpace 20→23);
+  load-bearing chrome stays UiIcon. Grew UiIcon with cross/flame/crown; ui-icon-kingdom.test.jsx
+  proves they render real <svg>. Honest limit: no browser in-session to pixel-verify flame/crown
+  (re-review 2026-10-20). `feedback_kingdom_first_iconography`.
+
 - **2026-07-20 — Show the full list (DR-0197).** Darrell: "we want the full list of 24
   to show up on its tab... grow to any that becomes... all low hanging fruit continuously."
   The KPI · Standard Reports (recurring, unusual months) were capped (slice 8/6) from when
