@@ -220,13 +220,15 @@ Nav top-level views (monolith `poe-financial-mvp-v28.jsx:1733`): `overview, book
 
 ## 4. FEEDBACK LOOP — does in-app feedback → Concerns board CLOSE end-to-end?
 
-**Verdict: NO. The loop captures but does not close in production.**
+**Verdict (updated 2026-07-21, DR-0219 spec-conformance review): the UI loop CLOSED — the Concerns board landed. The remaining open item is narrower: confirming a human dispositions to `closed` in live production.**
 
-- **Capture (works):** `lib/feedback-sync.js:uploadFeedback()` writes feedback (with screenshots) to the Supabase `feedback` table (migrations 0003, 0026). A feedback panel is threaded into Projects (`Projects.jsx:133 feedbackPanel`). Tests: `feedback-screenshots.test.js`, `feedback-area-coverage.test.js`. ✅
-- **Closure (missing on main):** the **Concerns & Solutions board** — the surface that turns captured feedback into tracked `CONCERN → SOLUTION → TARGET → STATUS` rows — exists **only in held PR #277** (`feat/concerns-board-screen`), **not on `origin/main`**. There is no `Concerns` component or `concern` table on main today.
-- **Migration collision:** PR #277 ships its board as migration **0038**, which **collides** with the merged `0038-sermon-repreach-lineage.sql`. Per memory it must renumber to 0039. This must be resolved before merge or the loop closure breaks on apply.
+- **Capture (works):** `lib/feedback-sync.js:uploadFeedback()` writes feedback (with screenshots) to the Supabase `feedback` table (migrations 0003, 0026). A feedback panel is threaded into Projects (`Projects.jsx feedbackPanel`). Tests: `feedback-screenshots.test.js`, `feedback-area-coverage.test.js`. ✅
+- **Closure (LANDED — the earlier "only in held PR #277" verdict is now stale):** the **Concerns & Solutions board** is on the tree and wired: `app/src/components/ConcernsBoard.jsx`, `app/src/lib/concerns.js` (+ `evaluateFeedback` from `feedback-triage.js` auto-triages each row at `concerns.js:340`), cross-device `app/src/lib/concerns-sync.js` registered in the monolith's sync registry, and the migration shipped as **`0039-concerns-board.sql`** — the exact 0038→0039 renumber this doc said "must" happen. `CONCERN → SOLUTION → TARGET → STATUS` status columns exist (`CONCERN_COLUMN_OF`). ✅
+- **Migration collision:** RESOLVED — the board migration is `0039-concerns-board.sql`; no longer colliding with `0038-sermon-repreach-lineage.sql`. ✅
+- **Still open (live-verify, not a build gap):** that a human/Governor actually moves each concern to `closed` **in production** is the live-review item (DR-0104 "review as a user") — the mechanism is present; the habit/throughput is what remains to confirm. **re-review: 2026-08-04.**
+- **Also open (separate):** the **24h-acknowledge digest + evening ship-summary** (BUSINESS-PROCESS-CONNECTIONS "every family voice acknowledged within 24h") has **no in-repo implementation** — it was an n8n cron (now zero-n8n, DR-0218) and its sovereign rebuild is timer-driven → Tier C + three brakes (DR-0068). **re-review: 2026-08-04.**
 
-**So the long-standing gap is real and confirmed:** feedback lands in the DB but there is no merged, in-app surface that reads it back, assigns a solution, and tracks it to closed. **Closing this loop is a top-priority item for the modular build** — and it must include the missing back-half (a human/Governor actually dispositioning each concern), not just the board UI.
+**Net:** the long-standing "loop doesn't close" gap is substantially closed at the UI/data layer; what remains is the human-disposition throughput (live-verify) and the acknowledgement digest (a Tier-C sovereign rebuild), both dated above rather than left silent.
 
 ---
 
