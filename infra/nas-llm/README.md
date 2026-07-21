@@ -47,6 +47,18 @@ proxy to the Funnel (mirror `app/functions/n8n/[[path]].js`); on the sovereign
 NAS-Caddy instance it is same-origin already. Until the server + route are up the
 tutor degrades to its authored walkthrough (a designed fallback, not a break).
 
+## Also served here: GET /llm/health
+
+`GET /llm/health` is the sovereign replacement for the `wf-llm-health` n8n Code
+node (DR-0218). It reads Ollama's own `/api/version` + `/api/ps` + `/api/tags`
+and composes the exact envelope the **LlmHealth** Build-board card reads —
+loaded/installed models, VRAM, and the **pinned** (2026-06-06 keep_alive runaway)
+signal computed server-side (it has the clock). The composition is the pure,
+stdlib-only `ollama_health.build_health`, unit-tested in CI
+(`test_ollama_health.py`) alongside the JS `normalizeLlmHealth` parser it feeds.
+Honest offline: box unreachable → `{ ok:false }` → the card says "not connected"
+rather than painting health.
+
 ## Not this server
 
 `thought` (a relay into the agent inbox) and `llm-review` (a served static report)

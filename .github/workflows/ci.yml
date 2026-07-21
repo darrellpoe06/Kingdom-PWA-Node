@@ -89,6 +89,13 @@ jobs:
       - name: transcript loader unit tests
         working-directory: infra/nas-sme-pipeline
         run: python3 -m unittest test_load_transcripts -v
+      # Sovereign LLM-health builder unit tests (DR-0218 zero-n8n / DR-0076): the
+      # pure ollama_health.build_health + is_pinned that replaced the wf-llm-health
+      # n8n Code node. Proven-to-catch: fails if the pinned (2026-06-06 runaway)
+      # detection or the envelope shape LlmHealth.jsx reads regresses. Gates merge.
+      - name: sovereign llm-health builder unit tests
+        working-directory: infra/nas-llm
+        run: python3 -m unittest test_ollama_health -v
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

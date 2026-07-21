@@ -36,19 +36,44 @@ import urllib.error
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from ollama_health import build_health
+
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 TOKEN = os.environ.get("LLM_BRIDGE_TOKEN", "")
 DEFAULT_MODEL = os.environ.get("LLM_MODEL", "qwen2.5")
 MAX_MESSAGES = 40
 MAX_CHARS = 24000          # total chars across system + messages
 TIMEOUT_S = 90
+HEALTH_TIMEOUT_S = 8       # the readout must never hang the Build board
 
 app = FastAPI()
 
 
+def _ollama_get(path):
+    """GET an Ollama JSON endpoint (stdlib only). Returns {} on any failure so a
+    partial box (e.g. no /api/ps) still yields a usable envelope."""
+    try:
+        req = urllib.request.Request(OLLAMA + path, method="GET")
+        with urllib.request.urlopen(req, timeout=HEALTH_TIMEOUT_S) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return {}
+
+
 @app.get("/llm/health")
 def health():
-    return {"ok": True, "backend": OLLAMA, "model": DEFAULT_MODEL}
+    # The sovereign replacement for the wf-llm-health n8n Code node (DR-0218):
+    # read Ollama's own live state and compose the exact envelope LlmHealth.jsx
+    # (normalizeLlmHealth) reads. HONEST OFFLINE (DR-0076): if the box is
+    # unreachable, /api/version comes back empty -> ok:false, and the card shows
+    # "not connected" rather than a painted health.
+    version = (_ollama_get("/api/version") or {}).get("version")
+    if not version:
+        return JSONResponse({"ok": False, "error": "ollama-unreachable"}, status_code=502)
+    ps_json = _ollama_get("/api/ps")
+    tags_json = _ollama_get("/api/tags")
+    return build_health(ps_json, tags_json, version)
 
 
 def _clean_messages(system, raw):
