@@ -336,10 +336,23 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const topCategories = useMemo(() => {
     const out = (grouped.windowed || []).filter((r) => r.amount < 0 && !isTransferTxn(r));
     const byCat = new Map();
-    for (const r of out) byCat.set(r.category || null, (byCat.get(r.category || null) || 0) + Math.abs(r.amount));
-    const total = [...byCat.values()].reduce((s, v) => s + v, 0);
+    // Keep member transactions so each expense total is drill-down auditable too.
+    for (const r of out) {
+      const k = r.category || null;
+      if (!byCat.has(k)) byCat.set(k, { amount: 0, txns: [] });
+      const g = byCat.get(k);
+      g.amount += Math.abs(r.amount);
+      g.txns.push(r);
+    }
+    const total = [...byCat.values()].reduce((s, v) => s + v.amount, 0);
     const rows = [...byCat.entries()]
-      .map(([key, amount]) => ({ key: key || 'uncategorized', label: key ? categoryLabel(key) : 'Uncategorized', amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 }))
+      .map(([key, g]) => ({
+        key: key || 'uncategorized',
+        label: key ? categoryLabel(key) : 'Uncategorized',
+        amount: g.amount,
+        pct: total > 0 ? Math.round((g.amount / total) * 100) : 0,
+        txns: [...g.txns].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)),
+      }))
       .sort((a, b) => b.amount - a.amount);
     return { total, rows };
   }, [grouped.windowed]);
@@ -364,13 +377,35 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const allIncome = useMemo(() => {
     const inflow = (grouped.windowed || []).filter((r) => r.amount > 0 && !isTransferTxn(r));
     const byCat = new Map();
-    for (const r of inflow) byCat.set(r.category || null, (byCat.get(r.category || null) || 0) + r.amount);
-    const total = [...byCat.values()].reduce((s, v) => s + v, 0);
+    // Keep the MEMBER transactions per source so each total can be opened to see
+    // exactly what makes it up (Darrell 2026-07-21: "click and see what makes
+    // these totals... for rigorous data driven reviews"). Traceable, not painted.
+    for (const r of inflow) {
+      const k = r.category || null;
+      if (!byCat.has(k)) byCat.set(k, { amount: 0, txns: [] });
+      const g = byCat.get(k);
+      g.amount += r.amount;
+      g.txns.push(r);
+    }
+    const total = [...byCat.values()].reduce((s, v) => s + v.amount, 0);
     const rows = [...byCat.entries()]
-      .map(([key, amount]) => ({ key: key || 'uncategorized', label: key ? categoryLabel(key) : 'Uncategorized', amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 }))
+      .map(([key, g]) => ({
+        key: key || 'uncategorized',
+        label: key ? categoryLabel(key) : 'Uncategorized',
+        amount: g.amount,
+        pct: total > 0 ? Math.round((g.amount / total) * 100) : 0,
+        txns: [...g.txns].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)),
+      }))
       .sort((a, b) => b.amount - a.amount);
     return { total, count: inflow.length, rows };
   }, [grouped.windowed]);
+  // Which report rows are expanded to show their member transactions (drill-down).
+  const [expandedReportKeys, setExpandedReportKeys] = useState(() => new Set());
+  const toggleReportKey = (k) => setExpandedReportKeys((prev) => {
+    const next = new Set(prev);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
   const recurringIds = useMemo(() => {
     const s = new Set();
     for (const g of recurring) for (const id of g.txIds) s.add(id);
@@ -728,12 +763,50 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#166534]">All income · every source in · {periodLabel(activePeriod)}</div>
                     <div className="text-[0.5625rem] text-[#5A5751]">{allIncome.count} deposit{allIncome.count === 1 ? '' : 's'} · {fmtMoney(allIncome.total)} in</div>
                   </div>
-                  {allIncome.rows.map((c) => (
-                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of income</span></span>
-                      <span className="shrink-0 text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(c.amount)}</span>
-                    </div>
-                  ))}
+                  {allIncome.rows.map((c) => {
+                    const rk = `inc:${c.key}`;
+                    const open = expandedReportKeys.has(rk);
+                    return (
+                      <div key={c.key}>
+                        <button
+                          type="button"
+                          onClick={() => toggleReportKey(rk)}
+                          aria-expanded={open}
+                          className="w-full flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815] text-left hover:underline focus:outline focus:outline-2 focus:outline-[#166534] py-0.5"
+                        >
+                          <span className="truncate">
+                            <span aria-hidden="true" className="text-[#5A5751] mr-1">{open ? '▾' : '▸'}</span>
+                            <span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of income · {c.txns.length} deposit{c.txns.length === 1 ? '' : 's'}</span>
+                          </span>
+                          <span className="shrink-0 text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(c.amount)}</span>
+                        </button>
+                        {open && (
+                          <ul className="ml-4 border-l border-[#166534] pl-2 mb-1 space-y-0.5">
+                            {c.txns.map((t) => (
+                              <li key={t.id} className="flex items-baseline justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
+                                <span className="truncate">
+                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <span className="text-[#1A1815]">{t.name || t.description || '—'}</span>
+                                  {canEditCat && (
+                                    <select
+                                      aria-label={`Category for ${t.name || 'transaction'}`}
+                                      value={t.category || ''}
+                                      onChange={(e) => setRowCategory(t, e.target.value)}
+                                      className="ml-1 text-[0.625rem] bg-white border border-[#E8E4DC] text-[#1A1815] px-1 py-0.5 align-middle"
+                                    >
+                                      <option value="">— uncategorized —</option>
+                                      {categoryOptions.map((opt) => (<option key={opt} value={opt}>{categoryLabel(opt)}</option>))}
+                                      <option value="__new__">+ add category…</option>
+                                    </select>
+                                  )}
+                                </span>
+                                <span className="shrink-0 text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(t.amount)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
                   <div className="flex items-baseline justify-between gap-2 text-[0.75rem] border-t border-[#E8E4DC] pt-1.5 mt-1">
                     <span className="font-semibold text-[#1A1815]">Total income</span>
                     <span className="shrink-0 font-semibold text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(allIncome.total)}</span>
@@ -749,12 +822,50 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">All outputs · every expense out · {periodLabel(activePeriod)}</div>
                     <div className="text-[0.5625rem] text-[#5A5751]">{topCategories.rows.length} categor{topCategories.rows.length === 1 ? 'y' : 'ies'} · {fmtMoney(topCategories.total)} out</div>
                   </div>
-                  {topCategories.rows.map((c) => (
-                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
-                      <span className="shrink-0 text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(c.amount)}</span>
-                    </div>
-                  ))}
+                  {topCategories.rows.map((c) => {
+                    const rk = `out:${c.key}`;
+                    const open = expandedReportKeys.has(rk);
+                    return (
+                      <div key={c.key}>
+                        <button
+                          type="button"
+                          onClick={() => toggleReportKey(rk)}
+                          aria-expanded={open}
+                          className="w-full flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815] text-left hover:underline focus:outline focus:outline-2 focus:outline-[#B85838] py-0.5"
+                        >
+                          <span className="truncate">
+                            <span aria-hidden="true" className="text-[#5A5751] mr-1">{open ? '▾' : '▸'}</span>
+                            <span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend · {c.txns.length} charge{c.txns.length === 1 ? '' : 's'}</span>
+                          </span>
+                          <span className="shrink-0 text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(c.amount)}</span>
+                        </button>
+                        {open && (
+                          <ul className="ml-4 border-l border-[#B85838] pl-2 mb-1 space-y-0.5">
+                            {c.txns.map((t) => (
+                              <li key={t.id} className="flex items-baseline justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
+                                <span className="truncate">
+                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <span className="text-[#1A1815]">{t.name || t.description || '—'}</span>
+                                  {canEditCat && (
+                                    <select
+                                      aria-label={`Category for ${t.name || 'transaction'}`}
+                                      value={t.category || ''}
+                                      onChange={(e) => setRowCategory(t, e.target.value)}
+                                      className="ml-1 text-[0.625rem] bg-white border border-[#E8E4DC] text-[#1A1815] px-1 py-0.5 align-middle"
+                                    >
+                                      <option value="">— uncategorized —</option>
+                                      {categoryOptions.map((opt) => (<option key={opt} value={opt}>{categoryLabel(opt)}</option>))}
+                                      <option value="__new__">+ add category…</option>
+                                    </select>
+                                  )}
+                                </span>
+                                <span className="shrink-0 text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(Math.abs(t.amount))}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
                   <div className="flex items-baseline justify-between gap-2 text-[0.75rem] border-t border-[#E8E4DC] pt-1.5 mt-1">
                     <span className="font-semibold text-[#1A1815]">Total outputs</span>
                     <span className="shrink-0 font-semibold text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(topCategories.total)}</span>
