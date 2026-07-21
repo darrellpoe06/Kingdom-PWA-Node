@@ -33,12 +33,19 @@ teaching is paced to fit the slot (the arc engine already reflows to any target,
 incl. 25 min — `reflowArcMinutes`). Silent-read length is not the measure; the
 facilitated session is.
 
-**2. Over-slot lessons become COURSES with ~25-min sessions.** Measured (spoken
-~140 wpm): most lessons fit; **L42 (~29 min) and L50 (~24 min)** are the current
-over/at-slot outliers and become multi-session courses (the least-invasive shape
-under evaluation: one module carrying a `sessions: []` array the UI paginates, so
-the `weeks === MODULES.length` gate stays honest). *Pending — the mechanics ship
-after the arc-engine session support lands; not in this DR's shipped scope.*
+**2. The curriculum ADJUSTS to the allotted time — by pacing, not by cutting
+(Darrell: "that is why we built it to adjust the curriculum to the allotted
+time").** The arc engine already reflows to ANY target, incl. 25 min
+(`reflowArcMinutes`), and the authored lesson is **chunked, never summarized**
+(`lessonPlanForAge` → segments). So an over-slot lesson (measured spoken ~140
+wpm: **L42 ~29 min, L50 ~24 min**) is NOT trimmed to fit — its chunks are paced
+to the slot and simply flow **across more than one 25-min session** where there
+is more than fits. That is the course mechanism, and it is **content-preserving
+by design** (no word lost — the covenant below). Explicit session breakpoints
+(a light marker in the chunk stream, so a facilitator knows where "Session 1"
+ended) are the only optional add; no destructive split, and no manual re-authoring
+that could drop teaching. The `weeks === MODULES.length` gate stays honest because
+the module is unchanged — only its delivery spans sessions.
 
 **3. Parable/story beats are a first-class lesson element (SHIPPED).** Jesus
 taught in short, vivid, memorable stories — "without a parable spake he not unto
