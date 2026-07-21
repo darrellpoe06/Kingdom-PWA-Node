@@ -3,7 +3,7 @@
 // =============================================================================
 // The NAS runs the engine (the portable bundle's scheduler + the host router);
 // the app is the COCKPIT. This module turns the live feed from the NAS
-// (GET /n8n/webhook/wake-orchestrator, served by wf-wake-orchestrator.json) into
+// (GET /wake-orchestrator, served by the sovereign Python engine — DR-0218) into
 // the views the cockpit renders: brake status, the handoff log, scheduled wakes,
 // vendor summons, the event reel. ALL real data bound to actual orchestrator
 // state — never a painted status (Reality-Trace P15/P16, Verification Doctrine

@@ -19,7 +19,7 @@
 // instead of painting a status. Ships INERT: the default state is kill-switch
 // engaged; arming is a deliberate, confirmed, Tier C act done by Darrell.
 import React, { useCallback, useEffect, useState } from 'react';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { n8nAuthHeaders } from '../lib/n8n-base.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
 import {
@@ -30,8 +30,14 @@ import {
   CONTROL_ACTIONS,
 } from '../lib/wake-orchestrator.js';
 
-const FEED_URL = `${N8N_BASE.replace(/\/+$/, '')}/webhook/wake-orchestrator`;
-const CONTROL_URL = `${N8N_BASE.replace(/\/+$/, '')}/webhook/wake-orchestrator-control`;
+// Sovereign-neutral routes (DR-0218 zero-n8n): the orchestrator engine is
+// plain Python (infra/ai-orchestrator/portable/), so the cockpit reads its state
+// from same-origin /wake-orchestrator[-control], not an n8n webhook. The engine
+// is currently DOWN (shut down in the 2026-06-06 three-brakes incident), so the
+// cockpit already shows "not connected"; this cutover is off-n8n with no
+// behavior change until the engine is re-armed (with its budget/lock/kill-switch).
+const FEED_URL = `/wake-orchestrator`;
+const CONTROL_URL = `/wake-orchestrator-control`;
 
 // The paste-ready arm step (authoritative path on the NAS), shown whenever the
 // feed isn't connected and under the in-app controls as the fallback.
