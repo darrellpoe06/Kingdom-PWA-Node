@@ -12,7 +12,28 @@ import {
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
   isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
   toInviteShape, deriveInviteStatus, sortInvites,
+  normalizeClaimCode,
 } from '../lib/choir-sync.js';
+
+describe('normalizeClaimCode (roster self-claim code hygiene, DR-0220)', () => {
+  it('uppercases and strips whitespace to match the server upper(trim())', () => {
+    expect(normalizeClaimCode(' abc234 ')).toBe('ABC234');
+    expect(normalizeClaimCode('a b c 2 3 4')).toBe('ABC234');
+    expect(normalizeClaimCode('AbC234\n')).toBe('ABC234');
+  });
+  it('leaves a valid confusable-free code EXACTLY intact (never mangles a real code)', () => {
+    // The alphabet excludes 0/O/1/I/L/U; a valid code must survive normalization
+    // byte-for-byte or a correctly-typed code would be rejected.
+    for (const code of ['ABC234', 'ZZ9KMN', 'PQRSTV', '234567']) {
+      expect(normalizeClaimCode(code)).toBe(code);
+    }
+  });
+  it('handles empty / null safely', () => {
+    expect(normalizeClaimCode('')).toBe('');
+    expect(normalizeClaimCode(null)).toBe('');
+    expect(normalizeClaimCode(undefined)).toBe('');
+  });
+});
 
 describe('deriveAccess (visibility/edit gate)', () => {
   it('owner/admin can see AND edit', () => {
