@@ -2,10 +2,11 @@
 // chat-import — stage Synology Chat property history for family verification
 // =============================================================================
 // The Poe Properties history lives in the chat app on the NAS: one channel
-// per property, named by the short address. An n8n workflow on the NAS
-// (see infra/n8n/README-property-history.md) exposes that history as JSON
-// at GET /webhook/property-history?channel=<short-address>; the PWA reaches
-// it through the same-origin /n8n rewrite (never the absolute Funnel URL).
+// per property, named by the short address. A sovereign Python endpoint on the
+// NAS (DR-0218 zero-n8n; replacing the old wf) exposes that history as JSON at
+// GET /property-history?channel=<short-address>; the PWA reaches it through the
+// same-origin transport (never the absolute Funnel URL). Not live until that
+// endpoint + its Caddy route are stood up.
 // (No schema dependency — imported entries live on the rental's
 // device-local conversationLog until leases/notes sync exists.)
 //
