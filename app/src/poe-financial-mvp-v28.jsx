@@ -3471,9 +3471,9 @@ export default function PoeFinancialSystem() {
   // never synced to a shared surface — notes are siloed by design).
   // Links kept WITH the note (Darrell 2026-06-11: titles from YouTube/any
   // link stay with the thought "for easy locating it again — to think and
-  // process the implications"). Titles resolve through OUR NAS (wf22
-  // link-title), so what you're reading never leaks to a third-party
-  // metadata service. Offline/no-token → the hostname is the label.
+  // process the implications"). Titles resolve at OUR edge (/api/link-title,
+  // the n8n-free cutover — DR-0218), so what you're reading never leaks to a
+  // third-party metadata service. Offline/no-token → the hostname is the label.
   const extractNoteUrls = (text) => Array.from(new Set((String(text).match(/https?:\/\/[^\s)>\]"']{4,500}/g) || []).slice(0, 6)));
   const enrichNoteLinks = (noteId, urls) => {
     let token = '';
@@ -3481,7 +3481,7 @@ export default function PoeFinancialSystem() {
     if (!token) return;
     urls.forEach((u) => {
       try {
-        fetch(`/n8n/webhook/link-title?url=${encodeURIComponent(u)}`, { headers: { authorization: `Bearer ${token}` } })
+        fetch(`/api/link-title?url=${encodeURIComponent(u)}`)
           .then(r => r.ok ? r.json() : null)
           .then(j => {
             const o = Array.isArray(j) ? j[0] : j;
