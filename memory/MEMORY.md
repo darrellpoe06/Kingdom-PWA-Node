@@ -580,6 +580,17 @@ relying on it; memories reflect what was true when written.
   contrast guard can't parse a ternary inline `color` -> move color+line-through to classes.
   `feedback_bulk_clean_duplicates`.
 
+- **2026-07-21 — Month quick-compare stepper at the TOP of Imported (DR-0204).** Darrell:
+  "add convenient previous/current/next month tabs ... click next to see the exact same view in
+  another month ... I hate to go too far for control ... iterative intuitive." Tiles + KPIs are
+  month-labelled but the month control sat at the BOTTOM (scroll down, tap Next, scroll back up).
+  Reality-trace: stepper handlers already exist (setPeriod(shiftMonthKey(stepperMonth, +/-1)); center
+  jumps to month view) -- no new logic. Added a compact "< Prev . [Month] . Next >" row ABOVE the
+  In/Out/Net tiles reusing the SAME handlers -> Next re-renders the identical view for the adjacent
+  month IN PLACE (DR-0201). Bottom control keeps full 30D/90D/ALL/CUSTOM; top is month-only (no dup).
+  Not sticky (avoids FAB collision). imported-render +1 (Next: June->July in place; Prev twice ->
+  May). `feedback_top_month_stepper`.
+
 - **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
   "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
   believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions

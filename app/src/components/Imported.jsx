@@ -585,6 +585,19 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
         </div>
       ) : (
         <>
+          {/* Month quick-compare — Prev · month · Next, right where the eye is,
+              above the month-labeled tiles (Darrell 2026-07-21: "add convenient
+              previous/current/next month tabs ... click next to see the exact same
+              view in another month ... I hate to go too far for control"). Reuses
+              the SAME stepper handlers as the bottom period control, so Next re-
+              renders the identical view for the adjacent month IN PLACE (DR-0201, no
+              scroll). The bottom control keeps the full 30D/90D/ALL/CUSTOM options. */}
+          <div className="flex items-stretch justify-center gap-1 border border-[#E8E4DC] bg-white" role="group" aria-label="Compare month">
+            <button type="button" aria-label="Previous month" onClick={() => setPeriod(shiftMonthKey(stepperMonth, -1))} className="flex-1 px-3 py-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815] border-r border-[#E8E4DC]">‹ Prev</button>
+            <button type="button" onClick={() => setPeriod(stepperMonth)} aria-pressed={isMonthKey(activePeriod)} className={`flex-[1.4] px-3 py-2 text-center ${isMonthKey(activePeriod) ? 'text-[#1A1815] font-medium' : 'text-[#5A5751]'}`} style={{ fontFamily: '"Fraunces", serif' }}>{monthLabelOf(stepperMonth)}</button>
+            <button type="button" aria-label="Next month" onClick={() => setPeriod(shiftMonthKey(stepperMonth, 1))} className="flex-1 px-3 py-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815] border-l border-[#E8E4DC]">Next ›</button>
+          </div>
+
           {/* Account overview (unchanged): totals + honest rolling-30-day in/out. */}
           {/* Tiles reflect the SELECTED WINDOW (grouped.windowTotals), not a fixed
               30-day snapshot — so In/Out/Net move as you change month/period. The
