@@ -558,19 +558,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           Learn) on 2026-06-16 — see the churchView === 'conference' branch.
           ChurchOneVoice above still carries conference RSVPs via updateConference. */}
 
-      {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
-          later (project_testimony_diary_glory_to_glory); this is the door. */}
-      <section aria-labelledby="diary-h" className="bg-white border border-[#1A1815] p-4">
-        <h3 id="diary-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Testimony Diary · Glory to Glory <UiIcon name="lock" /></h3>
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          A private place to record what Yahweh has done — kept on your device, locked behind a PIN you set. "And we all... are being transformed... from one degree of glory to another" (2 Corinthians 3:18, ESV).
-        </p>
-        {/* Honest coming-soon — no dead-end "Unlock" that leads nowhere (DR-0219).
-            The PIN-locked diary opens here when V0 ships; nothing to set up yet. */}
-        <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#B85838] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Coming soon — this private, PIN-locked diary opens right here when it ships, kept on your device only. Nothing to set up yet; check back to begin recording, from glory to glory.
-        </p>
-      </section>
+      {/* TESTIMONY DIARY — removed from the live surface (2026-07-21): the MVP V0
+          isn't built, so it rendered a not-yet-ready notice, which the surface-
+          audit no-dead-ends gate (DR-0086/DR-0219) correctly rejects on a shipped
+          surface. Parishioners see nothing unfinished; the section returns here
+          when V0 actually ships (project_testimony_diary_glory_to_glory).
+          re-review: 2026-08-18. */}
         </>
       ),
     },

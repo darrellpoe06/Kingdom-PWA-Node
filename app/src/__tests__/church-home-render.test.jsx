@@ -99,7 +99,10 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     for (const a of container.querySelectorAll('a[href^="mailto:"]')) {
       expect(a.getAttribute('target')).toBe('_blank');
     }
-    expect(container.querySelector('#diary-h')).toBeTruthy();
+    // The Testimony Diary was REMOVED (2026-07-21): its V0 isn't built, so it
+    // was a coming-soon placeholder the surface-audit gate flags — no placeholder
+    // ships to parishioners; it returns when V0 is real.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
 
     // PRAYER tab: Prayer Requests.
     clickTab('Prayer');
@@ -282,14 +285,12 @@ describe('church-home forms persist (no dropped write, no false confirmation)', 
     // and the confirmation only shows AFTER the real write
     expect(container.textContent).toMatch(/we'll reach out/i);
   });
-  it('the Testimony Diary shows an honest coming-soon, not a dead-end Unlock', () => {
+  it('the not-yet-built Testimony Diary is not shipped as a placeholder', () => {
     mount({});
-    clickTab('Speak'); // the diary door lives on the Speak tab
-    // the diary door still exists...
-    expect(container.querySelector('#diary-h')).toBeTruthy();
-    // ...but there is no PIN input / "Unlock" affordance that leads nowhere
+    clickTab('Speak');
+    // No diary door, no PIN, no "coming soon" placeholder on the live surface.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
     expect(container.querySelector('#diary-pin')).toBeFalsy();
-    expect([...container.querySelectorAll('button')].some((b) => /^unlock$/i.test((b.textContent || '').trim()))).toBe(false);
-    expect(container.textContent).toMatch(/coming soon/i);
+    expect(container.textContent).not.toMatch(/coming soon/i);
   });
 });
