@@ -24,7 +24,7 @@ import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups,
+  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
@@ -572,12 +572,17 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
           </div>
           <div><label className={LABEL} htmlFor="av-reason">Reason (optional)</label><input id="av-reason" className={FIELD} value={f.reason} onChange={(e) => setF((p) => ({ ...p, reason: e.target.value }))} placeholder="Out of town, etc." /></div>
           <div>
-            <label className={LABEL} htmlFor="av-backup">Request a backup{absentMember?.section ? ` (${absentMember.section}, available)` : ''}</label>
+            <label className={LABEL} htmlFor="av-backup">Request a backup{absentMember?.section ? ` (${absentMember.section} preferred)` : ''}</label>
             <select id="av-backup" className={FIELD} value={f.backupMemberId} onChange={(e) => setF((p) => ({ ...p, backupMemberId: e.target.value }))}>
               <option value="">No backup requested</option>
               {suggestions.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
             </select>
-            {f.memberId !== '' && !suggestions.length && <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section members are free that day.</p>}
+            {f.memberId !== '' && backupsAreCrossSection(suggestions, absentMember) && (
+              <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section singer is free that day &mdash; showing others who can cover.</p>
+            )}
+            {f.memberId !== '' && !suggestions.length && (
+              <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No one else is free that day &mdash; try different dates, or leave it as no backup.</p>
+            )}
           </div>
           <div className="flex gap-2">
             <button type="button" disabled={!f.startDate} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Schedule out</button>

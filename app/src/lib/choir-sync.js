@@ -327,11 +327,27 @@ export function membersOutOnDate(absences, dateIso) {
 export function suggestBackups(members, absences, dateIso, absentMember) {
   const out = new Set(membersOutOnDate(absences, dateIso));
   const section = absentMember?.section || null;
-  return (members || [])
+  // Everyone who could actually stand in that day: not the absent member, not
+  // already scheduled out, not a tech/sound/media role (they don't sing a part).
+  const freeSingers = (members || [])
     .filter((m) => m.id !== absentMember?.id)
     .filter((m) => !out.has(m.id))
-    .filter((m) => (section ? m.section === section : true))
     .filter((m) => m.choirRole !== 'sound' && m.choirRole !== 'media' && m.choirRole !== 'tech');
+  if (!section) return freeSingers;
+  // PREFER same-section (they cover the exact part) — but never DEAD-END the
+  // request: if no same-section singer is free, fall back to any free singer so a
+  // backup can always be asked for (the surface promises "request a backup").
+  const sameSection = freeSingers.filter((m) => m.section === section);
+  return sameSection.length ? sameSection : freeSingers;
+}
+
+// Are the offered backups a cross-section fallback? (True when the absent member
+// has a section but NO same-section singer is free, so suggestBackups returned
+// others.) Lets the UI label the list honestly instead of claiming "same-section".
+export function backupsAreCrossSection(suggestions, absentMember) {
+  const section = absentMember?.section || null;
+  if (!section || !Array.isArray(suggestions) || suggestions.length === 0) return false;
+  return !suggestions.some((m) => m.section === section);
 }
 
 // --- Timestamps (jump to the exact music / sermon moment in a service video) -
