@@ -423,7 +423,11 @@ function MessagesPanel({ messages, onSend }) {
   );
 }
 
-const inviteRoleLabel = (r) => (r === 'admin' ? 'Co-director' : r === 'viewer' ? 'Viewer' : 'Member');
+// 'viewer' is the church instance's minimal, VIEW-ONLY role (invite_to_church
+// accepts owner/admin/member/viewer). It is exactly a "tester" — they can look and
+// give feedback but change nothing — so the invite surfaces it under that plain
+// name (Darrell 2026-07-21: "add a longtime parishioner... as a tester only").
+const inviteRoleLabel = (r) => (r === 'admin' ? 'Co-director' : r === 'viewer' ? 'Tester (view only)' : 'Member');
 // Traffic-light status, all from tokens that already carry a midnight (dark-
 // theme) remap in theme-css.js — no new colors, so the contrast + legibility
 // guards stay green in both themes: green = joined, rust = still pending, grey
@@ -450,12 +454,12 @@ function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite
       {canEdit && onInvite && (
         <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3 mb-3">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Invite a member to the choir</div>
-          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit.</p>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Send an email invite. When they sign in to PoeTech they'll see the Choir tab. Use "Co-director" for someone who should edit, or <strong>"Tester (view only)"</strong> for a helper who should look and give feedback but change nothing.</p>
           <div className="flex items-end gap-2 flex-wrap">
             <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
             <div><label className={LABEL} htmlFor="ci-role">Access</label>
               <select id="ci-role" className={FIELD} value={inv.role} onChange={(e) => setInv((p) => ({ ...p, role: e.target.value }))}>
-                <option value="member">Member (view)</option><option value="admin">Co-director (edit)</option>
+                <option value="viewer">Tester (view only)</option><option value="member">Member (view)</option><option value="admin">Co-director (edit)</option>
               </select>
             </div>
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>

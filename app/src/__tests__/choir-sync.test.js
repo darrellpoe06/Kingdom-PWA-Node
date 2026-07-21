@@ -22,6 +22,10 @@ describe('deriveAccess (visibility/edit gate)', () => {
   it('a roster member can see but not edit', () => {
     expect(deriveAccess('member', true)).toEqual({ canEdit: false, canSee: true });
   });
+  it('a TESTER (viewer role) can see but NEVER edit — the tester-only guarantee', () => {
+    expect(deriveAccess('viewer', true)).toEqual({ canEdit: false, canSee: true });
+    expect(deriveAccess('viewer', false)).toEqual({ canEdit: false, canSee: false });
+  });
   it('a non-member non-director can neither see nor edit', () => {
     expect(deriveAccess('member', false)).toEqual({ canEdit: false, canSee: false });
     expect(deriveAccess(null, false)).toEqual({ canEdit: false, canSee: false });
