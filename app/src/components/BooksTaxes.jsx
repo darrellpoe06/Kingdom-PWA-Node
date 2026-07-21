@@ -15,7 +15,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
-import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS } from '../lib/tax-documents.js';
+import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
+import { uploadTaxDoc, validateUpload } from '../lib/tax-upload.js';
+import { resolveN8nBearer } from '../lib/n8n-base.js';
 
 const KIND_LABEL = {
   return: 'Return (1040)', w2: 'W-2', '1099-received': '1099 received',
@@ -33,14 +35,47 @@ function signedMoney(n) {
   return (v >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(v)).toLocaleString();
 }
 
+const KIND_OPTION_LABEL = {
+  return: 'Return (1040)', w2: 'W-2', '1099-received': '1099 received',
+  k1: 'K-1', schedule: 'Schedule', receipt: 'Receipt', other: 'Other document',
+};
+const fieldCls = 'text-sm border border-[#1A1815] px-2 py-1.5 min-h-[36px] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const labelCls = 'block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1';
+
 export default function BooksTaxes({ entities = [] }) {
   const [archive, setArchive] = useState({ documents: [], served_at: null, source: 'loading' });
+  const [form, setForm] = useState({ file: null, entityId: '', year: '', kind: 'return' });
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
 
+  const refresh = () => fetchTaxArchive().then((a) => setArchive(a));
   useEffect(() => {
     let live = true;
     fetchTaxArchive().then((a) => { if (live) setArchive(a); });
     return () => { live = false; };
   }, []);
+
+  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const uploadReq = { file: form.file, entityId: form.entityId, year: form.year, kind: form.kind };
+  const gate = validateUpload(uploadReq);
+
+  const doUpload = async () => {
+    if (!gate.ok || busy) return;
+    setBusy(true); setNotice('Uploading to your NAS…');
+    const token = (() => { try { return resolveN8nBearer(typeof window !== 'undefined' ? window : undefined); } catch { return null; } })();
+    const res = await uploadTaxDoc(uploadReq, { token });
+    setBusy(false);
+    if (res && res.ok) {
+      setNotice('Uploaded. Your return is filed and printable below.');
+      setForm({ file: null, entityId: form.entityId, year: '', kind: 'return' });
+      if (res.archive && Array.isArray(res.archive.documents)) setArchive({ documents: res.archive.documents, served_at: res.archive.served_at || null, source: 'nas' });
+      else refresh();
+    } else if (res && res.skipped === 'invalid') {
+      setNotice(res.errors.join(' '));
+    } else {
+      setNotice('Could not reach the NAS upload service. You can still drop the PDF on the NAS and run the ingest.');
+    }
+  };
 
   const docs = archive.documents || [];
   const years = groupByYear(docs);
@@ -55,6 +90,46 @@ export default function BooksTaxes({ entities = [] }) {
           Your returns live on your own NAS (sovereign — no cloud). This reads the light index same-origin; each original PDF stays <strong>printable</strong>. Figures shown are the ones you verified on the return — a year with none shows <em>pending</em>, never a guess.
         </p>
       </div>
+
+      {/* Upload — Christina files a return from inside the app, never Synology
+          (Darrell 2026-07-21). Posts to the NAS same-origin; the original lands
+          on sovereign disk and stays printable. */}
+      <form className="border border-[#5A6E3D] bg-[#FAF8F4] p-3" onSubmit={(e) => { e.preventDefault(); doUpload(); }}>
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">Upload a return</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <div>
+            <label htmlFor="tax-entity" className={labelCls}>Whose return</label>
+            <select id="tax-entity" className={`${fieldCls} w-full`} value={form.entityId} onChange={(e) => setF('entityId', e.target.value)}>
+              <option value="">— choose entity —</option>
+              {entities.map((en) => (<option key={en.id} value={en.id}>{en.name || en.id}</option>))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tax-year" className={labelCls}>Tax year</label>
+            <input id="tax-year" type="number" inputMode="numeric" placeholder="2024" className={`${fieldCls} w-full`} value={form.year} onChange={(e) => setF('year', e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="tax-kind" className={labelCls}>Document type</label>
+            <select id="tax-kind" className={`${fieldCls} w-full`} value={form.kind} onChange={(e) => setF('kind', e.target.value)}>
+              {TAX_DOC_KINDS.map((k) => (<option key={k} value={k}>{KIND_OPTION_LABEL[k] || k}</option>))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tax-file" className={labelCls}>PDF</label>
+            <input id="tax-file" type="file" accept="application/pdf,.pdf" className={`${fieldCls} w-full`} onChange={(e) => setF('file', (e.target.files && e.target.files[0]) || null)} />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="submit" disabled={!gate.ok || busy}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${gate.ok && !busy ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4A5D30]' : 'border-[#E8E4DC] text-[#5A5751] cursor-not-allowed'}`}>
+            {busy ? 'Uploading…' : 'Upload to my NAS'}
+          </button>
+          {notice && <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>}
+        </div>
+        <p className="text-[0.5625rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Stays on your own NAS — never a third-party cloud. Add the year&rsquo;s numbers later by uploading, or on the NAS as a small <span className="font-mono">.figures.json</span> beside the PDF.
+        </p>
+      </form>
 
       {/* Empty state — the real how-to, since the value is trust (no painted data) */}
       {docs.length === 0 && (

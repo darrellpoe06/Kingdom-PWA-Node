@@ -42,6 +42,18 @@ describe('BooksTaxes', () => {
     expect(link.getAttribute('href')).toBe('/taxes/files/e1/2024/2024-1040.pdf');
   });
 
+  it('offers an in-app upload form (Christina never touches Synology), disabled until valid', async () => {
+    archive([]);
+    await mount({ entities: [{ id: 'e1', name: 'Poe Family' }] });
+    expect(container.textContent).toMatch(/Upload a return/i);
+    expect(container.querySelector('#tax-file')).toBeTruthy();      // PDF picker
+    expect(container.querySelector('#tax-entity')).toBeTruthy();    // entity select
+    expect(container.querySelector('#tax-year')).toBeTruthy();      // year
+    const btn = [...container.querySelectorAll('button')].find((b) => /upload to my nas/i.test(b.textContent || ''));
+    expect(btn, 'the upload button renders').toBeTruthy();
+    expect(btn.disabled).toBe(true);                                // nothing chosen yet
+  });
+
   it('strategy table shows verified figures and marks a figureless year pending', async () => {
     archive([
       { id: 't1', year: 2023, entityId: 'e1', kind: 'return', filename: 'a.pdf', figures: { agi: 90000 } },

@@ -50,3 +50,33 @@ scheduled refresh must be armed deliberately per the three-brakes rule.
 - **Sovereign embeddings** over the document text on the GPU node (`infra/church-gpu-node`)
   for natural-language recall — a search aid beside the figures, never the source
   of a number.
+
+## In-app upload (Christina never touches Synology)
+
+`tax_upload_server.py` is the sovereign receiver for the Books → Taxes upload
+form (`app/src/lib/tax-upload.js`). It writes the PDF onto the bind mount,
+re-runs the ingest, and returns the fresh archive.
+
+Run it on the NAS:
+
+```
+cd /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-tax-ingest
+pip3 install --user fastapi "uvicorn[standard]" python-multipart   # once
+TAX_UPLOAD_TOKEN="<same bridge token the app uses>" \
+  uvicorn tax_upload_server:app --host 127.0.0.1 --port 8790
+```
+
+Route it same-origin in the Caddy site block so the app reaches it at
+`/taxes/upload` (beside the static `/taxes/*` it already serves):
+
+```
+handle /taxes/upload {
+    reverse_proxy 127.0.0.1:8790
+}
+```
+
+The app posts multipart (`file`, `entityId`, `year`, `kind`) with the bearer;
+the endpoint is PDF-only, path-guarded (no traversal), size-capped (25 MB), and
+bearer-gated. Uploaded returns land at
+`/volume1/PoeTech/tax-documents/<entity>/<year>/<name>.pdf` — the same place the
+manual drop uses, so the two paths converge.
