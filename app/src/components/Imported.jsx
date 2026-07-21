@@ -42,7 +42,7 @@ import { varianceReport } from '../lib/balance-variance.js';
 import { internalTransferIds, externalTotals } from '../lib/internal-transfers.js';
 import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baseline.js';
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
-import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, suggestLearnedDuplicates } from '../lib/learned-dedupe.js';
+import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, findExactDuplicates } from '../lib/learned-dedupe.js';
 import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
 
@@ -450,17 +450,11 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     if (sameAmt && sameDate) teachDedupe(rows.map((r) => ({ ...r, description: r.name }))); // learn only from a confident (same amount AND same date) combine
     clearSelection();
   };
-  // What the learning now recognizes: other exact (payee+date+amount+account) repeats
-  // from a payee the family already taught — a one-tap, still-confirmed combine.
-  const learnedDupGroups = useMemo(
-    () => suggestLearnedDuplicates((data.transactions || []).map((t) => ({ ...t })), learnedDedupe),
-    [data.transactions, learnedDedupe]
-  );
-  // Inspect-before-merge: expand a learned group INLINE (DR-0201, no jumping) to
+  // Inspect-before-merge: expand a duplicate group INLINE (DR-0201, no jumping) to
   // reveal each candidate row's date · account · full description, so the family
-  // confirms they are the SAME charge before combining. Members of a learned group
-  // already share date+amount+account by signature, so the full description (the
-  // PPD-ID suffix) is what distinguishes a true duplicate from a coincidental match.
+  // confirms they are the SAME charge before removing. Members of a group already
+  // share date+amount+account by signature, so the full description (the PPD-ID
+  // suffix) is what distinguishes a true duplicate from a coincidental match.
   const [inspectDupSig, setInspectDupSig] = useState(null);
   const txnById = useMemo(() => {
     const m = new Map();
@@ -472,10 +466,26 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     .map((id) => txnById.get(id))
     .filter(Boolean)
     .map((t) => ({ id: t.id, posted: t.date, name: t.description || '—', institution: acctNameOf(t.accountId), amount: Number(t.amount) || 0 }));
-  const combineLearnedGroup = (g) => {
-    if (!canCombine || !g.removeIds.length) return;
-    if (typeof confirm === 'function' && !confirm(`Combine ${g.count} copies of “${g.label}” (${formatAmount(g.amount)}) into one? This keeps the fullest row and removes ${g.extra} duplicate cop${g.extra === 1 ? 'y' : 'ies'} — the system recognized these because you taught it this payee.`)) return;
-    deleteTransaction(g.removeIds);
+
+  // Bulk "Clean up duplicates" — the AI clears EXACT copies (same payee + date +
+  // amount + account) in one sweep, instead of the family combining each group by
+  // hand (Darrell 2026-07-20: "AI cleans up these obvious duplicates ... we don't
+  // pay twice for the exact same thing ... almost ever"). The rare real repeat is
+  // the "almost ever": every group is PREVIEWED and pre-checked to remove, and the
+  // family UNCHECKS any they want to keep BEFORE removing — the "add back what is
+  // not there" done safely up front, losing nothing (DR-0076).
+  const exactDups = useMemo(() => findExactDuplicates((data.transactions || []).map((t) => ({ ...t }))), [data.transactions]);
+  const [exactDupKept, setExactDupKept] = useState(() => new Set()); // signatures the family unchecked (kept)
+  const toggleExactDupGroup = (sig) => setExactDupKept((prev) => { const n = new Set(prev); if (n.has(sig)) n.delete(sig); else n.add(sig); return n; });
+  const exactDupToRemove = useMemo(() => exactDups.groups.filter((g) => !exactDupKept.has(g.signature)), [exactDups, exactDupKept]);
+  const exactDupRemoveCount = exactDupToRemove.reduce((s, g) => s + g.extra, 0);
+  const cleanUpExactDuplicates = () => {
+    if (!canCombine || !exactDupRemoveCount) return;
+    const removeIds = exactDupToRemove.flatMap((g) => g.removeIds);
+    if (typeof confirm === 'function' && !confirm(`Clean up ${removeIds.length} exact-duplicate cop${removeIds.length === 1 ? 'y' : 'ies'} across ${exactDupToRemove.length} charge${exactDupToRemove.length === 1 ? '' : 's'}? Each is the same payee, date, AND amount imported more than once — this keeps the fullest row of each and removes the extra copies. Your totals drop by the removed copies. Any group you unchecked is left untouched.`)) return;
+    deleteTransaction(removeIds);
+    teachDedupe(exactDupToRemove.map((g) => ({ description: g.label }))); // future identical imports auto-flag
+    setExactDupKept(new Set());
   };
 
   // One-tap duplicate cleanup (also on Books → Tx). Same detection everywhere: a
@@ -601,6 +611,58 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             </div>
           </div>
 
+          {/* Bulk clean-up — the AI clears EXACT duplicates (same payee + date +
+              amount + account) in ONE sweep, so the family stops combining each
+              group by hand (Darrell 2026-07-20). Previewed + per-group opt-out:
+              uncheck the rare real repeat to keep both, then Remove. */}
+          {canCombine && exactDups.groupCount > 0 && (
+            <div className="border border-[#5A6E3D] bg-[#FAF8F4] p-3 space-y-2">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D]">Clean up duplicates</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">{exactDups.totalCopies} exact cop{exactDups.totalCopies === 1 ? 'y' : 'ies'} across {exactDups.groupCount} charge{exactDups.groupCount === 1 ? '' : 's'}</div>
+              </div>
+              <p className="text-[0.5625rem] text-[#5A5751] leading-snug">Same payee, <span className="font-semibold">same date, same amount</span> — the same charge imported more than once. We keep the fullest row and remove the copies. Uncheck any that are really a separate charge (a rare second payment) to keep both — different-date rows like two paychecks a month never appear here.</p>
+              <div className="max-h-64 overflow-y-auto space-y-1 border-t border-[#E8E4DC] pt-1.5">
+                {exactDups.groups.map((g) => {
+                  const willRemove = !exactDupKept.has(g.signature);
+                  const open = inspectDupSig === g.signature;
+                  const members = open ? groupMembers(g) : [];
+                  return (
+                    <div key={g.signature}>
+                      <div className="flex items-center gap-2 text-[0.75rem] text-[#1A1815]">
+                        <input type="checkbox" checked={willRemove} onChange={() => toggleExactDupGroup(g.signature)} aria-label={`Remove ${g.extra} duplicate copies of ${g.label}`} className="shrink-0 accent-[#5A6E3D]" />
+                        <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatDate(g.date)} · {g.count} copies</span></span>
+                        <button type="button" aria-expanded={open} onClick={() => setInspectDupSig(open ? null : g.signature)} className="shrink-0 text-[0.5625rem] uppercase tracking-wider text-[#8B6F47] underline decoration-dotted underline-offset-2 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">{open ? 'Hide' : 'Inspect'}</button>
+                        <span className={`shrink-0 ${willRemove ? 'text-[#1A1815]' : 'text-[#5A5751] line-through'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatAmount(g.amount)}</span>
+                        <span className="shrink-0 text-[0.5625rem] text-[#8B6F47] w-[3.75rem] text-right">{willRemove ? `−${g.extra} cop${g.extra === 1 ? 'y' : 'ies'}` : 'kept'}</span>
+                      </div>
+                      {/* Inline inspection (DR-0201): the candidate rows appear right
+                          here — date · account · full description — so you can verify
+                          same-date/same-amount before removing. Bank rows carry a
+                          DATE, not a clock time (DR-0076). */}
+                      {open && (
+                        <div className="ml-6 mt-1 mb-1.5 border border-[#E8E4DC] bg-white p-2 space-y-1">
+                          {members.map((m) => (
+                            <div key={m.id} className="text-[0.625rem] text-[#1A1815] flex items-baseline justify-between gap-2">
+                              <span className="min-w-0"><span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(m.posted)}</span> <span className="text-[#5A5751]">· {m.institution} · {m.name}</span></span>
+                              <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatAmount(m.amount)}</span>
+                            </div>
+                          ))}
+                          <div className="text-[0.5625rem] text-[#5A5751] pt-0.5">All {g.count} share the same date, amount, and account — same charge imported twice. Uncheck above to keep both instead.</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-0.5">
+                <button type="button" onClick={cleanUpExactDuplicates} disabled={exactDupRemoveCount === 0} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                  ✓ Remove {exactDupRemoveCount} duplicate{exactDupRemoveCount === 1 ? '' : 's'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* One-tap duplicate cleanup — the system removes the "DEBIT/CREDIT"
               twin copies itself, no account-by-account reset (2026-07-19). */}
           {deleteTransaction && dupPreview.count > 0 && (
@@ -614,50 +676,11 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             </div>
           )}
 
-          {/* Learned duplicates — the system recognized these because you COMBINED
-              this payee before, so it now spots the same shape with no app update
-              (Darrell 2026-07-20, DR-0189). Still one tap + confirm, never auto. */}
-          {canCombine && learnedDupGroups.length > 0 && (
-            <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-2">
-              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">Duplicates the system learned from you</div>
-              {learnedDupGroups.slice(0, 6).map((g) => {
-                const open = inspectDupSig === g.signature;
-                const members = open ? groupMembers(g) : [];
-                const descsMatch = open && members.length > 1 && new Set(members.map((m) => m.name)).size === 1;
-                return (
-                <div key={g.signature} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
-                  <div className="flex items-center justify-between gap-2 flex-wrap text-[0.75rem] text-[#1A1815]">
-                    <span className="truncate"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {formatAmount(g.amount)} · {g.count} copies</span></span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button type="button" aria-expanded={open} onClick={() => setInspectDupSig(open ? null : g.signature)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#8B6F47] text-[#8B6F47] font-semibold hover:bg-[#8B6F47] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">{open ? 'Hide' : 'Inspect'} {open ? '▲' : '▾'}</button>
-                      <button type="button" onClick={() => combineLearnedGroup(g)} className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Combine {g.count}</button>
-                    </div>
-                  </div>
-                  {/* Inline inspection (DR-0201): the candidate rows appear right here,
-                      never off elsewhere. Bank rows carry a DATE, not a clock time —
-                      so we show the date honestly (DR-0076) and confirm same-date. */}
-                  {open && (
-                    <div className="mt-1.5 border border-[#E8E4DC] bg-white p-2 space-y-1">
-                      {members.map((m, i) => (
-                        <div key={m.id} className="text-[0.6875rem] text-[#1A1815] flex items-baseline justify-between gap-2">
-                          <span className="min-w-0"><span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(m.posted)}</span> <span className="text-[#5A5751]">· {m.institution} · {m.name}</span></span>
-                          <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatAmount(m.amount)}</span>
-                        </div>
-                      ))}
-                      <div className="text-[0.5625rem] text-[#5A5751] leading-snug pt-0.5">
-                        All {g.count} share the same date, amount, and account.{' '}
-                        {descsMatch
-                          ? 'Their descriptions match exactly — safe to combine.'
-                          : 'Their descriptions differ — check the details above before combining in case these are separate charges.'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              })}
-              {learnedDupGroups.length > 6 && <div className="text-[0.5625rem] text-[#5A5751] italic">+ {learnedDupGroups.length - 6} more learned group{learnedDupGroups.length - 6 === 1 ? '' : 's'}</div>}
-            </div>
-          )}
+          {/* (The former separate "Duplicates the system learned from you" list is
+              folded into the one bulk "Clean up duplicates" panel above — Darrell
+              2026-07-20: "it works great, however initially this should be cleaned
+              up ... I'm just agreeing because it's right." One surface: one-tap
+              Remove-all, per-row keep, per-row Inspect. DR-0203.) */}
 
           {/* Standard reports — the money-insight panels (material changes,
               unusual months, recurring payments) are grouped under ONE collapsible

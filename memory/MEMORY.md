@@ -562,6 +562,24 @@ relying on it; memories reflect what was true when written.
   dates; a combine TEACHES the payee only when same-amount AND same-date. imported-render 13/13
   (+2 proven-to-catch). `feedback_inspect_duplicates_before_merge`.
 
+- **2026-07-20 — One-sweep "Clean up duplicates" (DR-0203).** Darrell: "everyone has been a
+  duplicate, can we clean this up ... they can add back what is not there ... AI cleans up these
+  obvious duplicates that are exactly the same date and amount ... we don't pay twice, almost
+  ever"; and "it already works great, however INITIALLY this should be cleaned up ... I'm just
+  agreeing because it's right." Per-group Combine (DR-0202) made the family rubber-stamp 17 groups;
+  "initially" (first import) the taught-only learned panel is EMPTY when dups are worst. NEW pure
+  `findExactDuplicates` (learned-dedupe.js) groups the WHOLE ledger by dedupeSignature
+  (payee+date+amount+account, NO teaching gate), keeps the fullest row, returns the extra copies --
+  a superset of suggestLearnedDuplicates. ONE "Clean up duplicates" panel: every group pre-checked
+  to remove + total count, one Remove-N button; the rare real repeat (two $200 ATM withdrawals --
+  "almost ever") is a single UNCHECK that keeps both (the "add back" done safely up front; post-
+  deletion undo deferred, re-review 2026-10-20). The separate "Duplicates the system learned from
+  you" list was FOLDED IN (per-row Inspect carried over) -> one surface, less clutter. Reality:
+  real dup imports have IDENTICAL descriptions (strict full-payee signature matches; different
+  payees never collapse); different-DATE paychecks can't share a signature (salary safe). NOTE:
+  contrast guard can't parse a ternary inline `color` -> move color+line-through to classes.
+  `feedback_bulk_clean_duplicates`.
+
 - **2026-07-20 — Subscription audit moved onto the Imported Recurring KPI (DR-0200).** Darrell:
   "Can we add [the Cart subscriptions audit] to Imported instead of its own tab? O&C"; "I don't
   believe it works, I believe it's static." VERIFIED: the Cart is NOT painted (real subscriptions
