@@ -4,8 +4,9 @@
 // "Have the local LLMs review the app for bugs or fixes." (Darrell, 2026-06-16.)
 // This surfaces the report from scripts/orchestration/llm-review.mjs — qwen2.5
 // on the NAS reading a branch's DIFF and flagging likely bugs (file:line +
-// concern + suggested fix). Fetched live via the same-origin /n8n rewrite
-// (wf-llm-review serves the latest report), exactly like LlmHealth.
+// concern + suggested fix). Fetched live from the sovereign same-origin static
+// report /reviews/llm-review.json (DR-0218 zero-n8n) — the review pipeline
+// writes it to the Caddy site, exactly like LlmHealth reads its own JSON.
 //
 // ADVISORY, never a gate (the banner says so): the merge gate is deterministic
 // CI (lint + vitest). This is a second pair of eyes, shown in the open.
@@ -15,7 +16,7 @@
 // are hot") + WorkflowStatus ("what automation runs"); this is "what the local
 // model thinks of the latest change."
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { n8nAuthHeaders } from '../lib/n8n-base.js';
 import { normalizeLlmReview, llmReviewKpi, findingLocation } from '../lib/llm-review.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
@@ -30,8 +31,10 @@ export default function LlmReview() {
     let cancelled = false;
     (async () => {
       try {
-        const url = `${N8N_BASE.replace(/\/+$/, '')}/webhook/llm-review`;
-        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
+        // Sovereign, same-origin static report (DR-0218 zero-n8n): the review
+        // pipeline writes /reviews/llm-review.json to the Caddy site; no n8n.
+        const url = '/reviews/llm-review.json';
+        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) } });
         const json = await r.json().catch(() => null);
         if (cancelled) return;
         const norm = normalizeLlmReview(json);

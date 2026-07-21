@@ -5,8 +5,9 @@
 //
 // This is the APP's view of the report produced by scripts/orchestration/
 // llm-review.mjs (qwen2.5 on the NAS reviews a branch's diff, ADVISORY). The
-// script writes a JSON report; the wf-llm-review workflow serves the latest one
-// at GET /n8n/webhook/llm-review; LlmReview.jsx renders it on the Build board.
+// script writes a JSON report to the Caddy site; it is served at the sovereign
+// same-origin path GET /reviews/llm-review.json (DR-0218 zero-n8n); LlmReview.jsx
+// renders it on the Build board.
 //
 // HARD constraints carried through to the surface:
 //   - ADVISORY ONLY. This is a flagged-concerns view, never a gate and never a
