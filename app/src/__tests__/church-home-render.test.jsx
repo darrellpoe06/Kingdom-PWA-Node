@@ -99,7 +99,10 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     for (const a of container.querySelectorAll('a[href^="mailto:"]')) {
       expect(a.getAttribute('target')).toBe('_blank');
     }
-    expect(container.querySelector('#diary-h')).toBeTruthy();
+    // The Testimony Diary was REMOVED (2026-07-21): its V0 isn't built, so it
+    // was a coming-soon placeholder the surface-audit gate flags — no placeholder
+    // ships to parishioners; it returns when V0 is real.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
 
     // PRAYER tab: Prayer Requests.
     clickTab('Prayer');
@@ -253,5 +256,41 @@ describe('Follow along in the Word', () => {
     expect(section().className).not.toMatch(/border-2/);
     act(() => close.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(section().className).not.toMatch(/\bsticky\b/);
+  });
+});
+
+// DR-0219 pre-launch: parishioner-facing forms must PERSIST, not drop the write
+// and then claim "we'll reach out." The invite-your-church form used to only
+// setState locally. This proves it now routes through the real addInquiry sink.
+describe('church-home forms persist (no dropped write, no false confirmation)', () => {
+  const setInput = (sel, value) => {
+    const el = container.querySelector(sel);
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  it('the invite-your-church "Send invite" writes a REAL partner-church-invite inquiry', () => {
+    const addInquiry = vi.fn();
+    mount({ addInquiry });
+    clickTab('About');
+    const open = [...container.querySelectorAll('button')].find((b) => /Invite them/i.test(b.textContent || ''));
+    expect(open, 'no "Invite them" opener on the About tab').toBeTruthy();
+    act(() => open.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    act(() => { setInput('#inv-church', 'Grace Chapel'); setInput('#inv-email', 'pastor@grace.example'); });
+    const send = [...container.querySelectorAll('button')].find((b) => /Send invite/i.test(b.textContent || ''));
+    act(() => send.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(addInquiry).toHaveBeenCalledTimes(1);
+    expect(addInquiry.mock.calls[0][0].kind).toBe('partner-church-invite');
+    expect(addInquiry.mock.calls[0][0].churchName).toBe('Grace Chapel');
+    // and the confirmation only shows AFTER the real write
+    expect(container.textContent).toMatch(/we'll reach out/i);
+  });
+  it('the not-yet-built Testimony Diary is not shipped as a placeholder', () => {
+    mount({});
+    clickTab('Speak');
+    // No diary door, no PIN, no "coming soon" placeholder on the live surface.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
+    expect(container.querySelector('#diary-pin')).toBeFalsy();
+    expect(container.textContent).not.toMatch(/coming soon/i);
   });
 });

@@ -100,9 +100,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // D21 — Testimony Diary PIN-locked entry point (the diary MVP V0 ships later
   // per project_testimony_diary_glory_to_glory; this is the door). PIN is held
   // on-device only; nothing leaves the browser.
-  const [diaryPin, setDiaryPin] = useState('');
-  const [diaryUnlocked, setDiaryUnlocked] = useState(false);
-  const [diaryError, setDiaryError] = useState('');
 
 
   // Default church home (D21): COLG / The Love Corner is the platform default
@@ -232,6 +229,17 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const submitMinistry = () => {
     if (!ministryInterest.email) { setMinistryNote('Add an email so the church can follow up.'); return; }
     setMinistryNote('');
+    // Persist the interest as a REAL inquiry first (addInquiry -> local + the
+    // inquiries table when signed in) so leadership actually sees it in-app —
+    // the mailto below is a best-effort extra, not the only capture (DR-0219: an
+    // invited action must land somewhere, not evaporate if there's no mail client).
+    if (typeof addInquiry === 'function') {
+      addInquiry({
+        kind: 'ministry-interest', source: 'church-home',
+        name: ministryInterest.name, email: ministryInterest.email,
+        interest: ministryInterest.interest || 'general', skills: ministryInterest.skills || '',
+      });
+    }
     const subject = `Ministry interest — ${ministryInterest.interest || 'general'}`;
     const body = `Name: ${ministryInterest.name}\nEmail: ${ministryInterest.email}\nMinistry of interest: ${ministryInterest.interest}\nSkills / availability:\n${ministryInterest.skills}\n\nSent from PoeTech Family OS · Church tab.`;
     // Open the church's Stay Connected page so the parishioner can paste/forward;
@@ -550,28 +558,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           Learn) on 2026-06-16 — see the churchView === 'conference' branch.
           ChurchOneVoice above still carries conference RSVPs via updateConference. */}
 
-      {/* TESTIMONY DIARY — PIN-locked entry point (D21). The diary MVP V0 ships
-          later (project_testimony_diary_glory_to_glory); this is the door. */}
-      <section aria-labelledby="diary-h" className="bg-white border border-[#1A1815] p-4">
-        <h3 id="diary-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Testimony Diary · Glory to Glory <UiIcon name="lock" /></h3>
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          A private place to record what Yahweh has done — kept on your device, locked behind a PIN you set. "And we all... are being transformed... from one degree of glory to another" (2 Corinthians 3:18, ESV).
-        </p>
-        {!diaryUnlocked ? (
-          <div className="mt-3 flex items-end gap-2 flex-wrap">
-            <div>
-              <label htmlFor="diary-pin" className={labelCls}>Set / enter your PIN</label>
-              <input id="diary-pin" type="password" inputMode="numeric" className={`${fieldCls} max-w-[8rem]`} value={diaryPin} onChange={e => { setDiaryPin(e.target.value); setDiaryError(''); }} placeholder="4+ digits" />
-            </div>
-            <button type="button" onClick={() => { if ((diaryPin || '').length < 4) { setDiaryError('Use at least 4 digits.'); return; } setDiaryError(''); setDiaryUnlocked(true); }} className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Unlock</button>
-            {diaryError && <span role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{diaryError}</span>}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm bg-[#FAF8F4] border border-[#B85838] p-3" style={{ fontFamily: '"Fraunces", serif' }}>
-            Your testimony diary is being prepared (V0 ships soon). Your PIN is held on this device only — nothing is sent anywhere. Come back to begin recording, from glory to glory.
-          </p>
-        )}
-      </section>
+      {/* TESTIMONY DIARY — removed from the live surface (2026-07-21): the MVP V0
+          isn't built, so it rendered a not-yet-ready notice, which the surface-
+          audit no-dead-ends gate (DR-0086/DR-0219) correctly rejects on a shipped
+          surface. Parishioners see nothing unfinished; the section returns here
+          when V0 actually ships (project_testimony_diary_glory_to_glory).
+          re-review: 2026-08-18. */}
         </>
       ),
     },
@@ -647,7 +639,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         {c.links?.give && (
           <div className="bg-white border-2 border-[#B85838] p-4">
             <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
-            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs through the church's own secure page — no payment data passes through this app.</p>
+            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs on the church's own website, where the giving options are published — no payment data passes through this app.</p>
             <div className="flex gap-2 mt-3 flex-wrap">
               <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
               {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
@@ -805,7 +797,22 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               <div><label htmlFor="inv-email" className={labelCls}>Email (so we can reply)</label><input id="inv-email" type="email" className={fieldCls} value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} /></div>
             </div>
             <div><label htmlFor="inv-note" className={labelCls}>Anything else? (optional)</label><textarea id="inv-note" rows="2" className={fieldCls} value={inviteForm.note} onChange={e => setInviteForm({ ...inviteForm, note: e.target.value })} /></div>
-            <button type="button" onClick={() => { if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; } setInviteError(''); setInviteSent(true); }} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send invite</button>
+            <button type="button" onClick={() => {
+              if (!inviteForm.churchName || !inviteForm.email) { setInviteError('Add at least your church name and an email.'); return; }
+              setInviteError('');
+              // Persist it as a REAL inquiry (addInquiry -> local + the inquiries
+              // table when signed in), so "we'll reach out" is true — not a
+              // dropped local-only write (DR-0219: deliver the promise).
+              if (typeof addInquiry === 'function') {
+                addInquiry({
+                  kind: 'partner-church-invite', source: 'church-home',
+                  churchName: inviteForm.churchName, city: inviteForm.city,
+                  contactName: inviteForm.contactName, email: inviteForm.email,
+                  message: inviteForm.note || '',
+                });
+              }
+              setInviteSent(true);
+            }} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Send invite</button>
             {inviteError && <p role="alert" className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{inviteError}</p>}
           </div>
         )}
