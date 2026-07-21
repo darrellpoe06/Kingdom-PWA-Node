@@ -44,6 +44,16 @@ not happen. The label is a promise about truth (DR-0076).
 **Tone:** `light` (gentle humor at folly) where it disarms; `solemn` (weight,
 reverence) where the truth demands it. Both are needed; match the moment.
 
+**Length — developed, not a vignette (Darrell 2026-07-21: "the AI stories are too
+short, can we have more developed ones?").** A story should be a real narrative
+the room can sink into — **~200–320 words** — with a genuine scene (place,
+people, sensory detail), rising tension shown not summarized, a turn that lands,
+and a closing line that ties it to the verse. Think the Prodigal Son or the Good
+Samaritan, not a one-line quip. The ceiling is the 25-minute slot: developed
+stories are a **menu the facilitator picks from** for the time available — the
+lesson may carry several, and the leader tells the one or two that fit the room
+that day. Re-develop existing short stories to this bar over time (DR-0075).
+
 ## The guardrail — every story must pass
 
 - **True-to-life** — it rings true to real human experience.
