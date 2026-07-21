@@ -96,6 +96,33 @@ export function incomeVsExpenseModel(rows, meta) {
       : undefined);
 }
 
+// All income on ONE report — every external credit for this window, grouped by
+// source/category, biggest group first, with the grand total in. Internal
+// transfers excluded (a transfer credit is not income — same fix as
+// incomeVsExpenseModel). Darrell 2026-07-21: "The KPI's should have all income
+// on one report and all outputs etc... standard reports."
+export function allIncomeModel(rows, meta) {
+  const movements = rows.filter((r) => !isTransferTxn(r));
+  const transferCount = rows.length - movements.length;
+  const income = movements.filter((r) => (Number(r.amount) || 0) > 0);
+  // groupByField already sorts groups biggest-first by |net|.
+  const groups = groupByField(income, (r) => r.category, { labelFn: (k) => (k === '—' ? 'Uncategorized' : k) });
+  return modelFromGroups('All income', meta, groups,
+    `All money IN for this window, grouped by source/category.${transferCount ? ` ${transferCount} internal transfer${transferCount === 1 ? '' : 's'} excluded — money moved between your own accounts is not income.` : ''}`);
+}
+
+// All outputs on ONE report — every external debit for this window, grouped by
+// category, biggest group first, with the grand total out (the expense side of
+// the standard income/outputs pair). Internal transfers excluded.
+export function allOutputsModel(rows, meta) {
+  const movements = rows.filter((r) => !isTransferTxn(r));
+  const transferCount = rows.length - movements.length;
+  const expense = movements.filter((r) => (Number(r.amount) || 0) < 0);
+  const groups = groupByField(expense, (r) => r.category, { labelFn: (k) => (k === '—' ? 'Uncategorized' : k) });
+  return modelFromGroups('All outputs (expenses)', meta, groups,
+    `All money OUT for this window, grouped by category.${transferCount ? ` ${transferCount} internal transfer${transferCount === 1 ? '' : 's'} excluded — money moved between your own accounts is not an expense.` : ''}`);
+}
+
 export function tax1099Model(rows, meta) {
   return modelFromGroups('1099 summary — totals by payee', meta,
     groupByField(rows, (r) => r.name),
@@ -199,6 +226,8 @@ export function financePresets(rows, meta, kpis = {}) {
     { key: 'monthly', label: 'Monthly summary', filenameBase: 'monthly-summary', buildModel: () => monthlySummaryModel(rows, meta) },
     { key: 'category', label: 'By category', filenameBase: 'by-category', buildModel: () => byCategoryModel(rows, meta) },
     { key: 'account', label: 'By account', filenameBase: 'by-account', buildModel: () => byAccountModel(rows, meta) },
+    { key: 'all-income', label: 'All income', filenameBase: 'all-income', buildModel: () => allIncomeModel(rows, meta) },
+    { key: 'all-outputs', label: 'All outputs (expenses)', filenameBase: 'all-outputs', buildModel: () => allOutputsModel(rows, meta) },
     { key: 'inc-exp', label: 'Income vs expense', filenameBase: 'income-vs-expense', buildModel: () => incomeVsExpenseModel(rows, meta) },
     { key: '1099', label: '1099 summary (by payee)', filenameBase: '1099-summary', buildModel: () => tax1099Model(rows, meta) },
   ];
