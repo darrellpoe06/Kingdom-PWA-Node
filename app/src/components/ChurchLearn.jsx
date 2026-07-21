@@ -55,6 +55,8 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import StoryLibrary from './StoryLibrary.jsx';
+import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
@@ -866,6 +868,10 @@ function CourseView({
   // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
   // from the user's own device-local UX history (ux-signals).
   const [recentTick, setRecentTick] = useState(0);
+  // Story Library (Layer 2): the steward curation queue. Only stewards see it,
+  // and only on a course whose lessons actually carry stories, so the realtime
+  // subscription (story_library_submissions) never runs where it isn't used.
+  const [storySubmissions, setStorySubmissions] = useState([]);
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -885,6 +891,18 @@ function CourseView({
   const canSendInterest = !!onSendInterest;
   // Real assessment from the learner's record (progress + quiz passes).
   const assessment = courseAssessment(schedule, progress, quizState);
+
+  // Story Library is offered on courses whose lessons already carry stories --
+  // the AI parables are the pattern the learner now curates alongside.
+  const hasStories = Array.isArray(schedule) && schedule.some((m) => Array.isArray(m.stories) && m.stories.length > 0);
+  React.useEffect(() => {
+    // Steward-only realtime subscription; best-effort + no-op signed out.
+    if (!(hasStories && isGovernor)) return undefined;
+    const unsub = subscribeSubmissions(setStorySubmissions);
+    return unsub;
+  }, [hasStories, isGovernor]);
+  const handleReview = (row, status) => { reviewSubmission(row.id, { status }); };
+  const handlePromote = (row) => { promoteSubmission(row.id, row); };
 
   const copyCurriculum = async () => {
     try {
@@ -1406,6 +1424,22 @@ function CourseView({
         </div>
       ),
     },
+    // Story Library (Layer 2) -- only where lessons carry stories. The learner
+    // curates their own testimony/parable; a steward reviews + promotes.
+    ...(hasStories ? [{
+      id: 'story-library',
+      label: 'Story Library',
+      icon: 'pencil',
+      render: () => (
+        <StoryLibrary
+          isGovernor={isGovernor}
+          lessons={schedule}
+          submissions={storySubmissions}
+          onReview={handleReview}
+          onPromote={handlePromote}
+        />
+      ),
+    }] : []),
   ];
 
   return (
