@@ -21,11 +21,15 @@ import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
 import { runAriLoop, loopHeadline } from '../lib/ari-loop.js';
 import { ARI } from '../lib/ari.js';
+import { normalizeWaysPrinciples } from '../lib/ways-principles.js';
 
 // Build-time-injected repo ledgers (same globals PerpetualReport reads); the
 // items feed the re-review freshness dimension. Guarded so a test/SSR context
 // without the define plugin degrades to empty, never throws.
 const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { items: [] };
+// The binding-principle registry (docs/decisions/PRINCIPLES.md), baked at build
+// (DR-0219 — the Ways surfaced live). Read once, honest-empty off-build/in-test.
+const DR_PRINCIPLES = (typeof __DR_PRINCIPLES__ !== 'undefined') ? __DR_PRINCIPLES__ : { items: [] };
 const UIUX_REVIEWS = (typeof __UIUX_REVIEWS__ !== 'undefined') ? __UIUX_REVIEWS__ : { items: [] };
 
 // Severity -> established app tokens. NOT true red (Color Theology): brick for
@@ -72,6 +76,8 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
 
   const overall = sevMeta(review.summary.status);
   const comp = review.completion;
+  // The binding Ways, surfaced live from the build-time snapshot of PRINCIPLES.md.
+  const ways = useMemo(() => normalizeWaysPrinciples(DR_PRINCIPLES), []);
 
   return (
     <div className="space-y-4">
@@ -99,6 +105,30 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
           </div>
         )}
       </div>
+
+      {/* The binding Ways — the principles that govern this build, live from the
+          repo's PRINCIPLES.md (baked at build; DR-0219). So the Ways drive the
+          app in-session even when Claude Code isn't — shown, not just cited. */}
+      {ways.ok && (
+        <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
+            Binding Ways &middot; {ways.count} principle{ways.count === 1 ? '' : 's'}
+          </div>
+          <div className="max-h-64 overflow-y-auto -mx-1 px-1">
+            <ul className="space-y-2">
+              {ways.items.map((p) => (
+                <li key={p.id} className="text-sm text-[#1A1815]">
+                  <span className="text-[0.6875rem] uppercase tracking-wider text-[#3F5226] font-semibold">{p.id}</span>
+                  <span className="text-[#5A5751]"> &mdash; {p.summary}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2">
+            Live from <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>docs/decisions/PRINCIPLES.md</span> at build &mdash; the cite-once Ways, shown in the app, not just in commits.
+          </p>
+        </div>
+      )}
 
       {/* Top actions to pull next */}
       {review.summary.topActions.length > 0 && (
