@@ -715,6 +715,63 @@ export async function inviteToChurch(email, role) {
   return error ? { skipped: 'invite-error', error } : { invited: true, id: data };
 }
 
+// --- Roster self-claim (DR-0220 / DR-0187 leg 1) ------------------------------
+// A roster row with user_id = NULL is INERT — user_in_choir() never matches it,
+// so a rostered singer can't see the Choir surface until their account is linked
+// to their row. Migration 0110 closes that with a director-issued one-time code:
+// the director mints a code for the unclaimed row and reads it to the member
+// (human-to-human — "DMs not SMS", no external channel required); the member
+// redeems it here, which links choir_members.user_id = auth.uid(). Linking grants
+// READ + own-absence only; it never touches instance_members.role, so claiming a
+// 'director' roster row does NOT make anyone an owner/admin (choir_role is
+// descriptive — 0011:43).
+
+// Normalize a typed code to EXACTLY what the RPC compares against — uppercase +
+// whitespace stripped (the server does upper(trim()); codes contain no spaces).
+// Deliberately NO confusable-folding: the alphabet is already confusable-free
+// (no 0/O/1/I/L/U), so any substitution here could only turn a VALID typed code
+// invalid. Keep the client and server normalization identical.
+export function normalizeClaimCode(raw) {
+  return String(raw || '').toUpperCase().replace(/\s+/g, '');
+}
+
+// Owner/admin mints a one-time claim code for an unclaimed roster row.
+// Returns { code, expiresAt, displayName } or { skipped, error }.
+export async function mintClaimCode(memberId) {
+  if (!memberId) return { skipped: 'no-member' };
+  const { data, error } = await supabase.rpc('mint_choir_claim_code', { member_id_in: memberId });
+  if (error) return { skipped: 'mint-error', error };
+  return { code: data?.code ?? null, expiresAt: data?.expires_at ?? null, displayName: data?.display_name ?? null };
+}
+
+// The signed-in member redeems a code. Returns the RPC envelope:
+// { status: 'linked'|'invalid'|'already-linked', ... } or { skipped, error }.
+export async function claimChoirMember(rawCode) {
+  const code = normalizeClaimCode(rawCode);
+  if (!code) return { skipped: 'no-code' };
+  const { data, error } = await supabase.rpc('claim_choir_member', { code_in: code });
+  if (error) return { skipped: 'claim-error', error };
+  return data || { status: 'invalid' };
+}
+
+// The caller's own linked roster row(s) in the church instance, so the surface can
+// show "you're linked as X (section)" + personalize "songs you're leading". Returns
+// an array of { memberId, displayName, section, choirRole } (empty if unlinked).
+export async function getMyChoirMembership(displayName) {
+  const session = await currentSession();
+  if (!session) return [];
+  const tenantId = await churchInstanceId(displayName);
+  if (!tenantId) return [];
+  const { data, error } = await supabase.rpc('my_choir_membership', { instance_uuid: tenantId });
+  if (error) { console.warn('[choir-sync] my_choir_membership failed:', error); return []; }
+  return (data || []).map((r) => ({
+    memberId: r.member_id,
+    displayName: r.display_name,
+    section: r.section ?? null,
+    choirRole: r.choir_role ?? 'member',
+  }));
+}
+
 // --- Sent invites (the director's "who have I already invited?" view) --------
 // Christina (2026-07-12): she needs to SEE who she already sent an invite to, so
 // she doesn't guess or double-invite. The rows already exist in instance_invites

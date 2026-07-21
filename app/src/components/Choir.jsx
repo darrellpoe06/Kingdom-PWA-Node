@@ -31,6 +31,7 @@ import {
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
   inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
+  mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode,
 } from '../lib/choir-sync.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
@@ -434,7 +435,34 @@ const INVITE_BADGE = {
   expired: { label: 'Expired', cls: 'bg-[#E8E4DC] text-[#5A5751]' },
 };
 
-function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite }) {
+// A director's per-member control: an UNLINKED roster row (userId null) gets an
+// "Issue claim code" button; a LINKED row shows a quiet "linked" note. The code
+// is shown for the director to read to the member (DR-0220).
+function MemberClaimControl({ member, onMintCode }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (member.userId) {
+    return <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" title="This member has linked their account">✓ linked</span>;
+  }
+  const issue = async () => {
+    setBusy(true); setMsg('');
+    const r = await onMintCode(member.id);
+    setBusy(false);
+    if (r?.code) { setCode(r.code); setMsg('Read this code to them — it works once, for 30 days.'); }
+    else setMsg(`Couldn't issue a code (${r?.skipped || 'error'}).`);
+  };
+  return (
+    <div className="text-right">
+      {code
+        ? <div><span className="font-mono tracking-[0.3em] text-sm text-[#1A1815] bg-[#FAF8F4] border border-[#5A6E3D] px-2 py-1">{code}</span></div>
+        : <button type="button" disabled={busy} onClick={issue} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] disabled:opacity-50`}>Issue claim code</button>}
+      {msg && <p className="text-[0.625rem] text-[#5A5751] mt-1 max-w-[180px]" style={{ fontFamily: '"Fraunces", serif' }}>{msg}</p>}
+    </div>
+  );
+}
+
+function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite, onMintCode }) {
   const [f, setF] = useState({ displayName: '', section: '', choirRole: 'member' });
   const [adding, setAdding] = useState(false);
   const [inv, setInv] = useState({ email: '', role: 'member' });
@@ -515,7 +543,12 @@ function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
                 <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
               </div>
-              {canEdit && <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+              {canEdit && (
+                <div className="flex items-center gap-3">
+                  {onMintCode && <MemberClaimControl member={m} onMintCode={onMintCode} />}
+                  <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -765,6 +798,40 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
 // -----------------------------------------------------------------------------
 const TABS = [['week', 'This week'], ['songs', 'Songs'], ['songbook', 'Songbook'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
+// A rostered member whose account isn't linked yet redeems the one-time code the
+// director read to them (DR-0220). Lives in the no-access fallback because an
+// unlinked member can't see the surface until this succeeds. On 'linked' it calls
+// onLinked() so the parent re-checks access and the Choir surface opens.
+function ClaimCodeCard({ onLinked }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true); setMsg('Checking…');
+    const r = await claimChoirMember(code);
+    setBusy(false);
+    if (r?.status === 'linked') { setMsg(`Linked — welcome, ${r.display_name || 'to the choir'}!`); onLinked && onLinked(); }
+    else if (r?.status === 'already-linked') setMsg("You're already linked to a spot on this roster.");
+    else if (r?.status === 'invalid') setMsg("That code didn't match. Check it with your director — codes expire after 30 days.");
+    else setMsg(`Couldn't check the code (${r?.skipped || 'error'}). Try again.`);
+  };
+  return (
+    <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-4 mt-3 text-left">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">On the roster? Enter your code</div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Your director can give you a short one-time code. Enter it to link your account to your spot on the roster.</p>
+      <div className="flex items-end gap-2 flex-wrap">
+        <div className="flex-1 min-w-[140px]">
+          <label className={LABEL} htmlFor="claim-code">Claim code</label>
+          <input id="claim-code" className={`${FIELD} font-mono tracking-[0.3em] uppercase`} value={code}
+            onChange={(e) => setCode(normalizeClaimCode(e.target.value))} placeholder="ABC234" maxLength={6} autoCapitalize="characters" autoComplete="off" />
+        </div>
+        <button type="button" disabled={busy || code.length < 6} onClick={submit} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Link me</button>
+      </div>
+      {msg && <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{msg}</p>}
+    </div>
+  );
+}
+
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ canSee: false, canEdit: false });
@@ -777,6 +844,7 @@ export default function Choir() {
   const [teamDocs, setTeamDocs] = useState([]);
   const [resources, setResources] = useState([]);
   const [invites, setInvites] = useState([]);
+  const [myMembership, setMyMembership] = useState([]);  // the caller's own linked roster row(s)
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -784,12 +852,22 @@ export default function Choir() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
+  const refreshAccess = () => { getChoirAccess().then(setAccess); };
   useEffect(() => {
     let alive = true;
-    if (!signedIn) { setAccess({ canSee: false, canEdit: false }); return; }
+    if (!signedIn) { setAccess({ canSee: false, canEdit: false }); setMyMembership([]); return; }
     getChoirAccess().then((a) => { if (alive) setAccess(a); });
     return () => { alive = false; };
   }, [signedIn]);
+
+  // Once the surface is visible, resolve which roster row is ME (for the
+  // "you're linked as X" badge) — real data via my_choir_membership (0110).
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn || !access.canSee) { setMyMembership([]); return undefined; }
+    getMyChoirMembership().then((rows) => { if (alive) setMyMembership(rows); });
+    return () => { alive = false; };
+  }, [signedIn, access.canSee, members]);
 
   // Subscribe to the streams once the user can see the surface.
   useEffect(() => {
@@ -848,6 +926,7 @@ export default function Choir() {
           <div className="text-2xl mb-1" aria-hidden="true">🎵</div>
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the choir's space.</p>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Ask the choir director to add you to the roster, then the week's music, schedule, and messages will show up here.</p>
+          <ClaimCodeCard onLinked={refreshAccess} />
         </div>
       </div>
     );
@@ -921,6 +1000,7 @@ export default function Choir() {
         onAdd={async (m) => { reportSkip(await addMember(m)); }}
         onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
         onInvite={(email, role) => inviteToChurch(email, role)}
+        onMintCode={(memberId) => mintClaimCode(memberId)}
       />
     ),
   };
@@ -936,6 +1016,14 @@ export default function Choir() {
       <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+
+      {myMembership.length > 0 && (
+        <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          You're on the roster as <span className="font-semibold">{myMembership[0].displayName}</span>
+          {[myMembership[0].section, myMembership[0].choirRole !== 'member' ? roleLabel(myMembership[0].choirRole) : null].filter(Boolean).length
+            ? ` (${[myMembership[0].section, myMembership[0].choirRole !== 'member' ? roleLabel(myMembership[0].choirRole) : null].filter(Boolean).join(' · ')})` : ''}.
+        </p>
+      )}
 
       <SectionTabs sections={sections} ariaLabel="Choir sections" idBase="choir" defaultId="week" />
     </div>
