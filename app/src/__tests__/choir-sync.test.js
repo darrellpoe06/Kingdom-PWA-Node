@@ -7,7 +7,7 @@ import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   toSermonShape, toResourceShape, toSermonDocShape, toTeamDocShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
-  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, backupsAreCrossSection, buildReusedSong, buildReusedSermon,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
   isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
@@ -223,6 +223,24 @@ describe('suggestBackups', () => {
   it('prefers same-section when one IS free (no fallback then)', () => {
     const out = suggestBackups(members, [], '2026-06-21', members[0]); // m1 soprano out
     expect(out.map((m) => m.id)).toEqual(['m2', 'm3']); // only sopranos, not the alto
+  });
+});
+
+describe('canRespondToBackup — the director can resolve a stuck request', () => {
+  const req = { backupName: 'Sam', backupStatus: 'requested' };
+  it('the chosen backup can respond', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: true }, false)).toBe(true);
+  });
+  it('the director (canEdit) can respond even when not the backup', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: false }, true)).toBe(true);
+  });
+  it('a non-backup non-director cannot', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: false }, false)).toBe(false);
+  });
+  it('no response affordance unless a backup was requested and is still pending', () => {
+    expect(canRespondToBackup({ backupName: null, backupStatus: 'requested', iAmBackup: true }, true)).toBe(false);
+    expect(canRespondToBackup({ ...req, backupStatus: 'confirmed', iAmBackup: true }, true)).toBe(false);
+    expect(canRespondToBackup(null, true)).toBe(false);
   });
 });
 

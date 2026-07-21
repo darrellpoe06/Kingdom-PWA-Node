@@ -24,7 +24,7 @@ import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection,
+  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
@@ -610,9 +610,13 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
                 </p>
               )}
               <div className="flex gap-2 mt-1 flex-wrap">
-                {a.iAmBackup && a.backupStatus === 'requested' && (
+                {/* The requested backup responds — OR the director (canEdit) does
+                    it on their behalf, so a requested backup is never stuck at
+                    "requested" forever when the chosen singer has no linked
+                    account yet (RLS already allows owner/admin to update). */}
+                {canRespondToBackup(a, canEdit) && (
                   <>
-                    <button type="button" onClick={() => onRespond(a, true)} className={`${BTN} text-[#166534] hover:underline`}>Confirm backup</button>
+                    <button type="button" onClick={() => onRespond(a, true)} className={`${BTN} text-[#166534] hover:underline`}>Confirm backup{!a.iAmBackup ? ' (director)' : ''}</button>
                     <button type="button" onClick={() => onRespond(a, false)} className={`${BTN} text-[#991B1B] hover:underline`}>Decline</button>
                   </>
                 )}
