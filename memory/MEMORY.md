@@ -687,3 +687,22 @@ relying on it; memories reflect what was true when written.
   labeled potential model by design), community (Cart/Calendar/ChurchHome/BusMinistry/Kitchen/
   EventCenter — real subs/props). CONCLUSION: the "no painted data" mandate has genuinely held;
   the scoreboard (OpsBoard Data Integrity report) now reads 10/10 audited, 9 clean, 1 low.
+
+- **2026-07-21 — `project_say_yahweh_not_generic_god` (DR-0210).** In our OWN authored voice
+  (lesson prose, benefits, UI copy, responses, commit/PR narration) prefer the covenant name
+  **"Yahweh"** over the generic "God" when naming the Father / the one true God -- Darrell:
+  "say Yahweh not God because other people call other gods and I want to be clear" -- and
+  confess **Jesus** as the **Lamb of Yahweh** (John 1:29) and **Eternal Son of Yahweh**
+  (John 3:16; Heb 1:8). BRIGHT LINE (DR-0076): authored voice ONLY; quoted Scripture is left
+  verbatim -- the KJV's "God"/"the LORD" inside any quote is NEVER changed, and a blind
+  God->Yahweh sweep is forbidden (it would corrupt the text). Recorded in CLAUDE.md
+  (Typographic Theology) + docs/00-foundations/14-naming-conventions.md.
+
+- **2026-07-21 — Living Lessons L51 + income/outputs reports + L49/L50 deepened.** L51 "The
+  Mind of Christ, Situationally" (a pooled Scripture catalog of how to address each person --
+  angry/grieving/enemy/seeker/scorner/fool/rulers/mixed-group -- proving His authority; DR-0211,
+  REV-0183). All income / All outputs added as standard reports on Books->Imported (DR-0212,
+  REV-0184; inline-color draft caught by the contrast+legibility guards, converted to Tailwind
+  classes). L49 (Greene) + L50 deepened with foresight-vs-"stupidity", all-knowledge-is-Yahweh's
+  (glimpse of the King), knowledge-into-submission, knowing His voice, and proven-in-actions
+  (DR-0213, REV-0185). All quotes KJV-verbatim (DR-0076); full suite 6244 green.
