@@ -629,6 +629,21 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             <RpeBlock rpe={module.rpe} />
             {/* Authored walkthrough, PACED to age/depth (chunked, not summarized) */}
             <AgePacedLesson plan={seg.audience.lessonPlan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
+            {/* Parable/story beats — short, vivid, often-funny illustrations, the way
+                Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
+            {Array.isArray(seg.audience.stories) && seg.audience.stories.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {seg.audience.stories.map((s, i) => (
+                  <div key={i} className="border border-[#5A6E3D] bg-[#FAF8F4] p-3">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">Picture this{s.title ? ` — ${s.title}` : ''}</div>
+                    <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{s.body}</p>
+                    {s.verse && (
+                      <p className="text-[0.6875rem] text-[#5A6E3D] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>— {s.verse}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Christian's home path — go find + safely touch the real device */}

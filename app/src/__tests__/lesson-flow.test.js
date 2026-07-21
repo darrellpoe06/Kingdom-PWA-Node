@@ -193,3 +193,35 @@ describe('Living Lessons L43 — "The War Is for the Mind" (Darrell 2026-07-19),
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 });
+
+describe('parable/story beats — reach the audience, never leak facilitator notes (Darrell 2026-07-21)', () => {
+  it('surfaces module.stories on the TEACH stage audience side, learner-safe', () => {
+    const mod = {
+      id: 'x', title: 'X', bigIdea: 'idea', anchor: { ref: 'John 1:1', theme: 't' },
+      stories: [{ tone: 'light', title: 'The Tenant', body: 'A funny parable.', verse: '"..." (2 Corinthians 10:5)' }],
+      facilitator: { talkingPoints: ['tp'], howToRun: 'Teach the big idea (12): go.' },
+    };
+    const arc = buildLessonArc(mod, { targetMinutes: 25 });
+    const teach = arc.segments.find((s) => s.kind === 'teach');
+    expect(Array.isArray(teach.audience.stories)).toBe(true);
+    expect(teach.audience.stories[0].title).toBe('The Tenant');
+    // teach has content BECAUSE of the story, even with a thin lessonPlan
+    expect(teach.hasContent).toBe(true);
+    // NO-LEAK: the story object carries no facilitator keys
+    const FORBIDDEN = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
+    for (const st of teach.audience.stories) {
+      for (const k of Object.keys(st)) expect(FORBIDDEN.includes(k)).toBe(false);
+    }
+  });
+
+  it('a real Living Lesson (L50) carries at least 2 stories, each with a body', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => /the-mind-of-christ-thinking/.test(m.id));
+    expect(l50).toBeTruthy();
+    expect(Array.isArray(l50.stories)).toBe(true);
+    expect(l50.stories.length).toBeGreaterThanOrEqual(2);
+    for (const s of l50.stories) {
+      expect(typeof s.body).toBe('string');
+      expect(s.body.length).toBeGreaterThan(20);
+    }
+  });
+});
