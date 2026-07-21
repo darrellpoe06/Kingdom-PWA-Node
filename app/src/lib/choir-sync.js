@@ -22,6 +22,20 @@ async function currentSession() {
   return data.session ?? null;
 }
 
+// getSession() can HANG indefinitely when another tab holds the Supabase
+// navigator lock (the recurring cross-tab root cause). A hung access check used
+// to leave the Choir tab silently showing the "ask the director to add you"
+// empty state — telling a DIRECTOR to ask herself. Bound every access probe so a
+// hang/slow call resolves to a distinct sentinel the caller reports as UNVERIFIED
+// (not as "not a member"). Mirrors pin.js CALL_RPC_TIMEOUT_MS.
+export const CHOIR_ACCESS_TIMEOUT_MS = 8000;
+const ACCESS_TIMEOUT = Symbol('choir-access-timeout');
+function withAccessTimeout(promise, ms = CHOIR_ACCESS_TIMEOUT_MS) {
+  let timer;
+  const t = new Promise((resolve) => { timer = setTimeout(() => resolve(ACCESS_TIMEOUT), ms); });
+  return Promise.race([promise, t]).finally(() => clearTimeout(timer));
+}
+
 function resolveDisplayName(session, explicit) {
   const trimmed = (explicit || '').trim();
   if (trimmed) return trimmed;
@@ -433,17 +447,41 @@ export function dedupeSermons(rows) {
 
 // --- Access ------------------------------------------------------------------
 
+// Access result carries `unverified` so the surface can tell "we CONFIRMED you
+// are not a member" (unverified:false → the gentle ask-to-be-added state) apart
+// from "we could NOT confirm your access right now" (unverified:true → a lapsed/
+// hung session or an RPC error → guide a sign-in refresh, never tell a director
+// to ask herself). DR-0076: a denied state must say WHICH kind it is.
 export async function getChoirAccess(displayName) {
-  const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
-  const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const [{ data: role }, { data: inChoir }] = await Promise.all([
-    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
-    supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
-  ]);
-  const { canEdit, canSee } = deriveAccess(role, inChoir);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  const unverified = (extra = {}) => ({ signedIn: true, canSee: false, canEdit: false, unverified: true, tenantId: null, role: null, ...extra });
+  // 1) Live session — bounded so a cross-tab lock hang can't hang the tab.
+  let session;
+  try {
+    session = await withAccessTimeout(currentSession());
+  } catch { return unverified(); }
+  if (session === ACCESS_TIMEOUT) return unverified();
+  if (!session) return { signedIn: false, canSee: false, canEdit: false, unverified: false, tenantId: null, role: null };
+  // 2) Church tenant. churchInstanceId returns null for BOTH genuine no-access
+  //    and a swallowed RPC error, so a null here is reported as not-a-member
+  //    (unverified:false) — the surface's ask-to-be-added copy also names the
+  //    refresh path, so a leader on a transient blip is still guided correctly.
+  let tenantId;
+  try { tenantId = await withAccessTimeout(churchInstanceId(displayName)); }
+  catch { return unverified(); }
+  if (tenantId === ACCESS_TIMEOUT) return unverified();
+  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, unverified: false, tenantId: null, role: null };
+  // 3) Role + roster. A REAL rpc error here is unverified (not "not a member").
+  try {
+    const res = await withAccessTimeout(Promise.all([
+      supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
+      supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
+    ]));
+    if (res === ACCESS_TIMEOUT) return unverified({ tenantId });
+    const [{ data: role, error: roleErr }, { data: inChoir, error: choirErr }] = res;
+    if (roleErr || choirErr) return unverified({ tenantId });
+    const { canEdit, canSee } = deriveAccess(role, inChoir);
+    return { signedIn: true, canSee, canEdit, unverified: false, tenantId, role: role ?? null };
+  } catch { return unverified({ tenantId }); }
 }
 
 // --- Generic fetch + realtime subscribe --------------------------------------

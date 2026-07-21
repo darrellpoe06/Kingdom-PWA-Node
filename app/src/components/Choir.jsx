@@ -829,13 +829,33 @@ export default function Choir() {
     );
   }
   if (!access.canSee) {
+    // Two DIFFERENT reasons the space is empty, and they must not read the same
+    // (DR-0076): (a) we could NOT confirm access right now — a lapsed/hung sign-in
+    // or a transient error — so a director/member whose data is really there is
+    // told to REFRESH, never to "ask herself"; (b) access confirmed, genuinely not
+    // a member yet — the gentle ask-to-be-added, which also names the refresh path
+    // so a leader on a transient blip is still guided out.
+    const unverified = !!access.unverified;
     return (
       <div className="max-w-2xl">
         <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
         <div className="bg-white border border-[#E8E4DC] p-6 text-center">
           <div className="text-2xl mb-1" aria-hidden="true">🎵</div>
-          <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the choir's space.</p>
-          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Ask the choir director to add you to the roster, then the week's music, schedule, and messages will show up here.</p>
+          {unverified ? (
+            <>
+              <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>We couldn't confirm your choir access.</p>
+              <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                You're signed in, but your church sign-in on this device may have lapsed — your music and schedule aren't lost, just hidden until access is confirmed. <strong>Sign out and sign back in</strong> to refresh, then reopen Choir. If you're the director, everything reappears once you're signed in fresh.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the choir's space.</p>
+              <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                If you're a choir member or the director and your music isn't showing, <strong>sign out and back in</strong> to refresh your church sign-in. If you're new, ask the choir director to add you to the roster — then the week's music, schedule, and messages show up here.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
