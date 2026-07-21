@@ -472,4 +472,23 @@ Recorded for the ledger as **DR-0111**; the operational capstone of DRIVE-DONT-D
 
 ---
 
+## Spec-Conformance Review — Say What It SHOULD Do, Then Prove We Do (added 2026-07-21, declared by Darrell)
+
+**Binding rule, declared by Darrell 2026-07-21:** after reviewing whether the feedback process does what it should — *"Review what feedback should be doing then see if we are... Ways and documentation"* — **"Add this process to your and our Ways and documentation for making sure we do it every time."**
+
+**Before a process or feature is called "done" or "working" — and whenever anyone asks whether it works — run a Spec-Conformance Review: state what it SHOULD do FROM THE WAYS/DOCS, trace what it ACTUALLY does in the real implementation, name every gap, and close it.** This is the conformance sibling of Reality-Trace: Reality-Trace (P15/P16, DR-0061) checks a surface against real *data* before building; this checks a built process against its own documented *intent*. "It works" is never accepted on assertion — it is accepted on a spec-vs-reality trace with receipts (DR-0076).
+
+Every Spec-Conformance Review runs these four steps, out loud, in the response:
+
+1. **SHOULD — cite the documented intent.** Gather what the process is supposed to do from the Ways/docs — the foundation docs (`docs/00-foundations/_root/*`), the Decision Records (`docs/decisions/`), the memories (`memory/MEMORY.md`), the session notes, and this file. Quote each requirement with a **`file:line` citation**. If the intent is undocumented, that gap is itself a finding — write the spec down (a new DR / foundation note), because an undocumented process cannot be conformance-checked and drifts silently.
+2. **ARE — trace the real implementation.** Follow the actual code path end-to-end (`file:line`): collection → storage/RLS → notification → sync → triage/governance → how it feeds the next step. Observe the running behavior where the sandbox can (tests, a query, a live probe); name honestly what only a live/signed-in session can confirm (DR-0076 provenance + honest uncertainty).
+3. **GAPS — name every divergence plainly.** Where SHOULD and ARE differ — a requirement not met, a dead consumer, a path that silently no-ops, a promise the surface makes that nothing fulfills (BUSINESS-PROCESS-CONNECTIONS four-question test) — state it as a gap, never soften a miss into "mostly works."
+4. **CLOSE — fix it or record why + a re-review date.** Each gap ends in one of two states (DR-0075): an improvement shipped through the verified lane, OR a one-line why + a `re-review:` date. Never a silent drop, never a "looks fine."
+
+**This is a standing step the agent runs without being re-asked** — the way it runs the reality-trace, the tests, and the live-production review. Silence is not a skip. It is *not* a reason to re-ask a settled question (DR-0111): the agent produces the SHOULD-vs-ARE trace and closes the gaps itself; it surfaces to Darrell only a genuine DR-0089 carve-out (a new bright line, a value only he holds, a verified premise conflict).
+
+Recorded for the ledger as **DR-0219**; grounds **SPEC-CONFORMANCE-REVIEW**. Pairs with Reality-Trace (DR-0061, P15/P16 — real data before building), VERIFICATION-DOCTRINE (DR-0076 — evidence not claims), WAYS-REVIEW (DR-0108 — review the methods), BUSINESS-PROCESS-CONNECTIONS (the four-question surface test), PERPETUAL-IMPROVEMENT (DR-0075 — close or date every gap), and REVIEW-LIVE-PUSH (DR-0104 — the human confirms the conformed build as a user meets it).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
