@@ -4,19 +4,20 @@
 // Goal (Darrell 2026-06-15): a SOLO learner finishes all 8 weeks without Darrell
 // present. The tutor walks them through that week's activity.
 //
-// SOVEREIGN, LOCAL-FIRST (the Charter): the tutor routes through the family
-// same-origin /n8n rewrite to Ollama on the NAS — model `qwen2.5`. No vendor
-// LLM is called from the client; vendor escalation, if ever, happens
-// server-side per the Charter and within budget. The endpoint here is always
-// the local relative path.
+// SOVEREIGN, LOCAL-FIRST (the Charter): the tutor routes through the family's
+// same-origin SOVEREIGN LLM PATH (/llm/chat — DR-0218 zero-n8n) to the NAS's own
+// Ollama (model `qwen2.5`) via the FastAPI wrapper (infra/nas-llm/llm_server.py).
+// No vendor LLM is called from the client; vendor escalation, if ever, happens
+// server-side per the Charter and within budget. The endpoint here is always the
+// local relative path.
 //
-// 2026-06-17: the shared lib/n8n-base.js default was repointed to the Tailscale
-// Funnel directly (the Vercel "/n8n" rewrite can't TLS-handshake to *.ts.net ->
-// 502 for the finance/imported/wake surfaces). The tutor does NOT follow that
-// move: its Charter gate (class-tutor.test.js, DR-0076) requires a same-origin
-// RELATIVE path and forbids an absolute Funnel/vendor URL in the client bundle.
-// So the tutor pins its own '/n8n' base here instead of importing N8N_BASE.
-// (Its NAS reachability is a separate open item — see the Concern board.)
+// HISTORY (kept for accuracy — DR-0218): the tutor formerly used a pinned '/n8n'
+// webhook base; on 2026-06-17 the shared lib/n8n-base.js default was repointed to
+// the Tailscale Funnel directly (the Vercel "/n8n" rewrite can't TLS-handshake to
+// *.ts.net -> 502), and the tutor did NOT follow that move because its Charter
+// gate (class-tutor.test.js, DR-0076) requires a same-origin RELATIVE path and
+// forbids an absolute Funnel/vendor URL in the client bundle. The zero-n8n cutover
+// keeps that same relative-path gate — now pointed at /llm/chat, not n8n.
 //
 // HONEST OFFLINE (DR-0076): when the NAS route isn't reachable, askTutor returns
 // { ok:false } and the UI falls back to the AUTHORED walkthrough (the week's
@@ -30,20 +31,18 @@
 import { n8nAuthHeaders } from './n8n-base.js';
 import { ariSystemPrompt } from './ari.js';
 
-// The tutor's own same-origin base. Pinned to the relative '/n8n' rewrite (NOT
-// the shared N8N_BASE, which now defaults to the absolute Funnel) so the Charter
-// sovereignty gate holds: a relative path, never an absolute Funnel/vendor URL.
-const TUTOR_BASE = '/n8n';
-
 // The sovereign, local-first model the tutor asks for. Kept as a constant so the
 // test can prove the client routes local (qwen2.5), not to a vendor.
 export const TUTOR_MODEL = 'qwen2.5';
 
-// The local-first endpoint: the same-origin /n8n rewrite to the family NAS.
-// Never an absolute vendor or Funnel URL (the rewrite avoids cross-origin
-// throttling; see lib/n8n-base.js).
+// The sovereign LLM path (DR-0218 zero-n8n): a same-origin relative route to the
+// family NAS's OWN Ollama through the FastAPI wrapper (infra/nas-llm/llm_server.py)
+// — NOT an n8n webhook, and never an absolute vendor/Funnel URL, so the Charter
+// sovereignty gate holds. Degrades to the authored walkthrough
+// (normalizeTutorReply ok:false) until that server + its /llm/* Caddy route are
+// stood up — a designed fallback, not a break.
 export function tutorEndpoint() {
-  return `${TUTOR_BASE.replace(/\/+$/, '')}/webhook/class-tutor`;
+  return '/llm/chat';
 }
 
 // The per-week system prompt. Grounds the tutor in THIS week's real authored
