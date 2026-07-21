@@ -7,7 +7,7 @@ import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   toSermonShape, toResourceShape, toSermonDocShape, toTeamDocShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
-  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, backupsAreCrossSection, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
   isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
@@ -213,6 +213,31 @@ describe('suggestBackups', () => {
     const noSection = { id: 'mX', displayName: 'X', section: null, choirRole: 'member' };
     const out = suggestBackups([...members, noSection], [], '2026-06-21', noSection);
     expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3', 'm4']); // all singers, not the support role, not self
+  });
+  it('NEVER dead-ends: falls back to any free singer when no same-section peer is free', () => {
+    // m4 (alto) is out and is the ONLY alto — the old code returned [] (a dead
+    // end: "no backup" was the only option). Now it offers the free sopranos.
+    const out = suggestBackups(members, [], '2026-06-21', members[3]); // m4 alto out
+    expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3']); // cross-section fallback, support role still excluded
+  });
+  it('prefers same-section when one IS free (no fallback then)', () => {
+    const out = suggestBackups(members, [], '2026-06-21', members[0]); // m1 soprano out
+    expect(out.map((m) => m.id)).toEqual(['m2', 'm3']); // only sopranos, not the alto
+  });
+});
+
+describe('backupsAreCrossSection — honest UI labelling', () => {
+  const alto = { id: 'a1', displayName: 'A', section: 'alto', choirRole: 'member' };
+  const sops = [{ id: 's1', displayName: 'S', section: 'soprano', choirRole: 'member' }];
+  it('true when the offered backups are all a different section than the absentee', () => {
+    expect(backupsAreCrossSection(sops, alto)).toBe(true);
+  });
+  it('false when a same-section singer is in the list', () => {
+    expect(backupsAreCrossSection([...sops, { id: 'a2', section: 'alto', choirRole: 'member' }], alto)).toBe(false);
+  });
+  it('false when the absentee has no section, or the list is empty', () => {
+    expect(backupsAreCrossSection(sops, { id: 'x', section: null })).toBe(false);
+    expect(backupsAreCrossSection([], alto)).toBe(false);
   });
 });
 
