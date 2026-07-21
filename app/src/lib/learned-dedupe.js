@@ -87,6 +87,49 @@ export function suggestLearnedDuplicates(transactions, learned) {
   return groups;
 }
 
+// findExactDuplicates — the WHOLE-ledger sweep behind the one-tap "Clean up
+// duplicates" tool (Darrell 2026-07-20: "AI cleans up these obvious duplicates
+// that are exactly the same date and amount... we don't pay twice for the exact
+// same thing... almost ever"). Unlike suggestLearnedDuplicates this is NOT gated on
+// a taught payee — it returns EVERY group of >= 2 rows sharing the exact
+// dedupeSignature (payee + date + amount + account), each naming the fullest row to
+// KEEP and the extra copies to remove. "Almost ever" is why the caller PREVIEWS the
+// groups and lets the family uncheck a genuine repeat (a rare second same-day charge)
+// before removing — the exact-same-date-and-amount match is the safety, the preview
+// is the escape hatch. Deterministic; never mutates input; removes nothing itself.
+export function findExactDuplicates(transactions) {
+  const bySig = new Map();
+  for (const t of (transactions || [])) {
+    if (!t || t.id == null) continue;
+    const sig = dedupeSignature(t);
+    if (!bySig.has(sig)) bySig.set(sig, []);
+    bySig.get(sig).push(t);
+  }
+  const groups = [];
+  let totalCopies = 0;
+  for (const [sig, rows] of bySig) {
+    if (rows.length < 2) continue;
+    const keep = [...rows].sort((a, b) => String(b.description ?? b.name ?? '').length - String(a.description ?? a.name ?? '').length)[0];
+    const removeIds = rows.filter((r) => r.id !== keep.id).map((r) => r.id);
+    if (!removeIds.length) continue;
+    totalCopies += removeIds.length;
+    groups.push({
+      signature: sig,
+      label: String(keep.description ?? keep.name ?? '').trim() || '—',
+      amount: Number(keep.amount) || 0,
+      date: keep.date ?? keep.posted ?? '',
+      accountId: keep.accountId ?? null,
+      count: rows.length,
+      keepId: keep.id,
+      removeIds,
+      extra: removeIds.length,
+    });
+  }
+  // Biggest cleanups first; newest date breaks ties for a stable, sensible order.
+  groups.sort((a, b) => (b.extra - a.extra) || String(b.date).localeCompare(String(a.date)));
+  return { groups, totalCopies, groupCount: groups.length };
+}
+
 // ---- fail-soft, per-device persistence (needs no deploy, no shell handler) ------
 // Device-local learning (like the theme pref): keyed by the saved profile so one
 // family member's teaching doesn't bleed across profiles on a shared device. Every

@@ -103,6 +103,41 @@ describe('Imported — bank-convention view (real mount)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('bulk clean-up: AI sweeps exact duplicates in one tap; unchecking a group keeps it', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const del = vi.fn();
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        // exact dup: FIRST MID $250 minted twice on Jun 17 (identical rows)
+        { id: 'fm1', accountId: 'a1', date: '2026-06-17', amount: -250, description: 'Online Payment 29483446956 To FIRST MID-ILLINOIS BANK & TRUST 06/17' },
+        { id: 'fm2', accountId: 'a1', date: '2026-06-17', amount: -250, description: 'Online Payment 29483446956 To FIRST MID-ILLINOIS BANK & TRUST 06/17' },
+        // exact dup: two $200 ATM withdrawals same day — the "almost ever" real case we can KEEP
+        { id: 'atm1', accountId: 'a1', date: '2026-06-18', amount: -200, description: 'ATM WITHDRAWAL 007999 301 S MAT' },
+        { id: 'atm2', accountId: 'a1', date: '2026-06-18', amount: -200, description: 'ATM WITHDRAWAL 007999 301 S MAT' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+    // the bulk panel renders with both exact-duplicate groups
+    expect(container.textContent).toContain('Clean up duplicates');
+    // uncheck the ATM group (a real second withdrawal) so it is KEPT
+    const atmBox = container.querySelector('input[aria-label^="Remove 1 duplicate copies of ATM WITHDRAWAL"]');
+    expect(atmBox, 'each group has a keep/remove checkbox').toBeTruthy();
+    expect(atmBox.checked).toBe(true); // pre-checked to remove
+    await click(atmBox);               // uncheck -> keep this group
+    expect(atmBox.checked).toBe(false);
+    // Remove button now targets only the FIRST MID copy (1), not the kept ATM
+    const removeBtn = [...container.querySelectorAll('button')].find((b) => /Remove 1 duplicate\b/.test(b.textContent));
+    expect(removeBtn, 'the count reflects only the still-checked groups').toBeTruthy();
+    await click(removeBtn);
+    // only the still-checked (FIRST MID) copy is removed; the kept ATM copy is untouched
+    expect(del).toHaveBeenCalledWith(['fm2']);
+    vi.unstubAllGlobals();
+  });
+
   it('date guard: combining rows on DIFFERENT dates warns (two paychecks a month) and does not merge when declined', async () => {
     // Two University-of-IL payroll rows, same amount, DIFFERENT dates — a salary
     // that posts twice a month. These are NOT duplicates and must not silently merge.
@@ -134,9 +169,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('learned duplicates: Inspect expands INLINE to show each candidate row date + account before merging', async () => {
-    // Teach the payee so the learned-duplicate group surfaces.
-    localStorage.setItem('poe-learned-dedupe:p1', JSON.stringify({ 'zelle payment from marcus warren': true }));
+  it('clean-up duplicates: Inspect expands INLINE to show each candidate row date + account before removing', async () => {
     const del = vi.fn();
     const data = {
       accounts: [{ id: 'a1', name: 'Chase 7206' }],
@@ -149,10 +182,10 @@ describe('Imported — bank-convention view (real mount)', () => {
     document.body.appendChild(container);
     await act(async () => { createRoot(container).render(createElement(Imported, { data, deleteTransaction: del })); });
     const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
-    // the learned group + its Inspect affordance render
-    expect(container.textContent).toContain('Duplicates the system learned from you');
+    // the consolidated bulk panel + its per-row Inspect affordance render
+    expect(container.textContent).toContain('Clean up duplicates');
     const inspectBtn = [...container.querySelectorAll('button')].find((b) => /Inspect/.test(b.textContent));
-    expect(inspectBtn, 'each learned group has an Inspect toggle').toBeTruthy();
+    expect(inspectBtn, 'each duplicate group has an Inspect toggle').toBeTruthy();
     expect(inspectBtn.getAttribute('aria-expanded')).toBe('false');
     await click(inspectBtn);
     // expanded INLINE (DR-0201): candidate rows show their date, account, and the
@@ -161,7 +194,6 @@ describe('Imported — bank-convention view (real mount)', () => {
     const html = container.innerHTML;
     expect(html).toContain('Chase 7206');
     expect(html).toContain('same date, amount, and account');
-    expect(html).toMatch(/safe to combine/);
     vi.unstubAllGlobals();
   });
 

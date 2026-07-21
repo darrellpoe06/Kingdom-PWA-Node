@@ -7,8 +7,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   dedupeSignature, learnFromCombine, suggestLearnedDuplicates,
+  findExactDuplicates,
   loadLearnedDedupe, saveLearnedDedupe,
 } from '../lib/learned-dedupe.js';
+
+describe('findExactDuplicates — the whole-ledger bulk sweep', () => {
+  it('groups every exact (payee+date+amount+account) repeat, keeps the fullest, removes the rest', () => {
+    // Real duplicate imports carry IDENTICAL descriptions — one row minted twice
+    // (as in the screenshots: same payee, date, amount, and full text). Category
+    // edits on one copy don't protect it — same signature is still a duplicate.
+    const txns = [
+      { id: 'fm1', description: 'Online Payment 29483446956 To FIRST MID-ILLINOIS BANK & TRUST 06/17', date: '2026-06-17', amount: -250, accountId: 'a1', category: 'other' },
+      { id: 'fm2', description: 'Online Payment 29483446956 To FIRST MID-ILLINOIS BANK & TRUST 06/17', date: '2026-06-17', amount: -250, accountId: 'a1', category: 'bill-pay' },
+      { id: 'wm1', description: 'WM SUPERCENTER #3255 SAVOY IL 06/08', date: '2026-06-08', amount: -241.19, accountId: 'a1' },
+      { id: 'wm2', description: 'WM SUPERCENTER #3255 SAVOY IL 06/08', date: '2026-06-08', amount: -241.19, accountId: 'a1' },
+      // a lone, non-duplicated charge — must never appear
+      { id: 'solo', description: 'CASH APP MARIO', date: '2026-06-30', amount: -100, accountId: 'a1' },
+    ];
+    const { groups, totalCopies, groupCount } = findExactDuplicates(txns);
+    expect(groupCount).toBe(2);
+    expect(totalCopies).toBe(2); // one removable copy per group
+    const fm = groups.find((g) => g.label.includes('FIRST MID'));
+    expect(fm.keepId).toBe('fm1');            // identical length -> stable keep-first
+    expect(fm.removeIds).toEqual(['fm2']);    // the extra copy removed
+    const wm = groups.find((g) => g.label.includes('WM SUPERCENTER'));
+    expect(wm.keepId).toBe('wm1');
+    expect(wm.removeIds).toEqual(['wm2']);
+    // the solo charge is not a duplicate -> not returned anywhere
+    expect(groups.some((g) => g.removeIds.includes('solo') || g.keepId === 'solo')).toBe(false);
+  });
+
+  it('two paychecks a month (different DATES) are never swept as duplicates', () => {
+    const txns = [
+      { id: 'p1', description: 'UNIVERSITY OF IL PAYROLL', date: '2026-07-01', amount: 2271.97, accountId: 'a1' },
+      { id: 'p2', description: 'UNIVERSITY OF IL PAYROLL', date: '2026-07-15', amount: 2274.78, accountId: 'a1' },
+    ];
+    expect(findExactDuplicates(txns).groupCount).toBe(0);
+  });
+});
 
 describe('dedupeSignature', () => {
   it('is equal for the same charge posted twice, different for a different charge', () => {
