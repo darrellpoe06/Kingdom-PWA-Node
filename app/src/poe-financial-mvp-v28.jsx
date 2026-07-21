@@ -161,6 +161,7 @@ import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
+import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1561,32 +1562,27 @@ export default function PoeFinancialSystem() {
   };
   const handleUploadFile = async (file) => {
     if (!file) return;
-    const base = N8N_BASE;
-    if (!base) {
-      setUploadStage('error');
-      setUploadResult(prev => ({ ...prev, error: 'Upload endpoint not configured. Set VITE_N8N_WEBHOOK_BASE.' }));
-      return;
-    }
+    // SOVEREIGN (DR-0218 zero-n8n): parse the bank export CLIENT-SIDE with the
+    // app's own deterministic statement parser (lib/statement-import.js) — the
+    // faithful port of wf33's OFX/QFX/CSV parse. No n8n, no network hop at all,
+    // so stage 1 can never fail on a down Funnel; it is pure + unit-tested.
     setUploadStage('parsing');
     setUploadResult(prev => ({ ...prev, error: null }));
     try {
-      const text = await file.text();
       const ext = (file.name.split('.').pop() || '').toLowerCase();
-      const format = (ext === 'qfx' || ext === 'ofx' || ext === 'csv') ? ext : 'auto';
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/data-upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ format, content: text, filename: file.name })
-      });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
+      // Excel -> CSV text first (existing helper); everything else is read as text.
+      const text = isSpreadsheetFile(file) ? await spreadsheetFileToCsv(file) : await file.text();
+      const format = (ext === 'qfx' || ext === 'ofx') ? 'ofx' : (ext === 'csv' ? 'csv' : 'auto');
+      const parsed = parseStatementText(text, { format });
+      const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+      if (rows.length === 0) {
         setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Parse failed (HTTP ${r.status})` }));
+        setUploadResult(prev => ({ ...prev, error: (parsed.errors && parsed.errors.length) ? parsed.errors.join(' ') : 'No transactions found in this file.' }));
         return;
       }
+      const transactions = rows.map(r => ({ date: r.date, description: r.description, amount: r.amount, category: r.category || 'other' }));
       setUploadStage('parsed');
-      setUploadResult(prev => ({ ...prev, transactions: json.transactions || [], summary: json.summary || null, format: json.format_detected || format }));
+      setUploadResult(prev => ({ ...prev, transactions, summary: parsed.reconciliation || null, format: format === 'ofx' ? 'ofx' : 'csv' }));
     } catch (e) {
       setUploadStage('error');
       setUploadResult(prev => ({ ...prev, error: `Could not read file: ${e.message}` }));
