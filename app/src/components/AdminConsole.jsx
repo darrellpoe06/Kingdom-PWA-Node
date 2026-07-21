@@ -38,7 +38,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel } from '../lib/member-roles.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances } from '../lib/member-roles.js';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -116,6 +116,8 @@ export default function AdminConsole({
 }) {
   const [roleState, setRoleState] = useState({ status: 'idle', role: null, error: null });
   const [members, setMembers] = useState({ status: 'idle', list: [], myRole: null, error: null });
+  const [adminInstances, setAdminInstances] = useState([]);         // spaces the steward may administer (family + church)
+  const [scopeInstance, setScopeInstance] = useState(instanceId);   // which space "Manage access roles" targets
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -149,23 +151,32 @@ export default function AdminConsole({
     }
   };
 
-  // Load the REAL member roster + my role, so the role controls show live data and
-  // only the roles I may actually set (mirrors the set_member_role guards, 0111).
-  const loadMembers = async () => {
-    if (!instanceId) { setMembers({ status: 'no-instance', list: [], myRole: null, error: null }); return; }
+  // Load the REAL member roster + my role for a given space, so the role controls
+  // show live data and only the roles I may actually set (mirrors set_member_role,
+  // 0111). Also loads the spaces I may administer (family + COLG/Love Corner church
+  // + ministries) so the panel can offer an instance picker.
+  const loadMembers = async (targetInstance) => {
+    // Populate the picker on first load; keep the current pick if still valid.
+    const spaces = await listMyAdminInstances();
+    setAdminInstances(spaces);
+    const wanted = targetInstance || scopeInstance
+      || (spaces.find((s) => s.instanceId === instanceId) ? instanceId : spaces[0]?.instanceId)
+      || instanceId;
+    setScopeInstance(wanted);
+    if (!wanted) { setMembers({ status: 'no-instance', list: [], myRole: null, error: null }); return; }
     setMembers((p) => ({ ...p, status: 'loading' }));
     try {
-      const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: instanceId });
-      const list = await listInstanceMembers(instanceId);
+      const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
+      const list = await listInstanceMembers(wanted);
       setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
     } catch (e) {
       setMembers({ status: 'error', list: [], myRole: null, error: (e && e.message) || 'query failed' });
     }
   };
   const changeMemberRole = async (userId, role) => {
-    const r = await setMemberRole(instanceId, userId, role);
+    const r = await setMemberRole(scopeInstance, userId, role);
     if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
-    await loadMembers();
+    await loadMembers(scopeInstance);
   };
 
   const doReload = () => { try { window.location.reload(); } catch (e) { /* no-op */ } };
@@ -294,6 +305,19 @@ export default function AdminConsole({
             <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
               Change a member’s access in this space. You can’t change an owner, an admin (only an owner can), or yourself — and no one is ever made owner here.
             </p>
+            {adminInstances.length > 1 && (
+              <label className="flex items-center gap-2 mt-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                Space
+                <select className="text-xs p-1 border border-[#E8E4DC] bg-white normal-case tracking-normal"
+                  value={scopeInstance || ''} onChange={(e) => { setScopeInstance(e.target.value); loadMembers(e.target.value); }}>
+                  {adminInstances.map((s) => (
+                    <option key={s.instanceId} value={s.instanceId}>
+                      {s.displayName || s.instanceId}{s.instanceType === 'church' ? ' (church)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {members.status === 'no-instance' && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device.</p>}
             {members.status === 'error' && <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>{members.error}</p>}
             {members.status === 'ok' && members.list.length === 0 && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>No members to manage (owner/admin access required).</p>}

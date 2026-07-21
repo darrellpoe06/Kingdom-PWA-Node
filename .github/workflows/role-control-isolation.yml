@@ -48,6 +48,9 @@ jobs:
           echo "=== applying 0111-set-member-role.sql (idempotent) ==="
           psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
             -f infra/supabase/migrations-auto/0111-set-member-role.sql
+          echo "=== applying 0112-list-my-admin-instances.sql (idempotent) ==="
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0112-list-my-admin-instances.sql
           echo "=== running the role-control smoke test (rolls back) ==="
           psql "$DBURL" -v ON_ERROR_STOP=1 \
             -f infra/supabase/tests/0111-role-control-smoke.sql

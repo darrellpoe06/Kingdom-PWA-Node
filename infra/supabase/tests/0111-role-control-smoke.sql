@@ -91,6 +91,18 @@ BEGIN
   RETURN n;
 END $$;
 
+-- Count instances list_my_admin_instances returns for a user (0112).
+CREATE OR REPLACE FUNCTION pg_temp.admin_count(_who uuid)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE n int;
+BEGIN
+  PERFORM set_config('role','authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _who, 'role','authenticated')::text, true);
+  SELECT count(*) INTO n FROM public.list_my_admin_instances();
+  PERFORM set_config('role','postgres', true);
+  RETURN n;
+END $$;
+
 DO $$
 DECLARE
   o    uuid := '00000000-0000-4000-a000-0000000a0111';
@@ -99,6 +111,7 @@ DECLARE
   m1   uuid := '00000000-0000-4000-a000-0000000d0111';
   m2   uuid := '00000000-0000-4000-a000-0000000e0111';
   m3   uuid := '00000000-0000-4000-a000-0000001a0111';
+  o2   uuid := '00000000-0000-4000-a000-0000000f0111';
   inst  uuid := '00000000-0000-4000-b000-000000010111';
   inst2 uuid := '00000000-0000-4000-b000-000000020111';
 BEGIN
@@ -163,6 +176,20 @@ BEGIN
   END IF;
   IF pg_temp.list_count(o, inst2) <> 0 THEN
     RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: list_instance_members leaked across the instance boundary (%)', pg_temp.list_count(o, inst2);
+  END IF;
+
+  -- list_my_admin_instances (0112): owner/admin see their OWN admin spaces only.
+  IF pg_temp.admin_count(o) <> 1 THEN
+    RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: owner O should administer exactly 1 space, saw %', pg_temp.admin_count(o);
+  END IF;
+  IF pg_temp.admin_count(a) <> 1 THEN
+    RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: admin A should administer exactly 1 space, saw %', pg_temp.admin_count(a);
+  END IF;
+  IF pg_temp.admin_count(m1) <> 0 THEN
+    RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: a non-admin (M1) should administer 0 spaces, saw %', pg_temp.admin_count(m1);
+  END IF;
+  IF pg_temp.admin_count(o2) <> 1 THEN
+    RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: owner O2 should administer exactly its own 1 space, saw %', pg_temp.admin_count(o2);
   END IF;
 
   RAISE NOTICE 'ROLE CONTROL SMOKE: PASS';
