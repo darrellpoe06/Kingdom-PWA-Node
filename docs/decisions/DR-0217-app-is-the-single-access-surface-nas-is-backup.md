@@ -40,13 +40,23 @@ is the primary *and only* access surface for the family and community.
    (DATA-AS-EMPOWERMENT: family-owned, no cloud lock-in), runs the deterministic
    jobs, and is the durable backup — all BEHIND the app. Its value is
    sovereignty and permanence, not a place people navigate.
-3. **The app↔NAS bridge is the mechanism, and it already exists.** The proven
-   path: the app calls a same-origin route → a Cloudflare Pages Function proxies
-   it to the Tailscale Funnel → the NAS (Caddy/services). `/n8n/*` does this
-   today (app/functions/n8n/[[path]].js). Every new NAS capability rides the
-   same bridge: an in-app call, proxied to the NAS, streamed back — the family
-   browser never talks to the NAS cross-origin (the Funnel throttle is dodged;
-   n8n-base.js).
+3. **The app↔NAS bridge is a TRANSPORT; the backend behind it is sovereign
+   PYTHON, not n8n (DR-0083).** Two layers, kept distinct:
+   - **Transport** — the app calls a same-origin route → a Cloudflare Pages
+     Function proxies it to the Tailscale Funnel → the NAS. This exists and is
+     proven, currently via `/n8n/*` (app/functions/n8n/[[path]].js). The `/n8n`
+     NAME is LEGACY (it predates the sovereign-Python push) and is exactly what
+     DR-0083 retires; new NAS features get a **sovereign-neutral proxy route**
+     (e.g. `/taxes/*`), NOT the `/n8n` name.
+   - **Backend** — behind the proxy the endpoints are **plain Python / FastAPI +
+     Caddy-served files**, replacing n8n workflows (DR-0083: imported_snapshot.py
+     is the "deterministic replacement for n8n workflow 18 — No n8n"). The tax
+     pipeline is the first fully-Python example end to end: `tax_ingest.py`
+     (stdlib), `tax_upload_server.py` (FastAPI), archive.json served by Caddy —
+     zero n8n. Every new capability rides the transport but is served by
+     sovereign Python, never a new n8n webhook.
+   The family browser never talks to the NAS cross-origin either way (the Funnel
+   throttle is dodged; n8n-base.js).
 4. **SETUP is the only NAS-shell exception, and it is an ADMIN task, not a user
    task.** Standing up a service (deploy the upload server, add a Caddy route,
    run a one-shot ingest) is a Governor/Foundation action over SSH — done once,
