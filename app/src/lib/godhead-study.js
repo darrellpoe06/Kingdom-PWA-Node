@@ -1314,7 +1314,7 @@ export const GODHEAD_ALGORITHMS = [
   },
   // --- Spoken teaching captured (Darrell, 2026-07-21): Pastor A.R. Bernard,
   // "navigating modern society through faith, critical thinking, and spiritual
-  // maturity." Five deterministic studies distilled FROM the sermon; every verse
+  // maturity." Twelve deterministic studies distilled FROM the sermon; every verse
   // fetched verbatim KJV (DR-0076). Theme 2 is framed as owning the Word, not
   // relativizing it, to honor DR-0098 (teach the Word, don't stage a both-sides
   // debate). Theme 5 grounds Bernard's "God is beyond our dimension" in the
@@ -1365,6 +1365,63 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'When pressure hits, ask which it is: bait from your own desire (resist it) or a test that grows you (endure it). Read the test as a MIRROR (it shows you to yourself, not God) and a DOORWAY (it is marking a transition up), and look for the escape He already built in — the way out is provided, not invented in panic.',
     outcome: 'Character forged in trials you no longer fear — because the Faithful One prepared the exit before the test began.',
     tags: ['temptation', 'testing', 'character', 'faithfulness'],
+  },
+  {
+    id: 'gh-pray-for-protection', section: 'gospels', name: 'Lead Us Not Into Temptation (a prayer for protection, kept by vigilance)',
+    refs: ['Matthew 6:13', '1 Peter 5:8'],
+    condition: '"And lead us not into temptation, but deliver us from evil" — Jesus teaches us to PRAY for protection; and "Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour."',
+    consequence: '"Lead us not into temptation" is not a hint that God tempts — He never does; it is a requested guard, a prayer for protection. Because sin exploits our own desires, that guard is both asked-for (prayer) AND manned (vigilance): stay sober, keep watch, and keep your desires in check so they cannot be turned into the adversary\'s instruments.',
+    threeD: 'Pray the protection Jesus taught — actually ask to be kept from the place of testing beyond you — and then live sober and alert, because an unwatched desire is the handle the adversary reaches for. Prayer requests the guard; vigilance keeps it.',
+    outcome: 'A desire kept in check and a watch kept up — the adversary finding no handle, and the Father\'s protection actively prayed for.',
+    tags: ['prayer', 'protection', 'vigilance', 'temptation'],
+  },
+  {
+    id: 'gh-see-father-in-son', section: 'gospels', name: 'Show Us the Father (he that hath seen Me hath seen the Father)',
+    refs: ['John 14:8-9'],
+    condition: 'Philip — after three and a half years with Jesus — still asks, "Lord, shew us the Father"; and Jesus answers, "Have I been so long time with you, and yet hast thou not known me, Philip? he that hath seen me hath seen the Father."',
+    consequence: 'To see the Son IS to see the Father — the revelation was standing in front of Philip the whole time. And note the warning in it: you can walk three and a half years CLOSE to the Truth and still not "get" the deeper revelation. Proximity is not comprehension; a revelation has to land, not just be near.',
+    threeD: 'Look for the Father in the face of Jesus — stop asking to be shown what you have already been given. And stay humble about your own grasp: if a disciple that close could miss it, keep asking, keep looking, and let the Spirit turn nearness into sight.',
+    outcome: 'The Father seen where He always was — in the Son — and a learner humble enough to keep receiving the revelation instead of assuming he already holds it.',
+    psyche: 'Nearness breeds the illusion of understanding — the more familiar a truth feels, the less we examine whether it has actually landed; Philip is the caution against mistaking proximity for comprehension.',
+    tags: ['revelation', 'father-and-son', 'humility', 'seeing'],
+  },
+  {
+    id: 'gh-he-already-knew', section: 'gospels', name: 'He Said This to Prove Him (the test He already knew the answer to)',
+    refs: ['John 6:5-6'],
+    condition: 'Jesus asks Philip, "Whence shall we buy bread, that these may eat?" — "And this he said to prove him: for he himself knew what he would do."',
+    consequence: 'The question was a TEST, not a request for information: Jesus already knew what He would do. The test was never to find something OUT for Heaven; it was to prove Philip — to surface his faith and move him toward a new level. Nothing about the outcome was in doubt to the One asking.',
+    threeD: 'When God asks you something you feel you must solve, remember He already knows what He will do — the question is proving you, not stumping Him. Answer from faith, not from your own limited math ("two hundred pennyworth is not enough"), and let the test grow you into the next level.',
+    outcome: 'A test received as formation, not interrogation — you proved and grown, while the One testing already held the answer.',
+    psyche: 'Reframing a test from "solve this or fail" to "He already knows what He will do; this is proving me" removes the panic and restores faith as the right response to pressure.',
+    tags: ['testing', 'faith', 'philip', 'transition'],
+  },
+  {
+    id: 'gh-strengthen-your-brethren', section: 'gospels', name: 'When Thou Art Converted, Strengthen Thy Brethren (the growth is spent outward)',
+    refs: ['Luke 22:32'],
+    condition: 'Jesus to Peter, before the test: "I have prayed for thee, that thy faith fail not: and when thou art converted, strengthen thy brethren."',
+    consequence: 'The test has an OUTWARD purpose: once you are converted and moved to a new level, the growth is not for you to keep — you turn and strengthen the brethren, pulling up those standing where you used to stand. Testing prepares you to become a catalyst for others, not just a personal success story.',
+    threeD: 'When a trial matures you, look immediately for who is where you used to be, and pull them up — that is the point of the level you just gained. Leadership is the growth spent outward: strengthen the brethren.',
+    outcome: 'A community lifted level by level — each person tested, grown, and then turning to raise the next; the growth completing its purpose in someone else\'s rise.',
+    tags: ['leadership', 'testing', 'community', 'discipleship'],
+  },
+  {
+    id: 'gh-all-things-work-together', section: 'epistles', name: 'All Things Work Together for Good (the outcome is already rigged)',
+    refs: ['Romans 8:28'],
+    condition: '"And we know that all things work together for good to them that love God, to them who are the called according to his purpose."',
+    consequence: 'The outcome is, in the pastor\'s word, "rigged" — God is never caught off guard; He already knows the end and has worked the details for your good. The test is not aimed at your failure but at your victory; every transition is marked by a trial that is already bending toward the good of those who love Him.',
+    threeD: 'When the trial hits, stand on the settled outcome: not that the moment is painless, but that it is already being worked together for good. Refuse the panic that says the surprise surprised God — He worked the end before the test began; face it as someone the outcome already favors.',
+    outcome: 'Confidence in the trial — not because it is easy, but because the God who loves you already worked the ending in your favor.',
+    psyche: 'Knowing the end is already secured for good converts a threat-response into an endurance-response — the mind stops fighting for survival and starts working the growth, because the outcome is not in question.',
+    tags: ['testing', 'providence', 'romans8-28', 'confidence'],
+  },
+  {
+    id: 'gh-admit-wrong-to-grow', section: 'wisdom', name: 'Confess and Forsake (admitting you are wrong opens the correction)',
+    refs: ['Proverbs 28:13', 'Proverbs 12:1'],
+    condition: '"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy" — and "whoso loveth instruction loveth knowledge: but he that hateth reproof is brutish."',
+    consequence: 'Admitting you are wrong is the doorway to correction, and correction is the doorway to growth. The one who never admits a mistake never gets corrected — and so never gets it right; covering a fault forfeits the mercy and the progress that confessing it would have unlocked.',
+    threeD: 'When you are wrong, say so quickly — to God and to the person — because the admission is what opens the correction. Love reproof instead of resenting it; treat being challenged (iron sharpening iron) as the gift that keeps you growing.',
+    outcome: 'A life that keeps getting it right because it keeps admitting where it got it wrong — mercy received, correction accepted, growth unblocked.',
+    tags: ['humility', 'correction', 'confession', 'growth'],
   },
   {
     id: 'gh-god-beyond-dimension', section: 'epistles', name: 'Beyond Our Dimension (by Him all things consist)',
