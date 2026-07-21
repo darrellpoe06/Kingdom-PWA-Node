@@ -141,7 +141,7 @@ import { FeedbackModal, FeedbackPromotePanel } from './components/FeedbackCenter
 import {
   About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
-  EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
+  EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchTeam,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
@@ -4559,7 +4559,7 @@ ${THEME_CSS}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['team', <><UiIcon name="tools" /> Dev / Ops Team</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4659,6 +4659,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} setChurchView={setChurchView} email={authSession?.user?.email} canStudy={isStudyCircle} signedIn={!!authSession} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
+        {view === 'church' && churchView === 'team' && <ChurchTeam />}
         {/* Order of Service: ONE master program per Sunday; the component derives
             each staffer's sector view from it (RLS read = whole team, 0042). */}
         {view === 'church' && churchView === 'program' && <ServiceProgram />}
