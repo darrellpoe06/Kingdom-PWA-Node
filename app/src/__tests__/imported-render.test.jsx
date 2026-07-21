@@ -284,12 +284,13 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(toggle, 'the KPI’s · Standard reports header renders').toBeTruthy();
     // collapsed by default — the panel bodies are hidden, so they do NOT eat the top
     expect(container.innerHTML).not.toContain('your subscription audit');
-    expect(container.innerHTML).not.toContain('Material changes · July 2026');
+    expect(container.innerHTML).not.toContain('All outputs · every expense out');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    // one tap expands; with no learned usage the first registry report (Material changes) shows
+    // one tap expands; with no learned usage the first standard report shows — the
+    // standard income/outputs pair leads (here only outputs exist), so All outputs shows
     await click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(container.innerHTML).toContain('Material changes · July 2026');
+    expect(container.innerHTML).toContain('All outputs · every expense out');
     expect(container.innerHTML).toContain('key performance indicator'); // teaches the CONCEPT for learners
     // selecting the Recurring tab swaps the shown report (and records the use)
     const recurTab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === 'Recurring payments');
@@ -326,6 +327,36 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(container.innerHTML).toContain('who you pay most');
     expect(container.innerHTML).toContain('KROGER');
     expect(container.innerHTML).toContain('2×');
+  });
+
+  it('Standard reports include All income + All outputs, each on one report with its grand total', async () => {
+    // Darrell 2026-07-21: "all income on one report and all outputs etc... standard reports."
+    const FLOW = {
+      accounts: [{ id: 'a1', name: 'Chase 7206', openingBalance: 5000 }],
+      transactions: [
+        { id: 'i1', accountId: 'a1', date: '2026-07-05', amount: 2000, description: 'UNIVERSITY PAYROLL', category: 'salary' },
+        { id: 'i2', accountId: 'a1', date: '2026-07-20', amount: 500, description: 'TLC THERAPY', category: 'salary' },
+        { id: 'e1', accountId: 'a1', date: '2026-07-10', amount: -300, description: 'KROGER', category: 'groceries' },
+        { id: 'e2', accountId: 'a1', date: '2026-07-15', amount: -200, description: 'SHELL OIL', category: 'transportation' },
+      ],
+    };
+    localStorage.removeItem('poe.imported.reportUsage.v1');
+    const { container, click } = await mount(FLOW);
+    const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
+    await click(toggle);
+    const tabLabels = () => [...container.querySelectorAll('[role="tab"]')].map((t) => t.textContent.trim());
+    expect(tabLabels()).toContain('All income');
+    expect(tabLabels()).toContain('All outputs');
+    // All income — $2,500 in, with the grand total line
+    await click([...container.querySelectorAll('[role="tab"]')].find((t) => t.textContent.trim() === 'All income'));
+    expect(container.innerHTML).toContain('every source in');
+    expect(container.innerHTML).toContain('Total income');
+    expect(container.innerHTML).toContain('$2,500');
+    // All outputs — $500 out ($300 + $200), with the grand total line
+    await click([...container.querySelectorAll('[role="tab"]')].find((t) => t.textContent.trim() === 'All outputs'));
+    expect(container.innerHTML).toContain('every expense out');
+    expect(container.innerHTML).toContain('Total outputs');
+    expect(container.innerHTML).toContain('$500');
   });
 
   it('Recurring payments IS the subscription audit — Cancel flags the pattern + totals savings, persisted', async () => {

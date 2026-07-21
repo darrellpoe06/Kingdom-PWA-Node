@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   currentViewModel, monthlySummaryModel, byCategoryModel, byAccountModel,
-  incomeVsExpenseModel, tax1099Model, financePresets,
+  incomeVsExpenseModel, allIncomeModel, allOutputsModel, tax1099Model, financePresets,
 } from '../lib/finance-reports.js';
 import { csvNetTotal } from '../lib/report-export.js';
 import { totals, groupByField } from '../lib/imported-view.js';
@@ -86,6 +86,45 @@ describe('incomeVsExpenseModel — internal transfers are NOT income or expense'
   tieOut(m);
 });
 
+describe('allIncomeModel — every source of income on one report', () => {
+  const m = allIncomeModel(ROWS, META);
+  it('groups all money IN by category, biggest first, and ties to the IN total', () => {
+    // salary is the only income category here: 2099.93 + 2099.93 + 1500 = 5699.86
+    expect(m.groups.map((g) => g.label)).toEqual(['salary']);
+    expect(m.groups[0].subtotal.in).toBeCloseTo(5699.86, 2);
+    expect(m.total.in).toBeCloseTo(5699.86, 2);
+  });
+  it('excludes expenses entirely (income report is one-sided)', () => {
+    const rows = m.groups.flatMap((g) => g.rows);
+    expect(rows.every((r) => r.amount > 0)).toBe(true);
+  });
+  tieOut(m);
+});
+
+describe('allIncomeModel — internal transfer credits are NOT income', () => {
+  const XFER = [{ id: 'x2', posted: '2026-06-12', institution: 'Chase 3322', name: 'Online Transfer from Checking', isTransfer: true, amount: 500 }];
+  const m = allIncomeModel([...ROWS, ...XFER], META);
+  it('drops the transfer credit and says so in the note', () => {
+    expect(m.groups.flatMap((g) => g.rows).some((r) => r.payee === 'Online Transfer from Checking')).toBe(false);
+    expect(m.total.in).toBeCloseTo(5699.86, 2); // NOT 6199.86
+    expect(m.note).toMatch(/transfer/i);
+  });
+  tieOut(m);
+});
+
+describe('allOutputsModel — every expense on one report', () => {
+  const m = allOutputsModel(ROWS, META);
+  it('groups all money OUT by category, biggest first, and ties to the OUT total', () => {
+    // housing 1200 > groceries 140.25
+    expect(m.groups.map((g) => g.label)).toEqual(['housing', 'groceries']);
+    expect(m.total.out).toBeCloseTo(1340.25, 2);
+  });
+  it('excludes income entirely (outputs report is one-sided)', () => {
+    expect(m.groups.flatMap((g) => g.rows).every((r) => r.amount < 0)).toBe(true);
+  });
+  tieOut(m);
+});
+
 describe('tax1099Model — totals by payee, with an honest disclaimer', () => {
   const m = tax1099Model(ROWS, META);
   it('rolls repeated payees into one line and carries a not-a-filed-1099 note', () => {
@@ -108,9 +147,9 @@ describe('currentViewModel — exports EXACTLY the grouped view passed in', () =
 });
 
 describe('financePresets — the one-click report menu', () => {
-  it('offers monthly / category / account / income-vs-expense / 1099, each buildable', () => {
+  it('offers monthly / category / account / all-income / all-outputs / income-vs-expense / 1099, each buildable', () => {
     const presets = financePresets(ROWS, META);
-    expect(presets.map((p) => p.key)).toEqual(['monthly', 'category', 'account', 'inc-exp', '1099']);
+    expect(presets.map((p) => p.key)).toEqual(['monthly', 'category', 'account', 'all-income', 'all-outputs', 'inc-exp', '1099']);
     for (const p of presets) {
       const model = p.buildModel();
       expect(csvNetTotal(model)).toBe(model.total.net); // every preset reconciles
@@ -190,8 +229,8 @@ describe('financePresets — KPI reports prepend when analyses are supplied', ()
     const presets = financePresets(ROWS, META, kpis);
     expect(presets.slice(0, 3).map((p) => p.key)).toEqual(['kpi-material', 'kpi-unusual', 'kpi-recurring']);
     expect(presets.slice(0, 3).every((p) => p.kpi && p.hint)).toBe(true);
-    // the standard 5 still follow
-    expect(presets.slice(3).map((p) => p.key)).toEqual(['monthly', 'category', 'account', 'inc-exp', '1099']);
+    // the standard reports still follow
+    expect(presets.slice(3).map((p) => p.key)).toEqual(['monthly', 'category', 'account', 'all-income', 'all-outputs', 'inc-exp', '1099']);
   });
   it('omits a KPI whose analysis is empty', () => {
     const presets = financePresets(ROWS, META, { variance: { materialCount: 0 }, anomalies: [], recurring: [] });

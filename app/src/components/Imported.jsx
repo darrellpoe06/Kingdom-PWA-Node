@@ -355,6 +355,22 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     }
     return [...byPayee.entries()].map(([label, v]) => ({ label, amount: v.amount, count: v.count })).sort((a, b) => b.amount - a.amount);
   }, [grouped.windowed]);
+  // Standard report — ALL INCOME on one report: external money IN grouped by
+  // source/category, biggest first, with each source's share and the grand
+  // total (Darrell 2026-07-21: "The KPI's should have all income on one report
+  // and all outputs etc... standard reports"). Same windowed external rows the
+  // register shows; transfers excluded so a transfer credit is never counted as
+  // income (DR-0076 — ties out to the IN total in the header).
+  const allIncome = useMemo(() => {
+    const inflow = (grouped.windowed || []).filter((r) => r.amount > 0 && !isTransferTxn(r));
+    const byCat = new Map();
+    for (const r of inflow) byCat.set(r.category || null, (byCat.get(r.category || null) || 0) + r.amount);
+    const total = [...byCat.values()].reduce((s, v) => s + v, 0);
+    const rows = [...byCat.entries()]
+      .map(([key, amount]) => ({ key: key || 'uncategorized', label: key ? categoryLabel(key) : 'Uncategorized', amount, pct: total > 0 ? Math.round((amount / total) * 100) : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+    return { total, count: inflow.length, rows };
+  }, [grouped.windowed]);
   const recurringIds = useMemo(() => {
     const s = new Set();
     for (const g of recurring) for (const id of g.txIds) s.add(id);
@@ -702,6 +718,50 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
               off the live ledger — no static data (DR-0061 / P15). */}
           {(() => {
             const stdReports = [];
+            // The standard income/outputs pair leads (Darrell 2026-07-21: "all
+            // income on one report and all outputs etc... standard reports").
+            if (allIncome.rows.length > 0) stdReports.push({
+              id: 'all-income', label: 'All income',
+              node: (
+                <div className="border border-[#166534] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#166534]">All income · every source in · {periodLabel(activePeriod)}</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{allIncome.count} deposit{allIncome.count === 1 ? '' : 's'} · {fmtMoney(allIncome.total)} in</div>
+                  </div>
+                  {allIncome.rows.map((c) => (
+                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of income</span></span>
+                      <span className="shrink-0 text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(c.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-baseline justify-between gap-2 text-[0.75rem] border-t border-[#E8E4DC] pt-1.5 mt-1">
+                    <span className="font-semibold text-[#1A1815]">Total income</span>
+                    <span className="shrink-0 font-semibold text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(allIncome.total)}</span>
+                  </div>
+                </div>
+              ),
+            });
+            if (topCategories.rows.length > 0) stdReports.push({
+              id: 'all-outputs', label: 'All outputs',
+              node: (
+                <div className="border border-[#B85838] bg-[#FAF8F4] p-3 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838]">All outputs · every expense out · {periodLabel(activePeriod)}</div>
+                    <div className="text-[0.5625rem] text-[#5A5751]">{topCategories.rows.length} categor{topCategories.rows.length === 1 ? 'y' : 'ies'} · {fmtMoney(topCategories.total)} out</div>
+                  </div>
+                  {topCategories.rows.map((c) => (
+                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
+                      <span className="shrink-0 text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(c.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-baseline justify-between gap-2 text-[0.75rem] border-t border-[#E8E4DC] pt-1.5 mt-1">
+                    <span className="font-semibold text-[#1A1815]">Total outputs</span>
+                    <span className="shrink-0 font-semibold text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(topCategories.total)}</span>
+                  </div>
+                </div>
+              ),
+            });
             if (variance.materialCount > 0) stdReports.push({
               id: 'material', label: 'Material changes',
               node: (
