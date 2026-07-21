@@ -20,6 +20,7 @@ import { recordView } from './lib/usage-events.js';
 // steward board (a 'saved' row that never reached the cloud is a trust break).
 const syncWarn = (label, e) => { console.warn(label, e); try { recordError({ source: 'sync', kind: 'runtime', message: `${label}: ${(e && e.message) || e}` }); } catch (_) { /* watcher never throws */ } };
 import { LegalPlaceholder } from './components/Legal.jsx';
+import BooksTaxes from './components/BooksTaxes.jsx';
 import { BooksEntities } from './components/BooksEntities.jsx';
 import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
@@ -4547,7 +4548,7 @@ ${THEME_CSS}
                 (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
                 caps the row via zoom while body text scales. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4603,12 +4604,11 @@ ${THEME_CSS}
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
             {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
-            {booksView === 'imported' && (importedAllowed
-              ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} />
-              : <ImportedDemoGuard setBooksView={setBooksView} />)}
+            {booksView === 'imported' && (importedAllowed ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} /> : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
+            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
           </SectionBoundary>
           </PrivateGate>

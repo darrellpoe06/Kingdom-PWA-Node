@@ -174,6 +174,28 @@ export function LessonRunOfShow({
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO}>{arc.totalMinutes} min total</div>
       </div>
 
+      {/* Course-split (DR-0215 §2): when the spoken teaching runs longer than the
+          chosen slot, the lesson FLOWS across more than one session — content-
+          preserving (every word is carried, nothing cut). A single-session lesson
+          shows nothing here. */}
+      {arc.sessionPlan && arc.sessionPlan.multiSession && (
+        <div className="mb-3 border border-[#7A1F1F] bg-white p-2">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#7A1F1F] font-semibold mb-1">
+            Runs across {arc.sessionPlan.sessionCount} sessions · ~{arc.sessionPlan.estMinutes} min of teaching
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
+            This lesson is longer than one {arc.totalMinutes}-minute slot, so teach it across {arc.sessionPlan.sessionCount} sittings — nothing is cut, it is paced across sessions.
+          </p>
+          <ol className="text-[0.6875rem] text-[#1A1815] space-y-0.5" style={SERIF}>
+            {arc.sessionPlan.sessions.map((sp) => (
+              <li key={sp.index}>
+                <strong className="text-[#5A6E3D]">{sp.label}</strong> · ~{sp.estMinutes} min
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       {/* Time-adaptive reflow — re-time the whole plan to any length (#309). */}
       <div className="mb-3">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Fit the time you have</div>

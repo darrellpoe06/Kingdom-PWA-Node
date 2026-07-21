@@ -416,4 +416,41 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(del).toHaveBeenCalledWith(['p1']); // keeps the fullest, removes the other
     vi.unstubAllGlobals();
   });
+
+  it('drill-down: clicking an income total reveals the deposits that make it up (Darrell 2026-07-21)', async () => {
+    const data = {
+      accounts: [{ id: 'a1', name: 'Chase 7206' }],
+      transactions: [
+        { id: 'd1', accountId: 'a1', date: '2026-06-05', amount: 700, description: 'ACME PAYROLL', category: 'income' },
+        { id: 'd2', accountId: 'a1', date: '2026-06-20', amount: 300, description: 'ACME PAYROLL 2', category: 'income' },
+        { id: 'r1', accountId: 'a1', date: '2026-06-15', amount: 250, description: 'RENT DEPOSIT', category: 'rental' },
+      ],
+    };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { createRoot(container).render(createElement(Imported, { data })); });
+    const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+
+    // open the Standard reports panel, then pick All income
+    const header = [...container.querySelectorAll('button')].find((b) => /Standard reports/i.test(b.textContent || ''));
+    expect(header, 'the Standard reports header renders').toBeTruthy();
+    await click(header);
+    const allIncomeTab = [...container.querySelectorAll('[role="tab"]')].find((b) => /All income/i.test(b.textContent || ''));
+    if (allIncomeTab) await click(allIncomeTab);
+
+    // the grouped income total (the "% of income" row) is a clickable button
+    const groupBtn = [...container.querySelectorAll('button')].find((b) => /% of income/.test(b.textContent || ''));
+    const dump = [...container.querySelectorAll('button')].map((b) => (b.textContent || '').trim().slice(0, 40)).filter(Boolean).join(' | ');
+    expect(groupBtn, `an income group total renders as an expandable button. buttons: ${dump}`).toBeTruthy();
+    // the drill-down members render as <li>; before clicking there are none
+    const drillLi = () => [...container.querySelectorAll('li')].filter((li) => /ACME PAYROLL/.test(li.textContent || ''));
+    expect(groupBtn.getAttribute('aria-expanded')).toBe('false');
+    expect(drillLi().length).toBe(0);
+    await click(groupBtn);
+    // now the member deposits that make up the total are revealed, in the same format
+    expect(groupBtn.getAttribute('aria-expanded')).toBe('true');
+    const members = drillLi();
+    expect(members.length).toBeGreaterThanOrEqual(1);
+    expect(members.some((li) => /\$700/.test(li.textContent))).toBe(true);
+  });
 });

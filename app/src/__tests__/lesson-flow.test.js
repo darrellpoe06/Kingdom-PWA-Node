@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import {
   LESSON_ARC, ARC_KINDS, DEFAULT_SESSION_MINUTES,
   sessionMinutesFromFlow, reflowArcMinutes, parseHowToRun, phaseKind, buildLessonArc,
+  planSessions, SPOKEN_WPM,
 } from '../lib/lesson-flow.js';
 import { MODULES, SESSION_FLOW } from '../lib/church-classes.js';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
@@ -249,5 +250,72 @@ describe('never lie about a story — kind is truthfully labeled (Darrell 2026-0
       }
     }
     expect(offenders, offenders.join(' | ')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// planSessions — the course-split (DR-0215 §2). Adversarial / proven-to-catch:
+// it must (a) NEVER drop or reorder a word of the teaching (content-preserving),
+// (b) keep a slot-sized lesson to ONE session, (c) flow an over-slot lesson
+// across MORE than one session, and (d) split only at sentence boundaries.
+// ---------------------------------------------------------------------------
+const normWS = (s) => String(s).replace(/\s+/g, ' ').trim();
+
+describe('planSessions — content-preserving course-split (DR-0215)', () => {
+  const shortLesson = { id: 'x-short', lesson: 'A short teaching. It fits one slot. Nothing more to say here.' };
+  // ~4200 words of teaching -> well over a 25-min slot at 140 wpm (~30 min).
+  const longText = Array.from({ length: 300 }, (_, i) =>
+    `This is teaching sentence number ${i + 1} and it carries real weight for the learner.`).join(' ');
+  const longLesson = { id: 'x-long', lesson: longText };
+
+  it('keeps a slot-sized lesson to a single session', () => {
+    const p = planSessions(shortLesson, { slotMinutes: 25 });
+    expect(p.sessionCount).toBe(1);
+    expect(p.multiSession).toBe(false);
+    expect(p.sessions.length).toBe(1);
+  });
+
+  it('flows an over-slot lesson across MORE than one session', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    expect(p.sessionCount).toBeGreaterThanOrEqual(2);
+    expect(p.multiSession).toBe(true);
+    expect(p.sessions.map((s) => s.label)).toEqual(
+      p.sessions.map((s, i) => `Session ${i + 1} of ${p.sessions.length}`));
+  });
+
+  it('NEVER loses or reorders a word — rejoining the sessions reproduces the teaching', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    expect(normWS(p.sessions.map((s) => s.text).join(' '))).toBe(normWS(longText));
+  });
+
+  it('splits only at sentence boundaries (no session ends mid-sentence)', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    for (const s of p.sessions.slice(0, -1)) {
+      expect(/[.!?]$/.test(s.text.trim())).toBe(true);
+    }
+  });
+
+  it('fewer, larger slots need fewer sessions (the slot drives the split)', () => {
+    const small = planSessions(longLesson, { slotMinutes: 10 }).sessionCount;
+    const big = planSessions(longLesson, { slotMinutes: 60 }).sessionCount;
+    expect(small).toBeGreaterThanOrEqual(big);
+    expect(big).toBe(1);
+  });
+
+  it('a real over-slot Living Lesson (L50) flows across >=2 sessions, content-preserved', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll50-'));
+    const p = planSessions(l50, { slotMinutes: 25 });
+    expect(p.estMinutes).toBeGreaterThan(25);
+    expect(p.sessionCount).toBeGreaterThanOrEqual(2);
+    // every session carries real teaching, and none is empty
+    for (const s of p.sessions) expect(s.words).toBeGreaterThan(0);
+  });
+
+  it('buildLessonArc surfaces the session plan', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll50-'));
+    const arc = buildLessonArc(l50, { targetMinutes: 25 });
+    expect(arc.sessionPlan).toBeTruthy();
+    expect(arc.sessionPlan.multiSession).toBe(true);
+    expect(SPOKEN_WPM).toBeGreaterThan(0);
   });
 });

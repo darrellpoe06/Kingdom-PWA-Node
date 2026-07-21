@@ -76,9 +76,18 @@ relying on it; memories reflect what was true when written.
   his desktop, give plain instructions PLUS a ready-to-paste PowerShell
   block. Pairs with the "PowerShell Commands — Self-Contained From Anywhere"
   rule in CLAUDE.md (cd prefix, PS 5.x only, no placeholders, ASCII only).
-- **project_n8n_same_origin_rewrite** — the PWA reaches n8n webhooks via the
-  same-origin `/n8n` Vercel rewrite, never the absolute Tailscale Funnel URL
-  (it throttles cross-origin). Resolver: `app/src/lib/n8n-base.js`.
+- **project_app_to_nas_transport_and_sovereign_python** — the PWA reaches the
+  NAS via a same-origin TRANSPORT (a Cloudflare Pages Function → Tailscale Funnel
+  proxy; `app/functions/n8n/[[path]].js`, resolver `app/src/lib/n8n-base.js`),
+  never the absolute Funnel URL (it throttles cross-origin). ALIGNMENT (DR-0083 /
+  DR-0132 / DR-0217): the `/n8n` route NAME is LEGACY — it fronts the ~13 n8n
+  webhooks that still exist and is exactly what the Ways are RETIRING; the BACKEND
+  direction is sovereign PYTHON (plain Python/FastAPI + Caddy-served files on the
+  NAS: nas-tax-ingest, nas-finance-ingest, nas-property-*, nas-sme-pipeline,
+  voice-studio, whisper-gpu), on a sovereign-neutral same-origin route (e.g. the
+  tax feature's `/taxes/*`), NEVER a new n8n webhook. DR-0132 holds the phased
+  migration; renaming the `/n8n` transport route to a sovereign-neutral name is a
+  tracked DR-0075 item.
 - **project_bernard_sermon_godhead_studies** — spoken teachings become Godhead
   Study algorithms (DR-0089). The pattern: append a `gh-`-prefixed entry to
   `GODHEAD_ALGORITHMS` in `app/src/lib/godhead-study.js` (fields: id/section/name/
