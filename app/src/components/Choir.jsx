@@ -31,8 +31,9 @@ import {
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
   inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
-  mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode,
+  mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
 import { isAutoDraft } from '../lib/ari-words-training.js';
@@ -462,7 +463,38 @@ function MemberClaimControl({ member, onMintCode }) {
   );
 }
 
-function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite, onMintCode }) {
+// The director's edit-access control for a LINKED member: shows the member's real
+// instance role and offers only the roles the director may actually set (mirrors
+// the set_member_role guards). Unlinked members (no app account) show nothing here.
+function MemberAccessControl({ member, myRole, instanceRoleOf, onSetMemberRole }) {
+  const [msg, setMsg] = useState('');
+  if (!member.userId) return null;                 // not linked to an account yet
+  const targetRole = instanceRoleOf(member.userId);
+  if (!targetRole) return null;                    // role not resolved yet
+  const options = grantableRoles(myRole, targetRole);
+  if (!options.length) {
+    return <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" title="This person's access role">{instanceRoleLabel(targetRole)}</span>;
+  }
+  const change = async (role) => {
+    setMsg('Saving…');
+    const r = await onSetMemberRole(member.userId, role);
+    setMsg(r?.skipped ? `Couldn't change access (${r.skipped}).` : '');
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <label className="sr-only" htmlFor={`acc-${member.id}`}>Access role</label>
+      <select id={`acc-${member.id}`} className="text-xs p-1 border border-[#E8E4DC] bg-white" value={targetRole}
+        onChange={(e) => change(e.target.value)}>
+        <option value={targetRole} disabled>{instanceRoleLabel(targetRole)}</option>
+        {options.filter((o) => o !== targetRole).map((o) => <option key={o} value={o}>{instanceRoleLabel(o)}</option>)}
+      </select>
+      {msg && <span className="text-[0.625rem] text-[#5A5751]">{msg}</span>}
+    </div>
+  );
+}
+
+function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite, onMintCode,
+  onUpdateChoirRole, myRole, instanceRoleOf, onSetMemberRole }) {
   const [f, setF] = useState({ displayName: '', section: '', choirRole: 'member' });
   const [adding, setAdding] = useState(false);
   const [inv, setInv] = useState({ email: '', role: 'member' });
@@ -538,15 +570,36 @@ function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite
       {members.length ? (
         <div className="bg-white border border-[#1A1815]">
           {members.map((m) => (
-            <div key={m.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
-              <div>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
-                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
+            <div key={m.id} className="p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline justify-between gap-2">
+                <div>
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
+                  <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
+                </div>
+                {canEdit && (
+                  <div className="flex items-center gap-3">
+                    {onMintCode && <MemberClaimControl member={m} onMintCode={onMintCode} />}
+                    <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
+                  </div>
+                )}
               </div>
               {canEdit && (
-                <div className="flex items-center gap-3">
-                  {onMintCode && <MemberClaimControl member={m} onMintCode={onMintCode} />}
-                  <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
+                <div className="flex items-center gap-2 flex-wrap mt-2">
+                  {onUpdateChoirRole && (
+                    <label className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      Team
+                      <select className="text-xs p-1 border border-[#E8E4DC] bg-white normal-case tracking-normal" value={m.choirRole}
+                        onChange={(e) => onUpdateChoirRole(m.id, e.target.value)}>
+                        {ROLE_OPTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  {instanceRoleOf && onSetMemberRole && (
+                    <label className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      Access
+                      <MemberAccessControl member={m} myRole={myRole} instanceRoleOf={instanceRoleOf} onSetMemberRole={onSetMemberRole} />
+                    </label>
+                  )}
                 </div>
               )}
             </div>
@@ -845,6 +898,7 @@ export default function Choir() {
   const [resources, setResources] = useState([]);
   const [invites, setInvites] = useState([]);
   const [myMembership, setMyMembership] = useState([]);  // the caller's own linked roster row(s)
+  const [instanceMembers, setInstanceMembers] = useState([]);  // real instance roles (owner/admin can read) for the co-director control
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -868,6 +922,18 @@ export default function Choir() {
     getMyChoirMembership().then((rows) => { if (alive) setMyMembership(rows); });
     return () => { alive = false; };
   }, [signedIn, access.canSee, members]);
+
+  // Directors (owner/admin) can read the real instance roster, so the co-director
+  // control (promote/demote edit access) shows each linked member's true role.
+  const loadInstanceMembers = () => {
+    if (access.canEdit && access.tenantId) listInstanceMembers(access.tenantId).then(setInstanceMembers);
+  };
+  useEffect(() => {
+    let alive = true;
+    if (!access.canEdit || !access.tenantId) { setInstanceMembers([]); return undefined; }
+    listInstanceMembers(access.tenantId).then((rows) => { if (alive) setInstanceMembers(rows); });
+    return () => { alive = false; };
+  }, [access.canEdit, access.tenantId, members]);
 
   // Subscribe to the streams once the user can see the surface.
   useEffect(() => {
@@ -1001,6 +1067,10 @@ export default function Choir() {
         onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
         onInvite={(email, role) => inviteToChurch(email, role)}
         onMintCode={(memberId) => mintClaimCode(memberId)}
+        onUpdateChoirRole={async (id, choirRole) => { reportSkip(await updateChoirRole(id, choirRole)); }}
+        myRole={access.role}
+        instanceRoleOf={(userId) => instanceMembers.find((im) => im.userId === userId)?.role || null}
+        onSetMemberRole={async (userId, role) => { const r = await setMemberRole(access.tenantId, userId, role); if (!r?.skipped) loadInstanceMembers(); return r; }}
       />
     ),
   };

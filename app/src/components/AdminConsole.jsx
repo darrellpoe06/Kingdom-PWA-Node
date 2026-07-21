@@ -38,6 +38,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel } from '../lib/member-roles.js';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -114,6 +115,7 @@ export default function AdminConsole({
   onResetSeed = null,
 }) {
   const [roleState, setRoleState] = useState({ status: 'idle', role: null, error: null });
+  const [members, setMembers] = useState({ status: 'idle', list: [], myRole: null, error: null });
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -145,6 +147,25 @@ export default function AdminConsole({
     } catch (e) {
       setRoleState({ status: 'error', role: null, error: (e && e.message) || 'query failed' });
     }
+  };
+
+  // Load the REAL member roster + my role, so the role controls show live data and
+  // only the roles I may actually set (mirrors the set_member_role guards, 0111).
+  const loadMembers = async () => {
+    if (!instanceId) { setMembers({ status: 'no-instance', list: [], myRole: null, error: null }); return; }
+    setMembers((p) => ({ ...p, status: 'loading' }));
+    try {
+      const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: instanceId });
+      const list = await listInstanceMembers(instanceId);
+      setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
+    } catch (e) {
+      setMembers({ status: 'error', list: [], myRole: null, error: (e && e.message) || 'query failed' });
+    }
+  };
+  const changeMemberRole = async (userId, role) => {
+    const r = await setMemberRole(instanceId, userId, role);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers();
   };
 
   const doReload = () => { try { window.location.reload(); } catch (e) { /* no-op */ } };
@@ -255,6 +276,49 @@ export default function AdminConsole({
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* Real, guarded role controls (DR-0220 Phase 3). Owner/admin only —
+              set_member_role (0111) is the real enforcement; the options shown
+              mirror its guards (never owner, only an owner grants admin, no self,
+              owners untouchable). Works for family AND the COLG/Love Corner church
+              instance — same primitive. */}
+          <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Manage access roles</div>
+              <button type="button" onClick={loadMembers}
+                className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
+                {members.status === 'loading' ? 'Loading…' : members.status === 'ok' ? 'Refresh' : 'Load members'}
+              </button>
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+              Change a member’s access in this space. You can’t change an owner, an admin (only an owner can), or yourself — and no one is ever made owner here.
+            </p>
+            {members.status === 'no-instance' && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device.</p>}
+            {members.status === 'error' && <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>{members.error}</p>}
+            {members.status === 'ok' && members.list.length === 0 && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>No members to manage (owner/admin access required).</p>}
+            {members.status === 'ok' && members.list.length > 0 && (
+              <ul className="mt-2 space-y-1.5">
+                {members.list.map((m) => {
+                  const isSelf = !!(m.email && email && m.email.toLowerCase() === email.toLowerCase());
+                  const options = grantableRoles(members.myRole, m.role, { isSelf });
+                  return (
+                    <li key={m.userId || m.email} className="flex items-baseline justify-between gap-2 text-xs text-[#1A1815]" style={serif}>
+                      <span className="break-all min-w-0">{m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}</span>
+                      {options.length ? (
+                        <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
+                          onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
+                          <option value={m.role} disabled>{roleLabel(m.role)}</option>
+                          {options.filter((o) => o !== m.role).map((o) => <option key={o} value={o}>{roleLabel(o)}</option>)}
+                        </select>
+                      ) : (
+                        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </section>
       ),

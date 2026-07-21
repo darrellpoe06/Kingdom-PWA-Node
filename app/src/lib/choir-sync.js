@@ -698,6 +698,16 @@ export async function removeMember(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
+// Change a roster member's DESCRIPTIVE choir role (member/musician/sound/media/tech/
+// director/assistant). This is the section-team label, not app authority —
+// choir_members_update RLS (0011) already lets owner/admin update it. Edit ACCESS
+// (co-director) is a separate instance-role change via member-roles.setMemberRole.
+export async function updateChoirRole(id, choirRole) {
+  if (!id || !choirRole) return { skipped: 'bad-args' };
+  const { error } = await supabase.from('choir_members').update({ choir_role: choirRole }).eq('id', id);
+  return error ? { skipped: 'update-error', error } : { updated: true };
+}
+
 // Invite a choir/media member into the church instance by email + role. They get
 // access (and see the Choir tab) the next time they sign in — join_church_instance
 // accepts the pending invite. Owner/admin only (enforced in the RPC).
