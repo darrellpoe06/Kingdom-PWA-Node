@@ -542,7 +542,10 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
     const bm = members.find((m) => m.id === f.backupMemberId) || null;
     onSave({
       memberId: f.memberId || null,
-      memberName: absentMember?.displayName || 'Me',
+      // When "Me" is selected (no member picked), leave the name null so the sync
+      // falls back to the signed-in user's REAL displayName — never the literal
+      // string "Me" (which everyone else would then see in the who's-out list).
+      memberName: absentMember?.displayName || null,
       startDate: f.startDate,
       endDate: f.endDate || null,
       reason: f.reason || null,

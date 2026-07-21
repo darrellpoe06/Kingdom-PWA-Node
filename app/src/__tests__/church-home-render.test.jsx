@@ -255,3 +255,41 @@ describe('Follow along in the Word', () => {
     expect(section().className).not.toMatch(/\bsticky\b/);
   });
 });
+
+// DR-0219 pre-launch: parishioner-facing forms must PERSIST, not drop the write
+// and then claim "we'll reach out." The invite-your-church form used to only
+// setState locally. This proves it now routes through the real addInquiry sink.
+describe('church-home forms persist (no dropped write, no false confirmation)', () => {
+  const setInput = (sel, value) => {
+    const el = container.querySelector(sel);
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  it('the invite-your-church "Send invite" writes a REAL partner-church-invite inquiry', () => {
+    const addInquiry = vi.fn();
+    mount({ addInquiry });
+    clickTab('About');
+    const open = [...container.querySelectorAll('button')].find((b) => /Invite them/i.test(b.textContent || ''));
+    expect(open, 'no "Invite them" opener on the About tab').toBeTruthy();
+    act(() => open.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    act(() => { setInput('#inv-church', 'Grace Chapel'); setInput('#inv-email', 'pastor@grace.example'); });
+    const send = [...container.querySelectorAll('button')].find((b) => /Send invite/i.test(b.textContent || ''));
+    act(() => send.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(addInquiry).toHaveBeenCalledTimes(1);
+    expect(addInquiry.mock.calls[0][0].kind).toBe('partner-church-invite');
+    expect(addInquiry.mock.calls[0][0].churchName).toBe('Grace Chapel');
+    // and the confirmation only shows AFTER the real write
+    expect(container.textContent).toMatch(/we'll reach out/i);
+  });
+  it('the Testimony Diary shows an honest coming-soon, not a dead-end Unlock', () => {
+    mount({});
+    clickTab('Speak'); // the diary door lives on the Speak tab
+    // the diary door still exists...
+    expect(container.querySelector('#diary-h')).toBeTruthy();
+    // ...but there is no PIN input / "Unlock" affordance that leads nowhere
+    expect(container.querySelector('#diary-pin')).toBeFalsy();
+    expect([...container.querySelectorAll('button')].some((b) => /^unlock$/i.test((b.textContent || '').trim()))).toBe(false);
+    expect(container.textContent).toMatch(/coming soon/i);
+  });
+});
