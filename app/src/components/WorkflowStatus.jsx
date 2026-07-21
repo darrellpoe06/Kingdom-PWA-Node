@@ -1,15 +1,18 @@
 // =============================================================================
 // WorkflowStatus — live readout of the automation fleet (DR-0061 Stage 2)
 // =============================================================================
-// Brings the REAL system into the app: which n8n workflows exist, which are
-// active, and how the last run went — fetched live from the NAS via the
-// same-origin /n8n rewrite (wf-workflow-status). Degrades honestly: if the feed
-// isn't wired yet it says so and how to connect it, instead of faking data.
+// Brings the REAL system into the app: which automations exist, which are
+// active, and how the last run went — fetched live from the NAS at the sovereign
+// same-origin path GET /automation-status (DR-0218 zero-n8n). The old n8n fleet
+// readout (/n8n/webhook/workflow-status) is retired with n8n itself; this now
+// points at where the sovereign automation-status server serves. Degrades
+// honestly: if the feed isn't wired yet it says so, instead of faking data —
+// and it never repaints the build-time repo count as if it were live run-status.
 //
 // Pairs with the build-time repo counts on the Build board (#68): those are
 // "what's built"; this is "what's actually running right now."
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { n8nAuthHeaders } from '../lib/n8n-base.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
 
@@ -53,8 +56,8 @@ export default function WorkflowStatus() {
     let cancelled = false;
     (async () => {
       try {
-        const url = `${N8N_BASE.replace(/\/+$/, '')}/webhook/workflow-status`;
-        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
+        const url = '/automation-status';
+        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) } });
         const json = await r.json().catch(() => null);
         if (cancelled) return;
         const norm = normalizeWorkflowStatus(json);
@@ -83,11 +86,7 @@ export default function WorkflowStatus() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>Live status isn&apos;t connected yet — showing nothing rather than guessing.</p>
-          {state.error && /api key not configured/i.test(state.error) ? (
-            <p className="mt-1 text-[11px]">To light it up: import <span className="font-mono">wf-workflow-status</span> on the NAS, add an n8n API key to <span className="font-mono">/data/secrets/n8n-api-key.txt</span>, and activate it.</p>
-          ) : (
-            <p className="mt-1 text-[11px]">Import + activate <span className="font-mono">wf-workflow-status</span> on the NAS to connect this readout.</p>
-          )}
+          <p className="mt-1 text-[11px]">To light it up: stand up the sovereign automation-status server on the NAS and route <span className="font-mono">/automation-status</span> in Caddy — it reports what the sovereign Python jobs are running, no n8n.</p>
         </div>
       )}
 

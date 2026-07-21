@@ -9,10 +9,11 @@
 // window onto it. An empty feed says so honestly; it never paints rows.
 //
 // DATA + AUTH (Reality-Trace, CLAUDE.md):
-//   - Real data: GET {N8N_BASE}/webhook/review-feed -> wf-review-feed reads the
-//     real /data/finance-events/_freshness/*.json files the v1 loop writes.
-//     POST {N8N_BASE}/webhook/review-action sets a proposal's status
-//     (dismissed/kept) on the same real files — dismissed drop out of the feed.
+//   - Real data: GET /review-feed -> the sovereign Python server
+//     (infra/nas-review-feed/review_server.py, DR-0218 zero-n8n) reads the real
+//     /data/finance-events/_freshness/*.json files the v1 loop writes.
+//     POST /review-action sets a proposal's status (dismissed/kept) on the same
+//     real files — dismissed drop out of the feed. No n8n hop.
 //   - This endpoint carries ONLY low-sensitivity PUBLIC-web summaries. Family
 //     feedback (family-private) is NOT served here — its home is the Supabase
 //     `feedback` table via RLS. That's what lets a build-time shared token be an
@@ -21,8 +22,17 @@
 //     anything to the system; bright lines stay manual.
 //   - Governor-gated at the call site (Projects.jsx), like the decision queue.
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE } from '../lib/n8n-base.js';
 import EmojiText from './EmojiText.jsx';
+
+// SOVEREIGN (DR-0218 zero-n8n): the governance review queue is served by the
+// family's own Python server (infra/nas-review-feed/review_server.py) at these
+// same-origin RELATIVE paths — a byte-faithful port of the old wf-review-feed /
+// wf-review-action Code nodes, reading/writing the same /data/finance-events/
+// _freshness/*.json files. No n8n webhook, never an absolute Funnel URL. The GET
+// degrades to an honest 'error' state and the POST to a 'couldn’t' notice until
+// that server + its Caddy route are stood up.
+export const REVIEW_FEED_URL = '/review-feed';
+export const REVIEW_ACTION_URL = '/review-action';
 
 // Review token — PER-DEVICE first (typed once, localStorage, never in the
 // bundle), VITE_ build var only as a transition fallback (2026-07-03: a VITE_
@@ -122,7 +132,7 @@ export default function ReviewFeed() {
         return;
       }
       try {
-        const res = await fetch(`${N8N_BASE}/webhook/review-feed`, {
+        const res = await fetch(REVIEW_FEED_URL, {
           method: 'GET',
           headers: { 'X-Review-Token': token },
           cache: 'no-store',
@@ -147,7 +157,7 @@ export default function ReviewFeed() {
     setActionError(null);
     setActing((a) => ({ ...a, [id]: true }));
     try {
-      const res = await fetch(`${N8N_BASE}/webhook/review-action`, {
+      const res = await fetch(REVIEW_ACTION_URL, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'X-Review-Token': token },
         body: JSON.stringify({ id, action }),

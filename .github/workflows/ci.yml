@@ -89,6 +89,34 @@ jobs:
       - name: transcript loader unit tests
         working-directory: infra/nas-sme-pipeline
         run: python3 -m unittest test_load_transcripts -v
+      # Sovereign LLM-health builder unit tests (DR-0218 zero-n8n / DR-0076): the
+      # pure ollama_health.build_health + is_pinned that replaced the wf-llm-health
+      # n8n Code node. Proven-to-catch: fails if the pinned (2026-06-06 runaway)
+      # detection or the envelope shape LlmHealth.jsx reads regresses. Gates merge.
+      - name: sovereign llm-health builder unit tests
+        working-directory: infra/nas-llm
+        run: python3 -m unittest test_ollama_health -v
+      # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
+      # logic checks for the property + family photo image server, including the
+      # new list_uploaded family read-back. Proven-to-catch: fails if dest path
+      # containment or the read-back regresses. Gates merge.
+      - name: sovereign photo server selftest
+        working-directory: infra/nas-property-photos
+        run: python3 photo_server.py --selftest
+      # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
+      # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
+      # fails if the dismissed-filter, id path-containment, or status-write
+      # regresses. Gates merge.
+      - name: sovereign review-queue server selftest
+        working-directory: infra/nas-review-feed
+        run: python3 review_server.py --selftest
+      # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
+      # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
+      # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR
+      # front-matter, re-review de-dup, or the newest-first order regresses.
+      - name: sovereign ways-brain parser selftest
+        working-directory: infra/nas-ways
+        run: python3 ways_ingest.py --selftest
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

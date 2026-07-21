@@ -1313,7 +1313,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     }
     setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
     try {
-      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
+      // Sovereign-neutral route (DR-0218 zero-n8n): reads the rental's chat
+      // history from the NAS through the same-origin transport, served by a
+      // Python endpoint (not n8n). Not live until that endpoint + its Caddy
+      // route are stood up; the app degrades cleanly (need-token / error) until.
+      const resp = await fetch(`/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
         headers: { authorization: `Bearer ${token}` },
       });
       if (resp.status === 401 || resp.status === 403) {

@@ -23,8 +23,10 @@
 //
 // SOVEREIGN, LOCAL-FIRST (the Charter; same posture as lib/class-tutor.js): the
 // review runs on the family's LOCAL model (qwen2.5 on the NAS) through the
-// same-origin '/n8n' rewrite. No vendor LLM is called from the client; any
-// vendor escalation happens server-side, within budget, only on an unmet need.
+// same-origin sovereign LLM path '/llm/chat' (DR-0218 zero-n8n; the FastAPI
+// wrapper infra/nas-llm/llm_server.py), NOT an n8n webhook. No vendor LLM is
+// called from the client; any vendor escalation happens server-side, within
+// budget, only on an unmet need.
 //
 // ON-DEMAND, NOT AUTO-FIRE (binding — no autonomous automation without the three
 // brakes): finalizing is a button the owner presses ("Finalize my thoughts"),
@@ -51,12 +53,13 @@ import { normalizeFinalization } from './study-space.js';
 // llm-review). A constant so a test can prove the client routes LOCAL, not vendor.
 export const FINALIZE_MODEL = 'qwen2.5';
 
-// Same-origin '/n8n' rewrite to the family NAS — a RELATIVE path, never an
-// absolute Funnel/vendor URL in the client bundle (the class-tutor sovereignty
-// gate; the rewrite also avoids the cross-origin throttle).
-const FINALIZE_BASE = '/n8n';
+// The sovereign LLM path (DR-0218 zero-n8n): a same-origin RELATIVE route to the
+// family NAS's OWN Ollama through the FastAPI wrapper (infra/nas-llm/llm_server.py)
+// — never an absolute Funnel/vendor URL in the client bundle (the class-tutor
+// sovereignty gate). Degrades to the manual scaffold until that server + its
+// /llm/* Caddy route are stood up.
 export function finalizeEndpoint() {
-  return `${FINALIZE_BASE.replace(/\/+$/, '')}/webhook/thought-finalize`;
+  return '/llm/chat';
 }
 
 // --- The teaching-ready gate -------------------------------------------------
@@ -134,13 +137,15 @@ export function finalizerUserPrompt(entry) {
   return lines.join('\n');
 }
 
-// The request body the NAS workflow expects (mirrors buildTutorPayload).
+// The request body the sovereign /llm/chat server expects (mirrors
+// buildTutorPayload): { model, system, messages }. The owner's own words go in
+// the single user turn; the framework rules live in the system prompt.
 export function buildFinalizePayload(entry) {
   return {
     model: FINALIZE_MODEL,
     id: (entry && entry.id) || null,
     system: finalizerSystemPrompt(),
-    prompt: finalizerUserPrompt(entry),
+    messages: [{ role: 'user', content: finalizerUserPrompt(entry) }],
   };
 }
 

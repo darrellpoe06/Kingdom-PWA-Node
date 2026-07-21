@@ -3,7 +3,23 @@
 // tolerate a missing/garbled response (so the panel never crashes) and that
 // distinguish a real vendor cross-check from the graceful-degradation note.
 import { describe, it, expect } from 'vitest';
-import { normalizeReviewFeed, isPendingSynthesis, applyAction, vendorCrossCheckState, VENDOR_CHECK_WINDOW_MS } from '../components/ReviewFeed.jsx';
+import { normalizeReviewFeed, isPendingSynthesis, applyAction, vendorCrossCheckState, VENDOR_CHECK_WINDOW_MS, REVIEW_FEED_URL, REVIEW_ACTION_URL } from '../components/ReviewFeed.jsx';
+
+// DR-0218 zero-n8n: the queue is served by the sovereign Python server at
+// same-origin relative paths, never an n8n webhook. Pin it so a stray edit can't
+// route governance actions back through /n8n.
+describe('sovereign review endpoints (not n8n)', () => {
+  it('use same-origin relative paths, never /n8n/webhook or an absolute URL', () => {
+    for (const url of [REVIEW_FEED_URL, REVIEW_ACTION_URL]) {
+      expect(url.startsWith('/')).toBe(true);
+      expect(url).not.toContain('/n8n');
+      expect(url).not.toContain('webhook');
+      expect(url).not.toMatch(/^https?:\/\//);
+    }
+    expect(REVIEW_FEED_URL).toBe('/review-feed');
+    expect(REVIEW_ACTION_URL).toBe('/review-action');
+  });
+});
 
 describe('normalizeReviewFeed', () => {
   it('keeps well-formed proposals and reports the count', () => {

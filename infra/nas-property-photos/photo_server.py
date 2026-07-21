@@ -127,6 +127,7 @@ TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 # file. Written to PHOTO_UPLOAD_ROOT/<dest>/<name>; the family gallery reads it back.
 UPLOAD_ROOT_DEFAULT = "/volume1/PoeTech/family-photos"
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024            # decoded image cap (matches old bridge)
+UPLOAD_LIST_MAX = 200                          # hard cap on a family-gallery page
 SAFE_DEST = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 DATA_URL_RE = re.compile(r"^data:image/[A-Za-z0-9.+-]+;base64,(.+)$", re.DOTALL)
 
@@ -343,6 +344,63 @@ def build_photos(channel, limit, offset, allow_downscale=True):
     return photos
 
 
+# --- Family gallery read-back (sovereign; REPLACES the n8n wf-family-photos) ---
+# The upload path (do_POST /upload) writes shared photos to
+# PHOTO_UPLOAD_ROOT/<dest>/. This lists them straight back, newest first, so the
+# family gallery is Python end-to-end (upload -> NAS -> read) with NO n8n hop --
+# the R15 goal ("photos stop living on one device") completed sovereignly. dest
+# is whitelist-validated and the directory is path-contained under upload_root().
+def _thumb_from_path(path):
+    """data:image/jpeg;base64 thumbnail for an uploaded file, or None. Uploaded
+    images are already client-compressed, so if the downscale path is unavailable
+    (no Pillow/convert) we serve the file as-is when it fits the thumb budget."""
+    data = _downscale(path)
+    if not data:
+        try:
+            with open(path, "rb") as fh:
+                raw = fh.read(MAX_THUMB_BYTES * 3 + 1)
+            if 0 < len(raw) <= MAX_THUMB_BYTES * 3 and sniff_image(raw):
+                data = raw
+        except OSError:
+            data = None
+    if not data:
+        return None
+    return "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii")
+
+
+def list_uploaded(dest, limit=12):
+    """{ photos:[{id,date,name,text,thumb}], total } for PHOTO_UPLOAD_ROOT/<dest>/,
+    newest-first. Honest-empty ({photos:[], total:0}) on a bad dest, a contained-
+    path failure, or a missing/empty folder -- never raises, never invents."""
+    if not SAFE_DEST.match(dest or "") or ".." in (dest or ""):
+        return {"photos": [], "total": 0}
+    base = os.path.realpath(upload_root())
+    d = os.path.realpath(os.path.join(base, dest))
+    if d != base and not d.startswith(base + os.sep):
+        return {"photos": [], "total": 0}
+    entries = []
+    try:
+        with os.scandir(d) as it:
+            for e in it:
+                try:
+                    if e.is_file() and SAFE_NAME.match(e.name):
+                        entries.append((e.stat().st_mtime, e.name, e.path))
+                except OSError:
+                    pass
+    except OSError:
+        return {"photos": [], "total": 0}
+    entries.sort(reverse=True)
+    n = max(1, min(UPLOAD_LIST_MAX, int(limit) if str(limit).lstrip("-").isdigit() else 12))
+    photos = []
+    for mtime, name, path in entries[:n]:
+        try:
+            date = datetime.fromtimestamp(mtime, timezone.utc).strftime("%Y-%m-%d")
+        except (ValueError, OverflowError):
+            date = ""
+        photos.append({"id": name, "date": date, "name": name, "text": "", "thumb": _thumb_from_path(path)})
+    return {"photos": photos, "total": len(entries)}
+
+
 # --- Auth --------------------------------------------------------------------
 def expected_token(args):
     if os.environ.get("PHOTO_BRIDGE_TOKEN"):
@@ -387,6 +445,32 @@ def make_handler(args):
             path = parsed.path.rstrip("/")
             if path.endswith("/healthz") or path == "/healthz" or path == "/health":
                 self._send(200, {"ok": True})
+                return
+            # Family gallery read-back (sovereign; replaces n8n wf-family-photos).
+            if path.endswith("/family-photos") or path == "/family-photos":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "photos": [], "count": 0})
+                    return
+                q = parse_qs(parsed.query)
+                try:
+                    limit = max(1, min(UPLOAD_LIST_MAX, int(q.get("limit", ["12"])[0])))
+                except ValueError:
+                    limit = 12
+                try:
+                    res = list_uploaded("family", limit)
+                    self._send(200, {"count": len(res["photos"]), "total": res["total"], "photos": res["photos"]})
+                except Exception as err:
+                    self._send(500, {"error": "list failed: %s" % type(err).__name__, "photos": [], "count": 0})
+                return
+            # Curated Big-Picture album (Synology Photos). The read-only service-
+            # account integration is a separate, still-pending NAS lane; until it
+            # ships, answer HONESTLY-EMPTY so the client renders nothing (never a
+            # fabricated gallery, DR-0076) and NEVER falls back to n8n.
+            if path.endswith("/album-photos") or path == "/album-photos":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "photos": [], "count": 0})
+                    return
+                self._send(200, {"count": 0, "total": 0, "photos": [], "pending": "album-integration"})
                 return
             if not (path.endswith("/property-photos") or path == "/property-photos"):
                 self._send(404, {"error": "not found", "photos": [], "count": 0})
@@ -598,6 +682,28 @@ def selftest():
     os.environ["PHOTO_ROOTS"] = "/a/{y}/{m};/b/{y}/{m}"
     ok("roots honors env override", roots() == ["/a/{y}/{m}", "/b/{y}/{m}"])
     del os.environ["PHOTO_ROOTS"]
+    # --- Family gallery read-back (list_uploaded) ----------------------------
+    ok("list_uploaded rejects a bad dest (honest-empty)", list_uploaded("../secrets") == {"photos": [], "total": 0})
+    ok("list_uploaded rejects a slashy dest", list_uploaded("a/b") == {"photos": [], "total": 0})
+    ok("list_uploaded on a missing folder is honest-empty",
+       list_uploaded("familyXYZ_does_not_exist")["total"] == 0)
+    import tempfile as _tf
+    _d = _tf.mkdtemp()
+    try:
+        os.makedirs(os.path.join(_d, "family"), exist_ok=True)
+        # a real tiny JPEG (magic bytes) so the read-back + thumb path exercise
+        with open(os.path.join(_d, "family", "shot-abc.jpg"), "wb") as _fh:
+            _fh.write(b"\xff\xd8\xff\xe0" + b"\x00" * 64)
+        os.environ["PHOTO_UPLOAD_ROOT"] = _d
+        _res = list_uploaded("family", 12)
+        ok("list_uploaded reads a written family photo back",
+           _res["total"] == 1 and _res["photos"][0]["id"] == "shot-abc.jpg")
+        ok("list_uploaded contains the file under upload_root only",
+           safe_upload_path(upload_root(), "family", "shot-abc.jpg") is not None)
+    finally:
+        os.environ.pop("PHOTO_UPLOAD_ROOT", None)
+        import shutil as _sh
+        _sh.rmtree(_d, ignore_errors=True)
 
     passed = sum(1 for _, c in checks if c)
     for label, c in checks:

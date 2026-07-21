@@ -2,10 +2,12 @@
 // LlmHealth — live readout of the local LLMs (Ollama on the NAS)
 // =============================================================================
 // "How do I pay attention to the local LLMs?" — this is the answer made into a
-// surface. Fetched live from the NAS via the same-origin /n8n rewrite
-// (wf-llm-health -> Ollama /api/ps + /api/tags + /api/version). Shows what's
-// loaded RIGHT NOW (the thing that ran away on 2026-06-06: a pinned keep_alive
-// model that never unloaded), what's installed, and the Ollama version.
+// surface. Fetched live from the NAS via the sovereign same-origin path
+// GET /llm/health (DR-0218 zero-n8n; infra/nas-llm/llm_server.py reads Ollama's
+// /api/ps + /api/tags + /api/version and composes the envelope via the pure,
+// CI-gated ollama_health.build_health). Shows what's loaded RIGHT NOW (the thing
+// that ran away on 2026-06-06: a pinned keep_alive model that never unloaded),
+// what's installed, and the Ollama version.
 //
 // Reality-trace (CLAUDE.md Layer 0, P15/P16): every value here traces to a real
 // Ollama API call. When the feed isn't wired it says so and how to connect it,
@@ -15,7 +17,7 @@
 // Pairs with WorkflowStatus (the n8n fleet) on the Build board: that is "what
 // automation is running"; this is "what models are hot."
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE, n8nAuthHeaders } from '../lib/n8n-base.js';
+import { n8nAuthHeaders } from '../lib/n8n-base.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
 
@@ -76,8 +78,8 @@ export default function LlmHealth() {
     let cancelled = false;
     (async () => {
       try {
-        const url = `${N8N_BASE.replace(/\/+$/, '')}/webhook/llm-health`;
-        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
+        const url = '/llm/health';
+        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) } });
         const json = await r.json().catch(() => null);
         if (cancelled) return;
         const norm = normalizeLlmHealth(json);
@@ -108,7 +110,7 @@ export default function LlmHealth() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>Local-LLM status isn&apos;t connected yet — showing nothing rather than guessing.</p>
-          <p className="mt-1 text-[11px]">To light it up: import <span className="font-mono">wf-llm-health</span> on the NAS and activate it (it reads Ollama&apos;s <span className="font-mono">/api/ps</span> on <span className="font-mono">192.168.1.26:11434</span>).</p>
+          <p className="mt-1 text-[11px]">To light it up: run <span className="font-mono">infra/nas-llm/llm_server.py</span> on the NAS and route <span className="font-mono">/llm/*</span> in Caddy (it reads Ollama&apos;s <span className="font-mono">/api/ps</span> on <span className="font-mono">192.168.1.26:11434</span>).</p>
         </div>
       )}
 

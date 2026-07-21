@@ -238,6 +238,29 @@ function readDecisionLedger() {
 }
 const decisionLedger = readDecisionLedger();
 
+// Binding-principle registry (docs/decisions/PRINCIPLES.md) — the cite-once Ways
+// vocabulary (TLC-FIREWALL, THREE-BRAKES, VERIFICATION-DOCTRINE, …). Baked so the
+// app can SHOW the binding Ways live (the family/Governor sees the principles that
+// govern the build), not only have them cited in commit trailers. Same evidence
+// discipline as the DR ledger: every row is a real registry line, nothing painted
+// (DR-0076). Best-effort: a missing/garbled file degrades to an honest empty
+// registry, never crashes the build.
+function readPrinciples() {
+  let raw = '';
+  try { raw = readFileSync(fileURLToPath(new URL('../docs/decisions/PRINCIPLES.md', import.meta.url)), 'utf8'); }
+  catch { return { ok: false, count: 0, items: [] }; }
+  const items = [];
+  for (const line of raw.split('\n')) {
+    // | **ID** | one-line | source |  — the header (| ID | …) and | --- | rows
+    // never match because the first cell must be **BOLD-ID**.
+    const m = /^\|\s*\*\*([A-Z0-9][A-Z0-9-]*)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$/.exec(line);
+    if (!m) continue;
+    items.push({ id: m[1].trim(), summary: m[2].trim(), source: m[3].replace(/`/g, '').trim() });
+  }
+  return { ok: items.length > 0, count: items.length, items };
+}
+const drPrinciples = readPrinciples();
+
 // UI/UX & accessibility review registry (Darrell, 2026-06-16: "our app UI/UX
 // reviews -- are they in there?"). docs/reviews/REVIEWS.md is the single source
 // of truth; this parses its records at build time so the in-app Quality / Proof
@@ -423,6 +446,7 @@ export default defineConfig({
     __WORKFLOW_REGISTRY__: JSON.stringify(workflowRegistry),
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
+    __DR_PRINCIPLES__: JSON.stringify(drPrinciples),
     __QUALITY_PROOF__: JSON.stringify(qualityProof),
     __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
     __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
