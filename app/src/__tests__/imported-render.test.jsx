@@ -430,7 +430,6 @@ describe('Imported — bank-convention view (real mount)', () => {
     document.body.appendChild(container);
     await act(async () => { createRoot(container).render(createElement(Imported, { data })); });
     const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
-    const btnContains = (t) => [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(t));
 
     // open the Standard reports panel, then pick All income
     const header = [...container.querySelectorAll('button')].find((b) => /Standard reports/i.test(b.textContent || ''));
