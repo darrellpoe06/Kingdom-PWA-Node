@@ -96,6 +96,13 @@ jobs:
       - name: sovereign llm-health builder unit tests
         working-directory: infra/nas-llm
         run: python3 -m unittest test_ollama_health -v
+      # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
+      # logic checks for the property + family photo image server, including the
+      # new list_uploaded family read-back. Proven-to-catch: fails if dest path
+      # containment or the read-back regresses. Gates merge.
+      - name: sovereign photo server selftest
+        working-directory: infra/nas-property-photos
+        run: python3 photo_server.py --selftest
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

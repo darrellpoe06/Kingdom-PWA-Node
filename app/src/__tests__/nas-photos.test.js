@@ -2,7 +2,7 @@
 // user-influenced, so isValidDest is the device-side belt (the workflow is the
 // real gate); these lock that no traversal or junk dest leaves the device.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum, propertyPhotosUrl, NAS_PHOTO_BASE, setBridgeToken, bridgeToken, hasBridgeToken } from '../lib/nas-photos.js';
+import { isValidDest, isValidAlbum, bigPictureAlbum, setBigPictureAlbum, propertyPhotosUrl, familyPhotosUrl, albumPhotosUrl, NAS_PHOTO_BASE, setBridgeToken, bridgeToken, hasBridgeToken } from '../lib/nas-photos.js';
 
 // 2026-07-01 regression fix: property photos moved OFF the n8n bridge onto the
 // sovereign Python image server, reached via the same-origin `/nas-photos`
@@ -27,6 +27,28 @@ describe('propertyPhotosUrl (sovereign Python image server path)', () => {
 
   it('defaults limit/offset when omitted', () => {
     expect(propertyPhotosUrl('1003Koehn')).toBe('/nas-photos/property-photos?channel=1003Koehn&limit=24&offset=0');
+  });
+});
+
+// 2026-07-21 (DR-0218 zero-n8n): family + album reads joined the sovereign
+// `/nas-photos` server. This pins that cutover so a stray edit can't route them
+// back through /n8n/webhook (the same regression class the property test guards).
+describe('familyPhotosUrl / albumPhotosUrl (sovereign server, not n8n)', () => {
+  it('family gallery targets /nas-photos/family-photos, never /n8n', () => {
+    const url = familyPhotosUrl({ limit: 12 });
+    expect(url).toBe('/nas-photos/family-photos?limit=12');
+    expect(url).not.toContain('/n8n');
+    expect(url).not.toContain('webhook');
+  });
+
+  it('curated album targets /nas-photos/album-photos, encodes the album name, never /n8n', () => {
+    expect(albumPhotosUrl('Big Picture', { limit: 60 }))
+      .toBe('/nas-photos/album-photos?album=Big%20Picture&limit=60');
+    const url = albumPhotosUrl("Family & Faith");
+    expect(url.startsWith('/nas-photos/album-photos')).toBe(true);
+    expect(url).toContain('album=Family%20%26%20Faith');
+    expect(url).not.toContain('/n8n');
+    expect(url).not.toContain('webhook');
   });
 });
 
