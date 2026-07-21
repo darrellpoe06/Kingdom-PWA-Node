@@ -56,6 +56,21 @@ export async function setMemberRole(instanceId, targetUserId, newRole) {
   return data || { status: 'noop', role: newRole };
 }
 
+// The instances the caller may administer (owner/admin), so a role-control panel
+// can offer an instance picker — the family space AND the COLG/Love Corner church
+// instance (and any ministry space they lead). Returns
+// [{ instanceId, displayName, instanceType, role }], church spaces first.
+export async function listMyAdminInstances() {
+  const { data, error } = await supabase.rpc('list_my_admin_instances');
+  if (error) { console.warn('[member-roles] list_my_admin_instances failed:', error); return []; }
+  return (data || []).map((r) => ({
+    instanceId: r.instance_id,
+    displayName: r.display_name ?? null,
+    instanceType: r.instance_type ?? null,
+    role: r.role ?? null,
+  }));
+}
+
 // The real member roster for an instance (owner/admin only). Returns an array of
 // { userId, displayName, email, role } (empty on error / no access).
 export async function listInstanceMembers(instanceId) {
