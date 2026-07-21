@@ -341,6 +341,15 @@ export function suggestBackups(members, absences, dateIso, absentMember) {
   return sameSection.length ? sameSection : freeSingers;
 }
 
+// Who may respond (confirm/decline) to a REQUESTED backup: the chosen backup
+// themselves (iAmBackup), OR the director (canEdit — owner/admin, which RLS
+// already permits) on their behalf. The director path keeps a request from being
+// stuck at 'requested' forever when the chosen singer has no linked account yet.
+export function canRespondToBackup(absence, canEdit) {
+  if (!absence || !absence.backupName || absence.backupStatus !== 'requested') return false;
+  return !!(absence.iAmBackup || canEdit);
+}
+
 // Are the offered backups a cross-section fallback? (True when the absent member
 // has a section but NO same-section singer is free, so suggestBackups returned
 // others.) Lets the UI label the list honestly instead of claiming "same-section".
