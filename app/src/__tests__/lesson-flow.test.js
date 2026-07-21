@@ -225,3 +225,29 @@ describe('parable/story beats — reach the audience, never leak facilitator not
     }
   });
 });
+
+describe('never lie about a story — kind is truthfully labeled (Darrell 2026-07-21, DR-0215/DR-0076)', () => {
+  it('every story across the curriculum is a valid kind, and a testimony is attributed (a real, credited account — never a fiction mislabeled as true)', () => {
+    const offenders = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      if (!Array.isArray(m.stories)) continue;
+      for (const s of m.stories) {
+        // kind, when present, must be exactly one of the two truthful labels.
+        if (s.kind != null && s.kind !== 'parable' && s.kind !== 'testimony') {
+          offenders.push(`${m.id}: invalid kind "${s.kind}"`);
+        }
+        // A testimony CLAIMS a real, lived event — it must be attributed (source).
+        // An unattributed "true story" is not allowed (it would assert reality with
+        // no one standing behind it). Parables need no source (they claim nothing real).
+        if (s.kind === 'testimony' && !(typeof s.source === 'string' && s.source.trim())) {
+          offenders.push(`${m.id}: testimony "${s.title || ''}" has no source/attribution`);
+        }
+        // Every story must have a body (no empty illustration).
+        if (!(typeof s.body === 'string' && s.body.trim().length > 20)) {
+          offenders.push(`${m.id}: story "${s.title || ''}" has no real body`);
+        }
+      }
+    }
+    expect(offenders, offenders.join(' | ')).toEqual([]);
+  });
+});
