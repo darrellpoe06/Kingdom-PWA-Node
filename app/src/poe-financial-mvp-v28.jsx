@@ -162,6 +162,7 @@ import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { N8N_BASE } from './lib/n8n-base.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
+import { matchServices } from './lib/matched-services.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1612,28 +1613,22 @@ export default function PoeFinancialSystem() {
       setUploadResult(prev => ({ ...prev, error: `Analytics call failed: ${e.message}` }));
     }
   };
-  const runMatchedServices = async () => {
-    const base = N8N_BASE;
-    if (!base) return;
+  const runMatchedServices = () => {
+    // SOVEREIGN (DR-0218 zero-n8n): wf35 was a DETERMINISTIC rules engine, so it
+    // runs CLIENT-SIDE (lib/matched-services.js) — no n8n, no network. Session-
+    // only, pure, and unit-tested; it can never fail on a down Funnel.
     setUploadStage('matching');
     try {
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/matched-services`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ profile: (uploadResult.profile && uploadResult.profile.profile) || {}, transactions: uploadResult.transactions, stats: uploadResult.stats || {} })
+      const res = matchServices({
+        profile: (uploadResult.profile && uploadResult.profile.profile) || {},
+        transactions: uploadResult.transactions,
+        stats: uploadResult.stats || {},
       });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
-        setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Matching failed (HTTP ${r.status})` }));
-        return;
-      }
       setUploadStage('matched');
-      setUploadResult(prev => ({ ...prev, matches: json.matches || [] }));
+      setUploadResult(prev => ({ ...prev, matches: res.matches || [] }));
     } catch (e) {
       setUploadStage('error');
-      setUploadResult(prev => ({ ...prev, error: `Matching call failed: ${e.message}` }));
+      setUploadResult(prev => ({ ...prev, error: `Matching failed: ${e.message}` }));
     }
   };
 
