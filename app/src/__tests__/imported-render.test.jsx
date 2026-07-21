@@ -197,6 +197,25 @@ describe('Imported — bank-convention view (real mount)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('top month stepper: Prev/Next re-render the same view for the adjacent month, in place', async () => {
+    const { container, click } = await mount(DATA); // DATA newest month = June 2026
+    // the top quick-compare stepper renders above the tiles
+    const stepper = container.querySelector('[aria-label="Compare month"]');
+    expect(stepper, 'a top Compare-month control renders').toBeTruthy();
+    expect(container.innerHTML).toContain('In · June 2026'); // tiles labelled with the active month
+    // Next -> the SAME tiles now read the next month, no navigation elsewhere
+    const nextBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Next ›');
+    expect(nextBtn).toBeTruthy();
+    await click(nextBtn);
+    expect(container.innerHTML).toContain('In · July 2026');
+    expect(container.innerHTML).not.toContain('In · June 2026');
+    // Prev twice -> back to May 2026
+    const prevBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === '‹ Prev');
+    await click(prevBtn);
+    await click(prevBtn);
+    expect(container.innerHTML).toContain('In · May 2026');
+  });
+
   it('PII gate: without a profile it shows the private notice, never real rows', async () => {
     localStorage.clear();
     const { container } = await mount(DATA);
