@@ -79,6 +79,19 @@ relying on it; memories reflect what was true when written.
 - **project_n8n_same_origin_rewrite** — the PWA reaches n8n webhooks via the
   same-origin `/n8n` Vercel rewrite, never the absolute Tailscale Funnel URL
   (it throttles cross-origin). Resolver: `app/src/lib/n8n-base.js`.
+- **project_bernard_sermon_godhead_studies** — spoken teachings become Godhead
+  Study algorithms (DR-0089). The pattern: append a `gh-`-prefixed entry to
+  `GODHEAD_ALGORITHMS` in `app/src/lib/godhead-study.js` (fields: id/section/name/
+  refs/condition/consequence/threeD/outcome, +optional psyche/tags), then RUN
+  `node scripts/fetch-godhead-verses.mjs` (materializes verbatim KJV into
+  godhead-study-verses.json; hard-fails on any bad ref), then
+  `godhead-study.test.js` pins it. Sections: torah/wisdom/prophets/gospels/
+  epistles/revelation. 2026-07-21: A.R. Bernard sermon -> six studies (DR-0205,
+  REV-0177). Posture: DR-0098 (capture "debate" as OWNING the Word, not
+  relativizing), DR-0100 (state harm plainly, Word corrects over-reach),
+  typographic theology (the thief/adversary lowercase), DR-0076 (verbatim verses,
+  cross-checked vs `app/public/bible/kjv`). The fetch script reaches
+  raw.githubusercontent.com/aruljohn/Bible-kjv through the proxy — it works here.
 - **project_db_migrations_auto_lane** — DATABASE / SQL changes APPLY THEMSELVES;
   never hand Darrell SQL to paste, and never guess docker / Studio / psql
   commands for him to run ("you fix it first, why me" — Darrell; and 2026-07-04:

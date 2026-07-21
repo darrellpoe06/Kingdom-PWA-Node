@@ -1312,6 +1312,70 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'Judgment day reframed by covenant — the Judge you honored arriving as the Rewarder you loved.',
     tags: ['reward', 'appearing', 'crown', 'righteous-judge'],
   },
+  // --- Spoken teaching captured (Darrell, 2026-07-21): Pastor A.R. Bernard,
+  // "navigating modern society through faith, critical thinking, and spiritual
+  // maturity." Five deterministic studies distilled FROM the sermon; every verse
+  // fetched verbatim KJV (DR-0076). Theme 2 is framed as owning the Word, not
+  // relativizing it, to honor DR-0098 (teach the Word, don't stage a both-sides
+  // debate). Theme 5 grounds Bernard's "God is beyond our dimension" in the
+  // existing 4th-dimensional frame (DR-0097, Colossians 1:16-17). ---
+  {
+    id: 'gh-god-not-colorblind', section: 'revelation', name: 'God Is Not Colorblind (every kindred, tongue, people, and nation)',
+    refs: ['Revelation 5:9'],
+    condition: 'Before the throne the redeemed are gathered "out of every kindred, and tongue, and people, and nation" — their distinctions named and KEPT, not erased, bought by the Blood.',
+    consequence: 'God sees each of us in the totality of our lived experience; the Kingdom\'s vision is CELEBRATED diversity, not flattened sameness. "God is colorblind" sounds fair but blurs a person\'s context — and a context you refuse to see is one whose real obstacles and marginalization you stop being sensitive to.',
+    threeD: 'Do not claim to "not see" someone\'s tribe, tongue, or story to feel unbiased; see it the way Heaven does — name it, honor it, and stay awake to how those differences are actually treated in a broken world. Recognized dignity is the justice; pretended blindness is not.',
+    outcome: 'A community that looks like Revelation 5:9 now — distinctions gathered and celebrated around one throne, no one\'s story erased.',
+    psyche: 'Naming a person\'s real context (not erasing it) is what lets them feel SEEN — the opposite of the invalidation that "I don\'t see color" quietly performs.',
+    tags: ['diversity', 'dignity', 'kingdom', 'context'],
+  },
+  {
+    id: 'gh-own-your-faith', section: 'wisdom', name: 'Iron Sharpens Iron (own the why of your faith)',
+    refs: ['Proverbs 27:17', '1 Peter 3:15'],
+    condition: '"Iron sharpeneth iron; so a man sharpeneth the countenance of his friend" — and you are told to "be ready always to give an answer to every man that asketh you a reason of the hope that is in you."',
+    consequence: 'You think only to the level of what you are exposed to; a faith you cannot answer "why" for is still borrowed. Wrestling with the Word — asking, being challenged by sharper minds, going and finding the reason — turns inherited belief into your OWN relationship with God.',
+    threeD: 'Surround yourself with people who challenge you instead of only your own internal knowledge; ask the "why" behind what you believe and hunt the answer in the Word; do it "with meekness and fear," never anger — the goal is understanding and growth, not winning. This is owning the Word, not relativizing it: the Word stays the authority; you are the one being sharpened.',
+    outcome: 'The next generation owning their faith instead of leaning on their parents\' — conviction that lasts because it was examined.',
+    tags: ['critical-thinking', 'ownership', 'discipleship', 'humility'],
+  },
+  {
+    id: 'gh-made-in-his-image', section: 'torah', name: 'Identity Received, Not Constructed (in His image, wonderfully made)',
+    refs: ['Genesis 1:27', 'Psalms 139:14'],
+    condition: '"So God created man in his own image" — you are "fearfully and wonderfully made," your identity RECEIVED from the Maker rather than constructed by the self.',
+    consequence: 'Because He made you, dignity, purpose, intelligence, and the capacity to build a meaningful life are inherent — not earned, not self-assigned, and not the culture\'s to redefine. And because He is your Maker, He alone truly knows who you are and your full capacity: your identity is tied to His purpose for you — the divine blueprint. Being created by God settles what self-invention can never secure.',
+    threeD: 'Stop building an identity to prove your worth; receive the one He already gave, and read your dignity off His workmanship. Think critically about the identity narratives the world throws at you — an identity you never examined is one the world will gladly write for you. Then extend it — treat every other person as image-bearing too.',
+    outcome: 'A settled self — worth and purpose anchored in the Maker, immune to the market of self-invention.',
+    tags: ['identity', 'image-of-god', 'dignity', 'purpose'],
+  },
+  {
+    id: 'gh-thief-targets-identity', section: 'gospels', name: 'Why the thief Comes for Your Identity (steal the potential, redirect the credit)',
+    refs: ['John 10:10', 'Genesis 1:27'],
+    condition: '"The thief cometh not, but for to steal, and to kill, and to destroy" — and the identity he comes for is the one rooted in your being created by God (Genesis 1:27).',
+    consequence: 'the adversary targets your identity for two reasons: to STEAL your potential — the dignity, purpose, intelligence, and capacity to build a meaningful life that came with being made by God — and to REDIRECT the credit, because an identity received from God gives the glory back to Him. Make you doubt who God made you to be, and he weakens your life and your worship in one move; Jesus came instead that you "might have life... more abundantly."',
+    threeD: 'When your worth, purpose, or capacity is under attack, name the source: that doubt is a robbery attempt on an identity God gave, not a verdict on your value. Refuse the theft — return the credit to the Maker (the very acknowledgment the adversary is trying to stop) and take back the abundant life Jesus came to give.',
+    outcome: 'An identity too rooted in the Maker to be stolen — and a life and worship the thief cannot bleed off.',
+    psyche: 'Attacking identity is leverage: doubt about WHO you are quietly disables everything you would build and everything you would worship — which is why it is the adversary\'s first target, not his last.',
+    tags: ['identity', 'adversary', 'spiritual-warfare', 'worth'],
+  },
+  {
+    id: 'gh-testing-not-temptation', section: 'epistles', name: 'Temptation vs. Testing (the way of escape is already built in)',
+    refs: ['James 1:13-14', '1 Corinthians 10:13'],
+    condition: '"Let no man say when he is tempted, I am tempted of God... but every man is tempted, when he is drawn away of his own lust." Yet the trial is "common to man," and "God is faithful, who will not suffer you to be tempted above that ye are able."',
+    consequence: 'Temptation is a solicitation toward sin, drawn out of the fallen nature and exploited by the adversary — NEVER from God; if you are being seduced to do evil, it is not from Him. Testing is God growing character, and it is not designed for you to FAIL: the test does not inform God — He is omniscient and already knows the outcome — it reveals YOU to yourself, surfacing the character, faith, and capacity you did not know you had, and it MARKS A TRANSITION, moving you to greater trust and preparing you for the next level. And He has "with the temptation also" already made "a way to escape"; the way of victory is prepared before the trial arrives.',
+    threeD: 'When pressure hits, ask which it is: bait from your own desire (resist it) or a test that grows you (endure it). Read the test as a MIRROR (it shows you to yourself, not God) and a DOORWAY (it is marking a transition up), and look for the escape He already built in — the way out is provided, not invented in panic.',
+    outcome: 'Character forged in trials you no longer fear — because the Faithful One prepared the exit before the test began.',
+    tags: ['temptation', 'testing', 'character', 'faithfulness'],
+  },
+  {
+    id: 'gh-god-beyond-dimension', section: 'epistles', name: 'Beyond Our Dimension (by Him all things consist)',
+    refs: ['Colossians 1:16-17', 'Acts 8:39-40'],
+    condition: '"By him were all things created... and by him all things consist" — He is before all things and outside them; not "up" past the ceiling but BEYOND our dimension. And "the Spirit of the Lord caught away Philip," setting him down in another city — God moves in ways our physics cannot cage.',
+    consequence: 'You will not reach God by traveling through space; He frames and HOLDS the dimensions He made, present here and now, able to appear and act at will. Our grasp is limited by our exposure — the smallness is ours, not His.',
+    threeD: 'Stop shrinking God to a location or a physics you can measure; He is the Outside Agent by whom all things consist. Worship the One who holds the frame, and hold your certainties about "what is possible" loosely before Him.',
+    outcome: 'Awe restored — a God too large for our dimension, yet nearer than the room, running the whole frame we live inside.',
+    psyche: 'The felt distance of God is a dimensional category error, not His absence: He is not far "up" but outside-and-holding — which is why He can be beyond comprehension and closer than the walls at the same time.',
+    tags: ['transcendence', 'dimension', 'sovereignty', 'awe'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
