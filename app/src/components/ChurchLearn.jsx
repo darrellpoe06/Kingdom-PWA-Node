@@ -635,7 +635,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               <div className="mt-3 space-y-2">
                 {seg.audience.stories.map((s, i) => (
                   <div key={i} className="border border-[#5A6E3D] bg-[#FAF8F4] p-3">
-                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">Picture this{s.title ? ` — ${s.title}` : ''}</div>
+                    {/* The label is a truth commitment: a parable is openly illustrative
+                        ("Picture this…"); a testimony claims a real, lived, attributed
+                        event ("A true story"). Never blur the two (DR-0076/DR-0215). */}
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">
+                      {s.kind === 'testimony' ? 'A true story' : 'Picture this'}{s.title ? ` — ${s.title}` : ''}{s.kind === 'testimony' && s.source ? ` · ${s.source}` : ''}
+                    </div>
                     <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{s.body}</p>
                     {s.verse && (
                       <p className="text-[0.6875rem] text-[#5A6E3D] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>— {s.verse}</p>

@@ -71,6 +71,22 @@ is KJV-verbatim (DR-0076) · provenance clean (original or consented testimony;
 attributed per DR-0190; no uncredited third-party material) · consent + privacy
 for real testimonies (DATA-AS-EMPOWERMENT; minor protections).**
 
+## Content preservation is a covenant (Darrell 2026-07-21)
+
+**"Don't lose content or context over time — Yahweh's perspectives are
+priceless."** Every teaching built here is durably preserved and must never be
+lost to a session purge, a careless edit, or a restructure: it lives in git
+(permanent history), is deployed live (verified Cloudflare success per merge),
+and is documented in the decision ledger (DRs) + reviews (REVs) + memory (the
+*why* and the *context*, not just the *what* — grounds DR-0065 APP-IS-PRIMARY).
+**Binding on the course-split:** splitting L42/L50 into sessions is
+**content-preserving — every word is MOVED, never deleted**; the parable/story
+and testimony content is additive and equally preserved. A restructure that
+would drop teaching is forbidden; the split only re-chunks what already exists.
+The parable/testimony distinction (`kind: 'parable' | 'testimony'`, `source`)
+renders as a **truth-committing label** — "Picture this…" (openly illustrative)
+vs. "A true story" (real, attributed, consented) — never blurred (DR-0076).
+
 ## Verification (DR-0076)
 
 Shipped this DR: the `stories` pipeline (`lesson-flow.js` teach.audience +
