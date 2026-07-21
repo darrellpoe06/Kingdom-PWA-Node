@@ -103,6 +103,13 @@ jobs:
       - name: sovereign photo server selftest
         working-directory: infra/nas-property-photos
         run: python3 photo_server.py --selftest
+      # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
+      # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
+      # fails if the dismissed-filter, id path-containment, or status-write
+      # regresses. Gates merge.
+      - name: sovereign review-queue server selftest
+        working-directory: infra/nas-review-feed
+        run: python3 review_server.py --selftest
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
