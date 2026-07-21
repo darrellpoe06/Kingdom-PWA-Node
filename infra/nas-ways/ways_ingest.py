@@ -13,16 +13,22 @@
 # the CURRENT Ways. Same DR-0083 sovereign-Python lane as review_server /
 # photo_server / ollama_health.
 #
-# BOUNDED, SINGLE-SHOT, IDEMPOTENT, NO-SPAWN (DR-0186): one run parses the docs
-# and writes one JSON file, then exits. It calls NO LLM, spawns NO compute, runs
-# NO loop — so the run itself is safe. It NEVER writes into the repo; it only
-# emits the brain JSON to the path you give it (the Caddy site).
+# RUNS BY DEFAULT (DR-0186): this is the bounded, single-shot, idempotent,
+# spawns-no-compute-and-no-LLM class — one run parses the docs and writes one JSON
+# file, then exits; it cannot loop (the scheduler is the clock) and never writes
+# into the repo. DR-0186 is explicit that this class RUNS and writes to production
+# the moment it is fired — "the over-braking WAS the failure… you did nothing
+# today." So it ships ENABLED (see the README's systemd units), NOT behind an
+# arming ceremony. It is NOT the 2026-06-06 runaway class (which LOOPED and
+# SPAWNED compute/LLM unattended).
 #
-# THREE BRAKES for the always-on TRIGGER (THREE-BRAKES / the 2026-06-06 quarantine
-# lesson): this file is only the PARSER. The thing that makes it "continuous" — a
-# timer that re-runs it on doc changes — is a doc-WATCHER, the exact class that
-# ran away. So the systemd timer ships DISABLED (see README); it is armed only
-# with someone watching (Tier C). Nothing here self-schedules.
+# The three brakes STAY (DR-0083, unchanged) — they prevent MALFUNCTION, and none
+# of them gates a normal run:
+#   * Budget       — a wall-clock ceiling (WAYS_TIMEOUT_SEC, default 120s) kills
+#                    an overrun via SIGALRM.
+#   * Concurrency  — a single-flight mkdir lock; a fire that finds a run live SKIPS.
+#   * Kill-switch  — `touch <state>/KILL_SWITCH` halts it instantly; it ships
+#                    ABSENT, so the resting state is RUNNING, not inert.
 #
 # MODES:
 #   ways_ingest.py --run --repo <repo-root> --out <path/to/ways-brain.json>
@@ -32,6 +38,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import sys
 from datetime import datetime, timezone
 
@@ -132,22 +139,76 @@ def build_brain(repo_root, now):
     }
 
 
+DEFAULT_TIMEOUT_SEC = 120
+
+
+def state_dir(args):
+    return args.state or os.path.join(os.path.dirname(os.path.realpath(args.out)) or ".", ".ways-state")
+
+
+def kill_present(state):
+    """Kill-switch check (DR-0186). Ships ABSENT -> resting state is RUNNING."""
+    return os.path.exists(os.path.join(state, "KILL_SWITCH"))
+
+
+def acquire_lock(state):
+    """Single-flight mkdir lock. True if acquired; False if a run is already live
+    (a stacked fire SKIPS). mkdir is atomic on POSIX, so this can't race."""
+    try:
+        os.mkdir(os.path.join(state, "run.lock"))
+        return True
+    except FileExistsError:
+        return False
+
+
+def release_lock(state):
+    try:
+        os.rmdir(os.path.join(state, "run.lock"))
+    except OSError:
+        pass
+
+
 def run(args):
     repo = os.path.realpath(args.repo)
     if not os.path.isdir(os.path.join(repo, "docs", "decisions")):
         print("REFUSING: %s is not a repo root (no docs/decisions)" % repo, file=sys.stderr)
         sys.exit(2)
-    brain = build_brain(repo, datetime.now(timezone.utc))
-    out = os.path.realpath(args.out)
-    tmp = out + ".tmp"
-    # Atomic write so a reader never sees a half-written brain (idempotent: same
-    # docs -> same bytes, modulo generated_at).
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(brain, fh, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, out)
-    print("ways-brain: %d principles, %d decisions, %d open re-reviews -> %s"
-          % (brain["counts"]["principles"], brain["counts"]["decisions"],
-             brain["counts"]["open_re_reviews"], out))
+
+    state = state_dir(args)
+    os.makedirs(state, exist_ok=True)
+
+    # Brake 3 — KILL-SWITCH (ships absent; a touch halts). Resting state = running.
+    if kill_present(state):
+        print("ways-brain: KILL_SWITCH present -> halting (remove %s/KILL_SWITCH to resume)" % state)
+        sys.exit(0)
+
+    # Brake 2 — CONCURRENCY: a fire that finds a run live SKIPS (never stacks).
+    if not acquire_lock(state):
+        print("ways-brain: a run is already in progress -> skipping this fire")
+        sys.exit(0)
+
+    # Brake 1 — BUDGET: a wall-clock ceiling kills an overrun.
+    timeout = int(os.environ.get("WAYS_TIMEOUT_SEC", str(DEFAULT_TIMEOUT_SEC)))
+    if hasattr(signal, "SIGALRM"):
+        signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError("ways-brain exceeded %ds budget" % timeout)))
+        signal.alarm(max(1, timeout))
+    try:
+        brain = build_brain(repo, datetime.now(timezone.utc))
+        out = os.path.realpath(args.out)
+        os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+        tmp = out + ".tmp"
+        # Atomic write so a reader never sees a half-written brain (idempotent:
+        # same docs -> same bytes, modulo generated_at).
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(brain, fh, ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, out)
+        print("ways-brain: %d principles, %d decisions, %d open re-reviews -> %s"
+              % (brain["counts"]["principles"], brain["counts"]["decisions"],
+                 brain["counts"]["open_re_reviews"], out))
+    finally:
+        if hasattr(signal, "SIGALRM"):
+            signal.alarm(0)
+        release_lock(state)
 
 
 def selftest():
@@ -198,6 +259,20 @@ def selftest():
         ok("brain: decisions newest-first", [x["num"] for x in brain["decisions"]] == [101, 100])
         ok("brain: 1 open re-review, from DR-0100", brain["counts"]["open_re_reviews"] == 1 and brain["open_re_reviews"][0]["id"] == "DR-0100")
         ok("brain: honest-empty on a non-repo dir", build_brain("/nonexistent-xyz", now)["counts"]["decisions"] == 0)
+
+        # The three brakes (DR-0186): kill-switch ships ABSENT (resting = running),
+        # the lock is single-flight, and a stacked fire is skipped.
+        st = os.path.join(d, ".ways-state")
+        os.makedirs(st)
+        ok("brake: kill-switch absent by default (resting state is running)", not kill_present(st))
+        open(os.path.join(st, "KILL_SWITCH"), "w").close()
+        ok("brake: kill-switch present halts", kill_present(st))
+        os.remove(os.path.join(st, "KILL_SWITCH"))
+        ok("brake: lock acquires when free", acquire_lock(st) is True)
+        ok("brake: a stacked fire finds the lock held and SKIPS", acquire_lock(st) is False)
+        release_lock(st)
+        ok("brake: lock re-acquirable after release", acquire_lock(st) is True)
+        release_lock(st)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
@@ -214,6 +289,7 @@ def main():
     ap.add_argument("--selftest", action="store_true", help="offline logic checks")
     ap.add_argument("--repo", default=os.environ.get("WAYS_REPO", "."), help="repo root (contains docs/decisions)")
     ap.add_argument("--out", default=os.environ.get("WAYS_OUT", "./ways-brain.json"), help="output JSON path")
+    ap.add_argument("--state", default=os.environ.get("WAYS_STATE", ""), help="lock/kill-switch dir (default: <out-dir>/.ways-state)")
     args = ap.parse_args()
     if args.selftest:
         selftest()
