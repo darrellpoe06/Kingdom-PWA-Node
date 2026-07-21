@@ -1,6 +1,6 @@
 ---
 id: DR-0205
-title: Spoken teaching captured — Pastor A.R. Bernard sermon becomes six Godhead Study algorithms
+title: Spoken teaching captured — Pastor A.R. Bernard sermon becomes twelve Godhead Study algorithms
 status: accepted
 date: 2026-07-21
 tier: A
@@ -23,7 +23,7 @@ discussed.
 
 ## The decision
 
-Six deterministic studies were distilled FROM the sermon and appended to
+Twelve deterministic studies were distilled FROM the sermon and appended to
 `GODHEAD_ALGORITHMS` in `app/src/lib/godhead-study.js` (the primary doctrinal-lesson
 catalog; condition → consequence → 3D-practice → outcome, by canon section):
 
@@ -45,6 +45,23 @@ catalog; condition → consequence → 3D-practice → outcome, by canon section
    beyond our dimension, holding the frame He made (Philip caught away as the
    illustration); grounds Bernard's teaching in the existing 4th-dimensional frame
    (DR-0097).
+7. **gh-pray-for-protection** (gospels, Matthew 6:13; 1 Peter 5:8) — "lead us not into
+   temptation" is a prayer for protection (not God tempting), kept by vigilance: be
+   sober and watchful so an unwatched desire is not the adversary's handle.
+8. **gh-see-father-in-son** (gospels, John 14:8-9) — "he that hath seen me hath seen
+   the Father"; you can walk close to the Truth for years and still not grasp the
+   revelation — proximity is not comprehension.
+9. **gh-he-already-knew** (gospels, John 6:5-6) — Jesus tests Philip "to prove him: for
+   he himself knew what he would do" — the test proves you, it does not inform God.
+10. **gh-strengthen-your-brethren** (gospels, Luke 22:32) — "when thou art converted,
+    strengthen thy brethren": the growth from testing is spent OUTWARD, pulling others
+    up to the level you gained (COMMUNITY-FIRST).
+11. **gh-all-things-work-together** (epistles, Romans 8:28) — the "rigged" outcome: all
+    things already worked together for good to them that love God; the test aims at
+    victory, not failure.
+12. **gh-admit-wrong-to-grow** (wisdom, Proverbs 28:13; Proverbs 12:1) — confess and
+    forsake; admitting you are wrong opens the correction that unlocks growth; love
+    reproof, don't resent it.
 
 ## Doctrinal posture held
 
@@ -66,5 +83,6 @@ catalog; condition → consequence → 3D-practice → outcome, by canon section
 `godhead-study.test.js` green — every new ref resolves to verbatim text, ids unique,
 all required fields present, sections non-empty, each study deals into the Generations
 deck. `eternal-algorithms-study-render.test.js` green (the studies render on the real
-surface). Verses JSON regenerated (+9 refs, no churn); consistency + contrast + lint +
-full suite green. REV-0177; memory `project_bernard_sermon_godhead_studies`.
+surface). Verses JSON regenerated; consistency + contrast + lint + full suite green.
+Shipped in two passes off the same sermon: studies 1-6 in the first PR (REV-0177),
+studies 7-12 in the follow-up (REV-0178). memory `project_bernard_sermon_godhead_studies`.

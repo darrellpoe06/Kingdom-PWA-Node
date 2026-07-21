@@ -86,7 +86,7 @@ relying on it; memories reflect what was true when written.
   `node scripts/fetch-godhead-verses.mjs` (materializes verbatim KJV into
   godhead-study-verses.json; hard-fails on any bad ref), then
   `godhead-study.test.js` pins it. Sections: torah/wisdom/prophets/gospels/
-  epistles/revelation. 2026-07-21: A.R. Bernard sermon -> six studies (DR-0205,
+  epistles/revelation. 2026-07-21: A.R. Bernard sermon -> twelve studies (DR-0205,
   REV-0177). Posture: DR-0098 (capture "debate" as OWNING the Word, not
   relativizing), DR-0100 (state harm plainly, Word corrects over-reach),
   typographic theology (the thief/adversary lowercase), DR-0076 (verbatim verses,
