@@ -147,6 +147,102 @@ export function phaseKind(label) {
 //     audience:    { ...learner-safe content only... },
 //     facilitator: { say:[...], do:[...], watchFor? } }
 // ---------------------------------------------------------------------------
+// Spoken pace for estimating how long the authored teaching runs read aloud.
+// ~140 words/minute is an unhurried teaching cadence (the DR-0215 measure).
+export const SPOKEN_WPM = 140;
+
+// ---------------------------------------------------------------------------
+// planSessions — the course-split (DR-0215 §2): when a lesson's spoken teaching
+// runs longer than one facilitated slot, it FLOWS across more than one session.
+// This is content-preserving by construction: the teaching prose is grouped at
+// SENTENCE boundaries into N even sessions — every word is MOVED, never cut
+// (Darrell 2026-07-21: "adjust the curriculum to the allotted time... don't lose
+// content"). A lesson that fits the slot returns a single session, unchanged.
+//
+// Pure + deterministic (no Date/Math.random) — the same sentence splitter the
+// age chunker uses. Returns { slotMinutes, wpm, totalSpokenWords, estMinutes,
+// sessionCount, multiSession, sessions:[{ index, label, text, words, estMinutes }] }.
+// Invariant (tested): sessions.map(s => s.text).join(' ') reproduces the teaching
+// prose — nothing dropped, nothing reordered.
+// ---------------------------------------------------------------------------
+const wordsIn = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+
+export function planSessions(module, opts = {}) {
+  const m = module || {};
+  const {
+    slotMinutes = 25,
+    wpm = SPOKEN_WPM,
+    // Reserve, in minutes, held back from the slot for open/engage/apply/send
+    // framing. Default 0 so the split threshold matches DR-0215's own measure —
+    // a lesson splits when its SPOKEN teaching exceeds the slot, not before.
+    framingMinutes = 0,
+    ageBand = DEFAULT_AGE_BAND,
+    levelOverride = null,
+  } = opts;
+
+  // The authored teaching prose (adult band = the whole lesson as one string).
+  const plan = lessonPlanForAge(m, ageBand, levelOverride);
+  const teachText = ((plan && plan.segments) || []).join(' ').trim();
+  const teachWords = wordsIn(teachText);
+  const storyWords = (Array.isArray(m.stories) ? m.stories : []).reduce((t, s) => t + wordsIn(s.body), 0);
+  const talk = (m.facilitator && Array.isArray(m.facilitator.talkingPoints)) ? m.facilitator.talkingPoints : [];
+  const talkWords = talk.reduce((t, p) => t + wordsIn(p), 0);
+
+  const totalSpokenWords = teachWords + storyWords + talkWords;
+  const estMinutes = wpm > 0 ? +(totalSpokenWords / wpm).toFixed(1) : 0;
+
+  // Per-session teaching budget (the slot minus its framing), in words.
+  const teachBudgetMin = Math.max(1, (Number(slotMinutes) || 0) - (Number(framingMinutes) || 0));
+  const capWords = Math.max(1, Math.round(teachBudgetMin * wpm));
+  const sessionCount = Math.max(1, Math.ceil(totalSpokenWords / capWords));
+
+  const single = (label) => [{
+    index: 1, label, text: teachText, words: teachWords, estMinutes: wpm > 0 ? +(teachWords / wpm).toFixed(1) : 0,
+  }];
+
+  let sessions;
+  if (sessionCount <= 1 || !teachText) {
+    sessions = single('Full session');
+  } else {
+    // Even split of the PROSE across sessions, breaking only at sentence ends.
+    const sentences = teachText.match(/[^.!?]+[.!?]*\s*/g) || [teachText];
+    const targetPerSession = Math.ceil(teachWords / sessionCount);
+    sessions = [];
+    let buf = '';
+    let words = 0;
+    for (const s of sentences) {
+      buf += s;
+      words += wordsIn(s);
+      // Close a session at a sentence boundary once it reaches its even share,
+      // but never open more sessions than planned (the last one takes the rest).
+      if (words >= targetPerSession && sessions.length < sessionCount - 1) {
+        sessions.push({ text: buf.trim(), words });
+        buf = '';
+        words = 0;
+      }
+    }
+    if (buf.trim()) sessions.push({ text: buf.trim(), words });
+    const n = sessions.length;
+    sessions = sessions.map((s, i) => ({
+      index: i + 1,
+      label: `Session ${i + 1} of ${n}`,
+      text: s.text,
+      words: s.words,
+      estMinutes: wpm > 0 ? +(s.words / wpm).toFixed(1) : 0,
+    }));
+  }
+
+  return {
+    slotMinutes: Number(slotMinutes) || 0,
+    wpm,
+    totalSpokenWords,
+    estMinutes,
+    sessionCount: sessions.length,
+    multiSession: sessions.length > 1,
+    sessions,
+  };
+}
+
 export function buildLessonArc(module, opts = {}) {
   const m = module || {};
   const {
@@ -256,6 +352,14 @@ export function buildLessonArc(module, opts = {}) {
       : 'Close in prayer or a blessing, and send them out.',
   }));
 
+  // The course-split (DR-0215 §2): if this lesson's spoken teaching runs longer
+  // than the slot, it flows across more than one session — content-preserving.
+  const sessionPlan = planSessions(m, {
+    slotMinutes: total,
+    ageBand,
+    levelOverride,
+  });
+
   return {
     moduleId: m.id || null,
     title: m.title || '',
@@ -263,5 +367,6 @@ export function buildLessonArc(module, opts = {}) {
     band: lessonPlan && lessonPlan.band,
     segments,
     audienceSegments: segments.filter((s) => s.hasContent),
+    sessionPlan,
   };
 }
