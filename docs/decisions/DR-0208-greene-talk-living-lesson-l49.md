@@ -30,7 +30,11 @@ Added **L49 — "Mastery Without Manipulation — Your Life's Task, Envy, and th
 1. **Your life's task, learned by DOING** — gift received to minister (1 Peter 4:10; 2 Timothy
    1:6); doers not hearers (James 1:22).
 2. **Mastery through focus** — "this one thing I do... press toward the mark" (Philippians
-   3:13-14); hand to the plough, no looking back (Luke 9:62).
+   3:13-14); hand to the plough, no looking back (Luke 9:62). Capstone (Darrell's directive,
+   "seek ye first the Kingdom"): the FIRST focus that orders all others is "seek ye first the
+   kingdom of God" (Matthew 6:33), and mentorship saves years — "in the multitude of
+   counsellors there is safety" (Proverbs 11:14); "Faithful are the wounds of a friend"
+   (Proverbs 27:6); pass it on (2 Timothy 2:2).
 3. **THE HINGE — mastery WITHOUT manipulation** (the central correction): the Kingdom inverts
    the 48-Laws instinct — greatness is service (Matthew 20:26); love works no ill (Romans
    13:10); plain, un-gamed speech (Matthew 5:37); the deceitful heart is PUT OFF, not
