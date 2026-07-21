@@ -17,7 +17,10 @@ POST /llm/chat   { model, system, messages:[{role,content}] }
 The APP builds the system prompt (e.g. `class-tutor.js` `tutorSystemPrompt`,
 grounded in Ari's persona + the week's authored content), so the server carries
 **no curriculum copy and no doctrine** — it only relays chat to Ollama and returns
-the reply. On any failure (Ollama down, model not pulled, timeout) it returns a
+the reply. The same generic `/llm/chat` contract now serves every interactive
+ask→answer feature — **class-tutor**, **talk-about** (the spoken "explain this
+screen"), and **thought-finalize** (the 4th-dimensional framework pass) — each
+sending its own `system` + `messages`. On any failure (Ollama down, model not pulled, timeout) it returns a
 clean error and the app shows its **authored walkthrough** — never a fabricated
 answer (DR-0076).
 

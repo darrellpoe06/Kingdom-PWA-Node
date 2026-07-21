@@ -34,11 +34,15 @@
 // Funnel-direct died with the Vercel hosting. Funnel-direct is now strictly
 // worse: the Funnel throttles cross-origin browser fetches from poetech.us
 // with 503s, which is exactly the intermittent "works, then doesn't" failure.
-// The cutover checklist and the standing rule (project_n8n_same_origin_rewrite)
-// both require the same-origin default; this restores it. The many libs that
-// pin their own '/n8n' base (class-tutor, talk-about, thought-finalizer,
-// checkout-seam, nas-photos uploads) already rode the Pages Function — this
-// brings the shared resolver back in line with them.
+// The cutover checklist and the standing rule (project_app_to_nas_transport_and_
+// sovereign_python) both require the same-origin default; this restores it.
+//
+// DR-0218 zero-n8n (2026-07-21): the interactive-LLM libs (class-tutor,
+// talk-about, thought-finalizer) have since been cut over to the sovereign
+// same-origin '/llm/chat' path (infra/nas-llm/llm_server.py) and no longer use
+// this '/n8n' base; checkout/subscribe moved to '/api/*'. This resolver now
+// serves only the still-legacy transports (nas-photos uploads and the remaining
+// webhooks being retired) until those cut over too.
 //
 // Resolution order
 // ----------------

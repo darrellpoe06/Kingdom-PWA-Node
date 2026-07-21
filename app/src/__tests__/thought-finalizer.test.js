@@ -13,7 +13,8 @@
 //   4. PARSE — parseSuggestion survives fences/prose/partials; garbage -> null
 //      (honest empty, never a painted treatment).
 //   5. REVERSIBLE — clearFinalization restores 'unfinalized'.
-//   6. SOVEREIGN — the client routes LOCAL (qwen2.5) via a RELATIVE /n8n path.
+//   6. SOVEREIGN — the client routes LOCAL (qwen2.5) via the RELATIVE sovereign
+//      LLM path /llm/chat (DR-0218 zero-n8n), never a vendor/Funnel URL.
 //   7. FORWARD-COMPAT — an old entry with no finalization normalizes clean.
 //   8. CONTENT-ENGINE — a teaching-ready thought maps onto an Eternal Algorithm.
 // =============================================================================
@@ -149,12 +150,16 @@ describe('reversible + forward-compat + sovereign', () => {
     expect(normalizeFinalization(undefined).status).toBe('unfinalized');
     expect(normalizeFinalization({ status: 'bogus' }).status).toBe('unfinalized');
   });
-  it('the client routes LOCAL: qwen2.5 via a relative /n8n path, never a vendor/Funnel URL', () => {
+  it('the client routes LOCAL: qwen2.5 via the relative sovereign /llm/chat path, never a vendor/Funnel URL', () => {
     expect(FINALIZE_MODEL).toBe('qwen2.5');
     const ep = finalizeEndpoint();
-    expect(ep.startsWith('/n8n/')).toBe(true);
+    expect(ep).toContain('/llm/chat');
     expect(ep).not.toMatch(/https?:\/\//);
-    expect(buildFinalizePayload(thought()).model).toBe('qwen2.5');
+    expect(ep).not.toMatch(/n8n|webhook|tail5a2f35/i);
+    const payload = buildFinalizePayload(thought());
+    expect(payload.model).toBe('qwen2.5');
+    // The owner's own words ride the generic messages array the server reads.
+    expect(payload.messages[0].content).toMatch(/Joy is the strength/);
   });
 });
 

@@ -20,8 +20,8 @@
 //      is pure, and it is unit-tested.
 //
 //   2. LIVE (richer, when the sovereign NAS A.I. is reachable): talkAboutSurface()
-//      asks the family's local model (qwen2.5 on the NAS, via the same /n8n path
-//      class-tutor uses) to phrase the SAME facts more naturally. The model is
+//      asks the family's local model (qwen2.5 on the NAS, via the same sovereign
+//      /llm/chat path class-tutor uses) to phrase the SAME facts more naturally. The model is
 //      told, hard, to use ONLY the given facts. As a belt-and-suspenders guard,
 //      verifyNarrationGrounded() rejects ANY model reply that introduces a number
 //      not present in the digest, and we fall back to the authored narration. So
@@ -32,8 +32,9 @@
 // source:'authored'. The caller can surface that ("Ari, on-device" vs "Ari,
 // live") but the user always hears a true explanation of their real screen.
 //
-// SOVEREIGN, LOCAL-FIRST: the live endpoint is the same-origin '/n8n' relative
-// path (never an absolute Funnel/vendor URL in the client bundle), matching the
+// SOVEREIGN, LOCAL-FIRST: the live endpoint is the same-origin sovereign LLM path
+// '/llm/chat' (DR-0218 zero-n8n; infra/nas-llm/llm_server.py), a RELATIVE path
+// (never an absolute Funnel/vendor URL in the client bundle), matching the
 // Charter gate proven for class-tutor.
 // =============================================================================
 import { ariSystemPrompt, ARI } from './ari.js';
@@ -43,13 +44,12 @@ import { n8nAuthHeaders } from './n8n-base.js';
 // finalizer). Kept as a constant so a test can prove the client routes local.
 export const TALK_MODEL = 'qwen2.5';
 
-// Same-origin base, pinned relative (NOT the absolute N8N_BASE Funnel) so the
-// sovereignty gate holds: a relative path, never a vendor/Funnel URL client-side.
-const TALK_BASE = '/n8n';
-
-// The local-first endpoint: the same-origin /n8n rewrite to the family NAS.
+// The sovereign LLM path (DR-0218 zero-n8n): a same-origin RELATIVE route to the
+// family NAS's OWN Ollama through the FastAPI wrapper (infra/nas-llm/llm_server.py),
+// never a vendor/Funnel URL client-side, so the sovereignty gate holds. Degrades
+// to the authored narration until that server + its /llm/* Caddy route are up.
 export function talkAboutEndpoint() {
-  return `${TALK_BASE.replace(/\/+$/, '')}/webhook/talk-about`;
+  return '/llm/chat';
 }
 
 // -----------------------------------------------------------------------------
@@ -209,13 +209,17 @@ export function talkAboutSystemPrompt(digest) {
   return ariSystemPrompt(task);
 }
 
-// The request body the NAS workflow expects (mirrors buildTutorPayload).
+// The request body the sovereign /llm/chat server expects (mirrors
+// buildTutorPayload): { model, system, messages }. The facts are baked into the
+// system prompt (talkAboutSystemPrompt); the single user turn just asks for the
+// spoken explanation of THIS screen.
 export function buildTalkPayload(digest) {
+  const title = (digest && digest.title) || 'this screen';
   return {
     model: TALK_MODEL,
     title: (digest && digest.title) || null,
     system: talkAboutSystemPrompt(digest),
-    facts: (digest && digest.facts) || [],
+    messages: [{ role: 'user', content: `Explain the "${title}" screen out loud now, using only the facts above.` }],
   };
 }
 
