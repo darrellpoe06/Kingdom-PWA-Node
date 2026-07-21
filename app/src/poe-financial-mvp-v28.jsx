@@ -160,9 +160,9 @@ import { reconcileAccounts } from './lib/imported-view.js';
 import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
-import { N8N_BASE } from './lib/n8n-base.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
+import { analyzeSkills } from './lib/skill-analytics.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1590,24 +1590,21 @@ export default function PoeFinancialSystem() {
     }
   };
   const runSkillAnalytics = async () => {
-    const base = N8N_BASE;
-    if (!base) return;
+    // SOVEREIGN (DR-0218 zero-n8n): stats are deterministic + client-side; the
+    // warm profile narrative is the family's OWN local model via /llm/chat
+    // (lib/skill-analytics.js). Honest-offline: if the model is unreachable we
+    // still keep the real stats (so matched-services runs), never a fabricated
+    // profile.
     setUploadStage('analyzing');
     try {
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/skill-analytics`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ transactions: uploadResult.transactions })
-      });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
+      const res = await analyzeSkills(uploadResult.transactions);
+      if (!res.ok) {
         setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Analytics failed (HTTP ${r.status})` }));
+        setUploadResult(prev => ({ ...prev, error: res.error || 'Analytics unavailable', stats: res.stats || prev.stats }));
         return;
       }
       setUploadStage('profile');
-      setUploadResult(prev => ({ ...prev, profile: { diagnostic_summary: json.diagnostic_summary, strengths: json.strengths, gaps_to_consider: json.gaps_to_consider, profile: json.profile }, stats: json.stats }));
+      setUploadResult(prev => ({ ...prev, profile: { diagnostic_summary: res.diagnostic_summary, strengths: res.strengths, gaps_to_consider: res.gaps_to_consider, profile: res.profile }, stats: res.stats }));
     } catch (e) {
       setUploadStage('error');
       setUploadResult(prev => ({ ...prev, error: `Analytics call failed: ${e.message}` }));
