@@ -92,6 +92,12 @@ relying on it; memories reflect what was true when written.
   typographic theology (the thief/adversary lowercase), DR-0076 (verbatim verses,
   cross-checked vs `app/public/bible/kjv`). The fetch script reaches
   raw.githubusercontent.com/aruljohn/Bible-kjv through the proxy — it works here.
+  ALSO surfaced as a SINGLE integrated Living Lesson (DR-0206, REV-0179): L47 "Navigating
+  the Age" in `LIVING_LESSONS_MODULES` (living-lessons-class.js) — the harvest-to-lesson
+  pattern (bump `LIVING_LESSONS_META.weeks` to match module count; the gate is
+  `weeks === MODULES.length`; module shape = bigIdea/inApp/benefits/levels{child,teen,
+  senior}/quiz/lesson/facilitator, matching L42-L46). One teaching, two surfaces: patterns
+  for processing (Godhead/Eternal Algorithms) + a lesson for sitting with (Living Lessons).
 - **project_db_migrations_auto_lane** — DATABASE / SQL changes APPLY THEMSELVES;
   never hand Darrell SQL to paste, and never guess docker / Studio / psql
   commands for him to run ("you fix it first, why me" — Darrell; and 2026-07-04:
