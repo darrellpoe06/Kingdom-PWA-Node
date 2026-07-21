@@ -178,6 +178,12 @@ export function buildLessonArc(module, opts = {}) {
   const talking = Array.isArray(fac.talkingPoints) ? fac.talkingPoints : [];
   const prompts = Array.isArray(fac.discussionPrompts) ? fac.discussionPrompts : [];
   const benefits = Array.isArray(m.benefits) ? m.benefits : [];
+  // Parable/story beats — short, vivid, often-funny illustrations the teacher drops
+  // mid-teach to land the point, the way Jesus taught (Matthew 13:34). Learner-safe
+  // (title/body/verse only — no facilitator keys), so they flow to the audience side
+  // of the TEACH stage. Darrell 2026-07-21: "make it funny and fun... short stories
+  // like Jesus did parables... at least 2 to each 25-minute lesson."
+  const stories = Array.isArray(m.stories) ? m.stories : [];
   const hasMedia = Array.isArray(m.media) && m.media.length > 0;
   const hasHardware = Array.isArray(m.hardware) && m.hardware.length > 0;
   const hasRpe = !!(m.rpe && (m.rpe.research || m.rpe.plan || m.rpe.execute));
@@ -199,9 +205,9 @@ export function buildLessonArc(module, opts = {}) {
       hasContent: !!(m.bigIdea || anchor.ref),
     },
     teach: {
-      audience: { lessonPlan, hasMedia, hasHardware, hasRpe },
+      audience: { lessonPlan, stories, hasMedia, hasHardware, hasRpe },
       facilitator: { say: talking, do: facDo('teach') },
-      hasContent: lessonSegs.length > 0 || talking.length > 0 || hasMedia || hasHardware,
+      hasContent: lessonSegs.length > 0 || stories.length > 0 || talking.length > 0 || hasMedia || hasHardware,
     },
     engage: {
       audience: { prompts },

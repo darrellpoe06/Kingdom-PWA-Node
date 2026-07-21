@@ -706,3 +706,13 @@ relying on it; memories reflect what was true when written.
   classes). L49 (Greene) + L50 deepened with foresight-vs-"stupidity", all-knowledge-is-Yahweh's
   (glimpse of the King), knowledge-into-submission, knowing His voice, and proven-in-actions
   (DR-0213, REV-0185). All quotes KJV-verbatim (DR-0076); full suite 6244 green.
+
+- **2026-07-21 — `project_never_lose_content_yahwehs_perspectives_priceless` (DR-0215).**
+  Darrell: "don't lose content or context over time — Yahweh's perspectives are priceless."
+  Binding: every teaching built (lessons, parables, testimonies, the Yahweh-perspectives) is
+  durably preserved — git history + live deploy + the decision/review ledger + memory hold both
+  the WHAT and the WHY. Restructures (e.g. splitting over-long lessons L42/L50 into ~25-min
+  course sessions) are CONTENT-PRESERVING: every word is MOVED, never deleted. Parable vs
+  testimony is a truth-committing label ("Picture this…" = illustrative; "A true story" =
+  real/attributed/consented) — never blurred (DR-0076). Pairs with DR-0065 (APP-IS-PRIMARY,
+  don't lose the grounding), DR-0089 (spoken teachings always captured).

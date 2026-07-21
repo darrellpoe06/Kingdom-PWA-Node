@@ -193,3 +193,61 @@ describe('Living Lessons L43 — "The War Is for the Mind" (Darrell 2026-07-19),
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 });
+
+describe('parable/story beats — reach the audience, never leak facilitator notes (Darrell 2026-07-21)', () => {
+  it('surfaces module.stories on the TEACH stage audience side, learner-safe', () => {
+    const mod = {
+      id: 'x', title: 'X', bigIdea: 'idea', anchor: { ref: 'John 1:1', theme: 't' },
+      stories: [{ tone: 'light', title: 'The Tenant', body: 'A funny parable.', verse: '"..." (2 Corinthians 10:5)' }],
+      facilitator: { talkingPoints: ['tp'], howToRun: 'Teach the big idea (12): go.' },
+    };
+    const arc = buildLessonArc(mod, { targetMinutes: 25 });
+    const teach = arc.segments.find((s) => s.kind === 'teach');
+    expect(Array.isArray(teach.audience.stories)).toBe(true);
+    expect(teach.audience.stories[0].title).toBe('The Tenant');
+    // teach has content BECAUSE of the story, even with a thin lessonPlan
+    expect(teach.hasContent).toBe(true);
+    // NO-LEAK: the story object carries no facilitator keys
+    const FORBIDDEN = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
+    for (const st of teach.audience.stories) {
+      for (const k of Object.keys(st)) expect(FORBIDDEN.includes(k)).toBe(false);
+    }
+  });
+
+  it('a real Living Lesson (L50) carries at least 2 stories, each with a body', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => /the-mind-of-christ-thinking/.test(m.id));
+    expect(l50).toBeTruthy();
+    expect(Array.isArray(l50.stories)).toBe(true);
+    expect(l50.stories.length).toBeGreaterThanOrEqual(2);
+    for (const s of l50.stories) {
+      expect(typeof s.body).toBe('string');
+      expect(s.body.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe('never lie about a story — kind is truthfully labeled (Darrell 2026-07-21, DR-0215/DR-0076)', () => {
+  it('every story across the curriculum is a valid kind, and a testimony is attributed (a real, credited account — never a fiction mislabeled as true)', () => {
+    const offenders = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      if (!Array.isArray(m.stories)) continue;
+      for (const s of m.stories) {
+        // kind, when present, must be exactly one of the two truthful labels.
+        if (s.kind != null && s.kind !== 'parable' && s.kind !== 'testimony') {
+          offenders.push(`${m.id}: invalid kind "${s.kind}"`);
+        }
+        // A testimony CLAIMS a real, lived event — it must be attributed (source).
+        // An unattributed "true story" is not allowed (it would assert reality with
+        // no one standing behind it). Parables need no source (they claim nothing real).
+        if (s.kind === 'testimony' && !(typeof s.source === 'string' && s.source.trim())) {
+          offenders.push(`${m.id}: testimony "${s.title || ''}" has no source/attribution`);
+        }
+        // Every story must have a body (no empty illustration).
+        if (!(typeof s.body === 'string' && s.body.trim().length > 20)) {
+          offenders.push(`${m.id}: story "${s.title || ''}" has no real body`);
+        }
+      }
+    }
+    expect(offenders, offenders.join(' | ')).toEqual([]);
+  });
+});
