@@ -110,6 +110,13 @@ jobs:
       - name: sovereign review-queue server selftest
         working-directory: infra/nas-review-feed
         run: python3 review_server.py --selftest
+      # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
+      # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
+      # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR
+      # front-matter, re-review de-dup, or the newest-first order regresses.
+      - name: sovereign ways-brain parser selftest
+        working-directory: infra/nas-ways
+        run: python3 ways_ingest.py --selftest
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

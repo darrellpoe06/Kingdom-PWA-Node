@@ -14,8 +14,9 @@
 // the app's established tokens (brick / terracotta / olive / muted), never red.
 // Theme CLASSES + rem only, so the global text-size control scales it.
 // =============================================================================
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
+import { fetchWaysBrain } from '../lib/ways-brain.js';
 import { SectionTitle } from './shared.jsx';
 import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
@@ -76,8 +77,21 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
 
   const overall = sevMeta(review.summary.status);
   const comp = review.completion;
-  // The binding Ways, surfaced live from the build-time snapshot of PRINCIPLES.md.
-  const ways = useMemo(() => normalizeWaysPrinciples(DR_PRINCIPLES), []);
+  // The binding Ways. FLOOR = the build-time snapshot of PRINCIPLES.md (always
+  // present). ENHANCEMENT = the LIVE sovereign brain (/ways/brain.json), fresher
+  // + the open re-review backlog, fetched honest-offline (DR-0219). If the live
+  // brain is reachable we prefer it; otherwise the snapshot stands.
+  const snapshot = useMemo(() => normalizeWaysPrinciples(DR_PRINCIPLES), []);
+  const [brain, setBrain] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchWaysBrain().then((b) => { if (!cancelled && b.live) setBrain(b); });
+    return () => { cancelled = true; };
+  }, []);
+  const ways = (brain && brain.live && brain.principles.length)
+    ? { ok: true, count: brain.principles.length, items: brain.principles }
+    : snapshot;
+  const waysLive = !!(brain && brain.live);
 
   return (
     <div className="space-y-4">
@@ -111,8 +125,15 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
           app in-session even when Claude Code isn't — shown, not just cited. */}
       {ways.ok && (
         <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
-            Binding Ways &middot; {ways.count} principle{ways.count === 1 ? '' : 's'}
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+              Binding Ways &middot; {ways.count} principle{ways.count === 1 ? '' : 's'}
+            </div>
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0">
+              {waysLive
+                ? `live${brain.counts.open_re_reviews ? ` · ${brain.counts.open_re_reviews} open re-review${brain.counts.open_re_reviews === 1 ? '' : 's'}` : ''}`
+                : 'from this build'}
+            </span>
           </div>
           <div className="max-h-64 overflow-y-auto -mx-1 px-1">
             <ul className="space-y-2">
@@ -125,7 +146,7 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
             </ul>
           </div>
           <p className="text-[0.6875rem] text-[#5A5751] mt-2">
-            Live from <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>docs/decisions/PRINCIPLES.md</span> at build &mdash; the cite-once Ways, shown in the app, not just in commits.
+            The cite-once Ways from <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>PRINCIPLES.md</span> &mdash; from the sovereign brain <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>/ways/brain.json</span> when reachable, else this build&rsquo;s snapshot. Shown in the app, not just cited in commits.
           </p>
         </div>
       )}
