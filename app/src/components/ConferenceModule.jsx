@@ -17,8 +17,8 @@
 // the organizer registration roll) lives BELOW in EventCenterModule, gated to
 // owner/admin so congregants aren't buried in leadership tooling.
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE } from '../lib/n8n-base.js';
 import { getConferenceAccess, subscribeConferences, saveConference } from '../lib/conference-sync.js';
+import { uploadFeedback } from '../lib/feedback-sync.js';
 import { CONFERENCE_IDENTITY } from '../lib/conference-identity.js';
 import ConferenceRegisterForm from './ConferenceRegisterForm.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
@@ -104,21 +104,16 @@ function ConferenceModuleInner() {
     const t = fbText.trim();
     if (!t) return;
     setFbText('');
+    // SOVEREIGN (DR-0218 zero-n8n): write straight to the Supabase `feedback`
+    // table via the family's own tested sync path (RLS-gated, cross-device,
+    // fires the Synology Chat notify) — no n8n webhook. Signed-out is a clean
+    // no-op ('offline'), matching this surface's own saveConference posture.
     try {
-      const base = N8N_BASE;
-      if (!base) { setFbSent('offline'); return; }
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/family-feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({
-          sender: 'conference-module', type: 'conference-feedback', message: t,
-          screen_context: { path: '/church/conference', conference: view.name },
-          user_agent: (typeof navigator !== 'undefined') ? navigator.userAgent : '',
-          source: 'poetech.us',
-        }),
-      });
-      setFbSent(r.ok ? 'sent' : 'offline');
+      const res = await uploadFeedback(
+        { text: t, currentView: `Conference · ${view.name}` },
+        { activeTab: 'conference' },
+      );
+      setFbSent(res && res.uploaded ? 'sent' : 'offline');
     } catch (_) {
       setFbSent('offline');
     }
