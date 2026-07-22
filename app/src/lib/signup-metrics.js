@@ -17,9 +17,8 @@
 // status the UI renders as-is. Pure helpers are isolated + unit-tested so the
 // shaping logic is verified independent of the network.
 // =============================================================================
-import supabase, { readPersistedSession } from './supabase.js';
 import { relativeTime } from './access-metrics.js';
-import { withTimeout, SNAPSHOT_TIMEOUT_MS } from './access-metrics-sync.js';
+import { restRpc, readSnapshotToken } from './access-metrics-sync.js';
 
 // ── fetch ────────────────────────────────────────────────────────────────────
 // Returns a discriminated status object — never throws, never paints:
@@ -28,19 +27,15 @@ import { withTimeout, SNAPSHOT_TIMEOUT_MS } from './access-metrics-sync.js';
 //   { status: 'unavailable', error }               — RPC missing / transient
 //   { status: 'ready', data }                      — real metrics payload
 export async function fetchSignupMetrics() {
-  // getSession() can hang on a resumed tab; time-box it and fall back to the
-  // synchronous persisted read so this never strands the SIGNUPS tab on
-  // "Loading…" (same guard as fetchAccessSnapshot — DR-0076).
-  const sessionRes = await withTimeout(supabase.auth.getSession(), SNAPSHOT_TIMEOUT_MS, null);
-  const session = sessionRes && sessionRes.data ? (sessionRes.data.session || null) : readPersistedSession();
-  if (!session) return { status: 'signed-out' };
+  // Read the token from the persisted session (synchronous, NO navigator.locks) and
+  // call the RPC via direct REST — bypassing the Supabase client's cross-tab lock
+  // that a wedged PoeTech tab can hold (Darrell 2026-07-22). Bounded by restRpc's
+  // AbortController, so this never strands the SIGNUPS tab on "Loading…" (DR-0076).
+  const token = readSnapshotToken();
+  if (!token) return { status: 'signed-out' };
 
   try {
-    const { data, error } = await withTimeout(
-      supabase.rpc('admin_signup_metrics'),
-      SNAPSHOT_TIMEOUT_MS,
-      { data: null, error: { message: 'admin_signup_metrics-timeout', timedOut: true } },
-    );
+    const { data, error } = await restRpc('admin_signup_metrics', {}, token);
     if (error) {
       // 42501 = our in-function "not authorized" raise (insufficient_privilege).
       // PostgREST may also surface it as code 'P0001' (raise) — match on text too.
