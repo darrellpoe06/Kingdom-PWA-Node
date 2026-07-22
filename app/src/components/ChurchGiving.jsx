@@ -70,15 +70,19 @@ function GiftIcon({ className = '', strokeWidth = 1.9 }) {
 // video_transcripts rows the sermon library reads; detected segments always
 // carry needs-review until the church confirms them. Signed-out visitors (RLS)
 // get the honest signed-in note, never a painted archive.
-function CallToGiveArchive() {
-  const [state, setState] = useState({ loading: true, archive: [] });
-  useEffect(() => {
+export function CallToGiveArchive() {
+  const [state, setState] = useState({ loading: true, archive: [], error: false });
+  const load = React.useCallback(() => {
     let alive = true;
+    setState((s) => ({ ...s, loading: true, error: false }));
     fetchCallToGiveArchive()
-      .then(({ archive }) => { if (alive) setState({ loading: false, archive }); })
-      .catch(() => { if (alive) setState({ loading: false, archive: [] }); });
+      .then(({ archive }) => { if (alive) setState({ loading: false, archive, error: false }); })
+      // A real fetch/RLS FAILURE is NOT the same as "no rows" — don't tell a
+      // signed-in member to "sign in" when the read errored (DR-0076 honest states).
+      .catch(() => { if (alive) setState({ loading: false, archive: [], error: true }); });
     return () => { alive = false; };
   }, []);
+  useEffect(() => load(), [load]);
 
   const cov = callToGiveCoverage(state.archive);
   const detected = state.archive.filter((r) => r.segment).slice(0, 5);
@@ -95,6 +99,13 @@ function CallToGiveArchive() {
 
       {state.loading ? (
         <p className="text-xs text-[#5A5751]" role="status">Reading the service archive…</p>
+      ) : state.error ? (
+        <div className="border border-[#B85838] bg-[#FAF8F4] p-3" role="alert">
+          <p className="text-xs text-[#1A1815] leading-relaxed">
+            Couldn&rsquo;t load the service archive just now — this is a connection hiccup, not a sign-in problem.{' '}
+            <button type="button" onClick={load} className="underline underline-offset-2 text-[#B85838] hover:text-[#1A1815]">Try again</button>.
+          </p>
+        </div>
       ) : state.archive.length === 0 ? (
         <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3" role="status">
           <p className="text-xs text-[#5A5751] leading-relaxed">

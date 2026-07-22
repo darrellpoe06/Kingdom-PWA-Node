@@ -31,6 +31,7 @@ import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import {
   accessRoster,
@@ -432,6 +433,13 @@ export default function AdminConsole({
           </div>
         </section>
       ),
+    },
+    {
+      id: 'support',
+      label: 'Support access',
+      icon: 'lock',
+      // The Governed Support Door (DR-0223): fix issues without ambient data access.
+      render: () => <SupportAccess instanceId={instanceId} />,
     },
     {
       id: 'quality',
