@@ -23,9 +23,12 @@ import supabase, { readPersistedSession } from './supabase.js';
 // Nothing here may hang the Access & Usage panel on "Loading…" forever. A resumed
 // tab's getSession() or a stalled SELECT can never resolve (documented incident:
 // auth-boot-gate-hang, DR-0076). Every awaited call is raced against this ceiling
-// and degrades to an honest fallback instead of freezing. 8s is generous for a
-// real round-trip yet bounded so the UI always resolves.
-export const SNAPSHOT_TIMEOUT_MS = 8000;
+// and degrades to an honest fallback instead of freezing. 6s is generous for a
+// real round-trip yet bounded so the UI resolves FAST — the multi-tab auth-lock
+// case (many PoeTech tabs holding navigator.locks) rides this ceiling, so keeping
+// it tight is what turns a ~18s "stuck on Loading" into a quick load-or-honest-error
+// (Darrell 2026-07-22, Admin stuck on "Loading access & usage…" with 8 tabs open).
+export const SNAPSHOT_TIMEOUT_MS = 6000;
 
 // Resolve `promise`, or return `fallback` after `ms`. A rejection also yields the
 // fallback. Pure enough to unit-test with an injected clock is unnecessary — the
@@ -84,13 +87,16 @@ export async function reportPresence() {
 // ("Access couldn't load — admin_*-timeout", observed 2026-07-16). Retry a few
 // times, each attempt bounded, until a session appears; mirrors choir-sync's
 // session-retry (the same cold-start race that stranded The Word). Bounded so the
-// panel always proceeds: at most ~8 * (1s cap + 250ms) then falls back to the
-// synchronous persisted read.
+// panel always proceeds FAST: at most ~4 * (700ms cap + 200ms) ~= 3.6s then falls
+// back to the synchronous persisted read. When the cross-tab auth-lock is held
+// (many tabs) getSession() never resolves, so retrying it 8x was pure ~10s of
+// waiting before the panel could even start its SELECTs — tightened 2026-07-22 so
+// the persisted-session fallback kicks in quickly instead.
 export async function readySession() {
-  for (let i = 0; i < 8; i += 1) {
-    const res = await withTimeout(supabase.auth.getSession(), 1000, null);
+  for (let i = 0; i < 4; i += 1) {
+    const res = await withTimeout(supabase.auth.getSession(), 700, null);
     if (res && res.data && res.data.session) return res.data.session;
-    await new Promise((r) => { setTimeout(r, 250); });
+    await new Promise((r) => { setTimeout(r, 200); });
   }
   return null;
 }
