@@ -38,7 +38,8 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances } from '../lib/member-roles.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
+import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -118,6 +119,8 @@ export default function AdminConsole({
   const [members, setMembers] = useState({ status: 'idle', list: [], myRole: null, error: null });
   const [adminInstances, setAdminInstances] = useState([]);         // spaces the steward may administer (family + church)
   const [scopeInstance, setScopeInstance] = useState(instanceId);   // which space "Manage access roles" targets
+  const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
+  const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -169,6 +172,7 @@ export default function AdminConsole({
       const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
       const list = await listInstanceMembers(wanted);
       setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
+      loadPending();
     } catch (e) {
       setMembers({ status: 'error', list: [], myRole: null, error: (e && e.message) || 'query failed' });
     }
@@ -177,6 +181,34 @@ export default function AdminConsole({
     const r = await setMemberRole(scopeInstance, userId, role);
     if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
     await loadMembers(scopeInstance);
+  };
+
+  // The type of the space currently being managed (church vs family/other), so the
+  // invite uses the right path.
+  const scopeType = (adminInstances.find((s) => s.instanceId === scopeInstance) || {}).instanceType || null;
+
+  // Invite someone so they can start USING the app (Darrell 2026-07-22, "I want
+  // people using the apps"). Church -> access on their next sign-in; family/other
+  // -> a one-time claim LINK to deliver, then confirm below (two-party, DR-0187).
+  const doInvite = async () => {
+    if (!isInviteEmail(invite.email)) { setInvite((p) => ({ ...p, msg: 'Enter a valid email.', link: '' })); return; }
+    setInvite((p) => ({ ...p, msg: 'Inviting…', link: '' }));
+    const r = await inviteToSpace(scopeType, invite.email, invite.role);
+    if (!r.ok) { setInvite((p) => ({ ...p, msg: `Couldn't invite (${r.reason || 'error'}).`, link: '' })); return; }
+    if (r.kind === 'church') {
+      setInvite({ email: '', role: 'member', msg: `Invited ${r.email}. They'll get access the next time they sign in.`, link: '' });
+    } else {
+      setInvite({ email: '', role: 'member', msg: `Invite ready for ${r.email}. Share this one-time link; then confirm them below once they open it.`, link: r.link || '' });
+      loadPending();
+    }
+  };
+  const loadPending = async () => {
+    const r = await listPendingClaims();
+    setPending(r.ok ? r.claims : []);
+  };
+  const doConfirm = async (inviteId) => {
+    const r = await confirmInvite(inviteId);
+    if (r.ok) { await loadPending(); await loadMembers(scopeInstance); }
   };
 
   const doReload = () => { try { window.location.reload(); } catch (e) { /* no-op */ } };
@@ -342,6 +374,60 @@ export default function AdminConsole({
                   );
                 })}
               </ul>
+            )}
+          </div>
+
+          {/* Get people USING the app (Darrell 2026-07-22): invite someone into
+              this space by email. Church -> access on next sign-in; family/other
+              -> a one-time claim link to deliver, then confirm below. */}
+          <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Invite someone to this space</div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+              {scopeType === 'church'
+                ? 'They’ll get access the next time they sign in.'
+                : 'You’ll get a one-time link to send them; confirm them here once they open it.'}
+            </p>
+            <div className="mt-2 flex items-end gap-2 flex-wrap">
+              <div className="flex-1 min-w-[160px]">
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1" htmlFor="ac-invite-email">Email</label>
+                <input id="ac-invite-email" type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={invite.email}
+                  onChange={(e) => setInvite((p) => ({ ...p, email: e.target.value }))} placeholder="person@email.com" />
+              </div>
+              <div>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1" htmlFor="ac-invite-role">Role</label>
+                <select id="ac-invite-role" className="text-xs p-2 border border-[#E8E4DC] bg-white" value={invite.role}
+                  onChange={(e) => setInvite((p) => ({ ...p, role: e.target.value }))}>
+                  <option value="member">Member</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <button type="button" disabled={!invite.email.trim()} onClick={doInvite}
+                className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#5A6E3D] text-white font-semibold disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Invite
+              </button>
+            </div>
+            {invite.msg && <p className="text-[0.6875rem] text-[#1A1815] mt-2" style={serif}>{invite.msg}</p>}
+            {invite.link && (
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
+                <code className="text-[0.625rem] break-all bg-[#FAF8F4] border border-[#E8E4DC] px-2 py-1 max-w-full">{invite.link}</code>
+                <button type="button" onClick={() => { try { navigator.clipboard?.writeText(invite.link); } catch { /* noop */ } }}
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">Copy</button>
+              </div>
+            )}
+            {pending.length > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Waiting for your confirmation</div>
+                <ul className="mt-1.5 space-y-1.5">
+                  {pending.map((c) => (
+                    <li key={c.invite_id} className="flex items-baseline justify-between gap-2 text-xs text-[#1A1815]" style={serif}>
+                      <span className="break-all min-w-0">{c.claimed_email || c.email}{c.role ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ml-1">{c.role}</span> : null}</span>
+                      <button type="button" onClick={() => doConfirm(c.invite_id)}
+                        className="text-[0.625rem] uppercase tracking-wider px-2 py-1 bg-[#1A1815] text-white hover:bg-[#B85838]">Confirm</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </section>

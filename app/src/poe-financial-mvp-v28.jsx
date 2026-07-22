@@ -4236,7 +4236,7 @@ ${THEME_CSS}
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
             <h2 id="profile-picker-h" className="text-2xl sm:text-3xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who's using this device?</h2>
-            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. The practice stays private to its owner; business entities stay with the principal. You can switch any time from the header.</p>
+            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to focus the screen on the parts meant for that person — handy on a shared device. This is a view convenience, not a login wall: everyone in the family space shares the same underlying data. Switch any time from the header.</p>
             <div className="space-y-2">
               {PROFILES.map(p => (
                 <button key={p.id} type="button" onClick={() => handlePersonaSelect(p)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
@@ -4248,7 +4248,7 @@ ${THEME_CSS}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · UX privacy. Layer B (sovereign PIN auth via workflow 21) ships separately. See vacation runbook.</p>
+            <p className="text-[10px] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · a shared-device view filter, not per-person security. Real access is set by your role in Admin → Role &amp; stewards. Layer B (sovereign PIN auth) ships separately.</p>
           </div>
         </div>
       )}
