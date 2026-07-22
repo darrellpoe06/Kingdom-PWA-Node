@@ -13,6 +13,7 @@ import { listInstanceMembers, listMyAdminInstances } from '../lib/member-roles.j
 import {
   SUPPORTABLE_TYPES, canReceiveBreakglass,
   grantSupportAccess, supportRead, listMySupportGrants, revokeSupportAccess,
+  requestSupportAccess, listSupportSpecialists, mySupportableRecords,
 } from '../lib/support-access.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -124,6 +125,75 @@ function MyGrants() {
   );
 }
 
+// The user-initiated half (0115): a member opens a specialist's access to THEIR
+// OWN record — "I need help with this." Lists the caller's own records + the
+// support staff; no raw ids, no steward needed (it's their own data).
+function GetHelp({ instanceId }) {
+  const [records, setRecords] = useState([]);
+  const [specialists, setSpecialists] = useState([]);
+  const [f, setF] = useState({ record: '', grantee: '', reason: '', minutes: 60 });
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    let alive = true;
+    if (!instanceId) { setRecords([]); setSpecialists([]); return undefined; }
+    mySupportableRecords(instanceId).then((r) => { if (alive) setRecords(r); });
+    listSupportSpecialists(instanceId).then((s) => { if (alive) setSpecialists(s); });
+    return () => { alive = false; };
+  }, [instanceId]);
+  const submit = async () => {
+    const rec = records.find((r) => r.resourceId === f.record);
+    if (!rec) { setMsg('Pick one of your records.'); return; }
+    setMsg('Opening access…');
+    const r = await requestSupportAccess(instanceId, f.grantee, rec.resourceType, rec.resourceId, f.reason, f.minutes);
+    if (r.ok) { setMsg('Done — the specialist can see just that record until it expires, and every look is logged. You can end it anytime.'); setF((p) => ({ ...p, reason: '' })); }
+    else setMsg(`Couldn't open access (${r.reason || 'error'})${r.error ? `: ${r.error}` : ''}.`);
+  };
+  if (records.length === 0 && specialists.length === 0) return null;
+  return (
+    <div className="bg-[#FAF8F4] border border-[#B85838] p-3">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Get help with your data</div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2 leading-relaxed" style={serif}>
+        Let a support specialist see ONE of your own records to fix an issue. They see only that record, only for a short time, and every look is logged — you can end it anytime.
+      </p>
+      {records.length === 0 ? (
+        <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>No records here to share yet.</p>
+      ) : specialists.length === 0 ? (
+        <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>No support specialist is set up in this space yet.</p>
+      ) : (
+        <div className="space-y-2">
+          <div>
+            <label className={LABEL} htmlFor="gh-record">Your record</label>
+            <select id="gh-record" className={FIELD} value={f.record} onChange={(e) => setF((p) => ({ ...p, record: e.target.value }))}>
+              <option value="">Choose…</option>
+              {records.map((r) => <option key={r.resourceId} value={r.resourceId}>{r.label}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className={LABEL} htmlFor="gh-spec">Support specialist</label>
+              <select id="gh-spec" className={FIELD} value={f.grantee} onChange={(e) => setF((p) => ({ ...p, grantee: e.target.value }))}>
+                <option value="">Choose…</option>
+                {specialists.map((s) => <option key={s.userId} value={s.userId}>{s.displayName}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={LABEL} htmlFor="gh-min">Minutes</label>
+              <input id="gh-min" type="number" min="1" max="1440" className={FIELD} value={f.minutes} onChange={(e) => setF((p) => ({ ...p, minutes: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <label className={LABEL} htmlFor="gh-reason">What's wrong?</label>
+            <input id="gh-reason" className={FIELD} value={f.reason} onChange={(e) => setF((p) => ({ ...p, reason: e.target.value }))} placeholder="e.g. my name is misspelled" />
+          </div>
+          <button type="button" disabled={!f.record || !f.grantee || !f.reason.trim()}
+            onClick={submit} className={`${BTN} bg-[#B85838] text-white font-semibold disabled:opacity-50`}>Open access</button>
+          {msg && <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={serif}>{msg}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SupportAccess({ instanceId = null }) {
   const [adminInstances, setAdminInstances] = useState([]);
   const [scope, setScope] = useState(instanceId);
@@ -160,6 +230,10 @@ export default function SupportAccess({ instanceId = null }) {
           <GrantForm instanceId={scope} />
         </>
       )}
+
+      <div className="pt-2 border-t border-[#E8E4DC]">
+        <GetHelp instanceId={scope || instanceId} />
+      </div>
 
       <div className="pt-2 border-t border-[#E8E4DC]">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Your active grants</div>

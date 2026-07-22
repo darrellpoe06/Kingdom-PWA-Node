@@ -48,7 +48,13 @@ jobs:
           echo "=== applying 0114-governed-support-door.sql (idempotent) ==="
           psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
             -f infra/supabase/migrations-auto/0114-governed-support-door.sql
+          echo "=== applying 0115-support-user-initiated-self-grant.sql (idempotent) ==="
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0115-support-user-initiated-self-grant.sql
           echo "=== running the support-door smoke test (rolls back) ==="
           psql "$DBURL" -v ON_ERROR_STOP=1 \
             -f infra/supabase/tests/0114-support-door-smoke.sql
-          echo "support-door smoke test completed without a wrong grant/read (see 'SUPPORT DOOR SMOKE: PASS' above)"
+          echo "=== running the user-initiated self-grant smoke test (rolls back) ==="
+          psql "$DBURL" -v ON_ERROR_STOP=1 \
+            -f infra/supabase/tests/0115-support-self-grant-smoke.sql
+          echo "support-door + self-grant smoke tests completed (see 'SUPPORT DOOR SMOKE: PASS' + 'SELF GRANT SMOKE: PASS' above)"
