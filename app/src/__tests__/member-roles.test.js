@@ -2,7 +2,7 @@
 // (migration 0111 / DR-0220 Phase 3). If this drifts from the RPC, the UI would
 // offer an option the backend rejects (or hide a valid one). Locks the mirror.
 import { describe, it, expect } from 'vitest';
-import { grantableRoles, canEditRole, roleLabel } from '../lib/member-roles.js';
+import { grantableRoles, canEditRole, roleLabel, isInviteEmail } from '../lib/member-roles.js';
 
 describe('grantableRoles (mirror of set_member_role guards)', () => {
   it('an owner may set admin/member/viewer on a non-owner', () => {
@@ -40,6 +40,14 @@ describe('grantableRoles (mirror of set_member_role guards)', () => {
     expect(canEditRole('admin', 'admin')).toBe(false);
     expect(canEditRole('owner', 'owner')).toBe(false);
     expect(canEditRole('member', 'member')).toBe(false);
+  });
+  it('isInviteEmail accepts real emails, rejects junk', () => {
+    expect(isInviteEmail('person@email.com')).toBe(true);
+    expect(isInviteEmail('  a@b.co ')).toBe(true);
+    expect(isInviteEmail('')).toBe(false);
+    expect(isInviteEmail('nope')).toBe(false);
+    expect(isInviteEmail('a@b')).toBe(false);
+    expect(isInviteEmail(null)).toBe(false);
   });
   it('roleLabel maps known roles and falls back gracefully', () => {
     expect(roleLabel('admin')).toBe('Admin (edit)');

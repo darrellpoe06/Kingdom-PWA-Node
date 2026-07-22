@@ -6,6 +6,7 @@
 // enforcement — the pure helper here only mirrors them so the UI shows the right
 // options.
 import { supabase } from './supabase.js';
+import { inviteToInstance } from './family-invite.js';
 
 export const ROLE_LABELS = {
   owner: 'Owner',
@@ -43,6 +44,34 @@ export function grantableRoles(actorRole, targetRole, { isSelf = false } = {}) {
 // Can this actor change this target's role at all?
 export function canEditRole(actorRole, targetRole, opts) {
   return grantableRoles(actorRole, targetRole, opts).length > 0;
+}
+
+// A liberal-but-safe email shape check (mirrors the invite validators).
+export function isInviteEmail(email) {
+  const e = String(email || '').trim();
+  return e.length > 3 && /\S+@\S+\.\S+/.test(e);
+}
+
+// Invite a person into a space so they can start USING the app (Darrell 2026-07-22
+// "I want people using the apps"). Branches by instance type:
+//   - church  -> invite_to_church: they get access on their next sign-in (the
+//     join_church_instance path consumes the pending invite). Returns {ok, kind:'church'}.
+//   - other   -> invite_to_instance (DR-0187 token flow): returns {ok, link} — the
+//     one-time claim LINK the inviter delivers; the invitee claims, the inviter
+//     confirms (two-party). Never grants 'owner' (the RPC enforces it too).
+// The RPCs resolve the caller's own owner/admin instance of that type; the caller
+// must be owner/admin (enforced server-side).
+export async function inviteToSpace(instanceType, email, role) {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!isInviteEmail(clean)) return { ok: false, reason: 'bad-email' };
+  const safeRole = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
+  if (instanceType === 'church') {
+    const { error } = await supabase.rpc('invite_to_church', { email_in: clean, role_in: safeRole });
+    if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
+    return { ok: true, kind: 'church', email: clean, role: safeRole };
+  }
+  const r = await inviteToInstance(clean, safeRole);
+  return { ...r, kind: 'instance' };
 }
 
 // Change a member's role. Returns { status: 'changed'|'noop', role } or
