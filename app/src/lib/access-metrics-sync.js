@@ -18,7 +18,7 @@
 //     write to auth.uid()). No-op when signed out. Privacy: build + heartbeat
 //     only — no behavior, no content (see 0055-member-presence.sql).
 // =============================================================================
-import supabase, { readPersistedSession } from './supabase.js';
+import supabase, { readPersistedSession, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 
 // Nothing here may hang the Access & Usage panel on "Loading…" forever. A resumed
 // tab's getSession() or a stalled SELECT can never resolve (documented incident:
@@ -102,24 +102,95 @@ export async function readySession() {
 }
 
 // ── snapshot fetch ───────────────────────────────────────────────────────────
-// Run one RLS-gated SELECT, map rows with `map`, and degrade to [] on any error
-// (recording the failure so the UI can say "couldn't load X" honestly).
-async function safeSelect(table, columns, map, errors) {
+// Read a token WITHOUT the cross-tab auth lock (Darrell 2026-07-22, Admin stuck on
+// "Loading access & usage…" with many tabs open). The Supabase JS client serializes
+// every getSession()/query through navigator.locks; a wedged/backgrounded PoeTech tab
+// holds that lock and blocks this tab's reads. The persisted session lives in
+// localStorage and is readable synchronously — no lock — so the SELECTs below carry
+// the token via a DIRECT REST fetch and never wait on the client's lock.
+export function readSnapshotToken() {
+  const persisted = readPersistedSession();
+  return (persisted && persisted.access_token) || null;
+}
+// Back-compat local alias.
+const snapshotToken = readSnapshotToken;
+
+// A lock-free PostgREST RPC call with the bearer token — the write/RPC sibling of
+// restSelect, for the admin read RPCs (admin_signup_metrics, usage_flow_metrics)
+// that otherwise ride the client's contended navigator.locks. Returns the familiar
+// { data, error } shape so callers barely change. Bounded by AbortController.
+export async function restRpc(fnName, body, token) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), SNAPSHOT_TIMEOUT_MS);
   try {
-    const { data, error } = await withTimeout(
-      supabase.from(table).select(columns),
-      SNAPSHOT_TIMEOUT_MS,
-      { data: null, error: { message: `${table}-timeout`, timedOut: true } },
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body || {}),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let parsed = null;
+      try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
+      return {
+        data: null,
+        error: {
+          message: (parsed && parsed.message) || `${res.status} ${raw.slice(0, 140) || res.statusText}`,
+          code: (parsed && parsed.code) || String(res.status),
+        },
+      };
+    }
+    const data = await res.json().catch(() => null);
+    return { data, error: null };
+  } catch (e) {
+    clearTimeout(timer);
+    return {
+      data: null,
+      error: { message: e && e.name === 'AbortError' ? `${fnName}-timeout` : (e.message || String(e)), timedOut: e && e.name === 'AbortError' },
+    };
+  }
+}
+
+// One RLS-gated read, straight to PostgREST with the bearer token — bypassing the
+// Supabase client (and its navigator.locks). Bounded by AbortController so a stalled
+// network can never hang the panel; degrades to [] + an honest error flag.
+async function restSelect(table, columns, token, map, errors) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), SNAPSHOT_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${table}?select=${encodeURIComponent(columns)}`,
+      {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+        signal: ctrl.signal,
+      },
     );
-    if (error) {
-      console.warn(`[access-metrics] read ${table} failed:`, error.message || error);
-      errors[table] = error.message || String(error);
+    clearTimeout(timer);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const msg = `${res.status} ${body.slice(0, 140) || res.statusText}`;
+      console.warn(`[access-metrics] read ${table} failed:`, msg);
+      errors[table] = msg;
       return [];
     }
-    return (data || []).map(map);
+    const data = await res.json();
+    return (Array.isArray(data) ? data : []).map(map);
   } catch (e) {
-    console.warn(`[access-metrics] read ${table} threw:`, e);
-    errors[table] = e.message || String(e);
+    clearTimeout(timer);
+    const msg = e && e.name === 'AbortError' ? `${table}-timeout` : (e.message || String(e));
+    console.warn(`[access-metrics] read ${table} threw:`, msg);
+    errors[table] = msg;
     return [];
   }
 }
@@ -127,14 +198,19 @@ async function safeSelect(table, columns, map, errors) {
 export async function fetchAccessSnapshot() {
   const errors = {};
 
-  // WAIT for the session to be ready before the RLS SELECTs, so they carry a valid
-  // token instead of firing token-less and timing out (the "Access couldn't load"
-  // symptom on a resumed mobile tab). readySession() is bounded and falls through to
-  // the synchronous persisted read, so the panel always resolves either way.
-  let session;
-  try { session = await readySession(); } catch (e) { session = null; }
-  const signedIn = session ? true : !!readPersistedSession();
-  if (!signedIn) {
+  // Token from the persisted session (no lock). If none is stored yet (just signed
+  // in, not flushed), fall back to the bounded client getSession ONCE — still
+  // lock-safe because readySession is timeout-raced. No token -> honest signed-out.
+  let token = snapshotToken();
+  if (!token) {
+    try {
+      const session = await readySession();
+      token = (session && session.access_token) || snapshotToken();
+    } catch (e) {
+      token = snapshotToken();
+    }
+  }
+  if (!token) {
     return {
       signedIn: false,
       instances: [], members: [], presence: [], invites: [],
@@ -143,21 +219,21 @@ export async function fetchAccessSnapshot() {
   }
 
   const [instances, members, presence, invites, subscriptions, domains] = await Promise.all([
-    safeSelect('instances', 'id, slug, display_name, instance_type',
+    restSelect('instances', 'id,slug,display_name,instance_type', token,
       (r) => ({ id: r.id, slug: r.slug, displayName: r.display_name, instanceType: r.instance_type }), errors),
-    safeSelect('instance_members', 'id, instance_id, user_id, role, display_name, title, joined_at',
+    restSelect('instance_members', 'id,instance_id,user_id,role,display_name,title,joined_at', token,
       (r) => ({ id: r.id, instanceId: r.instance_id, userId: r.user_id, role: r.role,
                 displayName: r.display_name, title: r.title, joinedAt: r.joined_at }), errors),
-    safeSelect('member_presence', 'instance_id, user_id, display_name, build_sha, build_time, platform, last_seen_at',
+    restSelect('member_presence', 'instance_id,user_id,display_name,build_sha,build_time,platform,last_seen_at', token,
       (r) => ({ instanceId: r.instance_id, userId: r.user_id, displayName: r.display_name,
                 buildSha: r.build_sha, buildTime: r.build_time, platform: r.platform,
                 lastSeenAt: r.last_seen_at }), errors),
-    safeSelect('external_users', 'id, instance_id, display_name, type, invite_status, invited_at',
+    restSelect('external_users', 'id,instance_id,display_name,type,invite_status,invited_at', token,
       (r) => ({ id: r.id, instanceId: r.instance_id, displayName: r.display_name, type: r.type,
                 inviteStatus: r.invite_status, invitedAt: r.invited_at }), errors),
-    safeSelect('instance_subscriptions', 'instance_id, tier, status',
+    restSelect('instance_subscriptions', 'instance_id,tier,status', token,
       (r) => ({ instanceId: r.instance_id, tier: r.tier, status: r.status }), errors),
-    safeSelect('instance_domains', 'instance_id, domain, requires_tier',
+    restSelect('instance_domains', 'instance_id,domain,requires_tier', token,
       (r) => ({ instanceId: r.instance_id, domain: r.domain, requiresTier: r.requires_tier }), errors),
   ]);
 
