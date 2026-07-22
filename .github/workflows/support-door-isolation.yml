@@ -1,0 +1,54 @@
+# support-door-isolation — PROVE the 0114 governed support door enforces its guards,
+# in CI, against the real database, using the SAME SUPABASE_DB_URL secret the
+# db-migrate lane uses. Enablement GATE for the Dev/Ops Specialist break-glass
+# feature (DR-0223 / DR-0220 Phase 6): no support surface is trusted until GREEN
+# (DR-0076; the role-control / choir-claim isolation precedent).
+#
+# What it does (self-contained + idempotent, safe against prod):
+#   1. Applies infra/supabase/migrations-auto/0114-governed-support-door.sql.
+#   2. Runs infra/supabase/tests/0114-support-door-smoke.sql, which sets up an
+#      owner/admin/specialist/member IN A TRANSACTION and asserts: PHI/unknown is
+#      never grantable, only an owner/admin grants, only a capable specialist can
+#      receive, only the grantee reads its own LIVE grant, every read is logged to
+#      audit_log, and expired/revoked grants stop reading — then ROLLS BACK. A wrong
+#      grant/read RAISEs -> psql exits non-zero -> RED. 'SUPPORT DOOR SMOKE: PASS' -> GREEN.
+#
+# Manual (workflow_dispatch) or after db-migrate finishes on main. Deploy-path only;
+# not self-arming (respects the Cage). SUPABASE_DB_URL is whitespace-stripped like
+# scripts/db-migrate-apply.sh.
+name: support-door-isolation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [db-migrate]
+    types: [completed]
+
+concurrency:
+  group: support-door-isolation
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: Apply 0114 (idempotent) then run the support-door smoke test
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            exit 1
+          fi
+          echo "=== applying 0114-governed-support-door.sql (idempotent) ==="
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0114-governed-support-door.sql
+          echo "=== running the support-door smoke test (rolls back) ==="
+          psql "$DBURL" -v ON_ERROR_STOP=1 \
+            -f infra/supabase/tests/0114-support-door-smoke.sql
+          echo "support-door smoke test completed without a wrong grant/read (see 'SUPPORT DOOR SMOKE: PASS' above)"
