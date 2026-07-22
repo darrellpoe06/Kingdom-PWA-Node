@@ -250,6 +250,7 @@ function UsageFlow() {
 
 export default function AccessUsageMetrics() {
   const [state, setState] = useState({ phase: 'loading', snap: null });
+  const [slow, setSlow] = useState(false);  // reveal a Refresh escape if loading drags
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', snap: s.snap }));
@@ -265,6 +266,17 @@ export default function AccessUsageMetrics() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Never strand the steward on a silent "Loading…": if the snapshot drags (the
+  // multi-tab auth-lock case — another PoeTech tab holding navigator.locks), reveal
+  // a plain-language note + a Refresh escape after 4s so there's always a way out
+  // (Darrell 2026-07-22). The snapshot itself is already timeout-bounded; this is
+  // the human-facing agency during that window.
+  useEffect(() => {
+    if (state.phase !== 'loading') { setSlow(false); return undefined; }
+    const t = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, [state.phase]);
 
   const snap = state.snap;
 
@@ -291,6 +303,18 @@ export default function AccessUsageMetrics() {
     return (
       <div className={card}>
         <p className={note}>Loading access &amp; usage…</p>
+        {slow && (
+          <div className="mt-2">
+            <p className={note}>This is taking longer than usual — another open PoeTech tab may be holding the connection. It’ll resolve on its own, or you can try again.</p>
+            <button
+              type="button"
+              onClick={load}
+              className="mt-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
       </div>
     );
   }

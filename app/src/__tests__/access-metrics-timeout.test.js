@@ -60,8 +60,8 @@ describe('readySession — the RLS queries get a token before they fire', () => 
     vi.useFakeTimers();
     supabase.auth.getSession.mockResolvedValue({ data: { session: null } });
     const p = readySession();
-    await vi.advanceTimersByTimeAsync(8 * (1000 + 250) + 200);
+    await vi.advanceTimersByTimeAsync(4 * (700 + 200) + 200);
     expect(await p).toBeNull();
-    expect(supabase.auth.getSession).toHaveBeenCalledTimes(8); // bounded retries
+    expect(supabase.auth.getSession).toHaveBeenCalledTimes(4); // bounded, fail-fast retries
   });
 });
