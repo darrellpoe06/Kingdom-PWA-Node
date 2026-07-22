@@ -174,6 +174,21 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     expect(container.querySelector('button[aria-label^="Delete prayer request"]')).toBeTruthy();
   });
 
+  it('hides Send (and never marks "sent") when the church has NO reachable destination', () => {
+    // A church with no contactEmail, no Stay-Connected link, and no site: the old
+    // code rendered a Send that resolved to href="#" and STILL flipped the request
+    // to "sent" — reporting success while opening nothing. Guard: no destination -> no Send.
+    let marked = 0;
+    const noDest = { ...COLG_DEFAULT_CHURCH, contactEmail: null, site: null, links: {} };
+    const prs = [{ id: 'pr1', requester: 'A', request: 'please pray', createdAt: '2026-07-01T00:00:00.000Z', shareWithChurch: true, sentAt: null }];
+    mount({ church: noDest, prayerRequests: prs, markPrayerRequestSent: () => { marked += 1; } });
+    clickTab('Prayer');
+    expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(false);
+    expect(marked).toBe(0);
+    // The request is NOT lost — it still shows, ready for a steward to see.
+    expect(container.textContent).toMatch(/please pray/);
+  });
+
   it('save-to-calendar builds a real next-occurrence event from a service entry', () => {
     const events = [];
     vi.stubGlobal('alert', noop);

@@ -194,8 +194,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     const body = `Hello — please add this to the prayer list at The Love Corner.\n\nFrom: ${pr.requester}\nDate: ${pr.createdAt.slice(0, 10)}\n\n${pr.request}\n\nThank you.`;
     // The site uses an obfuscated email; users without the church's address can paste the contact form URL.
     // If a contactEmail is configured, prefer that. Otherwise fall back to the Stay Connected page.
+    // Returns null when NO destination resolves — the caller must NOT render a Send
+    // link (and must NOT mark the request "sent") for a link that opens nothing.
     if (c.contactEmail) return `mailto:${c.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    return c.links?.stayConnected || c.site || '#';
+    return c.links?.stayConnected || c.site || null;
   };
 
 
@@ -613,7 +615,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                     <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#5A5751]">{pr.sentAt ? `✓ sent ${pr.sentAt.slice(0, 10)}` : pr.shareWithChurch ? 'ready to share' : 'private'}</div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {pr.shareWithChurch && !pr.sentAt && (
+                    {pr.shareWithChurch && !pr.sentAt && mailtoFor(pr) && (
+                      // Only render Send — and only mark "sent" — when a real
+                      // destination resolves; never report success for a link that
+                      // opens nothing (the request stays saved + "ready to share").
                       <a href={mailtoFor(pr)} target={c.contactEmail ? '_self' : '_blank'} rel="noopener noreferrer" onClick={() => markPrayerRequestSent(pr.id)} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">Send →</a>
                     )}
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
