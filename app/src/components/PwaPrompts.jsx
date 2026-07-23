@@ -20,11 +20,44 @@
 //     is stored in localStorage for 30 days. Auto-hides once installed.
 // =============================================================================
 import React, { useState, useEffect } from 'react';
+import { INSTALL_MANIFEST } from '../lib/church-own-door.js';
 
 const UPDATED_TOAST_MS = 4000;
 
+// applyBootBrandManifest — page-load install identity (DR-0227). Moore and TLC
+// swap their brand manifest inside their door components, but a church boot
+// (?view=church, or a church-alias deep link) kept the DEFAULT PoeTech
+// manifest — so Chrome's install sheet said "This app is already installed"
+// (the PoeTech id) instead of offering The Love Corner (Darrell's 2026-07-23
+// screenshot). Read the LAUNCH URL once at boot — install identity is a
+// page-load property (Chrome computes installability from the manifest present
+// at load; mid-session SPA swaps are flaky) — and link the church manifest
+// when the page booted as the church. Exported for the render test.
+const CHURCH_BOOT_VIEWS = ['church', 'engagement', 'choir', 'pulpit', 'learn', 'events'];
+export function applyBootBrandManifest(search, doc) {
+  try {
+    const v = (new URLSearchParams(search || '').get('view') || '').toLowerCase().trim();
+    if (!CHURCH_BOOT_VIEWS.includes(v)) return false;
+    let link = doc.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = doc.createElement('link');
+      link.rel = 'manifest';
+      doc.head.appendChild(link);
+    }
+    link.href = INSTALL_MANIFEST;
+    return true;
+  } catch { return false; }
+}
+
 export function UpdatePrompt() {
   const [confirmed, setConfirmed] = useState(false);
+
+  // Boot-time brand-manifest swap rides the always-mounted PWA-chrome widget
+  // (no shell coupling — reads the launch URL only, once).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    applyBootBrandManifest(window.location.search, document);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

@@ -57,7 +57,8 @@ describe('the shareable entry page', () => {
   });
   it('links the TLC manifest + icon so it installs as TLC (an app, not a website)', () => {
     expect(html).toContain('manifest-tlc.webmanifest');
-    expect(html).toMatch(/apple-touch-icon"\s+href="\/tlc-icon\.svg"/);
+    // Raster-parity upgrade (DR-0227): apple-touch is a real 180px PNG now.
+    expect(html).toMatch(/apple-touch-icon"\s+href="\/tlc-apple-touch\.png"/);
   });
 });
 
@@ -74,13 +75,21 @@ describe('the installable app — manifest + icon (Add to Home Screen)', () => {
     // scope must contain the start_url (Chrome refuses to install otherwise)
     expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
   });
-  it('carries a real TLC-branded icon (any + maskable) that exists on disk', () => {
-    expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
-    for (const i of manifest.icons) expect(i.src).toBe('/tlc-icon.svg');
+  it('carries real TLC-branded icons (PNG rasters + SVG, any + maskable), every one on disk', () => {
+    // Raster-parity upgrade (DR-0227): PNG 192/512 lead (older Android/Samsung
+    // installers), SVGs kept. Every listed src must exist — no phantom icons.
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(4);
+    const srcs = manifest.icons.map((i) => i.src);
+    expect(srcs).toContain('/tlc-icon-192.png');
+    expect(srcs).toContain('/tlc-icon-512.png');
+    expect(srcs).toContain('/tlc-icon.svg');
     const purposes = new Set(manifest.icons.map((i) => i.purpose));
     expect(purposes.has('any')).toBe(true);
     expect(purposes.has('maskable')).toBe(true);
-    expect(existsSync(pub('tlc-icon.svg')), 'tlc-icon.svg missing — the install icon won\'t ship').toBe(true);
+    for (const s of srcs) {
+      expect(existsSync(pub(s.replace(/^\//, ''))), `${s} missing — a listed install icon won't ship`).toBe(true);
+    }
+    expect(existsSync(pub('tlc-apple-touch.png')), 'tlc-apple-touch.png missing').toBe(true);
   });
   it('TLC_INSTALL_MANIFEST is wired to the manifest file', () => {
     expect(TLC_INSTALL_MANIFEST).toBe('/manifest-tlc.webmanifest');

@@ -14,7 +14,7 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-import { UpdatePrompt, InstallPrompt } from '../components/PwaPrompts.jsx';
+import { UpdatePrompt, InstallPrompt, applyBootBrandManifest } from '../components/PwaPrompts.jsx';
 
 let container, root;
 async function mount(Component, props) {
@@ -64,5 +64,36 @@ describe('InstallPrompt — silent without an install signal', () => {
     });
     expect(container.textContent).toContain('Install PoeTech');
     expect(container.textContent).toContain('Install on this device');
+  });
+});
+
+describe('applyBootBrandManifest — install identity is a page-load property (DR-0227)', () => {
+  const freshDoc = () => {
+    const d = document.implementation.createHTMLDocument('t');
+    const link = d.createElement('link');
+    link.rel = 'manifest';
+    link.setAttribute('href', '/manifest.webmanifest');
+    d.head.appendChild(link);
+    return d;
+  };
+  it('a church boot swaps the link to the Love Corner manifest (the "already installed" screenshot fix)', () => {
+    const d = freshDoc();
+    expect(applyBootBrandManifest('?view=church', d)).toBe(true);
+    expect(d.querySelector('link[rel="manifest"]').getAttribute('href')).toBe('/manifest-lovecorner.webmanifest');
+  });
+  it('church ALIAS deep links (choir/engagement/pulpit) swap too', () => {
+    for (const v of ['choir', 'engagement', 'pulpit']) {
+      const d = freshDoc();
+      expect(applyBootBrandManifest(`?view=${v}`, d)).toBe(true);
+      expect(d.querySelector('link[rel="manifest"]').getAttribute('href')).toBe('/manifest-lovecorner.webmanifest');
+    }
+  });
+  it('a family boot keeps the PoeTech manifest — no hijack', () => {
+    const d = freshDoc();
+    expect(applyBootBrandManifest('?view=books', d)).toBe(false);
+    expect(d.querySelector('link[rel="manifest"]').getAttribute('href')).toBe('/manifest.webmanifest');
+    const d2 = freshDoc();
+    expect(applyBootBrandManifest('', d2)).toBe(false);
+    expect(d2.querySelector('link[rel="manifest"]').getAttribute('href')).toBe('/manifest.webmanifest');
   });
 });

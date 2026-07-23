@@ -27,10 +27,54 @@ concurrency:
 permissions:
   contents: read
 
+# FOUR BRANDS, FOUR REAL APPS (DR-0227, Darrell 2026-07-23: each app in the
+# family on the phone, SEPARATED — "anyone anywhere... able to use them
+# independently"). All four PWAs share one origin scope, so Android resumes
+# the ONE installed window wherever it last sat — the "PoeTech turns into
+# Love Corner" morph. A TWA per brand is the phone-side perpetual fix: four
+# distinct Android packages, each with its own task, icon, and resume state.
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - brand: poetech
+            package_id: us.poetech.app
+            app_name: PoeTech Family OS
+            launcher: PoeTech
+            start_url: /poetech-app/
+            web_manifest: https://poetech.us/manifest.webmanifest
+            icon: https://poetech.us/icon-512.png
+            maskable: https://poetech.us/icon-maskable-512.png
+          - brand: lovecorner
+            package_id: us.poetech.lovecorner
+            app_name: The Love Corner
+            launcher: Love Corner
+            start_url: /poetech-app/?view=church
+            web_manifest: https://poetech.us/manifest-lovecorner.webmanifest
+            icon: https://poetech.us/lovecorner-icon-512.png
+            maskable: https://poetech.us/lovecorner-icon-maskable-512.png
+          - brand: tlc
+            package_id: us.poetech.tlc
+            app_name: TLC Therapy Solutions
+            launcher: TLC Therapy
+            start_url: /poetech-app/?tlc=1
+            web_manifest: https://poetech.us/manifest-tlc.webmanifest
+            icon: https://poetech.us/tlc-icon-512.png
+            maskable: https://poetech.us/tlc-icon-512.png
+          - brand: moore
+            package_id: us.poetech.moore
+            app_name: Moore Divahs
+            launcher: Moore Divahs
+            start_url: /poetech-app/?moore=1
+            web_manifest: https://poetech.us/manifest-moore.webmanifest
+            # HER OWN mark (DR-0227) — derived from the MOORE_BRAND record;
+            # swaps in one file when supplied artwork lands.
+            icon: https://poetech.us/moore-icon-512.png
+            maskable: https://poetech.us/moore-icon-maskable-512.png
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,14 +97,26 @@ jobs:
           echo "::add-mask::$PASS"
           echo "pass=$PASS" >> "$GITHUB_OUTPUT"
 
-      - name: Assemble the TWA manifest from the repo template + live manifest
+      - name: Assemble the TWA manifest from the repo template + the brand matrix
         run: |
           set -euo pipefail
           mkdir -p twa-build
-          jq --arg ks "$PWD/android.keystore" '
+          jq --arg ks "$PWD/android.keystore" \
+             --arg pkg "${{ matrix.package_id }}" \
+             --arg name "${{ matrix.app_name }}" \
+             --arg launcher "${{ matrix.launcher }}" \
+             --arg start "${{ matrix.start_url }}" \
+             --arg wm "${{ matrix.web_manifest }}" \
+             --arg icon "${{ matrix.icon }}" \
+             --arg mask "${{ matrix.maskable }}" '
             del(._comment, ._signingNote)
-            | .iconUrl = "https://poetech.us/poetech-app/icon-512.png"
-            | .maskableIconUrl = "https://poetech.us/poetech-app/icon-maskable-512.png"
+            | .packageId = $pkg
+            | .name = $name
+            | .launcherName = $launcher
+            | .startUrl = $start
+            | .webManifestUrl = $wm
+            | .iconUrl = $icon
+            | .maskableIconUrl = $mask
             | .signingKey = { path: $ks, alias: "poetech" }
           ' store/twa-manifest.template.json > twa-build/twa-manifest.json
           cat twa-build/twa-manifest.json
@@ -98,7 +154,8 @@ jobs:
           set -euo pipefail
           ls -la twa-build/*.apk twa-build/*.aab 2>/dev/null || { echo "::error::no package produced"; exit 1; }
           {
-            echo "## Android package built (sideload-testing)"
+            echo "## Android package built (sideload-testing) — ${{ matrix.app_name }}"
+            echo "- Package: \`${{ matrix.package_id }}\` · opens ${{ matrix.start_url }} — its OWN app, its own task, its own resume state."
             echo "- Download the .apk from this run's Artifacts, open it on the phone, allow the install prompt."
             echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0152)."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -106,7 +163,7 @@ jobs:
       - name: Attach the package as a downloadable artifact
         uses: actions/upload-artifact@v4
         with:
-          name: poetech-android-sideload-testing
+          name: ${{ matrix.brand }}-android-sideload-testing
           path: |
             twa-build/*.apk
             twa-build/*.aab
