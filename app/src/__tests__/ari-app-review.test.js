@@ -110,6 +110,22 @@ describe('buildAppReview — six dimensions, all evidence-backed', () => {
     expect(inp.status).toBe('ok');
   });
 
+  it('recommends Avalanche when the highest-rate debt is only visible across the whole picture', () => {
+    const debts = [
+      { id: 'd1', name: 'Store Card', rate: 24.99, balance: 1200, leaveAlone: false },
+      { id: 'd2', name: 'Auto Loan', rate: 6.5, balance: 18000, leaveAlone: false },
+    ];
+    const r = buildAppReview({ debts }, NOW);
+    expect(r.recommendations).toHaveLength(1);
+    expect(r.recommendations[0].recommendation).toMatch(/Store Card/);
+    expect(r.recommendations[0].recommendation).toMatch(/Avalanche/);
+    expect(r.recommendations[0].basis).toMatch(/24.99%/);
+  });
+  it('no upgrade recommendation with fewer than two rated debts (nothing to compare)', () => {
+    const debts = [{ id: 'd1', name: 'Only Card', rate: 24.99, balance: 1200, leaveAlone: false }];
+    expect(buildAppReview({ debts }, NOW).recommendations).toHaveLength(0);
+  });
+
   it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
     const r = buildAppReview({}, NOW);
     expect(r.summary.total).toBe(0);
