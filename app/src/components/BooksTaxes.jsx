@@ -17,6 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
 import { uploadTaxDoc, validateUpload } from '../lib/tax-upload.js';
+import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
 import { resolveN8nBearer } from '../lib/n8n-base.js';
 
 const KIND_LABEL = {
@@ -212,6 +213,9 @@ export default function BooksTaxes({ entities = [] }) {
           </ul>
         </div>
       ))}
+      {/* DR-0230: the live payments ledger reads beside the tax archive — one
+          Books → Taxes surface, always accountant-current. */}
+      <PaymentsLedgerPanel entities={entities} />
     </section>
   );
 }
