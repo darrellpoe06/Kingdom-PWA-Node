@@ -44,6 +44,7 @@ export const REVIEW_DIMENSIONS = [
   ['inputs', 'Input follow-through', 'Did what the family added produce a usable result, or land inert?'],
   ['data', 'Data integrity', 'Do the real records contradict themselves?'],
   ['recurrence', 'Lessons recurrence', 'Are the documented past incident classes staying fixed?'],
+  ['oversight', 'Agent-fleet oversight', 'Is every standing automation working for our good, with its brakes on?'],
 ];
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -373,6 +374,53 @@ export function reviewRecurrence({ concerns = [], feedback = [], transactions = 
   };
 }
 
+// ---- dimension: agent-fleet oversight ---------------------------------------
+// "A team or teams of agents supporting systems while Ari makes sure they are
+// effectively working for our good" (Darrell 2026-07-23) — Ari's oversight of
+// the standing-automation fleet, from the REAL build-measured workflow registry
+// (never typed). Brake coverage comes only from agent-brakes.BRAKE_DECLARATIONS
+// (which grows as real code wires the kit) — an ACTIVE automation with no
+// proven brakes is the P10 class, named per member. When the registry isn't
+// available (test/dev builds), fleetChecked reports false — an unchecked fleet
+// never reads as a safe fleet (DR-0076).
+function reviewOversight({ fleet = null } = {}) {
+  const findings = [];
+  const checked = !!(fleet && Array.isArray(fleet.members));
+  if (checked && fleet.counts.activeUnbraked > 0) {
+    const names = fleet.activeUnbraked.slice(0, 6).map((m) => m.name).join(', ');
+    findings.push(finding(
+      'oversight', 'warning',
+      `${fleet.counts.activeUnbraked} active automation${fleet.counts.activeUnbraked === 1 ? '' : 's'} running without proven brakes`,
+      `${fleet.counts.activeUnbraked} of ${fleet.counts.active} active fleet member(s) have no budget+lock+kill declaration (${names}) — the P10 class; today this honestly names the legacy n8n webhooks the Ways are retiring (DR-0132)`,
+      'Wire each through lib/agent-brakes (or retire it per the DR-0132 P1-P5 migration); coverage counts only with all three brakes proven',
+      { count: fleet.counts.activeUnbraked, principle: 'P10' },
+    ));
+  }
+  // INTENTION CONSISTENCY (Darrell 2026-07-23: "fine tuned for the intentions
+  // and intended purposes of the workflows so contextual understanding is
+  // consistent"): an ACTIVE member with no recorded why is a named expertise
+  // gap — Ari cannot judge "working for our good" without the purpose on
+  // record (DR-0158). The why is always READ from the paired README, never
+  // invented, so Ari's context stays consistent across every surface.
+  if (checked && fleet.counts.activeNoWhy > 0) {
+    const names = fleet.activeNoWhy.slice(0, 6).map((m) => m.name).join(', ');
+    findings.push(finding(
+      'oversight', 'warning',
+      `${fleet.counts.activeNoWhy} active automation${fleet.counts.activeNoWhy === 1 ? '' : 's'} with no recorded intention (why)`,
+      `${fleet.counts.activeNoWhy} active fleet member(s) whose why-we-use-it is unrecorded (${names}) — Ari cannot judge "working for our good" without the purpose on record (DR-0158)`,
+      'Pair a README beside each export recording its intended purpose; Ari reads it, never invents it',
+      { count: fleet.counts.activeNoWhy, principle: 'DR-0158' },
+    ));
+  }
+  return {
+    key: 'oversight',
+    findings,
+    metrics: checked
+      ? { fleetChecked: true, ...fleet.counts }
+      : { fleetChecked: false, total: 0, active: 0, braked: 0, activeUnbraked: 0, whyRecorded: 0, activeNoWhy: 0 },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // deriveRecommendations — Ari's data-derived UPGRADE recommendations: not a
 // problem/finding, but "you could do better," visible ONLY from the aggregate,
@@ -419,7 +467,7 @@ function worstSeverity(findings) {
 export function buildAppReview(input = {}, nowMs = 0) {
   const {
     tasks = [], concerns = [], feedback = [], reviews = null, decisions = null,
-    transactions = [], rentals = [], debts = [], demoRowIds = null,
+    transactions = [], rentals = [], debts = [], demoRowIds = null, fleet = null,
   } = input;
 
   const raw = [
@@ -430,6 +478,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewInputs({ debts }),
     reviewData({ transactions, rentals, debts }),
     reviewRecurrence({ concerns, feedback, transactions, demoRowIds }, nowMs),
+    reviewOversight({ fleet }),
   ];
   const labelOf = Object.fromEntries(REVIEW_DIMENSIONS.map(([k, label, q]) => [k, { label, question: q }]));
 

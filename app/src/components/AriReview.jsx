@@ -19,6 +19,8 @@ import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { fetchWaysBrain } from '../lib/ways-brain.js';
 import { SectionTitle } from './shared.jsx';
 import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
+import { fleetOversight } from '../lib/agent-brakes.js';
+import { storedWorkflowRegistry } from '../lib/workflow-registry.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
 import { runAriLoop, loopHeadline } from '../lib/ari-loop.js';
 import { ARI } from '../lib/ari.js';
@@ -73,6 +75,9 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     reviews: Array.isArray(UIUX_REVIEWS.items) ? UIUX_REVIEWS.items : [],
     decisions: Array.isArray(DR_LEDGER.items) ? DR_LEDGER.items : [],
     transactions, rentals, debts, demoRowIds,
+    // The real build-measured automation fleet (DR-0158 registry) under Ari's
+    // oversight — brake coverage only ever from proven declarations (DR-0225).
+    fleet: fleetOversight({ workflows: storedWorkflowRegistry() }),
   }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds]);
 
   const overall = sevMeta(review.summary.status);
