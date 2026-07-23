@@ -18,6 +18,8 @@
 //     Engagement's MessageThread proves out.
 import React, { useEffect, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import { getAssignments } from '../lib/assignments.js';
+import { ENGAGEMENTS, engagementOf, engagementFindings } from '../lib/engagement-guard.js';
 import SectionTabs from './SectionTabs.jsx';
 import { smsHref } from '../lib/dispatch.js';
 import { uploadFeedback, subscribeFeedback } from '../lib/feedback-sync.js';
@@ -671,9 +673,83 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             icon: 'mic',
             render: () => <WorkerVoice workers={outbound} incidents={incidents} />,
           },
+          {
+            id: 'engagement',
+            label: 'Volunteers & 1099s',
+            render: () => <EngagementGuardPanel contractors={contractors} incidents={incidents} transactions={transactions} taxYear={taxYear} />,
+          },
         ]}
       />
     </div>
+  );
+}
+
+// =============================================================================
+// EngagementGuardPanel — volunteers and 1099 workers on the SAME projects,
+// told apart by DATA with LEDGER receipts (lib/engagement-guard.js; Darrell
+// 2026-07-23). Engagement is PER-ASSIGNMENT: the same person can serve as a
+// volunteer on one project and work 1099 on another — the split below reads
+// the real assignments, and every finding cites the real Books rows.
+// =============================================================================
+function EngagementGuardPanel({ contractors = [], incidents, transactions = [], taxYear }) {
+  const incidentsProvided = Array.isArray(incidents);
+  // People = every assignment across projects (its own engagement) + the 1099
+  // directory (the contractor lane by definition). Deduped per name+lane.
+  const seen = new Set();
+  const people = [];
+  if (incidentsProvided) {
+    for (const inc of incidents) {
+      for (const a of getAssignments(inc)) {
+        const key = `${(a.name || '').toLowerCase()}|${engagementOf(a)}`;
+        if (a.name && !seen.has(key)) { seen.add(key); people.push({ name: a.name, type: a.type, engagement: a.engagement }); }
+      }
+    }
+  }
+  for (const c of contractors) {
+    const key = `${(c.name || '').toLowerCase()}|contractor-1099`;
+    if (c.name && !seen.has(key)) { seen.add(key); people.push({ name: c.name, type: 'contractor' }); }
+  }
+  const byLane = { volunteer: [], 'contractor-1099': [], 'household-w2': [], unassigned: [] };
+  for (const p of people) byLane[engagementOf(p)].push(p);
+  const findings = engagementFindings({ people, transactions, year: taxYear });
+
+  return (
+    <section className="bg-white border border-[#1A1815] p-4">
+      <SectionTitle>Volunteers & 1099 workers — one project, two lanes, receipts for both</SectionTitle>
+      <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        The line is <strong>money, not labels</strong>: a volunteer serves without compensation (reimbursements need receipts); a 1099 contractor is paid for services. Engagement is set <strong>per assignment</strong> — the same person can be both, on different projects — and this guard reads the real ledger so a paid "volunteer" or a threshold-crossing contractor is flagged with the exact transactions as receipts.
+      </p>
+
+      {findings.length > 0 && (
+        <div className="mb-3 space-y-1.5">
+          {findings.map((f, i) => (
+            <div key={i} className="border border-[#B85838] p-2 text-[0.6875rem] text-[#1A1815]">
+              <span className="uppercase tracking-wider text-[0.5625rem] font-semibold text-[#B85838]">{f.kind === 'paid-volunteer' ? 'Paid volunteer — review' : '1099-NEC due'}</span>
+              <div>{f.note}</div>
+              <div className="text-[#5A5751]">Receipts: {f.receipts.length} ledger row(s) — {f.receipts.slice(0, 4).join(', ')}{f.receipts.length > 4 ? '…' : ''}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {findings.length === 0 && (
+        <p className="text-[0.6875rem] text-[#166534] mb-3">No conflicts between engagements and the {taxYear} ledger{incidentsProvided ? '' : ' (project assignments not wired on this mount — the directory lane is watched)'}.</p>
+      )}
+
+      <div className="grid sm:grid-cols-2 gap-2">
+        {Object.entries(ENGAGEMENTS).filter(([k]) => k !== 'household-w2' || byLane['household-w2'].length > 0).map(([k, e]) => (
+          <div key={k} className="border border-[#E8E4DC] p-2">
+            <div className="text-[0.6875rem] font-semibold text-[#1A1815]">{e.label} · {byLane[k].length} {byLane[k].length === 1 ? 'person' : 'people'}</div>
+            <div className="text-[0.625rem] text-[#5A5751] italic">{e.moneyRule}</div>
+            <ul className="list-disc ml-4 mt-1 text-[0.625rem] text-[#1A1815] space-y-0.5">
+              {e.admin.map((s, i) => <li key={i}>{s}</li>)}
+            </ul>
+            {byLane[k].length > 0 && (
+              <div className="text-[0.625rem] text-[#1A1815] mt-1">{byLane[k].map((p) => p.name).join(' · ')}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

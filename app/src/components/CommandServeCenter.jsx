@@ -35,6 +35,7 @@
 // enforces this per-theme + scans for any inline color that would regress it.
 import React from 'react';
 import OpsBoard from './OpsBoard.jsx';
+import StoreSigningKey from './StoreSigningKey.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import QualityProof from './QualityProof.jsx';
 import QualityThroughput from './QualityThroughput.jsx';
@@ -166,6 +167,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
         <div className="space-y-4">
           {facultyHeader('command')}
           <WakeOrchestrator />
+          <StoreSigningKey />
           <ConflictLoop />
         </div>
       ),
