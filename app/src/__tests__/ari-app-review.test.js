@@ -16,8 +16,8 @@ const DRIFT_BOARD = 'board-modular-cutover';
 const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
 const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
 
-describe('buildAppReview — six dimensions, all evidence-backed', () => {
-  it('has the six named dimensions in order, even on empty input', () => {
+describe('buildAppReview — seven dimensions, all evidence-backed', () => {
+  it('has the seven named dimensions in order, even on empty input', () => {
     const r = buildAppReview({}, NOW);
     expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
     expect(r.dimensions.every((d) => Array.isArray(d.findings))).toBe(true);
@@ -124,6 +124,57 @@ describe('buildAppReview — six dimensions, all evidence-backed', () => {
   it('no upgrade recommendation with fewer than two rated debts (nothing to compare)', () => {
     const debts = [{ id: 'd1', name: 'Only Card', rate: 24.99, balance: 1200, leaveAlone: false }];
     expect(buildAppReview({ debts }, NOW).recommendations).toHaveLength(0);
+  });
+
+  it('recurrence P30: an open concern aged past the bar fires, naming the principle', () => {
+    // NOW is 2026-07-11; created 2026-06-01 = 40 days — past QUEUE_AGE_DAYS (21).
+    const concerns = [{ status: 'open', concern: 'x', created: '2026-06-01' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedConcerns).toBe(1);
+    const f = rec.findings.find((x) => /P30 recurrence/.test(x.title) && /sitting open/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('P30');
+    expect(f.title).toMatch(/oldest 40d/);
+  });
+  it('recurrence P30: a concern past its own targetDate fires; a done one does not', () => {
+    const concerns = [
+      { status: 'in-progress', concern: 'slipping', created: '2026-07-01', targetDate: '2026-07-05' },
+      { status: 'done', concern: 'finished', created: '2026-06-01', targetDate: '2026-06-05' },
+    ];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.slippedTargets).toBe(1);
+    expect(rec.findings.find((x) => /past (its|their) own target date/.test(x.title)).severity).toBe('warning');
+  });
+  it('recurrence: a FRESH open concern raises nothing (age is the signal, not existence)', () => {
+    const concerns = [{ status: 'open', concern: 'new', created: '2026-07-08' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.findings).toHaveLength(0);
+    expect(rec.status).toBe('ok');
+  });
+  it('recurrence P30: aged open feedback fires; addressed feedback does not', () => {
+    const feedback = [
+      { status: 'open', createdAt: '2026-06-01T10:00:00Z' },
+      { status: 'resolved', createdAt: '2026-05-01T10:00:00Z' },
+    ];
+    const rec = buildAppReview({ feedback }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedFeedback).toBe(1);
+    expect(rec.findings.find((x) => /feedback item/.test(x.title)).severity).toBe('warning');
+  });
+  it('recurrence P14: a demo-only row in the live signed-in data is a BUG-severity leak', () => {
+    const transactions = [{ id: 'demo-t1', amount: -5 }, { id: 't-real', amount: -10 }];
+    const r = buildAppReview({ transactions, demoRowIds: new Set(['demo-t1']) }, NOW);
+    const rec = r.dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.demoLeaks).toBe(1);
+    expect(rec.metrics.provenanceChecked).toBe(true);
+    expect(rec.findings.find((x) => /P14 recurrence/.test(x.title)).severity).toBe('bug');
+    expect(r.summary.status).toBe('bug'); // a provenance leak tops the whole review
+  });
+  it('recurrence P14: without demoRowIds the provenance check honestly reports unchecked (never a silent pass)', () => {
+    const transactions = [{ id: 'demo-t1', amount: -5 }];
+    const rec = buildAppReview({ transactions }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.provenanceChecked).toBe(false);
+    expect(rec.metrics.demoLeaks).toBe(0);
+    expect(rec.findings).toHaveLength(0);
   });
 
   it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
