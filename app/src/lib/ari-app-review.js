@@ -41,6 +41,7 @@ export const REVIEW_DIMENSIONS = [
   ['plan', 'Plan health', 'Can every open item reach the timeline, and is anything overdue?'],
   ['reviews', 'Review freshness', 'Are dated re-reviews being honored, or slipping?'],
   ['backlog', 'Concern & feedback backlog', 'What has the family raised that is still open?'],
+  ['inputs', 'Input follow-through', 'Did what the family added produce a usable result, or land inert?'],
   ['data', 'Data integrity', 'Do the real records contradict themselves?'],
 ];
 
@@ -222,6 +223,45 @@ function reviewBacklog({ concerns, feedback }) {
   return { key: 'backlog', findings, metrics: { openConcerns: openC, wipConcerns: wipC, openFeedback: openFb } };
 }
 
+// ---- dimension: input follow-through ---------------------------------------
+// The bug class the 2026-07-23 Debts fix exposed: the family takes an action that
+// creates a REAL record, but the surface then shows nothing usable — the tap
+// "goes nowhere." Ari now watches for that directly on the live derived debts so
+// the NEXT inert-input bug is caught before a human hits it (DR-0108 tighten the
+// apps when we find a bug; DR-0076 evidence-per-finding). Two concrete signals,
+// both computed from real derived-debt rows, both pointing at the inline fix:
+//   · a family-DECLARED debt (manual) with no balance owed yet — added, but inert
+//     until the amount is set (the exact "leave blank" path that used to vanish);
+//   · any active debt that still needsTerms — it shows, but can't reach a payoff
+//     date until a rate + minimum are present.
+function reviewInputs({ debts }) {
+  const rows = (Array.isArray(debts) ? debts : []).filter((d) => d && !d.leaveAlone);
+  const findings = [];
+  // Declared-but-no-balance: manual (treatAsDebt) debts sitting at ~$0 owed.
+  const noBalance = rows.filter((d) => d.manual === true && !(Number(d.balance) > 0.01));
+  if (noBalance.length) {
+    findings.push(finding(
+      'inputs', 'warning',
+      `${noBalance.length} debt${noBalance.length === 1 ? '' : 's'} you added ${noBalance.length === 1 ? 'has' : 'have'} no amount owed yet`,
+      `${noBalance.length} derived debt row(s) with manual:true and balance <= 0.01 (added via "Add as debt"/"Treat as debt", balance not set)`,
+      'Set the amount owed on the Debts tab (the inline "+ owed" editor) so the payoff computes',
+      { count: noBalance.length },
+    ));
+  }
+  // Shows, but can't project a payoff — missing rate and/or minimum payment.
+  const needTerms = rows.filter((d) => d.needsTerms === true && Number(d.balance) > 0.01);
+  if (needTerms.length) {
+    findings.push(finding(
+      'inputs', 'nit',
+      `${needTerms.length} debt${needTerms.length === 1 ? '' : 's'} can't show a payoff date until terms are added`,
+      `${needTerms.length} derived debt row(s) with a balance but needsTerms:true (missing rate and/or minimum payment)`,
+      'Add the rate + minimum on the Debts tab (inline "+ rate" / "+ pay") to compute the timeline',
+      { count: needTerms.length },
+    ));
+  }
+  return { key: 'inputs', findings, metrics: { noBalance: noBalance.length, needTerms: needTerms.length } };
+}
+
 // ---- dimension: data integrity ---------------------------------------------
 // The self-contradictions the app can detect in the family's real financial data
 // (coverage gaps, door-collapse, shape mismatches) — deriveDataConcerns.
@@ -263,6 +303,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewPlan(tasks, nowMs),
     reviewFreshness({ reviews, decisions }, nowMs),
     reviewBacklog({ concerns, feedback }),
+    reviewInputs({ debts }),
     reviewData({ transactions, rentals, debts }),
   ];
   const labelOf = Object.fromEntries(REVIEW_DIMENSIONS.map(([k, label, q]) => [k, { label, question: q }]));
