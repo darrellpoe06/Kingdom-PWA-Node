@@ -148,12 +148,12 @@ export const SEED_CONCERNS = [
     id: 'seed-review-sequences',
     concern: 'Review sequences are not running — there is no watcher driving the staged review/freshness loop.',
     solution: 'Stand up the watcher that runs the review sequences (behind the three brakes) so staged proposals actually move through review instead of sitting.',
-    status: 'in-progress', whenNote: 'watcher BUILT brakes-in (lib/review-watcher.js, proven); activation = the scheduled runner, on a watched dispatch proof', area: 'Review loop', created: '2026-06-18', refreshed: '2026-07-23',
-    // Refresh 2026-07-23 (DR-0225): the watcher engine is BUILT and wired through all three
-    // brakes (kill-switch first, skip-not-stack lock, item+wall budgets, repeated-failure
-    // auto-trip) — each brake proven-to-catch in review-watcher.test.js; it sits on Ari's
-    // fleet board as braked+inactive. Remaining: the scheduled runner, activated only after
-    // a watched dispatch run proves the glue (DR-0107 prove-the-deploy discipline).
+    status: 'done', whenNote: 'RUNNING — daily braked pass (review-watcher.yml); activated on watched proof run 30014172152', area: 'Review loop', created: '2026-06-18', refreshed: '2026-07-23',
+    // CLOSED 2026-07-23 (DR-0225 arc complete): engine wired through all three brakes
+    // (kill-switch first, skip-not-stack lock, item+wall budgets, repeated-failure auto-trip;
+    // each proven-to-catch in review-watcher.test.js); durable attributed pause file proven
+    // both ways; runner glue proven by watched dispatch run 30014172152 (green, 19s); daily
+    // schedule activated ON that proof. The review sequences now run on a clock.
   },
 
   // ---------------------------------------------------------------------------
