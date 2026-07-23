@@ -736,7 +736,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
       {authCreatedAt && (
         <div className="mb-2"><TrialStatus createdAt={authCreatedAt} familyFullAccess={familyFullAccess} /></div>
       )}
-      <AppStore showIdentityDraft={familyFullAccess} />
+      <AppStore />
       <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="how-it-works" />
 
       {cartTier && (

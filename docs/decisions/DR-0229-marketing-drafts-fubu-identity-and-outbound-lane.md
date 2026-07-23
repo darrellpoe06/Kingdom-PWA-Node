@@ -33,3 +33,11 @@ marketing by provable fact; the moat IS the message (serve-not-extract);
 the hire-us funnel is live end-to-end. Constraints: front-door identity =
 Tier C (family + Governor); live money flow = Tier C (unopened); lists =
 consent-only, no dark patterns; God-explicit + winsome held (DR-0188).
+
+## APPROVED + PUBLIC — 2026-07-23 (same day)
+
+The Tier-C gate opened the documented way: family review completed, then the
+Governor's word — Darrell: **"We reviewed with the family — go public."** The
+identity now renders publicly as the App Store masthead (`STORE_IDENTITY`,
+status 'public', approval recorded in the record itself). The outbound-lane
+design remains the next wiring increment.
