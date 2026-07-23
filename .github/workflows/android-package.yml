@@ -144,6 +144,12 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
+          # AGP hard-fails when ANDROID_HOME and ANDROID_SDK_ROOT disagree — the
+          # runner image exports ANDROID_SDK_ROOT=/usr/local/lib/android/sdk while
+          # Bubblewrap uses the staged SDK (run 30025408093, all four brands, the
+          # measured error). Pin BOTH to the staged path so there is one answer.
+          ANDROID_HOME: ${{ runner.temp }}/bwsdk/cmdline-tools
+          ANDROID_SDK_ROOT: ${{ runner.temp }}/bwsdk/cmdline-tools
         # `yes |` answers Bubblewrap's interactive prompts (run 2 died on
         # "have you run bubblewrap update? (Y/n)" — CI has no stdin; Y is
         # correct: generate the Android project from the manifest).
