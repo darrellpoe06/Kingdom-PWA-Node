@@ -128,7 +128,12 @@ describe('fleetOversight — Ari watches the real fleet, coverage never assumed'
     expect(o.counts.braked).toBe(1);
     expect(o.counts.activeUnbraked).toBe(0);
   });
-  it('the shipped declaration registry starts EMPTY — nothing is invented', () => {
-    expect(Object.keys(BRAKE_DECLARATIONS)).toHaveLength(0);
+  it('every shipped declaration is backed by real wired code — nothing invented', () => {
+    // The registry grows ONLY as real code wires the kit. Today: the
+    // review-watcher (lib/review-watcher.js, proven in review-watcher.test.js).
+    expect(Object.keys(BRAKE_DECLARATIONS)).toEqual(['review-watcher']);
+    const d = BRAKE_DECLARATIONS['review-watcher'];
+    expect(d.budget && d.lock && d.kill).toBe(true);
+    expect(d.note).toMatch(/review-watcher\.test\.js/); // the proof is named
   });
 });

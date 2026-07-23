@@ -146,10 +146,24 @@ export const BRAKE_DECLARATIONS = Object.freeze({
   // name (registry file or agent id) -> { budget, lock, kill, note }
   // Grows ONLY as real code wires this kit (or a workflow's own proven brakes
   // are recorded with evidence). Empty entries are never invented.
+  'review-watcher': {
+    budget: true, lock: true, kill: true,
+    note: 'lib/review-watcher.js runs every pass through this kit — kill-switch checked first, single-instance lock (concurrent fire skips), item+wall-clock budget, repeated-failure auto-trip. Proven-to-catch in review-watcher.test.js. Ships inactive; the scheduled runner activates on a watched proof (DR-0225).',
+  },
 });
 
-export function fleetOversight({ workflows = [], declarations = BRAKE_DECLARATIONS } = {}) {
-  const members = (Array.isArray(workflows) ? workflows : []).filter((w) => w && w.file).map((w) => {
+export function fleetOversight({ workflows = [], agents = [], declarations = BRAKE_DECLARATIONS } = {}) {
+  // App-native agents (watchers/runners built in this codebase) self-describe:
+  // each carries its own braked/why/active flags IN CODE beside the
+  // implementation, so the record can't drift from the thing it describes.
+  const native = (Array.isArray(agents) ? agents : []).filter((a) => a && a.id).map((a) => ({
+    id: a.id, name: a.name || a.id, kind: a.kind || 'app-agent',
+    active: a.active === true,
+    webhooks: 0,
+    braked: a.braked === true, brakes: declarations[a.id] || null,
+    why: a.why || null, whyRecorded: !!(a.why && String(a.why).trim()),
+  }));
+  const members = native.concat((Array.isArray(workflows) ? workflows : []).filter((w) => w && w.file).map((w) => {
     const decl = declarations[w.file] || declarations[w.name] || null;
     const braked = !!(decl && decl.budget && decl.lock && decl.kill);
     // INTENTION: the recorded why (DR-0158 — the paired README's first
@@ -163,7 +177,7 @@ export function fleetOversight({ workflows = [], declarations = BRAKE_DECLARATIO
       braked, brakes: decl || null,
       why: why || null, whyRecorded: why.length > 0,
     };
-  });
+  }));
   const activeUnbraked = members.filter((m) => m.active && !m.braked);
   // Active members whose PURPOSE is unrecorded: Ari cannot judge "working for
   // our good" without the intention on record — a named expertise gap
