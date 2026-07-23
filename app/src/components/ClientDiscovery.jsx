@@ -12,6 +12,9 @@
 import React, { useMemo, useState } from 'react';
 import { parseDiscoveryJson } from '../lib/client-engagements.js';
 import { useDiscoveryItems, saveExtraction, reviewItem, importToBoard } from '../lib/use-discovery.js';
+import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
+import { useVoiceDictation } from '../lib/voice-dictation.js';
+import UiIcon from './UiIcon.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const KIND_MARK = { requirement: '◈', pricing: '◆', policy: '▦', 'pain-point': '◔' };
@@ -68,6 +71,78 @@ function PasteIntake() {
           {preview.items.filter((i) => i.kind === 'pain-point').length} pain points
           {preview.unclear.length > 0 && (
             <div className="mt-1 text-[#B85838]">Flagged unclear by the extractor: {preview.unclear.join(' · ')}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ThoughtsIntake — requirements gathering THROUGH the app (DR-0121 item 10):
+// speak or type raw thoughts; the deterministic extractor turns them into
+// reviewable items (every one carrying the literal sentence as its receipt);
+// saving lands them in the SAME steward review gate below — one set of rails.
+function ThoughtsIntake() {
+  const [raw, setRaw] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [savedMsg, setSavedMsg] = useState('');
+  const { supported, listening, error, start, stop } = useVoiceDictation({
+    onTranscript: (chunk) => setRaw((cur) => (cur ? `${cur} ${chunk}` : chunk)),
+  });
+  const runPreview = () => {
+    setSavedMsg('');
+    setPreview(extractRequirementsFromThoughts(raw, { source: 'in-app-input', extractedAt: new Date().toISOString() }));
+  };
+  const save = async () => {
+    const n = await saveExtraction(preview);
+    setSavedMsg(`${n} item${n === 1 ? '' : 's'} saved to the review queue below — confirm each to send it to a build board.`);
+    setPreview(null); setRaw('');
+  };
+  return (
+    <div className="rounded-xl border-2 border-[#B85838] bg-white p-3">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[#B85838]">Speak or type your requirements</div>
+      <p className="mt-1 text-xs text-[#5A5751]" style={SERIF}>
+        Download your thoughts — what you want, what hurts, what it should cost. Each sentence becomes a reviewable item carrying your exact words; nothing is built until it&rsquo;s confirmed below.
+      </p>
+      <textarea
+        aria-label="Your requirements, in your own words"
+        className="mt-2 h-28 w-full rounded border border-[#E8E2D8] bg-white p-2 text-sm text-[#1A1815]"
+        placeholder="I want the family to see the giving history on their phones. The choir page can't upload photos right now. It should cost nothing for members."
+        value={raw} onChange={(e) => setRaw(e.target.value)}
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {supported && (
+          <button type="button"
+            className={`rounded-lg border px-3 py-1.5 text-sm font-semibold min-h-[36px] ${listening ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#B85838] text-[#B85838]'}`}
+            onClick={listening ? stop : start}
+            aria-pressed={listening}>
+            {listening ? '■ Stop listening' : <><UiIcon name="mic" /> Talk it in</>}
+          </button>
+        )}
+        <button type="button" className="rounded-lg border border-[#2A5A8E] px-3 py-1.5 text-sm font-semibold text-[#2A5A8E] min-h-[36px]" onClick={runPreview} disabled={!raw.trim()}>Preview items</button>
+        {preview && preview.items.length > 0 && (
+          <button type="button" className="rounded-lg bg-[#B85838] px-3 py-1.5 text-sm font-semibold text-white min-h-[36px]" onClick={save}>
+            Save {preview.items.length} item{preview.items.length === 1 ? '' : 's'} for review
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-2 text-xs text-[#B85838]">{error}</p>}
+      {savedMsg && <p className="mt-2 text-xs text-[#5A6E3D]" role="status">{savedMsg}</p>}
+      {preview && (
+        <div className="mt-2 space-y-1.5">
+          {preview.items.length === 0 && (
+            <p className="text-xs text-[#B85838]">No requirement-shaped sentences found yet — say what you want, need, or what isn&rsquo;t working, and preview again.</p>
+          )}
+          {preview.items.map((it, i) => (
+            <div key={i} className="rounded border border-[#E8E2D8] p-2 text-xs">
+              <span className="font-semibold uppercase tracking-wide text-[#5A5751]">{KIND_MARK[it.kind] || '·'} {it.kind}</span>
+              <div className="mt-0.5 text-[#1A1815]" style={SERIF}>{it.text}</div>
+            </div>
+          ))}
+          {preview.unclear.length > 0 && (
+            <div className="text-xs text-[#5A5751]">
+              <span className="text-[#B85838] font-semibold">Kept aside (not guessed into items):</span> {preview.unclear.join(' · ')}
+            </div>
           )}
         </div>
       )}
@@ -154,9 +229,10 @@ export default function ClientDiscovery() {
   return (
     <div className="mt-2 space-y-4">
       <div>
-        <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Client discovery — the review gate</h2>
-        <p className="text-xs text-[#5A5751]">The client&rsquo;s recorded words become reviewable items; nothing unreviewed is built. Confirm what&rsquo;s right, edit what&rsquo;s close, reject what&rsquo;s wrong — confirmed requirements go straight onto their build board.</p>
+        <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Requirements &amp; discovery — the review gate</h2>
+        <p className="text-xs text-[#5A5751]">Spoken or typed words become reviewable items; nothing unreviewed is built. Confirm what&rsquo;s right, edit what&rsquo;s close, reject what&rsquo;s wrong — confirmed requirements go straight onto a build board.</p>
       </div>
+      <ThoughtsIntake />
       <PasteIntake />
       <div className="flex gap-2">
         {(['extracted', 'reviewed', 'rejected']).map((k) => (

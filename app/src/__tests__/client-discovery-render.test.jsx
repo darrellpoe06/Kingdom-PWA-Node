@@ -37,7 +37,10 @@ const setTextarea = async (el, value) => {
   await act(async () => { el.dispatchEvent(new window.Event('input', { bubbles: true })); });
 };
 const click = async (label) => {
-  const btn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(label));
+  // Exact text first (two intakes both carry a "Preview…" button), then includes.
+  const all = [...container.querySelectorAll('button')];
+  const btn = all.find((b) => (b.textContent || '').trim() === label)
+    || all.find((b) => (b.textContent || '').includes(label));
   if (!btn) throw new Error(`button not found: ${label}`);
   await act(async () => { btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
 };
@@ -75,5 +78,24 @@ describe('ClientDiscovery surface', () => {
     await setTextarea(ta, 'not json at all');
     await click('Preview');
     expect(container.textContent).toContain('Not valid extraction JSON');
+  });
+
+  // LAST in the file on purpose: saving writes the module-singleton store, so
+  // this runs after the empty-queue assertions.
+  it('ThoughtsIntake: typed thoughts preview as items with receipts, save lands in the SAME review queue (DR-0121 item 10)', async () => {
+    await act(async () => { root.render(createElement(ClientDiscovery)); });
+    const ta = container.querySelector('textarea[aria-label="Your requirements, in your own words"]');
+    expect(ta, 'the speak-or-type intake renders').toBeTruthy();
+    await setTextarea(ta, "I want the family to see giving history. The choir page can't upload photos. Good morning saints.");
+    await click('Preview items');
+    let text = container.textContent || '';
+    expect(text).toContain('requirement');
+    expect(text).toContain('pain-point');
+    expect(text).toContain('Kept aside (not guessed into items):'); // the unclear sentence surfaces honestly
+    expect(text).toContain('Good morning saints.');
+    await click('Save 2 items for review');
+    text = container.textContent || '';
+    expect(text).toContain('extracted (2)'); // same store, same steward gate
+    expect(text).toContain('saved to the review queue');
   });
 });
