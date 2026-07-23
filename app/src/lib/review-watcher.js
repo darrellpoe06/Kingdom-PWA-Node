@@ -36,14 +36,15 @@ const FAIL_KEY = `watcher-fails:${WATCHER_NAME}`;
 const readFails = (store) => { const n = parseInt(store.getItem(FAIL_KEY) || '0', 10); return Number.isFinite(n) ? n : 0; };
 
 // The watcher as a self-describing fleet member for Ari's oversight board.
-// active:false until the scheduled runner is activated on a watched proof —
-// the fleet board shows it honestly as built-and-braked but not yet running
-// on a clock. The why is IN the record, read not invented (DR-0158).
+// ACTIVE since 2026-07-23: the scheduled runner (review-watcher.yml, daily
+// 11:23 UTC) was activated on the watched dispatch proof — run 30014172152,
+// green in 19s (DR-0225 activate-on-proof). The why is IN the record, read
+// not invented (DR-0158).
 export const REVIEW_WATCHER_MEMBER = Object.freeze({
   id: WATCHER_NAME,
   name: 'Review-sequences watcher',
   kind: 'app-watcher',
-  active: false,
+  active: true,
   braked: true,
   whyRecorded: true,
   why: 'Drives the staged review/freshness loop: extracts every dated re-review commitment from the decision + review ledgers and surfaces what is overdue / due soon, so proposals move through review instead of sitting (seed-review-sequences; DR-0225 brakes-in).',

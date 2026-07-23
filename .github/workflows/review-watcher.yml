@@ -9,11 +9,12 @@
 # to the run's job summary, so the backlog surfaces on a cadence instead of
 # waiting for someone to open the app.
 #
-# SHIPS INACTIVE (DR-0225: activate on proof). Dispatch-only today — NO
-# schedule line. Activation = adding the `schedule:` block in its own commit,
-# only AFTER a watched dispatch run of THIS file has proven the glue green
-# (DR-0107 prove-the-deploy discipline; the proof run is the next step after
-# this merges).
+# ACTIVATED ON PROOF (DR-0225 / DR-0107): the watched dispatch run
+# https://github.com/darrellpoe06/Kingdom-PWA-Node/actions/runs/30014172152
+# (run #1, 2026-07-23 14:05 UTC) completed green in 19s — checkout → node →
+# braked pass → drive report on the job summary. With the glue proven and
+# every brake in place, the daily schedule below is the activation, landed
+# in its own commit as this file promised.
 #
 # THE THREE BRAKES (CLAUDE.md — every one present before any schedule lands):
 #   1. BUDGET — the engine caps items + wall-clock in-run; the job carries a
@@ -32,8 +33,11 @@ name: review-watcher
 
 on:
   workflow_dispatch: {}
-  # schedule: — INTENTIONALLY ABSENT. Added in its own commit only after a
-  # watched dispatch run proves this glue green (DR-0225 activate-on-proof).
+  schedule:
+    # Daily at 11:23 UTC (~6:23am Central) — one braked pass per day drives
+    # the review backlog onto the run summary before the working day starts.
+    # Activation commit per DR-0225, on the proof run named above.
+    - cron: '23 11 * * *'
 
 permissions:
   contents: read

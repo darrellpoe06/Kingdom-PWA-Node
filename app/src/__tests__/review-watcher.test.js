@@ -88,16 +88,18 @@ describe('runReviewWatch — drives the review sequence from the real ledgers', 
 });
 
 describe('the watcher on Ari\'s fleet board', () => {
-  it('is declared with all three brakes and self-describes braked + inactive with its why', () => {
+  it('is declared with all three brakes and self-describes braked + ACTIVE with its why', () => {
     const decl = BRAKE_DECLARATIONS[WATCHER_NAME];
     expect(decl).toBeTruthy();
     expect(decl.budget && decl.lock && decl.kill).toBe(true);
     const o = fleetOversight({ workflows: [], agents: [REVIEW_WATCHER_MEMBER] });
     const m = o.members.find((x) => x.id === WATCHER_NAME);
     expect(m.braked).toBe(true);
-    expect(m.active).toBe(false);        // ships inactive; activation on watched proof
+    // ACTIVE since 2026-07-23 — daily schedule activated on watched proof
+    // run 30014172152 (DR-0225 activate-on-proof).
+    expect(m.active).toBe(true);
     expect(m.whyRecorded).toBe(true);
     expect(o.counts.braked).toBe(1);
-    expect(o.counts.activeUnbraked).toBe(0); // inactive+braked raises nothing
+    expect(o.counts.activeUnbraked).toBe(0); // active AND braked raises nothing (P10 satisfied)
   });
 });
