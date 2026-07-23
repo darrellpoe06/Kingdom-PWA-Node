@@ -150,6 +150,29 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toContain('For God so loved the world');
   });
 
+  it('theme-marker chips: ink-only styles (Jdg/Sin) sit on a parchment plate — readable on any theme (REV-0174)', async () => {
+    // Root cause of the 2026-07-23 dark-theme screenshot: Judgment's Box style
+    // is near-black READER ink (#1A1815) with no background — rendered raw, the
+    // chip was invisible on the dark surface. The plate makes the marker read
+    // "as it looks on the page" everywhere; own-background styles keep theirs.
+    await mount();
+    await clickText(/Study by theme/);
+    const abbrSpan = (label) => {
+      const btn = [...container.querySelectorAll('button')].find(
+        (b) => (b.getAttribute('aria-label') || '').startsWith(label));
+      return btn ? btn.querySelector('span[aria-hidden="true"]') : null;
+    };
+    const jdg = abbrSpan('Judgment');
+    expect(jdg, 'the Judgment chip renders').toBeTruthy();
+    expect(jdg.style.backgroundColor, 'Jdg ink sits on the parchment plate').toBeTruthy();
+    const sin = abbrSpan('Sin');
+    expect(sin.style.backgroundColor, 'Sin strike ink sits on the parchment plate').toBeTruthy();
+    // An own-background style is untouched — Grace keeps its gold, not the plate.
+    const grc = abbrSpan('Grace');
+    expect(grc.style.backgroundColor).toBeTruthy();
+    expect(grc.style.backgroundColor).not.toBe(jdg.style.backgroundColor);
+  });
+
   it('Highlighted Bible — patterns mode auto-colors theme words across the chapter', async () => {
     await mount(); // Genesis 1 — "the Spirit of God moved" (Gen 1:2) carries a theme word.
     await clickText(/Yahweh.s patterns/);

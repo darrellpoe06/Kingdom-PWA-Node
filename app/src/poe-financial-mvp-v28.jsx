@@ -5258,11 +5258,11 @@ ${THEME_CSS}
           onClick={() => setFeedbackOpen(true)}
           aria-label="Open feedback"
           title="Tell us what's working / not working / missing"
-          // ts-chrome-region = no text-size balloon; idle-reveal dims/reveals (Pattern 2d).
-          className={`ts-chrome-region fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
+          // ts-chrome-region = no balloon; idle-reveal (2d). COMPACT WHEN IDLE (REV-0174): un-revealed = 48px circle so it stops occluding tappable content beneath; expands on reveal/hover/focus.
+          className={`ts-chrome-region fixed bottom-4 left-4 z-30 inline-flex items-center justify-center bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-2'}`}
           style={{ borderRadius: '999px' }}
         >
-          💬 Feedback
+          💬{feedbackReveal ? ' Feedback' : ''}
         </button>
       )}
       {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
