@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0174 · UI/UX — dark-theme theme-marker chips unreadable (Jdg invisible) + FEEDBACK pill occluding the reader toggle
+- **Date:** 2026-07-23
+- **Surface:** app/src/components/BibleReader.jsx · app/src/poe-financial-mvp-v28.jsx (feedback FAB) · app/src/lib/scripture-highlights.js (root cause)
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-07-23 (screenshot, Church → Scripture on the dark theme: "UIUX reviews?"). Two defects: (1) the **Judgment (Jdg)** theme chip was invisible and **Sin** nearly so — their palette styles are ink-only reader marks for parchment (Box ink `#1A1815`, Struck ink `#4A4640`) rendered raw on the dark surface; the styles with their own light backgrounds (Grace/Love/Spirit/…) read fine, which localized the fault to ink-only styles. Fix: `markerChipCss` — the abbr marker always sits on a parchment plate (`#FAF8F4`) when its style has no background of its own, so every marker reads "as it looks on the page" on ANY surface, both render sites. (2) The **💬 Feedback pill** (fixed bottom-left) sat over the reader's Plain/Patterns/Voices toggle at that scroll position, occluding a tappable control. Fix: compact-when-idle — un-revealed it shrinks to a 48px circle (smallest WCAG tap target) and expands to the labeled pill on reveal/hover/focus, cutting the idle occlusion footprint ~70%. Residual: any fixed FAB can still transiently cover scrolling content at one scroll position — accepted for now with the compact footprint; **re-review: 2026-08-18** alongside the DR-0224 anxiety-clarity gate pass (candidate: FAB auto-dodge or drag-to-move like the video dock).
+- **Source:** app/src/__tests__/bible-reader-render.test.jsx
+
 ### REV-0173 · Fix + Way — merge duplicates: floating Combine bar (no jump) + full text on selected rows; "Inline, No Jumping"
 - **Date:** 2026-07-20
 - **Surface:** app/src/components/Imported.jsx · docs/decisions/DR-0201-*.md · docs/00-foundations/_root/UX-PATTERNS.md · app/src/__tests__/imported-render.test.jsx

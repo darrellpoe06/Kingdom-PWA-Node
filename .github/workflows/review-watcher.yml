@@ -1,0 +1,63 @@
+# Review watcher — drives the staged review/freshness loop (seed-review-sequences).
+#
+# WHY THIS EXISTS (2026-07-23, DR-0225 lineage). The dated `re-review:`
+# commitments in the decision + review ledgers ARE the review backlog (DR-0075),
+# but nothing ran them on a clock — the first real watcher pass found 49 of 113
+# dated commitments overdue. This runner executes lib/review-watcher.js (the
+# braked engine, proven in review-watcher.test.js) against the real ledgers and
+# publishes the drive report — overdue (act now) + due-soon (pull forward) —
+# to the run's job summary, so the backlog surfaces on a cadence instead of
+# waiting for someone to open the app.
+#
+# SHIPS INACTIVE (DR-0225: activate on proof). Dispatch-only today — NO
+# schedule line. Activation = adding the `schedule:` block in its own commit,
+# only AFTER a watched dispatch run of THIS file has proven the glue green
+# (DR-0107 prove-the-deploy discipline; the proof run is the next step after
+# this merges).
+#
+# THE THREE BRAKES (CLAUDE.md — every one present before any schedule lands):
+#   1. BUDGET — the engine caps items + wall-clock in-run; the job carries a
+#      hard `timeout-minutes`; the run reads files and writes a summary — no
+#      compute is spawned, nothing recurses.
+#   2. LOCK   — concurrency group `review-watcher`, cancel-in-progress: false
+#      (P34: never cancel a working run; a new fire waits, never stacks), plus
+#      the engine's own single-instance lock.
+#   3. KILL-SWITCH — durable + attributed: if docs/reviews/WATCHER-PAUSED.md
+#      exists in the repo, the script does no work and says why (the file's
+#      first line is the reason; the commit that added it is the attribution).
+#      Reset = remove the file. It never auto-resumes (P11). Proven both ways
+#      by a live local run 2026-07-23.
+
+name: review-watcher
+
+on:
+  workflow_dispatch: {}
+  # schedule: — INTENTIONALLY ABSENT. Added in its own commit only after a
+  # watched dispatch run proves this glue green (DR-0225 activate-on-proof).
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-watcher
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: review sequences — braked watch pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run the braked watcher against the real ledgers
+        run: |
+          set -euo pipefail
+          node scripts/review-watcher.mjs | tee watch-report.md
+          {
+            echo "## Review watch — drive report"
+            echo ""
+            cat watch-report.md
+          } >> "$GITHUB_STEP_SUMMARY"

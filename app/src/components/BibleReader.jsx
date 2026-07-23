@@ -105,6 +105,20 @@ function segCss(style) {
   return Object.keys(hi).length ? hi : cssForVoice(style);
 }
 
+// Theme-chip marker css: the abbr marker always sits on a PARCHMENT PLATE when
+// its palette style carries no background of its own, so it reads "as it looks
+// on the page" on ANY surface. Root cause (Darrell's 2026-07-23 screenshot,
+// REV: dark Church theme): ink-only styles like Box/#1A1815 (Judgment) and
+// Struck/#4A4640 (Sin) are reader inks for parchment — rendered raw on the
+// dark theme the Jdg chip was invisible and Sin nearly so. The plate fixes
+// every ink-only marker in both themes; styles with their own background
+// (Grace/Love/Spirit/…) keep it.
+function markerChipCss(styleKey) {
+  const css = cssForHighlight(styleKey);
+  if (css.color && !css.backgroundColor) return { ...css, backgroundColor: '#FAF8F4' };
+  return css;
+}
+
 // The Godhead together — where the Father, the Son (the Word / the Light), and the
 // Holy Spirit are shown working as One in this chapter (Darrell 2026-07-04: "we
 // should be able to see when the GodHead is working together... in the beginning
@@ -182,7 +196,7 @@ function ThemesIndex({ onOpenRef }) {
                 <button key={t.key} type="button" onClick={() => setActive(on ? null : t.key)} aria-pressed={on}
                   aria-label={`${t.label} — ${t.definition}`} title={t.definition}
                   className={`inline-flex items-center gap-1 px-2 py-1 border text-[0.6875rem] focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] hover:border-[#1A1815]'}`} style={serif}>
-                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(t.key))}>{t.abbr}</span>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={markerChipCss(themeMarkerStyle(t.key))}>{t.abbr}</span>
                   <span className="text-[#1A1815]">{t.label}</span>
                 </button>
               );
@@ -487,7 +501,7 @@ export default function BibleReader({ email = null }) {
               const t = THEMES.find((x) => x.key === k);
               return (
                 <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-[#E8E4DC]" title={t.definition}>
-                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(k))}>{t.abbr}</span>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={markerChipCss(themeMarkerStyle(k))}>{t.abbr}</span>
                   <span className="text-[0.625rem] text-[#1A1815]" style={serif}>{t.label}</span>
                 </span>
               );
