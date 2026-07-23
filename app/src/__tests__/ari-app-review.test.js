@@ -16,8 +16,8 @@ const DRIFT_BOARD = 'board-modular-cutover';
 const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
 const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
 
-describe('buildAppReview — seven dimensions, all evidence-backed', () => {
-  it('has the seven named dimensions in order, even on empty input', () => {
+describe('buildAppReview — eight dimensions, all evidence-backed', () => {
+  it('has the eight named dimensions in order, even on empty input', () => {
     const r = buildAppReview({}, NOW);
     expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
     expect(r.dimensions.every((d) => Array.isArray(d.findings))).toBe(true);
@@ -185,6 +185,40 @@ describe('buildAppReview — seven dimensions, all evidence-backed', () => {
     expect(rec.metrics.provenanceChecked).toBe(false);
     expect(rec.metrics.demoLeaks).toBe(0);
     expect(rec.findings).toHaveLength(0);
+  });
+
+  it('oversight: an active fleet member without proven brakes fires the P10 warning', () => {
+    const fleet = {
+      members: [{ id: 'wf-a.json', name: 'Photos webhook', kind: 'n8n-workflow', active: true, braked: false }],
+      counts: { total: 1, active: 1, braked: 0, activeUnbraked: 1 },
+      activeUnbraked: [{ id: 'wf-a.json', name: 'Photos webhook' }],
+    };
+    const ov = buildAppReview({ fleet }, NOW).dimensions.find((d) => d.key === 'oversight');
+    expect(ov.metrics.fleetChecked).toBe(true);
+    const f = ov.findings.find((x) => /without proven brakes/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('P10');
+    expect(f.evidence).toMatch(/Photos webhook/);
+  });
+  it('oversight: an active automation with no recorded WHY fires the intention-consistency gap (DR-0158)', () => {
+    const fleet = {
+      members: [{ id: 'wf-c.json', name: 'Mystery job', kind: 'n8n-workflow', active: true, braked: true, whyRecorded: false }],
+      counts: { total: 1, active: 1, braked: 1, activeUnbraked: 0, whyRecorded: 0, activeNoWhy: 1 },
+      activeUnbraked: [],
+      activeNoWhy: [{ id: 'wf-c.json', name: 'Mystery job' }],
+    };
+    const ov = buildAppReview({ fleet }, NOW).dimensions.find((d) => d.key === 'oversight');
+    const f = ov.findings.find((x) => /no recorded intention/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('DR-0158');
+    expect(f.evidence).toMatch(/Mystery job/);
+    expect(ov.metrics.activeNoWhy).toBe(1);
+  });
+  it('oversight: no fleet input reports fleetChecked=false — an unchecked fleet never reads safe', () => {
+    const ov = buildAppReview({}, NOW).dimensions.find((d) => d.key === 'oversight');
+    expect(ov.metrics.fleetChecked).toBe(false);
+    expect(ov.findings).toHaveLength(0);
+    expect(ov.status).toBe('ok');
   });
 
   it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
