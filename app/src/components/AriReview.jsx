@@ -166,6 +166,27 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
         </div>
       )}
 
+      {/* Ari recommends — data-derived upgrades only Ari could know (from the
+          whole live picture, not a typed tip). Directed by Darrell 2026-07-23. */}
+      {Array.isArray(review.recommendations) && review.recommendations.length > 0 && (
+        <div className="border border-[#3F5226] bg-white rounded-lg p-4">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#3F5226] font-semibold mb-2">{ARI.name} recommends &middot; upgrades from your data</div>
+          <ul className="space-y-2.5">
+            {review.recommendations.map((r, i) => (
+              <li key={i} className="text-sm text-[#1A1815]">
+                <div className="flex items-start gap-2">
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#3F5226] font-semibold shrink-0 mt-1">{r.area}</span>
+                  <div>
+                    <p className="leading-relaxed">{r.recommendation}</p>
+                    <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">Basis: {r.basis}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Ari's adjustments — the propose + gated auto-apply split. Ari applies
           the safe, reversible, evidence-backed fixes itself and logs them; the
           rest it proposes for a human (the gate encodes DR-0076). */}

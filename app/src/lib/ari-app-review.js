@@ -277,6 +277,34 @@ function reviewData({ transactions, rentals, debts }) {
   return { key: 'data', findings, metrics: { count: findings.length } };
 }
 
+// ---------------------------------------------------------------------------
+// deriveRecommendations — Ari's data-derived UPGRADE recommendations: not a
+// problem/finding, but "you could do better," visible ONLY from the aggregate,
+// live data Ari sees across the whole picture (Darrell 2026-07-23: "Ari should
+// recommend upgrading whatever based on the data only Ari could know"). Evidence
+// per recommendation (DR-0076); nothing here is generic advice — each is computed
+// from the family's real rows. Pure.
+// ---------------------------------------------------------------------------
+export function deriveRecommendations({ debts = [] } = {}) {
+  const recs = [];
+  const active = (Array.isArray(debts) ? debts : []).filter((d) => d && !d.leaveAlone && Number(d.balance) > 0.01);
+  // Interest-first opportunity: the highest-APR debt is where each extra dollar
+  // saves the most — a call only the WHOLE debt picture (every rate at once) can
+  // make. Only surfaces when at least two debts carry a real rate to compare.
+  const withRate = active.filter((d) => Number(d.rate) > 0);
+  if (withRate.length >= 2) {
+    const top = withRate.reduce((a, b) => (Number(b.rate) > Number(a.rate) ? b : a));
+    const ratePct = Number(top.rate).toFixed(2).replace(/\.00$/, '');
+    recs.push({
+      area: 'Debts',
+      recommendation: `Aim extra payments at "${top.name}" first — at ${ratePct}% it's your highest-rate debt, so each extra dollar there kills the most interest (Avalanche order).`,
+      basis: `Highest APR of ${withRate.length} rated debts: ${top.name} at ${ratePct}% on a $${Math.round(Number(top.balance)).toLocaleString()} balance`,
+      action: 'Set the payoff order to Avalanche (highest rate) on the Debts tab',
+    });
+  }
+  return recs;
+}
+
 // worst severity among a dimension's findings -> the dimension's status.
 function worstSeverity(findings) {
   let worst = 'ok';
@@ -329,7 +357,9 @@ export function buildAppReview(input = {}, nowMs = 0) {
     topActions: dedupeActions(findings).slice(0, 5),
   };
 
-  return { generatedAtMs: nowMs, completion: overallCompletion(tasks), dimensions, findings, summary };
+  const recommendations = deriveRecommendations({ debts });
+
+  return { generatedAtMs: nowMs, completion: overallCompletion(tasks), dimensions, findings, summary, recommendations };
 }
 
 // Rank findings most-severe first; stable within a severity (dimension order).
