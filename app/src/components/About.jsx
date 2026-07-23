@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle } from './shared.jsx';
 import TrialStatus from './TrialStatus.jsx';
+import AppStore from './AppStore.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
@@ -735,6 +736,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
       {authCreatedAt && (
         <div className="mb-2"><TrialStatus createdAt={authCreatedAt} familyFullAccess={familyFullAccess} /></div>
       )}
+      <AppStore />
       <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="how-it-works" />
 
       {cartTier && (

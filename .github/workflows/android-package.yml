@@ -25,7 +25,10 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  # contents: write — the lane PUBLISHES each brand's .apk to the rolling
+  # `android-latest` release: the PoeTech App Store's shelves (in-app Download
+  # buttons link these stable, public URLs — latest version always).
+  contents: write
 
 # FOUR BRANDS, FOUR REAL APPS (DR-0227, Darrell 2026-07-23: each app in the
 # family on the phone, SEPARATED — "anyone anywhere... able to use them
@@ -165,6 +168,18 @@ jobs:
             echo "- Download the .apk from this run's Artifacts, open it on the phone, allow the install prompt."
             echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0152)."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the PoeTech App Store shelf (rolling android-latest release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK=$(ls twa-build/*.apk | head -1)
+          cp "$APK" "${{ matrix.brand }}.apk"
+          gh release create android-latest --title "PoeTech App Store — Android apps (latest)" \
+            --notes "Rolling latest builds of the four family apps. Installed from the in-app PoeTech App Store." \
+            2>/dev/null || true
+          gh release upload android-latest "${{ matrix.brand }}.apk" --clobber
 
       - name: Attach the package as a downloadable artifact
         uses: actions/upload-artifact@v4
