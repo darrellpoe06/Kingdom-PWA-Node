@@ -725,3 +725,17 @@ relying on it; memories reflect what was true when written.
   testimony is a truth-committing label ("Picture this…" = illustrative; "A true story" =
   real/attributed/consented) — never blurred (DR-0076). Pairs with DR-0065 (APP-IS-PRIMARY,
   don't lose the grounding), DR-0089 (spoken teachings always captured).
+
+- **2026-07-23 — `feedback_brakes_are_build_requirements_never_a_stall` (DR-0225).**
+  Darrell, at law-tier intensity: "WRONG!!!! STOP REPEATING WRONG INFORMATION... WE HAVE 6000
+  PLUS CHECKS... WE NEED IT CHANGED TO REFLECT MY TRUE INTENTIONS." The agent had repeatedly
+  parked the directed agent-teams-under-Ari work behind a "bring you the design first" step,
+  citing THREE-BRAKES/Tier C. Binding: the three brakes (budget / concurrency lock /
+  kill-switch) are ENGINEERING DELIVERABLES built into the same work and proven-to-catch in
+  CI — never a permission conversation; the deterministic gate suite is the review and `hold`
+  is the governor's hand (DR-0103); Tier C means CARRY THE PROOF, not convene a meeting.
+  P10/P11/P12 unchanged (unproven brakes -> not active). Also bound: status is re-verified at
+  utterance time (never replay a stale PR/count/next-step), and an aged/recurrence finding is
+  a WORK ORDER — "AGED ITEMS NEED REFRESH OBVIOUSLY" — worked or honestly re-dated (DR-0075),
+  never merely re-counted. Pairs with DR-0111 (do the work), DR-0219 (spec-conformance),
+  DR-0108 (ways-review).
