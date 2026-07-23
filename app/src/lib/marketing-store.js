@@ -2,14 +2,15 @@
 // marketing-store — DRAFT: the App Store's marketing identity (DR-0229)
 // =============================================================================
 // "Can we market our App Store as AI Productivity Systems for US by us?"
-// (Darrell 2026-07-23.) Status: DRAFT behind the Tier-C front-door gate —
-// rendered to FAMILY/steward eyes for review; goes public only on Darrell's
-// word + family review (RELEASE-TIERS front-door identity).
+// (Darrell 2026-07-23.) PUBLIC since 2026-07-23: the Tier-C front-door gate
+// was opened the documented way — family review completed, then the
+// Governor's word: "We reviewed with the family — go public." (DR-0229.)
 //
 // Every claim below is a MEASURED FACT with its source named (DR-0100: market
 // established fact; DR-0228: the system's excellence, never our data).
-export const STORE_IDENTITY_DRAFT = {
-  status: 'draft-tier-c',
+export const STORE_IDENTITY = {
+  status: 'public',
+  approvedBy: 'Darrell + family review, 2026-07-23',
   kicker: 'AI Productivity Systems',
   tagline: 'For Us. By Us.',
   line: 'Built by a family, for the families and churches mainstream tech overlooked — sovereign, serving, and proving itself on every build.',
