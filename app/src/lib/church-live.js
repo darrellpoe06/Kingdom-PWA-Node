@@ -82,7 +82,19 @@ export function latestUploadEmbedUrl(channelId) {
 // is unavailable" — YouTube renders that endpoint unavailable even when the channel
 // IS live, so it is abandoned. It stays only as the last-resort fallback for a
 // non-standard channel id from which no uploads playlist can be derived.
-export function worshipPlayerSrc(channelId) {
+// Optional `newestVideoId` (2026-07-23, from the church office's real desk):
+// the bare playlist embed is a CONSTANT URL, so on a long-resumed installed
+// app the iframe keeps whatever the playlist looked like when it mounted —
+// "can't get it to switch to the newest video." When the caller has the
+// channel's newest video id from the always-current /api/church-recent feed,
+// embed THAT video directly with the uploads playlist behind it: the top of
+// the page follows every upload within minutes, and the playlist still rolls.
+export function worshipPlayerSrc(channelId, newestVideoId) {
+  const id = String(newestVideoId || '').trim();
+  const list = uploadsPlaylistId(channelId);
+  if (id && /^[\w-]{6,}$/.test(id) && list) {
+    return `https://www.youtube.com/embed/${id}?list=${list}&rel=0`;
+  }
   return latestUploadEmbedUrl(channelId) || liveStreamEmbedUrl(channelId);
 }
 

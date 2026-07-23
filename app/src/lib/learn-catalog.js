@@ -28,6 +28,7 @@ import { AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, buildAiLegalB
 import { LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW, buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown, LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META } from './living-lessons-class.js';
 import { MADE_IN_TIME_META, MADE_IN_TIME_SESSION_FLOW, buildMadeInTimeSchedule, madeInTimeProgressSummary, exportMadeInTimeCurriculumMarkdown, MADE_IN_TIME_INTEREST_TAG, MADE_IN_TIME_HELPER_TAG, MADE_IN_TIME_TUTOR_META } from './made-in-time-course.js';
 import { SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW, buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown, SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META } from './sound-board-class.js';
+import { WORD_OUT_META, WORD_OUT_SESSION_FLOW, buildWordOutSchedule, wordOutProgressSummary, exportWordOutCurriculumMarkdown, WORD_OUT_INTEREST_TAG, WORD_OUT_HELPER_TAG, WORD_OUT_TUTOR_META } from './word-out-course.js';
 import { WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW, buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown, WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META } from './world-issues-class.js';
 import { DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW, buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown, DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META } from './datasystems-course.js';
 import { SUCCESSION_META, SUCCESSION_SESSION_FLOW, buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown, SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META } from './succession-class.js';
@@ -113,6 +114,20 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
       cta: 'I want to learn',
       sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
+    },
+  },
+  {
+    key: 'word-out', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...WORD_OUT_META, key: 'word-out', category: 'Serve the House' }, sessionFlow: WORD_OUT_SESSION_FLOW,
+    buildScheduleRows: () => buildWordOutSchedule(), progressSummary: (p) => wordOutProgressSummary(p),
+    exportMarkdown: () => exportWordOutCurriculumMarkdown(), downloadName: 'getting-the-word-out.md',
+    interestTag: WORD_OUT_INTEREST_TAG, helperTag: WORD_OUT_HELPER_TAG, tutorCourseMeta: WORD_OUT_TUTOR_META,
+    interestText: (who) => `${WORD_OUT_INTEREST_TAG} ${who} wants the Getting the Word Out staff training.`,
+    interestCopy: {
+      heading: 'Want this staff training?',
+      blurb: 'Tell Darrell you want to learn the broadcast flow — one upload, everywhere — and how to ask for what you want built. Self-paced, plain words, at the real pages.',
+      cta: 'I want to learn',
+      sent: '✓ Sent — Darrell will see it. One upload, and the Word goes out.',
     },
   },
   {
