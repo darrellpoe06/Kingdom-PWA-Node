@@ -45,7 +45,10 @@ describe('SEED_CONCERNS — honest, real, dated', () => {
     // the production deploy; app/functions/ Pages Functions live) — refreshed to 'done' in the
     // 2026-07-23 DR-0225 aged-items pass. The stale 'open' pin outlived the ship.
     expect(byId['seed-vercel-cap'].status).toBe('done');
-    expect(byId['seed-review-sequences'].status).toBe('open');
+    // seed-review-sequences: the watcher engine is BUILT brakes-in (lib/review-watcher.js,
+    // proven in review-watcher.test.js) — honestly 'in-progress'; activation (the scheduled
+    // runner) remains, gated on a watched dispatch proof (DR-0225 / DR-0107).
+    expect(byId['seed-review-sequences'].status).toBe('in-progress');
     // Auto-evaluation shipped 2026-06-30 — the loop now closes, so the concern
     // is honestly marked done (was in-progress / target 2026-07-01).
     expect(byId['seed-feedback-auto-eval'].status).toBe('done');

@@ -148,10 +148,12 @@ export const SEED_CONCERNS = [
     id: 'seed-review-sequences',
     concern: 'Review sequences are not running — there is no watcher driving the staged review/freshness loop.',
     solution: 'Stand up the watcher that runs the review sequences (behind the three brakes) so staged proposals actually move through review instead of sitting.',
-    status: 'open', whenNote: 'build the watcher brakes-in, prove in CI, ship inactive (DR-0225)', area: 'Review loop', created: '2026-06-18', refreshed: '2026-07-23',
-    // Refresh 2026-07-23 (DR-0225): note corrected from the stall framing; interim reality —
-    // Ari's in-app review dimensions (incl. Lessons recurrence) now run every open, so review
-    // signals move without a watcher; the watcher automates the cadence.
+    status: 'in-progress', whenNote: 'watcher BUILT brakes-in (lib/review-watcher.js, proven); activation = the scheduled runner, on a watched dispatch proof', area: 'Review loop', created: '2026-06-18', refreshed: '2026-07-23',
+    // Refresh 2026-07-23 (DR-0225): the watcher engine is BUILT and wired through all three
+    // brakes (kill-switch first, skip-not-stack lock, item+wall budgets, repeated-failure
+    // auto-trip) — each brake proven-to-catch in review-watcher.test.js; it sits on Ari's
+    // fleet board as braked+inactive. Remaining: the scheduled runner, activated only after
+    // a watched dispatch run proves the glue (DR-0107 prove-the-deploy discipline).
   },
 
   // ---------------------------------------------------------------------------
