@@ -85,6 +85,29 @@ export function toBooksTransaction(row) {
   return out;
 }
 
+// fromTableRow — a payments-table row (snake_case, migration 0116) → the engine
+// shape every function here reads. The exact inverse of the webhook's
+// toTableRow (conformance-tested); unknown/missing fields degrade to the same
+// honest defaults normalizePayment uses.
+export function fromTableRow(r = {}) {
+  const amountCents = cents(r.amount_cents);
+  const feeCents = cents(r.fee_cents);
+  return {
+    provider: String(r.provider || 'stripe'),
+    providerEventId: String(r.provider_event_id || '') || null,
+    providerPaymentId: String(r.provider_payment_id || '') || null,
+    status: String(r.status || 'pending'),
+    amountCents,
+    feeCents,
+    netCents: Number.isFinite(r.net_cents) ? Math.round(r.net_cents) : amountCents - feeCents,
+    currency: String(r.currency || 'usd').toLowerCase(),
+    productKey: String(r.product_key || '') || null,
+    entityId: String(r.entity_id || '') || 'unassigned',
+    payerEmail: String(r.payer_email || '') || null,
+    occurredAtIso: String(r.occurred_at || '') || null,
+  };
+}
+
 // yearSummary — the accountant's year-at-a-glance from ledger rows: per entity,
 // gross / fees / net in cents, settled rows only. Pure fold; the 1099s tab and
 // the DR-0212 reports read the same truth.
