@@ -159,7 +159,15 @@ export function deriveDebts(data, asOf = new Date()) {
     const owed = manualDebt ? Math.abs(bal) : (bal < 0 ? -bal : 0);
     const nameDebt = !typedDebt && !manualDebt && owed > 0.01 && looksLikeDebtAccount(a);
     if (!typedDebt && !manualDebt && !nameDebt) continue;
-    if (owed <= 0.01) continue;
+    // A manually-declared debt (treatAsDebt) stays on the tab even at $0 owed, so
+    // the "Add as debt" / "Treat as debt" flows always produce a VISIBLE row the
+    // family can then set the balance on inline (the "+ owed" editor). The add
+    // panel literally invites "Leave blank to add it now and set the balance later"
+    // — dropping the row when they do exactly that made the tap go nowhere (the
+    // reported Debts-tab bug; DR-0061 the surface must show the real record).
+    // Derived (typed/name) debts still drop at ~0 owed — a paid-off credit account
+    // read from the feed is not a debt worth listing.
+    if (owed <= 0.01 && !manualDebt) continue;
     // Interest RATE: the account's OWN interest charges are authoritative — a rate
     // read from the data can't be undermined by a wrong manual entry (Darrell
     // 2026-07-20). Fall back to the stored (user-editable) rate ONLY when the data
