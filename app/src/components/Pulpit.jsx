@@ -37,6 +37,8 @@ import {
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
+import { parseYoutubeFeed } from '../lib/youtube-feed.js';
+import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
 import { serviceKindLabel } from '../lib/service-day.js';
 import { sortByReactions, reactionsFor } from '../lib/reactions.js';
@@ -332,7 +334,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
 // -----------------------------------------------------------------------------
 const LIB_SORTS = [['newest', 'Newest'], ['reacted', 'Most reacted'], ['viewed', 'Most viewed']];
 
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false, libLoading = false, libError = false, onRetry = null }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false, libLoading = false, libError = false, onRetry = null, justPosted = [] }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
   const [sortMode, setSortMode] = useState('newest'); // newest | reacted (in-app, primary) | viewed (YouTube, secondary)
@@ -437,6 +439,26 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
           {importMsg && <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{importMsg}</span>}
         </div>
       ))}
+
+      {/* JUST POSTED — the channel's newest uploads not yet in the archive
+          (live RSS union, DR-0061): visible the day they land on YouTube. */}
+      {justPosted.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1">Just posted · joins the archive shortly</div>
+          <div className="bg-white border border-[#B85838] divide-y divide-[#E8E4DC]">
+            {justPosted.map((v) => (
+              <div key={v.videoId} className="p-2.5 flex items-center gap-3">
+                {v.thumbnail && <img src={v.thumbnail} alt="" className="w-20 h-12 object-cover shrink-0" loading="lazy" />}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[0.8125rem] text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{v.title}</div>
+                  {v.published && <div className="text-[0.625rem] text-[#5A5751]">{new Date(v.published).toLocaleDateString()}</div>}
+                </div>
+                <a href={v.url} target="_blank" rel="noreferrer" className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Watch</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {canEdit && drafts.length > 0 && (
         <div className="mb-3">
@@ -598,6 +620,18 @@ export default function Pulpit() {
   // re-fires the load for Retry.
   const [libLoading, setLibLoading] = useState(true);
   const [libError, setLibError] = useState(false);
+  // Live channel top-up (Darrell 2026-07-23: "historical YouTube videos should
+  // be popping onto the Word Tab... right away"). The archive imports ONLY when
+  // a manager tapped "Import from channel" — nobody tapped it after Jul 8, so
+  // two weeks of videos showed on the live Church feed but not here. Two closes:
+  //  1) EVERYONE sees the channel's newest uploads immediately: the same no-key
+  //     RSS the Church tab reads (same-origin /api/church-recent) unions in as
+  //     "just posted" cards for videos the archive doesn't hold yet. Live view
+  //     first (DR-0061); degrades to nothing on any failure.
+  //  2) A MANAGER's visit refreshes the archive itself automatically (throttled,
+  //     idempotent importSermonsFromChannel) — the button stays, the tap is no
+  //     longer load-bearing. (The P30 class: a queue is worked, not stored.)
+  const [channelFresh, setChannelFresh] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setEmail(s?.user?.email || ''); }), []);
@@ -633,6 +667,39 @@ export default function Pulpit() {
       .catch(() => { if (alive) { setLibError(true); setLibLoading(false); } });
     return () => { alive = false; };
   }, [canManage, reloadKey]);
+
+  // LIVE CHANNEL TOP-UP — everyone, no key: the channel's newest uploads from
+  // the same-origin RSS proxy, so a video shows here the day it lands on
+  // YouTube even before the archive import runs. Failure degrades to nothing.
+  useEffect(() => {
+    let alive = true;
+    const ch = (COLG_DEFAULT_CHURCH.youtubeChannelId || '').trim();
+    if (!/^UC[A-Za-z0-9_-]{22}$/.test(ch)) return undefined;
+    fetch(`/api/church-recent?channel=${encodeURIComponent(ch)}`)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((xml) => { if (alive) setChannelFresh(parseYoutubeFeed(xml, 8)); })
+      .catch(() => { if (alive) setChannelFresh([]); });
+    return () => { alive = false; };
+  }, [reloadKey]);
+
+  // MANAGER AUTO-REFRESH of the archive — the import the button used to gate,
+  // fired on a manager's visit instead, throttled to once per 6h per device
+  // (the budget brake; the importer itself is idempotent by video_id and
+  // honest-skips without a key). Success reloads the list in place.
+  useEffect(() => {
+    if (!canManage) return undefined;
+    const STAMP = 'poetech-sermon-autoimport-at';
+    try {
+      const last = Date.parse(localStorage.getItem(STAMP) || '') || 0;
+      if (Date.now() - last < 6 * 3600000) return undefined;
+      localStorage.setItem(STAMP, new Date().toISOString());
+    } catch { return undefined; }
+    let alive = true;
+    importSermonsFromChannel()
+      .then((r) => { if (alive && r && r.imported > 0) setReloadKey((k) => k + 1); })
+      .catch(() => { /* the button + its error surface remain the manual path */ });
+    return () => { alive = false; };
+  }, [canManage]);
 
   // LIBRARY ENRICHMENT (signed-in): the points sources (transcripts + recorded
   // harvest refs), the live IN-APP reaction map (PRIMARY signal, keyed by the
@@ -822,6 +889,7 @@ export default function Pulpit() {
           onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
+          justPosted={channelFresh.filter((v) => v.videoId && !libraryItems.some((s) => videoIdOf(s) === v.videoId))}
           libLoading={libLoading} libError={libError}
           onRetry={() => { setLibError(false); setLibLoading(true); setReloadKey((k) => k + 1); }}
         />
