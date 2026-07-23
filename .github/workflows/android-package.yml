@@ -138,6 +138,12 @@ jobs:
           unzip -q "$RUNNER_TEMP/clt.zip" -d "$RUNNER_TEMP/bwsdk"
           SDK_DIR="$RUNNER_TEMP/bwsdk/cmdline-tools"
           yes | "$SDK_DIR/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" > /dev/null || true
+          # Run-5 lesson (30026799390, all four brands): AGP cannot auto-install
+          # into this non-standard layout (no cmdline-tools/latest inside the
+          # sdk_root), so the platform Gradle compiles against must be staged
+          # here too — the measured miss: "Failed to find target with hash
+          # string 'android-36'". Loud on failure, no || true.
+          "$SDK_DIR/bin/sdkmanager" --sdk_root="$SDK_DIR" "platforms;android-36" "platform-tools" > /dev/null
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK_DIR" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
