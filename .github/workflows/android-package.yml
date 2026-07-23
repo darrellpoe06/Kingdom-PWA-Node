@@ -124,32 +124,32 @@ jobs:
           ' store/twa-manifest.template.json > twa-build/twa-manifest.json
           cat twa-build/twa-manifest.json
 
-      - name: Stage Bubblewrap's own Android cmdline-tools (measured requirement)
-        # Bubblewrap's AndroidSdkTools.validatePath requires the given path to
-        # contain `tools/` or `bin/` (the cmdline-tools layout) — the runner's
-        # SDK ROOT has neither, which is exactly how run 1 died ("the provided
-        # androidSdk isn't correct"; verified in @bubblewrap/core 1.24 source).
-        # Bubblewrap then uses that same path as its own --sdk_root and installs
-        # the build-tools it wants into it, so stage a private, writable copy
-        # and pre-accept the licenses non-interactively.
+      - name: Point Bubblewrap at the runner's real Android SDK (runs 1-7 lesson)
+        # THE LANE'S RECORDED LESSONS, CONSOLIDATED (runs 1-7): a private
+        # staged cmdline-tools dir satisfies Bubblewrap's validatePath (needs
+        # `tools/` or `bin/` inside the path — @bubblewrap/core 1.24 source)
+        # but Gradle/AGP can NEVER build from it: AGP wants a standard-layout
+        # SDK (run 7 proved android-36 on disk in the staged dir still reads
+        # "failed to find target"). The runner's own SDK at ANDROID_SDK_ROOT
+        # IS that standard layout with licenses pre-accepted — the only thing
+        # it lacks is a `bin/` for validatePath, so symlink one to
+        # cmdline-tools/latest/bin. Bubblewrap then runs `<sdk>/bin/sdkmanager
+        # --sdk_root=<sdk>` (real, working) and launches Gradle with
+        # ANDROID_HOME = this same path — agreeing with the runner's
+        # ANDROID_SDK_ROOT (run 4's mismatch hard-fail cannot recur).
+        # VERIFIED, not claimed (DR-0076): the compile platform is installed
+        # and checked on disk before this step may pass.
         run: |
           set -euo pipefail
-          curl -sSLo "$RUNNER_TEMP/clt.zip" https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q "$RUNNER_TEMP/clt.zip" -d "$RUNNER_TEMP/bwsdk"
-          SDK_DIR="$RUNNER_TEMP/bwsdk/cmdline-tools"
-          yes | "$SDK_DIR/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" > /dev/null || true
-          # Run-5 lesson (30026799390): AGP cannot auto-install into this
-          # non-standard layout, so the compile platform must be staged here.
-          # Run-6 lesson (30029733423): the run-5 install line SILENTLY did
-          # nothing — no `yes |` meant a license prompt read EOF and skipped
-          # the package while exiting 0, with stdout nulled. So: pipe the
-          # acceptance in, keep the log, and VERIFY the platform is on disk
-          # (DR-0076: measure, don't claim) — staging cannot pass without it.
-          yes | "$SDK_DIR/bin/sdkmanager" --sdk_root="$SDK_DIR" "platforms;android-36" "platform-tools" > "$RUNNER_TEMP/sdkinstall.log" 2>&1 || true
-          tail -40 "$RUNNER_TEMP/sdkinstall.log"
-          test -d "$SDK_DIR/platforms/android-36" || { echo "::error::android-36 platform did not install into $SDK_DIR"; exit 1; }
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          ln -sfn "$SDK/cmdline-tools/latest/bin" "$SDK/bin" || sudo ln -sfn "$SDK/cmdline-tools/latest/bin" "$SDK/bin"
+          SDKMGR="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMGR" "platforms;android-36" > "$RUNNER_TEMP/sdkinstall.log" 2>&1 || true
+          tail -20 "$RUNNER_TEMP/sdkinstall.log"
+          test -d "$SDK/platforms/android-36" || { echo "::error::android-36 platform missing from $SDK"; exit 1; }
           mkdir -p ~/.bubblewrap
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK_DIR" > ~/.bubblewrap/config.json
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
 
       - name: Build the package (Bubblewrap -> Gradle -> signed .apk + .aab)
@@ -157,12 +157,6 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
-          # AGP hard-fails when ANDROID_HOME and ANDROID_SDK_ROOT disagree — the
-          # runner image exports ANDROID_SDK_ROOT=/usr/local/lib/android/sdk while
-          # Bubblewrap uses the staged SDK (run 30025408093, all four brands, the
-          # measured error). Pin BOTH to the staged path so there is one answer.
-          ANDROID_HOME: ${{ runner.temp }}/bwsdk/cmdline-tools
-          ANDROID_SDK_ROOT: ${{ runner.temp }}/bwsdk/cmdline-tools
         # `yes |` answers Bubblewrap's interactive prompts (run 2 died on
         # "have you run bubblewrap update? (Y/n)" — CI has no stdin; Y is
         # correct: generate the Android project from the manifest).
