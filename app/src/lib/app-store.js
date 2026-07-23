@@ -7,11 +7,18 @@
 //   · PWA — open the app's own link, Chrome menu → Install (the web path);
 //   · Android package — the real .apk the TWA lane builds (DR-0227: four
 //     packages, own task/icon/resume; immune to the shared-scope wall), served
-//     from the repo's rolling `android-latest` release so the links below are
-//     stable and public (no GitHub sign-in needed to download).
+//     SAME-ORIGIN from our own door (/store/apk/<brand>.apk — the Pages
+//     Function that buffers the rolling `android-latest` release asset with an
+//     exact Content-Length). Measured 2026-07-23: the direct GitHub link's
+//     redirect chain stranded Chrome-on-Android at 100% and the installer
+//     never fired; one clean same-origin response is the perpetual fix.
 // Every field mirrors the REAL brand records (manifests, entry pages, DR-0227
 // matrix) — nothing invented; renaming a brand updates here with its record.
+// The upstream shelf the same-origin door reads (kept exported as the source
+// of truth the TWA lane publishes to).
 export const APK_RELEASE_BASE = 'https://github.com/darrellpoe06/Kingdom-PWA-Node/releases/download/android-latest';
+// The door the store links: our origin, no redirect chain, exact byte count.
+export const APK_DOOR_BASE = '/store/apk';
 
 export const APP_STORE = [
   {
@@ -19,7 +26,7 @@ export const APP_STORE = [
     blurb: 'Life, Soul & Money — the family operating system. Books, Debts, Real Estate, Church, Learn, and every module in one app.',
     icon: '/icon-192.png',
     webUrl: 'https://poetech.us',
-    apk: `${APK_RELEASE_BASE}/poetech.apk`,
+    apk: `${APK_DOOR_BASE}/poetech.apk`,
     packageId: 'us.poetech.app',
   },
   {
@@ -27,7 +34,7 @@ export const APP_STORE = [
     blurb: "The Church of the Living God's own app — live worship, The Word archive, Scripture study, choir, and giving.",
     icon: '/lovecorner-icon-192.png',
     webUrl: 'https://poetech.us/thelovecorner',
-    apk: `${APK_RELEASE_BASE}/lovecorner.apk`,
+    apk: `${APK_DOOR_BASE}/lovecorner.apk`,
     packageId: 'us.poetech.lovecorner',
   },
   {
@@ -35,7 +42,7 @@ export const APP_STORE = [
     blurb: 'Faith-integrated therapy — real solutions for real life. Reach the practice and start the conversation.',
     icon: '/tlc-icon-192.png',
     webUrl: 'https://poetech.us/tlc',
-    apk: `${APK_RELEASE_BASE}/tlc.apk`,
+    apk: `${APK_DOOR_BASE}/tlc.apk`,
     packageId: 'us.poetech.tlc',
   },
   {
@@ -43,7 +50,7 @@ export const APP_STORE = [
     blurb: 'Custom clothing, scrub caps, custom shoes, and sewing classes — order and keep your history under her own name.',
     icon: '/moore-icon-192.png',
     webUrl: 'https://poetech.us/moore',
-    apk: `${APK_RELEASE_BASE}/moore.apk`,
+    apk: `${APK_DOOR_BASE}/moore.apk`,
     packageId: 'us.poetech.moore',
   },
 ];
@@ -57,9 +64,15 @@ export const INSTALL_STEPS = {
     'Tap the browser menu (⋮) → "Add to Home screen" / "Install app."',
     'The app lands on your home screen under its own name.',
   ],
+  // Measured on Darrell's Samsung 2026-07-23: the download can sit at
+  // "Downloading…" even when every byte has arrived, and no install prompt
+  // ever fires — the file is still in Downloads. The steps name the real
+  // handles: the notification card, My Files → Downloads, and the one-time
+  // "allow from this source" screen.
   apk: [
     'Tap "Download Android app" below — the .apk downloads to the phone.',
-    'Open the downloaded file and allow the install when the phone asks.',
+    'Pull down notifications and tap the finished .apk — OR open My Files → Downloads and tap it there. (If the notification sticks at "Downloading…" though the size shows complete, tap Pause then Resume, or just use My Files — the file is already there.)',
+    'First time only: the phone says it "can\'t install unknown apps from this source" — tap Settings, allow it for your browser, then go back and tap Install.',
     'The app appears in your Apps section — its own app, its own icon.',
   ],
   // iOS: no sideloading exists — Safari's Add to Home Screen IS the install,
