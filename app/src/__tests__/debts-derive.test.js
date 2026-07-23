@@ -90,6 +90,29 @@ describe('deriveDebts', () => {
     expect(debts[0].balance).toBeCloseTo(1500, 2); // magnitude counted as owed
     expect(debts[0].accountId).toBe('a-card');
   });
+  it('"Add as debt" with a blank balance still SHOWS (manual debt at $0 owed stays on the tab)', () => {
+    // The add panel invites "Leave blank to add it now and set the balance later",
+    // creating a treatAsDebt credit account at balance 0. It must still render a row
+    // (with balance 0 + the inline "+ owed" editor) — dropping it here made the
+    // "Add as debt" tap go nowhere (the reported Debts-tab bug).
+    const data = {
+      accounts: [{ id: 'a-new', name: 'Cardmember Serv Pymt', type: 'credit', treatAsDebt: true, balance: 0, minPayment: 110, entityId: 'e1' }],
+      transactions: [],
+    };
+    const debts = deriveDebts(data, ASOF);
+    expect(debts).toHaveLength(1);
+    expect(debts[0].accountId).toBe('a-new');
+    expect(debts[0].balance).toBe(0);
+    expect(debts[0].manual).toBe(true);      // shows the inline "+ owed" editor
+    expect(debts[0].minPayment).toBe(110);   // pre-filled from the observed payment
+  });
+  it('a paid-off (feed-typed) credit account at $0 does NOT show — only user-declared debts survive at $0', () => {
+    // Guard the fix's boundary: a plain typed credit account (not treatAsDebt) at a
+    // zero balance is a paid-off card and must stay hidden, so the $0-shows rule is
+    // scoped to the family's own "this is a debt" declaration, not the feed.
+    const data = { accounts: [{ id: 'a-paid', name: 'Visa', type: 'credit', balance: 0, entityId: 'e1' }], transactions: [] };
+    expect(deriveDebts(data, ASOF)).toHaveLength(0);
+  });
   it('a treatAsDebt account leaves cash totals (no double-count as both cash and debt)', () => {
     const data = {
       accounts: [
