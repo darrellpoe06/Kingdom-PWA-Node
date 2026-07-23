@@ -149,14 +149,15 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // no weekly edits. The old /embed/live_stream?channel= form is abandoned: YouTube
   // rendered it "This video is unavailable" even while the church WAS live on
   // YouTube (Darrell 2026-07-19). See worshipPlayerSrc.
-  const playerSrc = worshipPlayerSrc(liveChannelId);
+  // playerSrc is computed BELOW, after recentVids — the always-current feed
+  // names the newest video so the top of the page follows every upload
+  // (2026-07-23, the church-office desk: "can't get it to switch to the
+  // newest video"). Feed empty/failed -> the playlist embed, as before.
   // Honest, no-API-key window gate — used ONLY for the "Live service"/"Latest
   // message" label and heading, never to swap the source (the one embed covers
   // both states). Inside a published online-service window we call it live.
   const liveNow = liveStatus(onlineServices);
   const showLive = liveNow.live;
-  // Render the section whenever we have a source at all.
-  const hasWorshipPlayer = !!playerSrc;
 
   // Recent livestreams straight from the channel (Darrell 2026-07-19: "keep each of
   // the 5 last livestreams right below the current livestream... whenever the other
@@ -177,6 +178,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   }, [liveChannelId]);
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
+  const playerSrc = worshipPlayerSrc(liveChannelId, recentVids[0]?.videoId);
+  // Render the section whenever we have a source at all.
+  const hasWorshipPlayer = !!playerSrc;
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
