@@ -73,6 +73,7 @@ export const INSTALL_STEPS = {
     'Tap "Download Android app" below — the .apk downloads to the phone.',
     'Pull down notifications and tap the finished .apk — OR open My Files → Downloads and tap it there. (If the notification sticks at "Downloading…" though the size shows complete, tap Pause then Resume, or just use My Files — the file is already there.)',
     'First time only: the phone says it "can\'t install unknown apps from this source" — tap Settings, allow it for your browser, then go back and tap Install.',
+    'Google Play Protect will warn it "hasn\'t seen an app from this developer" — that\'s because our apps come from OUR store, not Google\'s. Tap "More details," then "Install anyway." (The big "Got it" button CANCELS the install.)',
     'The app appears in your Apps section — its own app, its own icon.',
   ],
   // iOS: no sideloading exists — Safari's Add to Home Screen IS the install,
