@@ -16,8 +16,8 @@ const DRIFT_BOARD = 'board-modular-cutover';
 const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
 const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
 
-describe('buildAppReview — five dimensions, all evidence-backed', () => {
-  it('has the five named dimensions in order, even on empty input', () => {
+describe('buildAppReview — six dimensions, all evidence-backed', () => {
+  it('has the six named dimensions in order, even on empty input', () => {
     const r = buildAppReview({}, NOW);
     expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
     expect(r.dimensions.every((d) => Array.isArray(d.findings))).toBe(true);
@@ -84,6 +84,30 @@ describe('buildAppReview — five dimensions, all evidence-backed', () => {
     const bl = buildAppReview({ concerns, feedback }, NOW).dimensions.find((d) => d.key === 'backlog');
     expect(bl.metrics).toEqual({ openConcerns: 1, wipConcerns: 1, openFeedback: 1 });
     expect(bl.findings.find((f) => /open \(named/.test(f.title)).severity).toBe('warning');
+  });
+
+  it('inputs: a declared debt with no balance is a warning (the inert-input bug class)', () => {
+    // A manual debt at $0 owed — the "Add as debt, leave balance blank" record that
+    // used to vanish. Ari now catches it so the tap never silently goes nowhere.
+    const debts = [{ id: 'd1', manual: true, balance: 0, needsTerms: true, leaveAlone: false }];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.metrics.noBalance).toBe(1);
+    expect(inp.findings.find((f) => /no amount owed/.test(f.title)).severity).toBe('warning');
+  });
+  it('inputs: a debt with a balance but missing terms is a nit, not a no-balance warning', () => {
+    const debts = [{ id: 'd1', manual: true, balance: 9843, needsTerms: true, leaveAlone: false }];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.metrics).toEqual({ noBalance: 0, needTerms: 1 });
+    expect(inp.findings.find((f) => /payoff date until terms/.test(f.title)).severity).toBe('nit');
+  });
+  it('inputs: a fully-termed debt raises nothing, and leaveAlone debts are ignored', () => {
+    const debts = [
+      { id: 'd1', manual: true, balance: 9843, needsTerms: false, leaveAlone: false },
+      { id: 'd2', manual: true, balance: 0, needsTerms: true, leaveAlone: true },
+    ];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.findings).toHaveLength(0);
+    expect(inp.status).toBe('ok');
   });
 
   it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
