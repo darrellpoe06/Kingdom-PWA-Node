@@ -43,6 +43,7 @@ export const REVIEW_DIMENSIONS = [
   ['backlog', 'Concern & feedback backlog', 'What has the family raised that is still open?'],
   ['inputs', 'Input follow-through', 'Did what the family added produce a usable result, or land inert?'],
   ['data', 'Data integrity', 'Do the real records contradict themselves?'],
+  ['recurrence', 'Lessons recurrence', 'Are the documented past incident classes staying fixed?'],
 ];
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -277,6 +278,96 @@ function reviewData({ transactions, rentals, debts }) {
   return { key: 'data', findings, metrics: { count: findings.length } };
 }
 
+// ---- dimension: lessons recurrence ------------------------------------------
+// Ari "catching up on all the bugs — a lot of historical events and
+// documentation" (Darrell 2026-07-23): the LESSONS-LEARNED incident classes,
+// turned into LIVE recurrence checks over the data this review already holds.
+// Each finding names the principle (P-id) and the dated incident it guards, so
+// the historical record is a working instrument, not shelf paper. Only classes
+// genuinely checkable from this data are checked here — the deploy/site/worker
+// classes (P25/P26/P31/P32/P33) have their own standing witnesses (site-health,
+// sw-nav-check, boot-check) and are not re-painted as pseudo-checks (DR-0076).
+const DAY_MS = 86400000;
+// P30 thresholds: the 2026-07-07 incident was month-old queue items that every
+// count-based check called fine. Age is the failure signal, so age is checked.
+export const QUEUE_AGE_DAYS = 21;
+export const FEEDBACK_AGE_DAYS = 14;
+
+// Days since a date string ('YYYY-MM-DD' or ISO); null when unparseable — an
+// unknown age NEVER reads as fresh OR stale, it just isn't counted (DR-0076).
+function ageDays(s, nowMs) {
+  if (typeof s !== 'string' || !s) return null;
+  const ms = Date.parse(DATE_RE.test(s) ? `${s}T00:00:00Z` : s);
+  if (Number.isNaN(ms)) return null;
+  return Math.floor((nowMs - ms) / DAY_MS);
+}
+
+export function reviewRecurrence({ concerns = [], feedback = [], transactions = [], demoRowIds = null } = {}, nowMs = 0) {
+  const findings = [];
+  const cs = (Array.isArray(concerns) ? concerns : []).filter((c) => c && (c.status === 'open' || c.status === 'in-progress'));
+  // P30 — queue age: an open concern sitting past the age bar is the exact
+  // "live view of an untended queue" the 2026-07-07 incident documented.
+  const aged = cs.filter((c) => { const a = ageDays(c.created, nowMs); return a != null && a > QUEUE_AGE_DAYS; });
+  if (aged.length) {
+    const oldest = Math.max(...aged.map((c) => ageDays(c.created, nowMs)));
+    findings.push(finding(
+      'recurrence', 'warning',
+      `P30 recurrence: ${aged.length} concern${aged.length === 1 ? '' : 's'} sitting open past ${QUEUE_AGE_DAYS} days (oldest ${oldest}d)`,
+      `${aged.length} open/in-progress concerns row(s) with created > ${QUEUE_AGE_DAYS}d ago — the 2026-07-07 untended-queue class`,
+      'Work or re-date the aged concerns (a live view of an untended queue is still stale)',
+      { count: aged.length, oldestDays: oldest, principle: 'P30' },
+    ));
+  }
+  // P30 — target slippage: a concern past its own committed targetDate and not
+  // done ("concerns days past their targets" was literally in the incident).
+  const slipped = cs.filter((c) => { const a = ageDays(c.targetDate, nowMs); return a != null && a > 0; });
+  if (slipped.length) {
+    findings.push(finding(
+      'recurrence', 'warning',
+      `P30 recurrence: ${slipped.length} concern${slipped.length === 1 ? '' : 's'} past ${slipped.length === 1 ? 'its' : 'their'} own target date`,
+      `${slipped.length} open/in-progress concerns row(s) whose targetDate is before now — the 2026-07-07 slipped-targets class`,
+      'Finish or honestly re-date the slipped concerns (DR-0075: a new date with a why, never a silent slide)',
+      { count: slipped.length, principle: 'P30' },
+    ));
+  }
+  // P30 — feedback age: family words waiting past the bar. The promote queue
+  // holding month-old tester notes was one of the four stale surfaces.
+  const fb = (Array.isArray(feedback) ? feedback : []).filter((f) => f && (f.status === 'open' || f.status === 'new' || f.addressed === false));
+  const agedFb = fb.filter((f) => { const a = ageDays(f.createdAt || f.created, nowMs); return a != null && a > FEEDBACK_AGE_DAYS; });
+  if (agedFb.length) {
+    findings.push(finding(
+      'recurrence', 'warning',
+      `P30 recurrence: ${agedFb.length} feedback item${agedFb.length === 1 ? '' : 's'} waiting past ${FEEDBACK_AGE_DAYS} days`,
+      `${agedFb.length} feedback row(s) still open/unaddressed with createdAt > ${FEEDBACK_AGE_DAYS}d ago — family words are build input, not shelf paper`,
+      'Triage the aged feedback now (each item ends addressed, or dated with a why)',
+      { count: agedFb.length, principle: 'P30' },
+    ));
+  }
+  // P14 — demo-provenance leak: a demo-only row appearing in the live, signed-in
+  // world is the 2026-06-11 demo-rows-in-the-cloud class recurring. The caller
+  // passes demoRowIds ONLY for a signed-in, non-demo instance (seed rows are
+  // legitimate starter state and are deliberately NOT flagged). Severity 'bug' —
+  // this is a data-isolation regression, not housekeeping.
+  let demoLeaks = 0;
+  if (demoRowIds && typeof demoRowIds.has === 'function') {
+    demoLeaks = (Array.isArray(transactions) ? transactions : []).filter((t) => t && typeof t.id === 'string' && demoRowIds.has(t.id)).length;
+    if (demoLeaks > 0) {
+      findings.push(finding(
+        'recurrence', 'bug',
+        `P14 recurrence: ${demoLeaks} demo-only row${demoLeaks === 1 ? '' : 's'} present in the live signed-in data`,
+        `${demoLeaks} transaction row(s) whose id is in DEMO_ONLY_IDS while signed in outside demo mode — the 2026-06-11 provenance-leak class`,
+        'Run the provenance sweep: enumerate every sync path and audit the cloud tables (P14) — demo rows never ride with real data',
+        { count: demoLeaks, principle: 'P14' },
+      ));
+    }
+  }
+  return {
+    key: 'recurrence',
+    findings,
+    metrics: { agedConcerns: aged.length, slippedTargets: slipped.length, agedFeedback: agedFb.length, demoLeaks, provenanceChecked: !!(demoRowIds && typeof demoRowIds.has === 'function') },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // deriveRecommendations — Ari's data-derived UPGRADE recommendations: not a
 // problem/finding, but "you could do better," visible ONLY from the aggregate,
@@ -323,7 +414,7 @@ function worstSeverity(findings) {
 export function buildAppReview(input = {}, nowMs = 0) {
   const {
     tasks = [], concerns = [], feedback = [], reviews = null, decisions = null,
-    transactions = [], rentals = [], debts = [],
+    transactions = [], rentals = [], debts = [], demoRowIds = null,
   } = input;
 
   const raw = [
@@ -333,6 +424,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewBacklog({ concerns, feedback }),
     reviewInputs({ debts }),
     reviewData({ transactions, rentals, debts }),
+    reviewRecurrence({ concerns, feedback, transactions, demoRowIds }, nowMs),
   ];
   const labelOf = Object.fromEntries(REVIEW_DIMENSIONS.map(([k, label, q]) => [k, { label, question: q }]));
 

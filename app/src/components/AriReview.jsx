@@ -64,7 +64,7 @@ function FindingRow({ f }) {
   );
 }
 
-export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [] }) {
+export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], demoRowIds = null }) {
   const { tasks } = useBoardTasks();
 
   const review = useMemo(() => buildAppReview({
@@ -72,8 +72,8 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     concerns, feedback,
     reviews: Array.isArray(UIUX_REVIEWS.items) ? UIUX_REVIEWS.items : [],
     decisions: Array.isArray(DR_LEDGER.items) ? DR_LEDGER.items : [],
-    transactions, rentals, debts,
-  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts]);
+    transactions, rentals, debts, demoRowIds,
+  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds]);
 
   const overall = sevMeta(review.summary.status);
   const comp = review.completion;
