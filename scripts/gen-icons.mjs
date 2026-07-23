@@ -30,6 +30,20 @@ const TARGETS = [
   ['icon-maskable.svg', 'icon-maskable-192.png', 192],
   ['icon-maskable.svg', 'icon-maskable-512.png', 512],
   ['icon-maskable.svg', 'apple-touch-icon.png', 180],
+  // TLC Therapy Solutions — raster fallbacks so the TLC install carries real
+  // PNGs like the other three brands (manifest-tlc had SVG-only icons; older
+  // Android/Samsung installers are safest with 192/512 rasters).
+  ['tlc-icon.svg', 'tlc-icon-192.png', 192],
+  ['tlc-icon.svg', 'tlc-icon-512.png', 512],
+  ['tlc-icon.svg', 'tlc-apple-touch.png', 180],
+  // Moore Divahs — HER OWN mark (DR-0227; the 'awaits her asset' stall is
+  // closed: the interim mark derives from her real brand record and swaps in
+  // one file when supplied artwork lands).
+  ['moore-icon.svg', 'moore-icon-192.png', 192],
+  ['moore-icon.svg', 'moore-icon-512.png', 512],
+  ['moore-icon-maskable.svg', 'moore-icon-maskable-192.png', 192],
+  ['moore-icon-maskable.svg', 'moore-icon-maskable-512.png', 512],
+  ['moore-icon-maskable.svg', 'moore-apple-touch.png', 180],
 ];
 
 // Locate the pre-installed Chromium (Playwright layout under /opt/pw-browsers).

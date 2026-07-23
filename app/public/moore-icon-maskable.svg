@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable variant: full-bleed brand rust so Android's adaptive mask never
+       clips into background; glyphs held inside the 80% safe zone. -->
+  <rect width="512" height="512" fill="#B85838"/>
+  <text x="256" y="296" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="200" fill="#FAF8F4">MD</text>
+  <line x1="140" y1="360" x2="372" y2="360" stroke="#FAF8F4" stroke-width="13" stroke-linecap="round" stroke-dasharray="2 38"/>
+</svg>

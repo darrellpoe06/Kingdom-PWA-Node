@@ -1,7 +1,7 @@
 {
   "name": "TLC Therapy Solutions",
   "short_name": "TLC Therapy",
-  "description": "TLC Therapy Solutions — faith-integrated therapy, online & in-person. Christina Poe, LCSW + clinical team. Match a preferred provider and book online. Powered by PoeTech.",
+  "description": "TLC Therapy Solutions \u2014 faith-integrated therapy, online & in-person. Christina Poe, LCSW + clinical team. Match a preferred provider and book online. Powered by PoeTech.",
   "id": "/poetech-app/?tlc=1",
   "start_url": "/poetech-app/?tlc=1",
   "scope": "/poetech-app/",
@@ -9,8 +9,24 @@
   "orientation": "portrait-primary",
   "background_color": "#FAF8F4",
   "theme_color": "#1A1815",
-  "categories": ["health", "medical", "lifestyle"],
+  "categories": [
+    "health",
+    "medical",
+    "lifestyle"
+  ],
   "icons": [
+    {
+      "src": "/tlc-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/tlc-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
     {
       "src": "/tlc-icon.svg",
       "type": "image/svg+xml",
