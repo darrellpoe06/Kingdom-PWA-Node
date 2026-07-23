@@ -151,6 +151,16 @@ describe('buildAppReview — seven dimensions, all evidence-backed', () => {
     expect(rec.findings).toHaveLength(0);
     expect(rec.status).toBe('ok');
   });
+  it('recurrence: a REFRESHED old concern stops firing — refresh actually clears the finding (DR-0225)', () => {
+    // Created 40d ago (would fire) but refreshed 3d ago: the refresh pass counts.
+    const concerns = [{ status: 'open', concern: 'tended', created: '2026-06-01', refreshed: '2026-07-08' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedConcerns).toBe(0);
+    // And a STALE refreshed date does NOT shield it: refreshed 30d ago still fires.
+    const stale = [{ status: 'open', concern: 'slid', created: '2026-05-01', refreshed: '2026-06-11' }];
+    const rec2 = buildAppReview({ concerns: stale }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec2.metrics.agedConcerns).toBe(1);
+  });
   it('recurrence P30: aged open feedback fires; addressed feedback does not', () => {
     const feedback = [
       { status: 'open', createdAt: '2026-06-01T10:00:00Z' },

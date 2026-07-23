@@ -307,13 +307,18 @@ export function reviewRecurrence({ concerns = [], feedback = [], transactions = 
   const cs = (Array.isArray(concerns) ? concerns : []).filter((c) => c && (c.status === 'open' || c.status === 'in-progress'));
   // P30 — queue age: an open concern sitting past the age bar is the exact
   // "live view of an untended queue" the 2026-07-07 incident documented.
-  const aged = cs.filter((c) => { const a = ageDays(c.created, nowMs); return a != null && a > QUEUE_AGE_DAYS; });
+  // Age is measured from the LAST TOUCH (`refreshed`, falling back to `created`)
+  // so a refresh pass actually clears the finding — "AGED ITEMS NEED REFRESH
+  // OBVIOUSLY" (Darrell 2026-07-23, DR-0225): a worked/re-dated item stops
+  // firing; an untouched one keeps firing until someone tends it.
+  const touched = (c) => c.refreshed || c.created;
+  const aged = cs.filter((c) => { const a = ageDays(touched(c), nowMs); return a != null && a > QUEUE_AGE_DAYS; });
   if (aged.length) {
-    const oldest = Math.max(...aged.map((c) => ageDays(c.created, nowMs)));
+    const oldest = Math.max(...aged.map((c) => ageDays(touched(c), nowMs)));
     findings.push(finding(
       'recurrence', 'warning',
       `P30 recurrence: ${aged.length} concern${aged.length === 1 ? '' : 's'} sitting open past ${QUEUE_AGE_DAYS} days (oldest ${oldest}d)`,
-      `${aged.length} open/in-progress concerns row(s) with created > ${QUEUE_AGE_DAYS}d ago — the 2026-07-07 untended-queue class`,
+      `${aged.length} open/in-progress concerns row(s) untouched (refreshed/created) for > ${QUEUE_AGE_DAYS}d — the 2026-07-07 untended-queue class`,
       'Work or re-date the aged concerns (a live view of an untended queue is still stale)',
       { count: aged.length, oldestDays: oldest, principle: 'P30' },
     ));
