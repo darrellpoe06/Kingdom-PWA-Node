@@ -14,7 +14,7 @@ import { ARI } from '../lib/ari.js';
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
 // section (trusted-device list/revoke + change PIN). Both are optional, so the
 // public/demo/anonymous About view is unchanged when they are absent.
-function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, authCreatedAt = null, onChangePin = null }) {
+function About({ moduleInterest, familyModuleInterest = null, toggleModuleInterest, theme, setTheme, feedback = [], deleteFeedback, checkoutIntents = [], addCheckoutIntent, deleteCheckoutIntent, addProject, VIEW_TIER_REQUIREMENTS = {}, authUserId = null, authCreatedAt = null, onChangePin = null, familyFullAccess = false }) {
   // v28+ MVP v1.5 round 3 — Capex / Tools list moved out of About; lives at the
   // bottom of the Projects tab as "Project Inventory & Capital Forecast".
   // v28+ Session C: checkout cart drawer state
@@ -733,7 +733,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
   return (
     <div className="space-y-6 w-full">
       {authCreatedAt && (
-        <div className="mb-2"><TrialStatus createdAt={authCreatedAt} /></div>
+        <div className="mb-2"><TrialStatus createdAt={authCreatedAt} familyFullAccess={familyFullAccess} /></div>
       )}
       <SectionTabs sections={sections} ariaLabel="About sections" idBase="about" defaultId="how-it-works" />
 

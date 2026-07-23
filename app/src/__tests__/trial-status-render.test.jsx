@@ -54,4 +54,24 @@ describe('TrialStatus — visible counter', () => {
     await mount({ createdAt: created, nowIso: at(5), paid: true });
     expect(container.textContent).toBe('');
   });
+
+  it('day-83 heads-up: ending-soon shows the calm what-changes line (free tabs named)', async () => {
+    await mount({ createdAt: created, nowIso: at(83) });
+    const text = container.textContent || '';
+    expect(text).toMatch(/Heads-up/);
+    expect(text).toMatch(/What changes after/);
+    expect(text).toMatch(/Markets, Books, Big Picture, Debts, and Church stay free forever/);
+    expect(text).toMatch(/never locked out/);
+  });
+
+  it('a family account in the final week sees the FAMILY truth, not a false countdown', async () => {
+    await mount({ createdAt: created, nowIso: at(85), familyFullAccess: true });
+    const text = container.textContent || '';
+    expect(text).toMatch(/Family access — full features, always/);
+    expect(text).not.toMatch(/Heads-up/); // the subscriber nudge would be untrue for them
+    // and an ordinary mid-trial family view keeps the normal meter (nothing to correct yet)
+    await act(async () => root.unmount());
+    await mount({ createdAt: created, nowIso: at(30), familyFullAccess: true });
+    expect(container.textContent).toMatch(/Day 31 of 90/);
+  });
 });
