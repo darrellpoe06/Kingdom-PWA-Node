@@ -295,6 +295,8 @@ No autonomous, timer-driven, or self-triggering automation — scheduled Cowork 
 
 Pairs with: RELEASE-TIERS.md (Tier C), LESSONS-LEARNED.md (P10 / P11 / P12), the Cage (PR #5) enforcement primitives, and `project-continuous-feedback-reel` (the reel rides this rule — "material-only-fire" is not a substitute for a kill-switch).
 
+**The brakes are BUILD REQUIREMENTS, never a stall (added 2026-07-23, declared by Darrell; DR-0225).** This rule governs what ships *active* — it does NOT gate building, and it is NOT a reason to re-ask. Darrell 2026-07-23, correcting the agent for repeatedly parking directed agent-team work behind a "bring you the design first" step: *"WRONG!!!! STOP REPEATING WRONG INFORMATION ... WE HAVE 6000 PLUS CHECKS ... WE NEED IT CHANGED TO REFLECT MY TRUE INTENTIONS."* When directed work falls in this class, the agent BUILDS it with the three brakes designed in and **proven-to-catch in CI** (DR-0076 §3) as part of the same work, ships it inactive through the normal lane, and activates on proof with the standing witnesses live — the deterministic gate suite is the review, and the `hold` label is the governor's hand (DR-0103). Tier C here means CARRY THE PROOF, not convene a meeting. Citing this section to defer building, or re-presenting decided work as an open question, is a DR-0111 violation. P10/P11/P12 stand unchanged: brakes absent or unproven → it does not go active.
+
 ---
 
 ## Reality-Trace Before Building Any Surface (added 2026-06-13)
