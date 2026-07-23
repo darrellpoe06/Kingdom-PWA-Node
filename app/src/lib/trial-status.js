@@ -16,6 +16,14 @@
 // but access falls back to the free tier — NEVER a lockout, nothing deleted.
 import { TRIAL_DAYS, daysBetween } from './entitlements.js';
 
+// The day-83 heads-up (Darrell 2026-07-23): from day 83 (8 days left) the
+// meter shifts to an honest ENDING-SOON posture — a calm heads-up on the
+// surface the user already sees, never a modal, never repeated nagging
+// (DATA-AS-EMPOWERMENT: no dark patterns; the accent is house rust, not red —
+// DR-0099). Machine-readable so a future email/push lane can key on the phase
+// without recomputing.
+export const NUDGE_DAYS = 8;
+
 function addDaysIso(iso, days) {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return null;
@@ -41,7 +49,7 @@ export function trialFromCreatedAt(createdAtIso, nowIso, paid = false) {
   const dayNumber = Math.min(TRIAL_DAYS, Math.floor(elapsed) + 1);
   const percentElapsed = Math.min(100, Math.max(0, Math.round((elapsed / TRIAL_DAYS) * 100)));
   const endsAtIso = addDaysIso(createdAtIso, TRIAL_DAYS);
-  const phase = elapsed >= TRIAL_DAYS ? 'expired' : 'trial';
+  const phase = elapsed >= TRIAL_DAYS ? 'expired' : (daysLeft <= NUDGE_DAYS ? 'ending-soon' : 'trial');
   return { phase, dayNumber, daysLeft, totalDays: TRIAL_DAYS, percentElapsed, endsAtIso };
 }
 
@@ -53,6 +61,10 @@ export function trialHeadline(state) {
       return 'Your subscription is active — full features, no countdown.';
     case 'expired':
       return 'Your free 90 days are complete. You are on the free Foundation tier — nothing was deleted, and you can upgrade any time.';
+    case 'ending-soon': {
+      const d = state.daysLeft === 1 ? 'day' : 'days';
+      return `Heads-up: ${state.daysLeft} ${d} of full access left. After that you move to the free Foundation tier — nothing gets deleted and you are never locked out; upgrade any time to keep the full features.`;
+    }
     case 'trial': {
       const d = state.daysLeft === 1 ? 'day' : 'days';
       return `Day ${state.dayNumber} of ${state.totalDays} — ${state.daysLeft} ${d} of full access left, then it stays free forever. You are never locked out.`;

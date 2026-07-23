@@ -22,6 +22,23 @@ describe('trial-status — durable 90-day counter from account creation', () => 
     expect(s.percentElapsed).toBe(33);
   });
 
+  it('day-83 heads-up: the final week reads ENDING-SOON — a calm nudge, not a scare (DR-0075 add, 2026-07-23)', () => {
+    // Day 82 (elapsed 81): still an ordinary trial — no early nagging.
+    expect(trialFromCreatedAt(created, at(81)).phase).toBe('trial');
+    // Day 83 (elapsed 82, 8 days left): the heads-up begins.
+    const s = trialFromCreatedAt(created, at(82));
+    expect(s.phase).toBe('ending-soon');
+    expect(s.dayNumber).toBe(83);
+    expect(s.daysLeft).toBe(8);
+    const line = trialHeadline(s);
+    expect(line).toMatch(/Heads-up/);
+    expect(line).toMatch(/never locked out/);
+    expect(line).toMatch(/nothing gets deleted/);
+    // It holds through the final day, then hands off to expired.
+    expect(trialFromCreatedAt(created, at(89)).phase).toBe('ending-soon');
+    expect(trialFromCreatedAt(created, at(90)).phase).toBe('expired');
+  });
+
   it('expires exactly at day 90 — never a lockout (falls to free)', () => {
     const s = trialFromCreatedAt(created, at(90));
     expect(s.phase).toBe('expired');

@@ -14,7 +14,7 @@
 import React from 'react';
 import { trialFromCreatedAt, trialHeadline, formatEndDate } from '../lib/trial-status.js';
 
-export default function TrialStatus({ createdAt, nowIso, paid = false, compact = false }) {
+export default function TrialStatus({ createdAt, nowIso, paid = false, compact = false, familyFullAccess = false }) {
   const now = nowIso || new Date().toISOString();
   const state = trialFromCreatedAt(createdAt, now, paid);
 
@@ -22,8 +22,25 @@ export default function TrialStatus({ createdAt, nowIso, paid = false, compact =
   if (state.phase === 'unknown' || state.phase === 'paid') return null;
 
   const expired = state.phase === 'expired';
-  const accent = expired ? '#7A1F1F' : '#5A6E3D';
+  const endingSoon = state.phase === 'ending-soon';
+  // Ending-soon wears the house rust — an attention accent, never true red
+  // (DR-0099 reserves red); the calm green holds for the ordinary trial.
+  const accent = expired ? '#7A1F1F' : endingSoon ? '#B85838' : '#5A6E3D';
   const endDate = formatEndDate(state.endsAtIso);
+
+  // A recognized family member's access never drops (the 2026-06-13 family
+  // grant) — showing THEM "your full access ends" would be untrue. Tell the
+  // family truth instead of the subscriber countdown's (DR-0076 honesty).
+  if (familyFullAccess && (endingSoon || expired)) {
+    return (
+      <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Your access</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815] leading-relaxed">
+          Family access — full features, always. (The 90-day countdown users see {expired ? 'has completed' : 'is in its final week'}; reviewer mode shows their exact experience.)
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
@@ -56,6 +73,11 @@ export default function TrialStatus({ createdAt, nowIso, paid = false, compact =
       {!compact && !expired && endDate && (
         <p className="mt-1 text-[0.6875rem] text-[#5A5751]">
           Full access through <span className="font-semibold text-[#1A1815]">{endDate}</span>. No charge until then — you can upgrade any time.
+        </p>
+      )}
+      {endingSoon && (
+        <p className="mt-1 text-[0.6875rem] font-semibold text-[#B85838]" role="status">
+          What changes after {endDate}: premium tabs show their upgrade door; Markets, Books, Big Picture, Debts, and Church stay free forever.
         </p>
       )}
     </div>
