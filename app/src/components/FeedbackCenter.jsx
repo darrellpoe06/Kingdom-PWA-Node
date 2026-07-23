@@ -13,6 +13,8 @@ import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
+import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
+import { saveExtraction } from '../lib/use-discovery.js';
 // The library count derives from the registry itself (DR-0121 — the hand-typed
 // "~46" was already stale at 49 when the 2026-07-10 static-data hunt found it).
 import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
@@ -474,6 +476,22 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
     alert('Incident created. Fill in amount + entity on the incident.');
   };
 
+  // → Requirements (DR-0121 item 10): the family's own feedback words ride the
+  // SAME extraction contract as a client recording — each sentence becomes a
+  // reviewable item (literal words as the receipt) in the Requirements review
+  // gate (Projects → Clients), steward-confirmed before anything becomes work.
+  const promoteToRequirements = async (f) => {
+    const raw = [f.whatsNot, f.whatsMissing].filter(Boolean).join('\n');
+    if (!raw.trim()) { alert('This item has no "not working / missing" text to extract from.'); return; }
+    const parsed = extractRequirementsFromThoughts(raw, {
+      source: `feedback:${f.id}`,
+      extractedAt: new Date().toISOString(),
+    });
+    if (!parsed.items.length) { alert('No requirement-shaped sentences found in this feedback — promote it as a Project/Change instead.'); return; }
+    const n = await saveExtraction(parsed);
+    alert(`${n} requirement item${n === 1 ? '' : 's'} sent to the Requirements review gate (Projects → Clients)${parsed.unclear.length ? ` · ${parsed.unclear.length} sentence(s) kept aside as unclear` : ''}. Confirm each there to put it on a build board.`);
+  };
+
   const promoteToChange = (f) => {
     // No `changes` collection yet (v2 schema CIL section adds change_requests
     // later). For v0 a "change" is a project tagged with category='change-request'
@@ -587,6 +605,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           );
         }}
         actions={[
+          { label: '→ Requirements', onClick: promoteToRequirements, color: '#B85838' },
           { label: '+ Change', onClick: promoteToChange, color: '#5A6E3D' },
           { label: '+ Incident', onClick: promoteToIncident, color: '#B85838' },
           { label: '+ Project', onClick: promoteToProject, color: '#1A1815' },
