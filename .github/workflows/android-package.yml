@@ -138,12 +138,16 @@ jobs:
           unzip -q "$RUNNER_TEMP/clt.zip" -d "$RUNNER_TEMP/bwsdk"
           SDK_DIR="$RUNNER_TEMP/bwsdk/cmdline-tools"
           yes | "$SDK_DIR/bin/sdkmanager" --licenses --sdk_root="$SDK_DIR" > /dev/null || true
-          # Run-5 lesson (30026799390, all four brands): AGP cannot auto-install
-          # into this non-standard layout (no cmdline-tools/latest inside the
-          # sdk_root), so the platform Gradle compiles against must be staged
-          # here too — the measured miss: "Failed to find target with hash
-          # string 'android-36'". Loud on failure, no || true.
-          "$SDK_DIR/bin/sdkmanager" --sdk_root="$SDK_DIR" "platforms;android-36" "platform-tools" > /dev/null
+          # Run-5 lesson (30026799390): AGP cannot auto-install into this
+          # non-standard layout, so the compile platform must be staged here.
+          # Run-6 lesson (30029733423): the run-5 install line SILENTLY did
+          # nothing — no `yes |` meant a license prompt read EOF and skipped
+          # the package while exiting 0, with stdout nulled. So: pipe the
+          # acceptance in, keep the log, and VERIFY the platform is on disk
+          # (DR-0076: measure, don't claim) — staging cannot pass without it.
+          yes | "$SDK_DIR/bin/sdkmanager" --sdk_root="$SDK_DIR" "platforms;android-36" "platform-tools" > "$RUNNER_TEMP/sdkinstall.log" 2>&1 || true
+          tail -40 "$RUNNER_TEMP/sdkinstall.log"
+          test -d "$SDK_DIR/platforms/android-36" || { echo "::error::android-36 platform did not install into $SDK_DIR"; exit 1; }
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK_DIR" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
