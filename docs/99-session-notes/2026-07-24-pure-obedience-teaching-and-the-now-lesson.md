@@ -150,3 +150,24 @@ living-lessons-class.js.
   was with the driver, not the Sender — come meet the Sender directly"), and
   the Council Chamber's pastoral posture verbatim: the platform delivers
   sealed — spin voids the order.
+
+## Continuation — doctrine and parenting: handprints in wet concrete (same teaching)
+- **The same root, two pulpits:** the pastor who spins doctrine and the parent
+  who forces a child's path share one disease — putting their own spin on what
+  belongs to Yahweh. Making followers (or children) into one's own image
+  instead of guiding them toward the image of Christ.
+- **Replicate-self parenting:** boxing a child into the parent's old dream
+  (the athlete's child must be an athlete) without consulting Yahweh about the
+  child's true purpose.
+- **Wet concrete:** a child's foundation takes handprints that last forever —
+  carnal expectations pressed in early can crowd out the child's own capacity
+  to hear His instructions for themselves.
+- **Mary's example:** given the Savior as a sacred trust, she protected the
+  promise placed in her; she did not manufacture it to her own convenience.
+- **Call:** shoes off — strip your methods, wait for His instruction, raise
+  children in the nurture and admonition of the Lord (Ephesians 6:4; Luke
+  2:19, 2:51 Mary kept these things — add to the verbatim-fetch list).
+- Lesson wiring: this movement joins the fathers-line lessons (DR-0193 "Ye
+  Fathers: provoke to good works" / DR-0194) and the standard + senior
+  variants; parenting register also fits ANXIETY-CLARITY (guidance for the
+  scared parent: protect the promise, don't manufacture the child).
