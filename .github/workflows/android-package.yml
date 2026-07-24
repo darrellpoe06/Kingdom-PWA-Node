@@ -186,10 +186,38 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
-        # `yes |` answers Bubblewrap's interactive prompts (run 2 died on
-        # "have you run bubblewrap update? (Y/n)" — CI has no stdin; Y is
-        # correct: generate the Android project from the manifest).
-        run: yes | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+        # Run-9 field lesson (measured on the shelf APK, DR-0076): piping `yes`
+        # straight into `build` also answered Bubblewrap's VERSION prompts —
+        # the shelf shipped versionCode 10 / versionName "y", overriding the
+        # manifest pin. So: `update --skipVersionUpgrade` FIRST generates the
+        # Android project from the manifest WITHOUT touching versions, then
+        # `build` runs against the ready project. `yes |` stays only to answer
+        # yes/no confirmations (run 2's "have you run bubblewrap update?");
+        # the version values themselves are now pinned upstream in the
+        # manifest and PROVEN downstream by the verify step below.
+        run: |
+          set -euo pipefail
+          yes | npx --yes @bubblewrap/cli@1 update --skipVersionUpgrade
+          yes | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+
+      - name: Verify the built APK carries the pinned version (proven, not assumed)
+        # DR-0076 §3 (anti-theater): run 9 LOOKED green while shipping
+        # versionName "y". This step reads the REAL AndroidManifest out of the
+        # built APK with aapt2 and hard-fails the run on any mismatch, so a
+        # future Bubblewrap prompt-drift cannot ship a mangled version again.
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          AAPT2=$(ls "$SDK"/build-tools/*/aapt2 | sort -V | tail -1)
+          APK=$(ls twa-build/*.apk | head -1)
+          BADGING=$("$AAPT2" dump badging "$APK" | head -1)
+          echo "$BADGING"
+          WANT_VC="versionCode='${{ github.run_number }}'"
+          WANT_VN="versionName='1.0.${{ github.run_number }}'"
+          case "$BADGING" in
+            *"$WANT_VC"*"$WANT_VN"*) echo "version pin verified: $WANT_VC $WANT_VN" ;;
+            *) echo "::error::built APK version does not match the pin (wanted $WANT_VC $WANT_VN): $BADGING"; exit 1 ;;
+          esac
 
       - name: Name what was built
         run: |

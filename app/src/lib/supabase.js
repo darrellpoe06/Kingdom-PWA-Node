@@ -442,25 +442,41 @@ export function resolveInitialSession(emit, { getSession, readStored }) {
   } catch (_) { /* getSession threw synchronously — the storage read already fired */ }
 }
 
-// True only for the brief window around a user-initiated sign-out. The auth
-// guard reads this so a DELIBERATE sign-out clears immediately, while a
-// transient SIGNED_OUT (PWA resume / rotated-token race) gets the recovery
-// refresh first. Module-level (not per-subscriber) because the SIGNED_OUT
-// event fans out to every onAuthChange subscriber.
-let deliberateSignOut = false;
+// True during the window around a user-initiated sign-out. The auth guard
+// reads this so a DELIBERATE sign-out clears immediately, while a transient
+// SIGNED_OUT (PWA resume / rotated-token race) gets the recovery refresh first.
+//
+// A TIME WINDOW, not a consumed boolean (the "can't log out" fix, Darrell's
+// fold 2026-07-24): the SIGNED_OUT event fans out to EVERY onAuthChange
+// subscriber (the monolith, HeaderAuthButton, AuthBanner, ...). The old
+// capture-and-reset let only the FIRST subscriber see deliberate=true; every
+// later subscriber read false, treated the user's own sign-out as transient,
+// and its recovery refreshSession() could land before the server revoke —
+// re-persisting the session and signing the whole app back in. Within this
+// window, ALL subscribers agree the sign-out is deliberate; a real transient
+// logout in the same few seconds is correctly not "recovered" either, because
+// the user just asked to leave. Exported for tests.
+const DELIBERATE_SIGNOUT_WINDOW_MS = 15000;
+let deliberateSignOutUntil = 0;
+
+export function isDeliberateSignOutActive(now = Date.now()) {
+  return now < deliberateSignOutUntil;
+}
 
 /** Sign the user out. Returns the supabase-js result. */
 export async function signOut() {
-  // Flag BEFORE calling signOut() so the SIGNED_OUT event it emits is treated
-  // as deliberate (no recovery attempt). onAuthChange clears the flag once the
-  // event is consumed.
-  deliberateSignOut = true;
+  // Open the window BEFORE calling signOut() so the SIGNED_OUT event it emits
+  // is treated as deliberate by every subscriber (no recovery attempt).
+  deliberateSignOutUntil = Date.now() + DELIBERATE_SIGNOUT_WINDOW_MS;
   try {
     return await supabase.auth.signOut();
   } catch (e) {
-    // If signOut itself throws, don't leave the flag stuck — a later transient
-    // SIGNED_OUT would then be misread as deliberate and skip recovery.
-    deliberateSignOut = false;
+    // The global sign-out needs the network (server-side token revoke). If it
+    // throws — offline, congested church wifi — the user still asked to LEAVE:
+    // fall back to a local-scope sign-out, which clears the persisted session
+    // on this device without the server round-trip. Never strand "Log out"
+    // doing nothing. The window stays open: the sign-out remains deliberate.
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) { /* storage-level failure — nothing left to clear */ }
     throw e;
   }
 }
@@ -519,10 +535,11 @@ export function onAuthChange(callback) {
       return;
     }
 
-    // A null / SIGNED_OUT event. Capture-and-reset the deliberate flag now so
-    // concurrent subscribers all see the same intent for THIS event.
-    const deliberate = deliberateSignOut;
-    deliberateSignOut = false;
+    // A null / SIGNED_OUT event. Read the deliberate WINDOW (no reset): every
+    // subscriber — first or last to run — sees the same intent for this event,
+    // so no subscriber's recovery refresh can resurrect a session the user
+    // just asked to end (the fold "can't log out" bug, 2026-07-24).
+    const deliberate = isDeliberateSignOutActive();
 
     // Defer the recovery refresh: calling supabase.auth.* synchronously inside
     // the onAuthStateChange callback can deadlock on supabase-js's internal
