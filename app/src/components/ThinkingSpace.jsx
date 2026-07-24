@@ -103,10 +103,9 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const sourceCount = notes.filter(n => n.spiritualSource).length;
   const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u.slice(0, 40); } };
 
+  // Full-width (Darrell 2026-07-24: "why not fill up the whole page") — the old
+  // max-w-3xl cap left half a desktop empty; one fewer grandfathered width cap.
   return (
-    {/* Full-width (Darrell 2026-07-24: "why not fill up the whole page") — the
-        old max-w-3xl cap left half a desktop empty; the whole-page rule is the
-        consistency guard's width-cap class, one fewer grandfathered today. */}
     <div className="space-y-4">
       <OneVoiceInput
         surface="notes"
