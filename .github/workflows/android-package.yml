@@ -37,7 +37,50 @@ permissions:
 # Love Corner" morph. A TWA per brand is the phone-side perpetual fix: four
 # distinct Android packages, each with its own task, icon, and resume state.
 jobs:
+  # One-time key bootstrap (Darrell 2026-07-24, "YOU do it" — recorded transfer
+  # of the mechanical act): the B64-paste ceremony kept failing human hands, and
+  # the ONLY secret that reliably landed was ANDROID_STORE_KEYSTORE_PASS. So the
+  # lane now needs ONLY that: if no encrypted keystore is committed yet, this job
+  # generates the store key ONCE, encrypts it with the PASS secret (AES-256,
+  # PBKDF2), commits store/android.keystore.enc, and every build thereafter
+  # decrypts + signs with the same stable identity. Rotation (DR-0232): delete
+  # the .enc + set a new PASS → next run re-bootstraps. The Governor can pull a
+  # custody copy anytime (git + his PASS). The legacy B64 secret, if ever set,
+  # still wins — nothing breaks.
+  key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      STORE_KS_B64: ${{ secrets.ANDROID_STORE_KEYSTORE_B64 }}
+      STORE_KS_PASS: ${{ secrets.ANDROID_STORE_KEYSTORE_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Bootstrap the encrypted store keystore once (PASS is the only key)
+        run: |
+          set -euo pipefail
+          if [ -n "${STORE_KS_B64:-}" ]; then echo "B64 secret present — bootstrap not needed"; exit 0; fi
+          if [ -z "${STORE_KS_PASS:-}" ]; then echo "no PASS secret — per-run testing keys continue"; exit 0; fi
+          if [ -f store/android.keystore.enc ]; then echo "encrypted keystore already committed — nothing to do"; exit 0; fi
+          keytool -genkeypair -keystore /tmp/store.keystore -storetype PKCS12 -alias poetech \
+            -keyalg RSA -keysize 2048 -validity 9125 \
+            -storepass "$STORE_KS_PASS" -keypass "$STORE_KS_PASS" \
+            -dname "CN=PoeTech App Store, O=PoeTech, C=US"
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/store.keystore -out store/android.keystore.enc -pass env:STORE_KS_PASS
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add store/android.keystore.enc
+          git commit -m "Store signing key bootstrapped: encrypted keystore at rest; the PASS secret is the one key"
+          for i in 1 2 3; do git push && break || git pull --rebase; done
+          echo "bootstrapped + committed store/android.keystore.enc"
+
   build:
+    needs: key
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -107,6 +150,24 @@ jobs:
             printf '%s' "$STORE_KS_B64" | base64 -d > "$PWD/android.keystore"
             PASS="$STORE_KS_PASS"
             echo "Signing with the persistent store keystore (stable identity; updates install in place)."
+          elif [ -n "${STORE_KS_PASS:-}" ]; then
+            # PASS-only mode: decrypt the committed keystore the `key` job
+            # bootstrapped. Fetch fresh from main — the bootstrap commit may
+            # postdate this job's checkout sha.
+            git fetch origin main --depth=1
+            git checkout origin/main -- store/android.keystore.enc 2>/dev/null || true
+            if [ -s store/android.keystore.enc ]; then
+              openssl enc -d -aes-256-cbc -pbkdf2 -in store/android.keystore.enc -out "$PWD/android.keystore" -pass env:STORE_KS_PASS
+              PASS="$STORE_KS_PASS"
+              echo "Signing with the persistent store keystore (encrypted-at-rest; PASS custody; updates install in place)."
+            else
+              PASS=$(openssl rand -hex 16)
+              keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
+                -keyalg RSA -keysize 2048 -validity 3650 \
+                -storepass "$PASS" -keypass "$PASS" \
+                -dname "CN=PoeTech Sideload Testing, O=PoeTech, C=US"
+              echo "Signing with a per-run testing key (encrypted keystore not committed yet)."
+            fi
           else
             PASS=$(openssl rand -hex 16)
             keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
