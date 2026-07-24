@@ -60,17 +60,56 @@ const TRANSITIONS = Object.freeze({
 });
 
 /**
- * Validate one leave entry's shape. Returns { ok } or { error }. Pure.
- * days: fraction of a day (INCREMENTS or hours/hoursPerDay when hourly).
+ * Hours → fraction of a day, for hourly submitters (a teen logging 3 serve
+ * hours, a 1099 crew member). One entry covers at most one day; null when the
+ * hours don't fit the day. Pure.
+ */
+export function hoursToDays(hours, hoursPerDay = 8) {
+  const h = Number(hours);
+  const per = Number(hoursPerDay) || 8;
+  if (!(h > 0) || !(per > 0) || h > per) return null;
+  return h / per;
+}
+
+/**
+ * Validate one leave entry's shape. Returns { ok, days } or { error }. Pure.
+ * days: fraction of a day (INCREMENTS), OR hours + optional hoursPerDay —
+ * ANY member may submit, a child's serve hours included; WHO decides is the
+ * approver tie's business, not validation's.
  */
 export function validateEntry(entry) {
   const e = entry || {};
   if (!leaveType(e.type)) return { error: `unknown leave type: ${e.type}` };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))) return { error: 'date must be YYYY-MM-DD' };
-  const d = Number(e.days);
+  let d = Number(e.days);
+  if (e.days == null && e.hours != null) {
+    const conv = hoursToDays(e.hours, e.hoursPerDay);
+    if (conv == null) return { error: 'hours must be in (0, hoursPerDay]' };
+    d = conv;
+  }
   if (!(d > 0 && d <= 1)) return { error: 'days must be a fraction in (0, 1]' };
   if (!e.memberId) return { error: 'memberId required' };
-  return { ok: true };
+  return { ok: true, days: d };
+}
+
+// ---------------------------------------------------------------------------
+// Approver ties — WHO may decide a member's entries. Any member (a child
+// included) can submit; a tie names the hand that decides: an org
+// `supervisor`, a ministry `steward`, or a `guardian` (child → parent, the
+// relationships.js guardian-child model carried into time). No tie recorded →
+// any other hand may decide (small-team mode, unchanged); ties recorded →
+// only a tied hand. A tie pointing at the member themself is ignored —
+// separation of duties cannot be configured away.
+// ---------------------------------------------------------------------------
+export const TIE_KINDS = Object.freeze(['supervisor', 'guardian', 'steward']);
+
+/** Designated approver ids for a member from a tie list. Pure, deduped. */
+export function approversFor(memberId, ties) {
+  const ids = (ties || [])
+    .filter((t) => t && t.memberId === memberId && t.approverId
+      && t.approverId !== memberId && (!t.kind || TIE_KINDS.includes(t.kind)))
+    .map((t) => t.approverId);
+  return [...new Set(ids)];
 }
 
 /**
@@ -78,9 +117,11 @@ export function validateEntry(entry) {
  * enforced in the math, not the UI): the person who submitted can never be
  * the person who approves/declines; approved entries cancel only by a
  * DIFFERENT hand than the requester (the reference system's supervisor rule).
+ * When `ties` name approvers for the member, only a tied hand decides —
+ * the child→parent / staff→supervisor binding, in the math not the UI.
  * Returns { ok, receipt } or { error }. Pure — now/timestamps injected.
  */
-export function decideTransition({ entry, to, actorId, at }) {
+export function decideTransition({ entry, to, actorId, at, ties }) {
   const from = entry?.status;
   if (!ENTRY_STATUSES.includes(to)) return { error: `unknown status: ${to}` };
   if (!TRANSITIONS[from] || !TRANSITIONS[from].includes(to)) {
@@ -91,6 +132,12 @@ export function decideTransition({ entry, to, actorId, at }) {
     || (to === 'cancelled' && from === 'approved');
   if (needsOtherHand && actorId === entry.memberId) {
     return { error: 'separation of duties: your own request needs another approver' };
+  }
+  if (needsOtherHand) {
+    const named = approversFor(entry.memberId, ties);
+    if (named.length && !named.includes(actorId)) {
+      return { error: 'not a designated approver for this member' };
+    }
   }
   return {
     ok: true,
