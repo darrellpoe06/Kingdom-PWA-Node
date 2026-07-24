@@ -1,0 +1,71 @@
+# Ari comprehensive review — EVENT-ACTIVATED, braked, report-only (DR-0234 lane).
+#
+# Darrell 2026-07-24: "why time activated instead of event activated…" and
+# "why tomorrow and not now?" Events for change, time only for decay:
+#   · push to main   — coalesced (concurrency group): a burst of merges = ONE review
+#   · incident label — site-health files one → review fires with the incident as scope
+#   · repository_dispatch (type: ari-review) — the app-side seam: feedback
+#     (bug/negative/confused) and role-tiered directives will post here once the
+#     scoped-token custody step lands (the dated remainder, 2026-07-25)
+#   · weekly heartbeat — DEAD-MAN only: detects the week where no event fired
+#     (the silent-decay class, LESSONS 2026-07-06). Commented until activation.
+#
+# THE THREE BRAKES (Layer 0, post-2026-06-06, DR-0225 — designed in, provable):
+#   1. BUDGET  — one bounded job, hard 10-minute timeout, report-only (no writes
+#      beyond the report artifact; free on the public repo; no LLM spend).
+#   2. LOCK    — single-instance concurrency; new fires SKIP onto the coalesced run.
+#   3. KILL    — inactive by default: only workflow_dispatch enabled below.
+#      Activation = uncommenting the event triggers WITH a witness (Governor's
+#      hand, DR-0103); the `hold` posture is deleting this file.
+#
+# SHIPS INACTIVE (DR-0225): the push/issues/dispatch/schedule triggers are
+# commented; a human dispatch is the only live path until activation is proven.
+name: Ari comprehensive review (event-activated, braked)
+
+on:
+  workflow_dispatch: {}
+  # ACTIVATION (Governor, witnessed): uncomment to go live — DR-0234.
+  # push:
+  #   branches: [main]
+  # issues:
+  #   types: [labeled]   # fires only when the label is 'incident' (guard below)
+  # repository_dispatch:
+  #   types: [ari-review]
+  # schedule:
+  #   - cron: '0 13 * * 1'  # weekly dead-man heartbeat (Mon 13:00 UTC)
+
+concurrency:
+  group: ari-comprehensive-review
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    # Incident-label guard: on issues events, only the 'incident' label fires.
+    if: github.event_name != 'issues' || github.event.label.name == 'incident'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Deterministic review sweep (report-only)
+        run: |
+          set -euo pipefail
+          {
+            echo "# Ari comprehensive review — $(date -u +%Y-%m-%dT%H:%MZ)"
+            echo "- trigger: ${{ github.event_name }} (sha ${GITHUB_SHA:0:8})"
+            echo "## Guards"
+            node scripts/large-print-guard.mjs && echo "- large-print: OK" || echo "- large-print: VIOLATIONS (see log)"
+            node scripts/consistency-guard.mjs && echo "- consistency: OK" || echo "- consistency: DRIFT (see log)"
+            echo "## Leanness (largest source files, lines)"
+            find app/src -name '*.jsx' -o -name '*.js' | grep -v __tests__ | xargs wc -l 2>/dev/null | sort -rn | head -6
+          } | tee ari-review-report.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ari-review-report
+          path: ari-review-report.md
+          retention-days: 30
