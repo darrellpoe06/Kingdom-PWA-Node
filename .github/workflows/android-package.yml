@@ -195,10 +195,16 @@ jobs:
         # yes/no confirmations (run 2's "have you run bubblewrap update?");
         # the version values themselves are now pinned upstream in the
         # manifest and PROVEN downstream by the verify step below.
+        # Bounded `y` batch, not infinite `yes`: under `set -o pipefail` an
+        # infinite `yes` dies on SIGPIPE the moment Bubblewrap exits without
+        # draining stdin, failing the step AFTER a successful command (run 10:
+        # "Project updated successfully" then "yes: standard output: Broken
+        # pipe" → exit 1). Twenty y's answer every confirmation and fit the
+        # pipe buffer, so printf always completes.
         run: |
           set -euo pipefail
-          yes | npx --yes @bubblewrap/cli@1 update --skipVersionUpgrade
-          yes | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+          printf 'y\n%.0s' {1..20} | npx --yes @bubblewrap/cli@1 update --skipVersionUpgrade
+          printf 'y\n%.0s' {1..20} | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
 
       - name: Verify the built APK carries the pinned version (proven, not assumed)
         # DR-0076 §3 (anti-theater): run 9 LOOKED green while shipping
