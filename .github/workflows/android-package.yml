@@ -122,6 +122,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p twa-build
+          # Versioning is PINNED from the run number (run-8 field lesson: the
+          # `yes |` prompt pipe answered Bubblewrap's version question with a
+          # literal "y", shipping versionName "y" and an unplanned versionCode.
+          # Measured on the shelf's poetech.apk 2026-07-24, DR-0076). A store
+          # must UPDATE in place: versionCode strictly increases per run, so
+          # Android accepts each new shelf build as an upgrade; no interactive
+          # prompt can ever set either field again.
           jq --arg ks "$PWD/android.keystore" \
              --arg pkg "${{ matrix.package_id }}" \
              --arg name "${{ matrix.app_name }}" \
@@ -129,7 +136,9 @@ jobs:
              --arg start "${{ matrix.start_url }}" \
              --arg wm "${{ matrix.web_manifest }}" \
              --arg icon "${{ matrix.icon }}" \
-             --arg mask "${{ matrix.maskable }}" '
+             --arg mask "${{ matrix.maskable }}" \
+             --arg vc "${{ github.run_number }}" \
+             --arg vn "1.0.${{ github.run_number }}" '
             del(._comment, ._signingNote)
             | .packageId = $pkg
             | .name = $name
@@ -138,6 +147,8 @@ jobs:
             | .webManifestUrl = $wm
             | .iconUrl = $icon
             | .maskableIconUrl = $mask
+            | .appVersionCode = ($vc | tonumber)
+            | .appVersionName = $vn
             | .signingKey = { path: $ks, alias: "poetech" }
           ' store/twa-manifest.template.json > twa-build/twa-manifest.json
           cat twa-build/twa-manifest.json
