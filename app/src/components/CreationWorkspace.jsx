@@ -221,7 +221,7 @@ export default function CreationWorkspace({
   return (
     <div className="max-w-6xl">
       <div className="mb-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
         <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
         <p className="text-sm mt-1 text-[#5A5751]">
           A big space for composing a document — then save it, or export it as an image file.
@@ -234,7 +234,7 @@ export default function CreationWorkspace({
           {/* Controls row: type dropdown + title */}
           <div className="flex flex-wrap items-end gap-3 mb-3">
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider mb-1 text-[#5A5751]">Workspace type</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Workspace type</span>
               <select
                 value={type}
                 onChange={(e) => {
@@ -252,7 +252,7 @@ export default function CreationWorkspace({
               </select>
             </label>
             <label className="block flex-1 min-w-[12rem]">
-              <span className="block text-[10px] uppercase tracking-wider mb-1 text-[#5A5751]">Title</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Title</span>
               <input
                 type="text"
                 value={title}
@@ -407,7 +407,7 @@ export default function CreationWorkspace({
 
         {/* ---- sidebar: saved documents ---- */}
         <aside>
-          <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold text-[#5A5751]">Your documents</div>
+          <div className="text-[0.625rem] uppercase tracking-wider mb-2 font-semibold text-[#5A5751]">Your documents</div>
           {saved.length === 0 ? (
             <div className="border border-[#E8E4DC] bg-white p-4 text-center">
               <div className="text-2xl mb-1" aria-hidden="true">📄</div>
@@ -429,14 +429,14 @@ export default function CreationWorkspace({
                       style={{ outlineColor: accent }}
                     >
                       <span className="block text-sm font-medium truncate text-[#1A1815]">{ws.title || 'Untitled'}</span>
-                      <span className="block text-[10px] uppercase tracking-wider text-[#5A5751]">
+                      <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                         {typeFor(ws.type).label}{ws.updatedAt ? ` · ${new Date(ws.updatedAt).toLocaleDateString()}` : ''}
                       </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => removeWorkspace(ws)}
-                      className="mt-1 text-[11px] text-[#5A5751] focus:outline focus:outline-2"
+                      className="mt-1 text-[0.6875rem] text-[#5A5751] focus:outline focus:outline-2"
                       style={{ outlineColor: accent }}
                       aria-label={`Delete ${ws.title || 'Untitled'}`}
                     >

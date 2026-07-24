@@ -77,7 +77,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Cart · Subscriptions Audit</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Cart · Subscriptions Audit</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>What are you actually paying for every month?</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Every recurring purchase you have. See the total monthly bleed. Decide what to <strong>keep</strong>, what to <strong>review</strong>, and what to <strong>cancel</strong>. A simple audit reveals what's actually serving the family vs. what's just running in the background.
@@ -101,7 +101,7 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
       )}
 
       <section className="bg-white border-2 border-dashed border-[#B85838] p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1.5">🔌 Plaid Integration · Vision</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-1.5">🔌 Plaid Integration · Vision</div>
         <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Future build: Plaid bank account integration automatically detects recurring charges and adds them here for you to review. For now, add subscriptions manually as you find them — checking the last 90 days of bank/card statements is a great Saturday morning exercise. The local-first architecture means your transaction data stays on your device even when Plaid is added.
         </p>
@@ -109,27 +109,27 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
 
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Subscriptions</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Subscriptions</h2>
           <div className="flex gap-2 flex-wrap items-center">
             <select className="text-xs p-1.5 border border-[#E8E4DC] bg-[#FAF8F4]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">All statuses</option>
               {STATUS_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
-            <button type="button" onClick={() => { setShowForm(!showForm); setEditingId(null); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add subscription'}</button>
+            <button type="button" onClick={() => { setShowForm(!showForm); setEditingId(null); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add subscription'}</button>
           </div>
         </div>
 
         {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New subscription</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New subscription</div>
             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Name (e.g., Netflix, Spotify, QuickBooks, Adobe)" value={newSub.name} onChange={e => setNewSub({...newSub, name: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cost per billing cycle</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cost per billing cycle</label>
                 <input type="number" min="0" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="0.00" value={newSub.monthly} onChange={e => setNewSub({...newSub, monthly: e.target.value})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Billing cycle</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Billing cycle</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newSub.billingCycle} onChange={e => setNewSub({...newSub, billingCycle: e.target.value})}>
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly (÷3 for monthly)</option>
@@ -139,25 +139,25 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newSub.category} onChange={e => setNewSub({...newSub, category: e.target.value})}>
                   {SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newSub.entityId} onChange={e => setNewSub({...newSub, entityId: e.target.value})}>
                   {entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></>}
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">Status</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1.5">Status</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {STATUS_OPTIONS.map(opt => (
                   <button key={opt.key} type="button" onClick={() => setNewSub({...newSub, status: opt.key})} className={`text-xs px-2 py-1.5 border text-left ${newSub.status === opt.key ? 'border-[#B85838] bg-[#FAF8F4] text-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                     <div className="font-medium">{opt.label}</div>
-                    <div className="text-[9px]">{opt.desc}</div>
+                    <div className="text-[0.5625rem]">{opt.desc}</div>
                   </button>
                 ))}
               </div>
@@ -187,39 +187,39 @@ export function Cart({ subscriptions = [], entities = [], addSubscription, updat
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</span>
-                      <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{s.category}</span>
-                      {s.billingCycle && s.billingCycle !== 'monthly' && <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">· {s.billingCycle}</span>}
+                      <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.category}</span>
+                      {s.billingCycle && s.billingCycle !== 'monthly' && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">· {s.billingCycle}</span>}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(monthlyOf(s))}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                    <div className="text-[10px] text-[#5A5751]">{fmt(monthlyOf(s) * 12)}/yr{s.billingCycle === 'quarterly' || s.billingCycle === 'annual' ? ` · ${fmt(s.monthly)} billed ${s.billingCycle === 'quarterly' ? 'quarterly' : 'annually'}` : ''}</div>
+                    <div className="text-[0.625rem] text-[#5A5751]">{fmt(monthlyOf(s) * 12)}/yr{s.billingCycle === 'quarterly' || s.billingCycle === 'annual' ? ` · ${fmt(s.monthly)} billed ${s.billingCycle === 'quarterly' ? 'quarterly' : 'annually'}` : ''}</div>
                   </div>
                 </div>
                 <div className="flex gap-1 mt-2 flex-wrap">
                   {STATUS_OPTIONS.map(opt => (
-                    <button key={opt.key} type="button" onClick={() => updateSubscription(s.id, { status: opt.key })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${s.status === opt.key ? 'border-[#1A1815] bg-[#1A1815] text-[#FAF8F4]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`} style={s.status === opt.key ? {} : { color: statusColor(opt.key) }}>
+                    <button key={opt.key} type="button" onClick={() => updateSubscription(s.id, { status: opt.key })} className={`text-[0.625rem] px-2 py-1 border uppercase tracking-wider ${s.status === opt.key ? 'border-[#1A1815] bg-[#1A1815] text-[#FAF8F4]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`} style={s.status === opt.key ? {} : { color: statusColor(opt.key) }}>
                       {opt.label}
                     </button>
                   ))}
-                  <button type="button" onClick={() => editingId === s.id ? cancelEdit() : startEdit(s)} aria-expanded={editingId === s.id} aria-label={editingId === s.id ? `Cancel edit for ${s.name}` : `Edit ${s.name}`} className="text-[10px] px-2 py-1 border border-[#5A5751] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  <button type="button" onClick={() => editingId === s.id ? cancelEdit() : startEdit(s)} aria-expanded={editingId === s.id} aria-label={editingId === s.id ? `Cancel edit for ${s.name}` : `Edit ${s.name}`} className="text-[0.625rem] px-2 py-1 border border-[#5A5751] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
                     {editingId === s.id ? '× Cancel' : '✎ Edit'}
                   </button>
-                  <button type="button" onClick={() => { if (window.confirm('Delete this subscription record?')) deleteSubscription(s.id); }} className="text-[10px] px-2 py-1 text-[#5A5751] hover:text-[#B85838] uppercase tracking-wider">Delete</button>
+                  <button type="button" onClick={() => { if (window.confirm('Delete this subscription record?')) deleteSubscription(s.id); }} className="text-[0.625rem] px-2 py-1 text-[#5A5751] hover:text-[#B85838] uppercase tracking-wider">Delete</button>
                 </div>
                 {s.notes && <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{s.notes}</p>}
                 {/* r29 — Inline edit per IN-PLACE-FIRST.md + EDITABLE-EVERYWHERE.md. */}
                 {editingId === s.id && (
                   <div className="mt-3 p-3 bg-white border-2 border-[#B85838] space-y-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {s.name}</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {s.name}</div>
                     <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                     <div className="grid grid-cols-2 gap-2">
-                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly cost</label><input type="number" min="0" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.monthly} onChange={e => setEditForm({...editForm, monthly: e.target.value})} /></div>
-                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Billing cycle</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.billingCycle} onChange={e => setEditForm({...editForm, billingCycle: e.target.value})}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>
+                      <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly cost</label><input type="number" min="0" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.monthly} onChange={e => setEditForm({...editForm, monthly: e.target.value})} /></div>
+                      <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Billing cycle</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.billingCycle} onChange={e => setEditForm({...editForm, billingCycle: e.target.value})}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select></div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})}>{SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.entityId} onChange={e => setEditForm({...editForm, entityId: e.target.value})}>{entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></>}</select></div>
+                      <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})}>{SUB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                      <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={editForm.entityId} onChange={e => setEditForm({...editForm, entityId: e.target.value})}>{entities.length > 0 ? entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>) : <><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></>}</select></div>
                     </div>
                     <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes" value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} />
                     <div className="flex gap-2">

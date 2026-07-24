@@ -133,7 +133,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
         </section>
       )}
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Accounts · Add · Edit · Delete</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Accounts · Add · Edit · Delete</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Every account, every entity, every balance.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Add the checking, savings, credit, and loan accounts that hold the household's cash flow. Each account belongs to an entity (Personal, Steward Real Estate, Cornerstone Tech, Wellness Practice). Balances feed every rollup, projection, and the funds-available check on upcoming transactions.
@@ -149,10 +149,10 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
       <section aria-labelledby="all-accounts-total-h" className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         {/* Totals card — cash only, 2/5 of the row */}
         <div className="lg:col-span-2 bg-white border border-[#1A1815] p-4 sm:p-5">
-          <h2 id="all-accounts-total-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">All Accounts · Total Cash</h2>
+          <h2 id="all-accounts-total-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">All Accounts · Total Cash</h2>
           <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Spendable: checking + savings + cash + investments.</p>
           <div className="mt-3 flex items-baseline justify-between">
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{liquidAccounts.length} cash accounts</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{liquidAccounts.length} cash accounts</div>
             <div className={`text-3xl ${liquidTotal < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>{fmt(liquidTotal)}</div>
           </div>
           {/* Phase 2B — bank-derived total when any account is linked to a
@@ -160,24 +160,24 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               elsewhere, so the figure represents one consistent picture. */}
           {bankLinkedCount > 0 && (
             <div className="mt-2 pt-2 border-t border-[#E8E4DC] flex items-baseline justify-between">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" title="Sum of bank ledger balance for linked accounts plus manual balance for unlinked accounts.">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" title="Sum of bank ledger balance for linked accounts plus manual balance for unlinked accounts.">
                 bank-derived · {bankLinkedCount} linked
               </div>
               <div className="text-right">
                 <div className={`text-lg ${bankDerivedLiquid < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(bankDerivedLiquid)}</div>
                 {Math.abs(bankDerivedDelta) >= 0.5 && (
-                  <div className={`text-[10px] uppercase tracking-wider ${bankDerivedDelta < 0 ? 'text-[#B85838]' : 'text-[#D97706]'}`} title="Difference between your manual cash total and what the banks say. Reconcile per-account on the rows below.">
+                  <div className={`text-[0.625rem] uppercase tracking-wider ${bankDerivedDelta < 0 ? 'text-[#B85838]' : 'text-[#D97706]'}`} title="Difference between your manual cash total and what the banks say. Reconcile per-account on the rows below.">
                     Δ {bankDerivedDelta > 0 ? '+' : ''}{fmt(bankDerivedDelta)}
                   </div>
                 )}
               </div>
             </div>
           )}
-          <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
             Credit cards and loans live on the <strong>Debts</strong> tab. Accounts under legal hold live in the <strong>Legal</strong> tab. Both are excluded from this cash total.
           </p>
           {ingestMeta.error && (
-            <p className="text-[9px] text-[#B85838] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }} title={ingestMeta.error}>
+            <p className="text-[0.5625rem] text-[#B85838] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }} title={ingestMeta.error}>
               Bank balance overlay offline · {ingestMeta.error.length > 60 ? ingestMeta.error.slice(0, 60) + '…' : ingestMeta.error}
             </p>
           )}
@@ -188,12 +188,12 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
           <div className="lg:col-span-3 bg-white border-2 border-[#B85838] p-4 sm:p-5">
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <div>
-                <h3 id="buffer-fund-heading" className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Buffer Fund · Mortgage Protection</h3>
+                <h3 id="buffer-fund-heading" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Buffer Fund · Mortgage Protection</h3>
                 <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>The single highest-ROI move right now. Once funded, mortgage money sits before the 1st — turning "tight" into "covered" without changing income.</p>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(bufferCurrent)}<span className="text-sm text-[#5A5751]"> / {fmt(bufferTarget)}</span></div>
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{bufferPct}% funded · gap {fmt(bufferGap)}</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{bufferPct}% funded · gap {fmt(bufferGap)}</div>
               </div>
             </div>
 
@@ -201,7 +201,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
                 <div className="h-full bg-[#5A6E3D] transition-all" style={{ width: `${bufferPct}%` }} />
               </div>
-              <div className="flex justify-between text-[9px] uppercase tracking-wider text-[#5A5751] mt-1">
+              <div className="flex justify-between text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1">
                 <span>$0</span>
                 <span>{fmt(bufferTarget / 2)}</span>
                 <span>{fmt(bufferTarget)}</span>
@@ -212,7 +212,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                 savings-account balances (no longer a hand-typed slider). */}
             <div className="mt-4">
               <div className="flex items-baseline justify-between mb-1">
-                <label htmlFor="buffer-current-slider" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current balance · from your savings accounts</label>
+                <label htmlFor="buffer-current-slider" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Current balance · from your savings accounts</label>
                 <span className="text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(bufferCurrent)}</span>
               </div>
               <input
@@ -233,12 +233,12 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
 
             {/* Target — deliberate edit only */}
             <div className="mt-3 flex items-baseline justify-between gap-2 flex-wrap">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 Target: <strong style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(bufferTarget)}</strong>
                 {bufferTarget !== suggestedTarget && <> · suggested {fmt(suggestedTarget)} (~1 mo rental P&amp;I)</>}
               </div>
               {!editingTarget ? (
-                <button type="button" onClick={() => { setTargetDraft(bufferTarget); setEditingTarget(true); }} className="text-[10px] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit target</button>
+                <button type="button" onClick={() => { setTargetDraft(bufferTarget); setEditingTarget(true); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit target</button>
               ) : (
                 <div className="flex items-center gap-1 flex-wrap">
                   <label htmlFor="buffer-target-edit" className="sr-only">Target balance</label>
@@ -252,9 +252,9 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
                     onChange={e => setTargetDraft(e.target.value)}
                     className="p-2 border border-[#1A1815] text-sm bg-[#FAF8F4] w-28 focus:outline focus:outline-2 focus:outline-[#B85838]"
                   />
-                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(targetDraft); setEditingTarget(false); }} className="text-[10px] uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
-                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(suggestedTarget); setEditingTarget(false); }} className="text-[10px] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Use the suggested target">Use suggested</button>
-                  <button type="button" onClick={() => setEditingTarget(false)} className="text-[10px] uppercase tracking-wider px-3 py-2 text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(targetDraft); setEditingTarget(false); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+                  <button type="button" onClick={() => { setBufferTarget && setBufferTarget(suggestedTarget); setEditingTarget(false); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Use the suggested target">Use suggested</button>
+                  <button type="button" onClick={() => setEditingTarget(false)} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
                 </div>
               )}
             </div>
@@ -274,41 +274,41 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
 
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Accounts</h2>
-          <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add account'}</button>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Accounts</h2>
+          <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add account'}</button>
         </div>
 
         {/* r20 — Top form ONLY for Add. Edit happens inline under the row. */}
         {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New account</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New account</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account name</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account name</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Chase Personal Checking" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Institution</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Institution</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Chase, AMEX, UIECU" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                   {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Fragment</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Fragment</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="...8168" value={form.fragment} onChange={e => setForm({ ...form, fragment: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Balance</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Balance</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.entityId} onChange={e => setForm({ ...form, entityId: e.target.value })}>
                   {entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
                 </select>
@@ -352,10 +352,10 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               <div className="flex-1 min-w-0">
                 <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{a.name}</span>
                 <span className="text-xs text-[#5A5751] ml-2">{a.institution} {a.fragment}</span>
-                <span className="text-[9px] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
-                {a.isPrimary && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ml-2">{a.type}</span>
+                {a.isPrimary && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold ml-2">★ primary</span>}
                 {bal && (
-                  <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-wider"
+                  <span className="ml-2 inline-block px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-wider"
                     style={{ backgroundColor: '#1F6FEB22', color: '#1F6FEB', border: '1px solid #1F6FEB' }}
                     title={`Linked to QFX feed: ${bal.inst}${bal.tx_count ? ' · ' + bal.tx_count + ' transactions' : ''}`}>
                     bank-linked
@@ -387,14 +387,14 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
               <div className="text-right">
                 <div className={`${acctBal < 0 ? 'text-[#B85838]' : ''}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(acctBal)}</div>
                 {hasBankBal && (
-                  <div className="text-[10px] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }} title={bal.balance_as_of ? `Bank ledger balance as of ${bal.balance_as_of}` : 'Bank ledger balance'}>
+                  <div className="text-[0.625rem] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }} title={bal.balance_as_of ? `Bank ledger balance as of ${bal.balance_as_of}` : 'Bank ledger balance'}>
                     <span className="text-[#5A5751] uppercase tracking-wider mr-1">bank:</span>
                     <span className={bal.ledger_balance < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}>{fmt(bal.ledger_balance)}</span>
                     {bal.balance_as_of && <span className="text-[#5A5751] ml-1">· {bal.balance_as_of.slice(5)}</span>}
                   </div>
                 )}
                 {hasBankBal && delta !== null && Math.abs(delta) >= 0.5 && (
-                  <div className={`text-[9px] mt-0.5 uppercase tracking-wider ${deltaClass}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}
+                  <div className={`text-[0.5625rem] mt-0.5 uppercase tracking-wider ${deltaClass}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}
                     title="Difference between your manual balance and the bank's ledger balance. Edit your account to reconcile.">
                     Δ {delta > 0 ? '+' : ''}{fmt(delta)}
                   </div>
@@ -425,16 +425,16 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
             {/* r20 — Inline edit drop-down per IN-PLACE-FIRST.md. */}
             {editingId === a.id && (
               <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-2">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {a.name}</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {a.name}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Account name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Institution</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Institution</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} /></div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Fragment</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="...8168" value={form.fragment} onChange={e => setForm({ ...form, fragment: e.target.value })} /></div>
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Balance</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} /></div>
-                  <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityId} onChange={e => setForm({ ...form, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Fragment</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="...8168" value={form.fragment} onChange={e => setForm({ ...form, fragment: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Balance</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.balance} onChange={e => setForm({ ...form, balance: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityId} onChange={e => setForm({ ...form, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
                 </div>
                 <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
                 <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -457,7 +457,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
             {/* PRIMARY: Bank Accounts */}
             <div>
               <div className="flex items-baseline justify-between mb-1.5">
-                <h4 className="text-[10px] uppercase tracking-[0.25em] text-[#1A1815] font-semibold">💰 Bank Accounts</h4>
+                <h4 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold">💰 Bank Accounts</h4>
                 <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{bankAccounts.length} · {fmt(bankTotal)}</div>
               </div>
               {bankAccounts.length === 0 ? (

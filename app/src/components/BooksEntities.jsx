@@ -63,24 +63,24 @@ export function BooksEntities({ entityRollups, entityFilter, setEntityFilter, da
           {/* r30 — Inline edit per IN-PLACE-FIRST + EDITABLE-EVERYWHERE. */}
           {editingId === r.entity.id && (
             <div className="mb-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-2">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {r.entity.name}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {r.entity.name}</div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="sm:col-span-2">
-                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity name</label>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity name</label>
                   <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label>
                   <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })}>
                     {ENTITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</label>
                 <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" placeholder="What this entity is for · DBA · EIN status · key dates" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
               </div>
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
                 Renaming or retyping an entity does not move the records under it — accounts, debts, transactions, contractors stay linked by ID. Safe to edit.
               </p>
               <div className="flex gap-2">

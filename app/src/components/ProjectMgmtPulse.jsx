@@ -37,10 +37,10 @@ export default function ProjectMgmtPulse({ projects = [], discussions = [], curr
       </div>
 
       {/* Eternal-sequence board — real tally per stage. */}
-      <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">By stage (Research → Plan → Execute)</div>
+      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">By stage (Research → Plan → Execute)</div>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {ETERNAL_STAGES.map((s) => (
-          <span key={s.key} className="inline-flex items-baseline gap-1 px-2 py-1 border border-[#E8E4DC] text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span key={s.key} className="inline-flex items-baseline gap-1 px-2 py-1 border border-[#E8E4DC] text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
             <span aria-hidden="true">{s.glyph}</span>
             <span>{s.label}</span>
             <span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{board[s.key] || 0}</span>
@@ -49,8 +49,8 @@ export default function ProjectMgmtPulse({ projects = [], discussions = [], curr
       </div>
 
       {/* Discussions roll-up — what's driving the work. */}
-      <div className="text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving the work</div>
-      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving the work</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[0.6875rem] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
         <span><span className="text-[#5A5751]">total</span> <span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dc.total}</span></span>
         <span><span className="text-[#5A5751]">open</span> <span className="font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dc.open}</span></span>
         {DISCUSSION_KINDS.map((k) => (
@@ -61,18 +61,18 @@ export default function ProjectMgmtPulse({ projects = [], discussions = [], curr
       {/* Braked hand-offs — recorded, never auto-run. */}
       <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <span className="text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
-            <span className="uppercase tracking-wider text-[10px] text-[#2A5A8E] font-semibold mr-1">🛰 Staged hand-offs</span>
+          <span className="text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <span className="uppercase tracking-wider text-[0.625rem] text-[#2A5A8E] font-semibold mr-1">🛰 Staged hand-offs</span>
             {staged.length} queued to feed a lane
           </span>
           <KpiDot status={staged.length > 0 ? 'attention' : 'idle'} label={staged.length > 0 ? 'awaiting your call' : 'none staged'} />
         </div>
-        <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           Hand-offs stay behind the Cage (budget + concurrency lock + kill-switch). Nothing here auto-runs — the deep autonomous-drive is staged; the brake state lives in the Wake Orchestrator cockpit below.
         </p>
       </div>
 
-      <p className="text-[9px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.5625rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
         Live tally of your real projects + discussions — not a static count. {(stageMeta('execute').label)} = the build is running.
       </p>
     </section>

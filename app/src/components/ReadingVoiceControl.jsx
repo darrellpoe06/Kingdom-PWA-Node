@@ -43,7 +43,7 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
       onChange={onChange}
       className={[
         'border-2 bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]',
-        isPanel ? 'w-full text-sm border-[#E8E4DC] px-3 py-2.5 rounded-md' : 'text-[11px] border-[#E8E4DC] px-2 py-1.5 rounded-md max-w-[10rem]',
+        isPanel ? 'w-full text-sm border-[#E8E4DC] px-3 py-2.5 rounded-md' : 'text-[0.6875rem] border-[#E8E4DC] px-2 py-1.5 rounded-md max-w-[10rem]',
       ].join(' ')}
     >
       {orderedGroups.map((g) => (
@@ -69,8 +69,8 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
 
   return (
     <div className={className}>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">🔊 Reading voice</div>
-      <p className="text-[12px] text-[#5A5751] mb-2 leading-relaxed">
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">🔊 Reading voice</div>
+      <p className="text-[0.75rem] text-[#5A5751] mb-2 leading-relaxed">
         Pick the voice that reads to you anywhere in the app. It’s saved to your account, so it
         follows you to any device.
       </p>
@@ -78,14 +78,14 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
       <div className="mt-2 flex items-center gap-2">
         {!ra.isReading ? (
           <button type="button" onClick={() => ra.read(SAMPLE)}
-            className="text-[11px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Test</button>
+            className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Test</button>
         ) : (
           <button type="button" onClick={ra.stop}
-            className="text-[11px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+            className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
         )}
-        {ra.currentItem && ra.currentItem.ai && <span className="text-[10px] text-[#5A5751]">AI-generated voice{ra.currentItem.standIn ? ' — stand-in until the studio is live' : ''}</span>}
+        {ra.currentItem && ra.currentItem.ai && <span className="text-[0.625rem] text-[#5A5751]">AI-generated voice{ra.currentItem.standIn ? ' — stand-in until the studio is live' : ''}</span>}
       </div>
-      {ra.notice && <p className="text-[11px] text-[#5A5751] mt-2">{ra.notice}</p>}
+      {ra.notice && <p className="text-[0.6875rem] text-[#5A5751] mt-2">{ra.notice}</p>}
     </div>
   );
 }

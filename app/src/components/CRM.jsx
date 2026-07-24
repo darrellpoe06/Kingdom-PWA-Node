@@ -139,25 +139,25 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Sovereign CRM · one backbone</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Sovereign CRM · one backbone</div>
             <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Every funnel, one pipeline.</h2>
             <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               Leads from every business flow into one model — contacts, stages, follow-up, and source attribution — in our own store. No third-party CRM.
             </p>
           </div>
-          <button type="button" onClick={() => setShowGuardrails(!showGuardrails)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] border border-[#E8E4DC] px-2.5 py-1.5">
+          <button type="button" onClick={() => setShowGuardrails(!showGuardrails)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] border border-[#E8E4DC] px-2.5 py-1.5">
             {showGuardrails ? '× Hide' : '🛡 Guardrails'}
           </button>
         </div>
-        <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Real data only: {(inquiries || []).length} TLC inquiries + {(practiceLeads || []).length} client-acquisition leads federated + {remoteLeads.length} synced leads. Seed/demo leads are badged and excluded from the math.
         </p>
         {showGuardrails && (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {Object.values(GUARDRAILS).map((g) => (
               <div key={g.label} className="border border-[#E8E4DC] bg-[#FAF8F4] p-2.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">{g.label}</div>
-                <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{g.detail}</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">{g.label}</div>
+                <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{g.detail}</div>
               </div>
             ))}
           </div>
@@ -177,7 +177,7 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
       </TabScroll>
 
       {/* Pipeline sub-tabs */}
-      <TabScroll label="Pipeline" rowClassName="text-[11px]">
+      <TabScroll label="Pipeline" rowClassName="text-[0.6875rem]">
         {pipelinesForBusiness(business).map((p) => (
           <button key={p.id} role="tab" aria-selected={pipeline === p.id} onClick={() => setPipeline(p.id)} className={`px-2.5 py-1.5 whitespace-nowrap uppercase tracking-wider border ${pipeline === p.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}>
             {p.label}
@@ -189,7 +189,7 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
         <>
           {/* Compliance note for the selected pipeline */}
           {pipe.complianceNote && (
-            <p className="text-[11px] text-[#5A5751] italic border-l-2 border-[#E8E4DC] pl-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.6875rem] text-[#5A5751] italic border-l-2 border-[#E8E4DC] pl-3" style={{ fontFamily: '"Fraunces", serif' }}>
               {pipe.phiSensitive ? '⚠ ' : ''}{pipe.complianceNote}
             </p>
           )}
@@ -205,43 +205,43 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
           {/* Capture */}
           <section>
             <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-              <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{pipe.label} · {pipeLeads.length} {pipe.leadNoun}{pipeLeads.length === 1 ? '' : 's'}</h2>
-              <button type="button" onClick={() => setShowCapture(!showCapture)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showCapture ? '× Cancel' : '+ Capture lead'}</button>
+              <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{pipe.label} · {pipeLeads.length} {pipe.leadNoun}{pipeLeads.length === 1 ? '' : 's'}</h2>
+              <button type="button" onClick={() => setShowCapture(!showCapture)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showCapture ? '× Cancel' : '+ Capture lead'}</button>
             </div>
 
             {showCapture && (
               <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New {pipe.leadNoun} · {biz.label}</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New {pipe.leadNoun} · {biz.label}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name *</label>
+                    <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Name *</label>
                     <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact method</label>
+                    <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact method</label>
                     <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
                       {CONTACT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact info *</label>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact info *</label>
                   <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactValue} onChange={(e) => setForm({ ...form, contactValue: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Source</label>
+                    <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Source</label>
                     <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
                       {(pipe.sources || SOURCES.map((s) => s.key)).map((k) => <option key={k} value={k}>{sourceLabel(k)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Source detail</label>
+                    <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Source detail</label>
                     <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.sourceDetail} onChange={(e) => setForm({ ...form, sourceDetail: e.target.value })} />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (contact-level only — no clinical, no payment)</label>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes (contact-level only — no clinical, no payment)</label>
                   <textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
                 <label className="flex items-start gap-2 text-xs cursor-pointer">
@@ -256,16 +256,16 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
           {/* Follow-up draft queue (human approves every send) */}
           {followUps.length > 0 && (
             <section className="bg-white border-2 border-[#5A6E3D] p-4">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Follow-up drafts · {followUps.length} · a human approves every send</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Follow-up drafts · {followUps.length} · a human approves every send</div>
               <div className="space-y-2">
                 {followUps.map(({ lead, step }) => (
                   <div key={lead.id} className="border border-[#E8E4DC] bg-[#FAF8F4] p-2.5 flex items-start justify-between gap-2 flex-wrap">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{lead.name || lead.contactValue} <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">· {step.channel} · step {step.step + 1}</span></div>
-                      <div className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Draft intent: {step.intent}</div>
-                      <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] mt-0.5">Draft · awaiting human approval</div>
+                      <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{lead.name || lead.contactValue} <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">· {step.channel} · step {step.step + 1}</span></div>
+                      <div className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Draft intent: {step.intent}</div>
+                      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] mt-0.5">Draft · awaiting human approval</div>
                     </div>
-                    <button type="button" onClick={() => onApproveSend(lead, step)} className="text-[10px] uppercase tracking-wider bg-[#5A6E3D] text-white px-3 py-1.5 hover:bg-[#1A1815] shrink-0">Approve + sent</button>
+                    <button type="button" onClick={() => onApproveSend(lead, step)} className="text-[0.625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-3 py-1.5 hover:bg-[#1A1815] shrink-0">Approve + sent</button>
                   </div>
                 ))}
               </div>
@@ -334,24 +334,24 @@ function LeadCard({ lead, pipeline, onMove, onToggleConsent, onDelete }) {
       <div className="flex items-baseline justify-between gap-2">
         <div className="min-w-0">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{lead.name || lead.contactValue || 'Unnamed lead'}</span>
-          {seed && <span className="ml-1.5 text-[9px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1 py-0.5">seed</span>}
+          {seed && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1 py-0.5">seed</span>}
         </div>
-        <button type="button" onClick={() => setOpen(!open)} className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0">{open ? '×' : 'Details'}</button>
+        <button type="button" onClick={() => setOpen(!open)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0">{open ? '×' : 'Details'}</button>
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">{sourceLabel(lead.source)}{lead.sourceDetail ? ` · ${lead.sourceDetail}` : ''}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{sourceLabel(lead.source)}{lead.sourceDetail ? ` · ${lead.sourceDetail}` : ''}</div>
       <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-        <span className={`text-[10px] uppercase tracking-wider ${consented ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{consented ? '✓ outreach OK' : '✕ no consent'}</span>
+        <span className={`text-[0.625rem] uppercase tracking-wider ${consented ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{consented ? '✓ outreach OK' : '✕ no consent'}</span>
       </div>
 
       {open && (
         <div className="mt-2 pt-2 border-t border-[#E8E4DC] space-y-2 text-xs">
-          {lead.contactValue && <div><span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact</span><div style={{ fontFamily: '"Fraunces", serif' }}>{lead.contactValue} · {lead.contactMethod}</div></div>}
-          {lead.notes && <div><span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</span><div style={{ fontFamily: '"Fraunces", serif' }}>{lead.notes}</div></div>}
-          {!consented && reason && <div className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{reason}</div>}
+          {lead.contactValue && <div><span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact</span><div style={{ fontFamily: '"Fraunces", serif' }}>{lead.contactValue} · {lead.contactMethod}</div></div>}
+          {lead.notes && <div><span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</span><div style={{ fontFamily: '"Fraunces", serif' }}>{lead.notes}</div></div>}
+          {!consented && reason && <div className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{reason}</div>}
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <button type="button" onClick={() => onToggleConsent(lead)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#5A6E3D]">{consented ? 'Revoke consent' : 'Record consent'}</button>
-            {advLabel && <button type="button" onClick={() => onMove(lead, adv)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#B85838]">→ {advLabel}</button>}
-            <button type="button" onClick={() => onDelete(lead)} aria-label="Remove lead" className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-transparent text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]">Remove</button>
+            <button type="button" onClick={() => onToggleConsent(lead)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#5A6E3D]">{consented ? 'Revoke consent' : 'Record consent'}</button>
+            {advLabel && <button type="button" onClick={() => onMove(lead, adv)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#B85838]">→ {advLabel}</button>}
+            <button type="button" onClick={() => onDelete(lead)} aria-label="Remove lead" className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-transparent text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]">Remove</button>
           </div>
         </div>
       )}

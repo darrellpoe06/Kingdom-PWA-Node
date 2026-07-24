@@ -35,8 +35,8 @@ import BudgetPlanner from './BudgetPlanner.jsx';
 
 // Shared tokens — identical to the other family surfaces (already contrast-gated).
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
-const sectionH = 'text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
+const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
 const HORIZONS = [12, 24, 36];
 
 const money = (n) => `${n < 0 ? '-' : ''}$${Math.abs(Math.round(Number(n) || 0)).toLocaleString()}`;
@@ -97,7 +97,7 @@ function CashTrajectory({ timeline }) {
       {min < 0 && (
         <div className="relative h-px bg-[#9B2C2C] -mt-12 mb-12" style={{ marginTop: `${-(1 - zeroFrac) * 96}px` }} aria-hidden="true" />
       )}
-      <div className="flex justify-between text-[9px] text-[#5A5751] mt-1">
+      <div className="flex justify-between text-[0.5625rem] text-[#5A5751] mt-1">
         <span>{timeline[0].label}</span>
         <span>{timeline[timeline.length - 1].label}</span>
       </div>
@@ -143,7 +143,7 @@ function Outlook({ data, currentDate, scopeOptions, scope, setScope, months, set
       <div className={card}>
         <div className="flex items-baseline justify-between mb-3">
           <h3 className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{scopeLabel} · {months}-month outlook</h3>
-          <span className="text-[9px] uppercase tracking-wider text-[#5A5751] border border-[#D8D0C2] px-1.5 py-0.5">Projection, not a promise</span>
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#D8D0C2] px-1.5 py-0.5">Projection, not a promise</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
@@ -203,7 +203,7 @@ function Outlook({ data, currentDate, scopeOptions, scope, setScope, months, set
           >
             {recording ? 'Recording…' : 'Record this projection'}
           </button>
-          <span className="text-[10px] text-[#5A5751] leading-snug">Freezes today’s prediction so it can be scored against what really happens — tracked under Track.</span>
+          <span className="text-[0.625rem] text-[#5A5751] leading-snug">Freezes today’s prediction so it can be scored against what really happens — tracked under Track.</span>
         </div>
         {recordError && (
           <p role="status" className="mt-2 text-[0.625rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{recordError}</p>
@@ -245,7 +245,7 @@ function Scenarios({ data, currentDate, scope, months }) {
     <div className="space-y-4">
       <div className={card}>
         <h3 className="text-sm font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>What-if comparison · {months} months</h3>
-        <p className="text-[11px] text-[#5A5751] mb-3">
+        <p className="text-[0.6875rem] text-[#5A5751] mb-3">
           The future ranges from <strong className="text-[#9B2C2C]">{cmp.worst ? money(cmp.worst.endingCash) : '—'}</strong> (worst) to
           {' '}<strong className="text-[#2F6B3A]">{cmp.best ? money(cmp.best.endingCash) : '—'}</strong> (best) — a spread of {money(cmp.spread)}. Assumptions are explicit and editable below.
         </p>
@@ -339,9 +339,9 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
             <div className="flex justify-between items-start gap-3">
               <div>
                 <div className="text-sm font-semibold text-[#1A1815]">{scopeName(s.scope)} · {s.horizonMonths}-mo</div>
-                <div className="text-[10px] text-[#5A5751]">Recorded {s.baseDate} → horizon {s.horizonDate}</div>
+                <div className="text-[0.625rem] text-[#5A5751]">Recorded {s.baseDate} → horizon {s.horizonDate}</div>
               </div>
-              <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 border ${tone}`}>
+              <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border ${tone}`}>
                 {v.reached ? v.accuracyLabel : 'pending'}
               </span>
             </div>
@@ -362,7 +362,7 @@ function Track({ data, currentDate, snapshots, scopeOptions }) {
               </div>
             </div>
             {s.assumptions && s.assumptions.scenarioId && (
-              <div className="text-[10px] text-[#5A5751] mt-2">Basis: {s.assumptions.scenarioId}</div>
+              <div className="text-[0.625rem] text-[#5A5751] mt-2">Basis: {s.assumptions.scenarioId}</div>
             )}
           </div>
         );

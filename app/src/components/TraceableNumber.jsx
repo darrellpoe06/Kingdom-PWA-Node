@@ -69,7 +69,7 @@ function TraceRow({ item }) {
             {item.label}
           </div>
           {item.meta && (
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
           )}
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function TraceableNumber({
         {children}
         <span
           aria-hidden="true"
-          className="self-start ml-0.5 text-[9px] leading-none text-[#5A5751] border border-[#8A857B] rounded-full w-[13px] h-[13px] inline-flex items-center justify-center shrink-0 group-hover:text-[#B85838] group-hover:border-[#B85838]"
+          className="self-start ml-0.5 text-[0.5625rem] leading-none text-[#5A5751] border border-[#8A857B] rounded-full w-[13px] h-[13px] inline-flex items-center justify-center shrink-0 group-hover:text-[#B85838] group-hover:border-[#B85838]"
           style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 700 }}
         >
           i
@@ -173,7 +173,7 @@ export default function TraceableNumber({
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-[#1A1815] px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
                   Where this number comes from
                 </div>
                 <h2
@@ -198,7 +198,7 @@ export default function TraceableNumber({
             <div className="px-4 py-3 space-y-4">
               {/* The result */}
               <div className="bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2.5 flex items-baseline justify-between gap-3">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751]">This number</span>
+                <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751]">This number</span>
                 <span
                   className="text-2xl text-[#1A1815] tabular-nums"
                   style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}
@@ -209,7 +209,7 @@ export default function TraceableNumber({
 
               {/* (b) the math in plain terms */}
               <section>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                   How it's calculated
                 </div>
                 <p className="text-sm leading-relaxed text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -220,7 +220,7 @@ export default function TraceableNumber({
               {/* (a) the inputs that feed it */}
               {trace.inputs && trace.inputs.length > 0 && (
                 <section>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                     The inputs that feed it
                   </div>
                   <div>
@@ -234,7 +234,7 @@ export default function TraceableNumber({
               {/* (c) the real source rows it traces to */}
               {trace.sources && trace.sources.length > 0 && (
                 <section>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                     The records it comes from <span className="text-[#5A5751] normal-case tracking-normal font-normal">· {trace.sources.length}</span>
                   </div>
                   <div>

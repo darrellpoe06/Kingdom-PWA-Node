@@ -42,7 +42,7 @@ function fmt(n) {
 function StepHeader({ stepIndex, totalSteps, title, subtitle }) {
   return (
     <div className="border-b border-[#E8E4DC] pb-3 mb-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1">
         Step {stepIndex + 1} of {totalSteps}
       </div>
       <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>
@@ -72,9 +72,9 @@ function EntitiesStep({ entities }) {
           <div className="flex items-baseline justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{e.name}</div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">{e.type}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{e.type}</div>
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">on file</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">on file</div>
           </div>
         </li>
       ))}
@@ -99,7 +99,7 @@ function NumericStep({ items, valueField, label, emptyHint }) {
               {item.name || item.title || item.description || '(unnamed)'}
             </div>
             {item.entityId && (
-              <div className="text-[10px] text-[#5A5751] uppercase tracking-wider mt-0.5">
+              <div className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider mt-0.5">
                 {item.entityId}
               </div>
             )}
@@ -109,7 +109,7 @@ function NumericStep({ items, valueField, label, emptyHint }) {
             style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}
           >
             {fmt(item[valueField])}
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
           </div>
         </li>
       ))}
@@ -175,7 +175,7 @@ export default function VerifyBalances({ data, onComplete, onSkip }) {
         {/* Header strip */}
         <div className="bg-[#1A1815] text-[#FAF8F4] px-4 py-3 flex items-baseline justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Verify before sync opens</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Verify before sync opens</div>
             <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
               Cross-device sync is paused on this device.
             </div>
@@ -183,7 +183,7 @@ export default function VerifyBalances({ data, onComplete, onSkip }) {
           <button
             type="button"
             onClick={onSkip}
-            className="text-[10px] uppercase tracking-wider text-[#FAF8F4]/70 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] px-2 py-1"
+            className="text-[0.625rem] uppercase tracking-wider text-[#FAF8F4]/70 hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] px-2 py-1"
             aria-label="Close without verifying — sync stays paused"
           >
             × Close
@@ -193,7 +193,7 @@ export default function VerifyBalances({ data, onComplete, onSkip }) {
         {/* Step body */}
         <div className="p-5 overflow-y-auto flex-1">
           <StepHeader stepIndex={stepIndex} totalSteps={total} title={step.title} subtitle={step.subtitle} />
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">{step.countLabel}</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">{step.countLabel}</div>
           {step.body}
         </div>
 
@@ -203,7 +203,7 @@ export default function VerifyBalances({ data, onComplete, onSkip }) {
             type="button"
             onClick={back}
             disabled={stepIndex === 0}
-            className="text-[10px] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
             ← Back
           </button>
@@ -211,14 +211,14 @@ export default function VerifyBalances({ data, onComplete, onSkip }) {
             <button
               type="button"
               onClick={onSkip}
-              className="text-[10px] uppercase tracking-wider px-3 py-2 text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
               Skip — keep sync paused
             </button>
             <button
               type="button"
               onClick={next}
-              className="text-[11px] uppercase tracking-wider px-4 py-2 bg-[#1A1815] text-[#FAF8F4] hover:bg-[#B85838] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="text-[0.6875rem] uppercase tracking-wider px-4 py-2 bg-[#1A1815] text-[#FAF8F4] hover:bg-[#B85838] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
               {isLast ? 'Confirm — open sync' : 'Confirm — next'}
             </button>

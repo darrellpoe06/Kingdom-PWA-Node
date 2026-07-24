@@ -153,8 +153,8 @@ export function InstallPrompt() {
     <div className="install-prompt fixed bottom-4 left-4 right-20 sm:right-auto z-[60] max-w-xs print:hidden">
       <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
-          <button type="button" onClick={dismiss} aria-label="Dismiss install prompt" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
+          <button type="button" onClick={dismiss} aria-label="Dismiss install prompt" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
         </div>
         {deferredEvt ? (
           <>
@@ -170,7 +170,7 @@ export function InstallPrompt() {
             <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
               On iPhone or iPad: tap the <strong>Share</strong> button at the bottom of Safari, then choose <strong>Add to Home Screen</strong>.
             </p>
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               Once added, PoeTech opens like a regular app — works offline, no browser bar.
             </p>
           </>

@@ -75,8 +75,8 @@ export default function WorkflowStatus() {
   return (
     <section className="bg-white border border-[#1A1815] p-4">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📡 Live automation status</div>
-        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📡 Live automation status</div>
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
 
       {state.phase === 'loading' && (
@@ -86,13 +86,13 @@ export default function WorkflowStatus() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>Live status isn&apos;t connected yet — showing nothing rather than guessing.</p>
-          <p className="mt-1 text-[11px]">To light it up: stand up the sovereign automation-status server on the NAS and route <span className="font-mono">/automation-status</span> in Caddy — it reports what the sovereign Python jobs are running, no n8n.</p>
+          <p className="mt-1 text-[0.6875rem]">To light it up: stand up the sovereign automation-status server on the NAS and route <span className="font-mono">/automation-status</span> in Caddy — it reports what the sovereign Python jobs are running, no n8n.</p>
         </div>
       )}
 
       {state.phase === 'ok' && state.data && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider font-semibold">
+          <div className="text-[0.625rem] uppercase tracking-wider font-semibold">
             <span className="text-[#5A6E3D]">🟢 {state.data.active} of {state.data.total} running</span>
             {state.data.recentErrors > 0 && <span className="text-[#B85838]"> · ⚠ {state.data.recentErrors} recent error{state.data.recentErrors === 1 ? '' : 's'}</span>}
           </div>
@@ -101,13 +101,13 @@ export default function WorkflowStatus() {
               <div key={w.name + i} className={`flex items-center gap-2 px-2 py-1.5 ${i < state.data.workflows.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                 <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(w.lastStatus) }} title={w.lastStatus} />
                 <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{w.name}</span>
-                <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   {w.lastStatus} · {w.active ? 'on' : 'off'}{w.lastRun ? ` · ${String(w.lastRun).slice(0, 10)}` : ''}
                 </span>
               </div>
             ))}
           </div>
-          <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
             Live from the NAS — real run-status, not the repo file count.
           </p>
         </div>

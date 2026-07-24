@@ -59,7 +59,7 @@ export default function AuthBanner() {
   if (!userEmail) return null;
 
   return (
-    <div className="bg-[#1A1815] text-[#FAF8F4] text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 print:hidden border-t border-[#3A2A24]">
+    <div className="bg-[#1A1815] text-[#FAF8F4] text-[0.625rem] uppercase tracking-[0.2em] px-3 py-1.5 print:hidden border-t border-[#3A2A24]">
       <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 flex-wrap">
         <span aria-label="Sync status">
           <span className="text-[#5A6E3D]">●</span> Signed in as{' '}

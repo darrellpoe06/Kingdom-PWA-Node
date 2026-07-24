@@ -201,14 +201,14 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.name}</div>
           <div className="text-xs text-[#5A5751]">{c.type === 'vendor' ? 'vendor' : 'contractor'}{c.role ? ` · ${c.role}` : ''}{c.status && c.status !== 'active' ? ` · ${c.status}` : ''}</div>
           {(c.phone || c.email) && (
-            <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {c.phone && <a href={`tel:${c.phone.replace(/[^\d+]/g, '')}`} className="hover:text-[#1A1815] underline">{c.phone}</a>}
               {c.phone && <> · <a href={smsHref(c.phone)} aria-label={`Text ${c.name}`} className="hover:text-[#1A1815] underline">text</a></>}
               {c.phone && c.email && ' · '}
               {c.email && <a href={`mailto:${c.email}`} className="hover:text-[#1A1815] underline">{c.email}</a>}
             </div>
           )}
-          {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+          {c.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
           {/* Classification read on the collapsed card: the kind tag, plus (for
               outbound) the 1099-NEC threshold flag from the REAL YTD paid, plus
               the safety WARNING headline when one applies (household -> may be an
@@ -282,7 +282,7 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
         </div>
         <div className="text-right shrink-0">
           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(value)}</div>
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{rateLabel}</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{rateLabel}</div>
         </div>
       </div>
       <div className="flex gap-1 mt-2">
@@ -306,10 +306,10 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
       </div>
       {editing && (
         <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {c.name}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {c.name}</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} /></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} /></div>
           </div>
           <div>
             <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
@@ -318,27 +318,27 @@ function ContractorRow({ c, isLast, entities, onEdit, onDelete, editing, editFor
             <TaxIdentityFields form={editForm} setForm={setEditForm} bg="bg-white" contractorId={c.id} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="e.g., 217-555-0142" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.direction} onChange={e => setEditForm({ ...editForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.entityId} onChange={e => setEditForm({ ...editForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.direction} onChange={e => setEditForm({ ...editForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.entityId} onChange={e => setEditForm({ ...editForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
           {editForm.direction === 'outbound' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">YTD paid</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.ytdPaid} onChange={e => setEditForm({ ...editForm, ytdPaid: parseFloat(e.target.value) || 0 })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly (avg)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.monthly} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">YTD paid</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.ytdPaid} onChange={e => setEditForm({ ...editForm, ytdPaid: parseFloat(e.target.value) || 0 })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly (avg)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.monthly} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} /></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">YTD received</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.ytdReceived} onChange={e => setEditForm({ ...editForm, ytdReceived: parseFloat(e.target.value) || 0 })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly expected</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.monthlyExpected} onChange={e => setEditForm({ ...editForm, monthlyExpected: parseFloat(e.target.value) || 0 })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">YTD received</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.ytdReceived} onChange={e => setEditForm({ ...editForm, ytdReceived: parseFloat(e.target.value) || 0 })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly expected</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editForm.monthlyExpected} onChange={e => setEditForm({ ...editForm, monthlyExpected: parseFloat(e.target.value) || 0 })} /></div>
             </div>
           )}
-          <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+          <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
           <div className="flex gap-2">
             <button type="button" onClick={onSave} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
             <button type="button" onClick={onCancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
@@ -556,7 +556,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         <SectionTitle>1099 Relationships</SectionTitle>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815]">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{contractors.length} contractor{contractors.length === 1 ? '' : 's'} · {outbound.length} we pay, {inbound.length} we receive from</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{contractors.length} contractor{contractors.length === 1 ? '' : 's'} · {outbound.length} we pay, {inbound.length} we receive from</div>
           </div>
           <div className="flex items-baseline gap-3">
             {/* Tax year — sets which 1099-NEC threshold the cards check ($600 for
@@ -567,7 +567,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
                 {TAX_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </label>
-            <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
+            <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">
               {showAdd ? '× Cancel' : '+ Add contractor'}
             </button>
           </div>
@@ -575,10 +575,10 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
         <div className="mb-3"><TaxIdVaultBackup /></div>
         {showAdd && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New 1099 relationship</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New 1099 relationship</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Person or company" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What they do for the business" value={addForm.role} onChange={e => setAddForm({ ...addForm, role: e.target.value })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Name</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Person or company" value={addForm.name} onChange={e => setAddForm({ ...addForm, name: e.target.value })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Role</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What they do for the business" value={addForm.role} onChange={e => setAddForm({ ...addForm, role: e.target.value })} /></div>
             </div>
             <div>
               <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Relationship kind — sets the tax note + access default</label>
@@ -587,27 +587,27 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
               <TaxIdentityFields form={addForm} setForm={setAddForm} bg="bg-[#FAF8F4]" contractorId={null} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="worker@example.com" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Phone (for one-tap dispatch)</label><input type="tel" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 217-555-0142" value={addForm.phone} onChange={e => setAddForm({ ...addForm, phone: e.target.value })} /></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Email</label><input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="worker@example.com" value={addForm.email} onChange={e => setAddForm({ ...addForm, email: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.direction} onChange={e => setAddForm({ ...addForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.entityId} onChange={e => setAddForm({ ...addForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-              <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Type</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.type} onChange={e => setAddForm({ ...addForm, type: e.target.value })}>{CONTRACTOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Direction</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.direction} onChange={e => setAddForm({ ...addForm, direction: e.target.value })}><option value="outbound">outbound (we pay)</option><option value="inbound">inbound (we receive)</option></select></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.entityId} onChange={e => setAddForm({ ...addForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+              <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.status} onChange={e => setAddForm({ ...addForm, status: e.target.value })}>{CONTRACTOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
             </div>
             {addForm.direction === 'outbound' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">YTD paid</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.ytdPaid} onChange={e => setAddForm({ ...addForm, ytdPaid: parseFloat(e.target.value) || 0 })} /></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly (avg)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.monthly} onChange={e => setAddForm({ ...addForm, monthly: parseFloat(e.target.value) || 0 })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">YTD paid</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.ytdPaid} onChange={e => setAddForm({ ...addForm, ytdPaid: parseFloat(e.target.value) || 0 })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly (avg)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.monthly} onChange={e => setAddForm({ ...addForm, monthly: parseFloat(e.target.value) || 0 })} /></div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">YTD received</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.ytdReceived} onChange={e => setAddForm({ ...addForm, ytdReceived: parseFloat(e.target.value) || 0 })} /></div>
-                <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly expected</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.monthlyExpected} onChange={e => setAddForm({ ...addForm, monthlyExpected: parseFloat(e.target.value) || 0 })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">YTD received</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.ytdReceived} onChange={e => setAddForm({ ...addForm, ytdReceived: parseFloat(e.target.value) || 0 })} /></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly expected</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={addForm.monthlyExpected} onChange={e => setAddForm({ ...addForm, monthlyExpected: parseFloat(e.target.value) || 0 })} /></div>
               </div>
             )}
-            <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" value={addForm.notes} onChange={e => setAddForm({ ...addForm, notes: e.target.value })} /></div>
+            <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" value={addForm.notes} onChange={e => setAddForm({ ...addForm, notes: e.target.value })} /></div>
             {addError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert">{addError}</div>}
             <button type="button" onClick={submitAdd} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Save contractor</button>
           </div>
@@ -630,7 +630,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             icon: 'users',
             render: () => (
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound · {outbound.length}</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Outbound · {outbound.length}</h3>
         {!incidentsProvided && outbound.length > 0 && (
           <div className="text-[0.6875rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Open work orders per worker aren&apos;t shown here yet — this tab isn&apos;t passed the incidents list. Dispatch and track work orders from Real Estate · Maintenance or the Big Picture Action Queue; when the shell passes incidents to this tab, each worker&apos;s open orders appear on their row automatically.
@@ -654,7 +654,7 @@ export function Contractors1099({ contractors = [], entities = [], addContractor
             icon: 'coins',
             render: () => (
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Inbound · {inbound.length}</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Inbound · {inbound.length}</h3>
         {inbound.length === 0 ? (
           <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4 text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None yet. Use this for 1099s you receive (e.g., independent contracting income).</div>
         ) : (

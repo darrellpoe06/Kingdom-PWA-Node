@@ -417,7 +417,7 @@ function ProjectConversationLog({ project, updateProject }) {
   return (
     <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
         <button type="button" onClick={(e) => { e.preventDefault(); setShowForm(!showForm); setForm(blank()); }} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showForm ? '× Cancel' : '+ Log a touchpoint'}</button>
       </div>
       {showForm && (
@@ -428,20 +428,20 @@ function ProjectConversationLog({ project, updateProject }) {
           </div>
           <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'kickoff call, requirements confirmed'" value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} />
           <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · decisions · next step · who owns what" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-          <button type="button" onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+          <button type="button" onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
         </div>
       )}
       {log.length === 0 && !showForm ? (
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
       ) : (
         <div className="space-y-1">
           {[...log].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
             <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                  <div className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
                   <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
-                  {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                  {e.notes && <div className="text-[0.625rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                 </div>
                 <button type="button" onClick={() => deleteNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
               </div>
@@ -484,12 +484,12 @@ function ProjectClarity({ project, updateProject }) {
           className="w-full p-1.5 border border-[#5A6E3D] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" />
       ) : nextStep ? (
         <button type="button" onClick={() => begin('next', nextStep)} aria-label={`Edit next step for ${project.title}`}
-          className="w-full text-left text-[11px] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">▶ Next</span>{nextStep}
+          className="w-full text-left text-[0.6875rem] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">▶ Next</span>{nextStep}
         </button>
       ) : (
         <button type="button" onClick={() => begin('next', '')} aria-label={`Add a next step for ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
           ▶ Add next step
         </button>
       )}
@@ -500,12 +500,12 @@ function ProjectClarity({ project, updateProject }) {
           className="w-full p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
       ) : blocker ? (
         <button type="button" onClick={() => begin('blocker', blocker)} aria-label={`Edit blocker for ${project.title}`}
-          className="w-full text-left text-[11px] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[10px] mr-1">⛔ Blocked</span>{blocker}
+          className="w-full text-left text-[0.6875rem] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">⛔ Blocked</span>{blocker}
         </button>
       ) : (
         <button type="button" onClick={() => begin('blocker', '')} aria-label={`Flag a blocker for ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
           + Flag a blocker
         </button>
       )}
@@ -564,13 +564,13 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
         <div className="mt-2 p-3 bg-[#FAF8F4] border border-[#2A5A8E] space-y-3">
           {/* Eternal-sequence stage control */}
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1.5">Eternal sequence · Research → Plan → Execute</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1.5">Eternal sequence · Research → Plan → Execute</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {ETERNAL_STAGES.filter((s) => !s.terminal).map((s) => {
                 const here = s.key === stage;
                 return (
                   <button key={s.key} type="button" aria-pressed={here} onClick={() => moveToStage(s.key)}
-                    className="text-[10px] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     style={here ? { backgroundColor: '#2A5A8E', color: 'white', borderColor: '#2A5A8E' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                     {s.glyph} {s.label}
                   </button>
@@ -578,25 +578,25 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
               })}
               {next && (
                 <button type="button" onClick={() => moveToStage(next, `advanced to ${stageMeta(next).label}`)}
-                  className="text-[10px] px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] uppercase tracking-wider min-h-[36px] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  className="text-[0.625rem] px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] uppercase tracking-wider min-h-[36px] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                   ▶ Advance to {stageMeta(next).label}
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
               {sm.blurb}{prog.pct != null ? ` · ${prog.step} of ${prog.of}` : ' · parked'}
             </p>
           </div>
 
           {/* Real lifecycle trail */}
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How it moved ({trail.length})</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How it moved ({trail.length})</div>
             {trail.length === 0 ? (
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transitions logged yet.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transitions logged yet.</p>
             ) : (
               <ul className="space-y-0.5">
                 {trail.slice(0, 6).map((e, i) => (
-                  <li key={i} className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <li key={i} className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(e.at || '').slice(0, 10)}</span>
                     {' · '}{e.fromPhase ? `${e.fromPhase} → ` : ''}<span className="text-[#1A1815]">{e.toPhase}</span>
                     {e.note ? ` — ${e.note}` : ''}
@@ -609,18 +609,18 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
           {/* Driving discussions */}
           <div>
             <div className="flex items-baseline justify-between gap-2">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving this ({driving.length})</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving this ({driving.length})</div>
               {onOpenDiscussions && (
-                <button type="button" onClick={onOpenDiscussions} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">+ open Discussions</button>
+                <button type="button" onClick={onOpenDiscussions} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">+ open Discussions</button>
               )}
             </div>
             {driving.length === 0 ? (
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None linked yet — capture one in the Discussions tab and link it to this project.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None linked yet — capture one in the Discussions tab and link it to this project.</p>
             ) : (
               <ul className="space-y-0.5">
                 {driving.slice(0, 5).map((d) => (
-                  <li key={d.id} className="text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span aria-hidden="true">{kindMeta(d.kind).glyph}</span> <span className="text-[#5A5751] uppercase tracking-wider text-[9px]">{kindMeta(d.kind).label}</span> · {d.title}
+                  <li key={d.id} className="text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span aria-hidden="true">{kindMeta(d.kind).glyph}</span> <span className="text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">{kindMeta(d.kind).label}</span> · {d.title}
                   </li>
                 ))}
               </ul>
@@ -630,9 +630,9 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
           {/* Archive */}
           <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#E8E4DC]">
             {archived ? (
-              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">⏸ Archived — kept for the record</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">⏸ Archived — kept for the record</span>
             ) : (
-              <button type="button" onClick={doArchive} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-white border border-[#E8E4DC] hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">⏸ Archive</button>
+              <button type="button" onClick={doArchive} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-white border border-[#E8E4DC] hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">⏸ Archive</button>
             )}
           </div>
 
@@ -640,18 +640,18 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
               Cage governs whether it could ever run. Never auto-dispatches. */}
           {isGovernor && addDiscussion && (
             <div className="pt-2 border-t border-[#E8E4DC]">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1">🛰 Hand off to a lane (braked)</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1">🛰 Hand off to a lane (braked)</div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <input value={lane} onChange={(e) => setLane(e.target.value)} placeholder="lane (e.g. church-build)"
                   aria-label={`Lane to hand ${project.title} off to`}
                   className="flex-1 min-w-[140px] p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#2A5A8E]" />
                 <button type="button" onClick={doHandoff}
-                  className="text-[10px] px-2.5 py-1.5 border border-[#2A5A8E] text-[#2A5A8E] uppercase tracking-wider min-h-[36px] hover:bg-[#2A5A8E] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  className="text-[0.625rem] px-2.5 py-1.5 border border-[#2A5A8E] text-[#2A5A8E] uppercase tracking-wider min-h-[36px] hover:bg-[#2A5A8E] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Stage hand-off
                 </button>
               </div>
-              {handoffMsg && <p className="text-[10px] text-[#1A1815] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{handoffMsg}</p>}
-              <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              {handoffMsg && <p className="text-[0.625rem] text-[#1A1815] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{handoffMsg}</p>}
+              <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                 Records the intent as a hand-off discussion. It stays behind the Cage (budget + lock + kill-switch) — nothing auto-runs; the deep autonomous-drive is staged.
               </p>
             </div>
@@ -684,12 +684,12 @@ function ProjectCloseControls({ project, updateProject, isOverdue }) {
   return (
     <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={markComplete} aria-label={`Mark ${project.title} complete`}
-        className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
         ✓ Mark complete
       </button>
       {isOverdue && !rescheduling && (
         <button type="button" onClick={() => { setNewEnd(project.endDate || ''); setRescheduling(true); }} aria-label={`Reschedule ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
           ↻ Reschedule
         </button>
       )}
@@ -698,9 +698,9 @@ function ProjectCloseControls({ project, updateProject, isOverdue }) {
           <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} aria-label={`New end date for ${project.title}`}
             className="p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
           <button type="button" onClick={saveReschedule} disabled={!newEnd}
-            className="text-[10px] uppercase tracking-wider text-white bg-[#1A1815] hover:bg-[#B85838] border border-[#1A1815] px-3 py-1.5 min-h-[36px] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+            className="text-[0.625rem] uppercase tracking-wider text-white bg-[#1A1815] hover:bg-[#B85838] border border-[#1A1815] px-3 py-1.5 min-h-[36px] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
           <button type="button" onClick={() => setRescheduling(false)}
-            className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] border border-transparent hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+            className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] border border-transparent hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
         </span>
       )}
     </div>
@@ -861,7 +861,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>See your whole life at once.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Personal projects · family commitments · friend time · church work · day job · tech consulting · rental real estate · clinical practice · tech repairs. Every project has a start, an end, and a weekly load. Track them all in one place so you can see when things are heavy and when they ease up. Coordinate, not just survive.
@@ -875,7 +875,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       {currentUserId && projects.length > 0 && (
         <section className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
+            <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
             <div className="flex" role="group" aria-label="Whose projects to show">
               {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${everyoneCount})`]].map(([k, label]) => (
                 <button
@@ -888,7 +888,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 >{label}</button>
               ))}
             </div>
-            <span className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <span className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               {scope === 'mine' ? 'The projects you own.' : "Everyone's projects, in one place."}
             </span>
           </div>
@@ -919,10 +919,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 const isModerate = m.hours > 20 && m.hours <= 40;
                 return (
                   <div key={key} className="flex items-center gap-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] w-12 shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] w-12 shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</div>
                     <div className="flex-1 h-5 bg-[#FAF8F4] border border-[#E8E4DC] relative">
                       <div className={`h-full ${isHeavy ? 'bg-[#B85838]' : isModerate ? 'bg-[#8B6F47]' : 'bg-[#5A6E3D]'}`} style={{ width: `${Math.min(pct, 100)}%` }}></div>
-                      {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
+                      {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
                     </div>
                     {(boardDue[key] || 0) > 0 && (
                       <div className="text-xs text-[#5A5751] shrink-0">▦ {boardDue[key]} due</div>
@@ -951,14 +951,14 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       {/* Filter + add */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
           <div className="flex gap-2 flex-wrap items-center">
             {/* Order: Timeline (by date) vs Priority (hand-set order you can
                 rearrange). Switching to Priority reveals up/down controls. */}
             <div className="flex" role="group" aria-label="Order the list">
               {[['timeline', 'Timeline'], ['priority', 'Priority']].map(([k, label]) => (
                 <button key={k} type="button" aria-pressed={orderMode === k} onClick={() => setOrderMode(k)}
-                  className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                   style={orderMode === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
                 >{label}</button>
               ))}
@@ -979,12 +979,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 effect then). (2026-06-23 closure-lifecycle fix.) */}
             {filterStatus === 'all' && (
               <button type="button" aria-pressed={showCompleted} onClick={() => setShowCompleted(v => !v)}
-                className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                 style={showCompleted ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                 {showCompleted ? '✓ Showing completed' : `Show completed${hiddenClosedCount > 0 ? ` (${hiddenClosedCount})` : ''}`}
               </button>
             )}
-            <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
+            <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
 
@@ -1008,27 +1008,27 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             the edited row (see renderProjectForm + the row map below). */}
         {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New project</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New project</div>
             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Project title (e.g., PoeTech v1 launch, kitchen renovation, mom's care plan)" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Start date</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Start date</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">End date (target)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">End date (target)</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Domain</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Domain</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>
                   {PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>
                   {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -1036,40 +1036,40 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week (estimate)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Hours / week (estimate)</label>
                 <input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity (optional)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity (optional)</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}>
                   <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned (optional)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned (optional)</label>
               {contractors.length === 0 ? (
-                <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s. They'll appear here as toggleable chips.</div>
+                <div className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s. They'll appear here as toggleable chips.</div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {contractors.map(k => {
                     const assigned = (newProject.contractorIds || []).includes(k.id);
                     return (
-                      <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                      <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[0.625rem] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
                         {assigned ? '✓ ' : ''}{k.name}
                       </button>
                     );
                   })}
                 </div>
               )}
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
             </div>
             {/* Round 7 fix — bumped rows from 2 → 8 so multi-line descriptions
                 (especially the auto-created "Wrap me with the tech" handoff
                 from Dev/Ops, which includes the opportunity context) are fully
                 visible and editable without scrolling inside the textarea. */}
             <div>
-              <label htmlFor="proj-desc" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · key milestones · who's involved · opportunity context (for auto-created projects from Dev/Ops, this carries the example + tech-stack details — feel free to edit)</label>
+              <label htmlFor="proj-desc" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Description · key milestones · who's involved · opportunity context (for auto-created projects from Dev/Ops, this carries the example + tech-stack details — feel free to edit)</label>
               <textarea id="proj-desc" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" rows="8" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
             </div>
             {projError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
@@ -1085,7 +1085,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               None of these projects are yours yet. Switch to <strong>Everyone</strong> to see the whole family&apos;s, or add one of your own — it&apos;ll show up in your list.
             </p>
-            <button type="button" onClick={() => setScope('all')} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
+            <button type="button" onClick={() => setScope('all')} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
               See everyone&apos;s projects ({projects.length})
             </button>
           </div>
@@ -1098,7 +1098,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you&apos;re working on across your life — work, family, ministry, side projects, repairs. They&apos;re yours, saved to your account and synced across your devices.
             </p>
-            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
               + Add your first project
             </button>
           </div>
@@ -1121,10 +1121,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 { title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech' },
               ];
               examples.forEach(ex => addProject(ex));
-            }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+            }} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
               📋 Load 6 example projects to see how it works
             </button>
-            <p className="text-[10px] text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
               You can delete any of the examples and add your own — they're just there to show the workload visualization at work.
             </p>
           </div>
@@ -1147,15 +1147,15 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     <div className="flex items-center gap-2 min-w-0">
                       {canReorder && (
                         <span className="flex flex-col shrink-0">
-                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[10px] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
-                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[10px] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
+                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[0.625rem] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
+                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[0.625rem] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
                         </span>
                       )}
-                      {canReorder && <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
+                      {canReorder && <span className="text-[0.625rem] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
                       <h4 className="text-base truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
                     </div>
                     {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
-                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                    <div className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider">
                       <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
                       {/* Round 11 — TBD projects show a "Promote → Active" button so the user
                           can flip them when capacity opens up. Plain text-only edit otherwise. */}
@@ -1185,7 +1185,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       reschedule a slipped-but-not-done project. (2026-06-23 fix.) */}
                   <ProjectCloseControls project={p} updateProject={updateProject} isOverdue={isOverdue} />
                   {Array.isArray(p.contractorIds) && p.contractorIds.length > 0 && (
-                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
+                    <div className="text-[0.625rem] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
                       {p.contractorIds.map(cid => {
                         const k = contractors.find(c => c.id === cid);
@@ -1197,7 +1197,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       member and it shows up in their "Mine" list too. In-place
                       toggle chips; persists + syncs immediately. */}
                   {familyMembers.length > 0 && (
-                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
+                    <div className="text-[0.625rem] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
                       <span className="uppercase tracking-wider">🧑‍🤝‍🧑 Assigned:</span>
                       {familyMembers.map(m => {
                         const on = Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(m.key);
@@ -1246,32 +1246,32 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                   {editingId === p.id && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-3">
                       <div className="flex items-baseline justify-between gap-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {p.title}</div>
-                        <button type="button" onClick={cancelEdit} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
+                        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {p.title}</div>
+                        <button type="button" onClick={cancelEdit} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
                       </div>
                       <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="Project title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Start date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} /></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">End date (target)</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Start date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">End date (target)</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} /></div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Domain</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>{PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}</select></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>{PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Domain</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>{PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}</select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>{PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                       </div>
                       <div>
-                        <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>
+                        <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>
                         {contractors.length === 0 ? (
-                          <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
+                          <div className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
                         ) : (
                           <div className="flex flex-wrap gap-1.5">
                             {contractors.map(k => {
                               const assigned = (newProject.contractorIds || []).includes(k.id);
                               return (
-                                <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                                <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[0.625rem] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
                                   {assigned ? '✓ ' : ''}{k.name}
                                 </button>
                               );
@@ -1280,7 +1280,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                         )}
                       </div>
                       <div>
-                        <label htmlFor={`proj-desc-edit-${p.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · milestones · context</label>
+                        <label htmlFor={`proj-desc-edit-${p.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Description · milestones · context</label>
                         <textarea id={`proj-desc-edit-${p.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" rows="6" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
                       </div>
                       {projError && <div className="text-xs text-[#B85838] px-3 py-2 bg-white border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
@@ -1406,14 +1406,14 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
     .sort((a, b) => a.monthsLeft - b.monthsLeft || b.perMonth - a.perMonth);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
   const projectLookup = Object.fromEntries(projects.map(p => [p.id, p]));
 
   return (
     <div className="space-y-6">
       {!compact && (
         <section className="bg-white border border-[#1A1815] p-5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
           <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Tools you need · when you'll buy them · whether the money will be there.</h2>
           <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
             Add equipment a project needs, give it a target purchase date, and the forecast below shows the month-by-month outflow against your current net cash flow. If a month doesn't pencil, the row turns amber so you know to push the date back or save harder before then.
@@ -1431,11 +1431,11 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       </section>
 
       <section aria-labelledby="forecast-h">
-        <h3 id="forecast-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
+        <h3 id="forecast-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+              <tr className="text-left text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
                 <th scope="col" className="p-3">Month</th>
                 <th scope="col" className="p-3 text-right">Projected outflow</th>
                 <th scope="col" className="p-3 text-right">Gap vs net cash</th>
@@ -1467,8 +1467,8 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                           {m.items.map(it => (
                             <span key={it.id} className={`inline-flex items-baseline gap-1 px-2 py-0.5 border ${it._overdue ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                               {it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span>
-                              {it._overdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
-                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {(projectLookup[it.projectId].title || 'Untitled').slice(0, 20)}</span>}
+                              {it._overdue && <span className="text-[0.5625rem] uppercase tracking-wider">overdue</span>}
+                              {it.projectId && projectLookup[it.projectId] && <span className="text-[0.5625rem] uppercase tracking-wider">· {(projectLookup[it.projectId].title || 'Untitled').slice(0, 20)}</span>}
                             </span>
                           ))}
                         </div>
@@ -1479,9 +1479,9 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
               })}
               {forecast.unscheduled.items.length > 0 && (
                 <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <td className="p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
+                  <td className="p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
                   <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(forecast.unscheduled.total)}</td>
-                  <td className="p-3 text-right text-[10px] text-[#5A5751]">no target date set</td>
+                  <td className="p-3 text-right text-[0.625rem] text-[#5A5751]">no target date set</td>
                   <td className="p-3 text-xs">
                     <div className="flex flex-wrap gap-1">
                       {forecast.unscheduled.items.map(it => (
@@ -1494,14 +1494,14 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Each row compares projected outflows for that month against your <strong>current</strong> net cash flow ({fmt(netCashFlow)}/mo). Real net cash will shift with seasonality and rent collection — treat the gap column as a "talk about it now" signal, not a hard ledger.
         </p>
       </section>
 
       {savingsPrompts.length > 0 && (
         <section aria-labelledby="prompts-h">
-          <h3 id="prompts-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
+          <h3 id="prompts-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
           <div className="bg-white border border-[#1A1815]">
             {savingsPrompts.map((p, i, arr) => {
               const overdue = p.monthsLeft === 0;
@@ -1522,17 +1522,17 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                       <div className={`text-lg ${accent}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
                         {overdue ? `${fmt(parseFloat(p.cost) || 0)} now` : `${fmt(p.perMonth)}/mo`}
                       </div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
                     </div>
                   </div>
-                  <div className={`text-[10px] uppercase tracking-wider mt-2 ${accent}`}>
+                  <div className={`text-[0.625rem] uppercase tracking-wider mt-2 ${accent}`}>
                     {overdue ? '⚠' : stretch ? '⚠' : '✓'} <span className="sr-only">{overdue ? 'overdue ' : stretch ? 'stretch ' : 'fits '}</span>{tag}
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Per-item set-aside = remaining cost ÷ months until target date. If the per-item ask exceeds your monthly net, the row warns — either push the date, lower the cost, or raise net (cut discretionary, close the rent gap).
           </p>
         </section>
@@ -1541,11 +1541,11 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       {!compact && (
         <section aria-labelledby="items-h">
           <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-            <h3 id="items-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
-            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
+            <h3 id="items-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
+            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
           </div>
 
-          <div className="flex flex-wrap gap-1 mb-3 text-[10px] uppercase tracking-wider items-center">
+          <div className="flex flex-wrap gap-1 mb-3 text-[0.625rem] uppercase tracking-wider items-center">
             <span className="text-[#5A5751] mr-1">Status:</span>
             <button type="button" onClick={() => setCapexFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
             {CAPEX_STATUSES.map(s => (
@@ -1614,30 +1614,30 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
                         <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{c.name}</span>
-                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
+                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
                       </div>
                       {c.description && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.description}</div>}
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
                         {c.purchaseTargetDate && <>target {c.purchaseTargetDate}{c.projectId && projectLookup[c.projectId] ? ' · ' : ''}</>}
                         {c.projectId && projectLookup[c.projectId] && <>project: {projectLookup[c.projectId].title}</>}
                         {!c.purchaseTargetDate && !c.projectId && <span className="italic">unscheduled · unlinked</span>}
                       </div>
                       {(c.locationId || c.purchasedFromAccountId || c.make || c.model || c.serial) && (
-                        <div className="text-[10px] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <div className="text-[0.625rem] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
                           {c.locationId && rentals.find(r => r.id === c.locationId) && <span>📍 for <strong>{rentals.find(r => r.id === c.locationId).name}</strong></span>}
                           {c.purchasedFromAccountId && accounts.find(a => a.id === c.purchasedFromAccountId) && <span>💳 paid via <strong>{accounts.find(a => a.id === c.purchasedFromAccountId).name}</strong></span>}
                           {(c.make || c.model) && <span>🔖 {[c.make, c.model].filter(Boolean).join(' ')}</span>}
                           {c.serial && <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>S/N {c.serial}</span>}
                         </div>
                       )}
-                      {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+                      {c.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
                     </div>
                     <div className="text-right shrink-0">
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.cost ? fmt(c.cost) : '—'}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -1663,7 +1663,7 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       )}
 
       {compact && (
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Add or edit inventory items in the <strong>Inventory · Capital Forecast</strong> sub-tab above.
         </p>
       )}
@@ -1700,11 +1700,11 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline. The PoeTech Build Client agreement derives its numbers from the recorded terms — the same source the door prices from.</p>
       </section>
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SCOPE_TEMPLATES.map(t => (
             <button key={t.id} onClick={() => startNew(t)} className="bg-white border border-[#1A1815] p-4 text-left hover:border-[#B85838]">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1">{t.type}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1">{t.type}</div>
               <h4 className="text-lg mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h4>
               <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</p>
             </button>
@@ -1712,7 +1712,7 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
         </div>
       </section>
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Your scopes ({scopes.length})</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Your scopes ({scopes.length})</h3>
         {scopes.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-8 text-center"><p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No scopes yet. Pick a template above.</p></div>
         ) : (
@@ -1723,10 +1723,10 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
                   <div>
                     <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.title}</div>
                     <div className="text-xs text-[#5A5751] mt-1">{s.contractorName} · {entity?.name.split('(')[0].trim()}</div>
-                    {proj && <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] mt-1 font-medium">⛓ Linked to: {proj.title}</div>}
-                    {!proj && s.projectId === '' && <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">Standalone</div>}
+                    {proj && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] mt-1 font-medium">⛓ Linked to: {proj.title}</div>}
+                    {!proj && s.projectId === '' && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">Standalone</div>}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{s.status}</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.status}</div>
                 </div>
               </button>
             );})}
@@ -1742,8 +1742,8 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
   return (
     <div className="space-y-4 max-w-3xl">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3">
-        <div><div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
-        <button type="button" onClick={onCancel} className="text-[10px] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
+        <div><div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
+        <button type="button" onClick={onCancel} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
       </section>
       <FormField label="Job title *"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.title || ''} onChange={update('title')} /></FormField>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1779,7 +1779,7 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
           <option value="owner">Owner supplies materials → pay at completion (or 20% start)</option>
           <option value="split">Split → negotiated terms</option>
         </select>
-        <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>Policy:</strong> When the owner pays for materials, the contractor isn't fronting that cost — so a 50% material-style deposit isn't fair. Default is "pay full at completion," with a 20% labor-only start fee available if the contractor needs help-hire money or small startup outlay. Picking an option auto-fills the Payment Terms below; you can still edit.
         </p>
       </FormField>
@@ -1816,25 +1816,25 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   return (
     <div className="space-y-4 max-w-3xl">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
-        <button type="button" onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
-        <div className="flex gap-3"><button type="button" onClick={printScope} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print / Save as PDF</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
+        <button type="button" onClick={onBack} className="text-[0.625rem] uppercase tracking-wider">← Back</button>
+        <div className="flex gap-3"><button type="button" onClick={printScope} className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">⎙ Print / Save as PDF</button><button type="button" onClick={onDelete} className="text-[0.625rem] uppercase tracking-wider">× Delete</button></div>
       </section>
       <div className="print-sheet bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
         <div className="text-center mb-6 pb-6 border-b border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
           <h1 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{scope.title}</h1>
         </div>
         <div className="space-y-5 text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           <div className="grid grid-cols-2 gap-4 pb-4 border-b border-[#E8E4DC]">
-            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Engaging Entity</div><div>{entity?.name}</div></div>
-            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Contractor</div><div>{scope.contractorName}</div></div>
+            <div><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Engaging Entity</div><div>{entity?.name}</div></div>
+            <div><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Contractor</div><div>{scope.contractorName}</div></div>
           </div>
           {[['Scope of Work', scope.scopeOfWork], ['Deliverables', scope.deliverables], ['Materials', scope.materials], ['Schedule', scope.schedule], ['Payment Terms', scope.paymentTerms], ['Acceptance', scope.acceptanceCriteria], ['Requirements', scope.requirements], ['Warranty', scope.warranty], ['Termination', scope.terminationClause]].map(([t, c]) => c && c.trim() ? (
-            <div key={t}><div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1.5">{t}</div><div className="whitespace-pre-line">{c}</div></div>
+            <div key={t}><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1.5">{t}</div><div className="whitespace-pre-line">{c}</div></div>
           ) : null)}
         </div>
         <div className="mt-8 pt-6 border-t border-[#1A1815]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-4">Acknowledgement</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-4">Acknowledgement</div>
           <div className="grid grid-cols-2 gap-8">
             <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{entity?.name.split('(')[0].trim()}</div></div>
             <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{scope.contractorName}</div></div>
@@ -1845,7 +1845,7 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   );
 }
 
-function FormField({ label, children }) { return (<div><label className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
+function FormField({ label, children }) { return (<div><label className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
 
 export { ProjectsWrapper, Projects, ProjectInventory, ProjectConversationLog, DateField, PROJECT_DOMAINS, PROJECT_STATUSES };
 export default ProjectsWrapper;

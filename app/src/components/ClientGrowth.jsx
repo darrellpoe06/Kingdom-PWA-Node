@@ -268,25 +268,25 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
     <div className="space-y-5">
       {/* Header + 3-side switcher */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Client Growth · Revenue Agent Team</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Client Growth · Revenue Agent Team</div>
         <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>A 4-stage team that runs itself</h2>
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
           One trigger runs all four stages; the team produces research, offers, content, and sequences, and lands leads in the CRM.
           <strong> You approve anything outbound</strong> — nothing is sent automatically.
         </p>
         <div className="mt-4">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1.5">The three sides of the marketplace</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">The three sides of the marketplace</div>
           <TabScroll label="Marketplace side">
             {SIDE_KEYS.map((k) => (
               <button key={k} onClick={() => { setSideKey(k); setOpenStage(null); }} aria-pressed={sideKey === k}
-                className={`px-3 py-2 min-h-[40px] text-[11px] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${sideKey === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}>
+                className={`px-3 py-2 min-h-[40px] text-[0.6875rem] uppercase tracking-wider whitespace-nowrap border focus:outline focus:outline-2 focus:outline-[#B85838] ${sideKey === k ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838]'}`}>
                 {SIDE_TAB_LABEL[k]}
               </button>
             ))}
           </TabScroll>
-          <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{config.audienceWho}.</p>
+          <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{config.audienceWho}.</p>
           {config.phiSensitive && (
-            <p className="text-[11px] text-[#B85838] mt-1.5 font-medium">⚠ Highest sensitivity: pre-intake / contact-level only. No PHI, no clinical detail — ever.</p>
+            <p className="text-[0.6875rem] text-[#B85838] mt-1.5 font-medium">⚠ Highest sensitivity: pre-intake / contact-level only. No PHI, no clinical detail — ever.</p>
           )}
         </div>
       </section>
@@ -321,23 +321,23 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
                 <div key={item.id} className="bg-white border border-[#B85838] p-3">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
                     <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{lead ? lead.name : 'Lead'} · <span className="text-xs text-[#5A5751]">{item.channel}</span></span>
-                    <span className="text-[10px] uppercase tracking-wider text-[#B85838]">Pending</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">Pending</span>
                   </div>
                   <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>{item.subject}</strong></div>
-                  <pre className="text-[11px] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{item.body}</pre>
-                  {item.blocked && <div className="text-[11px] text-[#B85838] font-medium mt-1">⛔ Guardrail issue in the copy — resolve before sending.</div>}
-                  {!verdict.ok && verdict.reasons.map((r, i) => <div key={i} className="text-[11px] text-[#B85838] mt-0.5">• {r}</div>)}
+                  <pre className="text-[0.6875rem] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{item.body}</pre>
+                  {item.blocked && <div className="text-[0.6875rem] text-[#B85838] font-medium mt-1">⛔ Guardrail issue in the copy — resolve before sending.</div>}
+                  {!verdict.ok && verdict.reasons.map((r, i) => <div key={i} className="text-[0.6875rem] text-[#B85838] mt-0.5">• {r}</div>)}
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => approveOutboundItem(item)} disabled={!verdict.ok}
-                      className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-40 min-h-[34px]">
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-40 min-h-[34px]">
                       Approve to send
                     </button>
-                    <button onClick={() => rejectOutboundItem(item.id)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">Reject</button>
+                    <button onClick={() => rejectOutboundItem(item.id)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">Reject</button>
                   </div>
                 </div>
               );
             })}
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Approving marks the draft cleared to send and advances the lead to "Contacted." We never auto-send.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Approving marks the draft cleared to send and advances the lead to "Contacted." We never auto-send.</p>
           </div>
         )}
       </section>
@@ -347,7 +347,7 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
 
       {/* Marketplace balance — don't over-acquire one side */}
       <section className={`border-2 p-4 ${balance.recommend === 'balanced' ? 'border-[#5A6E3D] bg-white' : 'border-[#B85838] bg-white'}`}>
-        <div className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: balance.recommend === 'balanced' ? '#5A6E3D' : '#B85838' }}>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: balance.recommend === 'balanced' ? '#5A6E3D' : '#B85838' }}>
           ⚖ Marketplace balance
         </div>
         <div className="grid grid-cols-3 gap-2 mb-2">
@@ -369,13 +369,13 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
       {/* Lead pipeline */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{SIDE_TAB_LABEL[sideKey]} pipeline · {sideLeads.length}</h2>
-          <button onClick={() => setShowLeadForm(!showLeadForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showLeadForm ? '× Cancel' : '+ Log lead'}</button>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{SIDE_TAB_LABEL[sideKey]} pipeline · {sideLeads.length}</h2>
+          <button onClick={() => setShowLeadForm(!showLeadForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showLeadForm ? '× Cancel' : '+ Log lead'}</button>
         </div>
         {showLeadForm && <LeadForm config={config} sideKey={sideKey} onSave={(lead) => { addLead && addLead(lead); setShowLeadForm(false); }} />}
 
         <div className="bg-white border border-[#E8E4DC] p-3 mb-3">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-2">Funnel</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-2">Funnel</div>
           <div className="space-y-1.5">
             {funnel.map((s) => {
               const count = metrics.byStage[s.key] || 0;
@@ -420,15 +420,15 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
               <div key={track.key} className="bg-white border border-[#E8E4DC] p-3">
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{track.title}</span>
-                  <span className={`text-[10px] uppercase tracking-wider ${isTrackPublishable(track) ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
+                  <span className={`text-[0.625rem] uppercase tracking-wider ${isTrackPublishable(track) ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
                     {isTrackPublishable(track) ? '✓ validated' : 'needs validation'}
                   </span>
                 </div>
                 <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{track.purpose}</div>
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
                   {track.modules.length} lessons · {track.leadMagnet ? 'lead magnet' : ''}{track.retention ? ' · retention' : ''}{ce > 0 ? ` · ~${ce} CE (to confirm)` : ''}
                 </div>
-                <ul className="text-[11px] text-[#5A5751] mt-1.5 space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                <ul className="text-[0.6875rem] text-[#5A5751] mt-1.5 space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   {track.modules.map((m) => <li key={m.id}>• {m.title}</li>)}
                 </ul>
               </div>
@@ -455,16 +455,16 @@ function ClientGrowth({ leads = [], addLead, updateLead, deleteLead }) {
 
       {/* Guardrails ledger */}
       <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Binding guardrails</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Binding guardrails</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Object.entries(GUARDRAILS).map(([key, g]) => (
             <div key={key} className="border border-[#E8E4DC] p-2.5">
               <div className="text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>✓ {g.label}</div>
-              <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{g.detail}</div>
+              <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{g.detail}</div>
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
           The A.I. drafts, researches, and produces; Christina and Darrell approve anything outbound. We produce packaging, sequences, and leads — never transactions.
         </p>
       </section>
@@ -501,7 +501,7 @@ function Cockpit({ run, running, sideLabel, pendingOutboundCount, needsCapture, 
           <div className="flex items-center gap-2.5 min-w-0">
             <span className={`inline-block w-2.5 h-2.5 rounded-full ${running ? 'animate-pulse' : ''}`} style={{ background: meta.color }} aria-hidden="true" />
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] font-semibold" style={{ color: meta.color }}>Cockpit · {meta.label}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] font-semibold" style={{ color: meta.color }}>Cockpit · {meta.label}</div>
               <div className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{runStatusLabel(run && running ? { ...run, status: 'running' } : run)}</div>
             </div>
           </div>
@@ -527,7 +527,7 @@ function Cockpit({ run, running, sideLabel, pendingOutboundCount, needsCapture, 
               const c = st === 'produced' ? '#5A6E3D' : st === 'needs-capture' ? '#B85838' : st === 'error' ? '#B85838' : st === 'running' ? '#1A1815' : '#E8E4DC';
               return (
                 <div key={s.key} className="flex items-center gap-1.5" title={`${s.role}: ${st}`}>
-                  <span className={`text-[11px] ${st === 'running' ? 'font-semibold' : ''}`} style={{ fontFamily: '"Fraunces", serif', color: c }}>{s.emoji}</span>
+                  <span className={`text-[0.6875rem] ${st === 'running' ? 'font-semibold' : ''}`} style={{ fontFamily: '"Fraunces", serif', color: c }}>{s.emoji}</span>
                   <span className="inline-block h-1 w-6 sm:w-10" style={{ background: c }} aria-hidden="true" />
                 </div>
               );
@@ -539,27 +539,27 @@ function Cockpit({ run, running, sideLabel, pendingOutboundCount, needsCapture, 
       {/* what's on me + brakes */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border-t-2 border-[#1A1815]">
         <div className="bg-white p-3">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Awaiting your approval</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Awaiting your approval</div>
           <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, color: pendingOutboundCount > 0 ? '#B85838' : '#1A1815' }}>{pendingOutboundCount}</div>
-          <div className="text-[10px] text-[#5A5751]">outbound draft(s) — nothing sends without you</div>
+          <div className="text-[0.625rem] text-[#5A5751]">outbound draft(s) — nothing sends without you</div>
         </div>
         <div className="bg-white p-3">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Needs you to capture</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Needs you to capture</div>
           <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, color: needsCapture > 0 ? '#B85838' : '#1A1815' }}>{needsCapture}</div>
-          <div className="text-[10px] text-[#5A5751]">A.I. prompt(s) to run (sovereign workflow pending)</div>
+          <div className="text-[0.625rem] text-[#5A5751]">A.I. prompt(s) to run (sovereign workflow pending)</div>
         </div>
         <div className="bg-white p-3">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Brakes</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Brakes</div>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
             <button onClick={onToggleKill} title="Master stop — when engaged, no run can start"
-              className={`text-[9px] uppercase tracking-wider px-2 py-1 border min-h-[30px] ${killEngaged ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}>
+              className={`text-[0.5625rem] uppercase tracking-wider px-2 py-1 border min-h-[30px] ${killEngaged ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}>
               {killEngaged ? '⛔ Kill-switch ON — clear' : '● Kill-switch clear'}
             </button>
-            <span className={`text-[9px] uppercase tracking-wider px-2 py-1 border ${lockHeld ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+            <span className={`text-[0.5625rem] uppercase tracking-wider px-2 py-1 border ${lockHeld ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
               {lockHeld ? '🔒 Run in progress' : '🔓 Lock free'}
             </span>
           </div>
-          <div className="text-[10px] text-[#5A5751] mt-1.5 flex items-center gap-1.5 flex-wrap">
+          <div className="text-[0.625rem] text-[#5A5751] mt-1.5 flex items-center gap-1.5 flex-wrap">
             <span>Budget: {remaining}/{(budget && budget.capCalls) || 0} stage-calls left</span>
             <button onClick={onResetBudget} className="underline hover:text-[#B85838]">reset</button>
           </div>
@@ -575,17 +575,17 @@ function Cockpit({ run, running, sideLabel, pendingOutboundCount, needsCapture, 
 function ContractStrip() {
   return (
     <section className="bg-white border border-[#E8E4DC] p-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">What the team does · one run</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">What the team does · one run</div>
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         One trigger → four stages, each feeding the next. The first three <strong>auto-produce drafts</strong>; the fourth builds the sequence and queues outbound that <strong>waits for you</strong>. Nothing is sent automatically.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
         {ACQUISITION_STAGES.map((s, i) => (
           <div key={s.key} className="border border-[#E8E4DC] p-2.5 relative">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Stage {s.n}{i < ACQUISITION_STAGES.length - 1 ? ' →' : ''}</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Stage {s.n}{i < ACQUISITION_STAGES.length - 1 ? ' →' : ''}</div>
             <div className="text-sm mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.emoji} {s.role}</div>
-            <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Produces: {s.producesLabel.toLowerCase()}</div>
-            <div className={`text-[9px] uppercase tracking-wider mt-1.5 inline-block px-1.5 py-0.5 border bg-[#FAF8F4] ${s.key === 'conversion-system' ? 'text-[#B85838] border-[#B85838]' : 'text-[#5A6E3D] border-[#5A6E3D]'}`}>
+            <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Produces: {s.producesLabel.toLowerCase()}</div>
+            <div className={`text-[0.5625rem] uppercase tracking-wider mt-1.5 inline-block px-1.5 py-0.5 border bg-[#FAF8F4] ${s.key === 'conversion-system' ? 'text-[#B85838] border-[#B85838]' : 'text-[#5A6E3D] border-[#5A6E3D]'}`}>
               {s.key === 'conversion-system' ? 'Drafts → you approve' : 'Automated draft'}
             </div>
           </div>
@@ -659,7 +659,7 @@ function ActivityReport({ report, metrics, sideLabel }) {
         <MetricCell label="Needs capture" value={`${report.needsCapture}`} sub="A.I. pending" small />
         <MetricCell label="Est. time saved" value={timeSaved} sub="estimate" small />
       </div>
-      <p className="text-[10px] text-[#5A5751] italic mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{report.estTimeSavedAssumption} Counts are real; time-saved is the only estimate.</p>
+      <p className="text-[0.625rem] text-[#5A5751] italic mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{report.estTimeSavedAssumption} Counts are real; time-saved is the only estimate.</p>
 
       {report.perRun.length === 0 ? (
         <div className="bg-white border border-[#E8E4DC] p-5 text-center">
@@ -676,26 +676,26 @@ function ActivityReport({ report, metrics, sideLabel }) {
                   className="w-full flex items-center justify-between gap-2 p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
                   <div className="min-w-0">
                     <span className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Run · {r.startedAt ? new Date(r.startedAt).toLocaleString() : '—'}</span>
-                    <span className={`text-[10px] uppercase tracking-wider ml-2 ${statusColor}`}>{r.status}</span>
+                    <span className={`text-[0.625rem] uppercase tracking-wider ml-2 ${statusColor}`}>{r.status}</span>
                   </div>
-                  <span className="text-[10px] text-[#5A5751] shrink-0">{r.draftsProduced} draft(s) · {r.landedLeads} lead(s) · {r.queuedOutbound} outbound {open ? '−' : '+'}</span>
+                  <span className="text-[0.625rem] text-[#5A5751] shrink-0">{r.draftsProduced} draft(s) · {r.landedLeads} lead(s) · {r.queuedOutbound} outbound {open ? '−' : '+'}</span>
                 </button>
                 {open && (
                   <div className="p-3 pt-0 space-y-2">
                     {r.decisions.length === 0 ? (
-                      <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No stage decisions recorded for this run.</p>
+                      <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No stage decisions recorded for this run.</p>
                     ) : r.decisions.map((d) => (
                       <div key={d.stageKey} className="border-l-2 border-[#E8E4DC] pl-2.5">
-                        <div className="text-[11px]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.emoji} {d.role} <span className="text-[9px] uppercase tracking-wider text-[#5A5751] font-normal">· {d.status}</span></div>
-                        <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{d.rationale}</div>
+                        <div className="text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.emoji} {d.role} <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-normal">· {d.status}</span></div>
+                        <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{d.rationale}</div>
                       </div>
                     ))}
                     {r.events && r.events.length > 0 && (
                       <details className="mt-1">
-                        <summary className="text-[10px] uppercase tracking-wider text-[#5A5751] cursor-pointer">Event log · {r.events.length}</summary>
+                        <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer">Event log · {r.events.length}</summary>
                         <div className="mt-1 space-y-0.5">
                           {r.events.map((e, i) => (
-                            <div key={i} className="text-[10px] text-[#5A5751] flex gap-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                            <div key={i} className="text-[0.625rem] text-[#5A5751] flex gap-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                               <span className="text-[#B85838]">{e.type}</span><span className="truncate">{e.detail}</span>
                             </div>
                           ))}
@@ -720,7 +720,7 @@ function CadencePanel({ cadence, setCadence }) {
   const gate = evaluateCadenceGate(cadence, null);
   return (
     <section className="bg-white border border-[#E8E4DC] p-4">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Optional · continuous cadence</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Optional · continuous cadence</div>
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         An auto-run on a schedule (e.g., refresh market signals + surface new leads daily) — <strong>inert by default</strong>, behind the three brakes (budget + lock + kill-switch) and an explicit arm only Darrell sets. It still approves outbound.
       </p>
@@ -728,11 +728,11 @@ function CadencePanel({ cadence, setCadence }) {
         <input type="checkbox" checked={!!cadence.enabled} onChange={(e) => setCadence({ ...cadence, enabled: e.target.checked })} className="w-4 h-4" />
         Enable cadence feature (still requires arming + brakes)
       </label>
-      <div className={`text-[11px] mt-1 ${gate.allowed ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>
+      <div className={`text-[0.6875rem] mt-1 ${gate.allowed ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>
         Status: {cadenceStatusLabel(cadence, null)}
       </div>
       {!gate.allowed && (
-        <ul className="text-[10px] text-[#5A5751] mt-1 space-y-0.5">
+        <ul className="text-[0.625rem] text-[#5A5751] mt-1 space-y-0.5">
           {gate.reasons.map((r, i) => <li key={i}>• {r}</li>)}
         </ul>
       )}
@@ -757,12 +757,12 @@ function StageCard({ stage, config, sideKey, priorSummary, open, onToggle, outpu
     <div className="bg-white border border-[#E8E4DC]">
       <button onClick={onToggle} aria-expanded={open} className="w-full flex items-center justify-between gap-3 p-3.5 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0">Stage {stage.n}</span>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0">Stage {stage.n}</span>
           <span className="shrink-0" aria-hidden="true">{stage.emoji}</span>
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="truncate">{stage.role}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {approvedCount > 0 && <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]">{approvedCount} approved</span>}
+          {approvedCount > 0 && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]">{approvedCount} approved</span>}
           <span className="text-[#5A5751]">{open ? '−' : '+'}</span>
         </div>
       </button>
@@ -770,30 +770,30 @@ function StageCard({ stage, config, sideKey, priorSummary, open, onToggle, outpu
         <div className="p-3.5 pt-0 space-y-3">
           <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{stage.goal}</p>
           <div className="flex flex-wrap gap-1.5">
-            {brief.guardrails.map((g) => <span key={g.key} title={g.detail} className="text-[9px] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">{g.label}</span>)}
+            {brief.guardrails.map((g) => <span key={g.key} title={g.detail} className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">{g.label}</span>)}
           </div>
           <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2.5">
             <div className="flex items-baseline justify-between gap-2 mb-1">
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">A.I. prompt (deterministic)</div>
-              <button onClick={copyPrompt} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{copied ? '✓ Copied' : 'Copy prompt'}</button>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">A.I. prompt (deterministic)</div>
+              <button onClick={copyPrompt} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">{copied ? '✓ Copied' : 'Copy prompt'}</button>
             </div>
-            <pre className="text-[11px] text-[#1A1815] whitespace-pre-wrap leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{prompt}</pre>
+            <pre className="text-[0.6875rem] text-[#1A1815] whitespace-pre-wrap leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{prompt}</pre>
           </div>
           <div>
             <textarea rows="4" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={`Capture the ${brief.producesLabel.toLowerCase()} draft…`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" style={{ fontFamily: '"Fraunces", serif' }} />
             {draft.trim() && (liveFindings.claims.length > 0 || liveFindings.phi.length > 0) && (
               <div className="mt-1.5 space-y-1">
-                {liveFindings.claims.map((f, i) => <div key={`c${i}`} className={`text-[11px] ${f.severity === 'block' ? 'text-[#B85838] font-medium' : 'text-[#5A5751]'}`}>{f.severity === 'block' ? '⛔' : '⚠'} "{f.term}" — {f.why} <span className="italic">Fix: {f.fix}</span></div>)}
-                {liveFindings.phi.map((f, i) => <div key={`p${i}`} className="text-[11px] text-[#B85838] font-medium">⛔ Possible PHI: "{f.term}" — {f.why}</div>)}
+                {liveFindings.claims.map((f, i) => <div key={`c${i}`} className={`text-[0.6875rem] ${f.severity === 'block' ? 'text-[#B85838] font-medium' : 'text-[#5A5751]'}`}>{f.severity === 'block' ? '⛔' : '⚠'} "{f.term}" — {f.why} <span className="italic">Fix: {f.fix}</span></div>)}
+                {liveFindings.phi.map((f, i) => <div key={`p${i}`} className="text-[0.6875rem] text-[#B85838] font-medium">⛔ Possible PHI: "{f.term}" — {f.why}</div>)}
               </div>
             )}
-            <button onClick={saveDraft} disabled={!draft.trim() || draftBlocked} className="mt-2 w-full bg-[#5A6E3D] text-white py-2 text-[10px] uppercase tracking-wider hover:bg-[#1A1815] disabled:opacity-40 min-h-[36px]">
+            <button onClick={saveDraft} disabled={!draft.trim() || draftBlocked} className="mt-2 w-full bg-[#5A6E3D] text-white py-2 text-[0.625rem] uppercase tracking-wider hover:bg-[#1A1815] disabled:opacity-40 min-h-[36px]">
               {draftBlocked ? 'Resolve guardrail issues to save' : 'Save draft for review'}
             </button>
           </div>
           {outputs.length > 0 && (
             <div className="space-y-1.5 pt-1">
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Captured · {outputs.length}</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Captured · {outputs.length}</div>
               {outputs.map((o) => <OutputRow key={o.id} output={o} onApprove={approveOutput} onRemove={removeOutput} />)}
             </div>
           )}
@@ -811,7 +811,7 @@ function OutputRow({ output, onApprove, onRemove }) {
     <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2">
       <div className="flex items-baseline justify-between gap-2">
         <button onClick={() => setShow(!show)} className="text-left flex-1 min-w-0 focus:outline focus:outline-2 focus:outline-[#B85838]">
-          <span className={`text-[10px] uppercase tracking-wider mr-2 ${output.status === 'approved' ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
+          <span className={`text-[0.625rem] uppercase tracking-wider mr-2 ${output.status === 'approved' ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
             {output.status === 'approved' ? '✓ Approved' : needsCapture ? '✎ Needs capture' : 'Draft'}
           </span>
           <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -820,13 +820,13 @@ function OutputRow({ output, onApprove, onRemove }) {
         </button>
         <div className="flex items-center gap-1.5 shrink-0">
           {output.status !== 'approved' && !needsCapture && (
-            <button onClick={() => onApprove(output.id)} disabled={!approvable} title={approvable ? 'Approve' : 'Resolve guardrail issues first'} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] disabled:opacity-40 min-h-[32px] px-2">Approve</button>
+            <button onClick={() => onApprove(output.id)} disabled={!approvable} title={approvable ? 'Approve' : 'Resolve guardrail issues first'} className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] disabled:opacity-40 min-h-[32px] px-2">Approve</button>
           )}
           <button onClick={() => onRemove(output.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] min-h-[32px] min-w-[32px]">×</button>
         </div>
       </div>
-      {show && needsCapture && output.prompt && <pre className="text-[11px] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{output.prompt}</pre>}
-      {show && !needsCapture && <pre className="text-[11px] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>{output.content}</pre>}
+      {show && needsCapture && output.prompt && <pre className="text-[0.6875rem] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{output.prompt}</pre>}
+      {show && !needsCapture && <pre className="text-[0.6875rem] text-[#1A1815] whitespace-pre-wrap leading-snug mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>{output.content}</pre>}
     </div>
   );
 }
@@ -842,27 +842,27 @@ function LeadForm({ config, sideKey, onSave }) {
   };
   return (
     <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New {preset ? preset.leadNoun : 'lead'}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New {preset ? preset.leadNoun : 'lead'}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">{isClient ? 'First name' : 'Contact name'} *</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">{isClient ? 'Referred by' : 'Practice / org'}</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.org} onChange={(e) => setForm({ ...form, org: e.target.value })} /></div>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{isClient ? 'First name' : 'Contact name'} *</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{isClient ? 'Referred by' : 'Practice / org'}</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.org} onChange={(e) => setForm({ ...form, org: e.target.value })} /></div>
       </div>
-      {!isClient && <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Role / license</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., LCSW, Clinical director" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>}
+      {!isClient && <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Role / license</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., LCSW, Clinical director" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact method</label>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact method</label>
           <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
             <option value="email">Email</option><option value="phone">Phone</option><option value="text">Text</option><option value="linkedin">LinkedIn</option><option value="other">Other</option>
           </select></div>
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact info *</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactValue} onChange={(e) => setForm({ ...form, contactValue: e.target.value })} /></div>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact info *</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactValue} onChange={(e) => setForm({ ...form, contactValue: e.target.value })} /></div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Source</label>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Source</label>
           <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
             {LEAD_SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select></div>
-        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Source detail</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.sourceDetail} onChange={(e) => setForm({ ...form, sourceDetail: e.target.value })} /></div>
+        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Source detail</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.sourceDetail} onChange={(e) => setForm({ ...form, sourceDetail: e.target.value })} /></div>
       </div>
-      <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (no clinical detail)</label><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="General context only — no PHI" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+      <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes (no clinical detail)</label><textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="General context only — no PHI" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
       <label className="flex items-center gap-2 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
         <input type="checkbox" checked={form.outreachOk} onChange={(e) => setForm({ ...form, outreachOk: e.target.checked })} className="w-4 h-4" />
         Consent to outreach recorded (served, not surveilled)
@@ -890,29 +890,29 @@ function LeadRow({ lead, config, updateLead, deleteLead, onDraftOutreach }) {
         <button onClick={() => setOpen(!open)} className="text-left flex-1 min-w-0 focus:outline focus:outline-2 focus:outline-[#B85838]">
           <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{lead.name}</span>
           {lead.org && <span className="text-[#5A5751] text-xs"> · {lead.org}</span>}
-          <span className={`text-[10px] uppercase tracking-wider font-medium ml-2 ${stageColor}`}>{stageMeta.label}</span>
+          <span className={`text-[0.625rem] uppercase tracking-wider font-medium ml-2 ${stageColor}`}>{stageMeta.label}</span>
         </button>
         <div className="flex items-center gap-1.5 shrink-0">
-          {canOutreach(lead) && <span className="text-[10px] text-[#5A6E3D]" title="Consent recorded">✓ consent</span>}
+          {canOutreach(lead) && <span className="text-[0.625rem] text-[#5A6E3D]" title="Consent recorded">✓ consent</span>}
           <button onClick={() => { if (confirm(`Delete lead ${lead.name}?`)) deleteLead && deleteLead(lead.id); }} aria-label="Delete lead" className="text-sm text-[#5A5751] hover:text-[#B85838] min-h-[32px] min-w-[32px]">×</button>
         </div>
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">{sourceLabel}{lead.sourceDetail ? ` · ${lead.sourceDetail}` : ''}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{sourceLabel}{lead.sourceDetail ? ` · ${lead.sourceDetail}` : ''}</div>
       {open && (
         <div className="mt-2.5 pt-2.5 border-t border-[#E8E4DC] space-y-2">
           <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{lead.contactMethod}: {lead.contactValue}</div>
           {lead.notes && <div className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{lead.notes}</div>}
           <div className="flex flex-wrap gap-1.5">
             {next && !nextNeedsOutbound && (
-              <button onClick={advance} className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[34px]">→ {(FUNNEL_STAGE_META[next] || {}).label || next}</button>
+              <button onClick={advance} className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[34px]">→ {(FUNNEL_STAGE_META[next] || {}).label || next}</button>
             )}
             {next && nextNeedsOutbound && (
-              <button onClick={() => onDraftOutreach && onDraftOutreach(lead)} className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[34px]" title="Drafts an outbound message into the approval queue (never sent automatically)">✎ Draft outreach → approval</button>
+              <button onClick={() => onDraftOutreach && onDraftOutreach(lead)} className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[34px]" title="Drafts an outbound message into the approval queue (never sent automatically)">✎ Draft outreach → approval</button>
             )}
-            {lead.stage !== 'lost' && <button onClick={markLost} className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">Mark lost</button>}
-            <button onClick={toggleConsent} className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">{canOutreach(lead) ? 'Revoke consent' : 'Record consent'}</button>
+            {lead.stage !== 'lost' && <button onClick={markLost} className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">Mark lost</button>}
+            <button onClick={toggleConsent} className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] min-h-[34px]">{canOutreach(lead) ? 'Revoke consent' : 'Record consent'}</button>
           </div>
-          {next && nextNeedsOutbound && <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Next stage ("{(FUNNEL_STAGE_META[next] || {}).label}") needs a real message to go out — that waits for your approval.</p>}
+          {next && nextNeedsOutbound && <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Next stage ("{(FUNNEL_STAGE_META[next] || {}).label}") needs a real message to go out — that waits for your approval.</p>}
         </div>
       )}
     </div>

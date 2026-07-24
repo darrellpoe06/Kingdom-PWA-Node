@@ -37,9 +37,9 @@
 // never fixed px, so the global A / A+ / A++ / A+++ control (lib/text-size.js, which
 // scales the document root font-size) actually enlarges the lesson body, segments,
 // quiz, anchor scripture, facilitator guide and every supporting label. Fixed-px
-// classes (text-[0.625rem] etc.) are absolute and do NOT inherit the root scale — they
+// classes (text-[10px] etc.) are absolute and do NOT inherit the root scale — they
 // were the bug Darrell hit (Learn stayed small at Largest). They are now written at
-// the SAME 16px baseline (text-[0.625rem] -> text-[0.625rem]): pixel-identical at Normal,
+// the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo } from 'react';
 import {

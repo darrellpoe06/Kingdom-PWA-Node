@@ -71,16 +71,16 @@ export default function TrustedDevices({ userId }) {
               <li key={d.id} className="flex items-center justify-between gap-3 border border-[#1A1815] px-3 py-2">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif' }}>
-                    {d.label || 'Device'}{isThis && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#3F5A2A]">This device</span>}
+                    {d.label || 'Device'}{isThis && <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#3F5A2A]">This device</span>}
                   </div>
-                  <div className="text-[11px] text-[#5A5751]">Added {fmt(d.created_at)} · Last used {fmt(d.last_seen_at)}</div>
+                  <div className="text-[0.6875rem] text-[#5A5751]">Added {fmt(d.created_at)} · Last used {fmt(d.last_seen_at)}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRevoke(d)}
                   disabled={busyId === d.id}
                   aria-label={`Revoke trust for ${d.label || 'this device'}`}
-                  className="shrink-0 text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#9A3412] text-[#9A3412] hover:bg-[#9A3412] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
+                  className="shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#9A3412] text-[#9A3412] hover:bg-[#9A3412] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">
                   {busyId === d.id ? 'Revoking…' : 'Revoke'}
                 </button>
               </li>

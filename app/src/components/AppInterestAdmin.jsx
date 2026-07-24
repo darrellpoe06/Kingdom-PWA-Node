@@ -69,9 +69,9 @@ export default function AppInterestAdmin() {
         <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
           {rows.length} interested · {counts.new || 0} new · {counts.invited || 0} invited
         </p>
-        <button type="button" onClick={load} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Refresh</button>
+        <button type="button" onClick={load} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Refresh</button>
       </div>
-      {note && <p className="text-[11px] text-[#5A6E3D] mb-2" aria-live="polite">{note}</p>}
+      {note && <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" aria-live="polite">{note}</p>}
 
       <div className="mb-4">
         <AppShareQR />
@@ -85,9 +85,9 @@ export default function AppInterestAdmin() {
             <li key={r.id} className="border border-[#E8E4DC] p-3">
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  {r.name || '(no name)'} {r.is_minor && <span className="text-[10px] uppercase tracking-wider text-[#B85838]">· minor{r.parent_confirmed ? ' · parent ok' : ' · awaiting parent'}</span>}
+                  {r.name || '(no name)'} {r.is_minor && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">· minor{r.parent_confirmed ? ' · parent ok' : ' · awaiting parent'}</span>}
                 </span>
-                <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.created_at)} · {r.platform || '—'}</span>
+                <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.created_at)} · {r.platform || '—'}</span>
               </div>
               <div className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                 {r.email && <a href={`mailto:${r.email}?subject=${encodeURIComponent('Your PoeTech invite')}&body=${encodeURIComponent(inviteBody(r))}`} className="underline text-[#5A6E3D] break-all">{r.email}</a>}
@@ -95,12 +95,12 @@ export default function AppInterestAdmin() {
               </div>
               {r.issue && <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>“{r.issue}”</p>}
               <div className="flex gap-2 mt-2 flex-wrap">
-                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${r.status === 'invited' ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751]'}`}>{r.status}</span>
+                <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${r.status === 'invited' ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751]'}`}>{r.status}</span>
                 {r.status !== 'invited' && (
-                  <button type="button" onClick={() => mark(r.id, 'invited')} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Mark invited</button>
+                  <button type="button" onClick={() => mark(r.id, 'invited')} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Mark invited</button>
                 )}
                 {r.status !== 'closed' && (
-                  <button type="button" onClick={() => mark(r.id, 'closed')} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
+                  <button type="button" onClick={() => mark(r.id, 'closed')} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
                 )}
               </div>
             </li>
@@ -114,7 +114,7 @@ export default function AppInterestAdmin() {
 function Shell({ children }) {
   return (
     <section className="max-w-2xl mx-auto p-4 sm:p-6">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Admin</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Admin</div>
       <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who wants the app</h2>
       <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>People who asked for an invite or help installing. Private to Darrell &amp; Christina.</p>
       {children}

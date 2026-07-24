@@ -51,7 +51,7 @@ function TrialBanner({ sub }) {
     <div className="border p-3 mb-4" style={{ borderColor: expired ? P.line : P.accent, background: P.panel }}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: P.accent }}>
+          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold" style={{ color: P.accent }}>
             {paid ? 'Membership · active' : '90-day free access'}
           </div>
           <div className="text-sm" style={{ color: P.ink, fontFamily: '"Fraunces", serif' }}>{t.message}</div>
@@ -59,7 +59,7 @@ function TrialBanner({ sub }) {
         {t.phase === 'trial' && (
           <div className="text-right">
             <div className="text-lg font-semibold" style={{ color: P.ink }}>{t.daysLeft}</div>
-            <div className="text-[10px]" style={{ color: P.muted }}>days left</div>
+            <div className="text-[0.625rem]" style={{ color: P.muted }}>days left</div>
           </div>
         )}
       </div>
@@ -93,7 +93,7 @@ function ConversationPanel({ product, sub, userKey }) {
   }
   return (
     <div className="border p-2" style={{ borderColor: P.line }}>
-      <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Conversation ({list.length})</div>
+      <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Conversation ({list.length})</div>
       <div className="space-y-1 max-h-48 overflow-y-auto mb-2">
         {list.length === 0 && <p className="text-xs" style={{ color: P.muted }}>Be the first to start the conversation around this book.</p>}
         {list.map((m) => (
@@ -106,7 +106,7 @@ function ConversationPanel({ product, sub, userKey }) {
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask a question or share…" className="flex-1 text-xs border px-2 py-1" style={{ borderColor: P.line }} />
         <button type="button" onClick={post} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Post</button>
       </div>
-      {notice && <p className="text-[11px] mt-1" style={{ color: P.accent }}>{notice}</p>}
+      {notice && <p className="text-[0.6875rem] mt-1" style={{ color: P.accent }}>{notice}</p>}
     </div>
   );
 }
@@ -117,7 +117,7 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
   const [price, setPrice] = useState((product.priceCents / 100).toFixed(2));
   return (
     <div className="border p-2 mt-2" style={{ borderColor: P.accent, background: P.panel }}>
-      <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: P.accent }}>Cost-efficiency screen (Governor)</div>
+      <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.accent }}>Cost-efficiency screen (Governor)</div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs" style={{ color: P.ink }}>
         <span>Price</span><span>{formatPrice(e.priceCents)}</span>
         <span>Processor fee</span><span>−{formatPrice(e.processorFeeCents)}</span>
@@ -125,16 +125,16 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
         <span>Per-sale profitable</span><span>{e.isProfitable ? 'Yes' : 'No'}</span>
         <span>90-free justified</span><span>{t.justified ? 'Yes (LTV &gt; trial cost)' : 'Review'}</span>
       </div>
-      <p className="text-[10px] mt-1" style={{ color: P.muted }}>{e.leanAlternative}</p>
+      <p className="text-[0.625rem] mt-1" style={{ color: P.muted }}>{e.leanAlternative}</p>
       <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t" style={{ borderColor: P.line }}>
-        <label className="text-[11px]" style={{ color: P.muted }}>Price $
+        <label className="text-[0.6875rem]" style={{ color: P.muted }}>Price $
           <input value={price} onChange={(e2) => setPrice(e2.target.value)} className="w-16 text-xs border px-1 py-0.5 ml-1" style={{ borderColor: P.line }} />
         </label>
         <button type="button" onClick={() => onPrice(product, Math.round(parseFloat(price || '0') * 100))} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Preview → set price</button>
         {product.status !== 'published' && publishableProduct(product).ok && (
           <button type="button" onClick={() => onPublish(product)} className={`${btn} text-white`} style={{ background: P.ink, borderColor: P.ink }}>Preview → publish</button>
         )}
-        {product.status === 'published' && <span className="text-[11px] text-[#216E39]">● published</span>}
+        {product.status === 'published' && <span className="text-[0.6875rem] text-[#216E39]">● published</span>}
       </div>
     </div>
   );
@@ -214,7 +214,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
                 <div className="text-2xl" aria-hidden="true">{product.coverEmoji}</div>
                 <div className="flex-1">
                   <div className="font-semibold" style={{ color: P.ink, fontFamily: '"Fraunces", serif' }}>{product.title}</div>
-                  <div className="text-[11px] italic" style={{ color: P.muted }}>{product.subtitle} · {product.author}</div>
+                  <div className="text-[0.6875rem] italic" style={{ color: P.muted }}>{product.subtitle} · {product.author}</div>
                   <p className="text-xs mt-1" style={{ color: P.ink }}>{product.blurb}</p>
                 </div>
                 <div className="text-sm font-semibold" style={{ color: P.accent }}>{owned ? 'Owned' : formatPrice(product.priceCents)}</div>
@@ -235,13 +235,13 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
 
       {isFamilyMember && (
         <div className="mt-4 border p-3" style={{ borderColor: P.line }}>
-          <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Drafts (Governor)</div>
+          <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Drafts (Governor)</div>
           {catalog.filter((p) => p.status !== 'published').map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-1" style={{ color: P.ink }}>
               <span>{p.coverEmoji} {p.title} <span style={{ color: P.muted }}>— {p.blurb}</span></span>
               {publishableProduct(p).ok
                 ? <button type="button" onClick={() => publish(p)} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Publish</button>
-                : <span className="text-[10px]" style={{ color: P.muted }}>{publishableProduct(p).reasons[0]}</span>}
+                : <span className="text-[0.625rem]" style={{ color: P.muted }}>{publishableProduct(p).reasons[0]}</span>}
             </div>
           ))}
         </div>

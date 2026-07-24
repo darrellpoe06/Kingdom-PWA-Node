@@ -260,7 +260,7 @@ export default function NetworkStatus() {
                 same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
                 for the light pill because the midnight remap lightens text-[#1A1815] to
                 #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
-            <span className="text-[10px] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
+            <span className="text-[0.625rem] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
               {connLabel}
             </span>
           </>
@@ -274,7 +274,7 @@ export default function NetworkStatus() {
           role="dialog"
           aria-label="Network status detail"
         >
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2 font-semibold">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2 font-semibold">
             Connection Health
           </div>
 
@@ -291,16 +291,16 @@ export default function NetworkStatus() {
           />
 
           {(net.downlink || net.rtt) && (
-            <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751]">
+            <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751]">
               {net.downlink ? `${net.downlink} Mbps` : ''}{net.downlink && net.rtt ? ' · ' : ''}{net.rtt ? `${net.rtt} ms RTT` : ''}{net.saveData ? ' · Data Saver on' : ''}
             </div>
           )}
 
-          <div className="mt-2 text-[10px] text-[#5A5751]">
+          <div className="mt-2 text-[0.625rem] text-[#5A5751]">
             Last check {formatRelative(lastProbe)}
           </div>
 
-          <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] leading-relaxed">
+          <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751] leading-relaxed">
             Three checks: your device's connection, the public internet, and the family NAS. A red dot tells you where to look.
           </div>
         </div>
@@ -316,7 +316,7 @@ function Row({ label, state, detail }) {
         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: dotColor(state) }} />
         <span className="font-medium">{label}</span>
       </div>
-      <span className="text-[10px] text-[#5A5751]">{detail}</span>
+      <span className="text-[0.625rem] text-[#5A5751]">{detail}</span>
     </div>
   );
 }

@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#FAF8F4]">
         <div className="bg-white border-2 border-[#B85838] p-6 max-w-lg w-full">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Something went wrong on this screen</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Something went wrong on this screen</div>
           <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>
             This page hit an error — but your data is safe.
           </h2>
@@ -56,8 +56,8 @@ class ErrorBoundary extends React.Component {
             </button>
           </div>
           <details className="mt-4">
-            <summary className="text-[10px] uppercase tracking-wider text-[#5A5751] cursor-pointer hover:text-[#1A1815]">Technical detail</summary>
-            <pre className="mt-2 text-[11px] text-[#5A5751] whitespace-pre-wrap break-words" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer hover:text-[#1A1815]">Technical detail</summary>
+            <pre className="mt-2 text-[0.6875rem] text-[#5A5751] whitespace-pre-wrap break-words" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {String(this.state.error?.message || this.state.error)}
             </pre>
           </details>

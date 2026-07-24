@@ -198,7 +198,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </p>
         </div>
         <div className="bg-white border-2 border-[#1A1815] p-4 sm:p-5 mb-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-semibold">Why people switch</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-semibold">Why people switch</div>
           <p className="text-base leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
             Most home / small-business operators don't need another app. What they need is to <strong>stop giving out their personal phone number</strong> to contractors, tenants, clients, and donors — while still keeping the relationship working. PoeTech gives every relationship its own scoped channel: full context, full history, no personal-number exposure.
           </p>
@@ -219,7 +219,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           { id: 'free', label: 'Start free', icon: 'check', render: () => (
           <>
         {/* START HERE — Foundation FREE leads, visually dominant, above the paid ladder. */}
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2">★ Start here</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2">★ Start here</div>
         <div className="mb-5">
           <PricingTier name="Foundation" badge="Free forever · no credit card" bestFor="every family — the free front door to stewardship." tagline="Always free · core financial control" monthly="0" annual="0" replaces="~$15/mo of free / freemium tools (YNAB-class budgeting + a free debt-payoff tool + a property preview) — and Foundation is free, forever" features={['Big Picture dashboard + Action Queue (Changes / Incidents / Projects)','Books — entities · accounts · transactions · calendar · 1099','Debts — avalanche + snowball strategies','Markets watchlist (up to 5 tickers)','Church tab — always free for everyone','Spiritual Life · Godhead Study Platform — free for every tier','Dev/Ops tab — 1 personalized entrepreneurial option per profile · view-only PoeTech Services portfolio','Real Estate — read-only preview (sample property)','Event reminders (browser)','Local-first · your data stays on your device']} highlight onChoose={openCart} />
           {/* 2026-06-02 Foundation data-durability note per tier-review Decision 5c +
@@ -241,7 +241,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             partners — never by selling data). Four pathways, each scoped.
             Q3/Q4 closed 2026-06-03: aligned-brand sponsorship model. */}
         <div className="mb-5 px-4 py-3 bg-white border-2 border-[#B85838]">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Four free pathways · each with a specific scope</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Four free pathways · each with a specific scope</div>
           <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
             Two are <strong>free for everyone, forever</strong>: the <strong>Financial System for Families</strong> (the Foundation tier above) and the <strong>Spiritual Module for the edification of the Body</strong> (Scripture, the Godhead Study Platform, and worship surfaces — free on every tier, no upgrade). Two more open the door for those the work of justice names: <strong>Loved Ones · Founding Family</strong> (free PoeTech+ for life — the first 100 Church of the Living God families and chosen family invited directly by the Poe family) and <strong>Community · Families in Need</strong> (free access through partner churches and 501(c)(3)s — funded by our aligned-brand partners: open-source tools, data-sovereignty hardware, and family-stewardship-aligned services we genuinely recommend, never by selling your data). See the cards below the paid ladder.
           </p>
@@ -250,7 +250,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         ) },
           { id: 'paid', label: 'Paid tiers', icon: 'coins', render: () => (
           <>
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-2">Paid tiers · options, not the gate</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-2">Paid tiers · options, not the gate</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Round 5 — Tier features matched to the live tier-gating map (see
               VIEW_TIER_REQUIREMENTS). 2026-06-02 split into Available now vs Ships next
@@ -264,7 +264,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         ) },
           { id: 'justice', label: 'Free for justice', icon: 'heart', render: () => (
           <>
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2 mt-6">Free access for the work of justice</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2 mt-6">Free access for the work of justice</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <PricingTier name="Loved Ones · Founding Family" bestFor="the people we love — free PoeTech+ for life for first-100 Church of the Living God families and for chosen family invited directly by the Poe family." tagline="Free PoeTech+ for life · First 100 Church of the Living God families AND chosen family invited directly by the Poe family" monthly="0" annual="0" replaces="Lifetime savings of ~$468/yr per family at current prices · more as prices rise" features={['Everything in Foundation','Cross-device sync (opt-in cloud)','Encrypted cloud backup','Multi-user household sharing','Locked in for life — even when prices change','First 100 Church of the Living God families — The Love Corner, Champaign IL · the gated rail, that cohort closes when filled','Chosen family by direct Poe-family invitation — open-ended at Poe-family discretion; a gift of belonging, not a paywall','Soul first, then the family economy — Body-of-Christ stewardship where the spiritual and the financial meet','One month Household-tier credit per paying family you refer']} community onChoose={openCart} />
           <PricingTier name="Community · Families in Need" bestFor="families served by a partner church or 501(c)(3) — free, with dignity." tagline="Free access for families · funded by aligned-brand partners, never your data" monthly="0" annual="0" features={['Available through partner Churches','And 501(c)(3) organizations serving the poor, elderly, fatherless','Verification through partner org · not the family','Full Foundation + PoeTech+ features','Designed to remove stigma — help comes from the community','Funded by vetted aligned-brand partners — open-source tools, data-sovereignty hardware, and family-stewardship-aligned services we genuinely recommend; never by selling your data','See the partner list + values-alignment check on the Sponsors page (rolling out)']} community onChoose={openCart} />
@@ -290,7 +290,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     { id: 'mission', label: 'Mission', icon: 'dove', render: () => (
       <>
       <section>
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2">PoeTech LLC · poetech.us</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2">PoeTech LLC · poetech.us</div>
         <h2 className="text-3xl sm:text-4xl mb-4 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>A stronghold for relationships with Yahweh.</h2>
         <p className="text-base leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           PoeTech exists to help families be supported in their relationship with Yahweh — to make His voice easier to hear and easier to follow. The Family OS is the practical infrastructure: financial visibility, home stewardship, health awareness, scope-of-work fairness. Each module serves the larger mission.
@@ -326,7 +326,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
 
 
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The Integration Promise</div>
         <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Every module is being built to share data with every other. As each one ships: the home module detecting an HVAC failure will land the incident in the cash flow; the health module measuring stress will show its correlation with pressure; the spiritual module marking a fast week will show up in the grocery spend pattern. The church and financial modules already run this way today.
         </p>
@@ -428,7 +428,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     { id: 'community', label: 'Community', icon: 'heart', render: () => (
       <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Community Partnership Model</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Community Partnership Model</div>
         <p className="text-sm leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           PoeTech is free at two layers for the work of justice. <strong>Families in need</strong> — the poor, the elderly, the fatherless, those Yahweh names as deserving particular care — receive full access through partner churches and 501(c)(3)s the family already trusts. The verification and dignity-preserving handoff happens through the partner org, not from PoeTech.
         </p>
@@ -444,7 +444,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     { id: 'bookstore', label: 'Bookstore', icon: 'book', render: () => (
       <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">PoeTech Bookstore · Forthcoming</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">PoeTech Bookstore · Forthcoming</div>
         <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Original work. From us, for the families.</h3>
         <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           The Spiritual Life module is free for every family — but inside it lives a bookstore for original works that fund the platform and propagate the worldview. Digital download for instant access · physical copies fulfilled through Amazon for those who want to hold the book.
@@ -453,7 +453,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
               <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>📖 The Holy Spirit Integration Worldview</h4>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-medium">Forthcoming</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-medium">Forthcoming</span>
             </div>
             <div className="text-xs text-[#5A5751] mb-2">Darrell Poe</div>
             <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -463,7 +463,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-4">
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
               <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>📖 Christina Poe — Title TBD</h4>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-medium">Forthcoming</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-medium">Forthcoming</span>
             </div>
             <div className="text-xs text-[#5A5751] mb-2">Christina Poe, MSW</div>
             <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -472,7 +472,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Distribution strategy</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Distribution strategy</div>
           <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li className="flex gap-2"><span className="text-[#B85838]">·</span><span><strong>Digital download in-app</strong> — instant access for PoeTech families, payment through Stripe, file delivered to local device (local-first principle)</span></li>
             <li className="flex gap-2"><span className="text-[#B85838]">·</span><span><strong>Physical copies via Amazon KDP</strong> — print-on-demand fulfillment, widest distribution, no inventory risk · alternatives: IngramSpark for bookstores, BookBaby for premium options</span></li>
@@ -489,7 +489,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         { id: 'ethics', label: 'Ethics', icon: 'check', render: () => (
           <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsorship & Advertising Ethics</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsorship & Advertising Ethics</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           PoeTech does not run programmatic advertising. We do not sell your data, share it with ad networks, or use behavioral targeting. Surveillance capitalism is the opposite of the stronghold this platform is meant to be.
         </p>
@@ -498,7 +498,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1 font-medium">Always allowed</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1 font-medium">Always allowed</div>
             <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
               <li className="flex gap-2"><span className="text-[#5A6E3D]">✓</span><span>PoeTech upgrade prompts (internal)</span></li>
               <li className="flex gap-2"><span className="text-[#5A6E3D]">✓</span><span>Partner church & 501(c)(3) events</span></li>
@@ -508,7 +508,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             </ul>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">Never allowed</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">Never allowed</div>
             <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
               <li className="flex gap-2"><span className="text-[#B85838]">✗</span><span>Behavioral targeting using your data</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]">✗</span><span>Predatory financial products (payday loans, high-rate credit, sketchy investments)</span></li>
@@ -527,7 +527,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         { id: 'tiers', label: 'Tiers & slots', icon: 'coins', render: () => (
           <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsor Tiers · Limited Slots</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Sponsor Tiers · Limited Slots</div>
         <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Maximum 5-7 active sponsors at a time. Limited slots keep the platform trustworthy and the placements valuable. This is the opposite of programmatic ad networks — less here is better.
         </p>
@@ -573,7 +573,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </div>
         </div>
         <div className="mt-4 p-3 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium mb-0.5">Revenue allocation</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium mb-0.5">Revenue allocation</div>
           <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
             At full sponsor roster (~$80K-$150K/yr) this funds 200-500 Community-tier subscriptions. Transparent annual report shows every dollar.
           </p>
@@ -584,7 +584,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         { id: 'vetting', label: 'Vetting', icon: 'lock', render: () => (
           <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Vetting Framework · The PoeTech Standard</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Vetting Framework · The PoeTech Standard</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           A potential sponsor must pass <strong>all eight criteria</strong>. Failing one means no. The decision committee (Darrell + Christina + trusted advisor) decides unanimously.
         </p>
@@ -609,7 +609,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           ))}
         </div>
         <div className="pt-3 border-t border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-medium mb-2">Vetting workflow</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-medium mb-2">Vetting workflow</div>
           <ol className="text-xs text-[#5A5751] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li>1. Application submitted (online form)</li>
             <li>2. Initial review · 1 week · desk research</li>
@@ -625,7 +625,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         { id: 'how', label: 'How it works', icon: 'sliders', render: () => (
           <>
       <section className="bg-white border-2 border-[#B85838] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">How Sponsorship Works · Pay First, Vet in Parallel</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           Pick a tier above and click <strong>Sponsor</strong> — today that opens a pre-filled email that reserves your slot request (in-app payment is not wired yet; terms are settled in the handshake). Vetting against the 8-criterion framework typically completes in <strong>15 business days</strong>, and once payments open: if a sponsorship doesn't clear vetting, <strong>full refund within 5 business days</strong> — no questions, no friction. This protects both sides: you get a fast yes/no, and we keep the platform trustworthy.
         </p>
@@ -643,20 +643,20 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     { id: 'settings', label: 'Settings', icon: 'palette', render: () => (
       <>
       <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">Appearance · Themes</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">Appearance · Themes</div>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Switch themes from the swatches in the header (top-right) anytime. Editorial cream is the default · five total themes including a true dark mode.
         </p>
       </section>
       <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Accessibility · Text size</div>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Need larger print to read comfortably? Use the “aA” control at the top of the screen (in the header, top-right). It scales the whole app from that one place, and your choice is saved on this device.
         </p>
       </section>
       {authUserId && (
         <section className="bg-white border border-[#E8E4DC] p-4">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Security · Multi-point sign-in</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">Security · Multi-point sign-in</div>
           <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
             Your space is protected by more than one key: your identity (email / Google / Apple), a PIN, and the devices you trust. You need at least two to get in.
           </p>
@@ -664,7 +664,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
             <button
               type="button"
               onClick={onChangePin}
-              className="mb-4 text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="mb-4 text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
               Change your PIN
             </button>
           )}
@@ -676,24 +676,24 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     ...(feedback.length > 0 ? [{ id: 'feedback', label: `Tester feedback (${feedback.length})`, icon: 'chat', render: () => (
       <>
         <section className="bg-white border-2 border-[#B85838] p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">💬 Feedback Log · MVP Test</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">💬 Feedback Log · MVP Test</div>
           <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What testers have shared ({feedback.length})</h3>
           <div className="space-y-3">
             {[...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(f => (
               <div key={f.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
                 <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
-                  <div className="text-[10px] uppercase tracking-wider">
+                  <div className="text-[0.625rem] uppercase tracking-wider">
                     <span className="font-semibold text-[#B85838]">{f.area}</span>
                     {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(f.createdAt).toLocaleDateString()}</span>
-                    <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
+                    <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(f.createdAt).toLocaleDateString()}</span>
+                    <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
                   </div>
                 </div>
-                {f.whatsWorking && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
-                {f.whatsNot && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p></div>}
-                {f.whatsMissing && <div className="mb-1"><div className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p></div>}
+                {f.whatsWorking && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
+                {f.whatsNot && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p></div>}
+                {f.whatsMissing && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p></div>}
               </div>
             ))}
           </div>
@@ -703,7 +703,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
     ...(checkoutIntents.length > 0 ? [{ id: 'intents', label: `Checkout intents (${checkoutIntents.length})`, icon: 'mail', render: () => (
       <>
         <section className="bg-white border border-[#1A1815] p-5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">🛒 Checkout Intents · {checkoutIntents.length}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">🛒 Checkout Intents · {checkoutIntents.length}</div>
           <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Who's clicked Subscribe or Claim</h3>
           <div className="space-y-2">
             {checkoutIntents.slice().reverse().map(ci => (
@@ -714,17 +714,17 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
                     <div className="text-xs text-[#5A5751] mt-0.5">
                       {ci.action === 'subscribe' ? 'Subscribe' : 'Claim'} · <strong>{ci.tierName}</strong> · {ci.billing === 'free' ? 'free' : `${ci.billing} ($${ci.price})`}
                     </div>
-                    {ci.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ci.notes}</div>}
+                    {ci.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{ci.notes}</div>}
                   </div>
                   <div className="flex items-baseline gap-2 shrink-0">
-                    <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(ci.at).toLocaleDateString()}</div>
+                    <div className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{new Date(ci.at).toLocaleDateString()}</div>
                     <button onClick={() => { if (confirm('Delete this checkout intent?')) deleteCheckoutIntent(ci.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
             Local-first capture. Email handshake is currently mailto - swap in a Stripe Payment Link in the cart drawer when ready.
           </p>
         </section>
@@ -744,11 +744,11 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <div className="bg-white border-2 border-[#1A1815] max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-[#1A1815] flex items-baseline justify-between gap-3 flex-wrap">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🛒 Checkout</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🛒 Checkout</div>
                 <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{cartTier.name}</h2>
                 <div className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{cartTier.tagline}</div>
               </div>
-              <button onClick={closeCart} aria-label="Close" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+              <button onClick={closeCart} aria-label="Close" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
             </div>
 
             <div className="p-5 space-y-4">
@@ -756,7 +756,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
                 <>
                   <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3">
                     <div className="flex items-baseline justify-between mb-2">
-                      <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">Annual sponsorship</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Annual sponsorship</div>
                       <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${(parseFloat(cartTier.annual) || 0).toLocaleString()}<span className="text-sm text-[#5A5751]">/yr</span></div>
                     </div>
                     <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -769,37 +769,37 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
                   <div>
                     <div className="grid grid-cols-2 gap-2">
                       <button onClick={() => setCartBilling('monthly')} className={`p-3 text-left border ${cartBilling === 'monthly' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
-                        <div className="text-[10px] uppercase tracking-wider opacity-75">Monthly</div>
+                        <div className="text-[0.625rem] uppercase tracking-wider opacity-75">Monthly</div>
                         <div className="text-xl mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartTier.monthly}<span className="text-xs opacity-75">/mo</span></div>
                       </button>
                       <button onClick={() => setCartBilling('annual')} className={`p-3 text-left border ${cartBilling === 'annual' ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
-                        <div className="text-[10px] uppercase tracking-wider opacity-75">Annual · save ~17%</div>
+                        <div className="text-[0.625rem] uppercase tracking-wider opacity-75">Annual · save ~17%</div>
                         <div className="text-xl mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartTier.annual}<span className="text-xs opacity-75">/yr</span></div>
                       </button>
                     </div>
                   </div>
                   <div className="flex items-baseline justify-between pt-3 border-t border-[#E8E4DC]">
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Total today</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Total today</div>
                     <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>${cartBilling === 'annual' ? cartTier.annual : cartTier.monthly}<span className="text-sm text-[#5A5751]">{cartBilling === 'annual' ? '/yr' : '/mo'}</span></div>
                   </div>
                 </>
               ) : (
                 <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">Free tier · no payment required</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Free tier · no payment required</div>
                   <p className="text-xs mt-1" style={{ fontFamily: '"Fraunces", serif' }}>We'll confirm your eligibility and send access details. No card needed.</p>
                 </div>
               )}
 
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Name *</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Name *</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={cartName} onChange={e => setCartName(e.target.value)} placeholder="First Last" />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Email *</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Email *</label>
                 <input type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={cartEmail} onChange={e => setCartEmail(e.target.value)} placeholder="you@example.com" />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (optional)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes (optional)</label>
                 <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" value={cartNotes} onChange={e => setCartNotes(e.target.value)} placeholder="Anything you want us to know (referral, timing, family size, questions)" />
               </div>
 
@@ -807,7 +807,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
               <button onClick={() => submitCart(cartTier.isSponsor ? 'sponsor' : cartTier.monthly === '0' ? 'claim' : 'subscribe')} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
                 {cartTier.isSponsor ? 'Sponsor · Reserve via email' : cartTier.monthly === '0' ? 'Claim it · Send confirmation email' : 'Subscribe · Send confirmation email'}
               </button>
-              <p className="text-[10px] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                 Opens your email client to finish the request. Logged locally in Checkout Intents below.
               </p>
             </div>

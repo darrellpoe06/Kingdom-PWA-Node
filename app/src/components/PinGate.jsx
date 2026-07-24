@@ -115,7 +115,7 @@ export default function PinGate({
     <div role="dialog" aria-modal="true" aria-labelledby="pin-gate-h"
       className="fixed inset-0 z-[60] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-sm w-full p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Secure sign-in</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Secure sign-in</div>
         <h2 id="pin-gate-h" className="text-xl sm:text-2xl mb-2"
           style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{heading}</h2>
         <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>{sub}</p>
@@ -138,7 +138,7 @@ export default function PinGate({
             </button>
             <div className="flex items-center gap-3 my-3" aria-hidden="true">
               <span className="h-px bg-[#1A1815]/20 flex-1" />
-              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">or enter your PIN</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">or enter your PIN</span>
               <span className="h-px bg-[#1A1815]/20 flex-1" />
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function PinGate({
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label htmlFor="pin-input" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1 font-semibold">
+            <label htmlFor="pin-input" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1 font-semibold">
               {isSet ? 'New PIN' : 'PIN'}
             </label>
             <input
@@ -166,7 +166,7 @@ export default function PinGate({
           </div>
           {isSet && (
             <div>
-              <label htmlFor="pin-confirm" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1 font-semibold">Confirm PIN</label>
+              <label htmlFor="pin-confirm" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1 font-semibold">Confirm PIN</label>
               <input
                 id="pin-confirm"
                 type="password"
@@ -182,7 +182,7 @@ export default function PinGate({
             </div>
           )}
 
-          <p id="pin-help" className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p id="pin-help" className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
             Digits only. Never share your PIN — we will never ask for it by email or phone.
           </p>
 
@@ -216,13 +216,13 @@ export default function PinGate({
         <div className="mt-3 flex items-center justify-between">
           {onForgot ? (
             <button type="button" onClick={onForgot} disabled={busy}
-              className="text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="text-[0.6875rem] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
               Forgot your PIN?
             </button>
           ) : <span />}
           {onCancel ? (
             <button type="button" onClick={onCancel} disabled={busy}
-              className="text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="text-[0.6875rem] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
               Cancel
             </button>
           ) : <span />}

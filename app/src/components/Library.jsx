@@ -48,7 +48,7 @@ function Badge({ tone = 'ok', children }) {
     ? { bg: '#EAF3EC', fg: '#216E39', bd: '#B7D7BF' }
     : { bg: '#FBF0E6', fg: '#8A4B1F', bd: '#E7C9AC' };
   return (
-    <span className="inline-block text-[11px] px-2 py-0.5 rounded-sm border" style={{ background: styles.bg, color: styles.fg, borderColor: styles.bd }}>
+    <span className="inline-block text-[0.6875rem] px-2 py-0.5 rounded-sm border" style={{ background: styles.bg, color: styles.fg, borderColor: styles.bd }}>
       {children}
     </span>
   );
@@ -85,13 +85,13 @@ function FlywheelStrip({ book }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {loops.map((l) => (
         <div key={l.k} className="border p-2" style={{ borderColor: PALETTE.line, background: PALETTE.panel }}>
-          <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: PALETTE.accent }}>{l.k}</div>
+          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold" style={{ color: PALETTE.accent }}>{l.k}</div>
           <div className="text-xs" style={{ color: PALETTE.ink }}>{l.t}</div>
         </div>
       ))}
       <div className="sm:col-span-2 flex flex-wrap gap-1">
         {f.marketing.assets.map((a) => (
-          <span key={a.business} className="text-[11px] px-2 py-0.5 border" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+          <span key={a.business} className="text-[0.6875rem] px-2 py-0.5 border" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
             Markets for: {a.business}
           </span>
         ))}
@@ -130,7 +130,7 @@ function ChapterBlock({ block }) {
   );
   if (block.kind === 'scripture') return (
     <blockquote className="my-2 pl-3 border-l-2 italic text-sm" style={{ borderColor: PALETTE.accent, color: PALETTE.ink }}>
-      <span className="block not-italic font-semibold text-[11px]" style={{ color: PALETTE.accent }}>{block.version || 'KJV'} — {block.ref}</span>
+      <span className="block not-italic font-semibold text-[0.6875rem]" style={{ color: PALETTE.accent }}>{block.version || 'KJV'} — {block.ref}</span>
       {block.text ? `"${block.text}"` : 'See the Scripture library.'}
     </blockquote>
   );
@@ -162,7 +162,7 @@ function Reader({ book, onNavigate, onBack, userKey }) {
           {c.deepLinks?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {c.deepLinks.filter((l) => l.view).map((l, n) => (
-                <button key={n} type="button" onClick={() => onNavigate(l)} className="text-[11px] px-2 py-1 border hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.accent, color: PALETTE.accent }}>
+                <button key={n} type="button" onClick={() => onNavigate(l)} className="text-[0.6875rem] px-2 py-1 border hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.accent, color: PALETTE.accent }}>
                   {l.label} →
                 </button>
               ))}
@@ -197,10 +197,10 @@ function Studio({ ctx, preview, setPreview, onSave, canPublish }) {
         {recipes.map((r) => (
           <div key={r.id} className={card} style={{ borderColor: PALETTE.line }}>
             <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{r.title}</div>
-            <div className="text-[11px]" style={{ color: PALETTE.muted }}>{r.source} · {r.count} {r.count === 1 ? 'piece' : 'pieces'}</div>
+            <div className="text-[0.6875rem]" style={{ color: PALETTE.muted }}>{r.source} · {r.count} {r.count === 1 ? 'piece' : 'pieces'}</div>
             {r.available
               ? <button type="button" onClick={() => build(r.id)} className="text-xs px-3 py-1.5 border font-semibold self-start mt-1 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.ink, color: PALETTE.ink }}>Preview book</button>
-              : <span className="text-[11px] mt-1" style={{ color: PALETTE.muted }}>{r.reason || 'Not available yet.'}</span>}
+              : <span className="text-[0.6875rem] mt-1" style={{ color: PALETTE.muted }}>{r.reason || 'Not available yet.'}</span>}
           </div>
         ))}
       </div>
@@ -219,7 +219,7 @@ function Studio({ ctx, preview, setPreview, onSave, canPublish }) {
           <DownloadRow book={preview} />
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t" style={{ borderColor: PALETTE.line }}>
             <button type="button" onClick={() => onSave(preview)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Save to my Library</button>
-            <span className="text-[11px]" style={{ color: PALETTE.muted }}>
+            <span className="text-[0.6875rem]" style={{ color: PALETTE.muted }}>
               {canPublish
                 ? 'Publishing beyond the app is gated — it stages an approve-to-publish hand-off, never auto-sends.'
                 : 'Reading + downloading is yours. Publishing to the community is a Governor decision.'}
@@ -361,8 +361,8 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
                     <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
                       <div>
                         <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
-                        {b.subtitle && <div className="text-[11px] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
-                        <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+                        {b.subtitle && <div className="text-[0.6875rem] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
+                        <div className="text-[0.6875rem] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>

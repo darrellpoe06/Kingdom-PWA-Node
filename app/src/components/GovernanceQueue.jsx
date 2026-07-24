@@ -100,7 +100,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
       {/* ---- OPEN: decisions waiting on the governor ---- */}
       <div className="space-y-4">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚖ Governance · Decisions waiting on you</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚖ Governance · Decisions waiting on you</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             The work that needs your call, batched so you decide a stack at once instead of one ping at a time. This is the live queue from the repo, rendered here — the AI keeps building everything that doesn&apos;t need you; these are the {openCount} that do.
           </p>
@@ -117,19 +117,19 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
             {items.map((it) => (
               <div key={it.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: tierColor(it.tier) }}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.id}</span>
-                  {it.tier && <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tierColor(it.tier) }}>Tier {it.tier}</span>}
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.id}</span>
+                  {it.tier && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: tierColor(it.tier) }}>Tier {it.tier}</span>}
                 </div>
                 <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{it.title}</h4>
-                {it.unblocks && <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[#5A5751] text-[10px]">Unblocks · </span>{it.unblocks}</p>}
-                {it.recommendation && <p className="text-xs text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[10px]">My rec · </span>{it.recommendation}</p>}
-                {it.track && <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Track · {it.track}</p>}
+                {it.unblocks && <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[#5A5751] text-[0.625rem]">Unblocks · </span>{it.unblocks}</p>}
+                {it.recommendation && <p className="text-xs text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[0.625rem]">My rec · </span>{it.recommendation}</p>}
+                {it.track && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Track · {it.track}</p>}
               </div>
             ))}
           </div>
         )}
 
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — they always wait here for you.
         </p>
       </div>
@@ -195,7 +195,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
       {/* ---- DECIDED: the Decision Record ledger, rendered natively ---- */}
       <div className="space-y-3">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">📜 Governance · Decided — the ledger</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">📜 Governance · Decided — the ledger</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             Every decision that has landed, in full — number, title, the decision, the why, and the date. {ledger.count > 0 ? `${ledger.count} records` : 'No records'}, read straight from the repo at build time and rendered here. Nothing to open elsewhere.
           </p>
@@ -213,15 +213,15 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
               <details key={dr.id} className="bg-white border-l-4 border border-[#E8E4DC] group" style={{ borderLeftColor: tierColor(dr.tier) }}>
                 <summary className="p-4 cursor-pointer list-none focus:outline focus:outline-2 focus:outline-[#B85838]">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.id}</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.id}</span>
                     <span className="flex items-center gap-2 flex-wrap">
-                      {dr.tier && <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tierColor(dr.tier) }}>Tier {dr.tier}</span>}
+                      {dr.tier && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: tierColor(dr.tier) }}>Tier {dr.tier}</span>}
                       {dr.status && (
-                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: statusColor(dr.status) }}>
+                        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: statusColor(dr.status) }}>
                           {dr.status}{dr.supersededBy ? ` → ${dr.supersededBy}` : ''}
                         </span>
                       )}
-                      {dr.date && <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.date}</span>}
+                      {dr.date && <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.date}</span>}
                     </span>
                   </div>
                   <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{dr.title || dr.id}</h4>
@@ -229,20 +229,20 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                 <div className="px-4 pb-4 -mt-1 space-y-3">
                   {dr.decision && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">Decision</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Decision</div>
                       <p className="text-xs text-[#1A1815] mt-0.5 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{dr.decision}</p>
                     </div>
                   )}
                   {dr.rationale && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold">Why</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Why</div>
                       <p className="text-xs text-[#5A5751] mt-0.5 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{dr.rationale}</p>
                     </div>
                   )}
                   {(dr.owner || dr.source) && (
                     <div className="flex flex-col gap-0.5">
-                      {dr.owner && <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider">Owner · </span>{dr.owner}</p>}
-                      {dr.source && <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Source · {dr.source}</p>}
+                      {dr.owner && <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider">Owner · </span>{dr.owner}</p>}
+                      {dr.source && <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Source · {dr.source}</p>}
                     </div>
                   )}
                   {!dr.decision && !dr.rationale && !dr.owner && !dr.source && (

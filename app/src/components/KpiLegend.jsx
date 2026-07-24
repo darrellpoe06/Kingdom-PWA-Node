@@ -17,14 +17,14 @@ export function KpiLegend({ defaultOpen = false }) {
         aria-label={`Status Key — what the KPI dot colors mean (${open ? 'collapse' : 'expand'})`}
         className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
-        <span className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔑 Status Key</span>
+        <span className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔑 Status Key</span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1" aria-hidden="true">
             {KPI_LEGEND.map((st) => (
               <span key={st.key} className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: st.color }} />
             ))}
           </span>
-          <span className="text-[10px] text-[#5A5751] ml-1" aria-hidden="true">{open ? '▲' : '▼'}</span>
+          <span className="text-[0.625rem] text-[#5A5751] ml-1" aria-hidden="true">{open ? '▲' : '▼'}</span>
         </span>
       </button>
       {open && (
@@ -33,7 +33,7 @@ export function KpiLegend({ defaultOpen = false }) {
             <li key={st.key} className="flex items-center gap-2">
               <span aria-hidden="true" className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
               <span className="text-xs font-semibold text-[#1A1815] w-20 shrink-0" style={{ fontFamily: '"Fraunces", serif' }}>{st.label}</span>
-              <span className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{st.meaning}</span>
+              <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{st.meaning}</span>
             </li>
           ))}
         </ul>

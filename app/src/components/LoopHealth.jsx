@@ -70,8 +70,8 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
   return (
     <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5" aria-labelledby="loop-health-h">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🩺 Loop Health</div>
-        <KpiDot status={summaryKpi.status} label={summaryKpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🩺 Loop Health</div>
+        <KpiDot status={summaryKpi.status} label={summaryKpi.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
       <h2 id="loop-health-h" className="text-xl sm:text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Is the app actually looping?</h2>
       <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -84,7 +84,7 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">Needs your call · {attention.length}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">Needs your call · {attention.length}</div>
           {attention.map((l) => {
             const b = badge(l.status);
             const decided = decisions[l.key];
@@ -92,9 +92,9 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
               <div key={l.key} className="border border-[#E8E4DC] p-3">
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{l.label}</span>
-                  <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${b.cls}`}>{b.t}</span>
+                  <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${b.cls}`}>{b.t}</span>
                 </div>
-                <div className="text-[11px] text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <div className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   {fmtAgo(l)} · window {l.staleDays}d
                 </div>
                 {fmtRun(l) && (
@@ -103,14 +103,14 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
                   </div>
                 )}
                 {decided ? (
-                  <div className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <div className="text-[0.6875rem] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                     {decided.decision === 'keep' ? `Kept — re-review ${(''+decided.reReview).slice(0, 10)}` : 'Marked to retire'}
-                    {onDecision && <button type="button" onClick={() => onDecision(l.key, null)} className="ml-2 text-[10px] uppercase tracking-wider text-[#5A5751] underline hover:text-[#1A1815]">undo</button>}
+                    {onDecision && <button type="button" onClick={() => onDecision(l.key, null)} className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline hover:text-[#1A1815]">undo</button>}
                   </div>
                 ) : onDecision ? (
                   <div className="flex gap-2 mt-2">
-                    <button type="button" onClick={() => onDecision(l.key, 'keep')} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Keep · re-review later</button>
-                    <button type="button" onClick={() => onDecision(l.key, 'retire')} className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#7A1F1F] text-[#7A1F1F] hover:bg-[#7A1F1F] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Retire it</button>
+                    <button type="button" onClick={() => onDecision(l.key, 'keep')} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Keep · re-review later</button>
+                    <button type="button" onClick={() => onDecision(l.key, 'retire')} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#7A1F1F] text-[#7A1F1F] hover:bg-[#7A1F1F] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Retire it</button>
                   </div>
                 ) : null}
               </div>
@@ -121,10 +121,10 @@ export default function LoopHealth({ data = {}, decisions = {}, onDecision = nul
 
       {fresh.length > 0 && (
         <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
-          <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Updating · {fresh.length}</div>
+          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Updating · {fresh.length}</div>
           <ul className="space-y-0.5">
             {fresh.map((l) => (
-              <li key={l.key} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <li key={l.key} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                 <span className="text-[#15803D]">●</span> {l.label} — {fmtRun(l) || fmtAgo(l)}
               </li>
             ))}

@@ -22,7 +22,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       {/* Accounts In Legal — surfaced FIRST so the user lands on the actionable
           surface. Empty state is informative, not loud. */}
       <div className="bg-white border-2 border-[#5A6E3D] p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] mb-2 font-semibold">🔒 Accounts In Legal · {legalAccounts.length}</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] mb-2 font-semibold">🔒 Accounts In Legal · {legalAccounts.length}</div>
         {legalAccounts.length === 0 ? (
           <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             No accounts under legal hold right now. If an account becomes disputed, frozen, in probate, or otherwise out of normal financial flow, open it on the <strong>Accounts</strong> tab and tap <strong>🔒 Move to Legal</strong>. It will surface here and be excluded from cash totals everywhere else.
@@ -37,7 +37,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
                 <div className="flex items-baseline justify-between gap-3 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
                       {a.institution} {a.fragment ? `· ${a.fragment}` : ''} · {a.type} · {entityName(a.entityId)}
                     </div>
                   </div>
@@ -46,7 +46,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
                 {a.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>}
                 {toggleAccountLegal && (
                   <div className="mt-2">
-                    <button type="button" onClick={() => { if (confirm(`Restore "${a.name}" to the Accounts tab? Its balance will rejoin cash totals.`)) toggleAccountLegal(a.id); }} className="text-[10px] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Restore to Accounts</button>
+                    <button type="button" onClick={() => { if (confirm(`Restore "${a.name}" to the Accounts tab? Its balance will rejoin cash totals.`)) toggleAccountLegal(a.id); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Restore to Accounts</button>
                   </div>
                 )}
               </div>
@@ -56,19 +56,19 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       </div>
 
       <div className="bg-white border-2 border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
         <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Track legal work the right way</h2>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is built in: separate PIN, at-rest encryption (AES-GCM 256), auto-lock, and mandatory <strong>privileged / not</strong> on every note so the export tool can mechanically strip privileged content before you share with non-counsel.
         </p>
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Not legal advice. Have your attorney review the deployed module before storing live matter information.
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Personal / family</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Personal / family</div>
           <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li>· Wills, trusts, estate plans</li>
             <li>· Powers of attorney (financial + healthcare)</li>
@@ -78,7 +78,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           </ul>
         </div>
         <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Real estate</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Real estate</div>
           <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li>· Title issues — chain, encumbrances, easements, liens</li>
             <li>· Tenant disputes, evictions</li>
@@ -88,7 +88,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           </ul>
         </div>
         <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Business</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Business</div>
           <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li>· LLC compliance — formation, annual report, registered agent</li>
             <li>· Contracts — vendor, contractor, employment, NDA, lease</li>
@@ -98,7 +98,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           </ul>
         </div>
         <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Tax &amp; regulatory</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Tax &amp; regulatory</div>
           <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
             <li>· IRS notices (CP2000, CP14, audits)</li>
             <li>· State tax appeals</li>
@@ -110,7 +110,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       </div>
 
       <div className="bg-white border border-[#5A6E3D] p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal connects to the rest of the system</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal connects to the rest of the system</div>
         <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Every connection below uses an ID, not a title — so the non-Legal side never sees what the matter is about. Just "🔒 Legal note exists." Click-through requires PIN.
         </p>
@@ -130,7 +130,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
 
       {!unlocked && (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">Unlocks at Family ($89) and above</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">Unlocks at Family ($89) and above</div>
           <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
             The encryption layer is real engineering — PIN gate, Web Crypto AES-GCM, auto-lock, privileged-stripped export. Ships at Family tier so the work is paid for. Confidentiality is the feature, not an add-on.
           </p>
@@ -140,7 +140,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
 
       {unlocked && (
         <div className="bg-white border-2 border-dashed border-[#5A6E3D] p-5 text-center">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">🔧 Coming next</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">🔧 Coming next</div>
           <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
             PIN setup → AES-GCM 256 at-rest encryption → matter CRUD across all four scopes → journal + documents with mandatory privileged Y/N → key dates auto-mirroring to Calendar with privileged labels → privileged-stripped export tool. Tracked as tasks #94–#99 in the build queue.
           </p>
