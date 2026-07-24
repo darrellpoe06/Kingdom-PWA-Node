@@ -20,9 +20,29 @@
 // Contrast (WCAG AA, on #14110E near-black): #FAF8F4 body (>16:1), #CFC9BD
 // secondary (~9:1), #C9D9A6 green + #EBA77E orange accents (>=4.5:1).
 import React, { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { verseText } from '../lib/bible-kjv.js';
 
-export default function AudienceSlide({ slide = null, hold = null }) {
+// Invite-the-room corner card (Darrell 2026-07-24): while the congregation
+// broadcast is live, the projected screen shows a scannable QR (the follow
+// link WITH the code baked in — scan = joined, zero typing) plus the code in
+// large type for phones without a camera shortcut. White-backed QR with a
+// quiet zone so cameras lock from the pews; presenter-controlled (it appears
+// only while "live for congregation" is on, and drops the moment it stops).
+function InviteCorner({ invite }) {
+  if (!invite || !invite.url) return null;
+  return (
+    <div className="bg-white text-[#1A1815]" style={{ position: 'fixed', right: 'clamp(16px, 2vw, 40px)', bottom: 'clamp(16px, 2vw, 40px)', zIndex: 5, borderRadius: 10, padding: 'clamp(10px, 1vw, 16px)', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
+      <QRCodeSVG value={invite.url} size={132} level="M" role="img" aria-label="Scan to follow along on your phone" style={{ display: 'block', width: 'clamp(96px, 10vw, 180px)', height: 'auto' }} />
+      <div style={{ fontSize: 'clamp(11px, 1vw, 15px)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8, fontWeight: 600 }}>Follow along</div>
+      {invite.code && (
+        <div style={{ fontSize: 'clamp(14px, 1.4vw, 22px)', fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.22em', fontWeight: 700 }}>{invite.code}</div>
+      )}
+    </div>
+  );
+}
+
+export default function AudienceSlide({ slide = null, hold = null, invite = null }) {
   const showHold = !!hold || !slide;
 
   // Resolve any Scripture the slide CITES to its VERBATIM KJV text (from the sovereign
@@ -55,6 +75,7 @@ export default function AudienceSlide({ slide = null, hold = null }) {
   if (showHold) {
     return (
       <div style={{ textAlign: 'center', margin: 'auto' }}>
+        <InviteCorner invite={invite} />
         <div style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 24 }}>
           {hold?.kicker || 'The Church of the Living God'}
         </div>
@@ -69,6 +90,7 @@ export default function AudienceSlide({ slide = null, hold = null }) {
   }
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', display: 'flex', gap: 'clamp(20px, 3vw, 52px)', alignItems: 'flex-start' }}>
+      <InviteCorner invite={invite} />
       <div style={{ flex: '1 1 auto', minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 'clamp(16px, 2vw, 28px)' }}>
         {/* Generic position label (indexLabel) for any surface; falls back to the
