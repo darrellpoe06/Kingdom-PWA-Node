@@ -39,8 +39,8 @@ import {
 
 // Shared tokens — identical to EventCenterModule (already WCAG AA + contrast-gated).
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
-const sectionH = 'text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
+const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
 
 // --- the data hook -----------------------------------------------------------
 function useVarianceData() {
@@ -91,7 +91,7 @@ function CheckInRow({ reg, onCheckIn, onAdjust, onUndo }) {
             <span aria-hidden="true" className="text-[#3F5226] text-base">✓</span>
             <span className="flex-1 min-w-0">
               <span className="font-semibold text-[#1A1815]">{reg.name}</span>
-              <span className="text-[#3F5226] text-[11px]"> · Checked in{heads > 1 ? ` (${heads} of ${reg.partySize})` : ''}</span>
+              <span className="text-[#3F5226] text-[0.6875rem]"> · Checked in{heads > 1 ? ` (${heads} of ${reg.partySize})` : ''}</span>
             </span>
             {reg.partySize > 1 && (
               <span className="flex items-center gap-1 shrink-0">
@@ -104,7 +104,7 @@ function CheckInRow({ reg, onCheckIn, onAdjust, onUndo }) {
             )}
           </div>
           <button type="button" onClick={() => onUndo(reg)} aria-label={`Undo check-in for ${reg.name}`}
-            className="shrink-0 min-h-[44px] px-3 text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-[#E8E4DC]">Undo</button>
+            className="shrink-0 min-h-[44px] px-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-[#E8E4DC]">Undo</button>
         </>
       ) : (
         <button type="button" onClick={() => onCheckIn(reg)}
@@ -113,9 +113,9 @@ function CheckInRow({ reg, onCheckIn, onAdjust, onUndo }) {
           <span aria-hidden="true" className="w-5 h-5 border-2 border-[#B85838] shrink-0" />
           <span className="flex-1 min-w-0">
             <span className="font-semibold text-[#1A1815] text-sm">{reg.name}</span>
-            <span className="text-[#5A5751] text-[11px]">{party}{reg.mealType ? ` · ${reg.mealType}` : ''}{reg.dietary ? ` · ${reg.dietary}` : ''}</span>
+            <span className="text-[#5A5751] text-[0.6875rem]">{party}{reg.mealType ? ` · ${reg.mealType}` : ''}{reg.dietary ? ` · ${reg.dietary}` : ''}</span>
           </span>
-          <span className="shrink-0 text-[10px] uppercase tracking-wider text-[#B85838] font-semibold border border-[#B85838] px-3 py-2">Check in</span>
+          <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold border border-[#B85838] px-3 py-2">Check in</span>
         </button>
       )}
     </li>
@@ -133,7 +133,7 @@ function VarianceLine({ name, cell, suffix = '' }) {
         {' · '}
         {cell.actual == null ? '—' : cell.actual}<span className="text-[#B8B2A6]"> act</span>{suffix}
       </span>
-      <KpiDot status={cell.tone} label={cell.label} className="shrink-0 text-[10px]" />
+      <KpiDot status={cell.tone} label={cell.label} className="shrink-0 text-[0.625rem]" />
     </div>
   );
 }
@@ -207,7 +207,7 @@ function ConferenceVarianceInner() {
   if (loading) {
     return (
       <section className={card} aria-labelledby="conf-var-h">
-        <h2 id="conf-var-h" className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📊 Anticipated vs Actual</h2>
+        <h2 id="conf-var-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📊 Anticipated vs Actual</h2>
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Loading…</p>
       </section>
     );
@@ -221,7 +221,7 @@ function ConferenceVarianceInner() {
     <section className={card} aria-labelledby="conf-var-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📊 Anticipated vs Actual</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📊 Anticipated vs Actual</div>
           <h2 id="conf-var-h" className="text-lg sm:text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
             Check-in &amp; variance
           </h2>
@@ -232,14 +232,14 @@ function ConferenceVarianceInner() {
         </div>
         <div role="tablist" aria-label="Anticipated vs actual view" className="flex shrink-0 border border-[#E8E4DC]">
           <button type="button" role="tab" aria-selected={tab === 'checkin'} onClick={() => setTab('checkin')}
-            className={`min-h-[40px] px-3 text-[11px] uppercase tracking-wider font-semibold ${tab === 'checkin' ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751]'}`}>Check-in</button>
+            className={`min-h-[40px] px-3 text-[0.6875rem] uppercase tracking-wider font-semibold ${tab === 'checkin' ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751]'}`}>Check-in</button>
           <button type="button" role="tab" aria-selected={tab === 'variance'} onClick={() => setTab('variance')}
-            className={`min-h-[40px] px-3 text-[11px] uppercase tracking-wider font-semibold ${tab === 'variance' ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751]'}`}>Variance</button>
+            className={`min-h-[40px] px-3 text-[0.6875rem] uppercase tracking-wider font-semibold ${tab === 'variance' ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751]'}`}>Variance</button>
         </div>
       </div>
 
       {flash && (
-        <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
+        <p role="alert" className="text-[0.6875rem] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
       )}
 
       {/* CHECK-IN — the ACTUAL headcount capture */}
@@ -263,7 +263,7 @@ function ConferenceVarianceInner() {
             className="w-full p-3 border border-[#1A1815] text-base bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] mb-2" />
 
           {checkInList.length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               {regs.length === 0 ? 'No registrations yet — once the congregation signs up, names appear here to check in.' : 'No one matches that search.'}
             </p>
           ) : (
@@ -283,7 +283,7 @@ function ConferenceVarianceInner() {
           <div>
             <h3 className={`${sectionH} mb-1`}>👥 Whole event · headcount</h3>
             <VarianceLine name="Registered → arrived" cell={event} />
-            <p className="text-[10px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
               No-show rate <span className="font-semibold text-[#1A1815]">{event.noShowRate != null ? ratePct(event.noShowRate) : '—'}</span>
               {' '}— the share of anticipated heads who didn’t check in. Drives next year’s sizing.
             </p>
@@ -293,7 +293,7 @@ function ConferenceVarianceInner() {
           <div>
             <h3 className={`${sectionH} mb-1`}>🍽 Meals · plates anticipated vs served</h3>
             {meals.length === 0 ? (
-              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No meal selections yet.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No meal selections yet.</p>
             ) : (
               <ul className="space-y-0">
                 {meals.map((m) => (
@@ -307,7 +307,7 @@ function ConferenceVarianceInner() {
                       onBlur={(e) => recordActual('meal', m.type, m.type, m.anticipated, e.target.value)}
                       placeholder="served" aria-label={`${m.type} plates served`}
                       className="w-20 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" />
-                    <KpiDot status={m.hasActual ? m.tone : 'idle'} label={m.hasActual ? m.label : 'awaiting count'} className="shrink-0 text-[10px] w-28" />
+                    <KpiDot status={m.hasActual ? m.tone : 'idle'} label={m.hasActual ? m.label : 'awaiting count'} className="shrink-0 text-[0.625rem] w-28" />
                   </li>
                 ))}
               </ul>
@@ -318,7 +318,7 @@ function ConferenceVarianceInner() {
           <div>
             <h3 className={`${sectionH} mb-1`}>🚪 Rooms · capacity vs actually used</h3>
             {roomRows.length === 0 ? (
-              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms with a capacity yet — set room capacities in the Event Center.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms with a capacity yet — set room capacities in the Event Center.</p>
             ) : (
               <ul className="space-y-0">
                 {roomRows.map((r) => (
@@ -332,7 +332,7 @@ function ConferenceVarianceInner() {
                       onBlur={(e) => recordActual('room', r.roomId, r.name, r.anticipated, e.target.value)}
                       placeholder="used" aria-label={`${r.name} actual occupancy`}
                       className="w-20 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" />
-                    <KpiDot status={r.hasActual ? r.tone : 'idle'} label={r.hasActual ? r.label : 'awaiting count'} className="shrink-0 text-[10px] w-28" />
+                    <KpiDot status={r.hasActual ? r.tone : 'idle'} label={r.hasActual ? r.label : 'awaiting count'} className="shrink-0 text-[0.625rem] w-28" />
                   </li>
                 ))}
               </ul>
@@ -351,7 +351,7 @@ function ConferenceVarianceInner() {
             </div>
           )}
 
-          <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             Every number above is real — anticipated reads the registration roll &amp; rooms; actual is check-in + the counts staff record here. All persist for post-event review.
           </p>
         </div>

@@ -9,9 +9,9 @@ function MarketCard({ title, need, have }) {
   return (
     <div className="bg-white border border-[#1A1815] p-4">
       <h4 className="text-sm mb-1.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{title}</h4>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mt-2">Need</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mt-2">Need</div>
       <p className="text-xs leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{need}</p>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium">What PoeTech has today</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium">What PoeTech has today</div>
       <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{have}</p>
     </div>
   );
@@ -35,7 +35,7 @@ function PricingTier({ name, tagline, monthly, annual, features, availableNow, s
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{name}</h3>
-            {badge && <span className="text-[8px] uppercase tracking-[0.15em] text-white bg-[#5A6E3D] px-2 py-0.5 font-semibold whitespace-nowrap">{badge}</span>}
+            {badge && <span className="text-[0.5rem] uppercase tracking-[0.15em] text-white bg-[#5A6E3D] px-2 py-0.5 font-semibold whitespace-nowrap">{badge}</span>}
           </div>
           <div className="text-xs text-[#5A5751] mt-0.5">{tagline}</div>
         </div>
@@ -52,25 +52,25 @@ function PricingTier({ name, tagline, monthly, annual, features, availableNow, s
       </div>
       {bestFor && (
         <div className="mb-3 text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="uppercase tracking-[0.15em] text-[#B85838] font-semibold text-[10px]">Best for </span>
+          <span className="uppercase tracking-[0.15em] text-[#B85838] font-semibold text-[0.625rem]">Best for </span>
           <span className="text-[#5A5751]">{bestFor}</span>
         </div>
       )}
       {replaces && (
         <div className="mb-3 px-3 py-2 bg-[#FAF8F4] border-l-2 border-[#5A6E3D]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium mb-0.5">Replaces</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-medium mb-0.5">Replaces</div>
           <div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{replaces}</div>
         </div>
       )}
       {availableNow ? (
         <>
-          <div className="mt-3 text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Available now</div>
+          <div className="mt-3 text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Available now</div>
           <ul className="text-xs text-[#1A1815] space-y-1 mt-1">
             {availableNow.map((f, i) => <li key={i} className="flex gap-2"><span className="text-[#5A6E3D] shrink-0">✓</span><span>{f}</span></li>)}
           </ul>
           {shipsLater && shipsLater.length > 0 && (
             <>
-              <div className="mt-3 text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">
+              <div className="mt-3 text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">
                 {shipsTarget ? `Ships ${shipsTarget}` : 'Ships next'} <span className="normal-case tracking-normal text-[#5A5751] font-normal">· founding-member pricing locks in now</span>
               </div>
               <ul className="text-xs text-[#5A5751] space-y-1 mt-1">
@@ -123,7 +123,7 @@ function CommunityPriorities({ moduleInterest, familyModuleInterest = null }) {
     <div className="bg-white border border-[#B85838] p-4 mb-4">
       {interests.length > 0 && (
         <>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Your Priority Votes · {totalPts} total points</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Your Priority Votes · {totalPts} total points</div>
           <div className="space-y-1.5">
             {interests.sort((a,b) => b.pts - a.pts).map(i => {
               const pct = (i.pts / 5) * 100;
@@ -131,7 +131,7 @@ function CommunityPriorities({ moduleInterest, familyModuleInterest = null }) {
                 <div key={i.key}>
                   <div className="flex justify-between text-xs mb-0.5">
                     <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{labels[i.key] || i.key}</span>
-                    <span className="text-[#5A5751] uppercase tracking-wider text-[10px]">{i.priority} · {i.pts}pt</span>
+                    <span className="text-[#5A5751] uppercase tracking-wider text-[0.625rem]">{i.priority} · {i.pts}pt</span>
                   </div>
                   <div className="h-1 bg-[#E8E4DC]"><div className="h-full bg-[#B85838]" style={{ width: `${pct}%` }}></div></div>
                 </div>
@@ -153,7 +153,7 @@ function CommunityPriorities({ moduleInterest, familyModuleInterest = null }) {
           </div>
         </>
       )}
-      <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
         When this is multiplied across thousands of families, the highest-weighted modules get built first. Your vote is real input on the roadmap.
       </p>
     </div>
@@ -180,9 +180,9 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
   return (
     <div className={`bg-white border ${s.border} p-5`}>
       <div className="flex items-baseline justify-between mb-1 gap-3">
-        <span className={`text-[10px] uppercase tracking-[0.2em] font-medium shrink-0 ${s.tag}`}>{s.label}</span>
+        <span className={`text-[0.625rem] uppercase tracking-[0.2em] font-medium shrink-0 ${s.tag}`}>{s.label}</span>
       </div>
-      {repo && <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">{repo}</div>}
+      {repo && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">{repo}</div>}
       <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{desc}</p>
       <ul className="text-xs text-[#5A5751] space-y-1 mb-3">
         {features.map((f, i) => (<li key={i} className="flex gap-2"><span className="text-[#B85838]">·</span><span>{f}</span></li>))}
@@ -194,7 +194,7 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
               <button onClick={() => toggleModuleInterest(moduleKey, null)} className="w-full text-xs uppercase tracking-wider py-2 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#FAF8F4]">
                 {priorityInfo?.emoji || '✓'} On the list · {priorityInfo?.label || 'interested'} · since {interestDate ? new Date(interestDate).toLocaleDateString() : 'recently'}
               </button>
-              <div className="flex gap-1 text-[10px] uppercase tracking-wider">
+              <div className="flex gap-1 text-[0.625rem] uppercase tracking-wider">
                 {priorities.filter(p => p.key !== interestPriority).map(p => (
                   <button key={p.key} onClick={() => toggleModuleInterest(moduleKey, p.key)} className="px-1.5 py-1 text-[#5A5751] hover:text-[#B85838]">{p.emoji} {p.label}</button>
                 ))}
@@ -202,16 +202,16 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
             </div>
           ) : showPriority ? (
             <div className="space-y-1.5">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">How important is this to your family?</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">How important is this to your family?</div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                 {priorities.map(p => (
                   <button key={p.key} onClick={() => { toggleModuleInterest(moduleKey, p.key); setShowPriority(false); }} className="text-xs px-2 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] text-left">
                     <div>{p.emoji} {p.label}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">{p.pts} priority weight</div>
+                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{p.pts} priority weight</div>
                   </button>
                 ))}
               </div>
-              <button onClick={() => setShowPriority(false)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
+              <button onClick={() => setShowPriority(false)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
             </div>
           ) : (
             <button onClick={() => setShowPriority(true)} className="w-full text-xs uppercase tracking-wider py-2 border border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815]">
@@ -323,7 +323,7 @@ function NavControls({ canGoBack, canGoForward, goBack, goForward, chrome = fals
 function SectionTitle({ children, eyebrow }) {
   return (
     <div className="ts-chrome-region mb-5 pb-3 border-b-2 border-[#1A1815] section-title-wrapper">
-      {eyebrow && <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1.5 font-semibold">{eyebrow}</div>}
+      {eyebrow && <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1.5 font-semibold">{eyebrow}</div>}
       <h2 className="text-2xl sm:text-3xl leading-tight section-title-text" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{children}</h2>
     </div>
   );
@@ -334,7 +334,7 @@ function MetricCell({ label, value, sub, accent, small, trace }) {
   const valueEl = (
     <div className={`${small ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl'} ${valueColor} leading-tight`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>
   );
-  return (<div className="bg-[#FAF8F4] p-2.5 sm:p-3"><div className="text-[9px] uppercase tracking-[0.15em] text-[#5A5751] mb-1 leading-tight">{label}</div>{trace ? <TraceableNumber trace={trace} label={label}>{valueEl}</TraceableNumber> : valueEl}{sub && <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-0.5 leading-tight">{sub}</div>}</div>);
+  return (<div className="bg-[#FAF8F4] p-2.5 sm:p-3"><div className="text-[0.5625rem] uppercase tracking-[0.15em] text-[#5A5751] mb-1 leading-tight">{label}</div>{trace ? <TraceableNumber trace={trace} label={label}>{valueEl}</TraceableNumber> : valueEl}{sub && <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-0.5 leading-tight">{sub}</div>}</div>);
 }
 
 // Named exports — main file imports these explicitly.

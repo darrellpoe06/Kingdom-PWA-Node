@@ -54,7 +54,7 @@ export default function FollowAlong({ code: codeProp = null }) {
   if (!FOLLOW_ALONG_ENABLED || !code) {
     return (
       <div style={{ ...frame, justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-        <div style={{ fontSize: 12, letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 20 }}>
+        <div style={{ fontSize: '0.75rem', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 20 }}>
           The Church of the Living God
         </div>
         <h1 style={{ fontSize: 'clamp(28px, 5vw, 52px)', fontWeight: 600, margin: 0 }}>Follow along</h1>
@@ -70,7 +70,7 @@ export default function FollowAlong({ code: codeProp = null }) {
               placeholder="Enter code"
               autoCapitalize="characters"
               style={{
-                fontSize: 22, letterSpacing: '0.25em', textTransform: 'uppercase', textAlign: 'center',
+                fontSize: '1.375rem', letterSpacing: '0.25em', textTransform: 'uppercase', textAlign: 'center',
                 padding: '12px 18px', width: 220, background: '#1F1B16', color: '#FAF8F4',
                 border: '1px solid #4A453D', borderRadius: 10, fontFamily: '"JetBrains Mono", monospace',
               }}
@@ -78,7 +78,7 @@ export default function FollowAlong({ code: codeProp = null }) {
             <button
               type="submit"
               style={{
-                fontSize: 16, fontWeight: 600, padding: '12px 22px', cursor: 'pointer',
+                fontSize: '1rem', fontWeight: 600, padding: '12px 22px', cursor: 'pointer',
                 background: 'transparent', color: '#C9D9A6', border: '2px solid #C9D9A6', borderRadius: 10,
               }}
             >
@@ -96,7 +96,7 @@ export default function FollowAlong({ code: codeProp = null }) {
 
   return (
     <div style={frame}>
-      <div style={{ position: 'fixed', top: 14, left: 16, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
+      <div style={{ position: 'fixed', top: 14, left: 16, fontSize: '0.6875rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
         Following · {code}
       </div>
       <AudienceSlide slide={state.slide || null} hold={state.slide ? null : holdSlide} />
