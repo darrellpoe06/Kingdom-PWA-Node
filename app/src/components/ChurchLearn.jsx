@@ -37,9 +37,9 @@
 // never fixed px, so the global A / A+ / A++ / A+++ control (lib/text-size.js, which
 // scales the document root font-size) actually enlarges the lesson body, segments,
 // quiz, anchor scripture, facilitator guide and every supporting label. Fixed-px
-// classes (text-[10px] etc.) are absolute and do NOT inherit the root scale — they
+// classes (text-[0.625rem] etc.) are absolute and do NOT inherit the root scale — they
 // were the bug Darrell hit (Learn stayed small at Largest). They are now written at
-// the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
+// the SAME 16px baseline (text-[0.625rem] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo } from 'react';
 import {
@@ -1498,13 +1498,13 @@ function CourseView({
 
       {/* ===== Print-only full curriculum (paper) ===== */}
       <div className="hidden print:block text-black">
-        <h1 style={{ fontSize: '20px', fontWeight: 700 }}>{meta.title}</h1>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{meta.title}</h1>
         <p><em>{meta.tagline}</em></p>
         <p>For {meta.audience}. {meta.format}.</p>
         <hr />
         {schedule.map((m) => (
           <div key={m.id} style={{ pageBreakInside: 'avoid', marginBottom: '14px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700 }}>{U.cap} {m.week} — {m.title}{!U.selfPaced && m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
+            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>{U.cap} {m.week} — {m.title}{!U.selfPaced && m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
             <p><strong>Big idea.</strong> {m.bigIdea}</p>
             {Array.isArray(m.benefits) && m.benefits.length > 0 && (
               <><p><strong>What this frees in you</strong></p>

@@ -87,7 +87,7 @@ function TypeChip({ typeKey, record, canEdit, onRecord, onNa }) {
       <button
         type="button"
         onClick={() => canEdit && setOpen((o) => !o)}
-        className="text-[10px] px-1.5 py-0.5 border rounded mr-1 mb-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="text-[0.625rem] px-1.5 py-0.5 border rounded mr-1 mb-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
         style={{ color: st.color, borderColor: st.border, background: st.bg, cursor: canEdit ? 'pointer' : 'default', textDecoration: record.status === 'na' ? 'line-through' : 'none' }}
         title={title}
         aria-label={title}
@@ -96,10 +96,10 @@ function TypeChip({ typeKey, record, canEdit, onRecord, onNa }) {
       </button>
       {open && canEdit && (
         <span className="absolute z-10 left-0 top-full mt-1 flex flex-col bg-white border border-[#1A1815] shadow text-left min-w-[150px]" role="menu">
-          <span className="px-2 py-1 text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">{t.label}</span>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4]" style={{ color: '#166534' }} onClick={() => { onRecord('complete'); setOpen(false); }}>✓ Mark fully harvested</button>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4]" style={{ color: '#92400E' }} onClick={() => { onRecord('partial'); setOpen(false); }}>◐ Mark partly harvested</button>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4] text-[#5A5751]" onClick={() => { onNa(); setOpen(false); }}>— Not in this video</button>
+          <span className="px-2 py-1 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">{t.label}</span>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4]" style={{ color: '#166534' }} onClick={() => { onRecord('complete'); setOpen(false); }}>✓ Mark fully harvested</button>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4]" style={{ color: '#92400E' }} onClick={() => { onRecord('partial'); setOpen(false); }}>◐ Mark partly harvested</button>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4] text-[#5A5751]" onClick={() => { onNa(); setOpen(false); }}>— Not in this video</button>
         </span>
       )}
     </span>
@@ -117,9 +117,9 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <div className="flex items-baseline gap-2 flex-wrap">
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-[#1A1815]">{video.title || 'Untitled service'}</span>
-            <span className="text-[11px] text-[#5A5751]">{fmtDate(video.serviceDate)} · {serviceLabel(video.serviceType)}</span>
+            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(video.serviceDate)} · {serviceLabel(video.serviceType)}</span>
           </div>
-          <span className="text-[10px] px-2 py-0.5 border rounded" style={{ color: fs.color, background: fs.bg, borderColor: fs.border }}>{fs.label} · {video.coverage.pct}%</span>
+          <span className="text-[0.625rem] px-2 py-0.5 border rounded" style={{ color: fs.color, background: fs.bg, borderColor: fs.border }}>{fs.label} · {video.coverage.pct}%</span>
         </div>
         <div className="mt-2"><CoverageBar pct={video.coverage.pct} flag={video.flag} /></div>
         <div className="mt-2 flex flex-wrap items-center">
@@ -134,25 +134,25 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
             />
           ))}
         </div>
-        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[11px] text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-expanded={open}>
+        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[0.6875rem] text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-expanded={open}>
           {open ? '▾ Hide detail' : `▸ ${gaps.length ? `${gaps.length} harvest${gaps.length === 1 ? '' : 's'} still owed` : 'Detail'}`}
         </button>
       </div>
       {open && (
         <div className="px-3 pb-3 border-t border-[#E8E4DC] bg-[#FAF8F4]">
           {video.youtubeUrl && (
-            <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-[11px] text-[#B85838] underline hover:text-[#1A1815]">▶ Source recording</a>
+            <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-[0.6875rem] text-[#B85838] underline hover:text-[#1A1815]">▶ Source recording</a>
           )}
           {gaps.length === 0 ? (
-            <p className="mt-2 text-[12px]" style={{ fontFamily: '"Fraunces", serif', color: '#166534' }}>Every applicable harvest is settled. Nothing lost from this service.</p>
+            <p className="mt-2 text-[0.75rem]" style={{ fontFamily: '"Fraunces", serif', color: '#166534' }}>Every applicable harvest is settled. Nothing lost from this service.</p>
           ) : (
             <div className="mt-2">
-              <p className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Still to harvest from this recording</p>
+              <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Still to harvest from this recording</p>
               <ul className="space-y-1">
                 {gaps.map((k) => {
                   const t = harvestType(k);
                   return (
-                    <li key={k} className="text-[12px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <li key={k} className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                       <span className="font-semibold">{t.label}</span> — <span className="text-[#5A5751]">{t.description}</span>
                     </li>
                   );
@@ -160,7 +160,7 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
               </ul>
             </div>
           )}
-          {!canEdit && <p className="mt-2 text-[11px] text-[#5A5751] italic">A church steward records harvests as each recording is mined.</p>}
+          {!canEdit && <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">A church steward records harvests as each recording is mined.</p>}
         </div>
       )}
     </div>
@@ -273,7 +273,7 @@ function Stat({ label, value, tone }) {
   return (
     <div className="bg-white border border-[#E8E4DC] p-3 text-center">
       <div className="text-2xl font-semibold" style={{ color, fontFamily: '"Fraunces", serif' }}>{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
     </div>
   );
 }
@@ -338,7 +338,7 @@ export default function HarvestLedger() {
       icon: 'volume',
       render: () => (
         <>
-          {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
+          {busy && <div className="text-[0.6875rem] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
 
           {/* Corpus wholeness strip (DR-0135) — the channel-vs-app comparison
               the 125-of-335 gap never had. Amber until whole; never silent. */}
@@ -368,7 +368,7 @@ export default function HarvestLedger() {
             ]}
             renderRow={(v) => <VideoRow video={v} canEdit={!!access.canEdit} onRecord={onRecord} onNa={onNa} />}
           />
-          <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
           </p>
         </>
@@ -381,8 +381,8 @@ export default function HarvestLedger() {
       render: () => (
         <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
           <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-            <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
-            <p className="text-[10px] text-[#5A5751]">
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
+            <p className="text-[0.625rem] text-[#5A5751]">
               <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
               <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
             </p>
@@ -397,10 +397,10 @@ export default function HarvestLedger() {
               const fromTranscript = FROM_TRANSCRIPT.has(t.key);
               return (
                 <div key={t.key} className="flex items-center gap-2">
-                  <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
+                  <span className="text-[0.6875rem] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
                     <span className="truncate">{t.label}</span>
                     <span
-                      className="text-[8px] px-1 rounded leading-tight shrink-0"
+                      className="text-[0.5rem] px-1 rounded leading-tight shrink-0"
                       style={fromTranscript
                         ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
                         : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
@@ -408,7 +408,7 @@ export default function HarvestLedger() {
                     >{fromTranscript ? 'caption' : 'now'}</span>
                   </span>
                   <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
-                  <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
+                  <span className="text-[0.625rem] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
                 </div>
               );
             })}
@@ -448,7 +448,7 @@ export default function HarvestLedger() {
               <span className="text-sm font-semibold" style={{ color: l.noVideoLost ? '#166534' : '#991B1B', fontFamily: '"Fraunces", serif' }}>
                 {l.noVideoLost ? '✓ No video lost — every ingested recording has been mined.' : `⚠ ${l.orphans} recording${l.orphans === 1 ? '' : 's'} not yet mined — content is being lost.`}
               </span>
-              <span className="text-[11px] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
+              <span className="text-[0.6875rem] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
             </div>
           </div>
 

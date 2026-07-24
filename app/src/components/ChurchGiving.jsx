@@ -186,14 +186,14 @@ export function ChurchGivePanel({ church, onClose }) {
         <div className="p-5 sm:p-6">
           <div className="flex items-baseline justify-between gap-3 mb-3">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1 flex items-center gap-1.5">
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1 flex items-center gap-1.5">
                 <GiftIcon /> Give to the church
               </div>
               <h3 id="give-panel-title" className="text-xl sm:text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
                 {church?.name || 'Give to the church'}
               </h3>
             </div>
-            <button type="button" onClick={onClose} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">× Close</button>
+            <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">× Close</button>
           </div>
 
           {/* THE CHURCH'S OWN GIVING CHANNELS (DR-0136) — decoded verbatim from
@@ -237,16 +237,16 @@ export function ChurchGivePanel({ church, onClose }) {
               >
                 <GiftIcon /> More ways to give — church website
               </a>
-              <p className="text-[11px] text-[#5A5751] mt-2 leading-relaxed">{dest.note}</p>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-2 leading-relaxed">{dest.note}</p>
               {!dest.confirmed && (
-                <p className="text-[11px] text-[#B85838] mt-1 leading-relaxed">
+                <p className="text-[0.6875rem] text-[#B85838] mt-1 leading-relaxed">
                   Note for the church office: a dedicated giving page link can be set so “Give now” opens it directly. Until then this opens the church website where the giving link is published.
                 </p>
               )}
             </>
           ) : (
             <div className="border-2 border-[#B85838] bg-[#FAF8F4] p-3" role="status">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Giving link needed</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Giving link needed</div>
               <p className="text-xs text-[#5A5751] leading-relaxed">
                 This church’s online giving link has not been provided yet. Add the church’s own secure giving URL in Settings, and this button will open it. We never link to a guessed address, and no payment information is collected by this app.
               </p>
@@ -267,7 +267,7 @@ export function ChurchGivePanel({ church, onClose }) {
             <ul className="space-y-3">
               {GIVING_SCRIPTURES.map((s) => (
                 <li key={s.ref} className="border-l-2 border-[#5A6E3D] pl-3">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
                     {s.translation} — {s.ref}
                   </div>
                   <p className="text-sm text-[#1A1815] leading-relaxed italic" style={{ fontFamily: '"Fraunces", serif' }}>

@@ -125,7 +125,7 @@ function MessageForm({ initial, onSave, onCancel, busy, speakers = [] }) {
           <datalist id="pm-speaker-list">
             {speakers.map((sp) => <option key={sp.id} value={sp.canonicalName} />)}
           </datalist>
-          <p className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Pick an existing name so the roster stays one person per preacher; a new name starts a new guest entry.</p>
+          <p className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Pick an existing name so the roster stays one person per preacher; a new name starts a new guest entry.</p>
         </div>
         <div><label className={LABEL} htmlFor="pm-scr">Scripture</label><input id="pm-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. 1 Peter 5" /></div>
       </div>
@@ -571,20 +571,20 @@ function MessagePicker({ library, onPick, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label="Pick a message to present">
       <div style={{ position: 'sticky', top: 0, background: '#1A1815', color: '#FAF8F4', padding: '12px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Present a message</span>
-        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 15 }}>Pick one to put on the screen</strong>
-        <button type="button" onClick={onClose} style={{ marginLeft: 'auto', cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #B85838', background: 'transparent', color: '#FAF8F4', fontSize: 12 }}>Close ✕</button>
+        <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Present a message</span>
+        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>Pick one to put on the screen</strong>
+        <button type="button" onClick={onClose} style={{ marginLeft: 'auto', cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #B85838', background: 'transparent', color: '#FAF8F4', fontSize: '0.75rem' }}>Close ✕</button>
       </div>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(16px, 3vw, 28px)' }}>
-        <p style={{ fontSize: 13, color: '#5A5751', margin: '0 0 14px' }}>
+        <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '0 0 14px' }}>
           Each message is its own presentation — newest first. {items.length} message{items.length === 1 ? '' : 's'}.
         </p>
-        {items.length === 0 && <p style={{ fontSize: 14, color: '#7A1F1F' }}>No published messages to present yet.</p>}
+        {items.length === 0 && <p style={{ fontSize: '0.875rem', color: '#7A1F1F' }}>No published messages to present yet.</p>}
         {items.map((m) => (
           <button key={m.id} type="button" onClick={() => onPick(m.id)}
             style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer', border: '1px solid #E8E4DC', background: '#fff', color: '#1A1815', padding: '12px 14px', marginBottom: 10 }}>
-            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 16, display: 'block' }}>{m.title}</strong>
-            <span style={{ fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem', display: 'block' }}>{m.title}</strong>
+            <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
               {m.dateLabel || 'date TBD'} · {m.dayLabel}{m.speaker ? ` · ${m.speaker}` : ''}{m.scriptureRef ? ` · ${m.scriptureRef}` : ''}
             </span>
           </button>
@@ -875,7 +875,7 @@ export default function Pulpit() {
           <button
             type="button"
             onClick={() => { setPresentId(null); setPresenting(true); }}
-            className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             ▶ Present a message (pick + class screen)
           </button>

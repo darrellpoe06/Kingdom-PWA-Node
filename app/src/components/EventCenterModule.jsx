@@ -55,10 +55,10 @@ import { conferencePresentable } from '../lib/presentable.js';
 // Shared visual tokens — identical to ConferenceModule (already WCAG AA + gated
 // by contrast-guard). Reusing them keeps this surface consistent + compliant.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const btnDark = 'bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px]';
-const btnGhost = 'text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]';
+const btnGhost = 'text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]';
 const SESSION_TYPE_LABEL = { main_service: 'Main Service', breakout: 'Breakout', other: 'Other' };
 
 // --- Local fallback store (per-device; signed-out / offline) ------------------
@@ -379,7 +379,7 @@ function EventCenterModuleInner() {
   if (mode === 'loading') {
     return (
       <section className={card} aria-labelledby="eventcenter-h">
-        <h2 id="eventcenter-h" className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</h2>
+        <h2 id="eventcenter-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</h2>
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Loading the shared conference system…</p>
       </section>
     );
@@ -392,13 +392,13 @@ function EventCenterModuleInner() {
   if (!isOrganizer) {
     return (
       <section className={card} aria-labelledby="eventcenter-h">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</div>
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Rooms, sessions, capacity, and the registration roll are managed by church leadership. To register, use the form above.
         </p>
         {mode === 'local' && (
           <div className="mt-4">
-            <p className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1.5">Setup preview · sign in as a leader to manage</p>
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">Setup preview · sign in as a leader to manage</p>
             <ConferenceSetupChecklist
               conference={conference}
               venues={activeVenues}
@@ -454,22 +454,22 @@ function EventCenterModuleInner() {
           headcount + meal counts). Organizer-only; RLS gates the read. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🙋 Congregation registrations · {regHeads} {regHeads === 1 ? 'person' : 'people'}</h3>
-          <span className="text-[10px] text-[#5A5751]">{publicRegs.length} {publicRegs.length === 1 ? 'entry' : 'entries'}</span>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🙋 Congregation registrations · {regHeads} {regHeads === 1 ? 'person' : 'people'}</h3>
+          <span className="text-[0.625rem] text-[#5A5751]">{publicRegs.length} {publicRegs.length === 1 ? 'entry' : 'entries'}</span>
         </div>
         {publicRegs.length === 0 ? (
-          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No registrations yet — share the open link (in the Conference front door above) so the congregation can sign up.</p>
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No registrations yet — share the open link (in the Conference front door above) so the congregation can sign up.</p>
         ) : (
           <>
             {mealCountRows(regMeals.counts).length > 0 && (
-              <p className="text-[10px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <span className="uppercase tracking-wider text-[#B85838] font-semibold">Meal counts:</span> {mealCountRows(regMeals.counts).map(([k, n]) => `${n} ${k}`).join(' · ')}
                 {regMeals.notes.length > 0 ? ` · ${regMeals.notes.length} with dietary notes` : ''}
               </p>
             )}
             <ul className="space-y-1 max-h-72 overflow-auto">
               {publicRegs.map((r) => (
-                <li key={r.id} className="flex items-center gap-2 text-[11px] py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                <li key={r.id} className="flex items-center gap-2 text-[0.6875rem] py-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   <span className={`flex-1 min-w-0 ${r.status === 'cancelled' ? 'line-through text-[#5A5751]' : ''}`}>
                     <span className="font-semibold text-[#1A1815]">{r.name}{r.partySize > 1 ? <span className="text-[#5A5751] font-normal"> +{r.partySize - 1}</span> : null}</span>
                     <span className="text-[#5A5751]"> · {r.mealType}</span>
@@ -477,7 +477,7 @@ function EventCenterModuleInner() {
                     {r.days ? <span className="text-[#5A5751]"> · {r.days}</span> : null}
                     {(r.email || r.phone) ? <span className="text-[#5A5751]"> · {r.email || r.phone}</span> : null}
                   </span>
-                  <select aria-label={`Status for ${r.name}`} value={r.status} onChange={(e) => setPublicRegStatus(r.id, e.target.value)} className="text-[10px] border border-[#E8E4DC] bg-[#FAF8F4] p-1">
+                  <select aria-label={`Status for ${r.name}`} value={r.status} onChange={(e) => setPublicRegStatus(r.id, e.target.value)} className="text-[0.625rem] border border-[#E8E4DC] bg-[#FAF8F4] p-1">
                     <option value="new">New</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="cancelled">Cancelled</option>
@@ -500,7 +500,7 @@ function EventCenterModuleInner() {
       {/* VENUES — the buildings. Pick one to manage/book it, or see all. */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🏢 Buildings · {activeVenues.length}</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">🏢 Buildings · {activeVenues.length}</h3>
           {canEdit && <button type="button" onClick={() => setShowVenueForm(!showVenueForm)} className={btnGhost}>{showVenueForm ? '× Cancel' : '+ Add building'}</button>}
         </div>
         {canEdit && showVenueForm && (
@@ -512,27 +512,27 @@ function EventCenterModuleInner() {
         )}
         <div className="flex flex-wrap gap-1.5">
           <button type="button" aria-pressed={venueFilter === 'all'} onClick={() => setVenueFilter('all')}
-            className={`text-[11px] px-2.5 py-1 border ${venueFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>All buildings</button>
+            className={`text-[0.6875rem] px-2.5 py-1 border ${venueFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>All buildings</button>
           {activeVenues.map((v) => {
             const seats = venueSeatTotal(activeRooms, v.id);
             const on = venueFilter === v.id;
             return (
               <button key={v.id} type="button" aria-pressed={on} onClick={() => setVenueFilter(v.id)} title={v.address || v.name}
-                className={`text-[11px] px-2.5 py-1 border ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
+                className={`text-[0.6875rem] px-2.5 py-1 border ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
                 {v.name} · {roomsForVenue(activeRooms, v.id).length} {roomsForVenue(activeRooms, v.id).length === 1 ? 'room' : 'rooms'}{seats ? ` · ${seats} seats` : ''}
               </button>
             );
           })}
         </div>
         {venueFilter !== 'all' && venueById(activeVenues, venueFilter)?.address && (
-          <p className="text-[10px] text-[#5A5751] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>📍 {venueById(activeVenues, venueFilter).address}</p>
+          <p className="text-[0.625rem] text-[#5A5751] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>📍 {venueById(activeVenues, venueFilter).address}</p>
         )}
       </div>
 
       {/* ROOMS — the per-building inventory */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">
             🚪 Rooms{venueFilter !== 'all' ? ` · ${venueById(activeVenues, venueFilter)?.name || ''}` : ''} · {visibleRooms.length}
           </h3>
         </div>
@@ -555,7 +555,7 @@ function EventCenterModuleInner() {
                   return (
                     <button key={u} type="button" aria-pressed={on}
                       onClick={() => setRoomForm({ ...roomForm, useTypes: on ? roomForm.useTypes.filter((x) => x !== u) : [...roomForm.useTypes, u] })}
-                      className={`text-[10px] px-2 py-1 border capitalize ${on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
+                      className={`text-[0.625rem] px-2 py-1 border capitalize ${on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
                       {on ? '✓ ' : ''}{u}
                     </button>
                   );
@@ -566,7 +566,7 @@ function EventCenterModuleInner() {
           </div>
         )}
         {visibleRooms.length === 0 ? (
-          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms in this building yet{canEdit ? ' — add the spaces (main hall, classrooms, fellowship hall, kitchen) and tag what each supports so sessions can be assigned and capacity tracked.' : '.'}</p>
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms in this building yet{canEdit ? ' — add the spaces (main hall, classrooms, fellowship hall, kitchen) and tag what each supports so sessions can be assigned and capacity tracked.' : '.'}</p>
         ) : (
           <ul className="space-y-1">
             {visibleRooms.map((r) => {
@@ -574,9 +574,9 @@ function EventCenterModuleInner() {
               return (
                 <li key={r.id} className="flex items-center gap-2 text-xs py-1 border-b border-[#E8E4DC] last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
                   <span className="font-semibold min-w-0">{r.name}</span>
-                  {venueFilter === 'all' && venue && <span className="text-[9px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1 py-0.5">{venue.name}</span>}
+                  {venueFilter === 'all' && venue && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1 py-0.5">{venue.name}</span>}
                   <span className="flex-1 min-w-0 flex flex-wrap gap-1">
-                    {(r.useTypes || []).map((u) => <span key={u} className="text-[9px] uppercase tracking-wider text-[#5A6E3D] border border-[#D6DEC8] px-1 py-0.5 capitalize">{u}</span>)}
+                    {(r.useTypes || []).map((u) => <span key={u} className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#D6DEC8] px-1 py-0.5 capitalize">{u}</span>)}
                   </span>
                   <span className="text-[#5A5751] shrink-0">{Number.isFinite(r.capacity) ? `${r.capacity} seats` : 'capacity —'}</span>
                   {canEdit && <button type="button" onClick={() => removeRoom(r.id)} aria-label={`Remove ${r.name}`} className="text-[#5A5751] hover:text-[#B85838] px-2">×</button>}
@@ -598,9 +598,9 @@ function EventCenterModuleInner() {
       {/* SESSIONS — type / room / capacity vs registration */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">📅 Sessions · {confSessions.length}</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">📅 Sessions · {confSessions.length}</h3>
           <div className="flex items-center gap-3">
-            {canPresent && <button type="button" onClick={() => setPresenting(true)} className="text-[10px] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]" title="Put the agenda on a screen, one session at a time">▶ Present agenda</button>}
+            {canPresent && <button type="button" onClick={() => setPresenting(true)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]" title="Put the agenda on a screen, one session at a time">▶ Present agenda</button>}
             {canEdit && <button type="button" onClick={() => setShowSessForm(!showSessForm)} className={btnGhost}>{showSessForm ? '× Cancel' : '+ Add session'}</button>}
           </div>
         </div>
@@ -632,9 +632,9 @@ function EventCenterModuleInner() {
             {/* Service<->Choir link (main_service only): real sermon + song set */}
             {sessForm.sessionType === 'main_service' && (
               <div className="col-span-2 sm:col-span-6 border-t border-[#E8E4DC] pt-2 mt-1">
-                <p className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">⛪ Service ↔ Choir (links the real sermon &amp; music)</p>
+                <p className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">⛪ Service ↔ Choir (links the real sermon &amp; music)</p>
                 {sermons.length === 0 && songs.length === 0 ? (
-                  <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>The choir’s sermons &amp; songs appear here once they’re in the Choir module.</p>
+                  <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>The choir’s sermons &amp; songs appear here once they’re in the Choir module.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div><label className={labelCls} htmlFor="ec-s-sermon">Sermon</label>
@@ -651,7 +651,7 @@ function EventCenterModuleInner() {
                           return (
                             <button key={sg.id} type="button" aria-pressed={on}
                               onClick={() => setSessForm({ ...sessForm, musicSet: toggleSongId(sessForm.musicSet, sg.id) })}
-                              className={`text-[10px] px-2 py-1 border ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
+                              className={`text-[0.625rem] px-2 py-1 border ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>
                               {on ? '✓ ' : ''}{sg.title}
                             </button>
                           );
@@ -667,7 +667,7 @@ function EventCenterModuleInner() {
           </div>
         )}
         {confSessions.length === 0 ? (
-          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No sessions yet{canEdit ? ' — add the main services and the breakouts that run alongside them.' : '.'}</p>
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No sessions yet{canEdit ? ' — add the main services and the breakouts that run alongside them.' : '.'}</p>
         ) : (
           <ul className="space-y-1.5">
             {confSessions.map((s) => {
@@ -682,16 +682,16 @@ function EventCenterModuleInner() {
               return (
                 <li key={s.id} className="text-xs py-1.5 border-b border-[#E8E4DC] last:border-0" style={{ fontFamily: '"Fraunces", serif' }}>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 border shrink-0"
+                    <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border shrink-0"
                       style={{ borderColor: isMain ? '#B85838' : '#5A6E3D', color: isMain ? '#B85838' : '#5A6E3D' }}>{SESSION_TYPE_LABEL[s.sessionType]}</span>
-                    <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[s.day, s.time].filter(Boolean).join(' · ')}</span>
+                    <span className="text-[0.625rem] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[s.day, s.time].filter(Boolean).join(' · ')}</span>
                     <span className="flex-1 min-w-0 font-semibold">{s.title}{s.speaker ? <span className="text-[#5A5751] font-normal"> — {s.speaker}</span> : null}</span>
-                    {(venue || room) && <span className="text-[10px] text-[#5A5751] shrink-0">{[venue?.name, room?.name].filter(Boolean).join(' · ')}</span>}
-                    <KpiDot status={st.tone} label={st.label} className="text-[10px] shrink-0" />
+                    {(venue || room) && <span className="text-[0.625rem] text-[#5A5751] shrink-0">{[venue?.name, room?.name].filter(Boolean).join(' · ')}</span>}
+                    <KpiDot status={st.tone} label={st.label} className="text-[0.625rem] shrink-0" />
                     {canEdit && <button type="button" onClick={() => removeSession(s.id)} aria-label={`Remove ${s.title}`} className="text-[#5A5751] hover:text-[#B85838] px-1">×</button>}
                   </div>
                   {isMain && (sermon || setSongs.length > 0) && (
-                    <div className="text-[10px] text-[#5A6E3D] mt-0.5 ml-1">
+                    <div className="text-[0.625rem] text-[#5A6E3D] mt-0.5 ml-1">
                       {sermon && <span>⛪ {sermon.title}</span>}
                       {setSongs.length > 0 && <span>{sermon ? ' · ' : ''}🎵 {setSongs.map((sg) => sg.title).join(' · ')}</span>}
                     </div>
@@ -706,10 +706,10 @@ function EventCenterModuleInner() {
       {/* WHOLE-BUILDING — breakouts parallel to each main service */}
       {building.length > 0 && (
         <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">🏛 Whole-building · breakouts during the main service</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">🏛 Whole-building · breakouts during the main service</h3>
           <ul className="space-y-1.5">
             {building.map(({ main, breakouts, parallelCount, totalBreakoutSeats }) => (
-              <li key={main.id} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <li key={main.id} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                 While <span className="font-semibold text-[#1A1815]">{main.title}</span>{main.day ? ` (${main.day})` : ''} runs in the main space,{' '}
                 <span className="font-semibold text-[#B85838]">{parallelCount} {parallelCount === 1 ? 'breakout' : 'breakouts'}</span> run in parallel{totalBreakoutSeats ? ` (${totalBreakoutSeats} breakout seats)` : ''}
                 {breakouts.length > 0 && <span className="text-[#5A6E3D]"> — {breakouts.map((b) => b.title).join(' · ')}</span>}.
@@ -731,10 +731,10 @@ function EventCenterModuleInner() {
           roll (event_participants, with capacity). Separate from the open
           congregation registrations above (those are the public sign-ups). */}
       <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">
           🪑 Walk-in / session registration · {conferenceRsvpCount(confParticipants, conference?.id)} on the roll
         </h3>
-        <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>For on-site check-in and assigning people to specific breakout sessions (capacity-tracked).</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>For on-site check-in and assigning people to specific breakout sessions (capacity-tracked).</p>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5 items-end">
           <div className="sm:col-span-2"><label className={labelCls} htmlFor="ec-rsvp-name">Name</label><input id="ec-rsvp-name" className={fieldCls} placeholder="Your name" value={rsvp.name} onChange={(e) => setRsvp({ ...rsvp, name: e.target.value })} /></div>
           <div><label className={labelCls} htmlFor="ec-rsvp-meal">Meal</label>
@@ -754,7 +754,7 @@ function EventCenterModuleInner() {
             Vegan or Gluten-free attendee with a nut allergy can still record it. */}
         <input className={`${fieldCls} mt-1.5`} placeholder="Allergy or specific dietary need (optional)" value={rsvp.dietary} onChange={(e) => setRsvp({ ...rsvp, dietary: e.target.value })} aria-label="Allergy or specific dietary need" />
         {mealCountRows(mealAgg.counts).length > 0 && (
-          <p className="text-[10px] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             <span className="uppercase tracking-wider text-[#B85838] font-semibold">Meal counts:</span> {mealCountRows(mealAgg.counts).map(([k, n]) => `${n} ${k}`).join(' · ')}
             {mealAgg.notes.length > 0 ? ` · ${mealAgg.notes.length} with dietary notes` : ''}
           </p>
@@ -762,19 +762,19 @@ function EventCenterModuleInner() {
         {confParticipants.length > 0 && (
           <ul className="mt-2 space-y-1">
             {confParticipants.slice(-8).map((p) => (
-              <li key={p.id} className="flex items-center gap-2 text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <li key={p.id} className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
                 <span className={`flex-1 min-w-0 ${p.registrationStatus === 'cancelled' ? 'line-through text-[#5A5751]' : ''}`}>
                   {p.name} <span className="text-[#5A5751]">· {p.mealType}</span>{p.dietary ? <span className="text-[#5A6E3D]"> · {p.dietary}</span> : null}
                 </span>
                 {canEdit ? (
-                  <select aria-label={`Status for ${p.name}`} className="text-[10px] border border-[#E8E4DC] bg-[#FAF8F4] p-1" value={p.registrationStatus} onChange={(e) => changeStatus(p, e.target.value)}>
+                  <select aria-label={`Status for ${p.name}`} className="text-[0.625rem] border border-[#E8E4DC] bg-[#FAF8F4] p-1" value={p.registrationStatus} onChange={(e) => changeStatus(p, e.target.value)}>
                     <option value="registered">Registered</option>
                     <option value="checked_in">Checked in</option>
                     <option value="waitlist">Waitlist</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                 ) : (
-                  <span className="text-[10px] text-[#5A5751] uppercase tracking-wider">{p.registrationStatus.replace('_', ' ')}</span>
+                  <span className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider">{p.registrationStatus.replace('_', ' ')}</span>
                 )}
                 {(canEdit || p.mine) && <button type="button" onClick={() => removeParticipant(p.id)} aria-label={`Remove ${p.name}`} className="text-[#5A5751] hover:text-[#B85838] px-1">×</button>}
               </li>
@@ -791,7 +791,7 @@ function EventCenterModuleInner() {
     <section className={card} aria-labelledby="eventcenter-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center · Rooms &amp; Breakouts</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center · Rooms &amp; Breakouts</div>
           <h2 id="eventcenter-h" className="text-lg sm:text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
             {conference ? conference.name : 'Multi-attendee conference system'}
           </h2>
@@ -804,19 +804,19 @@ function EventCenterModuleInner() {
         <KpiDot
           status={mode === 'synced' ? 'good' : 'idle'}
           label={mode === 'synced' ? 'Shared / live' : 'This device'}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0"
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0"
         />
       </div>
 
       {mode === 'local' && (
-        <p className="text-[11px] text-[#8A6E1F] bg-[#FBF7EC] border border-[#E8D9A8] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#8A6E1F] bg-[#FBF7EC] border border-[#E8D9A8] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
           {access.signedIn
             ? 'Your account isn’t linked to a church yet — ask to be added, then this becomes the shared system. For now it saves on this device.'
             : 'Sign in to make this the shared, live conference system. Until then your changes stay on this device.'}
         </p>
       )}
       {flash && (
-        <p role="alert" className="text-[11px] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
+        <p role="alert" className="text-[0.6875rem] text-[#B85838] bg-[#FBEFEA] border border-[#E8C4B5] px-3 py-2 mt-3" style={{ fontFamily: '"Fraunces", serif' }}>{flash}</p>
       )}
 
       <div className="mt-4">

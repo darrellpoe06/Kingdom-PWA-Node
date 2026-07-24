@@ -34,7 +34,7 @@ const STATUS_LABEL = { idea: 'Candidate', final: 'Final', pool: 'Pool' };
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
 const fmtWhen = (iso) => {
   if (!iso) return '';
@@ -97,7 +97,7 @@ function CommentThread({ comments, onSend }) {
       <div className="max-h-48 overflow-y-auto" aria-live="polite">
         {comments.length ? comments.map((c) => (
           <div key={c.id} className="mb-1.5">
-            <span className="text-[10px] text-[#5A5751]">{c.author}{c.createdAt ? ` · ${fmtWhen(c.createdAt)}` : ''}</span>
+            <span className="text-[0.625rem] text-[#5A5751]">{c.author}{c.createdAt ? ` · ${fmtWhen(c.createdAt)}` : ''}</span>
             <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{c.body}</p>
           </div>
         )) : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No comments yet — start the conversation.</p>}
@@ -125,7 +125,7 @@ function CommentThread({ comments, onSend }) {
 function LeadLine({ leads }) {
   if (!leads.length) return null;
   return (
-    <div className="text-[11px] mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+    <div className="text-[0.6875rem] mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
       {leads.map((l) => (
         <span key={l.id} className={l.mine ? 'font-semibold text-[#B85838]' : 'text-[#1A1815]'}>
           🎤 {l.role === 'co-lead' ? 'Co-lead' : 'Lead'}: {l.memberName}{l.mine ? ' (you)' : ''}
@@ -151,7 +151,7 @@ function LeadPanel({ leads, members, onAssign, onRemove }) {
       {leads.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {leads.map((l) => (
-            <span key={l.id} className="inline-flex items-center gap-1 text-[11px] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5">
+            <span key={l.id} className="inline-flex items-center gap-1 text-[0.6875rem] bg-[#FAF8F4] border border-[#E8E4DC] px-1.5 py-0.5">
               {l.role === 'co-lead' ? 'Co-lead' : 'Lead'}: {l.memberName}
               <button type="button" onClick={() => onRemove(l.id)} aria-label={`Remove ${l.memberName} as ${l.role}`} className="text-[#991B1B] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">✕</button>
             </span>
@@ -175,7 +175,7 @@ function LeadPanel({ leads, members, onAssign, onRemove }) {
         </div>
         <button type="button" onClick={submit} disabled={!memberId} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] disabled:opacity-50`}>Assign</button>
       </div>
-      {!options.length && !members.length && <p className="text-[11px] text-[#5A5751] mt-1">Add choir members on the Roster tab to assign leads.</p>}
+      {!options.length && !members.length && <p className="text-[0.6875rem] text-[#5A5751] mt-1">Add choir members on the Roster tab to assign leads.</p>}
     </div>
   );
 }
@@ -196,12 +196,12 @@ function SongCard({ idea, comments, vote, leads, members, canEdit, onVote, onCom
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-[9px] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{idea.sourceType === 'youtube' ? 'YouTube' : 'Link'}</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{idea.sourceType === 'youtube' ? 'YouTube' : 'Link'}</span>
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-[#1A1815] break-words">{idea.title}</span>
-            {isFinal && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">★ Final</span>}
-            {iLead && <span className="text-[9px] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">★ Your lead</span>}
+            {isFinal && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">★ Final</span>}
+            {iLead && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">★ Your lead</span>}
           </div>
-          <div className="text-[10px] text-[#5A5751] mt-0.5">
+          <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
             Added by {idea.addedByName}{idea.createdAt ? ` · ${fmtWhen(idea.createdAt)}` : ''}
             {idea.keyLabel ? ` · Key ${idea.keyLabel}` : ''}{idea.arrangement ? ` · ${idea.arrangement}` : ''}
           </div>
@@ -273,7 +273,7 @@ function AddBar({ busy, onAddOne, onAddList }) {
           <label className={LABEL} htmlFor="sw-list">Paste links or lines — one song per line</label>
           <textarea id="sw-list" rows={5} className={FIELD} value={listText} onChange={(e) => setListText(e.target.value)} placeholder={'Total Praise - https://youtu.be/...\nhttps://youtube.com/watch?v=...\nWay Maker'} />
         </div>
-        <p className="text-[11px] text-[#5A5751]">{previewCount} song{previewCount === 1 ? '' : 's'} detected.</p>
+        <p className="text-[0.6875rem] text-[#5A5751]">{previewCount} song{previewCount === 1 ? '' : 's'} detected.</p>
         <div className="flex gap-2">
           <button type="button" disabled={busy || !previewCount} onClick={async () => { await onAddList(listText); reset(); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add {previewCount || ''} to pool</button>
           <button type="button" onClick={reset} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
@@ -367,13 +367,13 @@ export default function ChoirSongWorkshop({ access }) {
 
       {myLeads.length > 0 && (
         <section className="mb-4 bg-[#FAF8F4] border border-[#B85838] p-3">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-2">🎤 Songs you're leading ({myLeads.length})</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-2">🎤 Songs you're leading ({myLeads.length})</h3>
           <ul className="space-y-1">
             {myLeads.map(({ idea, role }) => (
               <li key={idea.id} className="text-sm text-[#1A1815] flex items-baseline gap-2 flex-wrap" style={{ fontFamily: '"Fraunces", serif' }}>
                 <span style={{ fontWeight: 600 }}>{idea.title}</span>
-                <span className="text-[9px] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">{role === 'co-lead' ? 'Co-lead' : 'Lead'}</span>
-                <span className="text-[10px] text-[#5A5751]">{STATUS_LABEL[idea.status]}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">{role === 'co-lead' ? 'Co-lead' : 'Lead'}</span>
+                <span className="text-[0.625rem] text-[#5A5751]">{STATUS_LABEL[idea.status]}</span>
               </li>
             ))}
           </ul>
@@ -390,21 +390,21 @@ export default function ChoirSongWorkshop({ access }) {
 
       {finals.length > 0 && (
         <section className="mb-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">★ Final songs ({finals.length})</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">★ Final songs ({finals.length})</h3>
           {finals.map((idea) => <SongCard key={idea.id} {...cardProps(idea)} />)}
         </section>
       )}
 
       {candidates.length > 0 && (
         <section className="mb-4">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-2">Candidates ({candidates.length})</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-2">Candidates ({candidates.length})</h3>
           {candidates.map((idea) => <SongCard key={idea.id} {...cardProps(idea)} />)}
         </section>
       )}
 
       {pool.length > 0 && (
         <section className="mb-2">
-          <button type="button" onClick={() => setPoolOpen((v) => !v)} className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-2 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={() => setPoolOpen((v) => !v)} className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-2 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {poolOpen ? '▾' : '▸'} Song pool ({pool.length})
           </button>
           {poolOpen && pool.map((idea) => <SongCard key={idea.id} {...cardProps(idea)} />)}

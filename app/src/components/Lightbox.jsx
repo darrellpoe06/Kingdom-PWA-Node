@@ -186,7 +186,7 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
       {(photo.caption || photo.date) && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 max-w-[92vw] text-center z-10 px-3" onClick={stop}>
           {photo.caption && <div className="text-white/90 text-sm" style={{ fontFamily: '"Fraunces", serif' }}>{photo.caption}</div>}
-          {photo.date && <div className="text-white/60 text-[11px] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{photo.date}</div>}
+          {photo.date && <div className="text-white/60 text-[0.6875rem] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{photo.date}</div>}
         </div>
       )}
 
@@ -194,7 +194,7 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
         <button type="button" aria-label="Zoom out" onClick={() => zoomBy(-0.5)} className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/30 text-white text-2xl leading-none focus:outline focus:outline-2 focus:outline-white">−</button>
         <span className="text-white/80 text-xs w-12 text-center" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{Math.round(scale * 100)}%</span>
         <button type="button" aria-label="Zoom in" onClick={() => zoomBy(0.5)} className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/30 text-white text-2xl leading-none focus:outline focus:outline-2 focus:outline-white">+</button>
-        <a href={curSrc} download onClick={stop} className="ml-3 text-white/70 hover:text-white text-[10px] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-white">⬇ Save</a>
+        <a href={curSrc} download onClick={stop} className="ml-3 text-white/70 hover:text-white text-[0.625rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-white">⬇ Save</a>
       </div>
     </div>
   );

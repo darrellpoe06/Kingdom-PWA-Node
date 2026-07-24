@@ -59,7 +59,7 @@ function CampusCatalog() {
         <div key={c.id} className="bg-white border border-[#E8E4DC] p-4">
           <div className="flex items-baseline justify-between gap-2">
             <h3 className="text-base font-semibold text-[#1A1815]" style={serif}>{c.name}</h3>
-            <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">{c.tier} rate</span>
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">{c.tier} rate</span>
           </div>
           <p className="text-xs text-[#5A5751] mt-0.5" style={serif}>{c.address}</p>
           <p className="text-xs text-[#5A5751] mt-1" style={serif}>{c.blurb}</p>
@@ -92,7 +92,7 @@ function Responsibilities({ booking, onToggle }) {
                 className="w-4 h-4 accent-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
               />
               <span className={done ? 'line-through text-[#5A5751]' : ''}>{r.label}</span>
-              <span className="text-[10px] uppercase tracking-wide text-[#5A5751]">· {r.team}</span>
+              <span className="text-[0.625rem] uppercase tracking-wide text-[#5A5751]">· {r.team}</span>
             </label>
           </li>
         );
@@ -133,7 +133,7 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-[#1A1815]" style={serif}>{eventTypeLabel(booking.eventType)}</span>
             {booking.eventTitle && <span className="text-sm text-[#5A5751]" style={serif}>— {booking.eventTitle}</span>}
-            <KpiDot status={STATUS_TONE[booking.status] || 'idle'} label={STATUS_LABEL[booking.status] || booking.status} className="text-[11px]" />
+            <KpiDot status={STATUS_TONE[booking.status] || 'idle'} label={STATUS_LABEL[booking.status] || booking.status} className="text-[0.6875rem]" />
           </div>
           <p className="text-xs text-[#5A5751] mt-1" style={serif}>
             {campus?.name || booking.campus} · {space?.name || booking.spaceName || booking.spaceId}
@@ -150,7 +150,7 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
           </p>
         </div>
         <div className="text-right shrink-0">
-          <KpiDot status={prog.tone} label={`${prog.done}/${prog.total} ready`} title="Responsibilities assigned" className="text-[11px]" />
+          <KpiDot status={prog.tone} label={`${prog.done}/${prog.total} ready`} title="Responsibilities assigned" className="text-[0.6875rem]" />
         </div>
       </div>
 
@@ -159,7 +159,7 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
           <p className="text-xs text-[#7A1F1F] font-semibold" style={serif}>
             Double-booking conflict — this space is already taken at this time:
           </p>
-          <ul className="text-[11px] text-[#7A1F1F] mt-0.5" style={serif}>
+          <ul className="text-[0.6875rem] text-[#7A1F1F] mt-0.5" style={serif}>
             {conflicts.map((c) => (
               <li key={c.id}>• {STATUS_LABEL[c.status] || c.status}: {eventTypeLabel(c.eventType)}{c.eventTitle ? ` (${c.eventTitle})` : ''} · {formatTimeRange(c.startTime, c.endTime)}</li>
             ))}
@@ -169,7 +169,7 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
 
       {booking.notes && <p className="text-xs text-[#5A5751] mt-2 italic" style={serif}>“{booking.notes}”</p>}
 
-      <button type="button" onClick={() => setOpen((o) => !o)} className="text-[11px] uppercase tracking-wider text-[#B85838] mt-2 underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mt-2 underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">
         {open ? 'Hide details' : 'Manage'}
       </button>
 
@@ -177,38 +177,38 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
         <div className="mt-3 border-t border-[#E8E4DC] pt-3 space-y-3">
           {/* Responsibilities — so nothing is dropped */}
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold">Responsibilities</p>
+            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Responsibilities</p>
             <Responsibilities booking={booking} onToggle={onToggle} />
           </div>
 
           {/* Status actions — Schedule is guarded by the conflict check */}
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Status</p>
+            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Status</p>
             <div className="flex flex-wrap gap-2">
               {booking.status !== 'reviewing' && booking.status !== 'scheduled' && (
-                <button type="button" disabled={busy} onClick={() => act({ status: 'reviewing' })} className="text-[11px] px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Mark reviewing</button>
+                <button type="button" disabled={busy} onClick={() => act({ status: 'reviewing' })} className="text-[0.6875rem] px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Mark reviewing</button>
               )}
               <button
                 type="button"
                 disabled={busy || !canSchedule}
                 onClick={() => act({ status: 'scheduled' })}
                 title={conflicts.length ? 'Resolve the double-booking conflict before scheduling' : 'Confirm + schedule this booking'}
-                className="text-[11px] px-3 py-2 min-h-[36px] border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="text-[0.6875rem] px-3 py-2 min-h-[36px] border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 {conflicts.length ? 'Schedule (blocked — conflict)' : 'Schedule'}
               </button>
               {booking.status === 'scheduled' && (
-                <button type="button" disabled={busy} onClick={() => act({ status: 'completed' })} className="text-[11px] px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Mark completed</button>
+                <button type="button" disabled={busy} onClick={() => act({ status: 'completed' })} className="text-[0.6875rem] px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Mark completed</button>
               )}
               {booking.status !== 'declined' && (
-                <button type="button" disabled={busy} onClick={() => act({ status: 'declined' })} className="text-[11px] px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Decline</button>
+                <button type="button" disabled={busy} onClick={() => act({ status: 'declined' })} className="text-[0.6875rem] px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">Decline</button>
               )}
             </div>
           </div>
 
           {/* Revenue line — real staff-entered price */}
           <div>
-            <label htmlFor={`price-${booking.id}`} className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold block mb-1">Quoted price ({campus?.tier || 'standard'} rate)</label>
+            <label htmlFor={`price-${booking.id}`} className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold block mb-1">Quoted price ({campus?.tier || 'standard'} rate)</label>
             <div className="flex items-center gap-2">
               <span className="text-sm text-[#1A1815]" style={serif}>$</span>
               <input
@@ -220,12 +220,12 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
                 placeholder="set the agreed amount"
                 className="w-40 border border-[#1A1815] px-3 py-2 min-h-[40px] text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
               />
-              <span className="text-[11px] text-[#5A5751]">counts as income once scheduled</span>
+              <span className="text-[0.6875rem] text-[#5A5751]">counts as income once scheduled</span>
             </div>
           </div>
 
           <div>
-            <button type="button" disabled={busy} onClick={() => { if (typeof window !== 'undefined' && window.confirm('Delete this booking? This cannot be undone.')) onDelete(booking.id); }} className="text-[11px] text-[#7A1F1F] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+            <button type="button" disabled={busy} onClick={() => { if (typeof window !== 'undefined' && window.confirm('Delete this booking? This cannot be undone.')) onDelete(booking.id); }} className="text-[0.6875rem] text-[#7A1F1F] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
           </div>
         </div>
       )}
@@ -266,21 +266,21 @@ function StaffConsole() {
       {/* Revenue + health summary — real numbers only */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className="bg-white border border-[#E8E4DC] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold">Booked revenue</p>
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Booked revenue</p>
           <p className="text-2xl text-[#1A1815] mt-1" style={{ ...serif, fontWeight: 600 }}>{formatPrice(revenue.total)}</p>
-          <p className="text-[11px] text-[#5A5751] mt-1" style={serif}>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
             North {formatPrice(revenue.byCampus.north)} · South {formatPrice(revenue.byCampus.south)}
           </p>
         </div>
         <div className="bg-white border border-[#E8E4DC] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold">Requests to review</p>
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Requests to review</p>
           <p className="text-2xl text-[#1A1815] mt-1" style={{ ...serif, fontWeight: 600 }}>{open.length}</p>
-          <KpiDot status={open.length ? 'attention' : 'good'} label={open.length ? 'needs review' : 'all clear'} className="text-[11px] mt-1" />
+          <KpiDot status={open.length ? 'attention' : 'good'} label={open.length ? 'needs review' : 'all clear'} className="text-[0.6875rem] mt-1" />
         </div>
         <div className="bg-white border border-[#E8E4DC] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[#5A5751] font-semibold">Schedule health</p>
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Schedule health</p>
           <p className="text-2xl text-[#1A1815] mt-1" style={{ ...serif, fontWeight: 600 }}>{scheduled.length}</p>
-          <KpiDot status={totalConflicts ? 'problem' : 'good'} label={totalConflicts ? `${totalConflicts} conflict${totalConflicts === 1 ? '' : 's'}` : 'no double-bookings'} className="text-[11px] mt-1" />
+          <KpiDot status={totalConflicts ? 'problem' : 'good'} label={totalConflicts ? `${totalConflicts} conflict${totalConflicts === 1 ? '' : 's'}` : 'no double-bookings'} className="text-[0.6875rem] mt-1" />
         </div>
       </div>
 
@@ -381,7 +381,7 @@ export default function EventManagement({ isChurchStaff = false }) {
   return (
     <div className="max-w-5xl">
       <div className="mb-4">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Venues</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Venues</div>
         <h2 className="text-xl sm:text-2xl text-[#1A1815] mt-0.5" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Community Event Management</h2>
         <p className="text-sm text-[#5A5751] mt-1" style={serif}>
           The church’s two campuses, open to the community for funerals, weddings, and gatherings — across {CAMPUSES.map((c) => c.name).join(' and ')}.
