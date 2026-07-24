@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
+import { filesFromClipboardEvent } from '../lib/paste-input.js';
 import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
 import { saveExtraction } from '../lib/use-discovery.js';
 // The library count derives from the registry itself (DR-0121 — the hand-typed
@@ -317,7 +318,10 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
-      <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '42rem' }} onClick={(e) => e.stopPropagation()}>
+      {/* Paste-to-attach (Darrell 2026-07-24): Ctrl/Cmd+V anywhere in the form
+          drops a copied screenshot straight into the same compress-and-attach
+          pipeline as the file picker — paste is an equal door, not a replacement. */}
+      <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '42rem' }} onClick={(e) => e.stopPropagation()} onPaste={(e) => { const fs = filesFromClipboardEvent(e); if (fs.length) { e.preventDefault(); onPickImage(fs); } }}>
         <div className="p-5 sm:p-6">
           <div className="flex items-baseline justify-between gap-3 mb-3">
             <div>
@@ -392,7 +396,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
                 </div>
               )}
               <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
-                <span>{readingImages ? 'Reading your photo…' : screenshots.length > 0 ? 'Add another image' : 'Attach one or more images to show us what you mean'}</span>
+                <span>{readingImages ? 'Reading your photo…' : screenshots.length > 0 ? 'Add another image — or paste one (Ctrl+V)' : 'Attach images to show us what you mean — or copy a screenshot and paste it here (Ctrl+V)'}</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
               </label>
               {readingImages && <p className="mt-1 text-[0.625rem] text-[#5A5751]" aria-live="polite">Reading and compressing — the preview appears here when it&apos;s in.</p>}
