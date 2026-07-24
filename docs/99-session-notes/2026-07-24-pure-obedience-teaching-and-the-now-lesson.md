@@ -37,3 +37,20 @@ code on the projected screen, wired through Presenter -> broadcast ->
 AudienceWindow/AudienceSlide, 6,543 tests green). Standing rule: the agent's
 constraints shrink the increment, never override the instruction; deferral
 language ("tomorrow", "when you're ready") on directed work is the bug.
+
+## Continuation (Darrell, same day — speakers named: William Jackson with Ezekiel Azonwu)
+- **Take off your shoes — the idol of the past:** praying FROM one's history
+  means being discipled by experience instead of by Yahweh; the past becomes
+  the garment that must come off on holy ground (Exodus 3:5; Joshua 5:15 —
+  fetch verbatim) or the future He speaks cannot be comprehended. The body of
+  Christ surviving on past words leaves heaven no room for fresh revelation.
+- **Proximity over distance:** He is always speaking; hearing the FULL
+  instruction requires coming close — distance is where gap-filling with our
+  own methods begins.
+- **"Nevertheless, not My will":** the standard of surrender (Luke 22:42 —
+  fetch verbatim). The believer lets Yahweh set the precedent rather than
+  their own history; He owns the how, the when, and the who.
+- Platform application: the Council Chamber posture and the agent's own way —
+  each session reads the Ways fresh (Layer 0) rather than trusting its
+  remembered past; verified reality outranks recalled precedent (DR-0076 §5
+  "characterize before you change" is this teaching in engineering form).
