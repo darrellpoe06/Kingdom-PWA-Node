@@ -148,6 +148,7 @@ jobs:
             | .iconUrl = $icon
             | .maskableIconUrl = $mask
             | .appVersionCode = ($vc | tonumber)
+            | .appVersion = $vn
             | .appVersionName = $vn
             | .signingKey = { path: $ks, alias: "poetech" }
           ' store/twa-manifest.template.json > twa-build/twa-manifest.json
