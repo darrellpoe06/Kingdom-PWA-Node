@@ -86,3 +86,24 @@ Acts 8:9-24; Exodus 7:10-12; Hebrews 11:3; Colossians 1:16-17.
 The scripture-fetch verification pass is the gating remainder — the Word is
 never written from memory; lesson data lands in living-lessons-class.js
 levels shape on the next verified pass.
+
+## Continuation — why pure truth is hard to digest (same teaching)
+- **Altered taste buds:** a lifetime of genetically-modified teaching — the
+  Word spun to human agendas, a feel-good gospel with no holiness, sacrifice,
+  or "no" — reshapes the spiritual digestive system until unadulterated truth
+  is resisted on contact.
+- **The delivery-driver problem:** many reject the message because flawed
+  humans misrepresented the Sender; they react to the driver, not the One who
+  sent the package. Teachable across every age band — the platform's own
+  posture: never let the delivery misrepresent the Deliverer.
+- **Manufactured faith:** distrusting the delivery, people manufacture their
+  own order — a self-made spirituality that feels safe and resists the true
+  Kingdom's demands.
+- **The solution:** strip away the contaminated influences; stay in proximity
+  so Yahweh chisels away the carnal sources and gives a heart of flesh
+  (Ezekiel 36:26 — add to the verbatim-fetch list) able to receive and obey
+  the unadulterated Word.
+- Lesson wiring: this movement lands in the teen + standard variants of "The
+  Blueprint Is Not a Suggestion" (why truth feels hard: check the source of
+  what fed you) and in the Council Chamber posture — the platform must be a
+  clean delivery driver: fetch verbatim, teach don't debate, never spin.
