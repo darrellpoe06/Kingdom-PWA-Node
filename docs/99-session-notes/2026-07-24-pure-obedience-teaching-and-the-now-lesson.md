@@ -107,3 +107,27 @@ levels shape on the next verified pass.
   Blueprint Is Not a Suggestion" (why truth feels hard: check the source of
   what fed you) and in the Council Chamber posture — the platform must be a
   clean delivery driver: fetch verbatim, teach don't debate, never spin.
+
+## Spec-conformance review (DR-0219, run 2026-07-24)
+SHOULD → ARE, checked against the Ways:
+- Typographic theology (Layer 0): Yahweh named in our voice (7×), no bare
+  generic "God" in authored prose, no adversary term capitalized, "the Word"
+  capitalized throughout. PASS.
+- Scripture integrity (DR-0076 / SCRIPTURE-REFERENCE-STANDARD): zero verse
+  text quoted from memory anywhere in this document — references only (10),
+  all routed to the verbatim-fetch harness before the lesson ships. PASS.
+- Teach-don't-debate (DR-0098): the capture teaches what the teaching shows;
+  no both-sides staging. PASS.
+- Trust-but-verify (DR-0190): source attributed (William Jackson with
+  Ezekiel Azonwu, "Prayer Wins" video, shared by Darrell 2026-07-24). Tier
+  note: the video is the VESSEL of the framing; the Word is the AUTHORITY —
+  every doctrinal claim stands on the fetched Scriptures, not on the
+  speakers' say-so, and ships only if the verses carry it. RECORDED.
+- Learn framework fit (learn-framework.js): child/teen/standard/senior level
+  keys match the framework's levels + age-band fallback (child → teen →
+  standard → base); self-paced supported. PASS.
+- Color/red reservation (DR-0099): no color assignments in this content. N/A.
+Gap found and closed in this pass: the DR-0190 authority-tier note above was
+implicit — now explicit. Remaining gate (named, not silent): the verbatim
+scripture fetch is the ONLY thing between this spec and the lesson landing in
+living-lessons-class.js.
