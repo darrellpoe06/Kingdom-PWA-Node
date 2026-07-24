@@ -67,6 +67,14 @@ jobs:
           if [ -n "${STORE_KS_B64:-}" ]; then echo "B64 secret present — bootstrap not needed"; exit 0; fi
           if [ -z "${STORE_KS_PASS:-}" ]; then echo "no PASS secret — per-run testing keys continue"; exit 0; fi
           if [ -f store/android.keystore.enc ]; then echo "encrypted keystore already committed — nothing to do"; exit 0; fi
+          # Main is PR-only (run-17 lesson: direct push rejected by the repo's
+          # own rules — the DR-0103 lane defending itself, correctly). So the
+          # bootstrap rides the lane: push a claude/* branch, auto-open-pr +
+          # auto-merge land it on green. Build jobs read the key from this
+          # branch until the merge completes, so even THIS run signs stable.
+          if git ls-remote --exit-code origin claude/store-key-bootstrap >/dev/null 2>&1; then
+            echo "bootstrap branch already pending merge — no new key generated"; exit 0
+          fi
           keytool -genkeypair -keystore /tmp/store.keystore -storetype PKCS12 -alias poetech \
             -keyalg RSA -keysize 2048 -validity 9125 \
             -storepass "$STORE_KS_PASS" -keypass "$STORE_KS_PASS" \
@@ -74,10 +82,11 @@ jobs:
           openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/store.keystore -out store/android.keystore.enc -pass env:STORE_KS_PASS
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+          git checkout -b claude/store-key-bootstrap
           git add store/android.keystore.enc
-          git commit -m "Store signing key bootstrapped: encrypted keystore at rest; the PASS secret is the one key"
-          for i in 1 2 3; do git push && break || git pull --rebase; done
-          echo "bootstrapped + committed store/android.keystore.enc"
+          git commit -m "Store signing key: encrypted keystore at rest; the PASS secret is the one key"
+          git push -u origin claude/store-key-bootstrap
+          echo "bootstrapped — encrypted keystore riding the lane to main"
 
   build:
     needs: key
@@ -156,6 +165,12 @@ jobs:
             # postdate this job's checkout sha.
             git fetch origin main --depth=1
             git checkout origin/main -- store/android.keystore.enc 2>/dev/null || true
+            if [ ! -s store/android.keystore.enc ]; then
+              # Not merged yet — read it from the bootstrap branch the key job
+              # just pushed, so this very run already signs with the stable key.
+              git fetch origin claude/store-key-bootstrap --depth=1 2>/dev/null \
+                && git checkout FETCH_HEAD -- store/android.keystore.enc 2>/dev/null || true
+            fi
             if [ -s store/android.keystore.enc ]; then
               openssl enc -d -aes-256-cbc -pbkdf2 -in store/android.keystore.enc -out "$PWD/android.keystore" -pass env:STORE_KS_PASS
               PASS="$STORE_KS_PASS"
