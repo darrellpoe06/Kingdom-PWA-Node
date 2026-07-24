@@ -300,6 +300,7 @@ export default function Presenter({
   useEffect(() => { idxRef.current = idx; }, [idx]);
   const blankRef = useRef(false);
   const followRef = useRef(null); // the congregation follow-along broadcaster, when live
+  const followCodeRef = useRef(null); // live join code, read by sendCurrent for the on-screen invite QR
   useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
   const ageRef = useRef(age);
   useEffect(() => { ageRef.current = age; }, [age]);
@@ -308,9 +309,17 @@ export default function Presenter({
   // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
   // room's slide instantly (leadByAge), without leaving the current slide.
   const sendCurrent = useCallback(() => {
-    const payload = blankRef.current
+    const base = blankRef.current
       ? holdingSlide(title, kicker)
       : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
+    // Invite-the-room (Darrell 2026-07-24): while the congregation broadcast is
+    // LIVE, the projected slide carries the join QR + code so the room can scan
+    // and follow on their own phones — zero typing (COMMUNITY-FIRST). Audience-
+    // safe fields only (a URL + code the presenter already shows on screen).
+    const inviteCode = followCodeRef.current;
+    const payload = inviteCode
+      ? { ...base, invite: { code: inviteCode, url: followLink(inviteCode) } }
+      : base;
     // 1) the same-browser projector (BroadcastChannel)
     const ch = chRef.current;
     if (ch) { try { ch.postMessage(payload); } catch (e) { /* non-fatal */ } }
@@ -400,19 +409,25 @@ export default function Presenter({
     if (!FOLLOW_ALONG_ENABLED || followRef.current) return;
     const code = makeFollowCode();
     followRef.current = createFollowBroadcaster(code);
+    followCodeRef.current = code;
     setFollowCode(code);
+    // re-send so the PROJECTED screen immediately gains the invite QR + code
+    setTimeout(() => { try { sendCurrent(); } catch (e) { /* non-fatal */ } }, 0);
     // push the current slide immediately so a follower who joins right away sees it
     const payload = blankRef.current
       ? holdingSlide(title, kicker)
       : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
     try { if (blankRef.current) followRef.current.hold(); else followRef.current.publish(payload); } catch (e) { /* non-fatal */ }
-  }, [scenes, title, kicker]);
+  }, [scenes, title, kicker, sendCurrent]);
 
   const stopFollow = useCallback(() => {
     try { followRef.current?.end(); followRef.current?.close(); } catch (e) { /* non-fatal */ }
     followRef.current = null;
+    followCodeRef.current = null;
     setFollowCode(null);
-  }, []);
+    // re-send so the projected screen drops the invite QR the moment we go dark
+    setTimeout(() => { try { sendCurrent(); } catch (e) { /* non-fatal */ } }, 0);
+  }, [sendCurrent]);
 
   // Close the follow channel if the presenter unmounts mid-session.
   useEffect(() => () => { try { followRef.current?.close(); } catch (e) { /* noop */ } followRef.current = null; }, []);
@@ -486,7 +501,7 @@ export default function Presenter({
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Presenting — ${title}`}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
-          <AudienceSlide slide={cleanSlide} />
+          <AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} />
         </div>
         {/* Always-on speaker bar — never projected content, just the controls. */}
         <div style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}

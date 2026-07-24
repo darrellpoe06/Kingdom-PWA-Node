@@ -79,7 +79,7 @@ export default function AudienceWindow() {
         </button>
       )}
 
-      <AudienceSlide slide={showHold ? null : slide} hold={hold} />
+      <AudienceSlide slide={showHold ? null : slide} hold={hold} invite={(showHold ? hold : slide)?.invite || null} />
     </div>
   );
 }
