@@ -68,3 +68,21 @@ language ("tomorrow", "when you're ready") on directed work is the bug.
   agent answers from the Worldview spine, never improvised theology; and the
   sovereignty principle's root: whose power the platform runs on determines
   what the platform is.
+
+## Directed placement (Darrell, same day): Learn lesson, diversified, self-paced
+Build into Learn as a lesson with the framework's age levels (child / teen /
+standard / senior — learn-framework.js `levels` + age bands) and self-paced
+delivery: **"The Blueprint Is Not a Suggestion — Noah, Jonah, and the Source."**
+- child: Noah built it EXACTLY as told — every board mattered; wash-your-hands
+  picture: we come to Yahweh clean and listening.
+- teen: precedent — what you practice in small hungers becomes who you are in
+  big tests; Nevertheless (Luke 22:42).
+- standard: the full four movements (obedience/integrity, shoes-off/idol of
+  the past, proximity, miracle-worker vs magician — the source decides).
+- senior: past words vs fresh revelation — praying from history vs future.
+Scriptures to fetch VERBATIM through the harness before ship (DR-0076):
+Genesis 6:14-22; Jonah 1:1-3; Exodus 3:5; Joshua 5:15; Luke 22:42;
+Acts 8:9-24; Exodus 7:10-12; Hebrews 11:3; Colossians 1:16-17.
+The scripture-fetch verification pass is the gating remainder — the Word is
+never written from memory; lesson data lands in living-lessons-class.js
+levels shape on the next verified pass.
