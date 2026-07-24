@@ -3,7 +3,8 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  LEAVE_TYPES, leaveType, validateEntry, decideTransition,
+  LEAVE_TYPES, leaveType, validateEntry, decideTransition, hoursToDays,
+  approversFor, TIE_KINDS,
   accruedThrough, usedThrough, balanceOn, dateRange, buildAbsenceRows,
 } from '../lib/time-stewardship.js';
 
@@ -28,6 +29,48 @@ describe('entry validation', () => {
     expect(validateEntry({ ...good, date: '8/4/26' }).error).toMatch(/date/);
     expect(validateEntry({ ...good, days: 0 }).error).toMatch(/days/);
     expect(validateEntry({ ...good, memberId: '' }).error).toMatch(/member/);
+  });
+  it('any member submits by HOURS — a child logging 3 serve hours', () => {
+    const r = validateEntry({ type: 'serve', date: '2026-08-04', hours: 3, memberId: 'child1' });
+    expect(r.ok).toBe(true);
+    expect(r.days).toBe(0.375); // 3 of an 8-hour day
+    expect(hoursToDays(3, 8)).toBe(0.375);
+  });
+  it('hours that do not fit the day are rejected', () => {
+    expect(validateEntry({ type: 'serve', date: '2026-08-04', hours: 10, memberId: 'child1' }).error).toMatch(/hours/);
+    expect(hoursToDays(0)).toBe(null);
+    expect(hoursToDays(9, 8)).toBe(null);
+  });
+});
+
+describe('approver ties — child → parent, staff → supervisor, in the math', () => {
+  const ties = [
+    { memberId: 'child1', approverId: 'darrell', kind: 'guardian' },
+    { memberId: 'child1', approverId: 'christina', kind: 'guardian' },
+    { memberId: 'child1', approverId: 'child1', kind: 'guardian' },   // self-tie: ignored
+    { memberId: 'staff1', approverId: 'lead1', kind: 'supervisor' },
+    { memberId: 'child1', approverId: 'rando', kind: 'boss' },        // unknown kind: ignored
+  ];
+  const entry = { id: 'e2', memberId: 'child1', status: 'submitted' };
+  it('resolves a member’s designated approvers, ignoring self-ties and unknown kinds', () => {
+    expect(approversFor('child1', ties)).toEqual(['darrell', 'christina']);
+    expect(approversFor('staff1', ties)).toEqual(['lead1']);
+    expect(approversFor('nobody', ties)).toEqual([]);
+    expect(TIE_KINDS).toContain('guardian');
+  });
+  it('a tied guardian approves the child’s hours', () => {
+    const r = decideTransition({ entry, to: 'approved', actorId: 'christina', at: 't2', ties });
+    expect(r.ok).toBe(true);
+    expect(r.receipt.by).toBe('christina');
+  });
+  it('an untied hand cannot decide when ties exist — even another adult', () => {
+    expect(decideTransition({ entry, to: 'approved', actorId: 'courtney', ties }).error).toMatch(/designated/);
+  });
+  it('a self-tie never lets the member decide their own entry', () => {
+    expect(decideTransition({ entry, to: 'approved', actorId: 'child1', ties }).error).toMatch(/separation/);
+  });
+  it('no ties recorded → any other hand still decides (small-team mode, unchanged)', () => {
+    expect(decideTransition({ entry, to: 'approved', actorId: 'courtney' }).ok).toBe(true);
   });
 });
 
