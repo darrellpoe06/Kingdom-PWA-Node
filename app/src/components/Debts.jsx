@@ -161,7 +161,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Debt Snowball Engine</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Debt Snowball Engine</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Same pattern. Smaller numbers. Faster wins.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           The same snowball that pays off 11 rental properties also clears consumer debt — and the math here is even more motivating because the interest rates are much higher. Watch what gets freed up at each payoff.
@@ -212,10 +212,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
       {/* All Debts table — excel-style sort by rate / balance / payoff date */}
       <section>
         <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3 pb-2 border-b border-[#1A1815]">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {allDebtsSort === 'rate' ? 'rate' : allDebtsSort === 'balance' ? 'balance' : 'payoff date'}</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {allDebtsSort === 'rate' ? 'rate' : allDebtsSort === 'balance' ? 'balance' : 'payoff date'}</h2>
           <div className="flex gap-1">
             {[['rate','Rate'],['balance','Balance'],['payoff','Payoff date']].map(([id, label]) => (
-              <button key={id} onClick={() => setAllDebtsSort(id)} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${allDebtsSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+              <button key={id} onClick={() => setAllDebtsSort(id)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${allDebtsSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
                 {label}
               </button>
             ))}
@@ -223,14 +223,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         </div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Payoff</th></tr></thead>
+            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Payoff</th></tr></thead>
             <tbody>
               {sorted.map((d) => {
                 const po = payoffCell(d);
                 const canEditRate = d.rateSource !== 'derived' && d.accountId && updateAccount;
                 return (
                   <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
-                    <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
+                    <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {isEditing(d, 'rate') ? cellInput(d, `Interest rate for ${d.name}`) : (
@@ -294,22 +294,22 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
 
       {/* The motivator — interest saved */}
       <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-medium mb-3">Interest Savings vs. Paying Minimums Only</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-medium mb-3">Interest Savings vs. Paying Minimums Only</div>
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
           <div>
-            <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Minimums only</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Minimums only</div>
             <div className="text-lg sm:text-2xl text-[#B85838]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtMinOnly.totalInterest)}</div>
-            <div className="text-[9px] sm:text-[10px] text-[#5A5751]">interest paid{stuckCount > 0 ? ` (${stuckCount} stuck)` : ''}</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">interest paid{stuckCount > 0 ? ` (${stuckCount} stuck)` : ''}</div>
           </div>
           <div>
-            <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">With {fmt(debtSnowballExtra)}/mo</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A5751]">With {fmt(debtSnowballExtra)}/mo</div>
             <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtSnowball.totalInterest)}</div>
-            <div className="text-[9px] sm:text-[10px] text-[#5A5751]">interest paid</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">interest paid</div>
           </div>
           <div>
-            <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">YOU SAVE</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">YOU SAVE</div>
             <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(interestSaved)}</div>
-            <div className="text-[9px] sm:text-[10px] text-[#5A5751]">never paid</div>
+            <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">never paid</div>
           </div>
         </div>
         <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -322,12 +322,12 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         <SectionTitle>Snowball Strategy</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-5 space-y-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
             <div className="grid grid-cols-3 gap-1">
               {[['snowball','Snowball','Smallest first'],['avalanche','Avalanche','Highest rate'],['hybrid','Hybrid','Quick wins, then rate']].map(([id, label, sub]) => (
                 <button key={id} onClick={() => setDebtSnowballSort(id)} className={`px-2 py-2 text-left border ${debtSnowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                   <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-75">{sub}</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider opacity-75">{sub}</div>
                 </button>
               ))}
             </div>
@@ -335,13 +335,13 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           <div>
             <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball (extra above minimums)</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">Total debt: <strong>{fmtCompact(totalDebt)}</strong> across {debts.filter(d => !d.leaveAlone).length} accounts · Min payments: <strong>{fmt(totalMinPayment)}/mo</strong></div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball (extra above minimums)</div>
+                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">Total debt: <strong>{fmtCompact(totalDebt)}</strong> across {debts.filter(d => !d.leaveAlone).length} accounts · Min payments: <strong>{fmt(totalMinPayment)}/mo</strong></div>
               </div>
               <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(debtSnowballExtra)}</div>
             </div>
             <input type="range" min="0" max={snowballMax} step="50" value={Math.min(debtSnowballExtra, snowballMax)} onChange={(e) => setDebtSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" aria-label={`Monthly snowball extra, 0 to ${fmt(snowballMax)}`} />
-            <div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+            <div className="flex justify-between text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
               <span>$0</span><span>{fmt(Math.round(snowballMax / 2))}</span><span>{fmt(snowballMax)}</span>
             </div>
             {/* r18 — Reality controls. Snap to what's actually possible at
@@ -353,16 +353,16 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                 type="button"
                 onClick={snapToBaseline}
                 title={`Set to ${fmt(baselineExtra)}/mo — what your current net cash flow supports`}
-                className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 ↺ Baseline · {fmt(baselineExtra)}
               </button>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">Explore:</span>
-              <button type="button" onClick={() => exploreScenario(1.5, '1.5×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">+50% income</button>
-              <button type="button" onClick={() => exploreScenario(2, '2×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">2× pot</button>
-              <button type="button" onClick={() => exploreScenario(3, '3×')} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">War chest 3×</button>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Explore:</span>
+              <button type="button" onClick={() => exploreScenario(1.5, '1.5×')} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">+50% income</button>
+              <button type="button" onClick={() => exploreScenario(2, '2×')} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">2× pot</button>
+              <button type="button" onClick={() => exploreScenario(3, '3×')} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">War chest 3×</button>
               <div className="ml-auto flex items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">Slider max:</span>
+                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Slider max:</span>
                 {editingMax ? (
                   <>
                     <input
@@ -378,14 +378,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                       style={{ fontFamily: '"JetBrains Mono", monospace' }}
                       aria-label="Slider maximum (in dollars)"
                     />
-                    <button type="button" onClick={applyMaxInput} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold hover:text-[#1A1815]">✓ Apply</button>
+                    <button type="button" onClick={applyMaxInput} className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold hover:text-[#1A1815]">✓ Apply</button>
                   </>
                 ) : (
                   <button
                     type="button"
                     onClick={() => { setMaxInput(String(snowballMax)); setEditingMax(true); }}
                     title="Type any dollar amount as the slider max — explore scenarios beyond default"
-                    className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     style={{ fontFamily: '"JetBrains Mono", monospace' }}
                   >
                     {fmt(snowballMax)} ✎
@@ -393,11 +393,11 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                 )}
               </div>
             </div>
-            <div className="mt-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <div className="mt-2 text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong>Reality check:</strong> at current net cash flow of <strong>{fmt(netCashFlow)}/mo</strong>, you can sustainably commit up to <strong>{fmt(baselineExtra)}/mo</strong>. Cash on hand right now: <strong>{fmt(cashTotal)}</strong>. The Explore buttons show what's possible if you grow income or unlock a war chest.
             </div>
             <details className="mt-2">
-              <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show top debts that add up to total</summary>
+              <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show top debts that add up to total</summary>
               <div className="mt-2 space-y-1 text-xs">
                 {[...debts].filter(d => !d.leaveAlone).sort((a, b) => b.balance - a.balance).slice(0, 8).map(d => (
                   <div key={d.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
@@ -405,7 +405,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</span>
                   </div>
                 ))}
-                {debts.filter(d => !d.leaveAlone).length > 8 && <div className="text-[10px] text-[#5A5751] italic pt-1">+ {debts.filter(d => !d.leaveAlone).length - 8} more accounts shown in the full table below</div>}
+                {debts.filter(d => !d.leaveAlone).length > 8 && <div className="text-[0.625rem] text-[#5A5751] italic pt-1">+ {debts.filter(d => !d.leaveAlone).length - 8} more accounts shown in the full table below</div>}
               </div>
             </details>
           </div>
@@ -434,7 +434,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <div className="flex items-baseline justify-between gap-2 flex-wrap">
                       <div>
                         <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.name}</span>
-                        {d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}
+                        {d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}
                       </div>
                       <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, d.clearedAtMonth)}</div>
                     </div>
@@ -456,11 +456,11 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
       <section style={{ display: 'none' }} aria-hidden>
         <div className="bg-white border border-[#1A1815] overflow-hidden">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[10px] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Balance</th></tr></thead>
+            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Balance</th></tr></thead>
             <tbody>
               {sorted.map((d) => (
                 <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
-                  <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[10px] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
+                  <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
                   <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
                   <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.rate === 0 ? '0%' : `${d.rate.toFixed(2).replace(/\.00$/, '')}%`}</td>
                   <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>

@@ -38,6 +38,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripCommentLines } from './large-print-guard.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'app/src');
@@ -70,10 +71,14 @@ function countMatches(src, re) {
 }
 
 // Per-file counts for the three drift classes. emoji is 0 for exempt files.
+// fixedPx counts CODE only: comment lines are stripped first (via the
+// large-print guard's helper) so documentation that names the bug pattern
+// (text-[10px] -> text-[0.625rem]) is never counted as drift — the same
+// reasoning as the UiIcon emoji exemption, made general.
 export function fileCounts(src, basename) {
   return {
     emoji: EMOJI_EXEMPT.has(basename) ? 0 : countMatches(src, EMOJI_RE),
-    fixedPx: countMatches(src, FIXED_PX_RE),
+    fixedPx: countMatches(stripCommentLines(src), FIXED_PX_RE),
     widthCap: countMatches(src, WIDTH_CAP_RE),
   };
 }

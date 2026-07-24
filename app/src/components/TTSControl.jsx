@@ -112,10 +112,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         <div className="bg-white border-2 border-[#1A1815] p-3 shadow-lg w-[260px] max-w-[calc(100vw-2rem)]">
           <div className="flex items-baseline justify-between mb-3">
             <div>
-              <div className="text-[9px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[10px] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
+              <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
+              <div className="text-[0.625rem] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
             </div>
-            <button type="button" onClick={close} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+            <button type="button" onClick={close} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
           </div>
 
           <div className="grid grid-cols-3 gap-1 mb-3">
@@ -142,7 +142,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           </div>
 
           <div className="mb-2">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Speed: {rate.toFixed(1)}×</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Speed: {rate.toFixed(1)}×</div>
             <div className="grid grid-cols-5 gap-1" role="group" aria-label="Reading speed">
               {RATE_STEPS.map((s) => {
                 const selected = Math.abs(rate - s.value) < 0.001;
@@ -154,7 +154,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                     aria-pressed={selected}
                     aria-label={`${s.name} (${s.label})${selected ? ' — current' : ''}`}
                     title={s.name}
-                    className={`px-1 py-2 text-[10px] uppercase tracking-wider border min-h-[2.25rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                    className={`px-1 py-2 text-[0.625rem] uppercase tracking-wider border min-h-[2.25rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
                   >{s.label}</button>
                 );
               })}
@@ -163,12 +163,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
           {catalog.length > 1 ? (
             <div className="mb-2">
-              <label htmlFor="tts-voice" className="block text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Voice (used everywhere)</label>
+              <label htmlFor="tts-voice" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Voice (used everywhere)</label>
               <select
                 id="tts-voice"
                 value={voiceId}
                 onChange={onVoice}
-                className="w-full text-[11px] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-2 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                className="w-full text-[0.6875rem] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-2 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
               >
                 {order.map((g) => (
                   <optgroup key={g} label={g}>
@@ -183,7 +183,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           ) : null}
 
-          <p className="text-[9px] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625rem] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
             Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
         </div>

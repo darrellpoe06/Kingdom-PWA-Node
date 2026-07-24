@@ -53,10 +53,10 @@ export default function LlmReview() {
   return (
     <section className="bg-white border border-[#1A1815] p-4">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
           🔍 Local-LLM code review · advisory
         </div>
-        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
 
       {state.phase === 'loading' && (
@@ -66,14 +66,14 @@ export default function LlmReview() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>No local-LLM review is connected yet — showing nothing rather than guessing.</p>
-          <p className="mt-1 text-[11px]">To light it up: run <span className="font-mono">scripts/orchestration/llm-review.sh</span> on a branch (qwen2.5 reviews the diff), then import + activate <span className="font-mono">wf-llm-review</span> on the NAS to serve the report here.</p>
+          <p className="mt-1 text-[0.6875rem]">To light it up: run <span className="font-mono">scripts/orchestration/llm-review.sh</span> on a branch (qwen2.5 reviews the diff), then import + activate <span className="font-mono">wf-llm-review</span> on the NAS to serve the report here.</p>
         </div>
       )}
 
       {state.phase === 'ok' && d && (
         <div>
           {/* The headline count — bugs lead, then warnings. */}
-          <div className="text-[10px] uppercase tracking-wider font-semibold">
+          <div className="text-[0.625rem] uppercase tracking-wider font-semibold">
             {d.counts.findings === 0 ? (
               <span className="text-[#5A6E3D]">🟢 No likely bugs flagged in the latest change</span>
             ) : (
@@ -87,14 +87,14 @@ export default function LlmReview() {
           </div>
 
           {/* Context line — what was reviewed, by which model, sovereign or escalated. */}
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             {d.head ? `${d.base || '?'} → ${d.head}` : ''}
             {d.filesReviewedCount != null ? ` · ${d.filesReviewedCount} file${d.filesReviewedCount === 1 ? '' : 's'}` : ''}
             {d.model ? ` · ${d.escalated ? 'vendor ' : ''}${d.model}` : ''}
           </div>
 
           {d.escalationRecommended && !d.escalated && (
-            <p className="text-[10px] text-[#B45309] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#B45309] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
               Diff exceeds the local model&apos;s scope — a deeper vendor review is recommended (not run): {d.escalationReason}
             </p>
           )}
@@ -106,14 +106,14 @@ export default function LlmReview() {
                 <div key={findingLocation(f) + i} className={`px-2 py-1.5 ${i < d.findings.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                   <div className="flex items-center gap-2">
                     <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(SEV_STATUS[f.severity] || 'idle') }} title={f.severity} />
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {SEV_ICON[f.severity] || '•'} {findingLocation(f)}
                     </span>
                   </div>
                   <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{f.concern}</p>
                   {f.suggestion && (
-                    <p className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                      <span className="uppercase tracking-wider text-[9px] text-[#5A6E3D] font-semibold">Fix · </span>{f.suggestion}
+                    <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <span className="uppercase tracking-wider text-[0.5625rem] text-[#5A6E3D] font-semibold">Fix · </span>{f.suggestion}
                     </p>
                   )}
                 </div>
@@ -121,7 +121,7 @@ export default function LlmReview() {
             </div>
           )}
 
-          <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Advisory only — a second pair of eyes on the diff. The merge gate is the test suite (lint + vitest), not this.
           </p>
         </div>

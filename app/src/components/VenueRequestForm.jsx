@@ -77,14 +77,14 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
       <div className="mb-3">
         <label htmlFor="vr-name" className={labelCls}>Your name</label>
         <input id="vr-name" type="text" value={form.requesterName} onChange={set('requesterName')} className={inputCls} autoComplete="name" aria-invalid={!!errors.requesterName} aria-describedby={errors.requesterName ? 'vr-name-err' : undefined} />
-        {errors.requesterName && <p id="vr-name-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.requesterName}</p>}
+        {errors.requesterName && <p id="vr-name-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.requesterName}</p>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="mb-1">
           <label htmlFor="vr-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(optional)</span></label>
           <input id="vr-email" type="email" value={form.requesterEmail} onChange={set('requesterEmail')} className={inputCls} autoComplete="email" aria-invalid={!!errors.requesterEmail} aria-describedby={errors.requesterEmail ? 'vr-email-err' : undefined} />
-          {errors.requesterEmail && <p id="vr-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.requesterEmail}</p>}
+          {errors.requesterEmail && <p id="vr-email-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.requesterEmail}</p>}
         </div>
         <div className="mb-1">
           <label htmlFor="vr-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
@@ -103,7 +103,7 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
           <select id="vr-campus" value={form.campus} onChange={set('campus')} className={inputCls} aria-invalid={!!errors.campus} aria-describedby={errors.campus ? 'vr-campus-err' : undefined}>
             {CAMPUSES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          {errors.campus && <p id="vr-campus-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.campus}</p>}
+          {errors.campus && <p id="vr-campus-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.campus}</p>}
         </div>
         <div className="mb-1">
           <label htmlFor="vr-space" className={labelCls}>Which space?</label>
@@ -111,7 +111,7 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
             <option value="">Choose a space…</option>
             {spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
-          {errors.spaceId && <p id="vr-space-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.spaceId}</p>}
+          {errors.spaceId && <p id="vr-space-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.spaceId}</p>}
         </div>
       </div>
 
@@ -121,12 +121,12 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
           <select id="vr-type" value={form.eventType} onChange={set('eventType')} className={inputCls} aria-invalid={!!errors.eventType} aria-describedby={errors.eventType ? 'vr-type-err' : undefined}>
             {EVENT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
-          {errors.eventType && <p id="vr-type-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.eventType}</p>}
+          {errors.eventType && <p id="vr-type-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.eventType}</p>}
         </div>
         <div className="mb-1">
           <label htmlFor="vr-date" className={labelCls}>Date</label>
           <input id="vr-date" type="date" value={form.eventDate} onChange={set('eventDate')} className={inputCls} aria-invalid={!!errors.eventDate} aria-describedby={errors.eventDate ? 'vr-date-err' : undefined} />
-          {errors.eventDate && <p id="vr-date-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.eventDate}</p>}
+          {errors.eventDate && <p id="vr-date-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.eventDate}</p>}
         </div>
       </div>
 
@@ -138,14 +138,14 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
         <div className="mb-1">
           <label htmlFor="vr-end" className={labelCls}>End time <span className="text-[#5A5751] font-normal">(optional)</span></label>
           <input id="vr-end" type="time" value={form.endTime} onChange={set('endTime')} className={inputCls} aria-invalid={!!errors.endTime} aria-describedby={errors.endTime ? 'vr-end-err' : undefined} />
-          {errors.endTime && <p id="vr-end-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.endTime}</p>}
+          {errors.endTime && <p id="vr-end-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.endTime}</p>}
         </div>
       </div>
 
       <div className="mb-3 mt-1">
         <label htmlFor="vr-att" className={labelCls}>About how many people? <span className="text-[#5A5751] font-normal">(optional)</span></label>
         <input id="vr-att" type="number" min="0" max="5000" inputMode="numeric" value={form.expectedAttendance} onChange={set('expectedAttendance')} className={inputCls} placeholder="estimate is fine" aria-invalid={!!errors.expectedAttendance} aria-describedby={errors.expectedAttendance ? 'vr-att-err' : undefined} />
-        {errors.expectedAttendance && <p id="vr-att-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.expectedAttendance}</p>}
+        {errors.expectedAttendance && <p id="vr-att-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.expectedAttendance}</p>}
       </div>
 
       <div className="mb-3">
@@ -156,7 +156,7 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
       {/* honeypot: visually hidden, off-tab; bots fill it, people don't */}
       <input type="text" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
 
-      <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         This is a request, not a confirmed booking. A church leader reviews every request and will reach out to confirm availability, details, and any cost. Your info stays with the church — never sold, never shared.
       </p>
 

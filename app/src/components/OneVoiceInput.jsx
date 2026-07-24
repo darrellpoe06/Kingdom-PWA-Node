@@ -131,7 +131,7 @@ export function OneVoiceInput({
 
   return (
     <section className={`bg-white border-2 ${cfg.borderCls} p-4 sm:p-5`} aria-labelledby="onevoice-h">
-      {heading && <h2 id="onevoice-h" className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{heading}</h2>}
+      {heading && <h2 id="onevoice-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{heading}</h2>}
       {intro && (
         <p className="text-xs text-[#5A5751] italic mt-1 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{intro}</p>
       )}
@@ -155,7 +155,7 @@ export function OneVoiceInput({
               onClick={mic.toggle}
               aria-pressed={mic.listening}
               aria-label={mic.listening ? 'Stop voice input' : 'Start voice input — speak instead of typing'}
-              className={`text-[11px] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+              className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
                 mic.listening
                   ? 'bg-[#B85838] text-white border-[#B85838] animate-pulse'
                   : 'border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white'
@@ -165,10 +165,10 @@ export function OneVoiceInput({
             </button>
           )}
           {mic.listening && (
-            <span className="text-[10px] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>listening…</span>
+            <span className="text-[0.625rem] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>listening…</span>
           )}
           {mic.error && (
-            <span role="alert" className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{mic.error}</span>
+            <span role="alert" className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{mic.error}</span>
           )}
         </div>
       )}
@@ -179,20 +179,20 @@ export function OneVoiceInput({
             type="button"
             onClick={() => { setRoute(d.key); setTouchedRoute(true); }}
             aria-pressed={route === d.key}
-            className={`text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border ${route === d.key ? (d.key === 'private' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-[#B85838] text-white border-[#B85838]') : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
+            className={`text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border ${route === d.key ? (d.key === 'private' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-[#B85838] text-white border-[#B85838]') : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}
           >
             {d.label}
           </button>
         ))}
       </div>
       <div className="flex gap-1.5 mt-2 flex-wrap items-center">
-        <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
+        <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
         {showName && (
           <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Your name (optional)" value={name} onChange={e => setName(e.target.value)} />
         )}
         <button type="button" onClick={send} disabled={!text.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">{submitLabel}</button>
       </div>
-      {confirmation && <p className="text-[11px] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirmation}</p>}
+      {confirmation && <p className="text-[0.6875rem] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirmation}</p>}
       {confirmation && lastSent && officeEmail && (
         <p className="text-[0.6875rem] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           <a
@@ -212,10 +212,10 @@ ${lastSent.text}${lastSent.who ? `
       )}
       {recentItems && recentItems.length > 0 && (
         <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
-          <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Recently heard</div>
+          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Recently heard</div>
           <ul className="space-y-0.5">
             {recentItems.map(v => (
-              <li key={v.id} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <li key={v.id} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                 {v.kind === 'serve' ? '🤝' : v.kind === 'pastor' ? '⛪' : '💬'} “{v.text.slice(0, 90)}{v.text.length > 90 ? '…' : ''}”{v.from ? ` — ${v.from}` : ''}
               </li>
             ))}

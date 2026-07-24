@@ -96,7 +96,7 @@ export function ReviewerModeBanner({ onExit = () => exitReviewerMode() }) {
         <button
           type="button"
           onClick={onExit}
-          className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold"
+          className="text-[0.625rem] uppercase tracking-wider px-2 py-1 bg-white text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold"
         >
           Exit reviewer mode →
         </button>

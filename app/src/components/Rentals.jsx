@@ -334,7 +334,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
   const estimatedEquity = currentMarketValue > 0 ? currentMarketValue - mortgageBalance : null;
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 
   return (
     <div>
@@ -344,7 +344,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
           🏘 Market Valuation &amp; Property Info
           {currentMarketValue > 0 && (
-            <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <span className="ml-2 text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               · est value {fmt(currentMarketValue)}
               {estimatedEquity != null && <> · equity {fmt(estimatedEquity)}</>}
             </span>
@@ -383,11 +383,11 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => onLookupClick(l.name)}
-                    className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
                   >{l.name} ↗</a>
                 ))}
               </div>
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                 Tap a link to open the property on that site via Google search (always finds the right address, even when site URLs change). When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
               </p>
 
@@ -397,7 +397,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
                   touching anything. */}
               {capturePrompt && (
                 <div className="mt-2 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Save the value you saw on {capturePrompt.source}?</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Save the value you saw on {capturePrompt.source}?</div>
                   <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
                     If {capturePrompt.source} shows a value for this property, type it here. We'll save it as the current market value and stamp <strong>{capturePrompt.source}</strong> as the source with today's date. Skip if you don't want to change anything.
                   </p>
@@ -421,7 +421,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
                     <button type="button" onClick={skipCapture} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Skip</button>
                   </div>
                   {currentMarketValue > 0 && (
-                    <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                       Current saved value: {fmt(currentMarketValue)}{rental.market?.valueAsOf ? ` (as of ${rental.market.valueAsOf}${rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''})` : ''}. Confirming overwrites it.
                     </p>
                   )}
@@ -429,7 +429,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
               )}
             </div>
           ) : (
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a street address to this property (Edit → Address) to enable Zillow / Realtor / Redfin lookup links.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a street address to this property (Edit → Address) to enable Zillow / Realtor / Redfin lookup links.</p>
           )}
 
           {/* Display vs edit toggle */}
@@ -444,15 +444,15 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
               <div>
                 <div className={labelCls}>Market value</div>
                 <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{currentMarketValue > 0 ? fmt(currentMarketValue) : '—'}</div>
-                <div className="text-[9px] text-[#5A5751]">{rental.market?.valueAsOf ? `as of ${rental.market.valueAsOf}` : 'not set'}{rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''}</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">{rental.market?.valueAsOf ? `as of ${rental.market.valueAsOf}` : 'not set'}{rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''}</div>
               </div>
               <div>
                 <div className={labelCls}>Estimated equity</div>
                 <div className={`${estimatedEquity != null && estimatedEquity < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{estimatedEquity != null ? fmt(estimatedEquity) : '—'}</div>
-                <div className="text-[9px] text-[#5A5751]">value − mortgage</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">value − mortgage</div>
               </div>
               <div className="col-span-2 sm:col-span-4">
-                <button type="button" onClick={() => { setMarketForm(blankMarket()); setEditingMarket(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit valuation &amp; characteristics</button>
+                <button type="button" onClick={() => { setMarketForm(blankMarket()); setEditingMarket(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit valuation &amp; characteristics</button>
               </div>
             </div>
           ) : (
@@ -610,14 +610,14 @@ function PropertyDetails({ rental, updateRental }) {
   const occ = occupancyRollup(rental.rooms || []);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 
   return (
     <div>
       {/* ROOMS & NEEDED WORK */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2" open>
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Rooms &amp; Needed Work <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
+          Rooms &amp; Needed Work <span className="text-[0.625rem] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
         </summary>
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap items-end gap-2">
@@ -634,32 +634,32 @@ function PropertyDetails({ rental, updateRental }) {
               potential so the opportunity gap motivates filling vacant space. */}
           {occ.potential > 0 && (
             <div className="bg-white border-2 border-[#5A6E3D] p-3">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-base" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.actual)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">collecting now</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">collecting now</div>
                 </div>
                 <div>
                   <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.potential)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">full potential</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">full potential</div>
                 </div>
                 <div>
                   <div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.opportunity)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">opportunity</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">opportunity</div>
                 </div>
               </div>
               {occ.opportunity > 0 ? (
-                <p className="text-[11px] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.6875rem] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
                   <strong>{fmt(occ.opportunity)}/mo</strong> on the table across <strong>{occ.vacantSpots}</strong> open {occ.vacantSpots === 1 ? 'spot' : 'spots'} — market them and the building funds itself faster.
                 </p>
               ) : (
-                <p className="text-[11px] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
+                <p className="text-[0.6875rem] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
               )}
             </div>
           )}
           {(rental.rooms || []).length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
+            <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
           ) : (
             (rental.rooms || []).map(rm => (
               <div key={rm.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
@@ -669,21 +669,21 @@ function PropertyDetails({ rental, updateRental }) {
                 <div className="flex items-center justify-between gap-3 mb-1">
                   <div className="text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{rm.name}</div>
                   <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => { setRoomItem({ roomId: rm.id, name: '', status: 'needs-work', notes: '' }); setShowRoomForm(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Item</button>
+                    <button type="button" onClick={() => { setRoomItem({ roomId: rm.id, name: '', status: 'needs-work', notes: '' }); setShowRoomForm(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Item</button>
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
-                    <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
+                    <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
                   </div>
                 </div>
                 {/* Occupancy — drives the room-income model. Empty / half / full. */}
                 <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
                   {OCCUPANCY_OPTIONS.map(o => {
                     const active = (Number(rm.occupants) || 0) === o.occupants;
                     return (
-                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
+                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
                     );
                   })}
-                  <span className="text-[10px] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  <span className="text-[0.625rem] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     <span className={roomActualMonthly(rm) > 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{fmt(roomActualMonthly(rm))}</span>
                     <span className="text-[#5A5751]"> / {fmt(roomPotentialMonthly(rm))}</span>
                   </span>
@@ -696,8 +696,8 @@ function PropertyDetails({ rental, updateRental }) {
                       <div><label htmlFor={`it-notes-${rm.id}`} className={labelCls}>Notes (optional)</label><input id={`it-notes-${rm.id}`} className={fieldCls} value={roomItem.notes} onChange={e => setRoomItem({ ...roomItem, notes: e.target.value })} /></div>
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <button type="button" onClick={addRoomItem} className="bg-[#1A1815] text-white py-1.5 px-3 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Item</button>
-                      <button type="button" onClick={() => setShowRoomForm(false)} className="bg-white border border-[#1A1815] py-1.5 px-3 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                      <button type="button" onClick={addRoomItem} className="bg-[#1A1815] text-white py-1.5 px-3 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Item</button>
+                      <button type="button" onClick={() => setShowRoomForm(false)} className="bg-white border border-[#1A1815] py-1.5 px-3 text-[0.625rem] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
                     </div>
                   </div>
                 )}
@@ -712,29 +712,29 @@ function PropertyDetails({ rental, updateRental }) {
                 {/* Room photo gallery — the transformation timeline, oldest first. */}
                 <div className="mb-2">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
-                    <label className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
+                    <label className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
                       + Add photos
                       <input type="file" accept="image/*" multiple className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
                     </label>
                   </div>
                   {(rm.photos || []).length === 0 ? (
-                    <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
+                    <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {(() => { const roomPhotos = [...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')); return roomPhotos.map((p, pi) => (
                         <div key={p.id} className="w-24">
                           <button type="button" onClick={() => setLightbox({ items: roomPhotos.map(x => ({ src: x.src, alt: x.caption || `${rm.name} photo`, caption: x.caption || '', date: x.date || '' })), index: pi })} title="Open full size" className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
-                          <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
-                          <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
-                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
+                          <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
+                          <input className="w-full text-[0.625rem] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
+                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
                         </div>
                       )); })()}
                     </div>
                   )}
                 </div>
                 {(rm.items || []).length === 0 ? (
-                  <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
+                  <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
                 ) : (
                   <ul className="space-y-1">
                     {(rm.items || []).map(it => {
@@ -761,7 +761,7 @@ function PropertyDetails({ rental, updateRental }) {
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
           Lease &amp; Tenant Contact
-          {rental.lease?.end && <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
+          {rental.lease?.end && <span className="ml-2 text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
         </summary>
         {!editingLeaseTenant ? (
           <div className="mt-3 space-y-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -781,11 +781,11 @@ function PropertyDetails({ rental, updateRental }) {
                 <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
               </div>
             )}
-            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
+            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div><label htmlFor={`ls-start-${rental.id}`} className={labelCls}>Lease start</label><input id={`ls-start-${rental.id}`} type="date" className={fieldCls} value={leaseForm.start} onChange={e => setLeaseForm({ ...leaseForm, start: e.target.value })} /></div>
               <div><label htmlFor={`ls-end-${rental.id}`} className={labelCls}>Lease end</label><input id={`ls-end-${rental.id}`} type="date" className={fieldCls} value={leaseForm.end} onChange={e => setLeaseForm({ ...leaseForm, end: e.target.value })} /></div>
@@ -794,7 +794,7 @@ function PropertyDetails({ rental, updateRental }) {
               <div className="sm:col-span-2"><label htmlFor={`ls-late-${rental.id}`} className={labelCls}>Late-fee policy</label><input id={`ls-late-${rental.id}`} className={fieldCls} placeholder="e.g., $50 after the 5th, then $10/day" value={leaseForm.lateFeePolicy} onChange={e => setLeaseForm({ ...leaseForm, lateFeePolicy: e.target.value })} /></div>
               <div className="sm:col-span-3"><label htmlFor={`ls-url-${rental.id}`} className={labelCls}>Signed-lease URL (Google Drive, Dropbox, etc.)</label><input id={`ls-url-${rental.id}`} type="url" className={fieldCls} placeholder="https://..." value={leaseForm.signedDocURL} onChange={e => setLeaseForm({ ...leaseForm, signedDocURL: e.target.value })} /></div>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div><label htmlFor={`tn-name-${rental.id}`} className={labelCls}>Name</label><input id={`tn-name-${rental.id}`} className={fieldCls} value={tenantForm.name} onChange={e => setTenantForm({ ...tenantForm, name: e.target.value })} /></div>
               <div><label htmlFor={`tn-phone-${rental.id}`} className={labelCls}>Phone</label><input id={`tn-phone-${rental.id}`} type="tel" className={fieldCls} placeholder="(217) 555-0100" value={tenantForm.phone} onChange={e => setTenantForm({ ...tenantForm, phone: e.target.value })} /></div>
@@ -814,10 +814,10 @@ function PropertyDetails({ rental, updateRental }) {
       {/* EQUIPMENT */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Mechanical &amp; Equipment <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
+          Mechanical &amp; Equipment <span className="text-[0.625rem] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
         </summary>
         <div className="mt-3 space-y-2">
-          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
+          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
           {showEquipForm && (
             <div className="bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -833,11 +833,11 @@ function PropertyDetails({ rental, updateRental }) {
             </div>
           )}
           {(rental.equipment || []).length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
+            <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
+                <tr className="text-left text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
                   <th scope="col" className="py-1 pr-2">Category</th>
                   <th scope="col" className="py-1 pr-2">Make / Model</th>
                   <th scope="col" className="py-1 pr-2">Serial</th>
@@ -1488,8 +1488,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <>
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
-          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
+          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
         {/* Round 7 — Top form is for ADD, and for FULL-EDIT when "Full editor ↗"
@@ -1498,12 +1498,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             rendered). Quick edits still happen inline under the row. */}
         {showPropForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Cedar Heights" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
-              {suggestLoading && <div className="text-[10px] text-[#5A5751] italic mt-1">Searching...</div>}
+              {suggestLoading && <div className="text-[0.625rem] text-[#5A5751] italic mt-1">Searching...</div>}
               {suggestions.length > 0 && (
                 <div className="border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto">
                   {suggestions.map((s, i) => (
@@ -1521,26 +1521,26 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">City</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">City</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.city} onChange={e => setPropForm({ ...propForm, city: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">State</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">State</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.state} onChange={e => setPropForm({ ...propForm, state: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Zip</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Zip</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.zip} onChange={e => setPropForm({ ...propForm, zip: e.target.value })} />
               </div>
             </div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Tracy Williams — leave blank for personal or vacant" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} />
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={String(Math.max(1, parseInt(propForm.units, 10) || 1))} onChange={e => setDoorCount(e.target.value, !!editingPropId)}>
                 {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n === 1 ? '1 · single door' : `${n} doors`}</option>)}
               </select>
@@ -1551,7 +1551,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             {!editingPropId && addUnitLabels.length >= 2 && (
               <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 space-y-2">
                 <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">One save · {addUnitLabels.length} doors at this address</div>
-                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                   Each unit becomes its own door under <strong>{(propForm.address || propForm.name || 'this building').trim() || 'this building'}</strong> — its own tenant, rent, records, photos, and message thread. Rename any unit:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1578,13 +1578,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               </div>
             )}
             {editingPropId && (parseInt(propForm.units, 10) || 1) >= 2 && !(propForm.building || '').trim() && (
-              <p className="text-[10px] text-[#B85838] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#B85838] italic" style={{ fontFamily: '"Fraunces", serif' }}>
                 This counts {parseInt(propForm.units, 10)} doors on ONE card. To give every unit its own card and records, save, then tap “Split into doors” on the property card.
               </p>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property type</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.propertyType} onChange={e => setPropForm({ ...propForm, propertyType: e.target.value })}>
                   {['single-family','multi-family','commercial','condo','townhouse','duplex','primary-home','secondary-home','vacation','land','other'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -1594,13 +1594,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>
                   {['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>
                   {entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
                 </select>
@@ -1609,34 +1609,34 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase price</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Purchase price</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchasePrice} onChange={e => setPropForm({ ...propForm, purchasePrice: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase date</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Purchase date</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchaseDate} onChange={e => setPropForm({ ...propForm, purchaseDate: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Est. value (today)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Est. value (today)</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.estimatedValue} onChange={e => setPropForm({ ...propForm, estimatedValue: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage rate %</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage rate %</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageRate} onChange={e => setPropForm({ ...propForm, mortgageRate: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&I</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly P&I</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Escrow / mo</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Escrow / mo</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.escrow} onChange={e => setPropForm({ ...propForm, escrow: e.target.value })} />
               </div>
             </div>
@@ -1645,41 +1645,41 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             {/* Auto-evaluator */}
             <div className="bg-[#FAF8F4] border border-[#1A1815] p-3">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Auto-Evaluator · Live as you type</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Auto-Evaluator · Live as you type</div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cap rate</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cap rate</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.capRate.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.capRate >= 8 ? 'text-[#5A6E3D]' : evaluator.capRate >= 5 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.capRate >= 8 ? 'Strong' : evaluator.capRate >= 5 ? 'OK' : 'Weak'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.capRate >= 8 ? 'text-[#5A6E3D]' : evaluator.capRate >= 5 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.capRate >= 8 ? 'Strong' : evaluator.capRate >= 5 ? 'OK' : 'Weak'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cash-on-cash</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cash-on-cash</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.cashOnCash.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.cashOnCash >= 10 ? 'text-[#5A6E3D]' : evaluator.cashOnCash >= 6 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.cashOnCash >= 10 ? 'Strong' : evaluator.cashOnCash >= 6 ? 'OK' : 'Weak'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.cashOnCash >= 10 ? 'text-[#5A6E3D]' : evaluator.cashOnCash >= 6 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.cashOnCash >= 10 ? 'Strong' : evaluator.cashOnCash >= 6 ? 'OK' : 'Weak'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">1% rule</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">1% rule</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.onePct.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.onePct >= 1 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{evaluator.onePct >= 1 ? '✓ pass' : '✗ below 1%'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.onePct >= 1 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{evaluator.onePct >= 1 ? '✓ pass' : '✗ below 1%'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">DSCR</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">DSCR</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.dscr.toFixed(2)}</div>
-                  <div className={`text-[9px] ${evaluator.dscr >= 1.25 ? 'text-[#5A6E3D]' : evaluator.dscr >= 1 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.dscr >= 1.25 ? 'Lender OK' : evaluator.dscr >= 1 ? 'Tight' : 'Below 1'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.dscr >= 1.25 ? 'text-[#5A6E3D]' : evaluator.dscr >= 1 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.dscr >= 1.25 ? 'Lender OK' : evaluator.dscr >= 1 ? 'Tight' : 'Below 1'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">GRM</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">GRM</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.grm.toFixed(1)}</div>
-                  <div className="text-[9px] text-[#5A5751]">lower = better</div>
+                  <div className="text-[0.5625rem] text-[#5A5751]">lower = better</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mt-2">
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual rent</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualRent)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">NOI</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.noi)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual debt service</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualDS)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual cash flow</div><div className={`text-sm ${evaluator.annualCF < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualCF)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual rent</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualRent)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">NOI</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.noi)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual debt service</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualDS)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual cash flow</div><div className={`text-sm ${evaluator.annualCF < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualCF)}</div></div>
               </div>
-              <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 Cap rate = NOI ÷ purchase price. Cash-on-cash assumes 20% down. 1% rule = monthly rent ÷ purchase price. DSCR = NOI ÷ annual debt service (lenders want ≥ 1.25). GRM = price ÷ annual rent. NOI uses your escrow plus a 10% maintenance/vacancy buffer; refine the buffer in your head for the property type.
               </p>
             </div>
@@ -1709,12 +1709,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   {showLatePrompt && addIncident && (
                     <div className="mb-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
                       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Tenant Not Paying · open this as</div>
+                        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Tenant Not Paying · open this as</div>
                         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{fmt((r.rent || 0) - (r.actual || 0))} short</div>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {URGENCY_BANDS.map(u => (
-                          <button key={u.key} type="button" onClick={() => openTenantIssue(r, u.key)} className="text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ color: u.accent, borderColor: u.accent }}>
+                          <button key={u.key} type="button" onClick={() => openTenantIssue(r, u.key)} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ color: u.accent, borderColor: u.accent }}>
                             <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
                           </button>
                         ))}
@@ -1729,7 +1729,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         const selected = tenantLateSelectedLinks[r.id] || [];
                         return (
                           <div className="mt-3 pt-3 border-t border-[#B85838]/40" aria-labelledby={`auto-link-h-${r.id}`}>
-                            <div id={`auto-link-h-${r.id}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
+                            <div id={`auto-link-h-${r.id}`} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
                               🔗 Possibly related — tap to pre-link ({candidates.length})
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -1741,7 +1741,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     type="button"
                                     onClick={() => toggleTenantLink(r.id, link)}
                                     aria-pressed={isSelected}
-                                    className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
+                                    className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
                                   >
                                     <span aria-hidden="true">{isSelected ? '✓ ' : '+ '}</span>
                                     {incidentDisplay(link.toEntityId)} <span className="opacity-70 normal-case italic">· {link.kind}</span>
@@ -1749,13 +1749,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 );
                               })}
                             </div>
-                            <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                            <p className="text-[0.5625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                               Prior incidents at this property. Selected chips get linked to the new incident when you tap a band above.
                             </p>
                           </div>
                         );
                       })()}
-                      <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                         Change = same-day action. Incident = 3-day resolution window. Project = formal eviction / multi-week plan. The chosen item shows on Big Picture → Action Queue with a due date.
                       </p>
                     </div>
@@ -1764,7 +1764,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="mb-3 p-3 bg-white border border-[#B85838] flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-base" aria-hidden="true" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.symbol}</span>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.label}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.label}</span>
                         <span className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>open · due {existingIssue.dueDate}</span>
                       </div>
                       {resolveIncident && (
@@ -1777,11 +1777,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
                         {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== rowTitle) ? <span className="mr-2">{full}</span> : null; })()}
-                        {r.propertyType && <span className="uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
-                        {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[9px] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
+                        {r.propertyType && <span className="uppercase tracking-wider text-[0.5625rem]">· {r.propertyType}</span>}
+                        {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
                       </div>
                       {r.tenantName && (
-                        <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                           👤 <strong>{r.tenantName}</strong>
                         </div>
                       )}
@@ -1790,11 +1790,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {(r.rent || 0) > 0 ? (
                         <>
                           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                          <div className={`text-[10px] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                          <div className={`text-[0.625rem] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
                         </>
                       ) : (
                         <>
-                          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{r.status || 'personal'}</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{r.status || 'personal'}</div>
                           {r.mortgage?.monthlyPI ? <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt((r.mortgage?.monthlyPI || 0) + (r.mortgage?.escrow || 0))}/mo PITI</div> : null}
                         </>
                       )}
@@ -1804,7 +1804,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
@@ -1812,7 +1812,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes · ${photoCountFor(r)} photos)`}
                     </button>
                     {(r.maintenanceLog || []).length > 0 && (
-                      <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
                       </span>
                     )}
@@ -1831,7 +1831,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   {splitFor && splitFor.id === r.id && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#5A6E3D] space-y-2">
                       <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Split into separate doors</div>
-                      <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                         This card becomes <strong>{splitFor.labels[0] || 'the first unit'}</strong> (keeping its tenant, rent, and records). The rest are created as their own doors at the same address — each with its own records, photos, and thread.
                       </p>
                       <div className="grid grid-cols-2 gap-2">
@@ -1857,7 +1857,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       </div>
                     </div>
                   )}
-                  {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
+                  {r.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
 
                   {/* Round 7 — Inline quick-edit form drops down right under the property row.
                       Covers the common-edit fields (name · address · tenant · rent · status · notes
@@ -1866,9 +1866,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       top form. Keeps the eye where it was, no jump-to-top. */}
                   {editingPropId === r.id && !showPropForm && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div><label htmlFor={`qe-name-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-name-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
                         {/* Address pulls like every other address in the app
                             (Darrell 2026-07-08): the same OpenStreetMap
                             autocomplete as the full editor — picking a
@@ -1887,14 +1887,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                               ))}
                             </div>
                           )}
-                          {(propForm.city || propForm.zip) && <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[propForm.city, propForm.state, propForm.zip].filter(Boolean).join(', ')}{typeof propForm.lat === 'number' ? ' · pinned to the map' : ''}</div>}
+                          {(propForm.city || propForm.zip) && <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[propForm.city, propForm.state, propForm.zip].filter(Boolean).join(', ')}{typeof propForm.lat === 'number' ? ' · pinned to the map' : ''}</div>}
                         </div>
-                        <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-rent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-stat-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label htmlFor={`qe-ent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-                        <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-pi-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-rent-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-stat-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label htmlFor={`qe-ent-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                        <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-pi-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
                         <div><label htmlFor={`qe-bldg-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label><input id={`qe-bldg-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} /></div>
                         <div><label htmlFor={`qe-unit-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label</label><input id={`qe-unit-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} /></div>
                       </div>
@@ -1902,7 +1902,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <button type="button" onClick={submitProp} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                         <button type="button" onClick={cancelPropForm} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
-                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
+                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
                       </div>
                     </div>
                   )}
@@ -1935,8 +1935,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
-                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
-                          <button type="button" onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
+                          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
+                          <button type="button" onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
                         </div>
                         {showMaintForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
@@ -1945,10 +1945,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 stamps a same-day due. Picking Project surfaces a hint about
                                 also opening a formal project record. */}
                             <div>
-                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Urgency</label>
+                              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Urgency</label>
                               <div className="flex flex-wrap gap-1">
                                 {URGENCY_BANDS.map(u => (
-                                  <button key={u.key} type="button" onClick={() => setMaintForm({ ...maintForm, urgency: u.key })} className={`text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} style={maintForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
+                                  <button key={u.key} type="button" onClick={() => setMaintForm({ ...maintForm, urgency: u.key })} className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} style={maintForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
                                     <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
                                   </button>
                                 ))}
@@ -1956,62 +1956,62 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label>
                                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.date} onChange={e => setMaintForm({ ...maintForm, date: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
                                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.category} onChange={e => setMaintForm({ ...maintForm, category: e.target.value })}>
                                   {MAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cost</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cost</label>
                                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.cost} onChange={e => setMaintForm({ ...maintForm, cost: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Vendor</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Vendor</label>
                                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Roofing Contractor" value={maintForm.vendor} onChange={e => setMaintForm({ ...maintForm, vendor: e.target.value })} />
                               </div>
                             </div>
                             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What was done? (required)" value={maintForm.description} onChange={e => setMaintForm({ ...maintForm, description: e.target.value })} />
                             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · warranty · parts numbers" value={maintForm.notes} onChange={e => setMaintForm({ ...maintForm, notes: e.target.value })} />
                             <div>
-                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
-                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
+                              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
+                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
                               {(maintForm.photos || []).length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   {maintForm.photos.map((src, i) => (
                                     <div key={i} className="relative">
                                       <img src={src} alt={`Receipt ${i+1}`} className="w-20 h-20 object-cover border border-[#1A1815]" />
-                                      <button type="button" onClick={() => setMaintForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[10px] w-4 h-4 leading-4 text-center rounded-full">×</button>
+                                      <button type="button" onClick={() => setMaintForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] w-4 h-4 leading-4 text-center rounded-full">×</button>
                                     </div>
                                   ))}
                                 </div>
                               )}
-                              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
+                              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
                             </div>
                             <button type="button" onClick={() => addMaintEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Maintenance Entry</button>
                           </div>
                         )}
                         {(r.maintenanceLog || []).length === 0 && !showMaintForm ? (
-                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No maintenance entries yet.</p>
+                          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No maintenance entries yet.</p>
                         ) : (
                           <div className="space-y-2">
                             {[...(r.maintenanceLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
                               <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
                                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                    <div className="text-[0.6875rem] flex items-center gap-1.5 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                       {e.urgency && URGENCY_INDEX[e.urgency] && (
-                                        <span className="px-1.5 py-0.5 border text-[9px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[e.urgency].accent, borderColor: URGENCY_INDEX[e.urgency].accent }} title={URGENCY_INDEX[e.urgency].tagline}>
+                                        <span className="px-1.5 py-0.5 border text-[0.5625rem] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[e.urgency].accent, borderColor: URGENCY_INDEX[e.urgency].accent }} title={URGENCY_INDEX[e.urgency].tagline}>
                                           {URGENCY_INDEX[e.urgency].symbol} {URGENCY_INDEX[e.urgency].label}
                                         </span>
                                       )}
                                       <span>{e.date} · <span className="uppercase tracking-wider">{e.category}</span>{e.vendor ? ` · ${e.vendor}` : ''}</span>
                                     </div>
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.description}</div>
-                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                    {e.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
                                   <div className="flex items-baseline gap-2 shrink-0">
                                     <div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(e.cost || 0)}</div>
@@ -2036,17 +2036,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                   if (!e.incidentId) {
                                     return (
                                       <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
-                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
+                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
                                       </div>
                                     );
                                   }
                                   const wo = incidents.find(i => i.id === e.incidentId);
                                   if (!wo) {
-                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
+                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
                                   }
                                   return (
                                     <div className="mt-2 pt-2 border-t border-[#E8E4DC] space-y-1.5">
-                                      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
+                                      <div className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
                                         🛠 Work order {wo.status === 'resolved' ? 'done' : `open · due ${wo.dueDate || '—'}`} · also on the Action Queue
                                       </div>
                                       <DispatchPanel incident={wo} property={r} contractors={contractors} {...workerOps} onResolve={resolveIncident} />
@@ -2063,29 +2063,29 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {!readOnly && (
                         <div className="mb-3 pb-3 border-b border-[#E8E4DC]">
                           <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
+                            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
                             {(r.tenantName || r.tenant?.name) && (
-                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
+                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                             Turnover gives the next tenant a clean slate. Rooms, photos, equipment, and maintenance history stay; the tenant&apos;s lease, contacts, conversations, and open issues archive below for your records.
                           </p>
                           {(r.tenancyHistory || []).length > 0 && (
                             <details className="mt-2">
-                              <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
+                              <summary className="cursor-pointer text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
                               <div className="mt-2 space-y-2">
                                 {[...(r.tenancyHistory || [])].reverse().map(t => (
                                   <div key={t.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
-                                    <div className="text-[11px] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
+                                    <div className="text-[0.6875rem] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
                                     {t.lease && (t.lease.start || t.lease.end) && (
-                                      <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
                                     )}
                                     {(t.conversationLog || []).length > 0 && (
-                                      <div className="text-[10px] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
                                     )}
                                     {(t.closedIssues || []).length > 0 && (
-                                      <div className="text-[10px] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
                                     )}
                                   </div>
                                 ))}
@@ -2099,20 +2099,20 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {!readOnly && (
                         <div className="mb-3">
                           <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
-                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
+                            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
+                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
                           </div>
                           {photoImport && photoImport.rentalId === r.id && (
                             <div className="bg-white border border-[#5A6E3D] p-3 space-y-2">
                               {photoImport.status === 'need-token' && (
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
                               )}
-                              {photoImport.status === 'loading' && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
-                              {photoImport.status === 'error' && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
+                              {photoImport.status === 'loading' && <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
+                              {photoImport.status === 'error' && <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
                               {photoImport.status === 'staged' && (
                                 <>
-                                  {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
-                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tap any photo to view it full-size and browse the set. Pick a room and tap Add to file one — see the place change over the years.</p>
+                                  {(r.rooms || []).length === 0 && <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
+                                  <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tap any photo to view it full-size and browse the set. Pick a room and tap Add to file one — see the place change over the years.</p>
                                   {/* Honest source readout — every tile resolves from a real source (your
                                       Synology Chat archive -> the NAS preview that property already has).
                                       A tile with no preview is a photo never backed up to your NAS; this
@@ -2121,9 +2121,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     const h = summarizePhotoSource(photoImport.photos, { total: photoImport.total });
                                     return (
                                       <div className="flex items-center gap-2 flex-wrap my-1">
-                                        <KpiDot status={h.status} label={h.label} className="text-[10px]" />
+                                        <KpiDot status={h.status} label={h.label} className="text-[0.625rem]" />
                                         {h.missing > 0 && (
-                                          <span className="text-[9px] text-[#8A8580] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                                          <span className="text-[0.5625rem] text-[#8A8580] italic" style={{ fontFamily: '"Fraunces", serif' }}>
                                             “not in backup” = shared into chat but never backed up to your NAS (screenshots, other phones).
                                           </span>
                                         )}
@@ -2131,11 +2131,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     );
                                   })()}
                                   <div className="flex items-center gap-1.5 my-1.5 flex-wrap">
-                                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Show:</span>
+                                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Show:</span>
                                     {[50, 100, 500].map(n => (
-                                      <button key={n} type="button" onClick={() => { setPhotoShowN(n); loadPhotosUpTo(r, n); }} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${photoShowN === n ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{n === 500 ? '500+' : n}</button>
+                                      <button key={n} type="button" onClick={() => { setPhotoShowN(n); loadPhotosUpTo(r, n); }} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${photoShowN === n ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{n === 500 ? '500+' : n}</button>
                                     ))}
-                                    <span className="text-[9px] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
+                                    <span className="text-[0.5625rem] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
                                   </div>
                                   {(() => {
                                     // The lightbox browses only the photos that actually have a NAS
@@ -2158,15 +2158,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                             <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" loading="lazy" />
                                           </button>
                                         ) : (
-                                          <div className="w-full h-24 flex flex-col items-center justify-center gap-0.5 text-[8px] text-[#8A8580] italic border border-dashed border-[#D8D4CC] bg-[#F4F2EE] text-center px-1" title="Shared into chat but not backed up to your NAS — no preview to show.">
+                                          <div className="w-full h-24 flex flex-col items-center justify-center gap-0.5 text-[0.5rem] text-[#8A8580] italic border border-dashed border-[#D8D4CC] bg-[#F4F2EE] text-center px-1" title="Shared into chat but not backed up to your NAS — no preview to show.">
                                             <span aria-hidden="true" className="text-base not-italic">🖼️</span>
                                             <span>not in backup</span>
                                           </div>
                                         )}
-                                        <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
-                                        {p.text && <div className="text-[9px] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
+                                        <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
+                                        {p.text && <div className="text-[0.5625rem] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
                                         {p.filed ? (
-                                          <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
+                                          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
                                         ) : p.thumb ? (
                                           <div className="flex gap-1 mt-1 flex-wrap">
                                             <select value={customRoomFor === p.id ? '__other__' : p.room} onChange={e => {
@@ -2179,7 +2179,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                               }
                                               if (customRoomFor === p.id) setCustomRoomFor(null);
                                               setPhotoRoom(p.id, v);
-                                            }} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
+                                            }} className="flex-1 text-[0.625rem] p-1 border border-[#E8E4DC] bg-white min-w-0">
                                               <option value="">room…</option>
                                               {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
                                               {customRoomFor !== p.id && p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
@@ -2197,7 +2197,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                                 aria-label="New room name"
                                                 value={(p.room || '').startsWith('new:') ? p.room.slice(4) : ''}
                                                 onChange={e => setPhotoRoom(p.id, `new:${e.target.value}`)}
-                                                className="flex-1 text-[10px] p-1 border border-[#5A6E3D] bg-white min-w-0"
+                                                className="flex-1 text-[0.625rem] p-1 border border-[#5A6E3D] bg-white min-w-0"
                                               />
                                             )}
                                             <button type="button" disabled={!p.room || p.room === 'new:'} onClick={() => { setCustomRoomFor(null); filePhotoToRoom(r, p); }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
@@ -2209,7 +2209,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     );
                                   })()}
                                   {photoImport.lastCount === PHOTO_PAGE && (
-                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[10px] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
+                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[0.625rem] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
                                   )}
                                 </>
                               )}
@@ -2221,39 +2221,39 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {/* CONVERSATION LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
+                          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
                           <div className="flex gap-2">
                             {!readOnly && (
-                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
+                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
                             )}
-                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
                           </div>
                         </div>
                         {chatImport && chatImport.rentalId === r.id && (
                           <div className="bg-white border border-[#5A6E3D] p-3 mb-2 space-y-2">
-                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
+                            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
                             {chatImport.status === 'loading' && (
-                              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
+                              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
                             )}
                             {chatImport.status === 'need-token' && (
                               <div className="space-y-1.5">
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                                   {chatImport.badToken ? 'That token was rejected — check it and try again.' : 'Enter the family history-bridge token (one time on this device). It protects your property history from anyone else reaching the bridge.'}
                                 </p>
                                 <div className="flex gap-1.5">
                                   <input type="password" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="paste the bridge token" value={bridgeTokenInput} onChange={ev => setBridgeTokenInput(ev.target.value)} />
-                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[10px] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
+                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[0.625rem] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
                                 </div>
                               </div>
                             )}
                             {chatImport.status === 'error' && (
-                              <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                              <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
                                 History bridge not reachable ({chatImport.error}). The NAS-side workflow isn't live yet — see infra/n8n/README-property-history.md. Nothing was changed.
                               </p>
                             )}
                             {chatImport.status === 'staged' && (
                               <>
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                                   {chatImport.messages.length === 0
                                     ? `Nothing new to import${chatImport.already > 0 ? ` — all ${chatImport.already} channel messages are already on this log` : ' — the channel returned no messages'}.`
                                     : `Check what's true, uncheck what isn't. ${chatImport.messages.length} new message${chatImport.messages.length === 1 ? '' : 's'}${chatImport.already > 0 ? ` (${chatImport.already} already imported)` : ''}. Nothing saves until you accept.`}
@@ -2262,7 +2262,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                   <>
                                     <div className="max-h-64 overflow-y-auto space-y-1 border border-[#E8E4DC] p-2">
                                       {chatImport.messages.map(m => (
-                                        <label key={m.sourceId} className="flex items-start gap-2 text-[11px] cursor-pointer hover:bg-[#FAF8F4] p-1">
+                                        <label key={m.sourceId} className="flex items-start gap-2 text-[0.6875rem] cursor-pointer hover:bg-[#FAF8F4] p-1">
                                           <input type="checkbox" checked={m.accepted} onChange={() => toggleChatImportItem(m.sourceId)} className="mt-0.5" />
                                           <span style={{ fontFamily: '"JetBrains Mono", monospace' }} className="text-[#5A5751] shrink-0">{m.date || '—'}{m.person ? ` · ${m.person}` : ''}</span>
                                           <span style={{ fontFamily: '"Fraunces", serif' }}>{m.summary}</span>
@@ -2282,11 +2282,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label>
                                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={convForm.date} onChange={e => setConvForm({ ...convForm, date: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Who</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Who</label>
                                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., tenant Tracy, plumber Joe" value={convForm.person} onChange={e => setConvForm({ ...convForm, person: e.target.value })} />
                               </div>
                             </div>
@@ -2296,16 +2296,16 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                         {(r.conversationLog || []).length === 0 && !showConvForm ? (
-                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+                          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
                         ) : (
                           <div className="space-y-1">
                             {[...(r.conversationLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
                               <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
                                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                                    <div className="text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
-                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                    {e.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
                                   <button type="button" onClick={() => deleteConvEntry(r, e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                                 </div>
@@ -2340,7 +2340,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 let gi = 0;
                 return (
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
                     <div className="space-y-3">
                       {entries.map((e) => e.type === 'building' ? (
                         <div key={`b-${e.key}`} className="bg-white border border-[#1A1815]">
@@ -2364,7 +2364,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               })()}
               {personal.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
                   <div className="bg-white border border-[#1A1815]">
                     {personal.map((r, i) => renderPropertyRow(r, i, personal.length - 1))}
                   </div>
@@ -2392,7 +2392,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
         </div>
         {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
-          <p className="text-[11px] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.6875rem] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
             {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
             {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
             {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
@@ -2412,7 +2412,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           return (
             <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
                 <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
                 </div>
@@ -2420,7 +2420,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               {port.opportunity > 0 ? (
                 <div className="text-right">
                   <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
                 </div>
               ) : (
                 <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
@@ -2434,12 +2434,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <SectionTitle>Snowball Strategy</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-5 space-y-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
             <div className="grid grid-cols-3 gap-1">
               {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
                 <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                   <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-75">{sub}</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider opacity-75">{sub}</div>
                 </button>
               ))}
             </div>
@@ -2447,14 +2447,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <div>
             <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
+                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
               </div>
               <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
             </div>
             <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
             <details className="mt-2">
-              <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
+              <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
               <div className="mt-2 space-y-1 text-xs">
                 {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
                   <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
@@ -2489,24 +2489,24 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
                 <div className="flex items-baseline justify-between gap-2 mb-2">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
+                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
                   </div>
-                  {s.id === snowballSort && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
+                  {s.id === snowballSort && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
                 </div>
                 <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">total interest</div>
-                <div className={`text-[10px] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">total interest</div>
+                <div className={`text-[0.625rem] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
                 </div>
-                <div className="text-[10px] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <div className="text-[0.625rem] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                   All clear: {s.allClearedYears.toFixed(1)} yrs
                 </div>
               </div>
             ))}
           </div>
           {allRatesEqual && (
-            <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
               All {rentals.length} rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
             </p>
           )}
@@ -2545,7 +2545,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       render: () => (
         <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Six years to build. The seventh year to rest.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
       </section>
@@ -2568,7 +2568,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <SectionTitle>{mapAreaLabel ? `Property Map · ${mapAreaLabel}` : 'Property Map'}</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
           <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Pins appear for properties with saved coordinates. Use Edit on a property to add an address — the autocomplete fills coordinates automatically.
           </p>
         </div>

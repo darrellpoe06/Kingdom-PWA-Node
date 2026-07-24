@@ -185,28 +185,28 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       {/* Add inquiry */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Inquiries · {visible.length}</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Inquiries · {visible.length}</h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex gap-1 text-[10px] uppercase tracking-wider">
+            <div className="flex gap-1 text-[0.625rem] uppercase tracking-wider">
               {[['active','Active'],['closed','Closed'],['all','All']].map(([k, l]) => (
                 <button key={k} onClick={() => setStatusFilter(k)} className={`px-2 py-1 ${statusFilter === k ? 'bg-[#1A1815] text-white' : 'text-[#5A5751]'}`}>{l}</button>
               ))}
             </div>
-            <button type="button" onClick={() => { setShowForm(!showForm); if (showForm) setSelectedLinks([]); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
+            <button type="button" onClick={() => { setShowForm(!showForm); if (showForm) setSelectedLinks([]); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Log inquiry'}</button>
           </div>
         </div>
 
         {showForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New inquiry</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New inquiry</div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">First name *</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">First name *</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Sarah" value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact method</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact method</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.contactMethod} onChange={e => setForm({...form, contactMethod: e.target.value})}>
                   <option value="phone">Phone</option><option value="email">Email</option><option value="text">Text</option>
                 </select>
@@ -214,19 +214,19 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             </div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact info *</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact info *</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder={form.contactMethod === 'email' ? 'sarah@example.com' : '555-555-1234'} value={form.contactValue} onChange={e => setForm({...form, contactValue: e.target.value})} />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Interest area</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Interest area</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.interestArea} onChange={e => setForm({...form, interestArea: e.target.value})}>
                   {INQUIRY_INTERESTS.map(i => <option key={i.key} value={i.key}>{i.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Has insurance?</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Has insurance?</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.hasInsurance} onChange={e => setForm({...form, hasInsurance: e.target.value})}>
                   <optgroup label="✓ Accepted by TLC (in-network)">
                     {INSURANCE_CARRIERS.filter(c => c.accepted).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -240,7 +240,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Preferred provider</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Preferred provider</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.preferredProvider} onChange={e => setForm({...form, preferredProvider: e.target.value})}>
                   <option value="any">Any provider</option>
                   <option value="christina">Christina</option>
@@ -248,7 +248,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Best time to reach</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Best time to reach</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.bestTimeToCall} onChange={e => setForm({...form, bestTimeToCall: e.target.value})}>
                   {TIMES_TO_CALL.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -256,7 +256,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             </div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">How did they hear about us?</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">How did they hear about us?</label>
               <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.source} onChange={e => setForm({...form, source: e.target.value})}>
                 {INQUIRY_SOURCES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
@@ -264,13 +264,13 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             </div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes (no clinical detail)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes (no clinical detail)</label>
               <textarea rows="2" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="General context only — e.g., 'Asked about evening availability', 'Friend of Lisa from choir'" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
             </div>
 
             {suggestedLinks.length > 0 && (
               <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3" aria-labelledby="auto-link-h">
-                <div id="auto-link-h" className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
+                <div id="auto-link-h" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
                   🔗 Possibly related — tap to link ({suggestedLinks.length})
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -282,7 +282,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                         type="button"
                         onClick={() => toggleLink(link)}
                         aria-pressed={isSelected}
-                        className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
+                        className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
                       >
                         <span aria-hidden="true">{isSelected ? '✓ ' : '+ '}</span>
                         {inquiryDisplay(link.toEntityId)} <span className="opacity-70 normal-case italic">· {link.kind}</span>
@@ -290,14 +290,14 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                     );
                   })}
                 </div>
-                <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.5625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                   Auto-detected from same source. Tap to record the connection; tap again to remove. Connections are also visible on the inquiry record later.
                 </p>
               </div>
             )}
 
             <button type="button" onClick={submit} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Log Inquiry</button>
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               Reminder: do not record clinical history, diagnoses, presenting concerns, or anything that would be PHI. Move the relationship to Acuity for actual intake.
             </p>
           </div>
@@ -345,11 +345,11 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
                     <div className="flex items-baseline gap-2 flex-wrap min-w-0">
                       <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{inq.firstName}</span>
-                      <span className={`text-[10px] uppercase tracking-wider font-medium ${statusColor}`}>{si.label}</span>
+                      <span className={`text-[0.625rem] uppercase tracking-wider font-medium ${statusColor}`}>{si.label}</span>
                     </div>
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A5751] shrink-0">{ago}</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0">{ago}</span>
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
                     {so?.label || inq.source} · {ii?.label || inq.interestArea}
                   </div>
                   {lastLog && (
@@ -385,9 +385,9 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
             <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">
                 <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
-                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
               </div>
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
               <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
             </div>
           ))}
@@ -404,16 +404,16 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 mb-0.5">
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-[#B85838] shrink-0">View →</span>
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] shrink-0">View →</span>
                 </div>
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{c.role}</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{c.role}</div>
                 <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{c.specialty}</p>
               </div>
             </a>
           ))}
         </div>
         <div className="mt-3 p-3 bg-white border border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Insurance Accepted</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">Insurance Accepted</div>
           <p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
             {TLC_INSURANCE}
           </p>
@@ -429,25 +429,25 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       render: () => (<div className="space-y-5">
       {/* Revenue projection — assumptions made explicit, replaces actual data once Acuity sync is built */}
         <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-3">Pipeline Revenue · Estimates (until Acuity sync is built)</div>
           <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
             <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Active pipeline</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Active pipeline</div>
               <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact((stats.newCount + stats.inProgress) * (stats.conversionRate || 50) / 100 * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">expected annual · at current conv</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">expected annual · at current conv</div>
             </div>
             <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A5751]">Converted clients</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Converted clients</div>
               <div className="text-lg sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmtCompact(stats.converted * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">annual recurring est.</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">annual recurring est.</div>
             </div>
             <div>
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">If all active convert</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">If all active convert</div>
               <div className="text-xl sm:text-3xl text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact((stats.newCount + stats.inProgress) * ANNUAL_REVENUE_PER_CLIENT)}</div>
-              <div className="text-[9px] sm:text-[10px] text-[#5A5751]">upside</div>
+              <div className="text-[0.5625rem] sm:text-[0.625rem] text-[#5A5751]">upside</div>
             </div>
           </div>
-          <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
             Assumptions: ~$150/session avg blended (insurance + self-pay), 1 session/week, 48 weeks/year (~$7.2K/client/yr). Estimates only until Acuity integration syncs actual booked + completed session data.
           </p>
         </section>
@@ -455,7 +455,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       {/* Source breakdown */}
       {stats.bySource.length > 0 && (
         <section className="bg-white border border-[#1A1815] p-4">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">By source</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">By source</div>
           <div className="space-y-1.5">
             {stats.bySource.map(s => {
               const pct = (s.count / stats.total) * 100;
@@ -516,7 +516,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions</div>
             <h2 className="text-2xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Real Solutions for Real Life.</h2>
             <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Faith-integrated therapy. Online & in-person. Christina Poe, LCSW + clinical team.</p>
           </div>
@@ -524,15 +524,15 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           <a href="https://tlctherapysolutions.me/" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Site</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Site</div>
             <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>tlctherapysolutions.com →</div>
           </a>
           <a href="https://tlctherapysolutions.me/find-your-therapist-flexible-career-opportunities-african-american-women-men-multicultural-illinois-communities" target="_blank" rel="noopener noreferrer" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Match a Therapist</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Match a Therapist</div>
             <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Find Your Therapist →</div>
           </a>
           <a href="mailto:contact@tlctherapysolutions.com" className="border border-[#E8E4DC] p-2.5 hover:border-[#B85838]">
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Direct Contact</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Direct Contact</div>
             <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>contact@tlctherapysolutions.com</div>
           </a>
         </div>
@@ -593,15 +593,15 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, qu
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{inq.firstName}</span>
-            <span className={`text-[10px] uppercase tracking-wider font-medium ${statusColor}`}>{statusInfo.label}</span>
+            <span className={`text-[0.625rem] uppercase tracking-wider font-medium ${statusColor}`}>{statusInfo.label}</span>
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
             {daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo}d ago`} · {sourceInfo?.label} · {interestInfo?.label}
           </div>
         </div>
         {!queueMode && (
           <div className="flex items-baseline gap-1.5 shrink-0">
-            <button type="button" onClick={() => setExpanded(!expanded)} className="text-[10px] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
+            <button type="button" onClick={() => setExpanded(!expanded)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{expanded ? '× Close' : 'Details'}</button>
             <button type="button" onClick={() => { if (confirm('Delete this inquiry?')) deleteInquiry(inq.id); }} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
           </div>
         )}
@@ -611,34 +611,34 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, qu
         <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-3">
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Contact</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Contact</div>
               <div style={{ fontFamily: '"Fraunces", serif' }}>{inq.contactValue}</div>
-              <div className="text-[10px] text-[#5A5751]">{inq.contactMethod} · best: {inq.bestTimeToCall}</div>
+              <div className="text-[0.625rem] text-[#5A5751]">{inq.contactMethod} · best: {inq.bestTimeToCall}</div>
             </div>
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Provider</div>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Provider</div>
               <div style={{ fontFamily: '"Fraunces", serif' }}>{providerLabel}</div>
-              <div className="text-[10px] text-[#5A5751]">Insurance: {insuranceLabel(inq.hasInsurance)}</div>
+              <div className="text-[0.625rem] text-[#5A5751]">Insurance: {insuranceLabel(inq.hasInsurance)}</div>
             </div>
           </div>
 
-          {inq.sourceDetail && (<div><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Source detail</div><div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{inq.sourceDetail}</div></div>)}
-          {inq.notes && (<div><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Notes</div><div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{inq.notes}</div></div>)}
+          {inq.sourceDetail && (<div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Source detail</div><div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{inq.sourceDetail}</div></div>)}
+          {inq.notes && (<div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</div><div className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{inq.notes}</div></div>)}
 
           <div>
-            <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1.5">Update status</div>
+            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">Update status</div>
             <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4] mb-1.5" placeholder="Optional: notes on this status change" value={statusNotes} onChange={e => setStatusNotes(e.target.value)} />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
               {INQUIRY_STATUSES.filter(s => s.key !== inq.status).map(s => (
-                <button key={s.key} onClick={() => changeStatus(s.key)} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#B85838] hover:bg-[#FAF8F4]">{s.label}</button>
+                <button key={s.key} onClick={() => changeStatus(s.key)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#E8E4DC] hover:border-[#B85838] hover:bg-[#FAF8F4]">{s.label}</button>
               ))}
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#E8E4DC]">
             <div className="flex items-baseline justify-between gap-2 mb-1.5">
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">💬 Conversation Log · {(inq.conversationLog || []).length}</div>
-              <button type="button" onClick={() => setShowConvForm(!showConvForm)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">💬 Conversation Log · {(inq.conversationLog || []).length}</div>
+              <button type="button" onClick={() => setShowConvForm(!showConvForm)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a call / message'}</button>
             </div>
             {showConvForm && (
               <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1.5">
@@ -648,19 +648,19 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, qu
                 </div>
                 <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'verified BCBS, scheduled intake for 5/19 11am'" value={convForm.summary} onChange={e => setConvForm({ ...convForm, summary: e.target.value })} />
                 <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · tone · next step · what to send afterward" value={convForm.notes} onChange={e => setConvForm({ ...convForm, notes: e.target.value })} />
-                <button type="button" onClick={addConvNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+                <button type="button" onClick={addConvNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
               </div>
             )}
             {(inq.conversationLog || []).length === 0 && !showConvForm ? (
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
             ) : (
               <div className="space-y-1">
                 {[...(inq.conversationLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
                   <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-1.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
-                        {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                        <div className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                        {e.notes && <div className="text-[0.625rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                       </div>
                       <button type="button" onClick={() => deleteConvNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                     </div>
@@ -672,8 +672,8 @@ function InquiryRow({ inq, contractors, updateInquiry, deleteInquiry, isLast, qu
 
           {inq.statusHistory && inq.statusHistory.length > 1 && (
             <div>
-              <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">History</div>
-              <div className="space-y-0.5 text-[10px] text-[#5A5751]">
+              <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">History</div>
+              <div className="space-y-0.5 text-[0.625rem] text-[#5A5751]">
                 {inq.statusHistory.map((h, i) => (
                   <div key={i}>
                     {new Date(h.at).toLocaleDateString()} — {INQUIRY_STATUSES.find(s => s.key === h.status)?.label || h.status}

@@ -61,7 +61,7 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="auth-modal-h" maxWidthClass="max-w-sm" closeLabel="Close sign-in" initialFocusRef={googleRef}>
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Welcome</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Welcome</div>
       <h2
         id="auth-modal-h"
         className="text-2xl mt-1 mb-1"
@@ -89,7 +89,7 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
 
       <div className="flex items-center gap-3 my-4" aria-hidden="true">
         <span className="h-px flex-grow bg-[#E8E4DC]" />
-        <span className="text-[11px] uppercase tracking-wider text-[#5A5751]">or</span>
+        <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">or</span>
         <span className="h-px flex-grow bg-[#E8E4DC]" />
       </div>
 

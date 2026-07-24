@@ -97,10 +97,10 @@ export default function LlmHealth() {
   return (
     <section className="bg-white border border-[#1A1815] p-4">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
           🧠 Local LLMs · Ollama{state.phase === 'ok' && state.data?.version ? ` ${state.data.version}` : ''}
         </div>
-        <KpiDot status={kpi.status} label={kpi.label} className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" />
+        <KpiDot status={kpi.status} label={kpi.label} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" />
       </div>
 
       {state.phase === 'loading' && (
@@ -110,7 +110,7 @@ export default function LlmHealth() {
       {state.phase === 'offline' && (
         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           <p>Local-LLM status isn&apos;t connected yet — showing nothing rather than guessing.</p>
-          <p className="mt-1 text-[11px]">To light it up: run <span className="font-mono">infra/nas-llm/llm_server.py</span> on the NAS and route <span className="font-mono">/llm/*</span> in Caddy (it reads Ollama&apos;s <span className="font-mono">/api/ps</span> on <span className="font-mono">192.168.1.26:11434</span>).</p>
+          <p className="mt-1 text-[0.6875rem]">To light it up: run <span className="font-mono">infra/nas-llm/llm_server.py</span> on the NAS and route <span className="font-mono">/llm/*</span> in Caddy (it reads Ollama&apos;s <span className="font-mono">/api/ps</span> on <span className="font-mono">192.168.1.26:11434</span>).</p>
         </div>
       )}
 
@@ -118,10 +118,10 @@ export default function LlmHealth() {
         <div>
           {/* What's hot right now — the attention line. */}
           {state.data.loadedCount === 0 ? (
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">🟢 Idle — 0 models loaded, no VRAM held</div>
+            <div className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#5A6E3D]">🟢 Idle — 0 models loaded, no VRAM held</div>
           ) : (
             <>
-              <div className="text-[10px] uppercase tracking-wider font-semibold">
+              <div className="text-[0.625rem] uppercase tracking-wider font-semibold">
                 <span className="text-[#2A5A8E]">🔵 {state.data.loadedCount} loaded</span>
                 {state.data.anyPinned && <span className="text-[#B85838]"> · ⚠ pinned — no expiry</span>}
               </div>
@@ -130,7 +130,7 @@ export default function LlmHealth() {
                   <div key={m.name + i} className={`flex items-center gap-2 px-2 py-1.5 ${i < state.data.loaded.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                     <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpiColor(m.pinned ? 'attention' : 'good') }} title={m.pinned ? 'pinned (no expiry)' : 'loaded'} />
                     <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{m.name}</span>
-                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {formatGB(m.sizeVram) ? `${formatGB(m.sizeVram)} vram` : ''}
                       {m.pinned ? ' · PINNED' : (m.expiresAt ? ` · unloads ${String(m.expiresAt).slice(11, 16)}` : '')}
                     </span>
@@ -138,7 +138,7 @@ export default function LlmHealth() {
                 ))}
               </div>
               {state.data.anyPinned && (
-                <p className="text-[10px] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.625rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                   A loaded model with no expiry is the 2026-06-06 runaway signature — worth a look.
                 </p>
               )}
@@ -146,7 +146,7 @@ export default function LlmHealth() {
           )}
 
           {/* What's installed on disk. */}
-          <div className="mt-3 text-[9px] uppercase tracking-wider text-[#5A5751] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <div className="mt-3 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             {state.data.installedCount} installed
           </div>
           <div className="mt-1 max-h-40 overflow-y-auto border border-[#E8E4DC]">
@@ -154,13 +154,13 @@ export default function LlmHealth() {
               <div key={m.name + i} className={`flex items-center gap-2 px-2 py-1 ${i < state.data.installed.length - 1 ? 'border-b border-[#F2EEE6]' : ''}`}>
                 <span className="text-xs flex-1 min-w-0 truncate" style={{ fontFamily: '"Fraunces", serif' }}>{m.name}</span>
                 {formatGB(m.size) && (
-                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatGB(m.size)}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatGB(m.size)}</span>
                 )}
               </div>
             ))}
           </div>
 
-          <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
             Live from the NAS — real Ollama <span className="font-mono not-italic">/api/ps</span>, not a guess.
           </p>
         </div>

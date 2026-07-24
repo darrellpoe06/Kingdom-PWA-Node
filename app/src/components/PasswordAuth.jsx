@@ -254,7 +254,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       {!embedded && (
         <>
           {brandLogo && <img src={brandLogo} alt="" className="h-10 w-10 mb-1.5" />}
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{brandEyebrow}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{brandEyebrow}</div>
           <h2 className="text-2xl mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
             {isSignup ? 'Create your profile' : 'Welcome back'}
           </h2>

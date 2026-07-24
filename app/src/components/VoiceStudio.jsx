@@ -261,7 +261,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       render: () => (
       /* Listen to anything */
       <div className="border border-[#E8E4DC] bg-white p-4">
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">
           Reading with: <span className="text-[#1A1815] font-semibold">{selected?.name}</span>
           {selected && aiVoiceLabel(selected) ? ' (AI-generated voice — stand-in)' : ''}
         </div>
@@ -282,7 +282,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
         )}
 
         {!tts.supported ? (
-          <p className="text-[11px] text-[#B85838] mt-2">This device can’t read aloud — try a different browser.</p>
+          <p className="text-[0.6875rem] text-[#B85838] mt-2">This device can’t read aloud — try a different browser.</p>
         ) : (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {!isReading ? (
@@ -303,14 +303,14 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                 const on = Math.abs(tts.rate - s.value) < 0.001;
                 return (
                   <button key={s.value} type="button" onClick={() => tts.setRate(s.value)} aria-pressed={on} title={s.name}
-                    className={`px-2 py-1.5 text-[10px] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
+                    className={`px-2 py-1.5 text-[0.625rem] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{s.label}</button>
                 );
               })}
             </div>
           </div>
         )}
         {tts.supported && tts.voices.length === 0 && (
-          <p className="text-[10px] text-[#5A5751] mt-2">Your device is still loading its voices — give it a moment, then press Read again.</p>
+          <p className="text-[0.625rem] text-[#5A5751] mt-2">Your device is still loading its voices — give it a moment, then press Read again.</p>
         )}
       </div>
       ),
@@ -335,17 +335,17 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-[#1A1815]">{v.name}</span>
                     {aiVoiceLabel(v) && (
-                      <span className="text-[9px] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
                     )}
                     {v.kind === KIND.SYNTHETIC && (
-                      <span className="text-[9px] uppercase tracking-wider border border-[#1A1815] text-[#1A1815] px-1.5 py-0.5">Free</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider border border-[#1A1815] text-[#1A1815] px-1.5 py-0.5">Free</span>
                     )}
                     {v.kind === KIND.PERSONAL && (
-                      <span className="text-[9px] uppercase tracking-wider border border-[#B85838] text-[#B85838] px-1.5 py-0.5">Subscriber voice</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider border border-[#B85838] text-[#B85838] px-1.5 py-0.5">Subscriber voice</span>
                     )}
                   </div>
-                  <div className="text-[11px] text-[#5A5751] mt-0.5">{v.description}</div>
-                  <div className={`text-[10px] mt-1 ${status.tone === 'ok' ? 'text-[#1A1815]' : status.tone === 'off' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>
+                  <div className="text-[0.6875rem] text-[#5A5751] mt-0.5">{v.description}</div>
+                  <div className={`text-[0.625rem] mt-1 ${status.tone === 'ok' ? 'text-[#1A1815]' : status.tone === 'off' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>
                     {status.label}
                     {prov.standIn ? ' · plays a stand-in until the voice studio is live' : ''}
                     {prov.real && v.kind === KIND.PERSONAL ? ' · cloned voice live' : ''}
@@ -356,14 +356,14 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                       "still sounds female for Darrell": pin a male voice here. */}
                   {selectable && deviceOptions.length > 0 && (
                     <div className="mt-1.5">
-                      <label htmlFor={`dv-${v.id}`} className="text-[10px] text-[#5A5751] block mb-0.5">
+                      <label htmlFor={`dv-${v.id}`} className="text-[0.625rem] text-[#5A5751] block mb-0.5">
                         {prov.standIn ? 'Stand-in device voice' : 'Device voice'}
                       </label>
                       <select
                         id={`dv-${v.id}`}
                         value={resolvedURIFor(v) || ''}
                         onChange={(e) => pinDeviceVoice(v.id, e.target.value)}
-                        className="text-[11px] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-1 rounded-md max-w-[12rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                        className="text-[0.6875rem] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-1 rounded-md max-w-[12rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
                       >
                         {deviceOptions.map((o) => (
                           <option key={o.uri} value={o.uri}>
@@ -372,7 +372,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                         ))}
                       </select>
                       {v.kind === KIND.PERSONAL && v.gender === 'male' && !hasVoiceOfGender(tts.voices, 'male') && (
-                        <p className="text-[10px] text-[#B85838] mt-0.5 max-w-[15rem]">This browser only exposes female voices to web pages. To get a male voice on Android: pick <strong>“Phone’s default voice”</strong> above, then set a male voice in <strong>Android Settings → Text-to-speech</strong>. (Your real voice needs the voice-clone endpoint.)</p>
+                        <p className="text-[0.625rem] text-[#B85838] mt-0.5 max-w-[15rem]">This browser only exposes female voices to web pages. To get a male voice on Android: pick <strong>“Phone’s default voice”</strong> above, then set a male voice in <strong>Android Settings → Text-to-speech</strong>. (Your real voice needs the voice-clone endpoint.)</p>
                       )}
                     </div>
                   )}
@@ -382,25 +382,25 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => sampleVoice(v)} disabled={busy}
                         title="Hear this voice now"
-                        className="text-[11px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Sample</button>
+                        className="text-[0.6875rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Sample</button>
                       <button type="button" onClick={() => choose(v)} aria-pressed={isSel}
-                        className={`text-[11px] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${isSel ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                        className={`text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${isSel ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
                       >{isSel ? '✓ In use' : 'Use'}</button>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-[#5A5751] text-right max-w-[9rem]">
+                    <span className="text-[0.625rem] text-[#5A5751] text-right max-w-[9rem]">
                       {canCloneVoice(v) ? 'Available on a subscription' : 'Invite to enroll — usable only after they consent'}
                     </span>
                   )}
                   {isMine && v.consentState !== CONSENT.GRANTED && (
                     <button type="button" disabled={busy || !canEnrollSelf} onClick={enrollSelf}
-                      className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">
+                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">
                       Enroll my voice
                     </button>
                   )}
                   {isMine && v.consentState === CONSENT.GRANTED && v.remoteId && (
                     <button type="button" disabled={busy} onClick={() => revokeSelf(v)}
-                      className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">
+                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">
                       Withdraw consent
                     </button>
                   )}
@@ -424,24 +424,24 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
         <div className="mb-6 border border-[#1A1815] bg-white p-4">
           <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
             <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {PERSONA_NAME[personaKey]}</div>
-            <span className="text-[9px] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
           </div>
-          <p className="text-[12px] text-[#5A5751] leading-relaxed mb-3">
+          <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-3">
             Read the lines below aloud (about 30 seconds). This becomes <strong>your</strong> voice for
             reading app text — clean audio, and recording it <strong>is</strong> your consent. It stays on
             this device; it’s only ever sent to your own voice endpoint to read text you choose.
           </p>
 
           {!recorder.supported ? (
-            <p className="text-[11px] text-[#B85838]">Recording isn’t supported in this browser — try Chrome or Safari on your phone.</p>
+            <p className="text-[0.6875rem] text-[#B85838]">Recording isn’t supported in this browser — try Chrome or Safari on your phone.</p>
           ) : (
             <>
-              <div className="text-[12px] text-[#1A1815] leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3">
+              <div className="text-[0.75rem] text-[#1A1815] leading-relaxed border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3">
                 {RECORD_SCRIPT.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
               </div>
 
               {myRefExists && !recorder.blob && !recorder.recording && (
-                <div className="text-[11px] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
+                <div className="text-[0.6875rem] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
                   <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
                 </div>
               )}
@@ -456,7 +456,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                     <span className="text-sm font-mono text-[#B85838]" role="status" aria-live="polite">● {formatDuration(recorder.seconds)}</span>
                     <button type="button" onClick={recorder.stop}
                       className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">■ Stop</button>
-                    <span className={`text-[11px] ${durationQuality(recorder.seconds).tone === 'short' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{durationQuality(recorder.seconds).label}</span>
+                    <span className={`text-[0.6875rem] ${durationQuality(recorder.seconds).tone === 'short' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{durationQuality(recorder.seconds).label}</span>
                   </>
                 )}
                 {recorder.blob && !recorder.recording && (
@@ -469,9 +469,9 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                   </>
                 )}
               </div>
-              {recorder.error && <p className="text-[11px] text-[#B85838] mt-2">{recorder.error}</p>}
+              {recorder.error && <p className="text-[0.6875rem] text-[#B85838] mt-2">{recorder.error}</p>}
               {!sovereignVoiceReady && (
-                <p className="text-[10px] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
+                <p className="text-[0.625rem] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
               )}
             </>
           )}
@@ -482,7 +482,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
+      <div className="mb-1 text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Voice</div>
       <h1 className="text-2xl font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Listen to anything</h1>
       <p className="text-sm text-[#5A5751] mb-5 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
         Pick a voice, then paste any message, lesson, or passage to hear it read aloud. On a reading
@@ -491,7 +491,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
 
       {/* The honesty banner — never hidden while the studio is not live. Pinned above the strip. */}
       {!sovereignVoiceReady && (
-        <div className="mb-5 border-l-4 border-[#B85838] bg-[#FAF8F4] p-3 text-[12px] text-[#5A5751] leading-relaxed">
+        <div className="mb-5 border-l-4 border-[#B85838] bg-[#FAF8F4] p-3 text-[0.75rem] text-[#5A5751] leading-relaxed">
           <strong>How personal voices work today:</strong> a personal voice is clearly marked
           <em> AI-generated</em> and currently plays a <strong>stand-in</strong> voice that you can hear right
           now. The real cloned voice activates when the local voice studio (sovereign, on our own
@@ -520,11 +520,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       {/* Status notice — pinned above the strip so a result set from ANY section
           (enroll, save a recording, a playback fallback) stays visible no matter
           which section is open. */}
-      {notice && <div role="status" aria-live="polite" className="mb-4 text-[12px] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2">{notice}</div>}
+      {notice && <div role="status" aria-live="polite" className="mb-4 text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2">{notice}</div>}
 
       <SectionTabs sections={sections} ariaLabel="Voice sections" idBase="voice" defaultId="listen" />
 
-      <p className="text-[11px] text-[#5A5751] mt-4 leading-relaxed">
+      <p className="text-[0.6875rem] text-[#5A5751] mt-4 leading-relaxed">
         Voice cloning is consent-only: a real person’s voice is never used until that person enrolls
         it themselves. Anything published in a cloned voice is labeled AI-generated, and a voice is
         only ever used to read content the person means to say — never to put words in their mouth.

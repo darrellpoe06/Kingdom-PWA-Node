@@ -121,10 +121,10 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
 
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your thoughts · {notes.length}</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your thoughts · {notes.length}</h2>
           <div className="flex items-center gap-1.5">
             {sourceCount > 0 && (
-              <button type="button" onClick={() => setSourcesOnly(!sourcesOnly)} aria-pressed={sourcesOnly} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${sourcesOnly ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>📖 Sources · {sourceCount}</button>
+              <button type="button" onClick={() => setSourcesOnly(!sourcesOnly)} aria-pressed={sourcesOnly} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${sourcesOnly ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#FAF8F4]'}`}>📖 Sources · {sourceCount}</button>
             )}
             {notes.length > 3 && (
               <input className="text-xs p-1.5 border border-[#E8E4DC] bg-white" placeholder="search your notes…" value={query} onChange={e => setQuery(e.target.value)} />
@@ -145,50 +145,50 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                   <>
                     <textarea className={fieldCls} rows="3" value={editText} onChange={e => onEditText(e.target.value)} />
                     <div className="flex gap-2 mt-1.5">
-                      <button type="button" onClick={commitEdit} className="bg-[#1A1815] text-white px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#B85838]">Save</button>
-                      <button type="button" onClick={cancelEdit} className="border border-[#1A1815] px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                      <button type="button" onClick={commitEdit} className="bg-[#1A1815] text-white px-3 py-1.5 text-[0.625rem] uppercase tracking-wider hover:bg-[#B85838]">Save</button>
+                      <button type="button" onClick={cancelEdit} className="border border-[#1A1815] px-3 py-1.5 text-[0.625rem] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
                     </div>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[9px] uppercase tracking-wider text-[#B85838]">· on the build list</span>}</p>
+                    <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">· on the build list</span>}</p>
                     {(n.links || []).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {(n.links || []).map(l => (
-                          <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white no-underline max-w-full truncate" title={l.url}>
+                          <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white no-underline max-w-full truncate" title={l.url}>
                             🔗 {l.title || hostOf(l.url)}
                           </a>
                         ))}
                       </div>
                     )}
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
-                      <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(n.createdAt || '').slice(0, 10)}</span>
-                      <button type="button" onClick={() => setTestForId(testForId === n.id ? null : n.id)} className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔎 Examine it</button>
-                      <button type="button" onClick={() => toggleNoteSource && toggleNoteSource(n.id)} className={`text-[10px] uppercase tracking-wider ${n.spiritualSource ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'} hover:text-[#1A1815]`}>{n.spiritualSource ? '📖 Source ✓' : '📖 Mark source'}</button>
-                      <button type="button" onClick={() => { setUpdatingId(null); startEdit(n); }} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">Edit</button>
-                      <button type="button" onClick={() => startUpdate(n)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white">Add update</button>
-                      <button type="button" onClick={() => togglePinNote && togglePinNote(n.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{n.pinned ? 'Unpin' : 'Pin'}</button>
-                      {!n.sentToPoeTech && <button type="button" onClick={() => { if (sendToPoeTech) { sendToPoeTech(n.text, n.id); } }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">💡 Tell PoeTech</button>}
-                      <button type="button" onClick={() => { if (window.confirm('Delete this note?') && deleteNote) deleteNote(n.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
+                      <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(n.createdAt || '').slice(0, 10)}</span>
+                      <button type="button" onClick={() => setTestForId(testForId === n.id ? null : n.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">🔎 Examine it</button>
+                      <button type="button" onClick={() => toggleNoteSource && toggleNoteSource(n.id)} className={`text-[0.625rem] uppercase tracking-wider ${n.spiritualSource ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'} hover:text-[#1A1815]`}>{n.spiritualSource ? '📖 Source ✓' : '📖 Mark source'}</button>
+                      <button type="button" onClick={() => { setUpdatingId(null); startEdit(n); }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">Edit</button>
+                      <button type="button" onClick={() => startUpdate(n)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white">Add update</button>
+                      <button type="button" onClick={() => togglePinNote && togglePinNote(n.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{n.pinned ? 'Unpin' : 'Pin'}</button>
+                      {!n.sentToPoeTech && <button type="button" onClick={() => { if (sendToPoeTech) { sendToPoeTech(n.text, n.id); } }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">💡 Tell PoeTech</button>}
+                      <button type="button" onClick={() => { if (window.confirm('Delete this note?') && deleteNote) deleteNote(n.id); }} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
                     </div>
                     {updatingId === n.id && (
                       <div className="mt-2">
                         <textarea className={fieldCls} rows="2" placeholder="Add an update — the original stays; this appends below it with today's date…" value={updateText} onChange={e => onUpdateText(e.target.value)} />
                         <div className="flex gap-2 mt-1.5">
-                          <button type="button" onClick={commitUpdate} className="bg-[#5A6E3D] text-white px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#1A1815]">Save update</button>
-                          <button type="button" onClick={cancelUpdate} className="border border-[#1A1815] px-3 py-1.5 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                          <button type="button" onClick={commitUpdate} className="bg-[#5A6E3D] text-white px-3 py-1.5 text-[0.625rem] uppercase tracking-wider hover:bg-[#1A1815]">Save update</button>
+                          <button type="button" onClick={cancelUpdate} className="border border-[#1A1815] px-3 py-1.5 text-[0.625rem] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
                         </div>
                       </div>
                     )}
                     {testForId === n.id && (
                       <div className="mt-2 bg-[#FAF8F4] border border-[#5A6E3D] p-2.5">
-                        <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Hold it to the light · Philippians 4:8</div>
+                        <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Hold it to the light · Philippians 4:8</div>
                         <ul className="space-y-0.5">
                           {THE_TEST.map(([k, q]) => (
-                            <li key={k} className="text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}><span className="font-semibold text-[#1A1815]">{k}.</span> <span className="text-[#5A5751]">{q}</span></li>
+                            <li key={k} className="text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}><span className="font-semibold text-[#1A1815]">{k}.</span> <span className="text-[#5A5751]">{q}</span></li>
                           ))}
                         </ul>
-                        <p className="text-[10px] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>A deeper conversation with your own sovereign AI — on your NAS, private, opt-in — is coming. For now, this is yours to weigh.</p>
+                        <p className="text-[0.625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>A deeper conversation with your own sovereign AI — on your NAS, private, opt-in — is coming. For now, this is yours to weigh.</p>
                       </div>
                     )}
                   </>
@@ -201,13 +201,13 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
 
       {appDirectives.length > 0 && (
         <section className="bg-white border border-[#B85838] p-4">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">💡 What you’ve told PoeTech · {appDirectives.length}</h2>
-          <p className="text-[11px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">💡 What you’ve told PoeTech · {appDirectives.length}</h2>
+          <p className="text-[0.6875rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
             These shape the build (a person or session acts on them; nothing auto-builds). They surface on the PoeTech Build board.
           </p>
           <ul className="space-y-1">
             {[...appDirectives].slice(-6).reverse().map(d => (
-              <li key={d.id} className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>“{d.text.slice(0, 120)}{d.text.length > 120 ? '…' : ''}” <span className="text-[9px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(d.at || '').slice(0, 10)}</span></li>
+              <li key={d.id} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>“{d.text.slice(0, 120)}{d.text.length > 120 ? '…' : ''}” <span className="text-[0.5625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{(d.at || '').slice(0, 10)}</span></li>
             ))}
           </ul>
         </section>

@@ -16,7 +16,7 @@ export default function SelfServeWelcome({ name, onDismiss }) {
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="ssw-h" className="fixed inset-0 z-50 bg-[#1A1815]/90 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Welcome</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Welcome</div>
         <h2 id="ssw-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           Welcome, {greetingName} — this space is yours.
         </h2>

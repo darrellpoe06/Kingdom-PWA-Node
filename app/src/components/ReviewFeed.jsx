@@ -181,7 +181,7 @@ export default function ReviewFeed() {
   return (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">🔄 Review · What the freshness loop is flowing</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">🔄 Review · What the freshness loop is flowing</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           When you save a link, the local AI reads it and stages a short summary of the current best practice it asserts — optionally cross-checked by a vendor model. Review them here: <strong>Keep</strong> the ones worth acting on, <strong>Dismiss</strong> the rest. Nothing is auto-applied to the system; you decide what becomes a change. Family feedback lives in its own panels, not here.
         </p>
@@ -232,8 +232,8 @@ export default function ReviewFeed() {
             return (
               <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: kept ? '#8B6F47' : '#5A6E3D' }}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtWhen(p.captured_at)}</span>
-                  {p.status && <span className="text-[10px] uppercase tracking-wider font-semibold text-[#8B6F47]">{p.status}</span>}
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtWhen(p.captured_at)}</span>
+                  {p.status && <span className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#8B6F47]">{p.status}</span>}
                 </div>
                 {p.url && (
                   <a href={p.url} target="_blank" rel="noopener noreferrer"
@@ -247,39 +247,39 @@ export default function ReviewFeed() {
                 )}
                 {vendorState.kind === 'synthesized' ? (
                   <p className="text-xs text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>{vendorState.text}
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">Vendor cross-check ·</span>{vendorState.text}
                   </p>
                 ) : vendorState.kind === 'checking' ? (
-                  <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>checking…
+                  <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">Vendor cross-check ·</span>checking…
                   </p>
                 ) : (
                   // Terminal local-first state — the local summary IS the result;
                   // the optional vendor cross-check was deferred, not left hanging.
-                  <p className="text-[11px] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">✓ Local-verified ·</span>vendor cross-check deferred (optional)
+                  <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">✓ Local-verified ·</span>vendor cross-check deferred (optional)
                   </p>
                 )}
                 {p.note && (
-                  <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · <EmojiText text={p.note} /></p>
+                  <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · <EmojiText text={p.note} /></p>
                 )}
                 {/* Controls (DR-0061): Keep / Dismiss act on the real staged file. */}
                 <div className="mt-3 pt-2 border-t border-[#E8E4DC] flex items-center gap-2 flex-wrap">
                   {kept ? (
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Kept for action</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Kept for action</span>
                   ) : (
                     <button type="button" onClick={() => onAction(p.id, 'keep')} disabled={busy}
                       aria-label={`Keep ${hostOf(p.url)} for action`}
-                      className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
                       Keep
                     </button>
                   )}
                   <button type="button" onClick={() => onAction(p.id, 'dismiss')} disabled={busy}
                     aria-label={`Dismiss ${hostOf(p.url)}`}
-                    className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
                     Dismiss
                   </button>
-                  {busy && <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>working…</span>}
+                  {busy && <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>working…</span>}
                 </div>
               </div>
             );
@@ -287,7 +287,7 @@ export default function ReviewFeed() {
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         These are proposals, not changes. Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — applying anything from here stays your call.
       </p>
     </div>

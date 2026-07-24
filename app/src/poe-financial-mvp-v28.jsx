@@ -705,7 +705,7 @@ function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserT
   const isLogged = effectiveTier(currentTier);
   return (
     <div className="bg-white border-2 border-[#B85838] p-6 sm:p-8 max-w-2xl mx-auto">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Unlock {viewLabel}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Unlock {viewLabel}</div>
       <h2 className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>This view unlocks at <span className="text-[#B85838]">{label}</span>.</h2>
       <p className="text-sm leading-relaxed text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         You're currently on <strong>{TIER_LABEL[isLogged] || isLogged}</strong>. {viewLabel} is built for the situations that {label.split(' ')[0]} subscribers use most. See the pricing tiers in About — the upgrade pays for itself by replacing several SaaS tools you'd otherwise stack to get the same outcome.
@@ -717,10 +717,10 @@ function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserT
       {/* Dev-only tier switcher — lets you preview what each tier looks like without paying. */}
       {setUserTier && (
         <div className="mt-5 pt-4 border-t border-[#E8E4DC]">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Dev preview — switch tier</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Dev preview — switch tier</div>
           <div className="flex gap-1 flex-wrap">
             {TIER_ORDER.map(t => (
-              <button key={t} type="button" onClick={() => setUserTier(t)} className={`text-[10px] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${effectiveTier(currentTier) === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{t}</button>
+              <button key={t} type="button" onClick={() => setUserTier(t)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${effectiveTier(currentTier) === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{t}</button>
             ))}
           </div>
         </div>
@@ -790,7 +790,7 @@ function TierSwitcher({ userTier, setUserTier }) {
   const shortLabel = fullLabel.split(' (')[0]; // strip the "($X/mo)" suffix
   return (
     <div ref={wrapRef} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[10px] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title={`Tier preview · ${fullLabel} · switch to see locked / unlocked views`}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title={`Tier preview · ${fullLabel} · switch to see locked / unlocked views`}>
         {flash ? '✓ Saved · ' : ''}
         <span className="hidden lg:inline">{fullLabel}</span>
         <span className="lg:hidden">{shortLabel}</span>
@@ -798,13 +798,13 @@ function TierSwitcher({ userTier, setUserTier }) {
       </button>
       {open && (
         <div onMouseMove={armAutoClose} onTouchStart={armAutoClose} onFocus={armAutoClose} className="absolute right-0 mt-1 bg-white border border-[#1A1815] p-2 z-30 shadow-lg" style={{ minWidth: '220px' }}>
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1 px-1">Preview tier (dev) · closes in 6s</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1 px-1">Preview tier (dev) · closes in 6s</div>
           <div className="flex flex-col gap-1">
             {TIER_ORDER.map(t => (
-              <button key={t} type="button" onClick={() => pick(t)} className={`text-[10px] uppercase tracking-wider px-2 py-2 text-left border focus:outline focus:outline-2 focus:outline-[#B85838] ${current === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{TIER_LABEL[t]}</button>
+              <button key={t} type="button" onClick={() => pick(t)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-2 text-left border focus:outline focus:outline-2 focus:outline-[#B85838] ${current === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{TIER_LABEL[t]}</button>
             ))}
           </div>
-          <div className="text-[9px] text-[#5A5751] italic mt-2 px-1">Persisted on this device. Real billing happens through About.</div>
+          <div className="text-[0.5625rem] text-[#5A5751] italic mt-2 px-1">Persisted on this device. Real billing happens through About.</div>
         </div>
       )}
     </div>
@@ -3700,16 +3700,16 @@ html{scroll-padding-bottom:280px}
 ${THEME_CSS}
       `}</style>
 
-      <div className="bg-[#1A1815] text-[#FAF8F4] text-center text-[10px] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
+      <div className="bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
         Projections, not promises · Verify with licensed professionals
       </div>
 
       <AuthBanner />
       <ClaimInviteBanner />
       {persistIssue && (
-        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[0.75rem] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
           <span>⚠ {persistIssue.message}</span>
-          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[11px] uppercase tracking-wide shrink-0">Dismiss</button>
+          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[0.6875rem] uppercase tracking-wide shrink-0">Dismiss</button>
         </div>
       )}
       {showVerifyBalances && (
@@ -3736,7 +3736,7 @@ ${THEME_CSS}
       {!churchDoorOnly && (isPickerMode || isFirstTimeLanding) && (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
             <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
             {/* Per Option B Mars Hill progressive-disclosure
                 (project-progressive-disclosure-mars-hill-engagement):
@@ -3748,13 +3748,13 @@ ${THEME_CSS}
                 eye anchors on the universal-value hook first. */}
             {isFirstTimeLanding && (
               <div className="flex flex-wrap gap-1.5 mb-3 items-center">
-                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
-                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
+                <span className="inline-block text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
+                <span className="inline-block text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
               </div>
             )}
             <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
             {isFirstTimeLanding && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[10px] uppercase tracking-wider text-[#5A5751]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">What</span> Today's next action</div>
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">When</span> Date · deadline · clock</div>
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">Why</span> Reason it matters</div>
@@ -3766,14 +3766,14 @@ ${THEME_CSS}
               {Object.entries(DEMO_PERSONA_META).map(([key, meta]) => (
                 <a key={key} href={`/?demo=${key}`} onClick={markLandingSeen} className="block p-4 border border-[#1A1815] bg-white hover:bg-[#FAF8F4] hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{meta.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{meta.label}</div>
+                    <span className="text-[0.5rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1.5 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.headline}</div>
-                  <div className="text-[11px] text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                  <div className="text-[0.6875rem] text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
                   {meta.free
-                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
-                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
+                    ? <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </a>
               ))}
             </div>
@@ -3785,8 +3785,8 @@ ${THEME_CSS}
                 tension and shows data-as-proof resolving it. Family-financial
                 lifecycle cards carry the Free tag; org/professional cards show
                 the paid tier. */}
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-1 mt-5">Coming next · more lives the same system holds</div>
-            <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Every one of these is the same framework with a different lens — they ship as the modules do. Same family OS, never another app to learn. Each one turns a recurring money tension into a shared record, so the data holds when memory fails.</p>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-1 mt-5">Coming next · more lives the same system holds</div>
+            <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Every one of these is the same framework with a different lens — they ship as the modules do. Same family OS, never another app to learn. Each one turns a recurring money tension into a shared record, so the data holds when memory fails.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {[
                 { key: 'young-adults-launching',     free: true,  label: 'For young adults launching',        headline: 'First apartment, first paycheck, first 401(k).',          summary: "First apartment, first paycheck, first 401(k). When mom and dad help with first month's rent, the gift-or-loan question gets settled in writing. If support changes, it's logged — not 'I thought you said.'" },
@@ -3813,14 +3813,14 @@ ${THEME_CSS}
                    hydration (static Tailwind, no JS-conditional styling). */
                 <div key={s.key} className="block p-4 border border-dashed border-[#1A1815] bg-white opacity-80">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
+                    <span className="text-[0.5rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
-                  <div className="text-[11px] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                  <div className="text-[0.6875rem] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
                   {s.free
-                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
-                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
+                    ? <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </div>
               ))}
             </div>
@@ -3833,10 +3833,10 @@ ${THEME_CSS}
                 need-based. FREE labels use the working-sample green (#5A6E3D).
                 "See pricing" marks the landing seen and opens the About view. */}
             <div className="border border-[#E8E4DC] bg-white px-3 py-3 mt-3 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="text-[11px] text-[#1A1815] mb-1.5 leading-snug">
-                <span className="text-[9px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
+              <div className="text-[0.6875rem] text-[#1A1815] mb-1.5 leading-snug">
+                <span className="text-[0.5625rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
               </div>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-[#1A1815]">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[0.6875rem] text-[#1A1815]">
                 <span className="text-[#5A5751]">Paid for businesses, professionals + landlords:</span>
                 <span><span className="font-semibold">from $39</span> PoeTech+</span>
                 <span className="text-[#5A5751]">·</span>
@@ -3846,7 +3846,7 @@ ${THEME_CSS}
                 <span className="text-[#5A5751]">·</span>
                 <span><span className="font-semibold">$249</span> Business</span>
               </div>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[0.625rem] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
                 <span>Sponsored for families in need (aligned-brand partners, not your data)</span>
@@ -3864,7 +3864,7 @@ ${THEME_CSS}
                 the waitlist is what's wired. Restore the upload onClick
                 when wf33 lands in active list. */}
             <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → join the waitlist (real-data view ships late June)</button>
-            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
             <div className="flex gap-2 mt-4 flex-wrap">
               {/* "Start your own setup" was removed 2026-05-28 evening — the
                   real app behind it would load Darrell's SEED_DATA (real
@@ -3885,13 +3885,13 @@ ${THEME_CSS}
         return (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-welcome-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-lg w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
             <h2 id="demo-welcome-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{meta.headline || 'Here\'s what providing for the people in your care looks like with the books open.'}</h2>
             <div className="text-sm leading-relaxed space-y-3 mb-5" style={{ fontFamily: '"Fraunces", serif', color: '#1A1815' }}>
               <p>{meta.pitch}</p>
               <p className="text-[#5A5751]"><strong className="text-[#1A1815]">This sample:</strong> {meta.summary} {meta.audience}</p>
               <p className="text-[#5A5751]"><strong className="text-[#1A1815]">Vision in build:</strong> {meta.vision}</p>
-              <p className="text-[12px] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
+              <p className="text-[0.75rem] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
             </div>
             <div className="bg-white border border-[#E8E4DC] p-3 mb-5 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong className="text-[#1A1815]">Quick tour:</strong> <span className="text-[#1A1815]">Big Picture</span> = at-a-glance health · <span className="text-[#1A1815]">Books → Accounts</span> = who has what · <span className="text-[#1A1815]">Books → Tx</span> = every transaction · <span className="text-[#1A1815]">Debts</span> = payoff snowball. Tap around — nothing saves.
@@ -3902,7 +3902,7 @@ ${THEME_CSS}
               </button>
               <a href="/?demo=picker" className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Try another scenario</a>
             </div>
-            <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Built by a family for families — and the businesses and communities they steward.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Built by a family for families — and the businesses and communities they steward.</p>
           </div>
         </div>
         );
@@ -3916,26 +3916,26 @@ ${THEME_CSS}
       {waitlistOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="waitlist-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Early access</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Early access</div>
             {!waitlistState.success ? (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Tell us how to reach you when this opens up.</h2>
                 <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>No promises on a date — we engage based on opportunities + capacity. Your spot is held in order received. You can tell us as much or as little as you want.</p>
                 <div className="space-y-3">
                   <div>
-                    <label htmlFor="wl-name" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
+                    <label htmlFor="wl-name" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
                     <input id="wl-name" type="text" autoComplete="name" value={waitlistForm.name} onChange={e => setWaitlistForm({ ...waitlistForm, name: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="First + last (or whatever feels right)" />
                   </div>
                   <div>
-                    <label htmlFor="wl-email" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Email <span className="text-[#B85838]">*</span></label>
+                    <label htmlFor="wl-email" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Email <span className="text-[#B85838]">*</span></label>
                     <input id="wl-email" type="email" autoComplete="email" required value={waitlistForm.email} onChange={e => setWaitlistForm({ ...waitlistForm, email: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="you@email.com" />
                   </div>
                   <div>
-                    <label htmlFor="wl-phone" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Phone (optional)</label>
+                    <label htmlFor="wl-phone" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Phone (optional)</label>
                     <input id="wl-phone" type="tel" autoComplete="tel" value={waitlistForm.phone} onChange={e => setWaitlistForm({ ...waitlistForm, phone: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="(217) 555-0100" />
                   </div>
                   <div>
-                    <label htmlFor="wl-interest" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Which fits best?</label>
+                    <label htmlFor="wl-interest" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Which fits best?</label>
                     <select id="wl-interest" value={waitlistForm.interest} onChange={e => setWaitlistForm({ ...waitlistForm, interest: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
                       <option value="">(pick one)</option>
                       <option value="family">My family</option>
@@ -3949,7 +3949,7 @@ ${THEME_CSS}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="wl-notes" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Anything you want us to know (optional)</label>
+                    <label htmlFor="wl-notes" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Anything you want us to know (optional)</label>
                     <textarea id="wl-notes" rows="3" value={waitlistForm.notes} onChange={e => setWaitlistForm({ ...waitlistForm, notes: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="What problem are you hoping this solves? When could you use it?" />
                   </div>
                 </div>
@@ -3962,13 +3962,13 @@ ${THEME_CSS}
                   <button type="button" disabled={waitlistState.submitting} onClick={submitWaitlist} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{waitlistState.submitting ? 'Adding you…' : 'Add me to the waitlist'}</button>
                   <button type="button" disabled={waitlistState.submitting} onClick={() => setWaitlistOpen(false)} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
                 </div>
-                <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
+                <p className="text-[0.625rem] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
               </>
             ) : (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>You're on the list.</h2>
                 <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Thanks, {waitlistForm.name || 'friend'}. We received your interest at {waitlistForm.email}. When opportunities + capacity line up with your scenario, a real human reaches out — usually within a couple weeks, sometimes longer. No spam in the meantime.</p>
-                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[10px]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
+                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[0.625rem]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => { setWaitlistOpen(false); setWaitlistForm({ name: '', email: '', phone: '', interest: '', notes: '' }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
                   <a href="/?demo=family-of-4" onClick={() => { setWaitlistOpen(false); markLandingSeen(); }} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See a sample while you wait</a>
@@ -3994,7 +3994,7 @@ ${THEME_CSS}
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-2xl w-full p-5 sm:p-6 my-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Your money · Layer {uploadStage === 'idle' || uploadStage === 'parsing' || uploadStage === 'parsed' ? '1' : (uploadStage === 'analyzing' || uploadStage === 'profile' ? '2' : '3')} of 3</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Your money · Layer {uploadStage === 'idle' || uploadStage === 'parsing' || uploadStage === 'parsed' ? '1' : (uploadStage === 'analyzing' || uploadStage === 'profile' ? '2' : '3')} of 3</div>
               <button type="button" onClick={() => setUploadOpen(false)} aria-label="Close" className="text-[#5A5751] hover:text-[#1A1815] text-lg">×</button>
             </div>
             {uploadStage === 'idle' && (
@@ -4020,15 +4020,15 @@ ${THEME_CSS}
                 <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.summary.transaction_count} transactions · {uploadResult.summary.date_range} · {uploadResult.format.toUpperCase()} format</p>
                 <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Income</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Income</div>
                     <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.credits_total || 0).toFixed(0)}</div>
                   </div>
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Spend</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Spend</div>
                     <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${Math.abs(uploadResult.summary.debits_total || 0).toFixed(0)}</div>
                   </div>
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Net</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</div>
                     <div className={`text-base font-semibold ${(uploadResult.summary.net || 0) >= 0 ? 'text-[#1A1815]' : 'text-[#B85838]'}`} style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.net || 0).toFixed(0)}</div>
                   </div>
                 </div>
@@ -4048,7 +4048,7 @@ ${THEME_CSS}
                     </tbody>
                   </table>
                   {uploadResult.transactions.length > 50 && (
-                    <div className="p-2 text-center text-[10px] text-[#5A5751] italic">Showing first 50 of {uploadResult.transactions.length} transactions.</div>
+                    <div className="p-2 text-center text-[0.625rem] text-[#5A5751] italic">Showing first 50 of {uploadResult.transactions.length} transactions.</div>
                   )}
                 </div>
                 <button type="button" onClick={runSkillAnalytics} className="w-full bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">What does this say about your stewardship? →</button>
@@ -4066,7 +4066,7 @@ ${THEME_CSS}
                 <p className="text-sm text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.profile.diagnostic_summary}</p>
                 {Array.isArray(uploadResult.profile.strengths) && uploadResult.profile.strengths.length > 0 && (
                   <div className="mb-3">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Strengths</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Strengths</div>
                     <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
                       {uploadResult.profile.strengths.map((s, i) => <li key={i}>· {s}</li>)}
                     </ul>
@@ -4074,7 +4074,7 @@ ${THEME_CSS}
                 )}
                 {Array.isArray(uploadResult.profile.gaps_to_consider) && uploadResult.profile.gaps_to_consider.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Worth considering</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Worth considering</div>
                     <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
                       {uploadResult.profile.gaps_to_consider.map((g, i) => <li key={i}>· {g}</li>)}
                     </ul>
@@ -4099,7 +4099,7 @@ ${THEME_CSS}
                       <div key={i} className="border border-[#E8E4DC] bg-white p-3">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.service.name}</div>
-                          <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold whitespace-nowrap">fit {m.fit_score}/100</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold whitespace-nowrap">fit {m.fit_score}/100</div>
                         </div>
                         <div className="text-xs text-[#5A5751] mb-2 italic" style={{ fontFamily: '"Fraunces", serif' }}>{m.fit_reason}</div>
                         <div className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>For:</strong> {m.service.audience}</div>
@@ -4133,9 +4133,9 @@ ${THEME_CSS}
             <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>Nothing saves.</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button type="button" onClick={() => setDemoWelcomeOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">What is this?</button>
-            <a href="/?demo=picker" className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">Try another lens</a>
-            <a href="/" className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#B85838] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold">Start your own →</a>
+            <button type="button" onClick={() => setDemoWelcomeOpen(true)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">What is this?</button>
+            <a href="/?demo=picker" className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">Try another lens</a>
+            <a href="/" className="text-[0.625rem] uppercase tracking-wider px-2 py-1 bg-white text-[#B85838] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold">Start your own →</a>
           </div>
         </div>
       )}
@@ -4181,7 +4181,7 @@ ${THEME_CSS}
         <div role="dialog" aria-modal="true" aria-labelledby="bio-offer-h"
           className="fixed inset-0 z-[60] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-sm w-full p-5 sm:p-6">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
             <h2 id="bio-offer-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Unlock with your fingerprint or face?</h2>
             <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               On this device you can skip the PIN next time and just use your fingerprint or face. It stays on this device — we never see or store it. Your PIN still works any time.
@@ -4191,7 +4191,7 @@ ${THEME_CSS}
               Enable fingerprint / Face
             </button>
             <button type="button" onClick={dismissBiometricOffer}
-              className="w-full py-2 text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="w-full py-2 text-[0.6875rem] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
               Not now — keep using my PIN
             </button>
           </div>
@@ -4234,7 +4234,7 @@ ${THEME_CSS}
       {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
             <h2 id="profile-picker-h" className="text-2xl sm:text-3xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who's using this device?</h2>
             <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to focus the screen on the parts meant for that person — handy on a shared device. This is a view convenience, not a login wall: everyone in the family space shares the same underlying data. Switch any time from the header.</p>
             <div className="space-y-2">
@@ -4242,13 +4242,13 @@ ${THEME_CSS}
                 <button key={p.id} type="button" onClick={() => handlePersonaSelect(p)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
                   <div>
                     <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
+                    <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
                   </div>
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.accent }} aria-hidden="true" />
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · a shared-device view filter, not per-person security. Real access is set by your role in Admin → Role &amp; stewards. Layer B (sovereign PIN auth) ships separately.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · a shared-device view filter, not per-person security. Real access is set by your role in Admin → Role &amp; stewards. Layer B (sovereign PIN auth) ships separately.</p>
           </div>
         </div>
       )}
@@ -4273,7 +4273,7 @@ ${THEME_CSS}
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
@@ -4303,13 +4303,13 @@ ${THEME_CSS}
               {currentProfile && currentProfile !== 'self' && !churchDoorOnly && (() => {
                 const p = PROFILES.find(x => x.id === currentProfile);
                 return (
-                  <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
+                  <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p?.accent || '#1A1815' }} aria-hidden="true" />
                     {p?.name || currentProfile}
                   </button>
                 );
               })()}
-              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
+              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
               {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
@@ -4355,7 +4355,7 @@ ${THEME_CSS}
                   <button key={t.key} type="button" onClick={() => setTheme(t.key)} aria-label={`${t.label} theme${theme === t.key ? ' (currently selected)' : ''}`} title={t.label} className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all focus:outline focus:outline-2 focus:outline-[#B85838] ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}></button>
                 ))}
               </div>
-              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
+              <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
                 <div className="font-medium">{churchDoorOnly ? 'The Love Corner' : (data.meta.releaseLabel || `v${data.meta.appVersion}`)}</div>
                 <div title="Today's date">{headerDateLabel}{headerTimeLabel ? <span className="text-[#B85838]"> · {headerTimeLabel}</span> : null}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
@@ -4614,7 +4614,7 @@ ${THEME_CSS}
             <>
               {!fullEdit && (
                 <div className="bg-white border-2 border-[#B85838] p-3 sm:p-4 mb-3" role="status">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Real Estate · Read-only preview</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Real Estate · Read-only preview</div>
                   <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>You're seeing one sample property so the value is concrete. Unlock the full editor (lease · tenant · equipment · rooms · maintenance · evaluator · map · snowball math) at {TIER_LABEL[RENTALS_FULL_EDIT_TIER]}. <button type="button" onClick={() => setView('about')} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold">See pricing tiers →</button></p>
                 </div>
               )}
@@ -5233,8 +5233,8 @@ ${THEME_CSS}
         {/* PoeTech platform footer — hidden in the focused church app (DR-0174). */}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
+          <button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
         </footer>
         )}
         {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
@@ -5300,7 +5300,7 @@ function ImportedDemoGuard({ setBooksView }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="text-[12px] text-[#5A5751] p-4">
+    <div className="text-[0.75rem] text-[#5A5751] p-4">
       Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
     </div>
   );
@@ -5410,7 +5410,7 @@ function ImportedDemoGuard({ setBooksView }) {
 // Preparatory scaffolding — Pressure-slider component pulled out of the main
 // dashboard for a planned dedicated "Pressure & Reserves" surface. Exported.
 export function Pressure({ pressure, setPressure, totals, pressureCalc, reserves, projection }) {
-  return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
+  return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[0.625rem] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
 }
 
 // Debts moved to ./components/Debts.jsx (r33).

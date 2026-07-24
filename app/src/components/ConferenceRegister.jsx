@@ -28,7 +28,7 @@ function ValuePoint({ icon, title, children }) {
   return (
     <li className="flex items-start gap-2.5">
       <span aria-hidden="true" className="text-base leading-6">{icon}</span>
-      <span className="text-[13px] text-[#1A1815] leading-6" style={{ fontFamily: '"Fraunces", serif' }}>
+      <span className="text-[0.8125rem] text-[#1A1815] leading-6" style={{ fontFamily: '"Fraunces", serif' }}>
         <span className="font-semibold">{title}</span> {children}
       </span>
     </li>
@@ -53,8 +53,8 @@ export default function ConferenceRegister() {
           {/* VALUE-FORWARD HERO — lead with the invitation the community feels, not
               the word "Register." The host is named (it IS their church's Assembly),
               but the deeper platform identity lives one click in (About, below). */}
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">✦ You’re invited</div>
-          <p className="text-[11px] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{conf.host}</p>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">✦ You’re invited</div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{conf.host}</p>
           <h1 className="text-2xl sm:text-3xl mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{conf.name}</h1>
           {conf.theme && <p className="text-sm text-[#5A6E3D] font-semibold mt-1" style={{ fontFamily: '"Fraunces", serif' }}>“{conf.theme}”</p>}
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -74,7 +74,7 @@ export default function ConferenceRegister() {
         {/* VALUE STRIP — the first service delivered, made tangible. Reassures a
             non-technical registrant that signing up actually does something for them. */}
         <div className="bg-white border border-[#E8E4DC] border-t-0 p-5 sm:p-6">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">When you register</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">When you register</div>
           <ul className="space-y-2">
             <ValuePoint icon="🪑" title="Your seat is saved.">We plan seating for everyone who lets us know they’re coming.</ValuePoint>
             <ValuePoint icon="🍽️" title="Meals around you.">Tell us your meal preference or allergy once — catering plans for it.</ValuePoint>
@@ -98,19 +98,19 @@ export default function ConferenceRegister() {
             <span aria-hidden="true" className="text-[#B85838] text-lg leading-none">{aboutOpen ? '−' : '+'}</span>
           </button>
           <div id="about-poetech" hidden={!aboutOpen} className="mt-3 space-y-3">
-            <p className="text-[13px] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               This registration is part of <span className="font-semibold">PoeTech</span> — a platform built for {conf.host} and our community. The Assembly is just the start: the free app brings the conference, church resources, and a way to stay connected together in one place.
             </p>
-            <p className="text-[13px] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               We build to <span className="font-semibold">serve the community, not to extract from it</span>: your information stays with the church — never sold, never shared, never used for ads. You decide what you share.
             </p>
-            <p className="text-[12px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.75rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
               After you register, you’ll be offered an optional free account — totally up to you. Either way, you’re registered.
             </p>
           </div>
         </div>
 
-        <p className="text-[11px] text-[#5A5751] mt-4" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Questions? Reach a church leader. Built and powered by PoeTech for {conf.host} — from PoeTech to our community.
         </p>
       </div>

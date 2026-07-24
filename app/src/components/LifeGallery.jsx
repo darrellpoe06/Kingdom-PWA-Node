@@ -43,8 +43,8 @@ function FamilyNasGallery({ refreshKey, onOpen }) {
   if (!photos || photos.length === 0) return null;
   return (
     <div className="mb-4">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1">🏠 Shared family gallery · live from your NAS</div>
-      <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1">🏠 Shared family gallery · live from your NAS</div>
+      <p className="text-[0.625rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         Everyone signed in to the family sees these — backed up on the NAS you own, not trapped on one phone.
       </p>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
@@ -96,14 +96,14 @@ function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds, onOpen }) {
   if (!groups || groups.length === 0) return null;
   return (
     <div className="mt-4 pt-3 border-t border-[#E8E4DC]">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏡 Your places · live from your NAS</div>
-      <p className="text-[10px] text-[#5A5751] italic mt-0.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏡 Your places · live from your NAS</div>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-0.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         Loaded straight from your NAS each visit — nothing copied to this device. ☆ Keep moves one into the gallery above.
       </p>
       <div className="space-y-3">
         {groups.map(g => (
           <div key={g.id}>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">{g.name}</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{g.name}</div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {g.photos.map(p => {
                 const keepId = `lp-nas-${p.id}`;
@@ -112,13 +112,13 @@ function NasPlacesStrip({ rentals = [], addLifePhotos, keptIds, onOpen }) {
                   <figure key={p.id} className="border border-[#E8E4DC] bg-[#FAF8F4] w-32 shrink-0">
                     <button type="button" onClick={() => onOpen && onOpen(p.thumb, p.text || g.name)} className="block w-32"><img src={p.thumb} alt={p.text || g.name} className="w-32 h-24 object-cover cursor-zoom-in" loading="lazy" /></button>
                     <figcaption className="p-1 flex items-center justify-between gap-1">
-                      <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
+                      <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
                       {addLifePhotos && (
                         <button
                           type="button"
                           disabled={kept}
                           onClick={() => addLifePhotos([{ id: keepId, src: p.thumb, caption: g.name, category: 'Properties', date: p.date || '' }])}
-                          className={`text-[9px] uppercase tracking-wider ${kept ? 'text-[#5A6E3D]' : 'text-[#B85838] hover:text-[#1A1815]'}`}
+                          className={`text-[0.5625rem] uppercase tracking-wider ${kept ? 'text-[#5A6E3D]' : 'text-[#B85838] hover:text-[#1A1815]'}`}
                         >{kept ? '✓ kept' : '☆ keep'}</button>
                       )}
                     </figcaption>
@@ -177,19 +177,19 @@ function CuratedAlbumGallery({ readOnly, onOpen }) {
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') saveAlbum(); if (e.key === 'Escape') setEditing(false); }}
             placeholder="Synology Photos album or folder name"
-            className="text-[11px] p-1.5 border border-[#E8E4DC] bg-white w-56"
+            className="text-[0.6875rem] p-1.5 border border-[#E8E4DC] bg-white w-56"
           />
-          <button type="button" onClick={saveAlbum} className="text-[9px] uppercase tracking-wider px-2 py-1 border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838]">Use album</button>
-          <button type="button" onClick={() => setEditing(false)} className="text-[9px] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]">Cancel</button>
+          <button type="button" onClick={saveAlbum} className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838]">Use album</button>
+          <button type="button" onClick={() => setEditing(false)} className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]">Cancel</button>
         </div>
       ) : album ? (
-        <div className="flex items-center gap-2 flex-wrap text-[10px]">
+        <div className="flex items-center gap-2 flex-wrap text-[0.625rem]">
           <span className="text-[#5A5751]">Feeding from album <span className="font-semibold text-[#1A1815]">{album}</span></span>
           <button type="button" onClick={() => { setDraft(album); setEditing(true); }} className="uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">change</button>
           <button type="button" onClick={clearAlbum} className="uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">× clear</button>
         </div>
       ) : (
-        <button type="button" onClick={() => { setDraft(''); setEditing(true); }} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">🖼️ Choose an album to feature</button>
+        <button type="button" onClick={() => { setDraft(''); setEditing(true); }} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">🖼️ Choose an album to feature</button>
       )}
     </div>
   ) : null;
@@ -199,14 +199,14 @@ function CuratedAlbumGallery({ readOnly, onOpen }) {
 
   return (
     <div className="mb-4">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">🖼️ Featured album · live from your NAS</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">🖼️ Featured album · live from your NAS</div>
       {picker}
       {album && (
-        <p className="text-[10px] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Only the one album you chose feeds this page — your camera roll stays private. Loaded straight from the NAS you own each visit, nothing copied to this device.
         </p>
       )}
-      {loading && <div className="text-[10px] text-[#5A5751]">Loading from your NAS…</div>}
+      {loading && <div className="text-[0.625rem] text-[#5A5751]">Loading from your NAS…</div>}
       {photos && photos.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
           {photos.map((p, i) => (
@@ -222,7 +222,7 @@ function CuratedAlbumGallery({ readOnly, onOpen }) {
         </div>
       )}
       {album && !loading && photos && photos.length === 0 && (
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           No photos loaded from <span className="font-semibold">{album}</span> yet — check the album name, or the NAS album feed may still be coming online.
         </p>
       )}
@@ -298,32 +298,32 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
   };
 
   const shown = filter === 'All' ? photos : photos.filter(p => (p.category || 'Other') === filter);
-  const chip = (active) => `text-[10px] uppercase tracking-wider px-2.5 py-1 border ${active ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
+  const chip = (active) => `text-[0.625rem] uppercase tracking-wider px-2.5 py-1 border ${active ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
 
   return (
     <section className="bg-white border border-[#1A1815] p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📸 The Biggest Picture · Your Life in Photos</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">📸 The Biggest Picture · Your Life in Photos</div>
           <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
             The people and work this is all for. Yours — never sold, never mined, never used to train anything.
           </p>
         </div>
         {!readOnly && (
           <div className="flex items-center gap-2 flex-wrap">
-            <label className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] cursor-pointer`}>
+            <label className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] cursor-pointer`}>
               {busy ? 'Adding…' : '+ Add photos'}
               <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
             </label>
             {supportsFolderPick && (
-              <button type="button" disabled={busy} onClick={addFromCameraFolder} className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] cursor-pointer`}>📷 From camera folder</button>
+              <button type="button" disabled={busy} onClick={addFromCameraFolder} className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] cursor-pointer`}>📷 From camera folder</button>
             )}
           </div>
         )}
       </div>
 
       {!readOnly && nasNote && (
-        <div className="mb-3 text-[11px] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
+        <div className="mb-3 text-[0.6875rem] text-[#5A6E3D] bg-[#F2F5EC] border border-[#D6E0C4] px-3 py-2" style={{ fontFamily: '"Fraunces", serif' }}>✓ {nasNote}</div>
       )}
 
       {/* NAS photo backup — the wiring Darrell asked for (2026-07-18). Connected =
@@ -361,7 +361,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
 
       {!readOnly && (
         <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-          <span className="text-[9px] uppercase tracking-wider text-[#5A5751] mr-1">New photo goes to:</span>
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mr-1">New photo goes to:</span>
           {CATEGORIES.map(c => (
             <button key={c} type="button" onClick={() => setPendingCategory(c)} className={chip(pendingCategory === c)}>{c}</button>
           ))}
@@ -391,14 +391,14 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
                 </button>
                 <figcaption className="p-2">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">{p.category || 'Other'}</span>
-                    <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">{p.category || 'Other'}</span>
+                    <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</span>
                   </div>
                   {readOnly ? (
-                    p.caption ? <div className="text-[11px] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{p.caption}</div> : null
+                    p.caption ? <div className="text-[0.6875rem] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{p.caption}</div> : null
                   ) : (
                     <input
-                      className="w-full text-[11px] p-1 border border-[#E8E4DC] bg-white mt-1"
+                      className="w-full text-[0.6875rem] p-1 border border-[#E8E4DC] bg-white mt-1"
                       placeholder="caption"
                       defaultValue={p.caption || ''}
                       onBlur={e => { if (updateLifePhoto && (e.target.value || '') !== (p.caption || '')) updateLifePhoto(p.id, { caption: e.target.value }); }}
@@ -408,9 +408,9 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
                     {/* Export — proof there's no lock-in. Your photo, downloadable
                         as a real file anytime; the opposite of a platform that
                         traps your images. */}
-                    <a href={p.src} download={`poetech-${(p.category || 'photo').toLowerCase()}-${p.date || ''}.jpg`} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">⬇ Save</a>
+                    <a href={p.src} download={`poetech-${(p.category || 'photo').toLowerCase()}-${p.date || ''}.jpg`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">⬇ Save</a>
                     {!readOnly && (
-                      <button type="button" onClick={() => { if (deleteLifePhoto && window.confirm('Remove this photo?')) deleteLifePhoto(p.id); }} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">× remove</button>
+                      <button type="button" onClick={() => { if (deleteLifePhoto && window.confirm('Remove this photo?')) deleteLifePhoto(p.id); }} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">× remove</button>
                     )}
                   </div>
                 </figcaption>
@@ -426,7 +426,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
           stated honestly: device-only today; sovereign backup (own NAS, or a
           private PoeTech space the user owns + exports) is the next project.
           Do NOT re-add "your NAS" as if everyone has one. */}
-      <p className="text-[10px] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] mt-3 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
         🔒 Never sold, never mined, never used to train a model — there is no such pipeline here. Today these photos live on this device; backing them up to a space you own — your own NAS, or a private PoeTech space you can export any time — is coming next, so a lost phone never loses them. Save any photo above right now.
       </p>
       <Lightbox items={lightbox?.items} index={lightbox?.index || 0} src={lightbox?.src} alt={lightbox?.alt} onClose={() => setLightbox(null)} />

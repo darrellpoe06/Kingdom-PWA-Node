@@ -97,7 +97,7 @@ export default function AppInterestCapture({ onClose = null, source = 'app' }) {
 
   return (
     <div className="max-w-md">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Get the PoeTech app</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Get the PoeTech app</div>
       <h3 className="text-lg font-semibold text-[#1A1815] mt-1 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
         {isStandalone() ? 'You’re already running the app' : 'Want it on your phone, or stuck installing?'}
       </h3>
@@ -114,12 +114,12 @@ export default function AppInterestCapture({ onClose = null, source = 'app' }) {
         <div className="mb-3">
           <label htmlFor="ai-name" className={labelCls}>Your name</label>
           <input id="ai-name" type="text" maxLength={FIELD_CAPS.name} value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'ai-name-err' : undefined} />
-          {errors.name && <p id="ai-name-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
+          {errors.name && <p id="ai-name-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
         </div>
         <div className="mb-3">
           <label htmlFor="ai-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(where we send your invite)</span></label>
           <input id="ai-email" type="email" maxLength={FIELD_CAPS.email} value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'ai-email-err' : undefined} />
-          {errors.email && <p id="ai-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
+          {errors.email && <p id="ai-email-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
         </div>
         <div className="mb-3">
           <label htmlFor="ai-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
@@ -140,12 +140,12 @@ export default function AppInterestCapture({ onClose = null, source = 'app' }) {
             <span style={{ fontFamily: '"Fraunces", serif' }}>A parent or guardian has said it’s okay and will help them get set up.</span>
           </label>
         )}
-        {errors.parentConfirmed && <p className="text-[11px] text-[#7A1F1F] mb-2" aria-live="polite">{errors.parentConfirmed}</p>}
+        {errors.parentConfirmed && <p className="text-[0.6875rem] text-[#7A1F1F] mb-2" aria-live="polite">{errors.parentConfirmed}</p>}
 
         {/* honeypot: visually hidden, off-tab; bots fill it, people don't */}
         <input type="text" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
 
-        <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           We only use this to send your invite and help you get set up. Your info stays with PoeTech — never sold, never shared.
         </p>
 
@@ -197,7 +197,7 @@ function OneTapInstall({ canTap, install, onInstall }) {
 function InstallSteps({ help }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">{help.title}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">{help.title}</div>
       <ol className="list-decimal pl-5 space-y-1">
         {help.steps.map((s, i) => (
           <li key={i} className="text-xs text-[#1A1815] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s}</li>

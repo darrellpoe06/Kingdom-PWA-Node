@@ -149,7 +149,7 @@ export default function ConferenceAccountOnRamp({ regId = null, name = '', email
   // The optional offer (signed-out registrant).
   return (
     <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
-      <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Optional · Free</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Optional · Free</div>
       <h4 className="text-base font-semibold text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
         Your church, all in one place
       </h4>
