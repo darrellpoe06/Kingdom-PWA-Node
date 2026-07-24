@@ -29,6 +29,7 @@ import { LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW, buildLivingLessonsSch
 import { MADE_IN_TIME_META, MADE_IN_TIME_SESSION_FLOW, buildMadeInTimeSchedule, madeInTimeProgressSummary, exportMadeInTimeCurriculumMarkdown, MADE_IN_TIME_INTEREST_TAG, MADE_IN_TIME_HELPER_TAG, MADE_IN_TIME_TUTOR_META } from './made-in-time-course.js';
 import { SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW, buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown, SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META } from './sound-board-class.js';
 import { WORD_OUT_META, WORD_OUT_SESSION_FLOW, buildWordOutSchedule, wordOutProgressSummary, exportWordOutCurriculumMarkdown, WORD_OUT_INTEREST_TAG, WORD_OUT_HELPER_TAG, WORD_OUT_TUTOR_META } from './word-out-course.js';
+import { CHURCH_OFFICES_META, CHURCH_OFFICES_SESSION_FLOW, buildChurchOfficesSchedule, churchOfficesProgressSummary, exportChurchOfficesCurriculumMarkdown, CHURCH_OFFICES_INTEREST_TAG, CHURCH_OFFICES_HELPER_TAG, CHURCH_OFFICES_TUTOR_META } from './church-offices-course.js';
 import { WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW, buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown, WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META } from './world-issues-class.js';
 import { DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW, buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown, DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META } from './datasystems-course.js';
 import { SUCCESSION_META, SUCCESSION_SESSION_FLOW, buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown, SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META } from './succession-class.js';
@@ -114,6 +115,20 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
       cta: 'I want to learn',
       sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
+    },
+  },
+  {
+    key: 'church-offices', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...CHURCH_OFFICES_META, key: 'church-offices', category: 'The Word & The Way' }, sessionFlow: CHURCH_OFFICES_SESSION_FLOW,
+    buildScheduleRows: () => buildChurchOfficesSchedule(), progressSummary: (p) => churchOfficesProgressSummary(p),
+    exportMarkdown: () => exportChurchOfficesCurriculumMarkdown(), downloadName: 'the-functions-of-the-house.md',
+    interestTag: CHURCH_OFFICES_INTEREST_TAG, helperTag: CHURCH_OFFICES_HELPER_TAG, tutorCourseMeta: CHURCH_OFFICES_TUTOR_META,
+    interestText: (who) => `${CHURCH_OFFICES_INTEREST_TAG} ${who} wants The Functions of the House study.`,
+    interestCopy: {
+      heading: 'Want this study of the offices?',
+      blurb: 'Deacons, elders, bishops, pastors, the Ephesians 4 gifts — who they are in the Word, with every count measured from the text. Tell Darrell you want it for yourself or your leadership group.',
+      cta: 'I want this study',
+      sent: '✓ Sent — Darrell will see it. Function over title; the Word explains the Word.',
     },
   },
   {
