@@ -74,6 +74,7 @@ export const INSTALL_STEPS = {
     'Pull down notifications and tap the finished .apk — OR open My Files → Downloads and tap it there. (If the notification sticks at "Downloading…" though the size shows complete, tap Pause then Resume, or just use My Files — the file is already there.)',
     'First time only: the phone says it "can\'t install unknown apps from this source" — tap Settings, allow it for your browser, then go back and tap Install.',
     'Google Play Protect will warn it "hasn\'t seen an app from this developer" — that\'s because our apps come from OUR store, not Google\'s. Tap "More details," then "Install anyway." (The big "Got it" button CANCELS the install.)',
+    'If instead it says "App blocked to protect your device," tap "More details" on that screen too — a smaller "Install anyway" is behind it. If there is truly no "Install anyway": open the Play Store app → your picture (top right) → Play Protect → the gear icon → turn "Scan apps with Play Protect" off, install our app, then turn the scan back on. One-time step; your protection comes right back.',
     'The app appears in your Apps section — its own app, its own icon.',
   ],
   // iOS: no sideloading exists — Safari's Add to Home Screen IS the install,
