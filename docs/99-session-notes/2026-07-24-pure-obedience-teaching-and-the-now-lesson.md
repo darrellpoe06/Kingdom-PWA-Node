@@ -131,3 +131,22 @@ Gap found and closed in this pass: the DR-0190 authority-tier note above was
 implicit — now explicit. Remaining gate (named, not silent): the verbatim
 scripture fetch is the ONLY thing between this spec and the lesson landing in
 living-lessons-class.js.
+
+## Continuation — broken seals and the path to healing (same teaching)
+- **Misrepresented brand:** most negative stances toward Yahweh come not from
+  an authentic encounter with Him but from the incompetencies and attitudes
+  of the people behind the registers — leaders, parents, mentors who
+  misdelivered the mission.
+- **Broken seals:** when the messenger tampers with the order — adds their
+  own spin to His instruction — the seal is broken and the order is voided;
+  recipients learn to distrust every delivery after that.
+- **Self-manufacture cycle:** the pain of bad delivery drives people to
+  bypass the Deliverer and cook their own order from their own ingredients —
+  spiritual confusion that hardens into resistance to the authentic Word.
+- **The path to healing:** seek the direct connection — strip away the flawed
+  human delivery and the trauma it left, and hear the pure, unadulterated
+  instruction for oneself.
+- Lesson wiring: healing arc for the standard + senior variants ("your hurt
+  was with the driver, not the Sender — come meet the Sender directly"), and
+  the Council Chamber's pastoral posture verbatim: the platform delivers
+  sealed — spin voids the order.
