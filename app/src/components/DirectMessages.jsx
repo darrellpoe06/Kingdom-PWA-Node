@@ -138,14 +138,22 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
             {convo.length === 0 && <p className="text-xs text-[#5A5751]">No messages yet — say hello.</p>}
             {convo.map((m) => (
               <div key={m.id} className={`text-sm ${m.mine ? 'text-right' : 'text-left'}`}>
-                <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
+                <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.locked ? 'italic text-[#5A5751] bg-white border border-dashed border-[#C9BFA8]' : m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
                   {m.body}
                 </div>
-                <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">{fmtTime(m.createdAt)}</div>
+                <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">
+                  {fmtTime(m.createdAt)}
+                  {/* Honest per-message state: sealed end-to-end vs legacy plaintext. */}
+                  {m.encrypted ? ' · encrypted' : ''}
+                </div>
               </div>
             ))}
             <div ref={endRef} />
           </div>
+          <p className="text-[0.625rem] text-[#5A5751]">
+            Sealed end-to-end once both of you have opened Messages on a device
+            — keys live on your devices, never on the server.
+          </p>
           <label className="block">
             <span className={LABEL}>Message {nameFor(openWith)}</span>
             <textarea

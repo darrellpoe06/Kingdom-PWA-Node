@@ -62,6 +62,7 @@ export const SURFACES = [
   { id: 'tlc-assistant',label: 'Assistant',        nav: 'top', view: 'tlc-assistant',sub: null,          gate: 'family/governor OR business tier',           load: () => import('./components/TlcAssistant.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
+  { id: 'messages',     label: 'Messages',         nav: 'top', view: 'messages',     sub: null,          load: () => import('./components/Messages.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
@@ -128,6 +129,7 @@ export const CohortPrograms   = surfaceById['cohorts'].component;
 export const TlcAssistant     = surfaceById['tlc-assistant'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
 export const Games            = surfaceById['games'].component;
+export const Messages         = surfaceById['messages'].component;
 export const TVTime           = surfaceById['tvtime'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;

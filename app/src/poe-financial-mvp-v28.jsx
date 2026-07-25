@@ -145,7 +145,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
+  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -1023,7 +1023,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4413,6 +4413,10 @@ ${THEME_CSS}
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
+                // Messages — encrypted 1:1 + roster group threads, app-wide
+                // (Darrell 2026-07-25: "how can he message me whenever
+                // encrypted?"). Open to every signed-in user.
+                ['messages', <><UiIcon name="chat" /> Messages</>],
                 ['notes', <><UiIcon name="dove" /> Notes</>],
                 // Create — the document / image creation workspace (Notes group:
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
@@ -4990,6 +4994,13 @@ ${THEME_CSS}
             Own SectionBoundary so a thrown error degrades just this surface.
             Owner list syncs cross-device (tv_watch, 0072); circle sharing is
             LIVE (tv_circle/tv_share, 0074 — flag opened 2026-07-04). */}
+        {/* Messages — encrypted 1:1 DMs + roster group threads (2026-07-25).
+            Access model server-enforced (users_can_dm / user_in_group). */}
+        {view === 'messages' && (
+          <SectionBoundary name="Messages">
+            <Messages />
+          </SectionBoundary>
+        )}
         {view === 'tvtime' && (
           <SectionBoundary name="TV Time">
             <TVTime email={authSession?.user?.email || null} />
