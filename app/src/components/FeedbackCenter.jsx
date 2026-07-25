@@ -66,6 +66,9 @@ export const FEEDBACK_AREAS = [
   { group: 'Inbound', items: [
     ['inbound', 'Inbound · call / inquiry capture → routing'],
   ]},
+  { group: 'Messages', items: [
+    ['messages', 'Messages · encrypted 1:1 + group threads'],
+  ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
     ['rentals-edit', '└ Inline quick-edit on property rows'],

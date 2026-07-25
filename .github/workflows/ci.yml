@@ -80,6 +80,11 @@ jobs:
       # before 0066 landed (no content_sources) and before rss-ingest.py existed
       # (only one platform declared).
       - run: node ../scripts/source-adapter-guard.mjs
+      # Business-systems completion guard (Darrell 2026-07-25): decisions-ledger
+      # integrity (every DR file has an INDEX row, Next-ID pointer correct) +
+      # retired-n8n-transport and vendor-form-endpoint containment. Proven-to-
+      # catch in vitest (business-systems-guard.test.js).
+      - run: node ../scripts/business-systems-guard.mjs
       - run: npx vitest run
       # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
       # classification — a fresh upload's missing captions are TRANSIENT (YouTube
