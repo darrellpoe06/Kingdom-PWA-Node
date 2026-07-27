@@ -62,7 +62,10 @@ jobs:
             node scripts/large-print-guard.mjs && echo "- large-print: OK" || echo "- large-print: VIOLATIONS (see log)"
             node scripts/consistency-guard.mjs && echo "- consistency: OK" || echo "- consistency: DRIFT (see log)"
             echo "## Leanness (largest source files, lines)"
-            find app/src -name '*.jsx' -o -name '*.js' | grep -v __tests__ | xargs wc -l 2>/dev/null | sort -rn | head -6
+            # awk (not head) takes the top rows: head closes the pipe early and
+            # sort's SIGPIPE exit-2 fails the job under pipefail (first-run proof,
+            # 2026-07-27, run 30277676273).
+            find app/src -name '*.jsx' -o -name '*.js' | grep -v __tests__ | xargs wc -l 2>/dev/null | sort -rn | awk 'NR<=6'
           } | tee ari-review-report.md
       - uses: actions/upload-artifact@v4
         with:
