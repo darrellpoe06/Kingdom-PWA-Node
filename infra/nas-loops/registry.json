@@ -31,6 +31,16 @@
       "max_calls_per_day": 96,
       "timeout_seconds": 1900,
       "description": "Drain the Scribe whisper queue (DR-0236): whisper-queue.jsonl -> local whisper-gpu transcript -> optional nas-llm minutes (only when LLM_URL is set). The consumer (infra/nas-scribe/scribe_queue_consumer.py) carries its OWN three brakes (item+time budget, lock, auto-pause kill-switch, proven-to-catch in CI) stacked under this runner's. Local ML only, no vendor LLM. Ships inert (needs LOOPS_ARMED + a DSM entry)."
+    },
+    {
+      "name": "services-sync",
+      "kind": "deterministic",
+      "script": "services-sync.sh",
+      "enabled": true,
+      "schedule": "every 15 minutes",
+      "max_calls_per_day": 96,
+      "timeout_seconds": 600,
+      "description": "The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry)."
     }
   ]
 }

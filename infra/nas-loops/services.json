@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "_comment": "The self-deploy manifest (DR-0236): repo-declared NAS services the services-sync loop installs/repairs on the NAS's own clock. Each entry is an IDEMPOTENT installer script (safe to run every cycle; every step no-ops when already done). Adding a service here + merging to main IS its deploy -- the nas mirror pulls, services-sync runs the installer, the service starts. 'enabled' is the committed greenlight. Installers never edit configs they cannot verify (DR-0076).",
+  "services": [
+    {
+      "name": "scribe",
+      "install": "infra/nas-scribe/install.sh",
+      "enabled": true,
+      "description": "Scribe ingest server (poetech-scribe.service on 127.0.0.1:8791) + data dir + token + venv + best-effort Caddy /scribe/* snippet. Pairs with the scribe-transcribe loop (the braked whisper-queue consumer)."
+    }
+  ]
+}
