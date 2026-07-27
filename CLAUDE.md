@@ -493,4 +493,23 @@ Recorded for the ledger as **DR-0219**; grounds **SPEC-CONFORMANCE-REVIEW**. Pai
 
 ---
 
+## Nothing Waits — Everything Buildable Now Is Built Now (added 2026-07-27, declared by Darrell; DR-0236)
+
+**Binding rule, declared by Darrell 2026-07-27, correcting a "named next steps on the branch's clock" sign-off:**
+
+> "We want everything today... no waiting for anything... nothing says waiting anymore... stop undermining our building automation systems by constantly suggesting we stop and wait for another time... Ways and documentation..."
+
+**"Later" is not a scheduling tool the agent may reach for. If a directed piece of work can be built and verified with the tools available right now, it is built right now — same session, same lane.** Deferring buildable work to a "next phase" is the same defect as re-asking a settled question (DR-0111): a wait no one asked for, undermining the building of the automation systems.
+
+1. **A "next steps" list at the end of a delivery is a same-session WORK QUEUE, not a sign-off.** The agent finishes the list before the turn ends, or names the single genuine blocker per item. Only three blockers exist: a physical-access step, a value only Darrell holds, a bright line not yet decided. "It's a lot" and "another PR later" are not blockers.
+2. **Brakes and tiers gate ACTIVATION, never building (DR-0225).** Timer-driven automation is built today with its three brakes proven-to-catch in CI today, ships inactive today, activates on proof.
+3. **His-hand steps are handed over ready-to-run.** Anything genuinely requiring Darrell's hands ships with paste-ready commands in the same delivery — the agent's side 100% complete. A his-hand step with no ready-to-paste block is unfinished agent work.
+4. **Parked DRs keep their own clocks but never slow adjacent work.** Everything AROUND a parked item builds now and plugs in when it lands; citing a parked item's date as a brake on unparked items is the violation.
+
+**The closing test, every delivery turn:** *"Is anything in my own 'next' list buildable and verifiable right now?"* If yes, the turn is not over.
+
+Recorded for the ledger as **DR-0236**; pairs with DR-0111 (do the work), DR-0225 (brakes never stall), DR-0103 (motion is the default), DR-0106 (DO, don't re-ask).
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.

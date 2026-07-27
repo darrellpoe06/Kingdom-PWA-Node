@@ -21,6 +21,16 @@
       "max_calls_per_day": 96,
       "timeout_seconds": 120,
       "description": "The PROACTIVE surface audit (DR-0086). Runs the human-needs rubric (scripts/surface-audit-rubric.json) against every served surface, writes app/src/lib/audit-findings.json (read through onto the in-app Concerns & Solutions board) + the event reel. Observe-only (no commit/merge), no LLM -- catches the endless-scroll/static-tile/unreachable/dead-end class before Darrell has to name it. Ships inert (needs LOOPS_ARMED)."
+    },
+    {
+      "name": "scribe-transcribe",
+      "kind": "deterministic",
+      "script": "scribe-transcribe.sh",
+      "enabled": true,
+      "schedule": "every 10 minutes",
+      "max_calls_per_day": 96,
+      "timeout_seconds": 1900,
+      "description": "Drain the Scribe whisper queue (DR-0236): whisper-queue.jsonl -> local whisper-gpu transcript -> optional nas-llm minutes (only when LLM_URL is set). The consumer (infra/nas-scribe/scribe_queue_consumer.py) carries its OWN three brakes (item+time budget, lock, auto-pause kill-switch, proven-to-catch in CI) stacked under this runner's. Local ML only, no vendor LLM. Ships inert (needs LOOPS_ARMED + a DSM entry)."
     }
   ]
 }

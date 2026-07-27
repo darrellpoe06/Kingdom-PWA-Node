@@ -101,6 +101,15 @@ jobs:
       - name: sovereign llm-health builder unit tests
         working-directory: infra/nas-llm
         run: python3 -m unittest test_ollama_health -v
+      # Scribe queue-consumer brake tests (DR-0236 / DR-0068 / DR-0225): the three
+      # brakes on the whisper-queue consumer — item+time budget, single-instance
+      # lock, PAUSED kill-switch with auto-pause-on-consecutive-failures — each
+      # FIRED by a test, plus idempotent reprocessing. Proven-to-catch: fails if
+      # any brake regresses to stacking, runaway, or silent auto-continue. Gates
+      # merge — these checks ARE the governance (DR-0225).
+      - name: scribe queue-consumer brake tests
+        working-directory: infra/nas-scribe
+        run: python3 -m unittest test_scribe_consumer -v
       # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
