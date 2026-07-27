@@ -28,6 +28,10 @@ import {
   leadFromInquiry, leadFromPracticeAcquisition, GUARDRAILS,
 } from '../lib/crm-engine.js';
 import { crmLeadsSync, addActivity } from '../lib/crm-sync.js';
+import {
+  OUTREACH_COHORTS, categoriesForCohort, targetsForCategory,
+  targetToLead, targetLeadId, TLC_OUTREACH_PROVENANCE,
+} from '../lib/tlc-outreach-targets.js';
 
 const BUSINESS_ORDER = ['tlc', 'gtm', 'boxcar', 'realestate'];
 
@@ -253,6 +257,23 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
             )}
           </section>
 
+          {/* Community-outreach directory — Christina's starter list (Zakaria's
+              lists, org-level public contacts). Import lands REAL crm_leads rows;
+              the slug-stable id + the DB unique (instance_id, slug) index make a
+              re-import idempotent, never a duplicate. */}
+          {pipeline === 'tlc-community-outreach' && (
+            <OutreachDirectory
+              existingIds={new Set(allLeads.map((l) => l.id))}
+              onAdd={(targets) => {
+                for (const t of targets) {
+                  const lead = targetToLead(t);
+                  setLocalLeads((prev) => upsert(prev, lead));
+                  crmLeadsSync.upload(lead); // best-effort persist (no-op signed out)
+                }
+              }}
+            />
+          )}
+
           {/* Follow-up draft queue (human approves every send) */}
           {followUps.length > 0 && (
             <section className="bg-white border-2 border-[#5A6E3D] p-4">
@@ -292,6 +313,64 @@ function CRM({ inquiries = [], practiceLeads = [], currentUserId = null }) {
         </>
       )}
     </div>
+  );
+}
+
+// The TLC community-outreach starter directory. Each target imports as a real
+// lead (stage 'new', consent false — the first intro is a human-sent email/call);
+// already-imported targets show as "in pipeline." Contact details are as
+// provided by the source list and marked unverified until confirmed (DR-0076).
+function OutreachDirectory({ existingIds, onAdd }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <section className="bg-white border border-[#E8E4DC] p-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Outreach directory · the starter list</div>
+        <button type="button" onClick={() => setOpen(!open)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{open ? '× Hide' : 'Show'}</button>
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        Provided by {TLC_OUTREACH_PROVENANCE.providedBy}. Phone numbers and roles are as provided — verify before relying on them. Add a place to the pipeline, then work it: contacted → engaged → referring partner.
+      </p>
+      {open && Object.values(OUTREACH_COHORTS).map((coh) => (
+        <div key={coh.key} className="mt-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold border-b border-[#1A1815] pb-1">{coh.label}</div>
+          {categoriesForCohort(coh.key).map((cat) => {
+            const targets = targetsForCategory(cat.key);
+            const missing = targets.filter((t) => !existingIds.has(targetLeadId(t)));
+            return (
+              <div key={cat.key} className="mt-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{cat.label} · {targets.length - missing.length}/{targets.length} in pipeline</div>
+                  {missing.length > 0 && (
+                    <button type="button" onClick={() => onAdd(missing)} className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">+ Add all {missing.length}</button>
+                  )}
+                </div>
+                <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  {targets.map((t) => {
+                    const added = existingIds.has(targetLeadId(t));
+                    return (
+                      <div key={t.slug} className="flex items-start justify-between gap-2 border border-[#E8E4DC] bg-[#FAF8F4] px-2 py-1.5">
+                        <div className="min-w-0">
+                          <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}{t.city ? <span className="text-[0.625rem] font-normal text-[#5A5751]"> · {t.city}</span> : null}</div>
+                          {(t.reach || t.phone || t.email) && (
+                            <div className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                              {t.reach ? `Ask for: ${t.reach}` : ''}{t.reach && (t.phone || t.email) ? ' · ' : ''}{t.phone || t.email || ''}
+                            </div>
+                          )}
+                        </div>
+                        {added
+                          ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] shrink-0 pt-0.5">✓ in pipeline</span>
+                          : <button type="button" onClick={() => onAdd([t])} className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] shrink-0 pt-0.5">+ Add</button>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </section>
   );
 }
 

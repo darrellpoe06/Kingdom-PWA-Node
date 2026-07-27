@@ -123,6 +123,7 @@ export const STAGE_META = {
   'application':      { label: 'Application',        group: 'active' },
   'held':             { label: 'Held (tentative)',  group: 'active' },
   // won (converted)
+  'referring':        { label: 'Referring partner', group: 'won' },
   'intake-scheduled': { label: 'Intake scheduled',  group: 'won' },
   'onboarded':        { label: 'Onboarded',         group: 'won' },
   'enrolled':         { label: 'Enrolled',          group: 'won' },
@@ -171,6 +172,17 @@ export const PIPELINES = {
     sequenceKey: 'tlc-recruit-nurture',
     phiSensitive: false, // B2B/clinician relationship; not PHI
     complianceNote: 'B2B clinician recruiting — not PHI-bound, but outcome/earnings claims still follow truthful-advertising ethics.',
+  },
+  'tlc-community-outreach': {
+    id: 'tlc-community-outreach',
+    business: 'tlc',
+    label: 'Community outreach',
+    leadNoun: 'community partner',
+    stages: ['new', 'contacted', 'engaged', 'referring', 'declined', 'lost'],
+    sources: ['community-list', 'church-network', 'referral', 'clinician-referral', 'website', 'phone', 'other'],
+    sequenceKey: 'tlc-community-nurture',
+    phiSensitive: false, // org-level public contacts; the org, never a person in care
+    complianceNote: 'Organizational referral outreach — public institutional contacts only (schools, shelters, hospitals, clinics, nonprofits). Org-level always: never a client or patient name in notes or messages. The first introduction is a human-sent email/call; recorded consent (their reply / opt-in) unlocks nurture drafts.',
   },
   'tlc-training-enrollment': {
     id: 'tlc-training-enrollment',
@@ -301,6 +313,7 @@ export const SOURCES = [
   { key: 'zillow',           label: 'Zillow' },
   { key: 'sign',             label: 'Yard sign / signage' },
   { key: 'content-engine',   label: 'Content engine' },
+  { key: 'community-list',   label: 'Community outreach list' },
   { key: 'clinician-referral', label: 'Clinician referral' },
   { key: 'job-board',        label: 'Job board' },
   { key: 'webinar',          label: 'Webinar / event' },
@@ -428,6 +441,15 @@ export const SEQUENCES = {
       { step: 0, channel: 'email', dayOffset: 0, intent: 'Intro to the practice + the flexible career path. Honest earnings framing.' },
       { step: 1, channel: 'email', dayOffset: 3, intent: 'What credentialing + onboarding looks like. Invite a screening call.' },
       { step: 2, channel: 'phone', dayOffset: 7, intent: 'Screening call scheduling.' },
+    ],
+  },
+  'tlc-community-nurture': {
+    key: 'tlc-community-nurture',
+    label: 'Community partner nurture',
+    steps: [
+      { step: 0, channel: 'email', dayOffset: 0, intent: 'Introduce the practice to the organization: who TLC serves, faith-integrated + multicultural care, and how a referral works. Ask for their best referral contact. Org-level only — never a client name.' },
+      { step: 1, channel: 'email', dayOffset: 5, intent: 'Gentle follow-up + offer printable referral materials or a short lunch-and-learn for staff.' },
+      { step: 2, channel: 'phone', dayOffset: 10, intent: 'Call the front office to confirm the right referral contact and answer questions.' },
     ],
   },
   'tlc-training-nurture': {
