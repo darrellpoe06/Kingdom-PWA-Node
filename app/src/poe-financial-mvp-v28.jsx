@@ -144,7 +144,7 @@ import {
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
-  CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
+  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
@@ -1023,7 +1023,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4426,6 +4426,8 @@ ${THEME_CSS}
                 // personal (cloned) voices as a subscriber feature. Notes group
                 // sibling (capture -> reflect -> compose -> hear).
                 ['voice', <><UiIcon name="volume" /> Voice</>],
+                // Scribe — record workflows on screen + meetings (2026-07-27 review); steward-only Phase 1, no-leak spread.
+                ...(isFamilyMember ? [['scribe', <><UiIcon name="monitor" /> Scribe</>]] : []),
                 // Library — books assembled from the house's own corpus, with an
                 // in-app reader whose chapters deep-link back into the live app
                 // (the books<->app flywheel). Reading is open to every signed-in
@@ -5164,6 +5166,12 @@ ${THEME_CSS}
               <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The order board is steward-only. Sign in with a family/governor account to run the business.</p>
             </div>
           ))}
+
+        {view === 'scribe' && (
+          <SectionBoundary name="Scribe">
+            <WorkflowScribe isSteward={isFamilyMember} />
+          </SectionBoundary>
+        )}
 
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
 

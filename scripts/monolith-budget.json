@@ -1,6 +1,6 @@
 {
   "file": "app/src/poe-financial-mvp-v28.jsx",
-  "budget": 5448,
-  "frozen": "2026-07-25 — +11 lines: the Messages surface MOUNT SEAM only (nav pair + SectionBoundary render + registry import), the same minimal pattern games/tvtime use; the capability itself lives in components/Messages.jsx via surfaces.js",
+  "budget": 5456,
+  "frozen": "2026-07-27 — +8 lines: the Scribe surface MOUNT SEAM only (nav pair + SectionBoundary render + registry import + route id), the same minimal pattern messages/games/tvtime use; the capability itself lives in components/WorkflowScribe.jsx + lib/workflow-scribe.js via surfaces.js",
   "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
 }
