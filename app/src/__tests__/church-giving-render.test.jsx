@@ -6,7 +6,7 @@
 // invented URL), and the benefits of giving according to the Word with the six
 // anchor scriptures + the anti-prosperity-gospel bright line.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -43,6 +43,31 @@ describe('ChurchGiveFloater — the floater', () => {
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(container.querySelector('[role="dialog"]')).toBeTruthy();
   });
+
+  // THE WORD GETS PRIORITY (Darrell 2026-07-27): the pill must conform to the
+  // standing floater Way (Darrell 2026-07-14 idle-reveal + REV-0174 compact-
+  // when-idle) — at rest it settles to a dim icon-only circle so it stops
+  // covering the lesson text; motion re-reveals it as the gentle reminder.
+  it('settles out of the Word\'s way when idle (compact icon-only), and re-reveals on scroll', () => {
+    vi.useFakeTimers();
+    try {
+      act(() => root.render(createElement(ChurchGiveFloater, { church: COLG })));
+      let btn = container.querySelector('button[aria-label="Give to the church"]');
+      expect(btn.textContent).toMatch(/Give/); // revealed at rest-arrival
+      act(() => { vi.advanceTimersByTime(4000); }); // past the 3500ms idle window
+      btn = container.querySelector('button[aria-label="Give to the church"]');
+      expect(btn.textContent).not.toMatch(/Give/);          // label retracts…
+      expect(btn.querySelector('svg')).toBeTruthy();        // …icon stays
+      expect(btn.className).toMatch(/opacity-40/);          // dimmed
+      expect(btn.className).toMatch(/w-12/);                // 48px circle — still tappable
+      expect(btn.getAttribute('aria-label')).toBe('Give to the church'); // still named for AT
+      act(() => { window.dispatchEvent(new Event('scroll')); }); // user moves the screen
+      btn = container.querySelector('button[aria-label="Give to the church"]');
+      expect(btn.textContent).toMatch(/Give/);              // the gentle reminder returns
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('ChurchGivePanel — the panel', () => {
@@ -71,6 +96,20 @@ describe('ChurchGivePanel — the panel', () => {
     }
     expect(text).toMatch(/not a transaction with a promised return/i); // anti-prosperity bright line
     expect(text).toMatch(/10%/);                                        // tithe baseline
+  });
+
+  // THE WORD FIRST inside the popup (Darrell 2026-07-27): the teaching leads,
+  // the channels follow — priority to the Word of Yahweh, with "where to give"
+  // still one glance away.
+  it('gives the Word priority: the giving doctrine renders BEFORE the first channel link', () => {
+    act(() => root.render(createElement(ChurchGivePanel, { church: COLG, onClose: () => {} })));
+    const doctrine = Array.from(container.querySelectorAll('h4'))
+      .find((h) => !/anchor scriptures/i.test(h.textContent));
+    const firstChannel = container.querySelector(`a[href="${GIVING_CHANNELS[0].url}"]`);
+    expect(doctrine).toBeTruthy();
+    expect(firstChannel).toBeTruthy();
+    const pos = doctrine.compareDocumentPosition(firstChannel);
+    expect(pos & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // doctrine precedes channels
   });
 
   it('shows a clearly-flagged "needs a giving URL" state — the published channels stay, but no guessed site link', () => {
