@@ -109,41 +109,56 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   return (
     <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden">
       {isOpen ? (
-        <div className="bg-white border-2 border-[#1A1815] p-3 shadow-lg w-[260px] max-w-[calc(100vw-2rem)]">
-          <div className="flex items-baseline justify-between mb-3">
+        /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
+           "The sizes of text makes the talk section not useful" — at A+++/A44
+           the rem-based labels ballooned inside the fixed 260px box: buttons
+           wrapped to three lines, the five speed chips crushed together, and
+           the panel clipped off-screen). Fix, same law as the collapsed FAB's
+           ts-chrome-region: the panel's font-size is the CAPPED chrome size
+           (1rem × --ts-chrome-scale = the capped chrome multiplier — ~1.1x at
+           A+++, ~1.4x at A44, exactly 1x at Normal), and EVERYTHING inside is
+           sized in em so text, padding, and the box grow together, bounded.
+           Width is em too (16.25em = 260px at Normal) so the panel widens in
+           step with its own capped text; max-h + scroll keep it on-screen at
+           any size instead of clipping controls off the top. */
+        <div
+          className="bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg w-[16.25em] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-7rem)] overflow-y-auto"
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+        >
+          <div className="flex items-baseline justify-between mb-[0.75em]">
             <div>
-              <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[0.625rem] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
+              <div className="text-[0.5625em] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
+              <div className="text-[0.625em] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
             </div>
-            <button type="button" onClick={close} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+            <button type="button" onClick={close} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
           </div>
 
-          <div className="grid grid-cols-3 gap-1 mb-3">
+          <div className="grid grid-cols-3 gap-[0.25em] mb-[0.75em]">
             {!isReading ? (
               <>
-                <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
+                <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
                 {/* START WHERE I TAP — arm, then the next tap on the page picks
                     the word reading begins from (Esc or Cancel to stand down). */}
                 {!armed ? (
-                  <button type="button" onClick={() => setArmed(true)} className="col-span-3 flex items-center justify-center gap-1.5 border border-[#1A1815] text-[#1A1815] px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="pin" /> Start where I tap</button>
+                  <button type="button" onClick={() => setArmed(true)} className="col-span-3 flex items-center justify-center gap-[0.375em] border border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="pin" /> Start where I tap</button>
                 ) : (
-                  <button type="button" onClick={() => setArmed(false)} className="col-span-3 bg-[#B85838] text-white px-3 py-2.5 text-xs uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#1A1815]">Now tap the word to start from — or Cancel</button>
+                  <button type="button" onClick={() => setArmed(false)} className="col-span-3 bg-[#B85838] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#1A1815]">Now tap the word to start from — or Cancel</button>
                 )}
                 {/* TALK ABOUT THIS — Ari explains the current screen (its real
                     numbers, or what the tab is), spoken in the chosen voice. */}
-                <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
+                <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-[0.375em] border border-[#B85838] text-[#B85838] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
               </>
             ) : (
               <>
-                <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-2 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                <button type="button" onClick={stop} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-2 py-2.5 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+                <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
+                <button type="button" onClick={stop} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
               </>
             )}
           </div>
 
-          <div className="mb-2">
-            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Speed: {rate.toFixed(1)}×</div>
-            <div className="grid grid-cols-5 gap-1" role="group" aria-label="Reading speed">
+          <div className="mb-[0.5em]">
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Speed: {rate.toFixed(1)}×</div>
+            <div className="grid grid-cols-5 gap-[0.25em]" role="group" aria-label="Reading speed">
               {RATE_STEPS.map((s) => {
                 const selected = Math.abs(rate - s.value) < 0.001;
                 return (
@@ -154,7 +169,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                     aria-pressed={selected}
                     aria-label={`${s.name} (${s.label})${selected ? ' — current' : ''}`}
                     title={s.name}
-                    className={`px-1 py-2 text-[0.625rem] uppercase tracking-wider border min-h-[2.25rem] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                    className={`px-[0.25em] py-[0.5em] text-[0.625em] uppercase tracking-wider border min-h-[2.25em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
                   >{s.label}</button>
                 );
               })}
@@ -162,13 +177,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           </div>
 
           {catalog.length > 1 ? (
-            <div className="mb-2">
-              <label htmlFor="tts-voice" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Voice (used everywhere)</label>
+            <div className="mb-[0.5em]">
+              <label htmlFor="tts-voice" className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Voice (used everywhere)</label>
               <select
                 id="tts-voice"
                 value={voiceId}
                 onChange={onVoice}
-                className="w-full text-[0.6875rem] border border-[#E8E4DC] bg-white text-[#1A1815] px-2 py-2 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                className="w-full text-[0.6875em] border border-[#E8E4DC] bg-white text-[#1A1815] px-[0.5em] py-[0.5em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
               >
                 {order.map((g) => (
                   <optgroup key={g} label={g}>
@@ -183,7 +198,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           ) : null}
 
-          <p className="text-[0.5625rem] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.5625em] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
             Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
         </div>
