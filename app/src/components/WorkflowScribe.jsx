@@ -20,6 +20,7 @@ import {
   useWorkflowScribe, buildConsent, createChunkUploader,
   SCRIBE_MAX_DURATION_MIN,
 } from '../lib/workflow-scribe.js';
+import { buildGuide } from '../lib/scribe-guide.js';
 
 const box = 'rounded-xl border border-[#E5E0D8] bg-white p-4';
 const btn = 'px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed';
@@ -213,6 +214,32 @@ export function WorkflowScribe({ isSteward = false }) {
               {upload.message}
             </p>
           )}
+          {/* The Track-A deliverable, generated NOW from the real manifest —
+              the step markers become the written guide (scribe-guide.js);
+              transcript narration folds in when the NAS pipeline returns. */}
+          {scribe.result.manifest.kind === 'workflow' && (() => {
+            const guide = buildGuide(scribe.result.manifest);
+            if (!guide.ok) {
+              return (
+                <p className="text-xs text-[#5A5751] mt-3">
+                  No step markers were placed, so no guide was generated — mark steps while recording to get a written how-to.
+                </p>
+              );
+            }
+            return (
+              <div className="mt-3 border-t border-[#E5E0D8] pt-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-[#1A1815] text-sm">Generated step-by-step guide</h4>
+                  <a className="text-xs font-semibold text-[#1A1815] underline"
+                    href={`data:text/markdown,${encodeURIComponent(guide.markdown)}`}
+                    download={`${scribe.result.manifest.sessionId}.guide.md`}>
+                    Download guide
+                  </a>
+                </div>
+                <pre className="text-xs text-[#1A1815] whitespace-pre-wrap mt-2 bg-[#FAF8F4] rounded-lg p-3 max-h-64 overflow-y-auto">{guide.markdown}</pre>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
