@@ -499,6 +499,24 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </button>
       </section>
 
+      {/* MESSAGES — start a chat from the obvious place (Darrell 2026-07-27:
+          "Put the ability to start chats or dms in obvious locations."). The
+          rail already exists (?view=messages, E2E DMs + group threads); this
+          puts the DOOR where members actually stand. Deep link, full reload OK. */}
+      <section aria-labelledby="msg-h">
+        <h3 id="msg-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Messages — reach someone privately</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <a href="?view=messages" className="bg-white border-2 border-[#5A6E3D] hover:border-[#1A1815] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="mail" /> Start a direct message</div>
+            <div className="text-[0.625rem] text-[#5A5751] mt-1">One-to-one, end-to-end encrypted — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Type it or speak it.</div>
+          </a>
+          <a href="?view=messages" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="users" /> Message a group</div>
+            <div className="text-[0.625rem] text-[#5A5751] mt-1">Everyone · Choir · Bus Ministry · Security — private to the roster, no phone numbers.</div>
+          </a>
+        </div>
+      </section>
+
       {/* MEDIA / BROADCAST */}
       {c.media && (
         <section aria-labelledby="media-h">
