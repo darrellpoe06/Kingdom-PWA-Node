@@ -17,6 +17,7 @@ import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
+import RentLedger from './RentLedger.jsx';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -810,6 +811,10 @@ function PropertyDetails({ rental, updateRental }) {
           </div>
         )}
       </details>
+
+      {/* RENT — PAID VS DUE (build step b): per-door-month payment entry +
+          history over the shipped ledger (lib/rent-payments.js). */}
+      <RentLedger rental={rental} />
 
       {/* EQUIPMENT */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
