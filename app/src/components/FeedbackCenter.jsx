@@ -115,6 +115,7 @@ export const FEEDBACK_AREAS = [
     ['notes', 'Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
     ['create', 'Create · creation workspace (document → image export)'],
     ['voice', 'Voice · listen to anything (choose a voice · consent-gated enrollment)'],
+    ['scribe', 'Scribe · record workflows on screen + meetings (consent-gated)'],
     ['library', 'Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
