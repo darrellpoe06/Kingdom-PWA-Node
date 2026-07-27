@@ -24,7 +24,9 @@
 // conversationLog, lat/lon, market/lease/tenant sub-objects. Because of
 // that, the monolith merges remote rows INTO the local shape
 // (mergeRemoteRentals below) instead of replacing the list wholesale.
-import { createTableSync } from './table-sync.js';
+import { createTableSync, getInstanceId } from './table-sync.js';
+import supabase from './supabase.js';
+import { syncLeaseForRental, syncAllLeases } from './lease-sync.js';
 
 // The UI vocab (Rentals.jsx selects). The live table has no CHECKs; these
 // passthrough-with-fallback helpers exist so garbage never syncs and the
@@ -190,3 +192,40 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
   }
   return merged;
 }
+
+// -----------------------------------------------------------------------------
+// LEASE SYNC RIDES THE DOOR SYNC (Darrell 2026-07-27: "Start the lease sync
+// build now" — per-door paid-vs-due step a). The monolith's call sites stay
+// untouched (budget-frozen shell): upload() and initialSync() are decorated
+// HERE so a door that reaches the cloud carries its complete lease sub-object
+// with it (lease-sync.js: renter find-or-create + active-lease upsert,
+// idempotent, honest skips). Fire-and-forget — lease sync can never break the
+// door sync it rides on.
+// -----------------------------------------------------------------------------
+async function leaseIds() {
+  try {
+    const [tenantId, u] = await Promise.all([getInstanceId(), supabase.auth.getUser()]);
+    return { tenantId, userId: u && u.data && u.data.user ? u.data.user.id : null };
+  } catch { return { tenantId: null, userId: null }; }
+}
+
+const baseUpload = rentalsSync.upload.bind(rentalsSync);
+rentalsSync.upload = async (item) => {
+  const res = await baseUpload(item);
+  try {
+    const ids = await leaseIds();
+    const withUuid = res && res.remoteId ? { ...item, remoteUuid: res.remoteId } : item;
+    if (ids.tenantId && ids.userId) syncLeaseForRental(supabase, withUuid, ids);
+  } catch { /* lease sync never blocks the door upload */ }
+  return res;
+};
+
+const baseInitialSync = rentalsSync.initialSync.bind(rentalsSync);
+rentalsSync.initialSync = async (localItems) => {
+  const merged = await baseInitialSync(localItems);
+  try {
+    const ids = await leaseIds();
+    if (ids.tenantId && ids.userId) syncAllLeases(supabase, merged, ids);
+  } catch { /* boot lease sweep is best-effort; next boot retries */ }
+  return merged;
+};
