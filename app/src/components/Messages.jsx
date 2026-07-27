@@ -34,6 +34,9 @@ import { getInstanceId } from '../lib/table-sync.js';
 import {
   GROUP_ROSTERS, loadGroupMessages, sendGroupMessage, threadsByRoster,
 } from '../lib/group-messages.js';
+import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
+import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
+import { canAddContacts, inviteShareText, smsHref } from '../lib/messages-invite.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -148,6 +151,113 @@ function GroupsPanel({ session }) {
   );
 }
 
+// Add a contact FROM Messages (Darrell 2026-07-27: "this location makes the
+// most sense... begin to text anyone and that could promote and prompt them to
+// install the PoeTech App"). Reuses the proven Admin invite lane exactly
+// (inviteToSpace; two-party confirm per DR-0187, now surfaced here too) and
+// turns the invite into a ready-to-send text (share sheet / sms / copy).
+function AddContact({ onInvited }) {
+  const [spaces, setSpaces] = useState([]);
+  const [spaceId, setSpaceId] = useState('');
+  const [email, setEmail] = useState('');
+  const [msg, setMsg] = useState('');
+  const [share, setShare] = useState({ text: '', link: '' });
+  const [pending, setPending] = useState([]);
+
+  useEffect(() => {
+    listMyAdminInstances().then((s) => { setSpaces(s); if (s[0]) setSpaceId(s[0].instanceId); }).catch(() => setSpaces([]));
+    listPendingClaims().then((r) => setPending(r.ok ? r.claims : [])).catch(() => {});
+  }, []);
+
+  if (!canAddContacts(spaces)) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751]">
+        Contacts here mirror your spaces: you can message the leaders of any space you belong to.
+        A leader can add new people; ask them for an invite.
+      </p>
+    );
+  }
+
+  const space = spaces.find((s) => s.instanceId === spaceId) || spaces[0];
+
+  const doInvite = async () => {
+    if (!isInviteEmail(email)) { setMsg('Enter a valid email.'); return; }
+    setMsg('Inviting…'); setShare({ text: '', link: '' });
+    const r = await inviteToSpace(space?.instanceType, email, 'member');
+    if (!r.ok) { setMsg(`Couldn't invite (${r.reason || 'error'}).`); return; }
+    const kind = r.kind === 'church' ? 'church' : 'claim';
+    const t = inviteShareText({ kind, link: r.link || '', spaceName: space?.displayName || '' });
+    setEmail('');
+    setMsg(kind === 'church'
+      ? `Invited ${r.email}. They get access the next time they sign in — text them the app below.`
+      : `Invite ready for ${r.email}. Text them the one-time link below, then confirm them here once they open it.`);
+    if (t.ok) setShare({ text: t.text, link: r.link || '' });
+    listPendingClaims().then((p) => setPending(p.ok ? p.claims : [])).catch(() => {});
+  };
+
+  const doShare = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ text: share.text }); return; }
+    } catch { /* fall through to copy */ }
+    try { await navigator.clipboard.writeText(share.text); setMsg('Invite text copied — paste it into any message.'); } catch { /* no-op */ }
+  };
+
+  const doConfirm = async (inviteId) => {
+    const r = await confirmInvite(inviteId);
+    if (r.ok) {
+      setMsg('Confirmed — they can message and be messaged now.');
+      listPendingClaims().then((p) => setPending(p.ok ? p.claims : [])).catch(() => {});
+      onInvited && onInvited();
+    }
+  };
+
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 space-y-2">
+      <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Add a contact</h3>
+      {spaces.length > 1 && (
+        <label className="block">
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Into which space</span>
+          <select value={spaceId} onChange={(e) => setSpaceId(e.target.value)} className={FIELD}>
+            {spaces.map((s) => <option key={s.instanceId} value={s.instanceId}>{s.displayName || s.instanceType || s.instanceId}</option>)}
+          </select>
+        </label>
+      )}
+      <div className="flex gap-2">
+        <input
+          type="email" value={email} placeholder="their-email@example.com" aria-label="Email of the person to add"
+          onChange={(e) => setEmail(e.target.value)} className={FIELD}
+        />
+        <button type="button" onClick={doInvite} className={`${BTN} bg-[#B85838] text-white shrink-0`}>Add</button>
+      </div>
+      {msg && <p className="text-xs text-[#1A1815]" role="status">{msg}</p>}
+      {share.text && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-[#1A1815] bg-white border border-[#E8E4DC] p-2 break-words">{share.text}</p>
+          <div className="flex flex-wrap gap-1.5">
+            <a href={smsHref(share.text)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Text it</a>
+            <button type="button" onClick={doShare} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Share / copy</button>
+          </div>
+        </div>
+      )}
+      {pending.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Awaiting your confirmation (they opened their link)</p>
+          {pending.map((c) => (
+            <div key={c.inviteId} className="flex items-center justify-between gap-2 text-xs text-[#1A1815]">
+              <span>{c.email || c.claimantName || 'Pending person'}</span>
+              <button type="button" onClick={() => doConfirm(c.inviteId)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Confirm</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-[0.625rem] text-[#5A5751]">
+        New people appear under Direct messages after they join and open Messages once
+        (that first visit creates their encryption key).
+      </p>
+    </div>
+  );
+}
+
 export default function Messages() {
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState('direct');
@@ -198,12 +308,12 @@ export default function Messages() {
         <>
           {contacts.length === 0 && (
             <p className="text-xs text-[#5A5751]">
-              No one to message yet. You can message the leaders of any space
-              you belong to; a leader can invite you into their space from
-              Admin → Role &amp; stewards.
+              No one to message yet — add someone below, or ask a leader of
+              your space to add you.
             </p>
           )}
           <DirectMessages roster={contacts} title="Direct messages" />
+          <AddContact onInvited={() => loadDmContacts().then(setContacts).catch(() => {})} />
         </>
       )}
       {tab === 'groups' && <GroupsPanel session={session} />}

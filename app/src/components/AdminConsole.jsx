@@ -41,6 +41,7 @@ import {
 } from '../lib/admin-console.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
+import MemberInspect from './MemberInspect.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -122,6 +123,7 @@ export default function AdminConsole({
   const [scopeInstance, setScopeInstance] = useState(instanceId);   // which space "Manage access roles" targets
   const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
   const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
+  const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -360,16 +362,33 @@ export default function AdminConsole({
                   const isSelf = !!(m.email && email && m.email.toLowerCase() === email.toLowerCase());
                   const options = grantableRoles(members.myRole, m.role, { isSelf });
                   return (
-                    <li key={m.userId || m.email} className="flex items-baseline justify-between gap-2 text-xs text-[#1A1815]" style={serif}>
-                      <span className="break-all min-w-0">{m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}</span>
-                      {options.length ? (
-                        <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
-                          onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
-                          <option value={m.role} disabled>{roleLabel(m.role)}</option>
-                          {options.filter((o) => o !== m.role).map((o) => <option key={o} value={o}>{roleLabel(o)}</option>)}
-                        </select>
-                      ) : (
-                        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
+                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="break-all min-w-0">{m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}</span>
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          {options.length ? (
+                            <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
+                              onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
+                              <option value={m.role} disabled>{roleLabel(m.role)}</option>
+                              {options.filter((o) => o !== m.role).map((o) => <option key={o} value={o}>{roleLabel(o)}</option>)}
+                            </select>
+                          ) : (
+                            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
+                          )}
+                          {/* Inspect: the stewardship record (position · status ·
+                              satisfaction · notes, 0122) — Darrell 2026-07-27. */}
+                          {m.userId && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={inspecting === m.userId}
+                              onClick={() => setInspecting((cur) => (cur === m.userId ? null : m.userId))}>
+                              {inspecting === m.userId ? 'Close' : 'Inspect'}
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                      {inspecting === m.userId && (
+                        <MemberInspect instanceId={scopeInstance} member={m} />
                       )}
                     </li>
                   );
