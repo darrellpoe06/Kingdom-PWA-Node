@@ -33,6 +33,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { resolveGiveDestination, GIVING_CHANNELS, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
 import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
 
@@ -196,10 +197,24 @@ export function ChurchGivePanel({ church, onClose }) {
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">× Close</button>
           </div>
 
+          {/* THE WORD FIRST (Darrell 2026-07-27): the popup gives priority to
+              the Word of Yahweh — the teaching leads, the channels follow. */}
+          <div className="mb-4 border-l-2 border-[#5A6E3D] pl-3">
+            <h4 className="text-base sm:text-lg text-[#1A1815] mb-1.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+              {GIVING_DOCTRINE.heading}
+            </h4>
+            <div className="space-y-1.5">
+              <p className="text-sm text-[#5A5751] leading-relaxed">{GIVING_DOCTRINE.tithe}</p>
+              <p className="text-sm text-[#5A5751] leading-relaxed">{GIVING_DOCTRINE.heart}</p>
+              <p className="text-sm text-[#1A1815] leading-relaxed font-medium">{GIVING_DOCTRINE.brightLine}</p>
+            </div>
+          </div>
+
           {/* THE CHURCH'S OWN GIVING CHANNELS (DR-0136) — decoded verbatim from
               the church's GIVE ONLINE slide. One tap on a phone opens the
               channel; the QR is there for a second device to scan. Slide order
               kept: Zelle, Cash App, Givelify, PayPal. */}
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Where to give</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             {GIVING_CHANNELS.map((ch) => (
               <a
@@ -253,17 +268,12 @@ export function ChurchGivePanel({ church, onClose }) {
             </div>
           )}
 
-          {/* THE WORD — the benefit of giving, drawn faithfully. */}
+          {/* THE WORD — the anchor scriptures, drawn faithfully. (The doctrine
+              summary leads the panel above; the full witnesses live here.) */}
           <div className="mt-6 pt-5 border-t border-[#E8E4DC]">
             <h4 className="text-base sm:text-lg text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
-              {GIVING_DOCTRINE.heading}
+              The anchor scriptures
             </h4>
-            <div className="space-y-1.5 mb-4">
-              <p className="text-sm text-[#5A5751] leading-relaxed">{GIVING_DOCTRINE.tithe}</p>
-              <p className="text-sm text-[#5A5751] leading-relaxed">{GIVING_DOCTRINE.heart}</p>
-              <p className="text-sm text-[#1A1815] leading-relaxed font-medium">{GIVING_DOCTRINE.brightLine}</p>
-            </div>
-
             <ul className="space-y-3">
               {GIVING_SCRIPTURES.map((s) => (
                 <li key={s.ref} className="border-l-2 border-[#5A6E3D] pl-3">
@@ -291,8 +301,19 @@ export function ChurchGivePanel({ church, onClose }) {
 // Give floater: bottom-RIGHT, stacked ABOVE the TTS floater (bottom-20 vs the
 // TTS bar's bottom-4) so the two never pile on one corner — giving-green, gift
 // icon. Manages its own open state so the monolith wiring is a single mount.
+//
+// THE WORD GETS PRIORITY (Darrell 2026-07-27, from live screenshots of L58: the
+// pill sat on top of the lesson text). This floater now conforms to the standing
+// floater Way — Darrell 2026-07-14 ("move out the way after a certain amount of
+// time and come up when the users move the screen as gentle reminders") +
+// REV-0174 compact-when-idle, the exact behavior the Feedback pill already has:
+// at rest it settles to a dim 48px icon-only circle so it stops occluding the
+// Word beneath; any scroll/touch re-reveals the full labeled pill as the gentle
+// "you know where to give" reminder. Same idle hook, same motion, same tap
+// target minimums — one Way, every floater.
 export function ChurchGiveFloater({ church }) {
   const [open, setOpen] = React.useState(false);
+  const reveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
   return (
     <>
       {!open && (
@@ -301,10 +322,10 @@ export function ChurchGiveFloater({ church }) {
           onClick={() => setOpen(true)}
           aria-label="Give to the church"
           title="Give to the church — and the blessing of giving according to the Word"
-          className="fixed bottom-20 right-4 z-30 flex items-center gap-1.5 px-4 py-3 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
+          className={`ts-chrome-region fixed bottom-20 right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
           style={{ borderRadius: '999px' }}
         >
-          <GiftIcon /> Give
+          <GiftIcon />{reveal ? <span>Give</span> : null}
         </button>
       )}
       {open && <ChurchGivePanel church={church} onClose={() => setOpen(false)} />}
