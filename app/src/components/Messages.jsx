@@ -24,9 +24,11 @@
 // over every thread.
 // A11y: labelled inputs, visible #B85838 focus outlines, aria-live threads.
 // =============================================================================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import supabase, { onAuthChange } from '../lib/supabase.js';
-import DirectMessages from './DirectMessages.jsx';
+import DirectMessages, { autoGrow } from './DirectMessages.jsx';
+import { useVoiceDictation } from '../lib/voice-dictation.js';
+import UiIcon from './UiIcon.jsx';
 import { publishDmPublicKey, loadDmContacts } from '../lib/direct-messages-sync.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import {
@@ -49,6 +51,14 @@ function GroupsPanel({ session }) {
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const taRef = useRef(null);
+
+  // Speak instead of type + long-input growth (Darrell 2026-07-27) — the one
+  // shared dictation primitive (push-to-end, 5-min brake, honest fallback).
+  const mic = useVoiceDictation({
+    onTranscript: (t) => setDraft((d) => (d ? `${d} ${t}` : t)),
+  });
+  useEffect(() => { autoGrow(taRef.current); }, [draft]);
 
   useEffect(() => { getInstanceId().then(setInstanceId).catch(() => setInstanceId(null)); }, []);
 
@@ -115,9 +125,21 @@ function GroupsPanel({ session }) {
       </div>
       <label className="block">
         <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Message the group</span>
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} className={FIELD} placeholder="Words that edify (Ephesians 4:29)…" />
+        <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} className={`${FIELD} overflow-y-auto`} placeholder="Words that edify (Ephesians 4:29)…" />
       </label>
-      <div className="flex justify-end">
+      {mic.error && <p className="text-[0.625rem] text-[#B85838]" role="status">{mic.error}</p>}
+      <div className="flex items-center justify-between gap-2">
+        {mic.supported ? (
+          <button
+            type="button"
+            onClick={mic.toggle}
+            aria-pressed={mic.listening}
+            aria-label={mic.listening ? 'Stop voice input' : 'Speak your message instead of typing'}
+            className={`${BTN} border-2 ${mic.listening ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white'}`}
+          >
+            {mic.listening ? <><UiIcon name="stop" /> Stop</> : <><UiIcon name="mic" /> Speak</>}
+          </button>
+        ) : <span />}
         <button type="button" disabled={busy || !draft.trim()} onClick={send} className={`${BTN} bg-[#B85838] text-white disabled:opacity-50`}>
           {busy ? 'Sending…' : 'Send'}
         </button>
