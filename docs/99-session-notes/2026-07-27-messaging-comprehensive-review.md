@@ -56,14 +56,33 @@
 
 ## CLOSE — the iterative roadmap (each increment small, testable, shippable alone)
 
-| Inc | Ships | Why first/next | Date |
-|---|---|---|---|
-| **1 — Robustness** | One instance resolver per contact (carry instance_id); `?view=message` alias; wire `unreadDmCount` nav badge; adopt table-sync debounce/reconnect; render tests for Messages/DirectMessages; invited/pending roster states | Fixes the two live defects + the test hole; all small | **2026-07-29** |
-| **2 — P3 web push** | sw push handler; `push_subscriptions`; VAPID in Governor custody; per-member OPT-IN; DB trigger → edge fan-out on insert | The covenant-completing capability | **2026-08-02** |
-| **3 — P2 contact cards** | `member_contacts` (self-writable, visibility member-chooses); directory reads roster+cards; invite-by-email on every roster surface | Completes no-phone-number promise; feeds P4 | **2026-08-06** |
-| **4 — Scale rails** | Keyset pagination (created_at,id) both rails; incremental append instead of full refetch; group read-state as per-user high-water mark (O(1) per user-thread, never per-message rows) | The algorithms that scale perpetually | **2026-08-10** |
+**Timeline method (binding for this thread — Darrell 2026-07-27: "stop giving
+nonsense none data driven timelines... deduct the best timelines from our best
+data available").** Timelines below are DEDUCED from the lane's own telemetry,
+never painted calendar spacing. The measurements: merged-PR throughput over the
+last 7 days = 28 (07-23), 20 (07-24), 2 (07-25), 7+ (07-27 so far) — an active
+working day lands 7–28 PRs; today's directive→merged cycle ran 25–90 minutes
+per item (e.g. #1059 spoken→merged ~25 min; #1062 screenshot→merged ~35 min);
+DB migrations ship same-day on the self-applying lane (DR-0084). Every
+increment below is single-PR-sized (150–400 lines + tests) — the same shape as
+today's merged PRs. **Deduction: increments 1, 1b, 2, 3, 4 are five PRs ≈ one
+active working day at the measured pace; they are pulled IN ORDER per DR-0103
+(idle turns pull the next item — no calendar gating). The only genuinely slower
+lane is Tier-C review items (E2EE designs), which are governance-gated, not
+build-gated.** Backstop re-review derives from the WORST observed day (2
+PRs/day): five PRs ≤ 3 active days.
+
+| Order | Ships | Measured size precedent |
+|---|---|---|
+| **1 — Robustness** | One instance resolver per contact (carry instance_id); `?view=message` alias; wire `unreadDmCount` nav badge; adopt table-sync debounce/reconnect; render tests for Messages/DirectMessages; invited/pending roster states | ≈ #1062 (one component + tests: ~35–90 min cycle) |
+| **1b — User-created groups** | see below | ≈ #1035 (store + rail: same-day) |
+| **2 — P3 web push** | sw push handler; `push_subscriptions`; VAPID in Governor custody; per-member OPT-IN; DB trigger fan-out on insert | ≈ 0117+surface (#1035→#1057 shape) |
+| **3 — P2 contact cards** | `member_contacts` (self-writable, visibility member-chooses); directory reads roster+cards; invite-by-email on every roster surface | ≈ 0096-class migration + one panel |
+| **4 — Scale rails** | Keyset pagination (created_at,id) both rails; incremental append instead of full refetch; group read-state as per-user high-water mark (O(1) per user-thread, never per-message rows) | ≈ lib-level change + tests (smallest) |
 | **5 — Deepen (dated, not promised)** | Group sender-keys E2EE design (Tier C); DM multi-device key transport design (Tier C); P4 roster-by-roster migration; family_messages folded into the group rail (ONE spine) or awakened with why | Depth after breadth | re-review **2026-08-17** |
+
+**Increment 1b — user-created groups (Darrell 2026-07-27 same-day: "How do I create a group of friends inside the app?... how can any user create a group?").** TODAY'S honest answer: no user can — the four group threads are FIXED rosters (`GROUP_ROSTERS` + choir/bus/security tables + `user_in_group`), populated by leaders/stewards; a member joins a group by being placed on a roster, never by creating one. THE BUILD (the generalization the review already named): a `custom_groups` table (id, instance_id, name, created_by) + `custom_group_members` (group_id, user_id, added_by) with RLS — creator adds/removes members drawn ONLY from people they could already DM (`users_can_dm` reused as the invite predicate, so the minors model and instance walls inherit for free); `group_messages.roster` gains a `custom:<group_id>` form and `user_in_group` gains one membership-check branch; UI = a "New group" button on the Groups tab (name it, pick members from your DM contacts) reusing the existing thread panel unchanged. Constraints: creator-managed (no admin approval needed — the DM predicate IS the safety); groups are instance-scoped (no cross-instance mixing); same not-yet-E2EE honesty label; deletion = creator-only, leaves the append-only history intact per retention. **Sequenced after Increment 1, before push — so push fan-out ships covering custom groups too** (size precedent: the #1035 store+rail PR, same-day at measured pace).
 
 **Development-efficiency law for this rail (anti-bloat):** grow the shipped flat model by predicate and column, never by parallel store; every increment ≤ ~300 lines with its proven-to-catch test; the Layer-1 conversations schema is retired-in-place; the public conversational space stays a separate, later surface per its own doc.
 
-**DR-0231 re-review closure:** P1 CONFIRMED shipped (#1035/#1057, live in the Governor's screenshots). P2/P3 now dated above. New `re-review: 2026-08-10` recorded in DR-0231.
+**DR-0231 re-review closure:** P1 CONFIRMED shipped (#1035/#1057, live in the Governor's screenshots). P2/P3 sequenced above on measured pace. New `re-review: 2026-07-30` (the worst-observed-cadence backstop: five single-PR increments ≤ 3 active days) recorded in DR-0231.

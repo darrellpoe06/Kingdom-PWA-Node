@@ -21,6 +21,19 @@ import {
   subscribeDirectMessages, sendDirectMessage, markThreadRead,
   groupDmThreads, threadMessages, isSendableBody,
 } from '../lib/direct-messages-sync.js';
+import { useVoiceDictation } from '../lib/voice-dictation.js';
+import UiIcon from './UiIcon.jsx';
+
+// Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
+// the composer rises with its content up to a screen-friendly cap, then
+// scrolls inside itself — a paragraph is as welcome as a sentence. The DB
+// body is unbounded text, so the only limit was the two-row box.
+const COMPOSER_MAX_PX = 320;
+export function autoGrow(el, cap = COMPOSER_MAX_PX) {
+  if (!el || !el.style) return;
+  el.style.height = 'auto';
+  el.style.height = `${Math.min(el.scrollHeight || 0, cap)}px`;
+}
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -42,6 +55,15 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const endRef = useRef(null);
+  const taRef = useRef(null);
+
+  // Speak instead of type (Darrell 2026-07-27) — the one shared dictation
+  // primitive (lib/voice-dictation.js: push-to-end through pauses, 5-minute
+  // brake, honest type-instead fallback), finally adopted by Messages.
+  const mic = useVoiceDictation({
+    onTranscript: (t) => setDraft((d) => (d ? `${d} ${t}` : t)),
+  });
+  useEffect(() => { autoGrow(taRef.current); }, [draft]);
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
   useEffect(() => {
@@ -157,14 +179,27 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
           <label className="block">
             <span className={LABEL}>Message {nameFor(openWith)}</span>
             <textarea
+              ref={taRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={2}
-              className={FIELD}
+              className={`${FIELD} overflow-y-auto`}
               placeholder="Words that edify (Ephesians 4:29)…"
             />
           </label>
-          <div className="flex justify-end">
+          {mic.error && <p className="text-[0.625rem] text-[#B85838]" role="status">{mic.error}</p>}
+          <div className="flex items-center justify-between gap-2">
+            {mic.supported ? (
+              <button
+                type="button"
+                onClick={mic.toggle}
+                aria-pressed={mic.listening}
+                aria-label={mic.listening ? 'Stop voice input' : 'Speak your message instead of typing'}
+                className={`${BTN} border-2 ${mic.listening ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white'}`}
+              >
+                {mic.listening ? <><UiIcon name="stop" /> Stop</> : <><UiIcon name="mic" /> Speak</>}
+              </button>
+            ) : <span />}
             <button type="button" disabled={busy || !isSendableBody(draft)} onClick={send} className={`${BTN} bg-[#B85838] text-white disabled:opacity-50`}>
               {busy ? 'Sending…' : 'Send'}
             </button>

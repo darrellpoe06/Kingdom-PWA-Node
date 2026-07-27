@@ -65,5 +65,7 @@ CONFIRMED shipped** (#1035 backend, #1057 mounted surface + DM E2EE; live at
 `?view=message` in the Governor's screenshots). P2 (contact cards) dated
 2026-08-06, P3 (web push) dated 2026-08-02, P4 rides P3; two live defects found
 (owner's empty DM roster; dual instance-resolver split) dated 2026-07-29 in the
-review's Increment 1. `re-review: 2026-08-10` — increments 1-4 shipped or
-re-dated with why.
+review's Increment 1. `re-review: 2026-07-30` — increments 1-4 shipped or
+re-dated with why (backstop deduced from measured lane data — worst observed
+day = 2 merged PRs; five single-PR increments ≤ 3 active days — per Darrell's
+2026-07-27 data-driven-timelines correction, in the review note).
