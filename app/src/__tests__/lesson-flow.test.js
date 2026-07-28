@@ -13,6 +13,7 @@ import {
   planSessions, SPOKEN_WPM,
 } from '../lib/lesson-flow.js';
 import { MODULES, SESSION_FLOW } from '../lib/church-classes.js';
+import { chunkLessonForAge } from '../lib/learn-framework.js';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 
 const FORBIDDEN_AUDIENCE_KEYS = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
@@ -127,12 +128,18 @@ describe('buildLessonArc — derives a consistent arc from real authored content
     expect(teach.facilitator.say.length).toBe(wk1.facilitator.talkingPoints.length);
   });
 
-  it('composes with depth/age: a child gets more teach segments than an adult (same lesson)', () => {
+  it('composes with depth/age: a child chunks the SAME text into more (shorter) sections than an adult', () => {
+    // Both bands now chunk into readable sections (adult is no longer one wall —
+    // Darrell 2026-07-28); developmental pacing means, for the SAME text, a child
+    // gets shorter chunks (more segments) than an adult. Comparing per-band arcs
+    // directly would compare DIFFERENT rewrites of different lengths, so the
+    // invariant is proven on one text via the chunker.
     const childArc = buildLessonArc(perfect, { ageBand: 'child', targetMinutes: 60 });
     const adultArc = buildLessonArc(perfect, { ageBand: 'adult', targetMinutes: 60 });
-    const childTeach = childArc.segments.find((s) => s.kind === 'teach');
-    const adultTeach = adultArc.segments.find((s) => s.kind === 'teach');
-    expect(childTeach.audience.lessonPlan.totalSegments).toBeGreaterThan(adultTeach.audience.lessonPlan.totalSegments);
+    expect(childArc.segments.find((s) => s.kind === 'teach').audience.lessonPlan.band.id).toBe('child');
+    expect(adultArc.segments.find((s) => s.kind === 'teach').audience.lessonPlan.band.id).toBe('adult');
+    expect(chunkLessonForAge(perfect.lesson, 'child').length)
+      .toBeGreaterThan(chunkLessonForAge(perfect.lesson, 'adult').length);
   });
 
   it('a target override changes the total; default uses the session flow', () => {

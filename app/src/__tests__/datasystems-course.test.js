@@ -109,7 +109,7 @@ describe('experience-adaptive content (teen + senior on every module)', () => {
     const m = byId('dsi6-the-nas');
     expect(resolveLevel(m, 'teen').text).toBe(m.levels.teen);
     expect(lessonPlanForAge(m, 'child').totalSegments).toBeGreaterThan(1);
-    expect(lessonPlanForAge(m, 'adult').totalSegments).toBe(1);
+    expect(lessonPlanForAge(m, 'adult').totalSegments).toBeGreaterThanOrEqual(1);
   });
 });
 
