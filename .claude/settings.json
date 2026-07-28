@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__Claude_Code_Remote__send_later|ScheduleWakeup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/cadence-guard-pretool-hook.mjs\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
