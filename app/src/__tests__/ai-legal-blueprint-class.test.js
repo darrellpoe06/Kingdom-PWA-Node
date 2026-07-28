@@ -77,7 +77,7 @@ describe('age-adaptive content (child + teen + senior on every module)', () => {
     const childPlan = lessonPlanForAge(m, 'child');
     expect(childPlan.totalSegments).toBeGreaterThan(1);
     const adult = lessonPlanForAge(m, 'adult');
-    expect(adult.totalSegments).toBe(1);               // full base lesson at once
+    expect(adult.totalSegments).toBeGreaterThanOrEqual(1);               // the base lesson, now chunked into readable sections (DR-0076: every word kept)
   });
 });
 

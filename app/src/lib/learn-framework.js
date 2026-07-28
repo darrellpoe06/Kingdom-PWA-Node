@@ -261,10 +261,16 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
 
 // Split a lesson into developmentally-sized segments. Younger bands get shorter
 // chunks (fewer words per on-screen step) so a child isn't handed a wall of text;
-// the adult band returns the whole lesson as one segment. Splits on sentence
+// every band now chunks long prose into readable sections. Splits on sentence
 // boundaries and never drops content — every word of the authored lesson survives,
 // only the chunking changes. Pure + deterministic (no Date/Math.random).
-const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: Infinity, senior: 120 };
+// Words per on-screen segment, by band. Smaller = more, shorter reading sections.
+// Adult was once Infinity (the whole lesson as ONE block) — Darrell 2026-07-28:
+// "these lessons need to be more broken down into sections for easy reading for
+// the presenter." So the adult band now chunks into comfortable ~200-word
+// sections too; every word still survives (chunked, never summarized), it just
+// reads as sections instead of a wall.
+const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: 200, senior: 120 };
 
 export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
   const band = ageBandProfile(ageBandId);
