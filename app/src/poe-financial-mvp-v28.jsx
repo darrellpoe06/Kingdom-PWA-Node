@@ -4272,7 +4272,7 @@ ${THEME_CSS}
               can't crowd "Family Operating Systems." Side-by-side only on large
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 lg:min-w-[13rem] lg:shrink-0">
               <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
@@ -4290,7 +4290,7 @@ ${THEME_CSS}
                 <span className="sm:hidden lg:inline">{view === 'church' ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
               {/* Tier switcher (PoeTech family-OS control) — hidden on the Love Corner door. */}
