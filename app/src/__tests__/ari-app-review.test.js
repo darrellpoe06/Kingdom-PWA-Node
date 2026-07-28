@@ -16,8 +16,8 @@ const DRIFT_BOARD = 'board-modular-cutover';
 const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
 const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
 
-describe('buildAppReview — eight dimensions, all evidence-backed', () => {
-  it('has the eight named dimensions in order, even on empty input', () => {
+describe('buildAppReview — nine dimensions, all evidence-backed', () => {
+  it('has the named dimensions in order, even on empty input', () => {
     const r = buildAppReview({}, NOW);
     expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
     expect(r.dimensions.every((d) => Array.isArray(d.findings))).toBe(true);
@@ -32,6 +32,32 @@ describe('buildAppReview — eight dimensions, all evidence-backed', () => {
     expect(drift.count).toBe(1);
     expect(drift.action).toBe('Sync statuses from the build record');
     expect(delivery.status).toBe('warning');
+  });
+
+  it('rentals: Ari flags an income door with rent but no tenant (answers "why no tenant?")', () => {
+    const rentals = [
+      { id: 'd1', name: '805 N Prospect', rent: 950 },                                              // rent, no tenant
+      { id: 'd2', name: 'Home', rent: 0, personal: true },                                           // personal → excluded
+      { id: 'd3', name: '12 Oak', rent: 800, tenantName: 'Alex', lease: { start: '2026-01-01', end: '2026-12-31', monthlyRent: 800 } }, // complete → no finding
+    ];
+    const dim = buildAppReview({ rentals }, NOW).dimensions.find((d) => d.key === 'rentals');
+    const noTenant = dim.findings.find((f) => /no tenant yet/.test(f.title));
+    expect(noTenant).toBeTruthy();
+    expect(noTenant.severity).toBe('warning');
+    expect(noTenant.evidence).toContain('805 N Prospect');
+    expect(noTenant.evidence).not.toContain('12 Oak'); // the complete door is not flagged
+    expect(dim.metrics.noTenant).toBe(1);
+  });
+  it('rentals: flags a door that HAS a tenant but no trackable lease, and stays clean when complete', () => {
+    const withTenantNoLease = [{ id: 'd1', name: '9 Elm', rent: 700, tenantName: 'Sam' }]; // tenant, no lease dates
+    const dim = buildAppReview({ rentals: withTenantNoLease }, NOW).dimensions.find((d) => d.key === 'rentals');
+    expect(dim.findings.some((f) => /no trackable lease/.test(f.title))).toBe(true);
+    expect(dim.metrics.tenantNoLease).toBe(1);
+    // A fully complete door produces no rentals findings at all.
+    const complete = [{ id: 'd2', name: 'OK', rent: 800, tenantName: 'Alex', lease: { start: '2026-01-01', end: '2026-12-31', monthlyRent: 800 } }];
+    const clean = buildAppReview({ rentals: complete }, NOW).dimensions.find((d) => d.key === 'rentals');
+    expect(clean.findings).toHaveLength(0);
+    expect(clean.status).toBe('ok');
   });
 
   it('plan: flags undated open items and overdue open items separately', () => {

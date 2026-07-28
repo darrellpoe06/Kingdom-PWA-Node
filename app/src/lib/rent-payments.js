@@ -121,6 +121,35 @@ export async function recordRentPayment(client, {
 }
 
 /**
+ * Batched this-month paid-vs-due for MANY leases in ONE query (the portfolio
+ * rollup path — scalable, not N queries). Returns a map
+ * { [leaseId]: { received, expected, percent, status } } for the leases that
+ * HAVE a row this month; leases with no row are simply absent (the caller falls
+ * back to the lease's monthly_rent as expected, 0 received). Never throws.
+ */
+export async function loadThisMonthPaidByLease(client, leaseIds, month) {
+  const ids = Array.isArray(leaseIds) ? leaseIds.filter(Boolean) : [];
+  const period = periodMonthOf(month);
+  if (!client || ids.length === 0 || !period) return {};
+  try {
+    const res = await client.from('rent_payments')
+      .select('lease_id, expected_amount, received_amount, status')
+      .in('lease_id', ids).eq('period_month', period);
+    if (res.error || !Array.isArray(res.data)) return {};
+    const map = {};
+    for (const r of res.data) {
+      map[r.lease_id] = {
+        received: Number(r.received_amount) || 0,
+        expected: Number(r.expected_amount) || 0,
+        percent: paidPercent(r.received_amount, r.expected_amount),
+        status: r.status || statusFor(r.received_amount, r.expected_amount),
+      };
+    }
+    return map;
+  } catch { return {}; }
+}
+
+/**
  * Load a lease's payment history, newest month first — the owner's ledger AND
  * (step b3) the tenant's own keepable statement: every receipt event rides in
  * each row's lifecycle.log.

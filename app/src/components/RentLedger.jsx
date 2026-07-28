@@ -24,6 +24,7 @@ import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { loadLeasesByRental } from '../lib/lease-sync.js';
 import { recordRentPayment, loadRentPayments, paidPercent } from '../lib/rent-payments.js';
+import { buildTenantStatement } from '../lib/rent-statement.js';
 
 const METHODS = [['cash', 'Cash'], ['check', 'Check'], ['ach', 'ACH / bank'], ['zelle', 'Zelle'], ['venmo', 'Venmo'], ['cashapp', 'Cash App'], ['other', 'Other']];
 const fmt = (n) => `$${(Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -94,6 +95,20 @@ export default function RentLedger({ rental }) {
     setBusy(false);
   };
 
+  // The tenant's keepable record (step b3a): the owner builds a plain statement
+  // from the real rows and hands it over (share / copy). No money, no new access.
+  const shareStatement = async () => {
+    let asOf;
+    try { asOf = new Date().toISOString().slice(0, 10); } catch { asOf = ''; }
+    const text = buildTenantStatement({
+      doorName: rental.name || '',
+      tenantName: rental.tenantName || rental.tenant?.name || '',
+      rows: state.rows, asOf,
+    });
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch { /* fall through */ }
+    try { await navigator.clipboard.writeText(text); setMsg('Statement copied — paste it to the tenant.'); } catch { setMsg('Statement ready (copy unavailable in this browser).'); }
+  };
+
   return (
     <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
       <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -131,7 +146,15 @@ export default function RentLedger({ rental }) {
             <p className="text-[0.5625rem] text-[#5A5751] leading-snug">Recording only — no money moves in the app. Each entry is kept with its date, method, and where it was paid.</p>
           </div>
 
-          {/* HISTORY — the keepable record (owner now; tenant in step b3) */}
+          {/* HISTORY — the keepable record. The owner can hand the tenant a
+              statement of it now (b3a); a tenant self-service login is the
+              Tier-C follow-on the portal RLS already supports (b3b). */}
+          {state.rows.length > 0 && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Payment history</span>
+              <button type="button" onClick={shareStatement} className="text-[0.625rem] uppercase tracking-wider border border-[#1A1815] text-[#1A1815] px-3 py-1.5 hover:bg-[#1A1815] hover:text-white">Share statement</button>
+            </div>
+          )}
           {state.rows.length === 0 ? (
             <p className="text-xs text-[#5A5751] italic">No payments recorded yet.</p>
           ) : (
