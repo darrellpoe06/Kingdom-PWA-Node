@@ -217,6 +217,17 @@ jobs:
       # while armed PRs exist, and a superseding sweep cancels it
       # (concurrency). CI failures exit via the armed PR never merging; the
       # cron remains the outer net.
+      #
+      # WHY IT IS NOW 12 MINUTES (2026-07-28, after the FOURTH miss, PR
+      # #1093): the suite grew to ~6,700 tests and a full CI run is ~6
+      # minutes — the sweep's poll expired at 22:46:35, ONE SECOND before
+      # the merge landed at 22:46:36, and the deploy had to be dispatched by
+      # hand. The window must track the real CI wall-clock, not the one it
+      # had when the number was picked: 12 minutes is a full current CI run
+      # plus equal margin. Same bounded cost as before (armed-PRs-only,
+      # superseded sweeps cancel). The 5-minute freshness cron remains the
+      # outer net, but GitHub throttles busy-repo schedules to ~hourly in
+      # practice — the poll here is the net that actually catches the merge.
       - name: Deploy main's tip if it isn't the last-deployed commit (closes the GITHUB_TOKEN push gap for CF Pages)
         if: ${{ always() }}
         env:
@@ -240,8 +251,8 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "main tip already deployed, but $armed armed PR(s) may merge momentarily — polling up to 6 minutes."
-            for i in $(seq 1 24); do
+            echo "main tip already deployed, but $armed armed PR(s) may merge momentarily — polling up to 12 minutes."
+            for i in $(seq 1 48); do
               sleep 15
               if deploy_if_stale; then exit 0; fi
             done
