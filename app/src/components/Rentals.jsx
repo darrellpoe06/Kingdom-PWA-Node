@@ -18,6 +18,7 @@ import UnitManagement from './UnitManagement.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
 import RentLedger, { PaidBar } from './RentLedger.jsx';
+import TenantRoster from './TenantRoster.jsx';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { loadPortfolioPaid } from '../lib/rent-portfolio-paid.js';
@@ -814,6 +815,11 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
           </div>
         )}
       </details>
+
+      {/* TENANTS (build step b2) — the people who live in this door: the
+          primary (the lease renter) + co-tenants you add, integrated with the
+          same lease the rent ledger uses. */}
+      <TenantRoster rental={rental} />
 
       {/* At-a-glance this-month paid bar (build step c) — the portfolio load
           feeds it, so it shows even while the ledger below is collapsed. Only
