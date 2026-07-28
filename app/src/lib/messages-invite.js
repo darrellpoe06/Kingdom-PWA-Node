@@ -43,3 +43,62 @@ export function smsHref(text) {
   const t = String(text || '').trim();
   return t ? `sms:?&body=${encodeURIComponent(t)}` : '';
 }
+
+// ---------------------------------------------------------------------------
+// Cellphone as first-class CONTACT data (Darrell 2026-07-27: "Does it have to
+// be email only... cellphone number?... only cellphone and add email whenever").
+//
+// The design, sovereign and honest (DR-0231, DR-0076): EMAIL is the account
+// KEY — sign-in is an email magic-link, so a space-access GRANT is matched to a
+// person by email. That is a sovereignty choice, not a limitation: no carrier,
+// no paid SMS-OTP gateway, no third party owns the login. CELLPHONE is captured
+// as real contact data and used to DELIVER the invite over the phone's OWN
+// texting app (native sms:, still no gateway) and to tap-to-call/text later.
+// So: a contact can be reached by phone NOW; email is what unlocks the access
+// grant, and can be added "whenever" as another data point.
+// These helpers are pure — the Messages surface wires them.
+// ---------------------------------------------------------------------------
+
+/** Keep a leading +, then digits only — a tel/sms-safe number. '' when unusable. */
+export function normalizePhone(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const plus = s.startsWith('+') ? '+' : '';
+  const digits = s.replace(/\D/g, '');
+  return digits ? `${plus}${digits}` : '';
+}
+
+/** A plausible cellphone: 7–15 digits (E.164 caps at 15), forgiving of format. */
+export function isLikelyPhone(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+/** tel: URI for a tap-to-call action. '' when the number is unusable. */
+export function telHref(raw) {
+  const n = normalizePhone(raw);
+  return n ? `tel:${n}` : '';
+}
+
+/**
+ * sms: URI addressed to a SPECIFIC number when we have one (so "Text it" goes
+ * straight to them), falling back to the recipient-less form. Body prefilled.
+ */
+export function smsHrefTo(phone, text) {
+  const n = normalizePhone(phone);
+  const t = String(text || '').trim();
+  if (!t) return '';
+  return n ? `sms:${n}?&body=${encodeURIComponent(t)}` : `sms:?&body=${encodeURIComponent(t)}`;
+}
+
+/**
+ * The text for a PHONE-ONLY contact — no email yet, so no access grant and no
+ * one-time link (a claim link with no bound email would be a painted promise,
+ * DR-0076). It prompts them to install and sign in; once they sign in with an
+ * email you add here, the access grant completes. Always returns { ok:true }.
+ */
+export function installPromptText({ spaceName = '' } = {}) {
+  const space = String(spaceName || '').trim();
+  const where = space ? `me on the ${space} space in PoeTech` : 'me on PoeTech';
+  return { ok: true, text: `Come join ${where}. Install and sign in at ${POETECH_APP_URL} — then I can add you.` };
+}

@@ -36,7 +36,7 @@ import {
 } from '../lib/group-messages.js';
 import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
-import { canAddContacts, inviteShareText, smsHref } from '../lib/messages-invite.js';
+import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -160,8 +160,9 @@ function AddContact({ onInvited }) {
   const [spaces, setSpaces] = useState([]);
   const [spaceId, setSpaceId] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [msg, setMsg] = useState('');
-  const [share, setShare] = useState({ text: '', link: '' });
+  const [share, setShare] = useState({ text: '', link: '', phone: '' });
   const [pending, setPending] = useState([]);
 
   useEffect(() => {
@@ -181,8 +182,24 @@ function AddContact({ onInvited }) {
   const space = spaces.find((s) => s.instanceId === spaceId) || spaces[0];
 
   const doInvite = async () => {
-    if (!isInviteEmail(email)) { setMsg('Enter a valid email.'); return; }
-    setMsg('Inviting…'); setShare({ text: '', link: '' });
+    const hasEmail = isInviteEmail(email);
+    const hasPhone = isLikelyPhone(phone);
+    // Email is the account KEY — an access GRANT is matched to a person by the
+    // email they sign in with. Phone is contact data that DELIVERS the invite
+    // over their own texting app (no gateway). So: email present → grant access
+    // via the proven lane; phone-only → text the app now, add email later.
+    if (!hasEmail && !hasPhone) { setMsg('Enter a cellphone number, an email, or both.'); return; }
+
+    if (!hasEmail && hasPhone) {
+      // Cellphone-first: no key yet, so no access grant — text the app prompt to
+      // that number now; the grant completes once you add their email here.
+      const t = installPromptText({ spaceName: space?.displayName || '' });
+      setShare({ text: t.text, link: '', phone });
+      setMsg(`Ready to text ${phone}. They install and sign in; add their email here whenever to give access.`);
+      return;
+    }
+
+    setMsg('Inviting…'); setShare({ text: '', link: '', phone: hasPhone ? phone : '' });
     const r = await inviteToSpace(space?.instanceType, email, 'member');
     if (!r.ok) { setMsg(`Couldn't invite (${r.reason || 'error'}).`); return; }
     const kind = r.kind === 'church' ? 'church' : 'claim';
@@ -191,7 +208,7 @@ function AddContact({ onInvited }) {
     setMsg(kind === 'church'
       ? `Invited ${r.email}. They get access the next time they sign in — text them the app below.`
       : `Invite ready for ${r.email}. Text them the one-time link below, then confirm them here once they open it.`);
-    if (t.ok) setShare({ text: t.text, link: r.link || '' });
+    if (t.ok) setShare({ text: t.text, link: r.link || '', phone: hasPhone ? phone : '' });
     listPendingClaims().then((p) => setPending(p.ok ? p.claims : [])).catch(() => {});
   };
 
@@ -222,19 +239,30 @@ function AddContact({ onInvited }) {
           </select>
         </label>
       )}
-      <div className="flex gap-2">
+      <div className="space-y-1.5">
         <input
-          type="email" value={email} placeholder="their-email@example.com" aria-label="Email of the person to add"
-          onChange={(e) => setEmail(e.target.value)} className={FIELD}
+          type="tel" inputMode="tel" value={phone} placeholder="Cellphone (optional) — e.g. 217-555-0142" aria-label="Cellphone of the person to add"
+          onChange={(e) => setPhone(e.target.value)} className={FIELD}
         />
-        <button type="button" onClick={doInvite} className={`${BTN} bg-[#B85838] text-white shrink-0`}>Add</button>
+        <div className="flex gap-2">
+          <input
+            type="email" value={email} placeholder="Email — gives them access" aria-label="Email of the person to add"
+            onChange={(e) => setEmail(e.target.value)} className={FIELD}
+          />
+          <button type="button" onClick={doInvite} className={`${BTN} bg-[#B85838] text-white shrink-0`}>Add</button>
+        </div>
+        <p className="text-[0.5625rem] text-[#5A5751] leading-snug">
+          Email is how their access is matched when they sign in. A cellphone alone lets you text them the
+          app now — add their email whenever to give access.
+        </p>
       </div>
       {msg && <p className="text-xs text-[#1A1815]" role="status">{msg}</p>}
       {share.text && (
         <div className="space-y-1.5">
           <p className="text-xs text-[#1A1815] bg-white border border-[#E8E4DC] p-2 break-words">{share.text}</p>
           <div className="flex flex-wrap gap-1.5">
-            <a href={smsHref(share.text)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Text it</a>
+            <a href={smsHrefTo(share.phone, share.text)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>{share.phone ? 'Text it to them' : 'Text it'}</a>
+            {share.phone && telHref(share.phone) && <a href={telHref(share.phone)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Call</a>}
             <button type="button" onClick={doShare} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Share / copy</button>
           </div>
         </div>
