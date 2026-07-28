@@ -107,6 +107,11 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     bigIdea: lead,
     // Bullet/numbered points shown UNDER the main idea for details + note-takers.
     points: points.length ? points : null,
+    // Progressive reveal (Darrell 2026-07-28: "show up AFTER the points are made,
+    // not before — it distracts"). How many of `points` the room should currently
+    // see; the presenter advances the reveal one point at a time. Undefined reveal
+    // = show all (backward compatible with any un-upgraded caller/window).
+    revealCount: Number.isFinite(opts.reveal) ? Math.max(0, Math.min(opts.reveal, points.length)) : points.length,
     ordered: !!a.ordered,
     // Scripture references cited on this slide — AudienceSlide resolves them to
     // verbatim KJV so the room reads the Word directly, in context.
