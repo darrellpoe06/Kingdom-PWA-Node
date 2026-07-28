@@ -32,7 +32,7 @@
 // header reads as its sticky `top` — so the pinned nav sits just under the bar
 // instead of behind it. When the bar is hidden the var is 0 and nothing shifts.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { liveStatus, liveStreamEmbedUrl } from '../lib/church-live.js';
+import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 
 const DISMISS_KEY = 'poe.liveWorshipBar.dismissedSession';
@@ -40,8 +40,13 @@ const DISMISS_KEY = 'poe.liveWorshipBar.dismissedSession';
 // The live broadcast embed with muted autoplay — the only autoplay browsers
 // permit, so the pinned player shows the service playing immediately without
 // hijacking audio. Returns null when no channel resolves (bar stays hidden).
+// 2026-07-28 comprehensive-review fix: this bar was still on the ABANDONED
+// /embed/live_stream?channel= endpoint (church-live.js documents it renders
+// "unavailable" even while the channel IS live — the 2026-07-19 outage), so it
+// broke exactly when it appeared. It now rides worshipPlayerSrc, the same
+// proven uploads-playlist embed the Church tab plays.
 export function livePlayerSrc(channelId) {
-  const base = liveStreamEmbedUrl(channelId);
+  const base = worshipPlayerSrc(channelId);
   if (!base) return null;
   const sep = base.includes('?') ? '&' : '?';
   return `${base}${sep}autoplay=1&mute=1&playsinline=1&rel=0`;

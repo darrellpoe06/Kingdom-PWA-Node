@@ -68,7 +68,7 @@ export default function TenantRoster({ rental }) {
     if (!state.head?.id) return;
     setMsg('Inviting to the portal…');
     const r = await inviteRenterPortal(state.head.id);
-    if (r.ok) setMsg('Invited. When they sign in with their email, they see their own rent history (once the portal is enabled).');
+    if (r.ok) setMsg('Invited — their sign-in is matched by email. The in-app renter view is still being built; until it lands, share their statement from Rent (paid vs due).');
     else if (r.reason === 'not-enabled-yet') setMsg('The tenant portal isn’t enabled on the server yet — the statement (in Rent — paid vs due) shares their record in the meantime.');
     else setMsg(`Couldn’t invite: ${(r.reason || 'error').replace(/-/g, ' ')}.`);
   };

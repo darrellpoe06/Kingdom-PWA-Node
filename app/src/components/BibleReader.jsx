@@ -357,7 +357,7 @@ export default function BibleReader({ email = null }) {
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The Word · King James Version</p>
         <p className="text-sm leading-relaxed" style={serif}>
-          The whole Bible, hosted inside PoeTech — verbatim public-domain KJV, served from here, no link-out. Read it, and mark it in your own colors; your highlights are private to your sign-in and follow you across devices.
+          The whole Bible, hosted inside PoeTech — verbatim public-domain KJV, served from here, no link-out. Read it, and mark it in your own colors; your highlights are private to this device — kept in your browser, never sent anywhere.
         </p>
       </div>
 

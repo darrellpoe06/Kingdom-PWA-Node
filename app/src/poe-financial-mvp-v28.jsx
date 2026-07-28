@@ -1019,7 +1019,7 @@ function getInitialView() {
     const v = (sp.get('view') || '').toLowerCase().trim();
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
-    if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
+    if (['engagement','choir','pulpit','events','learn','scripture','bus','harvest','conference','program'].includes(v)) return 'church';
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
@@ -1035,7 +1035,7 @@ function getInitialChurchView() {
     if (typeof window === 'undefined') return 'home';
     const sp = new URLSearchParams(window.location.search);
     const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : v === 'events' ? 'events' : 'home';
+    return ['engagement','choir','pulpit','learn','events','scripture','bus','harvest','conference','program'].includes(v) ? v : 'home';
   } catch (e) { return 'home'; }
 }
 

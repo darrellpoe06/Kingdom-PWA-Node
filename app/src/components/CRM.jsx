@@ -33,7 +33,9 @@ import {
   targetToLead, targetLeadId, TLC_OUTREACH_PROVENANCE,
 } from '../lib/tlc-outreach-targets.js';
 
-const BUSINESS_ORDER = ['tlc', 'gtm', 'boxcar', 'realestate'];
+// Derived from the ONE engine registry (DR-0081) — a hardcoded list here made
+// door-captured Moore leads invisible (2026-07-28 comprehensive review, A2).
+const BUSINESS_ORDER = Object.keys(BUSINESSES);
 
 function stageColor(group) {
   return group === 'won' ? 'text-[#5A6E3D]' : group === 'lost' ? 'text-[#5A5751]' : 'text-[#B85838]';
