@@ -121,11 +121,17 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
           note-takers (Darrell 2026-07-19). Each point is its OWN visual block (a tinted
           card with an accent marker) so it STANDS ALONE, and the uniform style + column
           keeps them reading TOGETHER as one set. Full teaching stays in presenter notes. */}
-      {Array.isArray(slide.points) && slide.points.length > 0 && (
-        React.createElement(
+      {Array.isArray(slide.points) && slide.points.length > 0 && (() => {
+        // Progressive reveal: show only the points the presenter has advanced to,
+        // so a point appears AFTER it's made, never before (Darrell 2026-07-28).
+        // Undefined revealCount = show all (backward compatible).
+        const revealCount = Number.isFinite(slide.revealCount) ? slide.revealCount : slide.points.length;
+        const shown = slide.points.slice(0, Math.max(0, revealCount));
+        if (shown.length === 0) return null;
+        return React.createElement(
           slide.ordered ? 'ol' : 'ul',
           { style: { listStyle: 'none', margin: 'clamp(20px, 2.8vw, 40px) 0 0', padding: 0, color: '#FAF8F4', display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.6vw, 22px)' } },
-          slide.points.map((pt, i) => (
+          shown.map((pt, i) => (
             <li
               key={i}
               style={{
@@ -142,8 +148,8 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
               <span style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.3 }}>{pt}</span>
             </li>
           )),
-        )
-      )}
+        );
+      })()}
 
       {(slide.detail || slide.inApp) && (
         <p style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>

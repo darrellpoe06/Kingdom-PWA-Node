@@ -191,13 +191,21 @@ describe('Presenter — time-adaptive render', () => {
     act(() => root.render(createElement(Presenter, { presentable: deck, storage: store, initialAge: 'adult' })));
     const onScreenBtn = [...container.querySelectorAll('button')].find((b) => /present on this screen/i.test(b.textContent));
     act(() => onScreenBtn.click());
-    // the room sees the main idea + the bullet points (real list items)
+    // The room sees the main idea immediately…
     expect(container.textContent).toMatch(/Keep pride out of the music/);
+    // …but the points are HIDDEN until the presenter advances to them — a point
+    // appears AFTER it's made, never before (Darrell 2026-07-28, progressive reveal).
+    expect(container.querySelectorAll('li').length).toBe(0);
+    expect(container.textContent).not.toMatch(/the greatest servant is the king/i);
+    // Advance twice → both points revealed, in order.
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); });
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); });
     expect(container.querySelectorAll('li').length).toBeGreaterThanOrEqual(2);
     expect(container.textContent).toMatch(/the greatest servant is the king/i);
     // presenter-only full text NEVER reaches the projected class screen (no-leak)
     expect(container.textContent).not.toMatch(/FULL PRESENTER-ONLY TEACHING TEXT/);
-    // switch to Children -> the bullets re-pitch to the child variant
+    // switch to Children -> the bullets re-pitch to the child variant (reveal clamps
+    // to the single child point, which is now shown)
     const childChip = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Children');
     act(() => childChip.click());
     expect(container.textContent).toMatch(/Stay kind when notes go wrong/);

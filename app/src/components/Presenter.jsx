@@ -34,7 +34,7 @@
 // #5A6E3D + #7A1F1F + #B85838 accents (>=4.5:1), focus ring #B85838, controls >=36px.
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide, resolveAudienceLead,
+  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide, resolveAudienceLead, resolveAudiencePoints,
   PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE, ageHint,
   PRIORITY, fitToBudget, makeScene,
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
@@ -304,6 +304,22 @@ export default function Presenter({
   useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
   const ageRef = useRef(age);
   useEffect(() => { ageRef.current = age; }, [age]);
+  // Progressive reveal (Darrell 2026-07-28): how many of the current scene's points
+  // the room has been shown. A point appears AFTER the presenter advances to it,
+  // never before — so it can't be read ahead and distract from the point being made.
+  const [reveal, setReveal] = useState(0);
+  const revealRef = useRef(0);
+  useEffect(() => { revealRef.current = reveal; }, [reveal]);
+  const pointsCountAt = useCallback((i) => {
+    const s = scenes[i];
+    return s ? resolveAudiencePoints(s.audience || {}, ageRef.current).length : 0;
+  }, [scenes]);
+  // Reveal-aware nav bounds: "Next" must stay live while there are still points to
+  // reveal on the last scene; "Back" while any point is still revealed on the first.
+  const curPointCount = resolveAudiencePoints((scenes[idx] && scenes[idx].audience) || {}, age).length;
+  const moreToReveal = reveal < curPointCount;
+  const atEnd = idx >= Math.max(0, scenes.length - 1) && !moreToReveal;
+  const atStart = idx <= 0 && reveal <= 0;
 
   // The single broadcast path. Honors "blank": while blanked it sends the holding
   // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
@@ -311,7 +327,7 @@ export default function Presenter({
   const sendCurrent = useCallback(() => {
     const base = blankRef.current
       ? holdingSlide(title, kicker)
-      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
+      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current });
     // Invite-the-room (Darrell 2026-07-24): while the congregation broadcast is
     // LIVE, the projected slide carries the join QR + code so the room can scan
     // and follow on their own phones — zero typing (COMMUNITY-FIRST). Audience-
@@ -345,7 +361,7 @@ export default function Presenter({
 
   // Broadcast on scene change, on AGE change (live re-pitch to the room), and on
   // mount — blank-aware via sendCurrent.
-  useEffect(() => { sendCurrent(); }, [idx, age, sendCurrent]);
+  useEffect(() => { sendCurrent(); }, [idx, age, reveal, sendCurrent]);
 
   // If the projector window is closed (or the display unplugged), reflect it.
   useEffect(() => {
@@ -366,9 +382,20 @@ export default function Presenter({
   // Keep the cursor in range as the curriculum changes (e.g. switching surfaces).
   useEffect(() => { setIdx((w) => Math.min(w, Math.max(0, scenes.length - 1))); }, [scenes.length]);
 
+  // Advance reveals the next point first; only once every point on the scene is
+  // shown does the next step move to the next scene (and reset the reveal). Back
+  // un-reveals, then steps into the PRIOR scene fully revealed (so you re-enter a
+  // finished slide whole). Broadcast follows via the reveal-aware effect below.
   const go = useCallback((dir) => {
-    setIdx((w) => Math.min(last, Math.max(0, w + dir)));
-  }, [last]);
+    if (dir > 0) {
+      const n = pointsCountAt(idxRef.current);
+      if (revealRef.current < n) { setReveal((r) => r + 1); return; }
+      setIdx((w) => { const nx = Math.min(last, w + 1); if (nx !== w) setReveal(0); return nx; });
+    } else {
+      if (revealRef.current > 0) { setReveal((r) => Math.max(0, r - 1)); return; }
+      setIdx((w) => { const pv = Math.max(0, w - 1); if (pv !== w) setReveal(pointsCountAt(pv)); return pv; });
+    }
+  }, [last, pointsCountAt]);
 
   // --- keyboard / presentation-remote control ---
   useEffect(() => {
@@ -400,7 +427,7 @@ export default function Presenter({
 
   const resumeAudience = useCallback(() => {
     blankRef.current = false;
-    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current })); } catch (e) { /* noop */ }
+    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current })); } catch (e) { /* noop */ }
     setAudienceState('live');
   }, [scenes, kicker]);
 
@@ -416,7 +443,7 @@ export default function Presenter({
     // push the current slide immediately so a follower who joins right away sees it
     const payload = blankRef.current
       ? holdingSlide(title, kicker)
-      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current });
+      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current });
     try { if (blankRef.current) followRef.current.hold(); else followRef.current.publish(payload); } catch (e) { /* non-fatal */ }
   }, [scenes, title, kicker, sendCurrent]);
 
@@ -441,7 +468,7 @@ export default function Presenter({
   // A live PREVIEW of exactly what the class screen shows (age-resolved), so the
   // presenter view holds the slide AND the notes together — no window to drag, no
   // backing out (Darrell 2026-07-16).
-  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age }) : null;
+  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age, reveal }) : null;
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
 
@@ -495,7 +522,7 @@ export default function Presenter({
   // leaving to the top (Darrell 2026-07-16). A connected class-screen window still
   // mirrors this via the broadcast (age + index carry through sendCurrent).
   if (onScreen) {
-    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, age });
+    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, age, reveal });
     const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
     const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
     return (
@@ -506,9 +533,9 @@ export default function Presenter({
         {/* Always-on speaker bar — never projected content, just the controls. */}
         <div style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
           onClick={(e) => e.stopPropagation()}>
-          <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous" style={{ ...navBtn, opacity: idx === 0 ? 0.4 : 1 }}>←</button>
+          <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" style={{ ...navBtn, opacity: atStart ? 0.4 : 1 }}>←</button>
           <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#CFC9BD', minWidth: 88, textAlign: 'center' }}>{idx + 1} / {scenes.length}</span>
-          <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" style={{ ...navBtn, opacity: idx === last ? 0.4 : 1 }}>→</button>
+          <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" style={{ ...navBtn, opacity: atEnd ? 0.4 : 1 }}>→</button>
           {/* THE audience choice, reachable the whole way through — switch instantly */}
           <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 6, marginLeft: 6, flexWrap: 'wrap' }}>
             {PRESENT_AGE_BANDS.map((b) => (
@@ -530,9 +557,14 @@ export default function Presenter({
       {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
-        <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: idx === 0 ? 0.4 : 1 }}>←</button>
+        <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: atStart ? 0.4 : 1 }}>←</button>
         <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>{cur.indexLabel}</strong>
-        <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: idx === last ? 0.4 : 1 }}>→</button>
+        <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: atEnd ? 0.4 : 1 }}>→</button>
+        {curPointCount > 0 && (
+          <span title="Points reveal one at a time as you advance; → shows the next point, then the next scene" style={{ fontSize: '0.6875rem', fontFamily: '"JetBrains Mono", monospace', color: moreToReveal ? '#C9D9A6' : '#CFC9BD' }}>
+            {moreToReveal ? `→ reveals point ${reveal + 1} of ${curPointCount}` : `all ${curPointCount} shown`}
+          </span>
+        )}
         <span style={{ color: '#CFC9BD', fontSize: '0.8125rem', maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
         <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1.125rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
           {formatClock(elapsed)} <span style={{ fontSize: '0.6875rem', color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
@@ -757,8 +789,8 @@ export default function Presenter({
 
         {/* big prev / next */}
         <div style={{ display: 'flex', gap: 12, marginTop: 8, marginBottom: 40 }}>
-          <button type="button" onClick={() => go(-1)} disabled={idx === 0} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: '0.875rem', opacity: idx === 0 ? 0.4 : 1 }}>← Previous</button>
-          <button type="button" onClick={() => go(1)} disabled={idx === last} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: '0.875rem', opacity: idx === last ? 0.4 : 1 }}>Next →</button>
+          <button type="button" onClick={() => go(-1)} disabled={atStart} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: '0.875rem', opacity: atStart ? 0.4 : 1 }}>← Previous</button>
+          <button type="button" onClick={() => go(1)} disabled={atEnd} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: '0.875rem', opacity: atEnd ? 0.4 : 1 }}>Next →</button>
         </div>
       </div>
     </div>
