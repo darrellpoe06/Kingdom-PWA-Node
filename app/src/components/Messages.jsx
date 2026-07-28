@@ -37,6 +37,7 @@ import {
 import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
+import { readContacts, upsertContact, removeContact } from '../lib/saved-contacts.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -159,16 +160,31 @@ function GroupsPanel({ session }) {
 function AddContact({ onInvited }) {
   const [spaces, setSpaces] = useState([]);
   const [spaceId, setSpaceId] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [msg, setMsg] = useState('');
   const [share, setShare] = useState({ text: '', link: '', phone: '' });
   const [pending, setPending] = useState([]);
+  const [saved, setSaved] = useState([]);
+
+  const refreshSaved = () => { try { setSaved(readContacts()); } catch { setSaved([]); } };
 
   useEffect(() => {
     listMyAdminInstances().then((s) => { setSpaces(s); if (s[0]) setSpaceId(s[0].instanceId); }).catch(() => setSpaces([]));
     listPendingClaims().then((r) => setPending(r.ok ? r.claims : [])).catch(() => {});
+    refreshSaved();
   }, []);
+
+  // Keep every added contact in the returnable address book (name + phone +
+  // email), so you can go back to them, text/call/email again, and complete
+  // access later. Deterministic timestamp guard for sandboxes without a clock.
+  const keepContact = (status) => {
+    let at;
+    try { at = new Date().toISOString(); } catch { at = ''; }
+    upsertContact(undefined, { name, phone, email, spaceId: space?.instanceId || '', spaceName: space?.displayName || '', status }, at);
+    refreshSaved();
+  };
 
   if (!canAddContacts(spaces)) {
     return (
@@ -184,33 +200,48 @@ function AddContact({ onInvited }) {
   const doInvite = async () => {
     const hasEmail = isInviteEmail(email);
     const hasPhone = isLikelyPhone(phone);
+    const hasName = name.trim().length > 0;
     // Email is the account KEY — an access GRANT is matched to a person by the
     // email they sign in with. Phone is contact data that DELIVERS the invite
-    // over their own texting app (no gateway). So: email present → grant access
-    // via the proven lane; phone-only → text the app now, add email later.
-    if (!hasEmail && !hasPhone) { setMsg('Enter a cellphone number, an email, or both.'); return; }
+    // over their own texting app (no gateway). A NAME is just who they are — so
+    // you can save and go back to them even before there's a way to reach them.
+    if (!hasEmail && !hasPhone && !hasName) { setMsg('Enter at least a name, a cellphone, or an email.'); return; }
+
+    if (!hasEmail && !hasPhone) {
+      // Name only: keep the contact so you can return and fill in how to reach them.
+      keepContact('saved');
+      setMsg(`Saved ${name.trim()}. Add a cellphone to text them, or an email to give access.`);
+      setName('');
+      return;
+    }
 
     if (!hasEmail && hasPhone) {
-      // Cellphone-first: no key yet, so no access grant — text the app prompt to
-      // that number now; the grant completes once you add their email here.
+      // Cellphone-first: no key yet, so no access grant — save the contact and
+      // text the app prompt to that number now; the grant completes once you add
+      // their email (a later Add merges onto the same saved person).
+      keepContact('texted');
       const t = installPromptText({ spaceName: space?.displayName || '' });
       setShare({ text: t.text, link: '', phone });
-      setMsg(`Ready to text ${phone}. They install and sign in; add their email here whenever to give access.`);
+      setMsg(`Saved${hasName ? ` ${name.trim()}` : ''} — ready to text ${phone}. Add their email whenever to give access.`);
+      setName('');
       return;
     }
 
     setMsg('Inviting…'); setShare({ text: '', link: '', phone: hasPhone ? phone : '' });
     const r = await inviteToSpace(space?.instanceType, email, 'member');
     if (!r.ok) { setMsg(`Couldn't invite (${r.reason || 'error'}).`); return; }
+    keepContact('invited');
     const kind = r.kind === 'church' ? 'church' : 'claim';
     const t = inviteShareText({ kind, link: r.link || '', spaceName: space?.displayName || '' });
-    setEmail('');
+    setEmail(''); setName('');
     setMsg(kind === 'church'
       ? `Invited ${r.email}. They get access the next time they sign in — text them the app below.`
       : `Invite ready for ${r.email}. Text them the one-time link below, then confirm them here once they open it.`);
     if (t.ok) setShare({ text: t.text, link: r.link || '', phone: hasPhone ? phone : '' });
     listPendingClaims().then((p) => setPending(p.ok ? p.claims : [])).catch(() => {});
   };
+
+  const forgetContact = (id) => { removeContact(undefined, id); refreshSaved(); };
 
   const doShare = async () => {
     try {
@@ -241,6 +272,10 @@ function AddContact({ onInvited }) {
       )}
       <div className="space-y-1.5">
         <input
+          type="text" value={name} placeholder="Name" aria-label="Name of the person to add"
+          onChange={(e) => setName(e.target.value)} className={FIELD}
+        />
+        <input
           type="tel" inputMode="tel" value={phone} placeholder="Cellphone (optional) — e.g. 217-555-0142" aria-label="Cellphone of the person to add"
           onChange={(e) => setPhone(e.target.value)} className={FIELD}
         />
@@ -252,8 +287,8 @@ function AddContact({ onInvited }) {
           <button type="button" onClick={doInvite} className={`${BTN} bg-[#B85838] text-white shrink-0`}>Add</button>
         </div>
         <p className="text-[0.5625rem] text-[#5A5751] leading-snug">
-          Email is how their access is matched when they sign in. A cellphone alone lets you text them the
-          app now — add their email whenever to give access.
+          A name is all you need to save a contact. Email is how their access is matched when they sign in;
+          a cellphone alone lets you text them the app now — add their email whenever to give access.
         </p>
       </div>
       {msg && <p className="text-xs text-[#1A1815]" role="status">{msg}</p>}
@@ -276,6 +311,40 @@ function AddContact({ onInvited }) {
               <button type="button" onClick={() => doConfirm(c.inviteId)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Confirm</button>
             </div>
           ))}
+        </div>
+      )}
+      {/* SAVED CONTACTS — the returnable address book (Darrell 2026-07-28): a
+          contact you added is KEPT here with its name; go back to text, call,
+          email, or complete access. */}
+      {saved.length > 0 && (
+        <div className="space-y-1.5 border-t border-[#E8E4DC] pt-2">
+          <p className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Saved contacts</p>
+          {saved.map((c) => {
+            const STATUS = { texted: 'texted the app', invited: 'invite sent', saved: 'saved' };
+            return (
+              <div key={c.id} className="bg-white border border-[#E8E4DC] p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[#1A1815]">{c.name || c.phone || c.email || 'Contact'}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">{STATUS[c.status] || c.status}</span>
+                </div>
+                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
+                  {c.phone ? <a href={telHref(c.phone)} className="underline text-[#B85838]">{c.phone}</a> : 'no cellphone'}
+                  {' · '}
+                  {c.email ? <a href={`mailto:${c.email}`} className="underline text-[#B85838]">{c.email}</a> : 'no email'}
+                  {c.spaceName ? <span> · {c.spaceName}</span> : null}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {c.phone && <a href={smsHrefTo(c.phone, installPromptText({ spaceName: c.spaceName || '' }).text)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Text the app</a>}
+                  {c.phone && <a href={telHref(c.phone)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Call</a>}
+                  {c.email && <a href={`mailto:${c.email}`} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Email</a>}
+                  {!c.email && (
+                    <button type="button" onClick={() => { setName(c.name || ''); setPhone(c.phone || ''); setEmail(''); setMsg(`Add ${c.name || 'their'} email above, then Add — it completes their access.`); }} className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D]`}>Give access</button>
+                  )}
+                  <button type="button" onClick={() => forgetContact(c.id)} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Remove</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
       <p className="text-[0.625rem] text-[#5A5751]">
