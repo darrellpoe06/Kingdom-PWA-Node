@@ -30,6 +30,7 @@ import { SEED_BOARDS, tasksForBoard, staleSeedStatuses, missingSeedTasks } from 
 import { overallCompletion, projectedFinish } from './completion.js';
 import { extractReReviews, reReviewStatus, sortReReviews } from './re-reviews.js';
 import { deriveDataConcerns } from './derive-concerns.js';
+import { isPersonalProp } from './rental-portfolio.js';
 
 // Severity ranking — shared vocabulary with llm-review so the whole app reads
 // findings the same way. Higher = worse.
@@ -43,6 +44,7 @@ export const REVIEW_DIMENSIONS = [
   ['backlog', 'Concern & feedback backlog', 'What has the family raised that is still open?'],
   ['inputs', 'Input follow-through', 'Did what the family added produce a usable result, or land inert?'],
   ['data', 'Data integrity', 'Do the real records contradict themselves?'],
+  ['rentals', 'Rentals readiness', 'Does every income door have its tenant and a lease the rent ledger can track?'],
   ['recurrence', 'Lessons recurrence', 'Are the documented past incident classes staying fixed?'],
   ['oversight', 'Agent-fleet oversight', 'Is every standing automation working for our good, with its brakes on?'],
 ];
@@ -279,6 +281,43 @@ function reviewData({ transactions, rentals, debts }) {
   return { key: 'data', findings, metrics: { count: findings.length } };
 }
 
+// ---- dimension: rentals readiness -------------------------------------------
+// Ari watches that each INCOME door is ready to track rent: it has a tenant, and
+// a lease complete enough to reach the cloud ledger (start + end + rent). This is
+// what answers "why haven't the tenants been added?" — Ari names the doors that
+// are still missing a tenant or a trackable lease, from the real records, never
+// painted. Personal homes are excluded (no rent to collect).
+function reviewRentals({ rentals }) {
+  const doors = (Array.isArray(rentals) ? rentals : []).filter((r) => r && !isPersonalProp(r));
+  const tenantOf = (r) => String(r.tenantName || (r.tenant && r.tenant.name) || '').trim();
+  const rentOf = (r) => Number(r.rent) || Number(r.lease && r.lease.monthlyRent) || 0;
+  const leaseReady = (r) => Boolean(r.lease && r.lease.start && r.lease.end && (Number(r.lease.monthlyRent) || Number(r.rent) || 0) > 0);
+
+  const noTenant = doors.filter((r) => rentOf(r) > 0 && !tenantOf(r));
+  const tenantNoLease = doors.filter((r) => tenantOf(r) && !leaseReady(r));
+
+  const findings = [];
+  if (noTenant.length) {
+    findings.push(finding(
+      'rentals', 'warning',
+      `${noTenant.length} income ${noTenant.length === 1 ? 'door has' : 'doors have'} no tenant yet`,
+      `Doors with rent set but no tenant name: ${noTenant.map((r) => r.name || 'a door').join(', ')}`,
+      'Add the tenant on each door (Lease & Tenant), then add any co-tenants under Tenants.',
+      { source: 'rentals' },
+    ));
+  }
+  if (tenantNoLease.length) {
+    findings.push(finding(
+      'rentals', 'nit',
+      `${tenantNoLease.length} ${tenantNoLease.length === 1 ? 'door has a tenant' : 'doors have tenants'} but no trackable lease`,
+      `A lease needs a start, end, and monthly rent to sync and track paid-vs-due: ${tenantNoLease.map((r) => r.name || 'a door').join(', ')}`,
+      'Complete the lease dates in Lease & Tenant so the rent ledger opens for that door.',
+      { source: 'rentals' },
+    ));
+  }
+  return { key: 'rentals', findings, metrics: { doors: doors.length, noTenant: noTenant.length, tenantNoLease: tenantNoLease.length } };
+}
+
 // ---- dimension: lessons recurrence ------------------------------------------
 // Ari "catching up on all the bugs — a lot of historical events and
 // documentation" (Darrell 2026-07-23): the LESSONS-LEARNED incident classes,
@@ -477,6 +516,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewBacklog({ concerns, feedback }),
     reviewInputs({ debts }),
     reviewData({ transactions, rentals, debts }),
+    reviewRentals({ rentals }),
     reviewRecurrence({ concerns, feedback, transactions, demoRowIds }, nowMs),
     reviewOversight({ fleet }),
   ];
