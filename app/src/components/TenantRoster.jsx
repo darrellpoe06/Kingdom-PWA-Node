@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { loadDoorHousehold, addHouseholdTenant, markTenantMovedOut, TENANT_RELATIONSHIPS } from '../lib/tenants.js';
+import { inviteRenterPortal } from '../lib/renter-portal.js';
 
 const relLabel = (v) => (TENANT_RELATIONSHIPS.find(([k]) => k === v) || [null, v])[1];
 
@@ -63,6 +64,15 @@ export default function TenantRoster({ rental }) {
     setBusy(false);
   };
 
+  const invitePortal = async () => {
+    if (!state.head?.id) return;
+    setMsg('Inviting to the portal…');
+    const r = await inviteRenterPortal(state.head.id);
+    if (r.ok) setMsg('Invited. When they sign in with their email, they see their own rent history (once the portal is enabled).');
+    else if (r.reason === 'not-enabled-yet') setMsg('The tenant portal isn’t enabled on the server yet — the statement (in Rent — paid vs due) shares their record in the meantime.');
+    else setMsg(`Couldn’t invite: ${(r.reason || 'error').replace(/-/g, ' ')}.`);
+  };
+
   const moveOut = async (member) => {
     if (typeof confirm === 'function' && !confirm(`Record ${member.name} as moved out of this door?`)) return;
     const { data: sess } = await supabase.auth.getUser();
@@ -106,7 +116,10 @@ export default function TenantRoster({ rental }) {
               {' · '}
               {state.head.email ? <a href={`mailto:${state.head.email}`} className="underline text-[#B85838]">{state.head.email}</a> : 'no email'}
             </div>
-            <p className="text-[0.5625rem] text-[#5A5751] mt-1">Edit the primary in Lease &amp; Tenant above.</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-[0.5625rem] text-[#5A5751]">Edit the primary in Lease &amp; Tenant above.</p>
+              <button type="button" onClick={invitePortal} className="text-[0.5625rem] uppercase tracking-wider border border-[#5A6E3D] text-[#5A6E3D] px-2 py-1 hover:bg-[#5A6E3D] hover:text-white">Invite to see their rent</button>
+            </div>
           </div>
 
           {/* CO-TENANTS */}
