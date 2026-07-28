@@ -1,0 +1,30 @@
+# enable-auth-hook — turn ON the renter-portal custom access token hook via the
+# Supabase Management API (Darrell 2026-07-28: "Enable the Supabase auth hook now").
+#
+# The hook FUNCTION is applied by migration 0123; this flips GoTrue's "call it"
+# switch — a click today made an API call (AI-FOUNDATION-INTERNAL-OPERATIONS).
+# Manual dispatch ONLY (never auto-fires; respects the Cage). It verifies the
+# switch is on afterward and fails RED if not (DR-0076).
+#
+# One-time setup (the single value only Darrell holds): mint a Supabase
+# Management API token at https://supabase.com/dashboard/account/tokens and add
+# it as the repo secret SUPABASE_ACCESS_TOKEN. Then run this workflow.
+name: enable-auth-hook
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: enable-auth-hook
+  cancel-in-progress: false
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable + verify the custom access token hook
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        run: bash scripts/enable-auth-hook.sh
