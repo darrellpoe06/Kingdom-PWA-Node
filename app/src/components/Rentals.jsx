@@ -17,7 +17,10 @@ import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
-import RentLedger from './RentLedger.jsx';
+import RentLedger, { PaidBar } from './RentLedger.jsx';
+import supabase from '../lib/supabase.js';
+import { getInstanceId } from '../lib/table-sync.js';
+import { loadPortfolioPaid } from '../lib/rent-portfolio-paid.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -482,7 +485,7 @@ function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
   );
 }
 
-function PropertyDetails({ rental, updateRental }) {
+function PropertyDetails({ rental, updateRental, paid = null }) {
   const [lightbox, setLightbox] = useState(null);
   // Lease + tenant — single edit form (collapsible).
   const blankLease = () => ({
@@ -812,6 +815,19 @@ function PropertyDetails({ rental, updateRental }) {
         )}
       </details>
 
+      {/* At-a-glance this-month paid bar (build step c) — the portfolio load
+          feeds it, so it shows even while the ledger below is collapsed. Only
+          when this door has a synced lease with something DUE. */}
+      {paid && paid.expected > 0 && (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-2">
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Rent this month</span>
+            <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(paid.received)} of {fmt(paid.expected)}</span>
+          </div>
+          <PaidBar received={paid.received} expected={paid.expected} />
+        </div>
+      )}
+
       {/* RENT — PAID VS DUE (build step b): per-door-month payment entry +
           history over the shipped ledger (lib/rent-payments.js). */}
       <RentLedger rental={rental} />
@@ -879,6 +895,25 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // before the user clicks an urgency button. Keyed by rental.id so multiple
   // late-rent prompts don't share state.
   const [tenantLateSelectedLinks, setTenantLateSelectedLinks] = useState({});
+  // Real this-month paid-vs-due across every door (build step c) — ONE batched
+  // read of the rent_payments ledger, keyed by the door's cloud uuid. Powers the
+  // portfolio "collected this month" strip and each door's at-a-glance bar. A
+  // door with a synced lease but no row yet is DUE-but-unpaid, never invisible
+  // (DR-0061/DR-0076). Signed-out / no-lease → empty, honestly.
+  const [paidPortfolio, setPaidPortfolio] = useState({ byDoor: {}, rollup: { received: 0, expected: 0, percent: 0, doors: 0, doorsPaid: 0, doorsPartial: 0, doorsUnpaid: 0 } });
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getUser();
+        if (!sess || !sess.user) return;
+        const tenantId = await getInstanceId();
+        const out = await loadPortfolioPaid(supabase, tenantId);
+        if (live) setPaidPortfolio(out);
+      } catch { /* keep the honest empty default */ }
+    })();
+    return () => { live = false; };
+  }, []);
   // Real per-property photo count: the live NAS chat-channel archive (the photos
   // you actually see), fetched once per property. Falls back to locally filed
   // (room + maintenance) photos when the NAS isn't reachable.
@@ -1921,7 +1956,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           the valuation card closes the panel (mounted last,
                           below the conversations). */}
                       <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
-                      <PropertyDetails rental={r} updateRental={updateRental} />
+                      <PropertyDetails rental={r} updateRental={updateRental} paid={paidPortfolio.byDoor[r.remoteUuid]} />
                       {/* Restore a collapsed multi-unit building into separate
                           doors — the fix for 805 N Prospect showing as one door.
                           Opens the same inline split panel as the card button. */}
@@ -2396,6 +2431,23 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
           <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
         </div>
+        {/* REAL this-month collected — from the rent_payments ledger, not the
+            device-local status above (build step c). Only shows once a door's
+            lease has synced and there's something DUE to collect against. */}
+        {paidPortfolio.rollup.doors > 0 && (
+          <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
+              <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Collected this month</span>
+              <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{paidPortfolio.rollup.doorsPaid} of {paidPortfolio.rollup.doors} doors paid</span>
+            </div>
+            <PaidBar received={paidPortfolio.rollup.received} expected={paidPortfolio.rollup.expected} />
+            <div className="text-[0.625rem] text-[#5A5751] mt-1">
+              {fmt(paidPortfolio.rollup.received)} of {fmt(paidPortfolio.rollup.expected)} due
+              {paidPortfolio.rollup.doorsPartial > 0 && <> · {paidPortfolio.rollup.doorsPartial} partial</>}
+              {paidPortfolio.rollup.doorsUnpaid > 0 && <> · {paidPortfolio.rollup.doorsUnpaid} not yet</>}
+            </div>
+          </div>
+        )}
         {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
           <p className="text-[0.6875rem] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
             {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
