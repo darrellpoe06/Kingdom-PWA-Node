@@ -45,9 +45,12 @@ const fmtTime = (iso) => {
   catch { return ''; }
 };
 
-// `roster` is an optional list of { userId, displayName } I may start a DM with
-// (e.g. the bus drivers, the choir members). `title` labels the panel.
-export default function DirectMessages({ roster = [], displayName = '', title = 'Direct messages' }) {
+// `roster` is an optional list of { userId, displayName, instanceId } I may
+// start a DM with (e.g. the bus drivers, the choir members). `invited` is an
+// optional list of { inviteId, email } — people whose invite is out but who
+// have not signed in yet, shown as visible-but-pending (0124), never hidden.
+// `title` labels the panel.
+export default function DirectMessages({ roster = [], invited = [], displayName = '', title = 'Direct messages' }) {
   const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState([]);
   const [openWith, setOpenWith] = useState(null); // otherUserId
@@ -98,7 +101,8 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
   const send = async () => {
     if (!isSendableBody(draft) || !openWith) return;
     setBusy(true);
-    const r = await sendDirectMessage(openWith, draft, displayName);
+    const contact = (roster || []).find((p) => p && p.userId === openWith);
+    const r = await sendDirectMessage(openWith, draft, displayName, contact?.instanceId);
     setBusy(false);
     if (r?.sent) { setDraft(''); setErr(''); markThreadRead(openWith); }
     else setErr(r?.skipped === 'send-blocked'
@@ -122,7 +126,11 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
       {!openWith ? (
         <div className="space-y-2">
           {threads.length === 0 && startable.length === 0 && (
-            <p className="text-sm text-[#5A5751]">No conversations yet. Start one with someone on the roster below.</p>
+            <p className="text-sm text-[#5A5751]">
+              {invited.length > 0
+                ? 'No conversations yet — your invited people appear below and become startable the first time they sign in.'
+                : 'No conversations yet. People you can message appear here once you share a space — add someone below with their email.'}
+            </p>
           )}
           {threads.map((t) => (
             <button
@@ -153,6 +161,18 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
               </div>
             </div>
           )}
+          {invited.length > 0 && (
+            <div className="pt-2">
+              <span className={LABEL}>Invited — waiting for their first sign-in</span>
+              <div className="flex flex-wrap gap-1.5">
+                {invited.map((p) => (
+                  <span key={p.inviteId} title="Their invite is out. They become messageable the first time they sign in with this email." className={`${BTN} border border-dashed border-[#C9BFA8] text-[#5A5751] cursor-default inline-flex items-center`}>
+                    {p.email} · pending
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -173,8 +193,8 @@ export default function DirectMessages({ roster = [], displayName = '', title = 
             <div ref={endRef} />
           </div>
           <p className="text-[0.625rem] text-[#5A5751]">
-            Sealed end-to-end once both of you have opened Messages on a device
-            — keys live on your devices, never on the server.
+            Sealed end-to-end once both of you have signed in on a device —
+            keys live on your devices, never on the server.
           </p>
           <label className="block">
             <span className={LABEL}>Message {nameFor(openWith)}</span>

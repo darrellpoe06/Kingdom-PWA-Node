@@ -29,7 +29,7 @@ import supabase, { onAuthChange } from '../lib/supabase.js';
 import DirectMessages, { autoGrow } from './DirectMessages.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import UiIcon from './UiIcon.jsx';
-import { publishDmPublicKey, loadDmContacts } from '../lib/direct-messages-sync.js';
+import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import {
   GROUP_ROSTERS, loadGroupMessages, sendGroupMessage, threadsByRoster,
@@ -320,7 +320,9 @@ function AddContact({ onInvited }) {
         <div className="space-y-1.5 border-t border-[#E8E4DC] pt-2">
           <p className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Saved contacts</p>
           {saved.map((c) => {
-            const STATUS = { texted: 'texted the app', invited: 'invite sent', saved: 'saved' };
+            // Honest status: "texted" is delivery, not access — a phone-only
+            // contact has NO grant until their email is added (review GAP 1).
+            const STATUS = { texted: 'texted the app · no access yet', invited: 'invite sent', saved: 'saved' };
             return (
               <div key={c.id} className="bg-white border border-[#E8E4DC] p-2">
                 <div className="flex items-center justify-between gap-2">
@@ -347,9 +349,14 @@ function AddContact({ onInvited }) {
           })}
         </div>
       )}
+      {/* The old footer blamed the encryption key; the real gate is membership
+          (list_dm_contacts projects instance_members — 2026-07-27 review GAP 1).
+          Say the truth: email joins, phone only delivers, pending is visible. */}
       <p className="text-[0.625rem] text-[#5A5751]">
-        New people appear under Direct messages after they join and open Messages once
-        (that first visit creates their encryption key).
+        People become messageable when you share a space: adding their <strong>email</strong> gives
+        access, and they appear the first time they sign in with it (until then they
+        show under &ldquo;Invited&rdquo;). A cellphone alone can&rsquo;t identify an account —
+        by design, phone numbers are never account keys here — it only texts them the app.
       </p>
     </div>
   );
@@ -359,15 +366,19 @@ export default function Messages() {
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState('direct');
   const [contacts, setContacts] = useState([]);
+  const [invited, setInvited] = useState([]);
 
   useEffect(() => onAuthChange(setSession), []);
   useEffect(() => {
-    if (!session) { setContacts([]); return; }
+    if (!session) { setContacts([]); setInvited([]); return; }
     // Publish this device's public key so others can encrypt TO us, then load
     // the people the server says we may message (list_dm_contacts mirrors
-    // users_can_dm — the surface never invents access).
+    // users_can_dm — the surface never invents access) AND the open invites
+    // (list_dm_invited, 0124) so a person on their way is visible-but-pending,
+    // never an empty world.
     publishDmPublicKey().catch(() => {});
     loadDmContacts().then(setContacts).catch(() => setContacts([]));
+    loadDmInvited().then(setInvited).catch(() => setInvited([]));
   }, [session]);
 
   if (!session) {
@@ -403,14 +414,17 @@ export default function Messages() {
       </div>
       {tab === 'direct' && (
         <>
-          {contacts.length === 0 && (
+          {contacts.length === 0 && invited.length === 0 && (
             <p className="text-xs text-[#5A5751]">
-              No one to message yet — add someone below, or ask a leader of
-              your space to add you.
+              No one to message yet — add someone below with their email, or
+              ask a leader of your space to add you.
             </p>
           )}
-          <DirectMessages roster={contacts} title="Direct messages" />
-          <AddContact onInvited={() => loadDmContacts().then(setContacts).catch(() => {})} />
+          <DirectMessages roster={contacts} invited={invited} title="Direct messages" />
+          <AddContact onInvited={() => {
+            loadDmContacts().then(setContacts).catch(() => {});
+            loadDmInvited().then(setInvited).catch(() => {});
+          }} />
         </>
       )}
       {tab === 'groups' && <GroupsPanel session={session} />}
