@@ -10,7 +10,8 @@
 // so every signed-in family member sees the same lane live.
 //
 // Accessibility: white cards / #1A1815 body text (>= 16:1), #5A5751 secondary
-// (~7:1), green #166534 + red #991B1B verdicts (>= 6:1), all interactive
+// (~7:1), green #166534 + terracotta #B85838 verdicts (true red stays reserved
+// for the Blood — DR-0099; 2026-07-28 review), all interactive
 // elements keyboard-reachable with a visible #B85838 focus outline, labelled
 // inputs, and aria-live regions for the verdict + the live thread.
 // =============================================================================
@@ -201,7 +202,7 @@ function LiveTriviaCard({ question, recent }) {
               {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
             </p>
           ) : (
-            <p className="text-[#991B1B] font-semibold">
+            <p className="text-[#B85838] font-semibold">
               Not quite. The answer is {correctChoice ? correctChoice.label : String(question.correctChoice)}
               {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
             </p>
@@ -318,7 +319,7 @@ function AnchorTriviaCard({ signedIn }) {
                       &#10003; Correct &mdash; {q.answerLabel}
                     </p>
                   ) : (
-                    <p className="text-[#991B1B] font-semibold">
+                    <p className="text-[#B85838] font-semibold">
                       Not quite. The answer is {q.answerLabel}
                     </p>
                   )}
@@ -331,7 +332,7 @@ function AnchorTriviaCard({ signedIn }) {
 
       {!signedIn && (
         <p className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          You can play now &mdash; sign in (top of the page) to save your answers across devices.
+          You can play now &mdash; sign in (top of the page) so your answers are recorded for the church.
         </p>
       )}
     </section>

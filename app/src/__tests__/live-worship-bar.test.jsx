@@ -36,9 +36,10 @@ const mount = (props = {}) =>
   })));
 
 describe('livePlayerSrc', () => {
-  it('builds a muted-autoplay live_stream embed for a channel', () => {
+  it('builds a muted-autoplay embed on the PROVEN uploads-playlist form, never the abandoned live_stream endpoint', () => {
     const src = livePlayerSrc('UC821pJh7YR5llBNnWUJj-ZA');
-    expect(src).toMatch(/\/embed\/live_stream\?channel=UC821pJh7YR5llBNnWUJj-ZA/);
+    expect(src).toMatch(/\/embed\/videoseries\?list=UU/);
+    expect(src).not.toMatch(/live_stream/);
     expect(src).toMatch(/autoplay=1/);
     expect(src).toMatch(/mute=1/);
   });
@@ -53,7 +54,7 @@ describe('LiveWorshipBar — honest service-window gate', () => {
     mount({ now: IN_WINDOW });
     const iframe = container.querySelector('iframe');
     expect(iframe).toBeTruthy();
-    expect(iframe.src).toMatch(/\/embed\/live_stream\?channel=UC821pJh7YR5llBNnWUJj-ZA/);
+    expect(iframe.src).toMatch(/\/embed\/videoseries\?list=UU/);
     expect(iframe.src).toMatch(/autoplay=1/);
     expect(container.querySelector('[role="region"]')).toBeTruthy();
     expect(container.textContent).toMatch(/Live service/i);

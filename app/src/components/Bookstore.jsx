@@ -35,9 +35,10 @@ import {
 
 const P = { ink: '#1A1815', muted: '#5A5751', accent: '#B85838', line: '#E0DBD0', panel: '#FAF8F4' };
 
-// Darrell flips `enabled` + sets `endpoint` once he configures his processor
-// (see the design note's Darrell's-hand steps). Until then, checkout previews.
-const CHECKOUT_CONFIG = { enabled: false, endpoint: checkoutEndpoint() };
+// Darrell arms checkout by setting VITE_CHECKOUT_ENABLED=true in the deploy env
+// once his processor keys are configured (DR-0230 runbook Step 4) — an env flip,
+// never a source edit (2026-07-28 review, A1). Until then, checkout previews.
+const CHECKOUT_CONFIG = { enabled: import.meta.env?.VITE_CHECKOUT_ENABLED === 'true', endpoint: checkoutEndpoint() };
 
 const nowIso = () => new Date().toISOString();
 const btn = 'text-xs px-3 py-1.5 border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]';

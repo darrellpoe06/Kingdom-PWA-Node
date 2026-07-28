@@ -119,7 +119,7 @@ export function CallToGiveArchive() {
             <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.corpus} service videos</span>
             <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.withTranscript} transcribed</span>
             <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{cov.detected} Call-to-Give segments found</span>
-            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#5A5751]">{cov.awaiting} awaiting transcript (NAS trickle loader)</span>
+            <span className="px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#5A5751]">{cov.awaiting} awaiting transcript</span>
           </div>
           {detected.length === 0 ? (
             <p className="text-xs text-[#5A5751] leading-relaxed">
@@ -255,7 +255,7 @@ export function ChurchGivePanel({ church, onClose }) {
               <p className="text-[0.6875rem] text-[#5A5751] mt-2 leading-relaxed">{dest.note}</p>
               {!dest.confirmed && (
                 <p className="text-[0.6875rem] text-[#B85838] mt-1 leading-relaxed">
-                  Note for the church office: a dedicated giving page link can be set so “Give now” opens it directly. Until then this opens the church website where the giving link is published.
+                  A dedicated giving page link can be set so “Give now” opens it directly. Until then this opens the church website where the giving link is published.
                 </p>
               )}
             </>

@@ -33,7 +33,7 @@ export const CALL_TO_GIVE_RECORDED = '2026-07-10';
 export const LINKED_SERVICE_VIDEO = {
   videoId: 'efj-t2_Z-nI',
   url: 'https://www.youtube.com/live/efj-t2_Z-nI',
-  provenance: 'linked by Darrell 2026-07-10 with the Call-To-Give directive; title/date pending the NAS-side fetch (sandbox has no YouTube route — CONNECT 403, verified)',
+  provenance: 'title and date pending — being added by the church office',
 };
 
 // The transcript answer, stated per the three tiers (DR-0100) — rendered beside
@@ -41,7 +41,7 @@ export const LINKED_SERVICE_VIDEO = {
 // a measured, honest answer on the surface itself.
 export const TRANSCRIPT_PIPELINE_NOTE = {
   asOf: CALL_TO_GIVE_RECORDED,
-  answer: 'Yes — every service video CAN get a transcript: the store is live in the app (video_transcripts) and two loaders feed it. The pace is deliberate: the NAS caption loader runs as a human-armed trickle because YouTube rate-limits bulk pulls, and the sovereign Whisper endpoint covers caption-less videos on demand. Coverage below is measured from the real rows, not assumed.',
+  answer: 'Yes — every service video CAN get a transcript: the store is live in the app (video_transcripts) and two loaders feed it. The pace is deliberate: transcripts are added service by service as they are prepared. Coverage below is measured from the real rows, not assumed.',
   provenance: 'infra/nas-sme-pipeline/load-transcripts.py (manual, three brakes, trickle after YouTube IP-blocks at ~50-180 fetches); infra/church-gpu-node/whisper-gpu/server.py (passive fallback); migration 0058 (the live store)',
 };
 

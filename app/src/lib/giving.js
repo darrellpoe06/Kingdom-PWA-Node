@@ -33,7 +33,7 @@ export const GIVING_SCRIPTURES = [
     ref: 'Malachi 3:10',
     translation: 'ESV',
     text: 'Bring the full tithe into the storehouse, that there may be food in my house. And thereby put me to the test, says the LORD of hosts, if I will not open the windows of heaven for you and pour down for you a blessing until there is no more need.',
-    benefit: 'The tithe — the full 10% — is brought into the storehouse so there is provision in God’s house. The open windows are His covenant faithfulness to a faithful people, not a lever we pull for ourselves.',
+    benefit: 'The tithe — the full 10% — is brought into the storehouse so there is provision in Yahweh’s house. The open windows are His covenant faithfulness to a faithful people, not a lever we pull for ourselves.',
   },
   {
     ref: '2 Corinthians 9:6-8',
@@ -45,7 +45,7 @@ export const GIVING_SCRIPTURES = [
     ref: 'Luke 6:38',
     translation: 'ESV',
     text: 'Give, and it will be given to you. Good measure, pressed down, shaken together, running over, will be put into your lap.',
-    benefit: 'Generosity is met by God’s generosity, in His measure and His timing — the open hand, not a formula that obligates Him.',
+    benefit: 'Generosity is met by Yahweh’s generosity, in His measure and His timing — the open hand, not a formula that obligates Him.',
   },
   {
     ref: 'Proverbs 11:25',

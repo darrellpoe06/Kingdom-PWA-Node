@@ -604,7 +604,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           <button type="button" onClick={() => { setShowPrForm(!showPrForm); setPrError(''); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showPrForm ? '× Cancel' : '+ Add request'}</button>
         </div>
         <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Logged locally on your device. Tap "Send" to forward a request to the church office through your email client — you stay in control of what leaves your device.
+          Logged locally on your device. With an office email on file, "Send" opens your email client — you stay in control of what leaves your device. Until then, "Open contact page" takes you to the church\u2019s contact form.
         </p>
         {showPrForm && (
           <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
@@ -641,7 +641,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                       // Only render Send — and only mark "sent" — when a real
                       // destination resolves; never report success for a link that
                       // opens nothing (the request stays saved + "ready to share").
-                      <a href={mailtoFor(pr)} target={c.contactEmail ? '_self' : '_blank'} rel="noopener noreferrer" onClick={() => markPrayerRequestSent(pr.id)} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">Send →</a>
+                      <a href={mailtoFor(pr)} target={c.contactEmail ? '_self' : '_blank'} rel="noopener noreferrer" onClick={() => { if (c.contactEmail) markPrayerRequestSent(pr.id); }} className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">{c.contactEmail ? 'Send →' : 'Open contact page →'}</a>
                     )}
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
                     <button type="button" onClick={() => { if (confirm('Delete this prayer request?')) deletePrayerRequest(pr.id); }} aria-label={`Delete prayer request from ${pr.requester}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>

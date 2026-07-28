@@ -170,7 +170,10 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     clickTab('Prayer');
     const text = container.textContent;
     expect(text.indexOf('newer')).toBeLessThan(text.indexOf('older'));
-    expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(true);
+    // 2026-07-28 truth fix: with no office email on file the affordance honestly
+    // reads 'Open contact page' (and never marks sent); 'Send' appears only with a
+    // real mailto destination.
+    expect([...container.querySelectorAll('a')].some((a) => /Send|Open contact page/.test(a.textContent))).toBe(true);
     expect(container.querySelector('button[aria-label^="Delete prayer request"]')).toBeTruthy();
   });
 
