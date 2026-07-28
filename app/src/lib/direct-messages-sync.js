@@ -115,13 +115,21 @@ export function subscribeDirectMessages(onChange) {
   return function unsubscribe() { cancelled = true; if (channel) supabase.removeChannel(channel); };
 }
 
-export async function sendDirectMessage(recipientUserId, body, displayName) {
+// The instance a DM rides: the contact's OWN space when the roster carried it
+// (0124/review GAP 2 — a non-church-space contact must not be stamped with the
+// church instance, or RLS correctly blocks the send), else the church fallback.
+export function resolveDmInstance(contactInstanceId, fallbackInstanceId) {
+  return contactInstanceId || fallbackInstanceId || null;
+}
+
+export async function sendDirectMessage(recipientUserId, body, displayName, contactInstanceId) {
   const text = (body || '').trim();
   if (!text) return { skipped: 'empty' };
   if (!recipientUserId) return { skipped: 'no-recipient' };
   const session = await currentSession();
   if (!session) return { skipped: 'signed-out' };
-  const tenantId = await churchInstanceId(displayName);
+  const fallback = contactInstanceId ? null : await churchInstanceId(displayName);
+  const tenantId = resolveDmInstance(contactInstanceId, fallback);
   if (!tenantId) return { skipped: 'no-instance' };
   // Encrypt end-to-end whenever the recipient has published a key; otherwise
   // the body ships plaintext (still RLS-guarded) and the result says so — the
@@ -146,22 +154,61 @@ export async function sendDirectMessage(recipientUserId, body, displayName) {
   return error ? { skipped: 'send-blocked', error } : { sent: true, encrypted };
 }
 
-// The contact list the app-wide Messages surface offers (RPC list_dm_contacts,
-// 0118 — mirrors users_can_dm). Deduped by user, preferring the leader row.
-export async function loadDmContacts() {
-  const session = await currentSession();
-  if (!session) return [];
-  const { data, error } = await supabase.rpc('list_dm_contacts');
-  if (error) { console.warn('[dm-sync] contacts failed:', error); return []; }
+// Pure dedupe for list_dm_contacts rows: one entry per user, preferring the
+// leader row, KEEPING the row's instance_id (review GAP 2 — dropping it forced
+// every send onto the church instance and blocked non-church contacts).
+export function dedupeDmContacts(rows) {
   const by = new Map();
-  for (const r of data || []) {
+  for (const r of rows || []) {
     if (!r?.user_id) continue;
     const prev = by.get(r.user_id);
     if (!prev || (r.role === 'owner' || r.role === 'admin')) {
-      by.set(r.user_id, { userId: r.user_id, displayName: r.display_name || 'Member', role: r.role || 'member' });
+      by.set(r.user_id, {
+        userId: r.user_id,
+        displayName: r.display_name || 'Member',
+        role: r.role || 'member',
+        instanceId: r.instance_id || prev?.instanceId || null,
+      });
     }
   }
   return [...by.values()].sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+// Pure shape for list_dm_invited rows (0124): the leader's open invites,
+// rendered as visible-but-pending chips — never an invisible empty world.
+export function invitedFromRows(rows) {
+  return (rows || [])
+    .filter((r) => r && r.email)
+    .map((r) => ({
+      inviteId: r.invite_id || r.id || r.email,
+      email: r.email,
+      instanceId: r.instance_id || null,
+      role: r.invite_role || 'member',
+    }));
+}
+
+// The contact list the app-wide Messages surface offers (RPC list_dm_contacts,
+// 0118 — mirrors users_can_dm). Materializes my own membership FIRST (an
+// email-invited person's instance_members row is created by join_church_instance,
+// which only sendDirectMessage used to reach — so an invited person could sign
+// in, open Messages, and still see an empty roster; review GAP 1 ordering).
+export async function loadDmContacts() {
+  const session = await currentSession();
+  if (!session) return [];
+  await churchInstanceId().catch(() => null);
+  const { data, error } = await supabase.rpc('list_dm_contacts');
+  if (error) { console.warn('[dm-sync] contacts failed:', error); return []; }
+  return dedupeDmContacts(data);
+}
+
+// The leader's open invites (0124). Degrades to [] before the migration lands
+// or for non-leaders — the surface simply shows no pending chips.
+export async function loadDmInvited() {
+  const session = await currentSession();
+  if (!session) return [];
+  const { data, error } = await supabase.rpc('list_dm_invited');
+  if (error) return [];
+  return invitedFromRows(data);
 }
 
 // Mark every unread incoming message in a thread as read (RLS: recipient only).

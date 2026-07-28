@@ -62,13 +62,41 @@ export function doneClaimNeedsEvidence(text) {
   return { claimsDone, hasEvidence, ok: !claimsDone || hasEvidence };
 }
 
+// A reply that CLAIMS to be a comprehensive review must show the standard's
+// dimensions (COMPREHENSIVE-REVIEW-STANDARD / DR-0239; Darrell 2026-07-28:
+// "what is comprehensive if these items are missed?... After encoding, what
+// then... last time it was lost"). Encoding alone gets lost with context —
+// THIS check runs in the harness stop-hook on every reply, so the standard
+// enforces itself without any session remembering it. Deliberately specific:
+// only fires when the reply itself claims comprehensiveness.
+const COMPREHENSIVE_CLAIM = /\bcomprehensive (review|analysis|audit|pass)\b/i;
+export const REVIEW_DIMENSIONS = Object.freeze([
+  { id: 'spec-conformance', re: /\bSHOULD\/ARE\b|spec.conformance|DR-0219/i },
+  { id: 'journey-walks', re: /journey/i },
+  { id: 'surface-says-truth', re: /surface.says.truth|footer|explanatory (string|copy)|copy matches/i },
+  { id: 'form-factor', re: /form.factor|real widths|layout.probe|chrome.layout|\b\d{3,4}px\b/i },
+  { id: 'delivery-context', re: /delivery.context|ConnectBot|paste-ready|his.hand/i },
+  { id: 'findings-work-queue', re: /work queue|same.session|same session|DR-0236|nothing waits/i },
+  { id: 'gate-the-class', re: /gate.the.class|new gate|proven.to.catch|machine check|CI gate/i },
+]);
+const MIN_DIMENSIONS_SHOWN = 4;
+
+export function comprehensiveReviewConformance(text) {
+  const s = asStr(text);
+  if (!COMPREHENSIVE_CLAIM.test(s)) return { claims: false, ok: true, shown: [] };
+  const shown = REVIEW_DIMENSIONS.filter((d) => d.re.test(s)).map((d) => d.id);
+  return { claims: true, ok: shown.length >= MIN_DIMENSIONS_SHOWN, shown };
+}
+
 // The one call Ari makes: is this draft safe to send, or does it undermine?
 export function checkAriIntegrity(text) {
   const u = scanUndermining(text);
   const d = doneClaimNeedsEvidence(text);
+  const c = comprehensiveReviewConformance(text);
   const problems = [
     ...u.flags.map((f) => `${f.id}: “${f.match}” — ${f.why}`),
     ...(d.ok ? [] : ['unverified-done: claims completion with no attached evidence (a test count, a run, a file:line — DR-0076)']),
+    ...(c.ok ? [] : [`unstructured-comprehensive: claims a comprehensive review but shows only ${c.shown.length}/${REVIEW_DIMENSIONS.length} standard dimensions (${c.shown.join(', ') || 'none'}) — run COMPREHENSIVE-REVIEW-STANDARD's seven, or don't call it comprehensive (DR-0239)`]),
   ];
-  return { ok: problems.length === 0, problems, undermining: u.flags, doneClaim: d };
+  return { ok: problems.length === 0, problems, undermining: u.flags, doneClaim: d, comprehensive: c };
 }

@@ -170,6 +170,19 @@ jobs:
       - name: SW-controlled navigation gate
         run: node scripts/sw-nav-check.mjs
         working-directory: ${{ github.workspace }}
+      # Chrome-layout probe (DR-0239 / COMPREHENSIVE-REVIEW-STANDARD dim 4):
+      # the header/chrome is MEASURED in a real browser at phone/tablet/laptop
+      # widths — no page overflow, the brand reads horizontally, nothing
+      # overlaps the name. jsdom cannot measure geometry, which is how the
+      # 2026-07-28 letter-stacked-wordmark defect survived every prior gate.
+      # The selftest-break run FIRST proves the probe can fail (anti-theater,
+      # DR-0076 §3); then the real pass judges the built dist.
+      - name: Chrome-layout probe — selftest (must be able to fail)
+        run: node scripts/chrome-layout-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
+        run: node scripts/chrome-layout-probe.mjs --sweep
+        working-directory: ${{ github.workspace }}
 
   workflows:
     name: n8n workflows — wf36 gatekeeper harness

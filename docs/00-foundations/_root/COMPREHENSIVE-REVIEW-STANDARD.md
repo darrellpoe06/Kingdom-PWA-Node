@@ -1,0 +1,27 @@
+# COMPREHENSIVE-REVIEW-STANDARD — what "comprehensive" means, so nothing is missed by definition
+
+**Status:** Binding (Layer 3 foundation). Declared by Darrell 2026-07-28: *"when I ask for comprehensive review for features opportunities and constraints... what is comprehensive if these items are missed? We need more and more accurate processes and procedures."* Recorded as **DR-0239**.
+
+**The failure this ends:** "comprehensive" had no definition, so it meant *whatever the reviewer thought to trace*. Three same-week receipts, three distinct miss classes:
+
+1. **Found-but-parked** — the 2026-07-27 messaging review correctly diagnosed both roster gaps, dated them 2026-07-29, and Darrell hit them live on the 28th ("I still can't send him a message"). Finding ≠ fixed.
+2. **Unmeasured dimension** — the header wordmark collapse survived *every* gate and multiple UI/UX passes because all review was source-level; jsdom cannot measure geometry, and no instrument looked at the rendered chrome at real widths.
+3. **Recorded context unapplied** — a Gmail runbook shipped desktop PowerShell blocks to a principal whose recorded shell is ConnectBot on the NAS (REV-0207 had already established this); the delivery step didn't consult the bench.
+
+A review may only be called **comprehensive** when all seven dimensions below have run. Skipping one is allowed only with a named why + `re-review:` date (DR-0075) — never silently.
+
+## The seven dimensions
+
+1. **SHOULD/ARE — spec-conformance (DR-0219).** Cite what the Ways/docs say it should do (`file:line`), trace what it actually does, name every gap, close or date each.
+2. **JOURNEY WALKS.** Enumerate the surface's real user journeys — persona × entry point × device — and walk each end-to-end *as that user*, not as the code's author. The messaging miss lived exactly here: "owner saves a phone-only contact and tries to message him" was a two-minute walk no component-level trace ever took. A journey that cannot be completed is a finding even when every component passes.
+3. **SURFACE-SAYS-TRUTH.** Every explanatory string the surface shows — footers, empty states, statuses, tooltips, error copy — is checked against the traced mechanism. A false explanation is a defect of the first rank: the Messages footer blamed the encryption key while the real gate was membership, so the owner was debugging the wrong thing *with the app's own help*. The surface teaching its user a wrong model fails DR-0076 exactly as a painted number does.
+4. **FORM-FACTOR SWEEP.** Chrome and layout are *measured* in a real browser at phone / tablet / laptop widths (and text-scale where relevant) — `scripts/chrome-layout-probe.mjs` is the standing instrument (no page overflow; the brand reads horizontally; nothing overlaps the name), selftest-proven-to-catch and run in CI. Eyeballing one width is not a sweep.
+5. **DELIVERY-CONTEXT.** Any his-hand step is matched to the recorded bench *before* handing over: Darrell's shell is ConnectBot into the NAS (key-auth, no passwords); PowerShell blocks are for desktop moments only and SMB/File-Station paths beat ssh-with-password every time; the repo is already on the NAS via nas-build-loop, so "copy the script over" is usually a premise error. A runbook that fails at first paste is a review miss, not a user error.
+6. **FINDINGS ARE A WORK QUEUE — TWO STATES ONLY (DR-0236, DR-0240).** A comprehensive review's findings are same-session work, not a dated list. Every finding ends in one of exactly two states: **DONE with evidence**, or **CARRIED by a named working system** (the auto-merge lane in flight, a CI gate, the daily review-watcher, an armed Routine) — there is no third state. A date is lawful only when (a) a named blocker exists (a value only Darrell holds, a physical step, an undecided bright line), (b) the date is **derived from the measured delivery record** (same-session is the default — the house's measured push-to-merge is ~4 minutes; the watcher's daily drive carries queue items), never invented ("*I hate dating things... instead of fake never-doing-it timelines*" — Darrell 2026-07-28; REV-0206's 168/260 past-due re-reviews is what invented dates measure into), and (c) a carrier system is named on the date. "Found but scheduled" while the user hits it live is a process failure — the 27th's gaps were cheaper to fix than to schedule.
+7. **GATE-THE-CLASS (DR-0076 §2).** Every miss — found in review or hit live — ends as a machine check where machine-checkable (a CI gate, a pinned test, a guard script), else a checklist line here. The header miss became the layout probe; the false-footer miss became a source-pinned truth test; this document is the delivery-context gate. A miss that leaves no gate behind will recur.
+
+## Operating rule
+
+When Darrell asks for a "comprehensive review," the response *names these seven dimensions and shows each one's result* — run, or skipped-with-why-and-date. The O&C (opportunities and constraints) output is the product of the seven, not a substitute for them. This standard itself improves under DR-0075: every future miss adds its class here **and** its gate in CI, in the same session it is found.
+
+Pairs with: REALITY-TRACE (DR-0061 — real data before building), SPEC-CONFORMANCE (DR-0219 — the SHOULD/ARE spine), WAYS-REVIEW (DR-0108 — the methods reviewed), VERIFICATION-DOCTRINE (DR-0076 — evidence not claims), NOTHING-WAITS (DR-0236 — findings are work), LESSONS-LEARNED (the historical record these classes are mined from).

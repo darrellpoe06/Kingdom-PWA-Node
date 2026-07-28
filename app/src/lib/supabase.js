@@ -566,4 +566,30 @@ export function onAuthChange(callback) {
   };
 }
 
+// --- DM key on sign-in (0118/0124; Darrell 2026-07-28) -----------------------
+// The Messages footer used to promise "their first Messages visit creates
+// their encryption key" — which meant a member who signed in but never opened
+// Messages could not be encrypted TO. Publish the device's public DM key once
+// per signed-in user per page load, at sign-in itself, so every signed-in
+// member is sealable-to from their first session. Fire-and-forget: a failure
+// degrades to the existing honest plaintext fallback (direct-messages-sync).
+// Dynamic import avoids a module cycle; skipped under tests.
+const publishedDmKeyFor = new Set();
+function publishDmKeyOnSignIn(session) {
+  const userId = session?.user?.id;
+  if (!userId || publishedDmKeyFor.has(userId)) return;
+  if (typeof window === 'undefined') return;
+  try { if (import.meta.env && import.meta.env.TEST) return; } catch (_) { /* not vitest */ }
+  publishedDmKeyFor.add(userId);
+  import('./direct-messages-sync.js')
+    .then((m) => m.publishDmPublicKey())
+    .catch(() => { publishedDmKeyFor.delete(userId); });
+}
+try {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) setTimeout(() => publishDmKeyOnSignIn(session), 0);
+  });
+  setTimeout(() => publishDmKeyOnSignIn(readPersistedSession()), 0);
+} catch (_) { /* auth unavailable (tests/SSR) — Messages still publishes on open */ }
+
 export default supabase;

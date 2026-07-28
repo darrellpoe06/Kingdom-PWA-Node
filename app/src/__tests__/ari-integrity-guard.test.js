@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanUndermining, doneClaimNeedsEvidence, checkAriIntegrity, UNDERMINING_PATTERNS,
+  comprehensiveReviewConformance,
 } from '../lib/ari-integrity-guard.js';
 
 describe('ari-integrity-guard — Ari catches Claude undermining the work', () => {
@@ -59,6 +60,26 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
     const good = checkAriIntegrity('The whole TLC app is accepted. Folding Practice in now; suite is 5665 green.');
     expect(good.ok).toBe(true);
     expect(good.problems).toEqual([]);
+  });
+
+  it('BLOCKS a claimed comprehensive review that skips the standard (DR-0239) and PASSES one that runs it', () => {
+    // Claims comprehensiveness, shows none of the seven dimensions -> blocked.
+    const hollow = comprehensiveReviewConformance('Here is my comprehensive review: the feature looks good and the code is clean.');
+    expect(hollow.claims).toBe(true);
+    expect(hollow.ok).toBe(false);
+    // Runs the standard (>=4 dimensions named with results) -> passes.
+    const real = comprehensiveReviewConformance(
+      'Comprehensive review per the standard: SHOULD/ARE traced (DR-0219); journey walks: owner-adds-phone-only-contact walked end-to-end; ' +
+      'surface-says-truth: the footer matched the mechanism; form-factor: measured at 360px/768px/1440px by the chrome-layout probe; ' +
+      'delivery-context: ConnectBot paste-ready blocks attached.'
+    );
+    expect(real.claims).toBe(true);
+    expect(real.ok).toBe(true);
+    expect(real.shown.length).toBeGreaterThanOrEqual(4);
+    // A reply that never claims comprehensiveness is untouched (no false positives).
+    expect(comprehensiveReviewConformance('Fixed the header and pushed; 6751 tests green.').ok).toBe(true);
+    // And the one-call gate carries it.
+    expect(checkAriIntegrity('My comprehensive review: all good.').ok).toBe(false);
   });
 
   it('is not vacuous — it defines real patterns', () => {
