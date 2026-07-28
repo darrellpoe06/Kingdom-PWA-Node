@@ -34,11 +34,17 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const args = process.argv.slice(2).filter((a) => a !== '--selftest-break');
+const args = process.argv.slice(2).filter((a) => a !== '--selftest-break' && a !== '--sweep');
 const SELFTEST = process.argv.includes('--selftest-break');
+// --sweep probes the major surface families, not only the church door —
+// dimension 4 is a SWEEP, one width on one view is not (DR-0239).
+const SWEEP = process.argv.includes('--sweep');
 const BASE = '/poetech-app';
 const DIST = args[0] || fileURLToPath(new URL('../app/dist', import.meta.url));
 const WIDTHS = [360, 768, 1440];
+const VIEWS = SWEEP
+  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin']
+  : ['church'];
 
 if (!existsSync(join(DIST, 'index.html'))) {
   console.error(`chrome-layout-probe: no index.html in ${DIST} — build the app first (npm run build)`);
@@ -68,7 +74,6 @@ const server = createServer((req, res) => {
 
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const url = `${origin}${BASE}/?view=church`;
 
 const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
   ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
@@ -81,7 +86,8 @@ let failures = 0;
 const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
 
 try {
-  for (const width of WIDTHS) {
+  for (const view of VIEWS) for (const width of WIDTHS) {
+    const url = `${origin}${BASE}/?view=${view}`;
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
@@ -121,11 +127,11 @@ try {
       };
     });
     await page.close();
-    if (m.noHeader) { fail(`${width}px: header h1 never rendered`); continue; }
-    if (m.scrollWidth > m.clientWidth + 1) fail(`${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
-    if (m.h1.w <= m.h1.h) fail(`${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
-    if (m.overlaps.length) fail(`${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
-    if (!failures) console.log(`layout ok  ${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
+    if (m.noHeader) { fail(`${view}@${width}px: header h1 never rendered`); continue; }
+    if (m.scrollWidth > m.clientWidth + 1) fail(`${view}@${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
+    if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
+    if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
+    if (!failures) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
   }
 } finally {
   await browser.close();

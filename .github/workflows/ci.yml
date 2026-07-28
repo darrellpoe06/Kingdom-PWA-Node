@@ -180,8 +180,8 @@ jobs:
       - name: Chrome-layout probe — selftest (must be able to fail)
         run: node scripts/chrome-layout-probe.mjs --selftest-break
         working-directory: ${{ github.workspace }}
-      - name: Chrome-layout probe — chrome measured at real widths
-        run: node scripts/chrome-layout-probe.mjs
+      - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
+        run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
 
   workflows:
