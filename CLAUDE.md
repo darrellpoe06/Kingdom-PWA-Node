@@ -512,4 +512,14 @@ Recorded for the ledger as **DR-0236**; pairs with DR-0111 (do the work), DR-022
 
 ---
 
+## "Comprehensive" Is Defined — Seven Dimensions, Enforced by Machinery (added 2026-07-28, declared by Darrell; DR-0239)
+
+**Binding rule, declared by Darrell 2026-07-28** after three same-week review misses: *"when I ask for comprehensive review for features opportunities and constraints... what is comprehensive if these items are missed? We need more and more accurate processes and procedures"* — and, on encoding alone: *"After encoding... what then... last time it was lost along with a list of other requirements and requested processes?"*
+
+**A review may be called "comprehensive" only when all seven dimensions of `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` have run** — (1) SHOULD/ARE spec-conformance (DR-0219), (2) journey walks (persona × entry × device, end-to-end as that user), (3) surface-says-truth (every explanatory string checked against the traced mechanism — a false footer is a first-rank defect), (4) form-factor sweep (chrome MEASURED in a real browser at real widths — `scripts/chrome-layout-probe.mjs`), (5) delivery-context (his-hand steps matched to the recorded bench: ConnectBot NAS shell first, PowerShell only for desktop moments), (6) findings are a same-session work queue (DR-0236 — dating a finding requires a named blocker), (7) gate-the-class (every miss ends as a machine check or pinned line). A skipped dimension carries a why + `re-review:` date, never silence.
+
+**Encoding is not the safeguard — machinery is.** This rule does not rely on any session remembering it: the ari-guard **stop-hook** blocks any reply claiming a comprehensive review that shows fewer than 4/7 dimensions (`comprehensiveReviewConformance`, `ari-integrity-guard.js`); the **CI layout probe** runs on every push (selftest-proven it can fail); the **daily review-watcher** sweeps every dated skip. A process Darrell re-speaks that was lost is encoded + gated the same session, like a spoken teaching.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
