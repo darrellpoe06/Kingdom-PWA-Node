@@ -4276,7 +4276,11 @@ ${THEME_CSS}
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
             <div className="min-w-0 lg:min-w-[13rem] lg:shrink-0">
-              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              {/* Wordmark ABOVE the tagline (Darrell 2026-07-29: "PoeTech on the
+                  higher space... the lower area has more room for text"). The
+                  short brand name rides the tight upper row that shares width
+                  with the controls; the longer tagline sits on the lower row
+                  where there is horizontal room, so it fits at every width. */}
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
                   zoom so it stays roughly fixed while body content scales fully
                   (text-size scope split, 2026-06-17). */}
@@ -4286,12 +4290,13 @@ ${THEME_CSS}
                   (lg+, where the controls leave no room) and on the tiniest phones
                   (<sm) it falls back to the clean brand "PoeTech" — an ellipsis
                   cut is never acceptable. */}
-              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
                 {/* In the church view the header wears the church, not PoeTech
                     (DR-0174 — "it looks like the PoeTech App... why?"). */}
                 <span className="hidden sm:inline lg:hidden">{view === 'church' ? 'The Love Corner' : 'Family Operating Systems'}</span>
                 <span className="sm:hidden lg:inline">{view === 'church' ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
