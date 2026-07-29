@@ -2,8 +2,23 @@
 // MODULAR-EXTENSIBILITY.md. TLC isolation enforced upstream at the Worker.
 import React, { useState, useEffect } from 'react';
 import { suggestTriage } from '../lib/inbound-triage.js';
+import { telHref, smsHrefTo, isLikelyPhone } from '../lib/messages-invite.js';
+import UiIcon from './UiIcon.jsx';
 
 // --- Pure helpers (exported for tests) ---
+
+// The sovereign reply row for a voicemail — Call back / Text back — the honest
+// answer to the carrier app's "CALL · MESSAGE" bar (screenshot 2026-07-29),
+// but native (tel:/sms:) with NO premium tier. Pure: derives the reach hrefs
+// from the caller number on the row. Returns canReach:false (no buttons) when
+// the number isn't dialable, so a row never paints a dead action (DR-0076).
+export function buildCallerActions(row = {}) {
+  const num = row.caller || '';
+  if (!isLikelyPhone(num)) return { canReach: false, tel: '', sms: '' };
+  const who = row.line === 'poe-properties' ? 'Steward Real Estate' : row.line === 'poetech' ? 'Cornerstone Tech' : 'PoeTech';
+  const body = `Hi, this is ${who} returning your call. How can we help?`;
+  return { canReach: true, tel: telHref(num), sms: smsHrefTo(num, body) };
+}
 
 // Build the local record a converted voicemail becomes. Pure: no I/O, no state.
 // `today` is injected so the mapping is deterministic under test.
@@ -173,7 +188,12 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Inbound · Voicemails &amp; Call Notes</div>
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Inbound · Voicemails &amp; Call Notes</div>
+          {setView && (
+            <button type="button" onClick={() => setView('messages')} className="inline-flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" title="Go to Messages"><UiIcon name="chat" /> Messages →</button>
+          )}
+        </div>
         <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>What came in while you were busy.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
           Phase 1 routing for Steward Real Estate + Cornerstone Tech business lines. Each voicemail is auto-transcribed by Twilio, stored in your own Cloudflare Worker (free tier), and shown here for triage. Convert each one into an Incident, Practice Inquiry, or Project — the original recording stays archived. <strong>The clinical practice is not routed here</strong> — that line keeps its current setup until the Phase 3 HIPAA-clean stack ships. <a href="https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/backend/voice-worker/README.md" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Setup runbook →</a>
@@ -252,6 +272,7 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
                 // Deterministic triage assist (REV-0007): a SUGGESTION a human
                 // still confirms — intent, urgency, a unit hint, likely target.
                 const sug = suggestTriage({ line: r.line, transcript: r.transcript });
+                const reach = buildCallerActions(r);
                 return (
                   <div key={r.id} className={`p-4 ${i < rows.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
                     <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
@@ -282,6 +303,12 @@ function Inbound({ voiceOps = {}, setVoiceOpsConfig, addIncident, addInquiry, ad
                     )}
                     {r.voicemail_url && (
                       <audio controls preload="none" src={r.voicemail_url} className="w-full mt-1" />
+                    )}
+                    {reach.canReach && (
+                      <div className="flex flex-wrap gap-2 mt-2" aria-label="Reply to this caller">
+                        <a href={reach.tel} className="inline-flex items-center gap-1 text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" title={`Call ${r.caller}`}><UiIcon name="phone" /> Call back</a>
+                        <a href={reach.sms} className="inline-flex items-center gap-1 text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" title={`Text ${r.caller}`}><UiIcon name="chat" /> Text back</a>
+                      </div>
                     )}
                     {r.handled_note && (
                       <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Handle note: {r.handled_note}</p>

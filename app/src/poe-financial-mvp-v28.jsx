@@ -5000,7 +5000,7 @@ ${THEME_CSS}
             Access model server-enforced (users_can_dm / user_in_group). */}
         {view === 'messages' && (
           <SectionBoundary name="Messages">
-            <Messages />
+            <Messages voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
           </SectionBoundary>
         )}
         {view === 'tvtime' && (
