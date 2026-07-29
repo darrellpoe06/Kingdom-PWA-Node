@@ -35,6 +35,14 @@ export const UNDERMINING_PATTERNS = Object.freeze([
   // bright line — this catches the deferral so the agent builds instead (DR-0189).
   { id: 'defer-approved-build', why: 'defers a self-surfaced improvement for approval instead of building it (extending an approved capability is not a bright line — DR-0189/DR-0111)',
     re: /\b(needs your (green.?light|go.?ahead|approval|sign.?off|blessing|ok)|awaiting your (go|approval|green|sign.?off)|pending your (approval|go|green|sign.?off)|the (one )?open (decision|question) (on the table|for you|remaining)|i (flagged|surfaced|noted) .{2,60} as (needing|requiring|a decision)|ready (for you )?to build (when|once))\b/i },
+  // Darrell 2026-07-29 (DR-0247, at law-tier intensity): "I always want
+  // everything started not waiting for a human especially after we agree...
+  // Change those laws... they keep usurping my will." Agreed work starts itself
+  // through the lane; parking it on a human start is the undermining pattern.
+  // The narrow legitimate exceptions (a one-time per-machine bootstrap, a value
+  // only he holds) are stated as such — this catches the default-to-waiting.
+  { id: 'waiting-by-default', why: 'parks agreed work on a human start — agreed work starts itself through the lane; the hand is a brake, never the starter (DR-0247)',
+    re: /\b(until you (arm|run|activate|enable|start)|awaiting your (arm|hand|touch)|waiting (on|for) your (hand|touch|arm|word to start)|ships? (inert|inactive) until (you|the governor|darrell)|your hand (arms|starts|activates)|once you (arm|activate) (it|the)|the one step that.?s (genuinely )?(yours|your hand))\b/i },
 ]);
 
 // Scan a draft reply / PR body for the undermining patterns. Returns the flags so

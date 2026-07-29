@@ -98,11 +98,14 @@ describe('decideRun — the three brakes, proven to BOTH block and open', () => 
     expect(d.reason).toMatch(/GO/);
   });
 
-  // KILL-SWITCH (panic stop)
-  it('BLOCKS when the kill-switch is engaged — even fully armed and under cap', () => {
+  // KILL-SWITCH REMOVED (DR-0248, Darrell 2026-07-29: "Get rid of the kill
+  // switch... we have over 6000 checks... they are all switching deterministic
+  // logic"). A stray killSwitch input is IGNORED — the stop-paths are the lane
+  // (registry enabled:false, delete ARMED-BY-RECORD, DSM toggle).
+  it('IGNORES a killSwitch input — the manual override is removed from this class (DR-0248)', () => {
     const d = decideRun({ ...armedClear, killSwitch: true });
-    expect(d.go).toBe(false);
-    expect(d.reason).toMatch(/kill-switch engaged/);
+    expect(d.go).toBe(true);
+    expect(d.reason).not.toMatch(/kill-switch/i);
   });
 
   // ARM flag (ships absent => inert)
