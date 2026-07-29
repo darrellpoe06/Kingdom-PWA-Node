@@ -68,3 +68,30 @@ describe('resolveDuties', () => {
     for (const d of ARI_STANDING_DUTIES) expect(d.drRef).toMatch(/^DR-\d{4}$/);
   });
 });
+
+// dutySummary (DR-0243) — the one-line fold for the standing-duties wall.
+import { dutySummary } from '../lib/ari-notes.js';
+
+describe('dutySummary — folds the prose wall without losing anything', () => {
+  it('leaves a short duty unchanged (no ellipsis)', () => {
+    expect(dutySummary('Keep the record clean.')).toBe('Keep the record clean.');
+  });
+  it('cuts a long duty at its first clause with an ellipsis', () => {
+    const long = 'Carry the self-healing program — every failure class gets a probe, an in-app readout, an actuator, and an announce path.';
+    const s = dutySummary(long);
+    expect(s.endsWith('…')).toBe(true);
+    expect(s.length).toBeLessThan(long.length);
+    expect(s).toContain('Carry the self-healing program');
+  });
+  it('every real standing duty folds to a bounded one-liner', () => {
+    for (const d of ARI_STANDING_DUTIES) {
+      const s = dutySummary(d.duty);
+      expect(s.length).toBeGreaterThan(10);
+      expect(s.length).toBeLessThanOrEqual(112);
+    }
+  });
+  it('is safe on junk', () => {
+    expect(dutySummary('')).toBe('');
+    expect(dutySummary(null)).toBe('');
+  });
+});

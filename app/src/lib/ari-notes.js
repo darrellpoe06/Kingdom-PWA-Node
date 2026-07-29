@@ -128,3 +128,25 @@ export function resolveDuties(ledger, duties = ARI_STANDING_DUTIES) {
     };
   });
 }
+
+// The one-line read of a standing duty (DR-0243 — "data hidden because it just
+// keeps going"): the first clause, capped at a word boundary. The FULL duty
+// stays one tap away behind the expander; nothing is lost, only folded. Pure.
+export function dutySummary(duty, max = 110) {
+  const s = String(duty || '').trim();
+  if (!s) return '';
+  const cutAt = (() => {
+    const dash = s.indexOf(' — ');
+    const period = s.indexOf('. ');
+    const colon = s.indexOf(': ');
+    const cands = [dash, period, colon].filter((i) => i > 10);
+    return cands.length ? Math.min(...cands) : -1;
+  })();
+  let head = cutAt > 0 ? s.slice(0, cutAt) : s;
+  if (head.length > max) {
+    head = head.slice(0, max);
+    const sp = head.lastIndexOf(' ');
+    if (sp > 40) head = head.slice(0, sp);
+  }
+  return head === s ? head : head + '…';
+}

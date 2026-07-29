@@ -24,7 +24,7 @@ import {
 } from '../lib/discussions.js';
 import { handoffSummary } from '../lib/orchestrator-handoff.js';
 import { ARI } from '../lib/ari.js';
-import { ariNotesFromLedger, ariAssignments, resolveDuties } from '../lib/ari-notes.js';
+import { ariNotesFromLedger, ariAssignments, resolveDuties, dutySummary } from '../lib/ari-notes.js';
 import { storedWorkflowRegistry, workflowExpertise, workflowWhyLine } from '../lib/workflow-registry.js';
 import { RESEARCH_DAY, SOURCING_BENCH, RESEARCH_FINDINGS, researchCadence } from '../lib/research-intake.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
@@ -51,6 +51,7 @@ function AriRecord() {
   const [visibleCount, setVisibleCount] = useState(6);
   const [visibleFindings, setVisibleFindings] = useState(4);
   const [visibleWorkflows, setVisibleWorkflows] = useState(8);
+  const [openDuty, setOpenDuty] = useState(null);   // one duty expanded at a time (DR-0243)
   const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
   const work = useMemo(() => ariAssignments(tasks), [tasks]);
   const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
@@ -73,16 +74,27 @@ function AriRecord() {
         One note per shipped decision, read from the same ledger the Decisions tab reads — it updates with every build, so it cannot silently stall. {ARI.honesty}
       </p>
 
-      {/* Standing duties — each resolved against the live ledger. */}
+      {/* Standing duties — each resolved against the live ledger. One-line
+          summaries by default (DR-0243: no more prose walls hiding the data);
+          the full duty is one tap away. Nothing is lost, only folded. */}
       <div className="mt-3">
-        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Standing responsibilities (assigned by the ledger)</div>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Standing responsibilities (assigned by the ledger) · {duties.length}</div>
         <ul className="space-y-1">
           {duties.map((d) => (
             <li key={d.key} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>{d.duty}{' '}
+              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>
+              {openDuty === d.key ? d.duty : dutySummary(d.duty)}{' '}
               {d.found
                 ? <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef}{d.drDate ? ` · ${d.drDate}` : ''})</span>
                 : <span className="text-[0.625rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef} — not in the ledger)</span>}
+              {dutySummary(d.duty) !== d.duty && (
+                <button type="button"
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] ml-1"
+                  aria-expanded={openDuty === d.key}
+                  onClick={() => setOpenDuty((cur) => (cur === d.key ? null : d.key))}>
+                  {openDuty === d.key ? 'Less' : 'More'}
+                </button>
+              )}
             </li>
           ))}
         </ul>
