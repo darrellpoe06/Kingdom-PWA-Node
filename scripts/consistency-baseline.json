@@ -67,7 +67,7 @@
   "components/BusMinistry.jsx": {
     "emoji": 0,
     "fixedPx": 0,
-    "widthCap": 5
+    "widthCap": 2
   },
   "components/BusinessDoor.jsx": {
     "emoji": 0,
@@ -134,11 +134,6 @@
     "fixedPx": 0,
     "widthCap": 0
   },
-  "components/ChurchProjects.jsx": {
-    "emoji": 0,
-    "fixedPx": 0,
-    "widthCap": 1
-  },
   "components/ChurchVideoWall.jsx": {
     "emoji": 2,
     "fixedPx": 0,
@@ -148,11 +143,6 @@
     "emoji": 10,
     "fixedPx": 0,
     "widthCap": 2
-  },
-  "components/CohortPrograms.jsx": {
-    "emoji": 0,
-    "fixedPx": 0,
-    "widthCap": 3
   },
   "components/CommandServeCenter.jsx": {
     "emoji": 4,
@@ -197,7 +187,7 @@
   "components/CreationWorkspace.jsx": {
     "emoji": 1,
     "fixedPx": 0,
-    "widthCap": 1
+    "widthCap": 0
   },
   "components/Debts.jsx": {
     "emoji": 3,
@@ -239,25 +229,15 @@
     "fixedPx": 0,
     "widthCap": 0
   },
-  "components/EternalAlgorithmsStudy.jsx": {
-    "emoji": 0,
-    "fixedPx": 0,
-    "widthCap": 1
-  },
   "components/EventCenterModule.jsx": {
     "emoji": 13,
     "fixedPx": 0,
     "widthCap": 0
   },
-  "components/EventManagement.jsx": {
-    "emoji": 0,
-    "fixedPx": 0,
-    "widthCap": 1
-  },
   "components/Forecast.jsx": {
     "emoji": 1,
     "fixedPx": 0,
-    "widthCap": 3
+    "widthCap": 2
   },
   "components/GamePlayer.jsx": {
     "emoji": 0,
@@ -302,12 +282,12 @@
   "components/Inventory.jsx": {
     "emoji": 0,
     "fixedPx": 0,
-    "widthCap": 3
+    "widthCap": 1
   },
   "components/KitchenInventory.jsx": {
     "emoji": 0,
     "fixedPx": 0,
-    "widthCap": 4
+    "widthCap": 2
   },
   "components/KpiLegend.jsx": {
     "emoji": 1,
@@ -322,7 +302,7 @@
   "components/Library.jsx": {
     "emoji": 1,
     "fixedPx": 0,
-    "widthCap": 2
+    "widthCap": 0
   },
   "components/LifeGallery.jsx": {
     "emoji": 15,
@@ -359,6 +339,11 @@
     "fixedPx": 0,
     "widthCap": 0
   },
+  "components/Messages.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 3
+  },
   "components/Modal.jsx": {
     "emoji": 0,
     "fixedPx": 0,
@@ -367,7 +352,7 @@
   "components/MooreDivahs.jsx": {
     "emoji": 0,
     "fixedPx": 0,
-    "widthCap": 2
+    "widthCap": 1
   },
   "components/MooreDoor.jsx": {
     "emoji": 0,
@@ -412,7 +397,7 @@
   "components/Projects.jsx": {
     "emoji": 22,
     "fixedPx": 0,
-    "widthCap": 3
+    "widthCap": 1
   },
   "components/PromoBanners.jsx": {
     "emoji": 1,
@@ -462,7 +447,7 @@
   "components/Relationships.jsx": {
     "emoji": 0,
     "fixedPx": 0,
-    "widthCap": 2
+    "widthCap": 1
   },
   "components/Rentals.jsx": {
     "emoji": 28,
@@ -478,11 +463,6 @@
     "emoji": 1,
     "fixedPx": 0,
     "widthCap": 0
-  },
-  "components/ScriptureLibrary.jsx": {
-    "emoji": 0,
-    "fixedPx": 0,
-    "widthCap": 1
   },
   "components/SelfServeWelcome.jsx": {
     "emoji": 3,
@@ -507,15 +487,10 @@
   "components/Study.jsx": {
     "emoji": 1,
     "fixedPx": 0,
-    "widthCap": 1
+    "widthCap": 0
   },
   "components/TTSControl.jsx": {
     "emoji": 2,
-    "fixedPx": 0,
-    "widthCap": 1
-  },
-  "components/TVTime.jsx": {
-    "emoji": 0,
     "fixedPx": 0,
     "widthCap": 1
   },
@@ -557,7 +532,12 @@
   "components/VoiceStudio.jsx": {
     "emoji": 3,
     "fixedPx": 0,
-    "widthCap": 5
+    "widthCap": 4
+  },
+  "components/WorkflowScribe.jsx": {
+    "emoji": 0,
+    "fixedPx": 0,
+    "widthCap": 2
   },
   "components/WorkflowStatus.jsx": {
     "emoji": 3,

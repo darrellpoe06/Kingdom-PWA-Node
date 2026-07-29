@@ -56,10 +56,16 @@ The senior rule, from Darrell's reinforcement the same day:
 - **Canonical primitive:** the app-shell content container in
   `app/src/poe-financial-mvp-v28.jsx` (the `<main>` wrapper) + `TabScroll`
   (`app/src/components/shared.jsx`) for horizontal sub-tab strips.
-- **Status:** the single full-width container is being established by the
-  full-width-layout lane; until it lands, new `max-w-*` is **WARN-only** in the
-  consistency guard (tracked, never silently dropped — DR-0075). Existing
-  `max-w` is grandfathered in the baseline and may only decrease.
+- **Status:** **ESTABLISHED 2026-07-29 (DR-0245).** The full-width sweep
+  converted every app-tab container (17 components in one pass — Study, TV Time,
+  Library, Projects, Inventory, Kitchen, Bus, Cohorts, Voice Studio, Scripture
+  Library, Moore Divahs, Events, Eternal Algorithms, Creation, Church Projects,
+  Forecast, Relationships; ThinkingSpace led 2026-07-24), and the guard
+  **graduated width-cap from WARN to HARD**: a new `max-w-*` over the frozen
+  baseline fails the build. What remains grandfathered is interior measure —
+  prose paragraphs, modals, centered empty-state cards — which lives INSIDE the
+  full-width tab, never as its wrapper. The TLC public door follows its own
+  front-door (Tier C) pass, recorded with this date: `re-review: 2026-08-12`.
 
 ### 2. ICONS — bundled inline SVG only
 

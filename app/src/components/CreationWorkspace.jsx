@@ -219,7 +219,7 @@ export default function CreationWorkspace({
   }
 
   return (
-    <div className="max-w-6xl">
+    <div className="w-full">
       <div className="mb-4">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
         <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
