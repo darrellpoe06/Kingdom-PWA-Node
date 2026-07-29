@@ -63,13 +63,19 @@ export function readClaimTokenFromUrl(href) {
 // Invite ONE email to the caller's (non-church) instance with a role. Returns a
 // tagged result carrying the one-time claim LINK to deliver; never throws. role
 // defaults to 'member' and can never be 'owner' (the RPC enforces this too).
-export async function inviteToInstance(email, role = 'member') {
+// Pass instanceId to target a SPECIFIC space the caller leads (0125 — the space
+// picker means what it says); omitted, the server resolves family-first.
+export async function inviteToInstance(email, role = 'member', instanceId = null) {
   if (!isValidInviteEmail(email)) return { email, ok: false, reason: 'bad-email' };
   const safeRole = INVITE_ROLES.includes(role) ? role : 'member';
-  const { data, error } = await supabase.rpc('invite_to_instance', {
+  const args = {
     email_in: String(email).trim().toLowerCase(),
     role_in: safeRole,
-  });
+  };
+  // Only send the extra arg when targeting, so an un-migrated backend (2-arg
+  // RPC) keeps working mid-rollout.
+  if (instanceId) args.instance_in = instanceId;
+  const { data, error } = await supabase.rpc('invite_to_instance', args);
   if (error) return { email, ok: false, reason: 'rpc-error', error: error.message || String(error) };
   // 0104 returns { id, token, email, role }; tolerate a bare uuid from an
   // un-migrated backend so the app never crashes mid-rollout.

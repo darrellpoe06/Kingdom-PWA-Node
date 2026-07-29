@@ -50,8 +50,12 @@ describe('grantableRoles (mirror of set_member_role guards)', () => {
     expect(isInviteEmail(null)).toBe(false);
   });
   it('roleLabel maps known roles and falls back gracefully', () => {
-    expect(roleLabel('admin')).toBe('Admin (edit)');
-    expect(roleLabel('member')).toBe('Member (view)');
+    // Surface-says-truth (DR-0241): labels state what the DB actually grants.
+    // 'Member (view)' was a fiction — member reads AND writes; viewer is the
+    // read-only role, enforced by the 0125 restrictive overlay.
+    expect(roleLabel('admin')).toBe('Admin (edit + members)');
+    expect(roleLabel('member')).toBe('Member (edit)');
+    expect(roleLabel('viewer')).toBe('Viewer (read-only)');
     expect(roleLabel('owner')).toBe('Owner');
     expect(roleLabel('weird')).toBe('weird');
     expect(roleLabel(null)).toBe('no role');

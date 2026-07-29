@@ -8,11 +8,15 @@
 import { supabase } from './supabase.js';
 import { inviteToInstance } from './family-invite.js';
 
+// Surface-says-truth (DR-0076/DR-0241): each label states what the database
+// actually grants. `member` reads AND writes the space's shared records (the
+// collaborative family/team role); `viewer` is truly read-only — enforced by
+// the 0125 RESTRICTIVE deny-overlay and proven by viewer-readonly-isolation.
 export const ROLE_LABELS = {
   owner: 'Owner',
-  admin: 'Admin (edit)',
-  member: 'Member (view)',
-  viewer: 'Viewer',
+  admin: 'Admin (edit + members)',
+  member: 'Member (edit)',
+  viewer: 'Viewer (read-only)',
   specialist: 'Specialist',
   child: 'Child',
   successor: 'Successor',
@@ -59,9 +63,10 @@ export function isInviteEmail(email) {
 //   - other   -> invite_to_instance (DR-0187 token flow): returns {ok, link} — the
 //     one-time claim LINK the inviter delivers; the invitee claims, the inviter
 //     confirms (two-party). Never grants 'owner' (the RPC enforces it too).
-// The RPCs resolve the caller's own owner/admin instance of that type; the caller
-// must be owner/admin (enforced server-side).
-export async function inviteToSpace(instanceType, email, role) {
+// The caller must be owner/admin (enforced server-side). When the UI shows a
+// space picker, pass the picked instanceId — the RPC then targets THAT space
+// (0125); without it the server resolves the caller's family-first default.
+export async function inviteToSpace(instanceType, email, role, instanceId = null) {
   const clean = String(email || '').trim().toLowerCase();
   if (!isInviteEmail(clean)) return { ok: false, reason: 'bad-email' };
   const safeRole = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
@@ -70,7 +75,7 @@ export async function inviteToSpace(instanceType, email, role) {
     if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
     return { ok: true, kind: 'church', email: clean, role: safeRole };
   }
-  const r = await inviteToInstance(clean, safeRole);
+  const r = await inviteToInstance(clean, safeRole, instanceId);
   return { ...r, kind: 'instance' };
 }
 

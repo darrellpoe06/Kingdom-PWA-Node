@@ -115,6 +115,9 @@ const SHELL_WIRING = [
   'if (!authSession || isAnyDemoMode || reviewerMode || snapshotPulledRef.current) return;',
   // the family tier grant stays off (a reviewer sits at the user's real tier)
   'if (!authSession || isAnyDemoMode || reviewerMode) return;',
+  // table syncs stay off (DR-0241 faithfulness): without this the steward's
+  // real cloud rows merge into the "fresh user" preview
+  'if (reviewerMode) {\n      setShowVerifyBalances(false);\n      return;\n    }',
   // the pinned banner renders whenever the lens is on
   '{reviewerMode && <ReviewerModeBanner />}',
 ];
@@ -126,10 +129,16 @@ describe('shell wiring — every narrowing + suppression point is present', () =
     expect(shell.includes(fragment), `missing wiring: ${fragment}`).toBe(true);
   });
 
-  it('the Admin entry (tab + console gate) is closed to a reviewer, both sites', () => {
-    const gate = '!reviewerMode && (isFamilyMember || !isPublicHost())';
+  it('the Admin entry (tab + console gate) is closed to a reviewer AND to a signed-in guest on the home host, both sites', () => {
+    // DR-0241: on a private host the open (no-session) state keeps the entry,
+    // but a signed-in non-steward — an invited guest on the house WiFi — never
+    // gets Admin. The gate must carry the !authSession term at both sites.
+    const gate = '!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))';
     const count = shell.split(gate).length - 1;
     expect(count, 'nav tab AND AdminConsole isGovernor must both carry the gate').toBeGreaterThanOrEqual(2);
+    // The old host-only form must be gone (it granted Admin UI to any signed-in
+    // user on the LAN).
+    expect(shell.includes('(isFamilyMember || !isPublicHost())')).toBe(false);
   });
 
   it('proven-to-catch: the same checks FAIL on a shell without the wiring', () => {

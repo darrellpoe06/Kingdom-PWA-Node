@@ -2153,6 +2153,14 @@ export default function PoeFinancialSystem() {
       setShowVerifyBalances(false);
       return;
     }
+    // Reviewer mode (DR-0104/DR-0241): the lens is a fresh user's EMPTY world.
+    // Without this, the signed-in steward's table syncs still resolve their
+    // real instance and merge the family's live rows into the preview — the
+    // exact data-emptiness axis the lens exists to mimic. No syncs, no writes.
+    if (reviewerMode) {
+      setShowVerifyBalances(false);
+      return;
+    }
     if (!data.numericSyncVerifiedAt) {
       // A signed-in user whose numeric data is ENTIRELY seed scaffolding has
       // nothing real to verify — never show them a wizard full of sample
@@ -4502,7 +4510,12 @@ ${THEME_CSS}
                 // On the public site a non-steward never gets the entry (no-leak,
                 // like Center / Forecast); the module also carries a defense-in-
                 // depth locked fallback for any deep-link.
-                ...((!reviewerMode && (isFamilyMember || !isPublicHost())) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
+                // 2026-07-29 (DR-0241): on the trusted home host the OPEN state
+                // (no session — setup/dev) keeps the entry, but a SIGNED-IN
+                // non-steward (an invited guest on the house WiFi) does not:
+                // "family network" is the trust boundary for devices, never a
+                // role grant for whoever signs in on one.
+                ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
               ].filter(([id]) => !churchDoorOnly || id === 'church')
                .map(([id, label]) => {
                 if (id === '__sep__') {
@@ -5239,7 +5252,7 @@ ${THEME_CSS}
             ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
-            isGovernor={!reviewerMode && (isFamilyMember || !isPublicHost())}
+            isGovernor={!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}
