@@ -414,35 +414,13 @@ Recorded for the ledger as **DR-0076**; pairs with DR-0075 (perpetual improvemen
 
 ---
 
-## Review the Live Production Push (added 2026-07-05, declared by Darrell; DR-0104)
+## Review the Live Production Push (DR-0104)
 
-**Binding rule, declared by Darrell 2026-07-05:**
+**Reviewer mode is always available (Admin → Actions), and the stewards review every production push on the live build as a user actually meets it — on top of the gates, never instead of them.** After a merge/deploy, the agent surfaces the live user-review pass as a named step, without being re-asked. Full rule + mechanism: **DR-0104**; `app/src/lib/reviewer-mode.jsx` (RLS remains the real data gate, DR-0060).
 
-> "we need to be reviewers also so give us a users view that mimics the users identically so we can test like a review after pushing to production" — and, on when it should be usable: **"1. Always. Document that inside PoeTech and claude. Asap. We review the live new production push."**
+## Review Our Ways — Mandatory (DR-0108)
 
-**Reviewer mode is always available, and the stewards review every production push as a user actually meets it — before trusting it.**
-
-- **Always available.** "Review as a user" is a permanent, preview-then-execute action in **Admin → Actions** (never flag-, season-, or build-gated). Any steward drops into the exact signed-in-user experience and steps back out via the pinned "Reviewer mode" strip's Exit.
-- **The standing review pass.** After a change reaches production (poetech.us), the family does NOT trust it on the developer's/owner's privileged view. They enter reviewer mode and confirm the change on the **live build, as a user sees it** — a fresh user's empty world, the user's real tier, sanitized names, no steward tabs. This is EXECUTION-OUTCOME-OBSERVABILITY made a human habit: *system-up ≠ product-correct*, so the family observes the live product behavior on the surface the user meets, not the one the owner meets.
-- **On top of the gates, never instead of them.** The CI gates "make sure it is a sound build"; this live user-view pass is a second, independent, human observation (DR-0076) — it does not replace the deterministic checks.
-- **The agent's standing job, without being re-asked:** after a merge/deploy to production, surface the live user-review pass as a named step (the way it surfaces tests or the reality-trace), and do not report a production change fully "done" until that pass is available to run. The mechanism (the strictly-narrowing `poe-reviewer-mode` flag, every steward-data write path suppressed while on, source-pinned proven-to-catch) lives in `app/src/lib/reviewer-mode.jsx` + `app/src/__tests__/reviewer-mode.test.js`; RLS remains the real data gate (DR-0060).
-
-Recorded for the ledger as **DR-0104**; pairs with RELEASE-TIERS (the soak precedes merge; this review confirms the merged reality), DR-0076 (independent verification), and DR-0065 / APP-IS-PRIMARY (documented in the app, where the review is run, as well as here). It complements DR-0103 (the streamlined auto-merge loop): the lane lands the build on green; this is the family's human look at the landed build as a user meets it.
-
-## Review Our Ways — Mandatory (added 2026-07-06, declared by Darrell; DR-0108)
-
-**Binding rule, declared by Darrell 2026-07-06:**
-
-> "review our ways I have connectbot... Make that a documented mandatory thing reviewing our ways..."
-
-**We review our WAYS — how we work — as a standing, mandatory, documented practice. Not only the product: the methods, the tools, the access paths, and the assumptions.** This is Layer 0 because it is the discipline that catches the agent scoping the world to its own limits.
-
-- **The trigger (the exact miss to never repeat).** The agent said a NAS action "needs your hand / I have no SSH" and stopped — having scoped the solution to **its own** access. Darrell has **ConnectBot** (SSH from his phone): the path existed the whole time on the principal's side. **The agent must account for the whole team's capabilities — Darrell's tools, the Foundation's, the NAS's — not only what the agent itself can reach.** A stated "we can't / it must be by hand" is an **unverified premise to challenge** (VERIFICATION-DOCTRINE, SURFACE-PREMISE), never a place to stop.
-- **Known capability, now recorded:** Darrell can SSH into the NAS from his phone via **ConnectBot**. So NAS-side runbooks ARE executable by him — the agent hands the exact paste-ready SSH steps (self-contained, ASCII-only, see the PowerShell/commands rule) instead of declaring the NAS unreachable. The agent's own lack of a route (verified: no ssh client, LAN + Funnel blocked from the cloud) bounds the AGENT, not the team.
-- **Mandatory + documented, run without being re-asked.** A **ways-review** is a first-class recurring pass, recorded like any other review: an `orchestration`-type **REV record** in `docs/reviews/REVIEWS.md` (the "how the work itself ran" type, per DR-0102) on the standing cadence, and a **new DR** whenever a way actually changes. The agent surfaces it as a named step (the way it surfaces the reality-trace, the tests, and the live-production review) — silence is not a skip.
-- **What a ways-review asks, every time:** (1) *What tool / access / capability does the TEAM have that I am not using?* (2) *What "can't / must-be-by-hand" am I asserting without verifying?* (3) *What friction repeated — what step keeps landing on Darrell that a method could absorb?* (4) *Where did I scope to my own limits instead of the team's?* (5) *What is the more streamlined way?* Findings become an improvement shipped, or a why + `re-review:` date (DR-0075) — never a silent drop.
-
-Recorded for the ledger as **DR-0108**; grounds **WAYS-REVIEW**. Pairs with GOVERN-EXECUTE-ADVISE (the agent advises with the team's full toolset in view), VERIFICATION-DOCTRINE / SURFACE-PREMISE (an asserted constraint is verified, not assumed), DR-0075 (perpetual improvement — the ways improve too), DR-0102 (the work reviews itself — this is the how-we-work half), and Drive-Don't-Delegate (drive with the principal's tools, ask only for the smallest piece genuinely his).
+**We review our WAYS — methods, tools, access paths, assumptions — as a standing, mandatory, documented practice** (an `orchestration`-type REV record; a new DR when a way changes). The agent accounts for the WHOLE TEAM's capabilities — Darrell has ConnectBot SSH to the NAS from his phone; the NAS self-deploys repo services via the services-sync manifest — never only its own reach; a stated "can't / must-be-by-hand" is an unverified premise to challenge, not a place to stop. The five standing questions + convention: **DR-0108**.
 
 ## Do the Work — Don't Re-Ask What's Already Decided (added 2026-07-06, declared by Darrell)
 
@@ -474,51 +452,21 @@ Recorded for the ledger as **DR-0111**; the operational capstone of DRIVE-DONT-D
 
 ---
 
-## Spec-Conformance Review — Say What It SHOULD Do, Then Prove We Do (added 2026-07-21, declared by Darrell)
+## Spec-Conformance Review — Say What It SHOULD Do, Then Prove We Do (DR-0219)
 
-**Binding rule, declared by Darrell 2026-07-21:** after reviewing whether the feedback process does what it should — *"Review what feedback should be doing then see if we are... Ways and documentation"* — **"Add this process to your and our Ways and documentation for making sure we do it every time."**
-
-**Before a process or feature is called "done" or "working" — and whenever anyone asks whether it works — run a Spec-Conformance Review: state what it SHOULD do FROM THE WAYS/DOCS, trace what it ACTUALLY does in the real implementation, name every gap, and close it.** This is the conformance sibling of Reality-Trace: Reality-Trace (P15/P16, DR-0061) checks a surface against real *data* before building; this checks a built process against its own documented *intent*. "It works" is never accepted on assertion — it is accepted on a spec-vs-reality trace with receipts (DR-0076).
-
-Every Spec-Conformance Review runs these four steps, out loud, in the response:
-
-1. **SHOULD — cite the documented intent.** Gather what the process is supposed to do from the Ways/docs — the foundation docs (`docs/00-foundations/_root/*`), the Decision Records (`docs/decisions/`), the memories (`memory/MEMORY.md`), the session notes, and this file. Quote each requirement with a **`file:line` citation**. If the intent is undocumented, that gap is itself a finding — write the spec down (a new DR / foundation note), because an undocumented process cannot be conformance-checked and drifts silently.
-2. **ARE — trace the real implementation.** Follow the actual code path end-to-end (`file:line`): collection → storage/RLS → notification → sync → triage/governance → how it feeds the next step. Observe the running behavior where the sandbox can (tests, a query, a live probe); name honestly what only a live/signed-in session can confirm (DR-0076 provenance + honest uncertainty).
-3. **GAPS — name every divergence plainly.** Where SHOULD and ARE differ — a requirement not met, a dead consumer, a path that silently no-ops, a promise the surface makes that nothing fulfills (BUSINESS-PROCESS-CONNECTIONS four-question test) — state it as a gap, never soften a miss into "mostly works."
-4. **CLOSE — fix it or record why + a re-review date.** Each gap ends in one of two states (DR-0075): an improvement shipped through the verified lane, OR a one-line why + a `re-review:` date. Never a silent drop, never a "looks fine."
-
-**This is a standing step the agent runs without being re-asked** — the way it runs the reality-trace, the tests, and the live-production review. Silence is not a skip. It is *not* a reason to re-ask a settled question (DR-0111): the agent produces the SHOULD-vs-ARE trace and closes the gaps itself; it surfaces to Darrell only a genuine DR-0089 carve-out (a new bright line, a value only he holds, a verified premise conflict).
-
-Recorded for the ledger as **DR-0219**; grounds **SPEC-CONFORMANCE-REVIEW**. Pairs with Reality-Trace (DR-0061, P15/P16 — real data before building), VERIFICATION-DOCTRINE (DR-0076 — evidence not claims), WAYS-REVIEW (DR-0108 — review the methods), BUSINESS-PROCESS-CONNECTIONS (the four-question surface test), PERPETUAL-IMPROVEMENT (DR-0075 — close or date every gap), and REVIEW-LIVE-PUSH (DR-0104 — the human confirms the conformed build as a user meets it).
+**Before a process or feature is called "done" — and whenever anyone asks whether it works — run the four steps out loud: SHOULD (cite the documented intent, `file:line`; undocumented intent is itself a finding) → ARE (trace the real implementation end-to-end) → GAPS (name every divergence plainly, never "mostly works") → CLOSE (fix it, or a one-line why + `re-review:` date).** A standing step, run without being re-asked; never a reason to re-ask a settled question (DR-0111). Full procedure: **DR-0219**.
 
 ---
 
-## Nothing Waits — Everything Buildable Now Is Built Now (added 2026-07-27, declared by Darrell; DR-0236)
+## Nothing Waits — Everything Buildable Now Is Built Now (DR-0236)
 
-**Binding rule, declared by Darrell 2026-07-27, correcting a "named next steps on the branch's clock" sign-off:**
-
-> "We want everything today... no waiting for anything... nothing says waiting anymore... stop undermining our building automation systems by constantly suggesting we stop and wait for another time... Ways and documentation..."
-
-**"Later" is not a scheduling tool the agent may reach for. If a directed piece of work can be built and verified with the tools available right now, it is built right now — same session, same lane.** Deferring buildable work to a "next phase" is the same defect as re-asking a settled question (DR-0111): a wait no one asked for, undermining the building of the automation systems.
-
-1. **A "next steps" list at the end of a delivery is a same-session WORK QUEUE, not a sign-off.** The agent finishes the list before the turn ends, or names the single genuine blocker per item. Only three blockers exist: a physical-access step, a value only Darrell holds, a bright line not yet decided. "It's a lot" and "another PR later" are not blockers.
-2. **Brakes and tiers gate ACTIVATION, never building (DR-0225).** Timer-driven automation is built today with its three brakes proven-to-catch in CI today, ships inactive today, activates on proof.
-3. **His-hand steps are handed over ready-to-run.** Anything genuinely requiring Darrell's hands ships with paste-ready commands in the same delivery — the agent's side 100% complete. A his-hand step with no ready-to-paste block is unfinished agent work.
-4. **Parked DRs keep their own clocks but never slow adjacent work.** Everything AROUND a parked item builds now and plugs in when it lands; citing a parked item's date as a brake on unparked items is the violation.
-
-**The closing test, every delivery turn:** *"Is anything in my own 'next' list buildable and verifiable right now?"* If yes, the turn is not over.
-
-Recorded for the ledger as **DR-0236**; pairs with DR-0111 (do the work), DR-0225 (brakes never stall), DR-0103 (motion is the default), DR-0106 (DO, don't re-ask).
+**"Later" is not a scheduling tool. Directed work that can be built and verified with the tools available right now is built right now — same session, same lane.** A "next steps" list is a same-session WORK QUEUE; the only blockers are a physical-access step, a value only Darrell holds, or an undecided bright line. Brakes and tiers gate ACTIVATION, never building (DR-0225); his-hand steps ship paste-ready in the same delivery. **The closing test, every delivery turn:** *"Is anything in my own 'next' list buildable and verifiable right now?"* If yes, the turn is not over. Full rule: **DR-0236**.
 
 ---
 
-## "Comprehensive" Is Defined — Seven Dimensions, Enforced by Machinery (added 2026-07-28, declared by Darrell; DR-0239)
+## "Comprehensive" Is Defined — Seven Dimensions, Enforced by Machinery (DR-0239)
 
-**Binding rule, declared by Darrell 2026-07-28** after three same-week review misses: *"when I ask for comprehensive review for features opportunities and constraints... what is comprehensive if these items are missed? We need more and more accurate processes and procedures"* — and, on encoding alone: *"After encoding... what then... last time it was lost along with a list of other requirements and requested processes?"*
-
-**A review may be called "comprehensive" only when all seven dimensions of `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` have run** — (1) SHOULD/ARE spec-conformance (DR-0219), (2) journey walks (persona × entry × device, end-to-end as that user), (3) surface-says-truth (every explanatory string checked against the traced mechanism — a false footer is a first-rank defect), (4) form-factor sweep (chrome MEASURED in a real browser at real widths — `scripts/chrome-layout-probe.mjs`), (5) delivery-context (his-hand steps matched to the recorded bench: ConnectBot NAS shell first, PowerShell only for desktop moments), (6) findings are a same-session work queue (DR-0236 — dating a finding requires a named blocker), (7) gate-the-class (every miss ends as a machine check or pinned line). A skipped dimension carries a why + `re-review:` date, never silence.
-
-**Encoding is not the safeguard — machinery is.** This rule does not rely on any session remembering it: the ari-guard **stop-hook** blocks any reply claiming a comprehensive review that shows fewer than 4/7 dimensions (`comprehensiveReviewConformance`, `ari-integrity-guard.js`); the **CI layout probe** runs on every push (selftest-proven it can fail); the **daily review-watcher** sweeps every dated skip. A process Darrell re-speaks that was lost is encoded + gated the same session, like a spoken teaching.
+**A review may be called "comprehensive" only when all seven dimensions of `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` have run** — SHOULD/ARE · journey walks · surface-says-truth · form-factor MEASURED · delivery-context · findings-are-a-work-queue · gate-the-class; a skipped dimension carries a why + `re-review:` date. **Enforcement is machinery, not memory:** the ari-guard stop-hook (`comprehensiveReviewConformance`) blocks a hollow claim, the CI layout probe runs on every push, the daily review-watcher sweeps every dated skip. Full standard: **DR-0239**.
 
 ---
 
