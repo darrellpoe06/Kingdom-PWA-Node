@@ -15,9 +15,13 @@
 #      or church target RAISES, and the legacy family-first resolution stands —
 #      then ROLLS BACK. A wrong grant RAISEs -> psql non-zero -> RED.
 #
-# Manual (workflow_dispatch) or automatically after db-migrate finishes on main.
-# Deploy-path only; not self-arming (respects the Cage). SUPABASE_DB_URL is
-# whitespace-stripped exactly like scripts/db-migrate-apply.sh.
+# FIRING: db-migrate dispatches this EXPLICITLY as its last step — the
+# `workflow_run` trigger below never fires for the lane's token-driven
+# db-migrate runs (GitHub suppresses events from GITHUB_TOKEN-caused runs;
+# the DR-0107 class, observed twice 2026-07-29). workflow_run stays only as
+# belt-and-suspenders for a HUMAN-dispatched db-migrate. Manual dispatch works
+# any time. Deploy-path only; not self-arming (respects the Cage).
+# SUPABASE_DB_URL is whitespace-stripped exactly like scripts/db-migrate-apply.sh.
 name: viewer-readonly-isolation
 
 on:
