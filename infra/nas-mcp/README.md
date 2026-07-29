@@ -3,9 +3,14 @@
 **What this is (DR-0244 / DR-0236).** The first house-served MCP endpoint: a stateless
 2026-07-28-shape server over the NAS state the cloud sandbox can never reach itself —
 the dispatch reel, the Code Task snapshot, and a read-only view of the Cage's brakes.
-Built the day the direction landed (nothing waits — DR-0236); it ships INACTIVE by
-construction: this directory is just files until the Governor runs the runbook below
-(DR-0225 — brakes and tiers gate activation, never building).
+Built the day the direction landed (nothing waits — DR-0236), and **self-deploying**:
+this service is in the `services.json` self-deploy manifest, so merging to main IS
+the deploy — the NAS mirror pulls, the armed `services-sync` loop runs `install.sh`
+(idempotent: token once, venv, systemd unit, best-effort Caddy `/mcp` snippet, then
+a REAL discover round-trip as the health check), and `poetech-mcp.service` starts.
+No hands in the path — the same lane that deploys scribe. This is not the
+three-brakes class (request-driven, read-only, spawns nothing on a clock); the
+brakes that govern the *deploy loop* are the nas-loops runner's own.
 
 **Read-only v1, on purpose.** Every tool observes; none mutates. A write tool (flip a
 brake, append an event) is a separate governance gate (DR-0089) with its own audit
@@ -23,10 +28,13 @@ refusal paths (bad token 401, wrong protocol version 400, `Mcp-Method`/`Mcp-Name
 header mismatch 400, unknown tool -32602). The proof transcript is in the PR that
 landed this directory.
 
-## Activation runbook (ConnectBot, from anywhere on the NAS)
+## Fallback runbook (ConnectBot) — only if the loops runner is not armed
 
-Plain steps: install FastAPI once, set the token, start the server, then wire the
-Caddy route. Paste-ready (ASCII only, one command per line):
+The primary path needs no one: `services-sync` installs and starts this on the
+NAS's own clock (verified in the build sandbox: the installer's exact artifacts —
+venv, stamped token, the unit's ExecStart — serve discover end-to-end). If the
+nas-loops fleet is not armed on the NAS, these plain steps do the same thing by
+hand. Paste-ready (ASCII only, one command per line):
 
 ```
 cd /volume1/PoeTech
