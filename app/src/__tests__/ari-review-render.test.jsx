@@ -45,3 +45,23 @@ describe('AriReview — the surface renders the five dimensions', () => {
     expect(host.textContent).not.toMatch(/Pull these next/);
   });
 });
+
+// DR-0243 — one item renders ONCE. "Pull these next" and the MAPE-K loop are a
+// single merged queue; the per-item boilerplate reason is stated once in the
+// header, never repeated per row (the duplication Darrell flagged 2026-07-29:
+// "data hidden because it just keeps going and duplicate information").
+describe('AriReview — the merged queue does not duplicate (DR-0243)', () => {
+  it('renders the queue once with the loop, without per-item boilerplate', () => {
+    const host = mount({ concerns: [{ status: 'open', concern: 'x' }], feedback: [] });
+    const text = host.textContent;
+    expect(text).toContain('Pull these next');
+    expect(text).toContain('loop (MAPE-K)');
+    expect(text).toContain('Needs your call');
+    // The generic reason is folded into the header sentence — never per item.
+    expect(text).not.toContain('Needs human judgment or isn’t provably safe to apply automatically.');
+  });
+  it('states where the evidence lives instead of rendering a third copy', () => {
+    const host = mount({ concerns: [{ status: 'open', concern: 'x' }], feedback: [] });
+    expect(host.textContent).toMatch(/dimension card/);
+  });
+});

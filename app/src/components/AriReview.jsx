@@ -157,20 +157,63 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
         </div>
       )}
 
-      {/* Top actions to pull next */}
-      {review.summary.topActions.length > 0 && (
-        <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Pull these next</div>
-          <ul className="space-y-1.5">
-            {review.summary.topActions.map((a, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-[#1A1815]">
-                <StatusDot status={a.severity} />
-                <span>{a.action}{a.count ? ` (${a.count})` : ''}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* THE ONE ACTION QUEUE — "Pull these next" and Ari's MAPE-K loop merged
+          into a single list (DR-0243, Darrell 2026-07-29: "data hidden because
+          it just keeps going and duplicate information"). One item renders ONCE:
+          the queue here, the evidence in its dimension card below — never a
+          third copy. The shared per-item boilerplate reason is stated once
+          under the header; only a DIFFERENT reason renders inline. */}
+      {(() => {
+        const adj = adjustmentsSummary(review.findings);
+        if (adj.autoCount === 0 && adj.proposeCount === 0) return null;
+        const loop = runAriLoop(review, Date.now());
+        const GENERIC = 'Needs human judgment or isn’t provably safe to apply automatically.';
+        const QUEUE_CAP = 7;
+        const shown = adj.propose.slice(0, QUEUE_CAP);
+        const rest = adj.proposeCount - shown.length;
+        return (
+          <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+              Pull these next &middot; {ARI.name}&rsquo;s loop (MAPE-K)
+            </div>
+            <p className="text-sm text-[#1A1815] font-medium">{loopHeadline(loop)}</p>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">
+              Monitor &rarr; Analyze &rarr; Plan &rarr; Execute &rarr; Knowledge &middot; {loop.metrics.stpRate}% straight-through &middot; items marked &bull; need your judgment; the evidence for each lives in its dimension card below.
+            </p>
+            {adj.autoCount > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#3F5226] font-semibold mb-1">{ARI.name} applied safely ({adj.autoCount})</div>
+                <ul className="space-y-1">
+                  {adj.auto.map((a, i) => (
+                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+                      <span className="text-[#3F5226]">&#10003;</span> {a.action || a.title}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {adj.proposeCount > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#B45309] font-semibold mb-1">Needs your call ({adj.proposeCount})</div>
+                <ul className="space-y-1">
+                  {shown.map((a, i) => (
+                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+                      <span className="text-[#B45309]">&bull;</span> {a.action || a.title}
+                      {a.reason && a.reason !== GENERIC && (
+                        <span className="text-[0.6875rem] text-[#8A857C]"> &mdash; {a.reason}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {rest > 0 && (
+                  <p className="text-[0.6875rem] text-[#5A5751] mt-1">…and {rest} more — the dimension cards below carry every one, with evidence.</p>
+                )}
+              </div>
+            )}
+            <p className="text-[0.625rem] text-[#8A857C] mt-3 leading-relaxed">{ADJUSTMENTS_DOCTRINE}</p>
+          </div>
+        );
+      })()}
 
       {/* Ari recommends — data-derived upgrades only Ari could know (from the
           whole live picture, not a typed tip). Directed by Darrell 2026-07-23. */}
@@ -193,46 +236,6 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
         </div>
       )}
 
-      {/* Ari's adjustments — the propose + gated auto-apply split. Ari applies
-          the safe, reversible, evidence-backed fixes itself and logs them; the
-          rest it proposes for a human (the gate encodes DR-0076). */}
-      {(() => {
-        const adj = adjustmentsSummary(review.findings);
-        if (adj.autoCount === 0 && adj.proposeCount === 0) return null;
-        const loop = runAriLoop(review, Date.now());
-        return (
-          <div className="border border-[#E8E4DC] bg-white rounded-lg p-4">
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">{ARI.name} &middot; control loop (MAPE-K)</div>
-            <p className="text-sm text-[#1A1815] font-medium">{loopHeadline(loop)}</p>
-            <p className="text-[0.6875rem] text-[#5A5751] mt-1">Monitor &rarr; Analyze &rarr; Plan &rarr; Execute &rarr; Knowledge &middot; {loop.metrics.stpRate}% straight-through this pass.</p>
-            {adj.autoCount > 0 && (
-              <div className="mt-3">
-                <div className="text-[0.6875rem] uppercase tracking-wider text-[#3F5226] font-semibold mb-1">Ari can apply safely ({adj.autoCount})</div>
-                <ul className="space-y-1">
-                  {adj.auto.map((a, i) => (
-                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
-                      <span className="text-[#3F5226]">&#10003;</span> {a.action || a.title}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {adj.proposeCount > 0 && (
-              <div className="mt-3">
-                <div className="text-[0.6875rem] uppercase tracking-wider text-[#B45309] font-semibold mb-1">Needs your call ({adj.proposeCount})</div>
-                <ul className="space-y-1">
-                  {adj.propose.map((a, i) => (
-                    <li key={i} className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
-                      <span className="text-[#B45309]">&bull;</span> {a.action || a.title} <span className="text-[0.6875rem] text-[#8A857C]">&mdash; {a.reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <p className="text-[0.625rem] text-[#8A857C] mt-3 leading-relaxed">{ADJUSTMENTS_DOCTRINE}</p>
-          </div>
-        );
-      })()}
 
       {/* Per-dimension detail */}
       <div className="space-y-3">
