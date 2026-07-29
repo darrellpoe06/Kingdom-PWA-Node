@@ -56,7 +56,7 @@ The senior rule, from Darrell's reinforcement the same day:
 - **Canonical primitive:** the app-shell content container in
   `app/src/poe-financial-mvp-v28.jsx` (the `<main>` wrapper) + `TabScroll`
   (`app/src/components/shared.jsx`) for horizontal sub-tab strips.
-- **Status:** **ESTABLISHED 2026-07-29 (DR-0245).** The full-width sweep
+- **Status:** **ESTABLISHED 2026-07-29 (DR-0246).** The full-width sweep
   converted every app-tab container (17 components in one pass — Study, TV Time,
   Library, Projects, Inventory, Kitchen, Bus, Cohorts, Voice Studio, Scripture
   Library, Moore Divahs, Events, Eternal Algorithms, Creation, Church Projects,

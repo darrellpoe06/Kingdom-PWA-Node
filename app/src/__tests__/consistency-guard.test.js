@@ -70,7 +70,7 @@ describe('consistency guard — the ratchet (proven to CATCH new drift)', () => 
     expect(ratchet(live, baseline).violations).toEqual([]);
   });
 
-  it('width-cap over baseline is a HARD violation (DR-0245 — graduated from WARN 2026-07-29)', () => {
+  it('width-cap over baseline is a HARD violation (DR-0246 — graduated from WARN 2026-07-29)', () => {
     // The full-width sweep converted every app-tab container; a NEW per-surface
     // max-w is the regression Darrell had to name twice. The gate, not a
     // session's memory, is what makes saying it once enough.

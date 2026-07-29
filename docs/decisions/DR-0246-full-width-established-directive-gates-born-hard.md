@@ -1,4 +1,4 @@
-# DR-0245 — Full-width established across the app tabs; a directive's gate is born HARD
+# DR-0246 — Full-width established across the app tabs; a directive's gate is born HARD
 
 - **date:** 2026-07-29
 - **status:** accepted

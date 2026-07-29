@@ -85,7 +85,7 @@ export function fileCounts(src, basename) {
 
 // Pure ratchet: given live per-file counts and the frozen baseline, return the
 // HARD violations — emoji, fixedPx, AND widthCap over baseline (or any in a new
-// file). widthCap graduated from WARN to HARD on 2026-07-29 (DR-0245): the
+// file). widthCap graduated from WARN to HARD on 2026-07-29 (DR-0246): the
 // full-width sweep converted every app-tab container, so a NEW per-surface
 // max-w is no longer "tracked drift" — it is the exact regression Darrell had
 // to ask about twice (2026-07-24 ThinkingSpace, 2026-07-29 every tab), and the
@@ -106,7 +106,7 @@ export function ratchet(liveCounts, baseline) {
     }
     if (live.widthCap > base.widthCap) {
       violations.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
-        fix: 'tab content stretches the full width (CONSISTENCY-STANDARD rule 1, DR-0245); prose measure and modals live INSIDE the full-width container, never as the tab wrapper' });
+        fix: 'tab content stretches the full width (CONSISTENCY-STANDARD rule 1, DR-0246); prose measure and modals live INSIDE the full-width container, never as the tab wrapper' });
     }
   }
   return { violations, warnings };

@@ -1,0 +1,22 @@
+# PoeTech sovereign MCP server -- the 2026-07-28 stateless /mcp endpoint
+# (DR-0244; DR-0236 same-day build, self-deployed via services-sync).
+# Request-driven FastAPI, READ-ONLY v1 (no timers, spawns nothing -- not the
+# three-brakes class). Caddy routes  handle /mcp  ->  reverse_proxy 127.0.0.1:8795.
+[Unit]
+Description=PoeTech sovereign MCP server (stateless 2026-07-28, read-only v1)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=MCP_BRIEFING_DIR=/volume1/PoeTech/poetech-briefing
+Environment=MCP_CAGE_STATE_DIR=/volume1/PoeTech/ai-orchestrator/portable/state
+# The installer stamps the generated token here (secrets/mcp-token.txt, 0600).
+Environment=MCP_BRIDGE_TOKEN=
+WorkingDirectory=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-mcp
+ExecStart=/volume1/PoeTech/venvs/mcp/bin/uvicorn mcp_server:app --host 127.0.0.1 --port 8795
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
