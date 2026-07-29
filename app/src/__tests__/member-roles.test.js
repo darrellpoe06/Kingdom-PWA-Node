@@ -61,3 +61,52 @@ describe('grantableRoles (mirror of set_member_role guards)', () => {
     expect(roleLabel(null)).toBe('no role');
   });
 });
+
+// The governance checklist (DR-0242 / 0126) — the pure mirror of
+// set_member_capability's guards + the catalog the UI renders. If this drifts
+// from the RPC's known-capability list, the UI offers a box the server rejects.
+import { CAPABILITIES, capabilityLabel, canEditCapabilities } from '../lib/member-roles.js';
+
+describe('governance checklist (mirror of set_member_capability, 0126)', () => {
+  it('the catalog matches the RPC-known capability set exactly', () => {
+    // Pinned to v_known in 0126-member-capability-checklist.sql — a drift here
+    // means a checkbox the server rejects (or a server power with no surface).
+    expect(CAPABILITIES.map((c) => c.key).sort()).toEqual([
+      'invite:viewer',
+      'write:bus', 'write:choir', 'write:content', 'write:crm',
+      'write:events', 'write:inventory', 'write:property',
+    ].sort());
+  });
+  it('keys are unique and every entry carries a label + note + group', () => {
+    const keys = CAPABILITIES.map((c) => c.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const c of CAPABILITIES) {
+      expect(c.label.length).toBeGreaterThan(3);
+      expect(c.note.length).toBeGreaterThan(10);
+      expect(['Governance', 'Areas']).toContain(c.group);
+    }
+  });
+  it('no capability ever names the books core or role powers', () => {
+    // DEFAULT DENY: the never-unlockable core has no checkbox at all.
+    for (const c of CAPABILITIES) {
+      expect(c.key).not.toMatch(/account|transaction|debt|entit|project|payment|role|admin|member(?!s)/);
+    }
+  });
+  it('only an owner/admin edits the checklist, never for self or owner/admin targets', () => {
+    expect(canEditCapabilities('owner', 'viewer')).toBe(true);
+    expect(canEditCapabilities('owner', 'member')).toBe(true);
+    expect(canEditCapabilities('admin', 'viewer')).toBe(true);
+    expect(canEditCapabilities('admin', 'member')).toBe(true);
+    expect(canEditCapabilities('member', 'viewer')).toBe(false);
+    expect(canEditCapabilities('viewer', 'viewer')).toBe(false);
+    expect(canEditCapabilities('owner', 'owner')).toBe(false);
+    expect(canEditCapabilities('owner', 'admin')).toBe(false);
+    expect(canEditCapabilities('owner', 'viewer', { isSelf: true })).toBe(false);
+    expect(canEditCapabilities(null, 'viewer')).toBe(false);
+  });
+  it('capabilityLabel maps known keys and falls back to the key', () => {
+    expect(capabilityLabel('invite:viewer')).toBe('May invite guests (read-only)');
+    expect(capabilityLabel('write:choir')).toBe('Choir — edit');
+    expect(capabilityLabel('write:unknown')).toBe('write:unknown');
+  });
+});
