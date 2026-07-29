@@ -105,6 +105,66 @@ export async function listMyAdminInstances() {
   }));
 }
 
+// ---------------------------------------------------------------------------
+// The governance CHECKLIST (DR-0242) — additive per-person capabilities between
+// the base roles, granted/revoked by an owner/admin via set_member_capability
+// (0126). The DB is the enforcement (area-mapped RESTRICTIVE overlay + guarded
+// RPC); this catalog only mirrors it so the UI never offers a box the server
+// would reject. DEFAULT DENY: anything not listed here cannot be granted, and
+// the money core is never unlockable no matter what is checked.
+// ---------------------------------------------------------------------------
+export const CAPABILITIES = [
+  { key: 'invite:viewer',   group: 'Governance', label: 'May invite guests (read-only)',
+    note: 'Can send one-time invite links that grant Viewer access only. The claim-and-confirm handshake still applies.' },
+  { key: 'write:choir',     group: 'Areas', label: 'Choir — edit',
+    note: 'Songs, schedule, notes, and the rest of the choir workspace.' },
+  { key: 'write:bus',       group: 'Areas', label: 'Bus ministry — edit',
+    note: 'Routes, schedules, ride requests, drivers.' },
+  { key: 'write:inventory', group: 'Areas', label: 'Inventory — edit',
+    note: 'Items, counts, movements, purchase orders.' },
+  { key: 'write:crm',       group: 'Areas', label: 'CRM — edit',
+    note: 'Leads and activities.' },
+  { key: 'write:events',    group: 'Areas', label: 'Events & classes — edit',
+    note: 'Events, sessions, conferences, class signups.' },
+  { key: 'write:property',  group: 'Areas', label: 'Property — edit',
+    note: 'Rent records, tenancies, maintenance, property notes.' },
+  { key: 'write:content',   group: 'Areas', label: 'Content — edit',
+    note: 'Discussions, discovery, recipes, showcase.' },
+];
+
+export function capabilityLabel(key) {
+  const c = CAPABILITIES.find((x) => x.key === key);
+  return c ? c.label : key;
+}
+
+// Mirror of set_member_capability's guards: only an owner/admin edits the
+// checklist, never for themselves, never for an owner/admin target (they
+// already hold these powers). Pure — the RPC is the real gate.
+export function canEditCapabilities(actorRole, targetRole, { isSelf = false } = {}) {
+  if (isSelf) return false;
+  if (!['owner', 'admin'].includes(actorRole)) return false;
+  return ['member', 'viewer'].includes(targetRole);
+}
+
+// The full checklist for a space: [{ userId, capability }] (owner/admin only;
+// empty on error / no access).
+export async function listMemberCapabilities(instanceId) {
+  if (!instanceId) return [];
+  const { data, error } = await supabase.rpc('list_member_capabilities', { instance_uuid: instanceId });
+  if (error) { console.warn('[member-roles] list_member_capabilities failed:', error); return []; }
+  return (data || []).map((r) => ({ userId: r.user_id, capability: r.capability }));
+}
+
+// Check one box on/off. Returns { status } or { skipped, error }.
+export async function setMemberCapability(instanceId, targetUserId, capability, enabled) {
+  if (!instanceId || !targetUserId || !capability) return { skipped: 'bad-args' };
+  const { data, error } = await supabase.rpc('set_member_capability', {
+    instance_uuid: instanceId, target_user: targetUserId, capability_in: capability, enabled: !!enabled,
+  });
+  if (error) return { skipped: 'capability-error', error };
+  return data || { status: enabled ? 'granted' : 'revoked' };
+}
+
 // The real member roster for an instance (owner/admin only). Returns an array of
 // { userId, displayName, email, role } (empty on error / no access).
 export async function listInstanceMembers(instanceId) {

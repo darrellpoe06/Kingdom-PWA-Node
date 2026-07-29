@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: Apply 0125 (idempotent) then run the viewer-readonly smoke test
+      - name: Apply 0125+0126 (idempotent) then run both isolation smoke tests
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -50,7 +50,13 @@ jobs:
           echo "=== applying 0125-viewer-true-readonly-and-invite-target.sql (idempotent) ==="
           psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
             -f infra/supabase/migrations-auto/0125-viewer-true-readonly-and-invite-target.sql
+          echo "=== applying 0126-member-capability-checklist.sql (idempotent) ==="
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0126-member-capability-checklist.sql
           echo "=== running the viewer-readonly smoke test (rolls back) ==="
           psql "$DBURL" -v ON_ERROR_STOP=1 \
             -f infra/supabase/tests/0125-viewer-readonly-smoke.sql
-          echo "viewer-readonly smoke test completed without a wrong grant (see 'VIEWER READONLY SMOKE: PASS' above)"
+          echo "=== running the capability-checklist smoke test (rolls back) ==="
+          psql "$DBURL" -v ON_ERROR_STOP=1 \
+            -f infra/supabase/tests/0126-capability-checklist-smoke.sql
+          echo "both isolation smokes completed without a wrong grant (PASS lines above)"

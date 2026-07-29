@@ -39,7 +39,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import MemberInspect from './MemberInspect.jsx';
 
@@ -124,6 +124,8 @@ export default function AdminConsole({
   const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
   const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
   const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
+  const [checklistFor, setChecklistFor] = useState(null);           // member userId whose capability checklist is open (DR-0242)
+  const [capGrants, setCapGrants] = useState([]);                   // [{ userId, capability }] for the scoped space (0126)
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -175,6 +177,7 @@ export default function AdminConsole({
       const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
       const list = await listInstanceMembers(wanted);
       setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
+      setCapGrants(await listMemberCapabilities(wanted));
       loadPending();
     } catch (e) {
       setMembers({ status: 'error', list: [], myRole: null, error: (e && e.message) || 'query failed' });
@@ -184,6 +187,13 @@ export default function AdminConsole({
     const r = await setMemberRole(scopeInstance, userId, role);
     if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
     await loadMembers(scopeInstance);
+  };
+  // One checkbox on the governance checklist (DR-0242): grant/revoke, then
+  // re-read the real grants so the boxes always show DB truth.
+  const toggleCapability = async (userId, capability, enabled) => {
+    const r = await setMemberCapability(scopeInstance, userId, capability, enabled);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    setCapGrants(await listMemberCapabilities(scopeInstance));
   };
 
   // The type of the space currently being managed (church vs family/other), so the
@@ -375,6 +385,16 @@ export default function AdminConsole({
                           ) : (
                             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
                           )}
+                          {/* The governance checklist (DR-0242): additive powers
+                              between the roles — per person, DB-enforced. */}
+                          {m.userId && canEditCapabilities(members.myRole, m.role, { isSelf }) && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={checklistFor === m.userId}
+                              onClick={() => setChecklistFor((cur) => (cur === m.userId ? null : m.userId))}>
+                              {checklistFor === m.userId ? 'Close' : 'Checklist'}
+                            </button>
+                          )}
                           {/* Inspect: the stewardship record (position · status ·
                               satisfaction · notes, 0122) — Darrell 2026-07-27. */}
                           {m.userId && (
@@ -387,6 +407,38 @@ export default function AdminConsole({
                           )}
                         </span>
                       </div>
+                      {checklistFor === m.userId && (
+                        <div className="mt-1.5 border border-[#E8E4DC] bg-[#FAF8F4] p-2.5">
+                          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+                            Extra powers for {m.displayName || m.email || 'this person'} — on top of {roleLabel(m.role)}
+                          </div>
+                          <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+                            Each box adds one specific ability without changing their role. The books, money, and membership are never unlockable here — those stay with Admin.
+                          </p>
+                          {['Governance', 'Areas'].map((group) => (
+                            <div key={group} className="mt-1.5">
+                              <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">{group}</div>
+                              <ul className="mt-1 space-y-1">
+                                {CAPABILITIES.filter((c) => c.group === group).map((c) => {
+                                  const on = capGrants.some((g) => g.userId === m.userId && g.capability === c.key);
+                                  return (
+                                    <li key={c.key}>
+                                      <label className="flex items-start gap-2 text-xs text-[#1A1815] cursor-pointer" style={serif}>
+                                        <input type="checkbox" className="mt-0.5 accent-[#5A6E3D]" checked={on}
+                                          onChange={(e) => toggleCapability(m.userId, c.key, e.target.checked)} />
+                                        <span>
+                                          <span className="font-semibold">{c.label}</span>
+                                          <span className="block text-[0.6875rem] text-[#5A5751]">{c.note}</span>
+                                        </span>
+                                      </label>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {inspecting === m.userId && (
                         <MemberInspect instanceId={scopeInstance} member={m} />
                       )}

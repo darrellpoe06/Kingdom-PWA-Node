@@ -119,6 +119,41 @@ describe('tenancy guard — data isolation (DR-0059)', () => {
     expect(problems.join(' ')).toMatch(/RESTRICTIVE|invoke/i);
   });
 
+  // DR-0242: a LATER migration that redefines the overlay function is the live
+  // policy source from then on — hollowing it THERE is the same defect.
+  it('CATCHES a later redefinition that hollows the overlay', () => {
+    const { ok, problems } = checkViewerOverlay({
+      laterFilesOverride: [{
+        name: '0998-redefine.sql',
+        sql: 'CREATE OR REPLACE FUNCTION public.apply_viewer_readonly_overlay()\nRETURNS integer LANGUAGE sql AS $$ SELECT 0; $$;\nSELECT public.apply_viewer_readonly_overlay();',
+      }],
+    });
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/hollowed|participation/i);
+  });
+
+  // DR-0242: the capability checklist may unlock AREAS only — unpinning a core
+  // table from never_unlockable_tables() is CAUGHT.
+  it('CATCHES an unpinned core table in never_unlockable_tables()', () => {
+    const redefBase = "CREATE OR REPLACE FUNCTION public.apply_viewer_readonly_overlay()\n"
+      + "AS RESTRICTIVE 'viewer' 'direct_messages' 'group_messages' 'family_messages' "
+      + "'feedback' 'usage_events' 'user_instance_settings'\n"
+      + "never_unlockable_tables 'entities' 'accounts' 'transactions' 'debts' "
+      + "'instance_members' 'instance_invites' 'member_capabilities'\n" // 'projects' missing
+      + 'SELECT public.apply_viewer_readonly_overlay();';
+    const { ok, problems } = checkViewerOverlay({
+      laterFilesOverride: [{ name: '0998-unpin.sql', sql: redefBase }],
+    });
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/projects.*never_unlockable/);
+  });
+
+  // And the real 0126 redefinition passes (the guard isn't always-failing).
+  it('PASSES the shipped 0126 capability-checklist redefinition', () => {
+    const { ok, problems } = checkViewerOverlay();
+    expect(ok, problems.join('; ')).toBe(true);
+  });
+
   // And confirm the fixed form passes (so the guard isn't just always-failing).
   it('PASSES the membership-gated form', () => {
     const fixed = `const isFamilyMember = isFamilyEmail(authSession?.user?.email);\nconst PROFILES = [\n  { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam' },\n  { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi' },\n];`;

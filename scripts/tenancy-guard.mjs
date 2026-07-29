@@ -282,6 +282,7 @@ export function checkViewerOverlay({ migrationOverride = null, laterFilesOverrid
             .map(name => ({ name, sql: readFileSync(join(MIGRATIONS_DIR, name), 'utf8') }))
         : []);
   const createRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?\s*\(([\s\S]*?)\n\s*\)\s*;/gi;
+  const overlayRedefRe = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.apply_viewer_readonly_overlay/i;
   for (const { name, sql } of files) {
     const body = stripComments(sql);
     let m2;
@@ -293,6 +294,30 @@ export function checkViewerOverlay({ migrationOverride = null, laterFilesOverrid
       later.push({ file: name, table });
       if (!OVERLAY_CALL_RE.test(body)) {
         problems.push(`${name} creates instance-scoped table "${table}" without re-running apply_viewer_readonly_overlay() (a viewer could write it)`);
+      }
+    }
+    // A later migration that REDEFINES the overlay function (e.g. 0126's
+    // capability checklist) must keep the same invariants as 0125 — the
+    // redefinition is the live policy source from then on, so hollowing it
+    // there is the same defect as hollowing 0125.
+    if (overlayRedefRe.test(body)) {
+      if (!/AS\s+RESTRICTIVE/i.test(body) || !/'viewer'/.test(body)) {
+        problems.push(`${name} redefines apply_viewer_readonly_overlay without RESTRICTIVE viewer policies (hollowed out)`);
+      }
+      for (const t of PARTICIPATION_EXCEPTIONS) {
+        if (!body.includes(`'${t}'`)) {
+          problems.push(`${name} redefines the overlay but drops participation exception '${t}'`);
+        }
+      }
+      // The capability checklist may unlock AREAS only — the core books and
+      // membership machinery must stay pinned never-unlockable (DR-0242).
+      if (/never_unlockable_tables/i.test(body)) {
+        for (const t of ['entities', 'accounts', 'transactions', 'debts', 'projects',
+                         'instance_members', 'instance_invites', 'member_capabilities']) {
+          if (!body.includes(`'${t}'`)) {
+            problems.push(`${name} unpinned '${t}' from never_unlockable_tables() — the core must stay unlockable by NO capability`);
+          }
+        }
       }
     }
   }
