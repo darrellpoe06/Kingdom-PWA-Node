@@ -48,6 +48,9 @@ concurrency:
 jobs:
   apply:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write   # to dispatch the isolation proof below
     steps:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
@@ -56,3 +59,22 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: bash scripts/db-migrate-apply.sh
+      # Fire the live isolation proof EXPLICITLY (DR-0241/DR-0242). The
+      # viewer-readonly-isolation workflow's `workflow_run: db-migrate` trigger
+      # NEVER fires in this lane: these runs are dispatched with GITHUB_TOKEN,
+      # and GitHub suppresses events from token-driven runs (anti-recursion) —
+      # the exact class DR-0107 documented for the deploy. Observed twice
+      # (2026-07-29, after #1097 and #1098) before this explicit dispatch.
+      # An explicit workflow_dispatch API call is NOT suppressed (the deploy
+      # rides the same pattern). Same-lane, deploy-path only — not self-arming.
+      - name: Dispatch the viewer-readonly isolation proof
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/viewer-readonly-isolation.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "isolation proof dispatched"
