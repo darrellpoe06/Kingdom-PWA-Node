@@ -68,6 +68,29 @@ if [ "$DROPPED" = "0" ]; then
   echo "    $ROUTE"
 fi
 
+echo "== mcp install: funnel path mount (guarded, additive, reversible) =="
+# The 2026-07-29 mcp-health probe proved the Funnel's public hostname routes
+# to n8n at '/' — a Caddy snippet alone is unreachable from outside. A
+# tailscale-serve PATH mount is additive per-path (never touches '/', the
+# live transport) and reversible (tailscale serve --set-path /mcp off).
+# Guarded per DR-0076: only when the CLI exists, only when /mcp is not
+# already mounted; on an old CLI without --set-path this prints the manual
+# line honestly instead of guessing.
+if command -v tailscale >/dev/null 2>&1; then
+  if tailscale serve status 2>/dev/null | grep -q "/mcp"; then
+    echo "  /mcp already mounted on the funnel"
+  elif tailscale serve --help 2>&1 | grep -q -- "--set-path"; then
+    tailscale serve --bg --set-path /mcp http://127.0.0.1:8795 \
+      && echo "  mounted /mcp -> 127.0.0.1:8795 (additive; '/' untouched)" \
+      || echo "  mount FAILED -- run by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+    tailscale serve status 2>/dev/null || true
+  else
+    echo "  tailscale CLI lacks --set-path -- mount by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+  fi
+else
+  echo "  no tailscale CLI on PATH -- mount by hand from DSM: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+fi
+
 echo "== mcp install: health (a real discover round-trip, DR-0076) =="
 sleep 1
 if command -v curl >/dev/null 2>&1; then
