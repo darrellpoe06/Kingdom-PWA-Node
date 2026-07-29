@@ -117,7 +117,7 @@ const SHELL_WIRING = [
   'if (!authSession || isAnyDemoMode || reviewerMode) return;',
   // table syncs stay off (DR-0241 faithfulness): without this the steward's
   // real cloud rows merge into the "fresh user" preview
-  'if (reviewerMode) {\n      setShowVerifyBalances(false);\n      return;\n    }',
+  'if (reviewerMode) { setShowVerifyBalances(false); return; }',
   // the pinned banner renders whenever the lens is on
   '{reviewerMode && <ReviewerModeBanner />}',
 ];
