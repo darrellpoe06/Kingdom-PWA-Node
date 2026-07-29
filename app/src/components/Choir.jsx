@@ -515,7 +515,9 @@ function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite
             <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
             <div><label className={LABEL} htmlFor="ci-role">Access</label>
               <select id="ci-role" className={FIELD} value={inv.role} onChange={(e) => setInv((p) => ({ ...p, role: e.target.value }))}>
-                <option value="member">Member (view)</option><option value="admin">Co-director (edit)</option>
+                {/* Surface-says-truth (DR-0241): 'member' is participation, not
+                    read-only — the false "(view)" parenthetical is gone. */}
+                <option value="member">Member</option><option value="admin">Co-director (edit)</option>
               </select>
             </div>
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>

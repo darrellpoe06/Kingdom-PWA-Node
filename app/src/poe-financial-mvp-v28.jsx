@@ -2153,6 +2153,9 @@ export default function PoeFinancialSystem() {
       setShowVerifyBalances(false);
       return;
     }
+    // Reviewer mode (DR-0241): no table syncs — the lens stays a fresh user's
+    // empty world, never the steward's real cloud rows. No syncs, no writes.
+    if (reviewerMode) { setShowVerifyBalances(false); return; }
     if (!data.numericSyncVerifiedAt) {
       // A signed-in user whose numeric data is ENTIRELY seed scaffolding has
       // nothing real to verify — never show them a wizard full of sample
@@ -4495,14 +4498,11 @@ ${THEME_CSS}
                 // Assistant is folded into the unified TLC workspace (above) as a
                 // sub-tab — no standalone top-nav entry. The 'tlc-assistant' route
                 // stays valid for deep-links; the render block below still serves it.
-                // Admin — the real backend control surface. Shown to family
-                // stewards, and on the trusted NAS/home host (where being on the
-                // family network is itself the access control) — the SAME gate the
-                // render below applies, so the tab and the surface never disagree.
-                // On the public site a non-steward never gets the entry (no-leak,
-                // like Center / Forecast); the module also carries a defense-in-
-                // depth locked fallback for any deep-link.
-                ...((!reviewerMode && (isFamilyMember || !isPublicHost())) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
+                // Admin — same gate as the render below (tab and surface never
+                // disagree): family stewards anywhere; home host only in the
+                // OPEN no-session state — a signed-in guest on the house WiFi
+                // gets no Admin (DR-0241: the network trusts devices, not sessions).
+                ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
               ].filter(([id]) => !churchDoorOnly || id === 'church')
                .map(([id, label]) => {
                 if (id === '__sep__') {
@@ -5239,7 +5239,7 @@ ${THEME_CSS}
             ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
-            isGovernor={!reviewerMode && (isFamilyMember || !isPublicHost())}
+            isGovernor={!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}

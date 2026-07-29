@@ -5,7 +5,7 @@
 // scripts/tenancy-guard.mjs (also runnable as a CLI); this test runs it inside
 // `app — lint + vitest` so it gates every merge with no ruleset change.
 import { describe, it, expect } from 'vitest';
-import { scanTenancy, checkProvisioning, checkIdentityGate, checkInstancesRecursion } from '../../../scripts/tenancy-guard.mjs';
+import { scanTenancy, checkProvisioning, checkIdentityGate, checkInstancesRecursion, checkViewerOverlay } from '../../../scripts/tenancy-guard.mjs';
 
 describe('tenancy guard — data isolation (DR-0059)', () => {
   it('the scanner actually sees the schema (not vacuously empty)', () => {
@@ -75,6 +75,48 @@ describe('tenancy guard — data isolation (DR-0059)', () => {
         USING ( user_in_instance(id) OR user_in_instance(parent_instance_id) );`;
     const { ok } = checkInstancesRecursion(dropped);
     expect(ok).toBe(true);
+  });
+
+  // Check E (DR-0241): 'viewer' is truly read-only only while the 0125
+  // RESTRICTIVE deny-overlay stays intact AND covers tables created by later
+  // migrations (the overlay function only sees tables that exist when it runs).
+  it('the viewer read-only overlay is intact and covers later tables (DR-0241)', () => {
+    const { ok, problems } = checkViewerOverlay();
+    expect(ok, problems.join('; ')).toBe(true);
+  });
+
+  // Anti-theater: a later migration creating an instance-scoped table WITHOUT
+  // re-running the overlay must be CAUGHT.
+  it('CATCHES a post-0125 instance-scoped table that skips the overlay re-run', () => {
+    const { ok, problems } = checkViewerOverlay({
+      laterFilesOverride: [{
+        name: '0999-new-table.sql',
+        sql: 'CREATE TABLE IF NOT EXISTS new_thing (\n  id uuid PRIMARY KEY,\n  instance_id uuid NOT NULL\n);',
+      }],
+    });
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/new_thing/);
+  });
+
+  // And the compliant form passes (the guard isn't always-failing).
+  it('PASSES a post-0125 table that re-runs the overlay in the same file', () => {
+    const { ok, problems } = checkViewerOverlay({
+      laterFilesOverride: [{
+        name: '0999-new-table.sql',
+        sql: 'CREATE TABLE IF NOT EXISTS new_thing (\n  id uuid PRIMARY KEY,\n  instance_id uuid NOT NULL\n);\nSELECT public.apply_viewer_readonly_overlay();',
+      }],
+    });
+    expect(ok, problems.join('; ')).toBe(true);
+  });
+
+  // A hollowed-out overlay migration (RESTRICTIVE policies removed) is CAUGHT.
+  it('CATCHES a hollowed-out overlay migration', () => {
+    const { ok, problems } = checkViewerOverlay({
+      migrationOverride: '-- overlay removed\nSELECT 1;',
+      laterFilesOverride: [],
+    });
+    expect(ok).toBe(false);
+    expect(problems.join(' ')).toMatch(/RESTRICTIVE|invoke/i);
   });
 
   // And confirm the fixed form passes (so the guard isn't just always-failing).

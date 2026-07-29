@@ -228,7 +228,11 @@ function AddContact({ onInvited }) {
     }
 
     setMsg('Inviting…'); setShare({ text: '', link: '', phone: hasPhone ? phone : '' });
-    const r = await inviteToSpace(space?.instanceType, email, 'member');
+    // Least-privilege default for the quick-add contact flow (DR-0241; the
+    // IDENTITY-ROLES-AUDIT "visiting relative" posture): a contact added here
+    // gets read-only 'viewer' — they can see the space and DM its leaders.
+    // Anything more is a deliberate role change in Admin -> Manage access roles.
+    const r = await inviteToSpace(space?.instanceType, email, 'viewer', space?.instanceId);
     if (!r.ok) { setMsg(`Couldn't invite (${r.reason || 'error'}).`); return; }
     keepContact('invited');
     const kind = r.kind === 'church' ? 'church' : 'claim';
@@ -289,6 +293,7 @@ function AddContact({ onInvited }) {
         <p className="text-[0.5625rem] text-[#5A5751] leading-snug">
           A name is all you need to save a contact. Email is how their access is matched when they sign in;
           a cellphone alone lets you text them the app now — add their email whenever to give access.
+          People added here join <strong>read-only</strong>; raise their role later in Admin &rarr; Manage access roles.
         </p>
       </div>
       {msg && <p className="text-xs text-[#1A1815]" role="status">{msg}</p>}

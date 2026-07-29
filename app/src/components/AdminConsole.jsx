@@ -196,7 +196,7 @@ export default function AdminConsole({
   const doInvite = async () => {
     if (!isInviteEmail(invite.email)) { setInvite((p) => ({ ...p, msg: 'Enter a valid email.', link: '' })); return; }
     setInvite((p) => ({ ...p, msg: 'Inviting…', link: '' }));
-    const r = await inviteToSpace(scopeType, invite.email, invite.role);
+    const r = await inviteToSpace(scopeType, invite.email, invite.role, scopeInstance);
     if (!r.ok) { setInvite((p) => ({ ...p, msg: `Couldn't invite (${r.reason || 'error'}).`, link: '' })); return; }
     if (r.kind === 'church') {
       setInvite({ email: '', role: 'member', msg: `Invited ${r.email}. They'll get access the next time they sign in.`, link: '' });

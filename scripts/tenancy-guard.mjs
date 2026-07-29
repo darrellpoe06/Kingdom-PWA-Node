@@ -222,6 +222,84 @@ export function checkInstancesRecursion(sqlOverride = null) {
   return { ok: problems.length === 0, problems, surviving: [...surviving.keys()] };
 }
 
+// --- Check E: viewer read-only overlay coverage (DR-0241) -------------------
+// Migration 0125 makes 'viewer' truly read-only via a RESTRICTIVE deny-overlay
+// applied by public.apply_viewer_readonly_overlay(). That function loops over
+// tables that EXIST when it runs — so an instance-scoped table created by a
+// LATER migration silently escapes the overlay (a viewer could write it).
+// This check closes that gap statically:
+//   1. The overlay migration must exist and keep its RESTRICTIVE overlay +
+//      participation-exception list intact (hollowing it out = fail).
+//   2. Every migration AFTER 0125 that creates an instance-scoped table must
+//      re-run `SELECT public.apply_viewer_readonly_overlay();` in the same
+//      file, or list the table in VIEWER_OVERLAY_EXCEPTIONS with a reason.
+// Pass override strings to test the catch without the filesystem (anti-theater
+// proof, DR-0060/DR-0076 §3).
+const OVERLAY_MIGRATION = '0125-viewer-true-readonly-and-invite-target.sql';
+const OVERLAY_CALL_RE = /SELECT\s+public\.apply_viewer_readonly_overlay\s*\(\s*\)/i;
+// Self-scoped participation tables the overlay deliberately skips — must match
+// the migration's own list; a drift here is a visible decision, never silent.
+const PARTICIPATION_EXCEPTIONS = [
+  'direct_messages', 'group_messages', 'family_messages',
+  'feedback', 'usage_events', 'user_instance_settings',
+];
+const VIEWER_OVERLAY_EXCEPTIONS = {
+  // 'table_name': 'why a viewer may write this table',
+};
+
+export function checkViewerOverlay({ migrationOverride = null, laterFilesOverride = null } = {}) {
+  const problems = [];
+
+  const overlaySql = migrationOverride != null
+    ? migrationOverride
+    : (existsSync(join(MIGRATIONS_DIR, OVERLAY_MIGRATION))
+        ? readFileSync(join(MIGRATIONS_DIR, OVERLAY_MIGRATION), 'utf8')
+        : null);
+  if (overlaySql == null) {
+    return { ok: false, problems: [`overlay migration missing: ${OVERLAY_MIGRATION}`], later: [] };
+  }
+  const overlayBody = stripComments(overlaySql);
+  if (!/AS\s+RESTRICTIVE/i.test(overlayBody) || !/'viewer'/.test(overlayBody)) {
+    problems.push('overlay migration no longer creates RESTRICTIVE viewer policies (hollowed out)');
+  }
+  if (!OVERLAY_CALL_RE.test(overlayBody)) {
+    problems.push('overlay migration no longer invokes apply_viewer_readonly_overlay()');
+  }
+  for (const t of PARTICIPATION_EXCEPTIONS) {
+    if (!overlayBody.includes(`'${t}'`)) {
+      problems.push(`participation exception drifted: '${t}' expected in the overlay migration`);
+    }
+  }
+
+  // Later migrations that create instance-scoped tables must re-run the overlay.
+  const later = [];
+  const files = laterFilesOverride != null
+    ? laterFilesOverride // [{ name, sql }]
+    : (existsSync(MIGRATIONS_DIR)
+        ? readdirSync(MIGRATIONS_DIR)
+            .filter(f => f.endsWith('.sql') && f > OVERLAY_MIGRATION)
+            .sort()
+            .map(name => ({ name, sql: readFileSync(join(MIGRATIONS_DIR, name), 'utf8') }))
+        : []);
+  const createRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["']?([a-zA-Z_][a-zA-Z0-9_]*)["']?\s*\(([\s\S]*?)\n\s*\)\s*;/gi;
+  for (const { name, sql } of files) {
+    const body = stripComments(sql);
+    let m2;
+    createRe.lastIndex = 0;
+    while ((m2 = createRe.exec(body)) !== null) {
+      const table = m2[1].toLowerCase();
+      if (!/\binstance_id\b/.test(m2[2])) continue;
+      if (table in VIEWER_OVERLAY_EXCEPTIONS) continue;
+      later.push({ file: name, table });
+      if (!OVERLAY_CALL_RE.test(body)) {
+        problems.push(`${name} creates instance-scoped table "${table}" without re-running apply_viewer_readonly_overlay() (a viewer could write it)`);
+      }
+    }
+  }
+
+  return { ok: problems.length === 0, problems, later };
+}
+
 // --- CLI -------------------------------------------------------------------
 function isMain() {
   return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
@@ -275,7 +353,18 @@ if (isMain()) {
     console.log('');
   }
 
-  const failed = missing.length > 0 || !prov.ok || !ident.ok || !recur.ok;
+  const overlay = checkViewerOverlay();
+  console.log('## E. Viewer read-only overlay coverage (DR-0241)');
+  console.log(`Instance-scoped tables created after 0125: ${overlay.later.length}`);
+  if (overlay.ok) {
+    console.log('PASS — the viewer deny-overlay is intact and covers every later table.\n');
+  } else {
+    console.log('FAIL — a viewer could write where the label promises read-only:');
+    overlay.problems.forEach(p => console.log(`  - ${p}`));
+    console.log('');
+  }
+
+  const failed = missing.length > 0 || !prov.ok || !ident.ok || !recur.ok || !overlay.ok;
   console.log(failed ? 'TENANCY GUARD: FAIL' : 'TENANCY GUARD: PASS');
   process.exit(failed ? 1 : 0);
 }
