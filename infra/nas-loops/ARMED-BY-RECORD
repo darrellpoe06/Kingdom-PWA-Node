@@ -1,0 +1,22 @@
+ARMED BY RECORD — DR-0247 + DR-0248 (Darrell, 2026-07-29)
+
+"I always want everything started not waiting for a human especially after we
+agree... Change those laws... they are incorrect and incomplete they keep
+usurping my will!!!!!" And: "Get rid of the kill switch... we will rebuild it
+after... we have over 6000 checks... they are all switching deterministic
+logic."
+
+This committed file IS the arm for the deterministic nas-loops fleet: merging
+it to main started the fleet, per the amended law — agreed work starts itself
+through the lane; the Governor's hand is the BRAKE, never the starter.
+
+The deterministic brakes that remain (proven in scripts/lib/nas-loops.mjs +
+app/src/__tests__/nas-loops.test.js + started-by-record.test.js):
+  - BUDGET: per-loop max_calls_per_day + timeout_seconds (registry.json).
+  - LOCK: single-flight per loop; a second fire skips, never stacks.
+
+The kill-switch manual override is REMOVED from this class (DR-0248; rebuild
+tracked there). The stop-paths are the lane's own deterministic logic:
+  - set a loop enabled:false in registry.json (a PR through the gates), or
+  - delete this file in a PR, or
+  - toggle the DSM Task Scheduler entry on the NAS.

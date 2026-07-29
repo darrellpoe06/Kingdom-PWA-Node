@@ -18,18 +18,19 @@ class (research-review §3a). DSM relaunches it on the next schedule.
 
 | Brake | How it's enforced here | Disarm in one step |
 |---|---|---|
-| **Budget** | per-run wall-clock **timeout** (a hung loop is killed at its ceiling) + per-day **call cap** (`max_calls_per_day`; an unset cap is a *missing* brake → no-go) | lower the cap / `touch KILL_SWITCH` |
+| **Budget** | per-run wall-clock **timeout** (a hung loop is killed at its ceiling) + per-day **call cap** (`max_calls_per_day`; an unset cap is a *missing* brake → no-go) | lower the cap in a PR |
 | **Concurrency lock** | per-loop atomic **lockdir** (`state/<loop>.lock`); a second fire that finds it held **skips** | automatic |
-| **Kill-switch** | `state/KILL_SWITCH` present → every loop **inert** (fleet-wide panic). PLUS the **`LOOPS_ARMED` parameter** (env or `.env`; **ships UNSET** → inert) — the one deliberate arm (DR-0096) | `touch state/KILL_SWITCH` |
 | **Observability** | one JSONL line per run to the **event reel** (the same `_reel.jsonl` the Dispatch Status surface reads) + `events/events.jsonl`; **ntfy** on failure | — |
 
-**Ships inert, governed by parameters (DR-0096).** Governance is the coded
-parameters (the registry: `enabled` + caps + timeouts) plus the humans who review
-it and hold the kill-switch — not a manual double-ceremony. There is **one arm**:
-the `LOOPS_ARMED` parameter (env or `.env`), which ships **unset** so the runner is
-inert on deploy. Once armed, invoking a loop **runs** it behind the three brakes;
-there is **no separate `--run` gate** (`--dry-run` previews and runs nothing).
-Disarmed → a bare invocation can never run by accident. The decision authority is
+**Started by record (AMENDED 2026-07-29 — DR-0247/DR-0248).** The committed
+`ARMED-BY-RECORD` file arms the fleet by merge: agreed work starts itself
+through the lane; the Governor's hand is the BRAKE, never the starter. The
+manual kill-switch override is REMOVED from this deterministic class
+(*"Get rid of the kill switch... we have over 6000 checks... they are all
+switching deterministic logic"* — rebuild tracked in DR-0248). The stop-paths
+are deterministic: registry `enabled:false` (a PR), deleting `ARMED-BY-RECORD`
+(a PR), or the DSM Task Scheduler toggle. Env/`.env` `LOOPS_ARMED` and the
+legacy state-file arm still work for a local hand-run. The decision authority is
 the pure, unit-tested core `scripts/lib/nas-loops.mjs` (proven-to-catch, DR-0076);
 this runner only does the I/O around it.
 
@@ -109,15 +110,10 @@ cd C:\Users\dpoe\Kingdom-PWA-Node
 ssh dpoe@192.168.1.26 "tail -5 /data/poetech-briefing/_reel.jsonl"
 ```
 
-### Panic / disarm (one step, your hand)
-```
-cd C:\Users\dpoe\Kingdom-PWA-Node
-ssh dpoe@192.168.1.26 "touch /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/state/KILL_SWITCH"   # halt ALL loops now
-ssh dpoe@192.168.1.26 "sed -i '/^LOOPS_ARMED=/d' /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/.env"   # disarm (remove the parameter; stay deployed)
-```
-To resume: `rm` the `KILL_SWITCH`. To halt the **whole fleet** (this runner AND the
-AI orchestrator) with a single file, set `KILL_SWITCH_FILE` in `.env` to the shared
-bundle path `infra/ai-orchestrator/portable/state/KILL_SWITCH`.
+### Stop-paths (deterministic — DR-0248; the manual kill-switch is removed)
+- Set the loop `enabled: false` in `registry.json` in a PR (the gates review it).
+- Delete `infra/nas-loops/ARMED-BY-RECORD` in a PR (disarms the whole fleet by record).
+- Toggle the DSM Task Scheduler entry off on the NAS (per-loop, boot-persistent).
 
 ### Migrate the rest (per the research-review §6)
 Non-LLM loops first (health/probe class), then reconciliation, then the autonomous

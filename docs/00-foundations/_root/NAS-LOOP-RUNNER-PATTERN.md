@@ -48,12 +48,16 @@ AI class never escapes its heavier gate by riding the lighter one.
    a *missing* brake, and a missing brake means **do not act**.
 2. **Concurrency lock** — atomic **lockdir** per loop; a second fire that finds it
    held **skips**, never stacks.
-3. **Kill-switch** — a `KILL_SWITCH` file → every loop **inert** (one touch halts the
-   fleet). PLUS a class **arm parameter** (`LOOPS_ARMED` here; `RESUME_ARMED` for the
-   AI class) that **ships UNSET** → the runner ships inert and is armed once,
-   deliberately, via one parameter (DR-0096: governance is the coded parameters + the
-   humans who hold the kill-switch; no redundant second `--run` gate — once armed, a
-   fire runs, bounded by the brakes).
+3. **Started by record; the manual kill-switch is REMOVED from the deterministic
+   class (AMENDED 2026-07-29, DR-0247/DR-0248).** The committed `ARMED-BY-RECORD`
+   arms the fleet by merge — agreed work starts itself through the lane; the
+   Governor's hand is the BRAKE, never the starter. The stop-paths are the lane's
+   own deterministic logic: registry `enabled:false`, deleting `ARMED-BY-RECORD`,
+   or the DSM toggle. (*"Get rid of the kill switch... we have over 6000 checks...
+   they are all switching deterministic logic... too many in the code for a human
+   to know when to turn them on or off."* Rebuild, if wanted, tracked in DR-0248.)
+   The AI class (`RESUME_ARMED`, cap-resume/wake) keeps its full brake set until
+   its own rebuild decision.
 4. **Observability** — one append-only JSONL line per run to the **event reel**
    (`_reel.jsonl`, the Dispatch Status data source) + an events log; **ntfy** on
    failure. Silence is not success; every run leaves a trace.

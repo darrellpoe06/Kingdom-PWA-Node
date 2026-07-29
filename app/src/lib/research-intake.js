@@ -86,7 +86,7 @@ export const SOURCING_BENCH = Object.freeze([
     key: 'nas',
     name: 'The sovereign lane (Supabase-bus + church boxes + NAS Whisper/Ollama)',
     skills: 'Sovereign automation the DR-0132 way: the app writes task rows to Supabase, the self-orchestrating box polls outbound and runs local models; transcription (Whisper) and the dispatch/status surfaces stay in the house.',
-    constraint: 'The LAN is unreachable from the cloud sandbox — box/NAS-side steps run as paste-ready runbooks by Darrell’s hand (ConnectBot); n8n is OFF the critical path by the house’s own experience (DR-0132, LESSONS P17–P19) and returns only by a governance case; timer-driven work ships under the three brakes, inactive.',
+    constraint: 'The LAN is unreachable from the cloud sandbox — box/NAS-side steps run as paste-ready runbooks by Darrell’s hand (ConnectBot); n8n is OFF the critical path by the house’s own experience (DR-0132, LESSONS P17–P19) and returns only by a governance case; timer-driven work starts by record through the lane with its deterministic brakes (budget + lock) proven — the Governor’s hand is the brake, never the starter (DR-0247/DR-0248). Repo-declared services self-deploy via the services-sync manifest.',
     entry: 'Supabase rows the box polls outbound (no inbound hop); runbooks executed by the principal.',
   },
   {

@@ -14,9 +14,12 @@
 //                 CAP (state/calls-<loop>-<UTCday>.txt). On reach => no-op/stop.
 //   2. LOCK       per-loop single-flight lockdir (state/<loop>.lock via atomic
 //                 mkdir). A second fire that finds it held SKIPS — never stacks.
-//   3. KILL-SWITCH  state/KILL_SWITCH present => INERT (panic stop, fleet-wide).
-//                 PLUS the LOOPS_ARMED arm PARAMETER (env or .env; ships UNSET) —
-//                 the one deliberate arm. The runner ships inert; arming is a
+//   (KILL-SWITCH REMOVED — DR-0248: the manual override is gone from this
+//                 deterministic class; stop-paths are registry enabled:false,
+//                 deleting ARMED-BY-RECORD, or the DSM toggle — all through
+//                 deterministic logic. Rebuild tracked in DR-0248.)
+//                 PLUS the arm (env/.env LOOPS_ARMED, legacy state file, or the
+//                 COMMITTED ARMED-BY-RECORD — DR-0247). Arming was formerly a
 //                 single parameter, not a ceremony (DR-0096).
 // Plus OBSERVABILITY: one JSONL line per run appended to the event reel (the same
 // _reel.jsonl the Dispatch Status surface reads) + the bundle events log; ntfy on
@@ -43,8 +46,7 @@
 //
 // Env (read from infra/nas-loops/.env + process env):
 //   LOOPS_DIR          runner root (default infra/nas-loops)
-//   KILL_SWITCH_FILE   override the kill-switch path (point at the shared bundle
-//                      KILL_SWITCH for unified fleet panic; default LOOPS_DIR/state/KILL_SWITCH)
+//   (KILL_SWITCH_FILE removed — DR-0248)
 //   NODE_NAME          label in the reel/events (default 'nas-loops')
 //   NTFY_URL / NTFY_TOPIC   failure alert (best-effort; optional)
 // =============================================================================
@@ -53,7 +55,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmdirSync } from 'n
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { validateRegistry, findLoop, decideRun, reelLine } from '../../scripts/lib/nas-loops.mjs';
+import { validateRegistry, findLoop, decideRun, reelLine, resolveArmed } from '../../scripts/lib/nas-loops.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
@@ -89,19 +91,24 @@ function readEnv() {
 }
 const env = { ...readEnv(), ...process.env };
 
-const KILL_SWITCH_FILE = env.KILL_SWITCH_FILE
-  ? (isAbsolute(env.KILL_SWITCH_FILE) ? env.KILL_SWITCH_FILE : join(repoRoot, env.KILL_SWITCH_FILE))
-  : join(STATE_DIR, 'KILL_SWITCH');
+// KILL-SWITCH REMOVED (DR-0248): no manual override in this class; the
+// deterministic gates + the lane are the protection and the stop-paths.
 const NODE_NAME = env.NODE_NAME || 'nas-loops';
 
-function killSwitchEngaged() { return existsSync(KILL_SWITCH_FILE); }
 // The single ARM (DR-0096): the LOOPS_ARMED parameter (env or infra/nas-loops/.env),
 // truthy => armed. Ships UNSET => inert. The legacy state/LOOPS_ARMED file is still
 // honored so an existing hand-armed NAS keeps working — one arm, parameter-first.
+// DR-0247 amendment (Darrell 2026-07-29: "I always want everything started not
+// waiting for a human especially after we agree"): the COMMITTED arm record
+// (ARMED-BY-RECORD, beside this file) arms the fleet by merge — agreed work
+// starts itself through the lane; the Governor's hand is the BRAKE (the hold
+// label, the lane's stop-paths), never the starter (DR-0247/DR-0248).
 function loopsArmed() {
-  const v = String(env.LOOPS_ARMED ?? '').trim().toLowerCase();
-  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
-  return existsSync(join(STATE_DIR, 'LOOPS_ARMED')); // legacy file arm, still honored
+  return resolveArmed({
+    envValue: env.LOOPS_ARMED,
+    legacyFileExists: existsSync(join(STATE_DIR, 'LOOPS_ARMED')),
+    armRecordExists: existsSync(join(LOOPS_DIR, 'ARMED-BY-RECORD')),
+  });
 }
 
 // --- Call accounting (per loop, per UTC day) ----------------------------------
@@ -139,7 +146,6 @@ function logEvent(event, detail, extra = {}) {
   const line = JSON.stringify({
     ts, node: NODE_NAME, agent: 'nas-loops', event,
     armed: loopsArmed(),
-    kill_switch: killSwitchEngaged() ? 'engaged' : 'clear',
     detail: String(detail || '').replace(/\s+/g, ' ').slice(0, 1000),
     ...extra,
   });
@@ -218,9 +224,8 @@ async function main() {
 
   // --list: show the registry + live brake state, run nothing.
   if (hasFlag('list')) {
-    const ks = killSwitchEngaged() ? 'ENGAGED (inert)' : 'clear';
     const armed = loopsArmed() ? 'ARMED' : 'disarmed (inert)';
-    console.log(`[registry] ${reg.loops.length} loop(s) | kill-switch=${ks} | runner=${armed} | kill-switch-file=${KILL_SWITCH_FILE}`);
+    console.log(`[registry] ${reg.loops.length} loop(s) | runner=${armed} | kill-switch=REMOVED (DR-0248; stop-paths: registry/record/DSM)`);
     for (const l of reg.loops) {
       console.log(`  - ${l.name} [${l.kind}] ${l.enabled ? 'enabled' : 'disabled'} | cap=${l.max_calls_per_day}/day timeout=${l.timeout_seconds}s usedToday=${callsToday(l.name)} | ${l.script}`);
     }
@@ -241,7 +246,7 @@ async function main() {
 
   const dryRun = hasFlag('dry-run') || hasFlag('plan');
   const used = callsToday(name);
-  const decision = decideRun({ loop, killSwitch: killSwitchEngaged(), loopsArmed: loopsArmed(), lockHeld: lockHeld(name), callsToday: used });
+  const decision = decideRun({ loop, loopsArmed: loopsArmed(), lockHeld: lockHeld(name), callsToday: used });
   const head = `loop=${name} kind=${loop.kind} cap=${loop.max_calls_per_day}/day usedToday=${used} timeout=${loop.timeout_seconds}s decision=${decision.go ? 'GO' : 'HOLD'}(${decision.reason})`;
 
   // Governance = the PARAMETERS (registry caps + LOOPS_ARMED) plus the human kill-
