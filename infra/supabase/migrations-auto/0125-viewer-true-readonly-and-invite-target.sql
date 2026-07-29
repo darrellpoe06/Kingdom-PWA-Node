@@ -99,7 +99,10 @@ DROP FUNCTION IF EXISTS public.invite_to_instance(text, text, uuid);
 CREATE FUNCTION public.invite_to_instance(email_in text, role_in text DEFAULT 'member', instance_in uuid DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public, auth
+-- extensions must be on the pinned path: pgcrypto (gen_random_bytes) lives in
+-- the extensions schema on Supabase, and a pinned search_path without it fails
+-- at call time even though session-path migrations resolve it fine.
+SET search_path = public, auth, extensions
 AS $$
 DECLARE
   v_user_id  uuid := auth.uid();
