@@ -27,6 +27,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import supabase, { onAuthChange } from '../lib/supabase.js';
 import DirectMessages, { autoGrow } from './DirectMessages.jsx';
+import Inbound from './Inbound.jsx';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import UiIcon from './UiIcon.jsx';
 import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
@@ -367,7 +368,18 @@ function AddContact({ onInvited }) {
   );
 }
 
-export default function Messages() {
+// Voice-ops props are threaded from the monolith so the SAME sovereign
+// voicemail surface (components/Inbound.jsx — list + audio + FREE transcript +
+// Call/Text back) lives here too, as its own clearly-labelled sub-tab. This is
+// Darrell's "in both places you can get to either" (2026-07-29): reach the
+// voicemail inbox from Messages, and jump from a voicemail to Messages. Defaults
+// keep the component safe if ever mounted bare. Voicemail is NOT mixed into the
+// E2E DM threads — it's a distinct data class (business-line voicemail), kept
+// visually and structurally separate.
+export default function Messages({
+  voiceOps = {}, setVoiceOpsConfig = () => {},
+  addIncident, addInquiry, addProject, entities = [], setView,
+} = {}) {
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState('direct');
   const [contacts, setContacts] = useState([]);
@@ -406,7 +418,7 @@ export default function Messages() {
         </p>
       </div>
       <div className="flex gap-1.5">
-        {[['direct', 'Direct'], ['groups', 'Groups']].map(([id, label]) => (
+        {[['direct', 'Direct'], ['groups', 'Groups'], ['voicemail', 'Voicemail']].map(([id, label]) => (
           <button
             key={id}
             type="button"
@@ -433,6 +445,28 @@ export default function Messages() {
         </>
       )}
       {tab === 'groups' && <GroupsPanel session={session} />}
+      {tab === 'voicemail' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs text-[#5A5751]">
+              Visual voicemail for your business lines — play the message, read the
+              transcript (free, on your own Worker), and call or text the caller back.
+            </p>
+            {setView && (
+              <button type="button" onClick={() => setView('inbound')} className={`${BTN} border border-[#C9BFA8] text-[#5A5751]`} title="Open the full Inbound tab">Open full Inbound →</button>
+            )}
+          </div>
+          <Inbound
+            voiceOps={voiceOps}
+            setVoiceOpsConfig={setVoiceOpsConfig}
+            addIncident={addIncident}
+            addInquiry={addInquiry}
+            addProject={addProject}
+            entities={entities}
+            setView={setView}
+          />
+        </div>
+      )}
     </div>
   );
 }
