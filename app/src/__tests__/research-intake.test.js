@@ -94,11 +94,13 @@ describe('RESEARCH_FINDINGS', () => {
     expect(tax.why).toMatch(/FACT, not a decision procedure/);
     expect(tax.constraint).toMatch(/never as law/i);
     const mcp = RESEARCH_FINDINGS.find((f) => f.key === 'mcp-stateless-2026-07-28');
-    expect(mcp.verdict).toBe('watch');
+    expect(mcp.verdict).toBe('staged');
     expect(mcp.source).toMatch(/hand-carried whole by Darrell 2026-07-29 \(primary source\)/i);
     expect(mcp.source).toMatch(/verified by live web search/i);
-    expect(mcp.constraint).toMatch(/No change just because/i);
-    expect(mcp.why).toMatch(/flip-to-staged trigger/i);
+    expect(mcp.why).toMatch(/infra\/nas-mcp\/mcp_server\.py/);
+    expect(mcp.why).toMatch(/PROVEN live/i);
+    expect(mcp.constraint).toMatch(/read-only by design/i);
+    expect(mcp.constraint).toMatch(/measured useful/i);
   });
   it('recorded house experience is senior — nothing recommends n8n back onto the critical path (DR-0132; Darrell 2026-07-10)', () => {
     for (const f of RESEARCH_FINDINGS) {
