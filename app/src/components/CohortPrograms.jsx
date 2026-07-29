@@ -101,7 +101,7 @@ export default function CohortPrograms({ isGovernor = false } = {}) {
 
   if (!program || !stats) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow="PoeTech Academy">Cohort Programs</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
           No program is set up yet.
@@ -141,7 +141,7 @@ export default function CohortPrograms({ isGovernor = false } = {}) {
   ];
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <SectionTitle eyebrow="PoeTech Academy · cohort operations">Cohort Programs</SectionTitle>
 
       {/* program selector + the three-tier access ladder */}
@@ -193,7 +193,7 @@ function TierLadder() {
 // ---------------------------------------------------------------------------
 function ParentInvite({ program }) {
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <SectionTitle eyebrow="PoeTech Academy · for families">Give your child the cutting edge</SectionTitle>
       <p className="mb-3 text-sm text-[#1A1815] leading-relaxed">
         One industry a day, Monday through Friday — Yahweh first, then A.I. and coding, wholeness, business, and the hands-on trades. The same lesson three weeks deep, tuned to the learner’s age. Understanding you build with your hands, not theory you forget.

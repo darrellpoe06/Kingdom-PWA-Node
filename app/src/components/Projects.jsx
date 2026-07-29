@@ -1740,7 +1740,7 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
 function ScopeForm({ formData, setFormData, projects = [], entities, templateName, onSave, onCancel }) {
   const update = (f) => (e) => setFormData({ ...formData, [f]: e.target.value });
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3">
         <div><div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
         <button type="button" onClick={onCancel} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
@@ -1814,7 +1814,7 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   // eslint-disable-next-line no-unused-vars
   const linkedProject = projects.find(p => p.id === scope.projectId);
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
         <button type="button" onClick={onBack} className="text-[0.625rem] uppercase tracking-wider">← Back</button>
         <div className="flex gap-3"><button type="button" onClick={printScope} className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">⎙ Print / Save as PDF</button><button type="button" onClick={onDelete} className="text-[0.625rem] uppercase tracking-wider">× Delete</button></div>

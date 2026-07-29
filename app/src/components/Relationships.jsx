@@ -479,7 +479,7 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-4 pb-12">
+    <div className="w-full px-3 sm:px-4 pb-12">
       <header className="mt-6 mb-4">
         <h2 className="text-2xl font-bold flex items-center gap-2 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           <UiIcon name="users" /> Relationships

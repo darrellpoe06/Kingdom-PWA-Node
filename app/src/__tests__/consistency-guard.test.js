@@ -70,11 +70,18 @@ describe('consistency guard — the ratchet (proven to CATCH new drift)', () => 
     expect(ratchet(live, baseline).violations).toEqual([]);
   });
 
-  it('width-cap over baseline is a WARNING, never a hard violation', () => {
+  it('width-cap over baseline is a HARD violation (DR-0246 — graduated from WARN 2026-07-29)', () => {
+    // The full-width sweep converted every app-tab container; a NEW per-surface
+    // max-w is the regression Darrell had to name twice. The gate, not a
+    // session's memory, is what makes saying it once enough.
     const live = { 'components/A.jsx': { emoji: 2, fixedPx: 3, widthCap: 2 } };
-    const { violations, warnings } = ratchet(live, baseline);
-    expect(violations).toEqual([]);
-    expect(warnings.some((w) => w.kind === 'width-cap')).toBe(true);
+    const { violations } = ratchet(live, baseline);
+    expect(violations.some((v) => v.kind === 'width-cap')).toBe(true);
+  });
+
+  it('CATCHES a width cap in a NEW file (baseline 0)', () => {
+    const live = { 'components/Fresh.jsx': { emoji: 0, fixedPx: 0, widthCap: 1 } };
+    expect(ratchet(live, baseline).violations.some((v) => v.kind === 'width-cap')).toBe(true);
   });
 });
 

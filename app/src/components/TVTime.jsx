@@ -575,7 +575,7 @@ export default function TVTime({ email = null }) {
   const genreEmpty = genreFilter && !tracked.some((s) => genreMatches(s.genre, genreFilter));
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Shows & movies · check off every episode · talk it · watch it through The Way">PoeTech TV Time</SectionTitle>
 
       <p className="text-sm text-[#1A1815] mb-2" style={serif}>

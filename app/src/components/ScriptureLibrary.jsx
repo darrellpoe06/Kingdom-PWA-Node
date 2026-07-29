@@ -698,7 +698,7 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   ];
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
 
       <SectionTabs sections={sections} ariaLabel="Scripture sections" idBase="scripture" defaultId="bible" />

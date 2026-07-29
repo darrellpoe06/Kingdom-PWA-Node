@@ -53,7 +53,7 @@ export default function ChurchProjects({ isChurchStaff = false } = {}) {
   ];
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <SectionTitle eyebrow="The Love Corner · project management">Projects</SectionTitle>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-3">

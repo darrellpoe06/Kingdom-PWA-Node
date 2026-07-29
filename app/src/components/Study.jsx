@@ -403,7 +403,7 @@ export default function Study({ email }) {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Private · for the circle only">
         {renaming ? (
           <span className="inline-flex items-center gap-2">

@@ -821,7 +821,7 @@ export default function MooreDivahs() {
   ];
 
   return (
-    <div className="mx-auto max-w-3xl px-3 pb-24">
+    <div className="w-full px-3 pb-24">
       <div className="mt-3 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#1A1815]" style={SERIF}>{MOORE_BRAND.label}</h1>

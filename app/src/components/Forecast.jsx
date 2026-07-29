@@ -431,7 +431,7 @@ export default function Forecast({ data, currentDate, isOwner = false }) {
 
   return (
     <SectionBoundary name="Forecast">
-      <div className="max-w-4xl mx-auto mt-4 space-y-4">
+      <div className="w-full mt-4 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-[#1A1815] flex items-center gap-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Forecast — financial engineering

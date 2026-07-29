@@ -134,7 +134,7 @@ export default function KitchenInventory({
   // hook order stays stable across renders).
   if (!addItem || !addCount) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
           {config.title} is not wired to persistence in this view.
@@ -144,7 +144,7 @@ export default function KitchenInventory({
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
 
       <p className="text-sm text-[#5A5751] mb-4 max-w-3xl">{config.intro}</p>

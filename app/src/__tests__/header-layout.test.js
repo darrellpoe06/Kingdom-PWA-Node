@@ -30,10 +30,19 @@ describe('header layout — the 2026-07-28 collapse fix holds', () => {
   });
 
   it('the brand column carries a large-screen minimum width and cannot be crushed', () => {
-    const titleDiv = block.match(/<div className="min-w-0[^"]*">\s*<div className="text-\[0\.625rem\] uppercase tracking-\[0\.3em\]/);
+    const titleDiv = block.match(/<div className="min-w-0[^"]*lg:min-w-\[[^"]*">/);
     expect(titleDiv, 'brand column div not found where expected').toBeTruthy();
-    expect(titleDiv[0]).toMatch(/lg:min-w-\[/);
     expect(titleDiv[0]).toMatch(/lg:shrink-0/);
+  });
+
+  it('the wordmark sits ABOVE the tagline (Darrell 2026-07-29: the lower area has more room for text)', () => {
+    // The short brand h1 rides the tight upper row beside the controls; the
+    // longer "PoeTech · Life, Soul & Money" tagline gets the roomy lower row.
+    const h1At = block.indexOf('<h1 className="ts-chrome-region');
+    const taglineAt = block.indexOf('tracking-[0.3em]');
+    expect(h1At, 'header h1 not found in the title row').toBeGreaterThan(-1);
+    expect(taglineAt, 'tagline div not found in the title row').toBeGreaterThan(-1);
+    expect(h1At, 'wordmark h1 must come before the tagline in the brand column').toBeLessThan(taglineAt);
   });
 
   it('the controls row is allowed to wrap at every width (the bug classes stay gone)', () => {

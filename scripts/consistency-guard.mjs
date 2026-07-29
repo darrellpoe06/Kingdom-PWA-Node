@@ -84,9 +84,13 @@ export function fileCounts(src, basename) {
 }
 
 // Pure ratchet: given live per-file counts and the frozen baseline, return the
-// HARD violations (emoji + fixedPx over baseline, or any in a new file) and the
-// WARN list (widthCap over baseline — tracked, never fails). Importable so a
-// vitest can prove the ratchet catches a synthetic NEW offender with no FS.
+// HARD violations — emoji, fixedPx, AND widthCap over baseline (or any in a new
+// file). widthCap graduated from WARN to HARD on 2026-07-29 (DR-0246): the
+// full-width sweep converted every app-tab container, so a NEW per-surface
+// max-w is no longer "tracked drift" — it is the exact regression Darrell had
+// to ask about twice (2026-07-24 ThinkingSpace, 2026-07-29 every tab), and the
+// gate is what makes saying it once enough. Importable so a vitest can prove
+// the ratchet catches a synthetic NEW offender with no FS.
 export function ratchet(liveCounts, baseline) {
   const violations = [];
   const warnings = [];
@@ -101,8 +105,8 @@ export function ratchet(liveCounts, baseline) {
         fix: 'author the size in rem at the 16px baseline (text-[10px] -> text-[0.625rem]) so the global text-size control scales it' });
     }
     if (live.widthCap > base.widthCap) {
-      warnings.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
-        fix: 'use the full-width layout container; a per-surface max-w is per-tab width drift (tracked — full-width-layout lane)' });
+      violations.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
+        fix: 'tab content stretches the full width (CONSISTENCY-STANDARD rule 1, DR-0246); prose measure and modals live INSIDE the full-width container, never as the tab wrapper' });
     }
   }
   return { violations, warnings };
