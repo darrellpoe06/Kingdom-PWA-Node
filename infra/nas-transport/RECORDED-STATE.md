@@ -18,20 +18,22 @@ transport without reading this file, keeping every row true, and using `funnel`
 
 | Path | Backend | Serves | Provenance |
 |---|---|---|---|
-| `/` | `http://127.0.0.1:5678` (n8n) | the ~13 LEGACY webhooks the app's same-origin transport still rides in production (photos, class-tutor, book-checkout, property-*, imported-transactions, …) until their DR-0218 migrations land | proven by every mcp-health probe 2026-07-29: n8n Express pages answered at the root (e.g. run 30461079669) |
+| `/` | `http://127.0.0.1:5678` (n8n) | the LAST FEW un-migrated wires (thought, practice-growth, mark-noise, the dispatch-status reel); everything family-facing — photos, money — is ALREADY sovereign | **LEGACY, being removed to ZERO (DR-0218). No code in this repo restores or heals this row; it shrinks as each wire is cut over, then the row is deleted.** |
 | `/mcp` | `http://127.0.0.1:8795` (poetech-mcp.service) | the sovereign MCP server (DR-0244), read-only v1 | installed by services-sync run of 2026-07-30 (`services-sync: all services synced`, exit=0) |
 
 ## Rules bound to this file
 
 1. **FUNNEL, never `serve`:** `tailscale serve` is tailnet-only and REPLACES the
-   public exposure — the 2026-07-30 outage class. Public mounts use
-   `tailscale funnel --bg --set-path <path> <backend>`; the root mapping is
-   restored with `tailscale funnel --bg http://127.0.0.1:5678`.
+   public exposure. Public mounts use `tailscale funnel --bg --set-path <path>
+   <backend>` with the FULL DSM binary path
+   `/var/packages/Tailscale/target/bin/tailscale` (the CLI is not on the
+   non-login SSH PATH — diagnostic 30507928325). **No rule here restores the
+   n8n root; we do not prop up what we are removing.**
 2. **Every mutation cites this file** (`RECORDED-STATE:` comment) and updates it
    in the same merge when the intended state changes.
-3. **The installer is the actuator of this baseline:** `infra/nas-mcp/install.sh`
-   verifies and restores BOTH rows idempotently on every services-sync tick —
-   the recorded state is self-healing, not memorial.
+3. **The installer actuates ONLY the sovereign `/mcp` row:** `infra/nas-mcp/install.sh`
+   mounts `/mcp` idempotently and NEVER touches, depends on, or restores the
+   n8n root — we do not heal what we are removing.
 4. The n8n root mapping is LEGACY and shrinks only by DR-0218's order: removed
    from the pipeline first, then from this file — never the reverse.
 
