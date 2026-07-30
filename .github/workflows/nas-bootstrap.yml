@@ -82,9 +82,15 @@ jobs:
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           cd /volume1/PoeTech/repos/Kingdom-PWA-Node
           NODE=$(command -v node 2>/dev/null || ls /volume1/@appstore/Node.js_v*/usr/local/bin/node 2>/dev/null | head -1 || true)
+          # Installers write /etc/systemd and /data — ROOT ground (proven run
+          # 30506740335: everything ran, then Permission denied as dpoe). Use
+          # the narrow NOPASSWD grant when present (/etc/sudoers.d/poetech-loops
+          # scopes sudo to exactly the braked runner, nothing else); otherwise
+          # run unprivileged and let the failure name the grant.
+          if sudo -n true 2>/dev/null; then SUDO="sudo -n"; else SUDO=""; echo "no NOPASSWD grant — running unprivileged (root writes will fail until /etc/sudoers.d/poetech-loops exists)"; fi
           if [ -n "$NODE" ]; then
             echo "using node at: $NODE (the braked runner path)"
-            "$NODE" infra/nas-loops/run.mjs --loop=services-sync
+            $SUDO "$NODE" infra/nas-loops/run.mjs --loop=services-sync
           else
             echo "node not found on the NAS - running manifest installers directly (bootstrap fallback; each is idempotent)"
             for inst in $(grep -o '"install": *"[^"]*"' infra/nas-loops/services.json | cut -d'"' -f4); do
