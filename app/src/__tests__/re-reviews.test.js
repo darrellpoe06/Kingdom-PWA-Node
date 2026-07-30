@@ -36,8 +36,12 @@ describe('extractReReviews — real dates only, nothing painted', () => {
     expect(out[0]).toMatchObject({ date: '2026-10-05', type: 'decision', source: 'DR DR-0105' });
   });
 
-  it('de-dups an exact (source,date) repeat but keeps two distinct dates', () => {
-    const reviews = { items: [{ id: 'REV-1', findings: 're-review 2026-08-01 ... re-review 2026-08-01 ... re-review 2026-09-01' }] };
+  it('de-dups an EXACT (source,date,clause) repeat but keeps two distinct dates', () => {
+    // Refined 2026-07-30 (drive dry-run G2): dedup keys on the clause fingerprint
+    // too, so a truly-identical repeat collapses while two DIFFERENT commitments
+    // that happen to share a date do NOT (that collapse was a silent-drop bug).
+    // Byte-identical clause 'finish the audit — re-review …' repeated → one row.
+    const reviews = { items: [{ id: 'REV-1', findings: 'finish the audit — re-review 2026-08-01. finish the audit — re-review 2026-08-01. ship the report — re-review 2026-09-01' }] };
     const out = extractReReviews({ reviews }, NOW);
     expect(out.map((i) => i.date)).toEqual(['2026-08-01', '2026-09-01']);
   });
@@ -130,5 +134,40 @@ describe('re-review DONE-marker — closed commitments stop counting (2026-07-30
     expect(extractReReviews({ reviews: { items: closed } }, NOW2).length).toBe(0);
     const prose = [{ id: 'REV-9003', findings: 'the work is done and shipped — re-review: 2026-08-05' }];
     expect(extractReReviews({ reviews: { items: prose } }, NOW2).length).toBe(1); // lowercase "done" in prose does not close it
+  });
+});
+
+describe('re-review dedup + marker hardening (2026-07-30 drive dry-run G2/G3)', () => {
+  const NOW3 = Date.parse('2026-07-30T00:00:00Z');
+  it('G2 — two DIFFERENT open commitments sharing a date in one record BOTH survive (no silent drop)', () => {
+    const items = [{ id: 'REV-9100', findings: 'wire the child gate — re-review: 2026-08-01; rotate the NAS bearer — re-review: 2026-08-01' }];
+    const out = extractReReviews({ reviews: { items } }, NOW3);
+    expect(out.length).toBe(2);
+  });
+  it('G3 — a title-case prose word (— Landed / Shipped) does NOT false-close (marker is UPPERCASE-only)', () => {
+    const items = [{ id: 'REV-9101', findings: 'ship it — re-review: 2026-08-05 — Landed the fix last week' }];
+    expect(extractReReviews({ reviews: { items } }, NOW3).length).toBe(1);
+  });
+});
+
+describe('governance signal on the extracted item (2026-07-30 drive dry-run iter-3 — the machinery carries GATE-1, not just the agent)', () => {
+  const NOW4 = Date.parse('2026-07-30T00:00:00Z');
+  it('FLAGS a GOVERNOR-GATED item even when its clue tail reads benign, and does NOT flag its buildable sibling', () => {
+    const findings = 'six stale PRs dispositioned — GOVERNOR-GATED (merge of Tier B/C front-door PRs = prod deploy; empty branches ride pr-janitor) — re-review: 2026-08-01; wire the child gate into action paths — re-review: 2026-08-01';
+    const out = extractReReviews({ reviews: { items: [{ id: 'REV-9200', findings }] } }, NOW4);
+    expect(out.length).toBe(2);
+    const gated = out.find((i) => i.governorGated);
+    const open = out.find((i) => !i.governorGated);
+    expect(gated, 'the GOVERNOR-GATED item must be flagged even though its 60-char clue tail is benign').toBeTruthy();
+    expect(open, 'the buildable sibling must NOT be flagged').toBeTruthy();
+    expect(open.clue).toContain('child gate');
+  });
+  it('flags the secret-onto-device and dashboard human tails; leaves pure-repo items unflagged', () => {
+    const items = [{ id: 'REV-9201', findings: 'type it onto family devices (secret-onto-device) — re-review: 2026-08-01; a Vercel dashboard sitting — re-review: 2026-08-06; split learn-catalog lazily — re-review: 2026-08-03' }];
+    const out = extractReReviews({ reviews: { items } }, NOW4);
+    const byDate = Object.fromEntries(out.map((i) => [i.date, i.governorGated]));
+    expect(byDate['2026-08-01']).toBe(true);  // secret-onto-device
+    expect(byDate['2026-08-06']).toBe(true);  // dashboard
+    expect(byDate['2026-08-03']).toBe(false); // pure repo
   });
 });

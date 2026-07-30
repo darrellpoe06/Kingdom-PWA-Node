@@ -59,10 +59,36 @@ function fromText(text, meta, nowMs, out) {
   if (!s) return;
   RE_REVIEW_RE.lastIndex = 0;
   let m;
+  let itemStart = 0; // start of the CURRENT item's text = end of the previous re-review clause
   while ((m = RE_REVIEW_RE.exec(s))) {
+    // The current item's FULL text = from the previous re-review clause's end to
+    // this match. This is the true item boundary (carried items are separated by
+    // their own `— re-review: <date>` clauses), unlike a `;`/`.` delimiter which
+    // a parenthetical can fake. Used for the governance signal below so it sees
+    // the whole item (incl. a GOVERNOR-GATED head) without bleeding into siblings.
+    const itemText = s.slice(itemStart, m.index);
+    itemStart = m.index + m[0].length; // next item's text begins right after this date match
     const after = s.slice(m.index + m[0].length, m.index + m[0].length + 48);
     if (DONE_MARKER_RE.test(after)) continue; // closed commitment — not a live item
-    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}` }, nowMs));
+    // Per-clause fingerprint (2026-07-30 drive dry-run G2): the item DESCRIPTION
+    // of THIS clause distinguishes two DIFFERENT open commitments that share a
+    // date inside one record (they must NOT collapse to one backlog row; a naive
+    // "one item per row" drive would silently drop the sibling). Scoped to the
+    // current clause — from the last clause delimiter (; . ·) before the match —
+    // so the previous clause's text doesn't bleed in and a true exact-repeat of
+    // the SAME clause still dedups.
+    // Dedup fingerprint: normalized tail of THIS item's text (per-clause, so two
+    // distinct same-date commitments don't collapse — G2).
+    const clue = itemText.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(-60);
+    // GOVERNANCE SIGNAL carried ON the item (2026-07-30 drive dry-run iter-3, the
+    // highest residual risk): the `clue` is a 60-char tail, which for a
+    // GOVERNOR-GATED item truncates the "GOVERNOR-GATED" head away so it reads
+    // BENIGN. An agent reading the full ledger line sees it; a DETERMINISTIC
+    // consumer of this OUTPUT would not — and unattended = machinery. The flag
+    // travels ON the item, computed from the item's FULL text, so any consumer
+    // classifying GATE-1 sees the governance signal without re-reading the source.
+    const governorGated = /governor-gated|human-gated|darrell'?s decision|never merges?\b|secret-onto-device|onto (?:the |family )?devices?\b|\bdashboard\b|bright line|\btier [bc]\b|front-door|\bcolg\b/i.test(itemText);
+    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, governorGated }, nowMs));
   }
 }
 
@@ -99,7 +125,9 @@ export function extractReReviews({ reviews, decisions } = {}, nowMs = null) {
   const seen = new Set();
   const deduped = [];
   for (const it of out) {
-    const k = `${it.origin}|${it.sourceId}|${it.date}`;
+    // Key includes the clause fingerprint so two DIFFERENT same-date commitments
+    // in one record both survive; a true exact-repeat (same clue) still dedups.
+    const k = `${it.origin}|${it.sourceId}|${it.date}|${it.clue || ''}`;
     if (seen.has(k)) continue;
     seen.add(k);
     deduped.push(it);
