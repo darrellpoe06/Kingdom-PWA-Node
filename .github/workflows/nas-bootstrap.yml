@@ -3,8 +3,13 @@
 # from the cloud, HTTPS-only, DR-0132 outbound-only design) — but a RUNNER can
 # join the tailnet ephemerally and run the one-time bootstrap itself, so the
 # only human part left is installing two repo secrets ONCE:
-#   TS_AUTHKEY   an ephemeral, ACL-scoped Tailscale auth key (Admin console ->
-#                Settings -> Keys; tag it to reach only the NAS, short expiry)
+#   TS_AUTHKEY   an ephemeral Tailscale auth key (Admin console -> Settings ->
+#                Keys). IDENTITY CONVENTION (verified from the Governor's own
+#                device list 2026-07-29): the tailnet is the GITHUB-login
+#                account "darrellpoe06.github" — sign in to login.tailscale.com
+#                with GitHub, never another provider (a different IdP creates a
+#                different, EMPTY tailnet; the tell: the machine list must show
+#                the NAS "poetech").
 #   NAS_SSH_KEY  a private key whose public half is in dpoe's
 #                ~/.ssh/authorized_keys on the NAS
 # Dispatch-only. Missing secrets => a clear no-op message, never a half-run.
