@@ -110,9 +110,14 @@ state of the work is **motion**, not waiting on Darrell to push each step
   review (Tier B/C; RELEASE-TIERS). Reverting the three workflows is the
   off-switch. This is the integration gate deferring to verified truth — NOT the
   timer-driven, compute-spawning class the three-brakes rule governs.
-- **Cadence + no idling:** watch in-flight work on a cadence matched to how fast
-  it changes (minutes for a ~3-min CI, never a reflexive hour); between prompts,
-  pull the next dated backlog item forward instead of parking on a timer.
+- **Cadence + no idling (DR-0255):** watch in-flight work EVENT-DRIVEN first
+  (the PR webhook, site-health, review-watcher, OpsBoard — no cadence to guess);
+  a timer is a short FALLBACK matched to the real change rate (~3–5 min for a
+  ~3-min CI, re-armed short — never a reflexive hour; a 60-min timer for a 3-min
+  CI is the defect). A longer heartbeat is only for a genuinely slow external
+  wait, named. Between prompts, pull the next dated backlog item forward instead
+  of parking on a timer. Every processing lane is watched (Ari + bots/LLMs),
+  fail-visible on OpsBoard.
 - **In the app:** the OpsBoard renders the live lane (auto-merge armed / `hold`
   parked / land order / merged SHAs, read live from the repo) beside a short
   statement of this model — the model and its proof in one place (DR-0065).
