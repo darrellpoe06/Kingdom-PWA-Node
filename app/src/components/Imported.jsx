@@ -205,6 +205,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const sortArrow = (key) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
   // Which row is expanded to its detail drawer (receipt + full metadata).
   const [expandedId, setExpandedId] = useState(null);
+  const [newCatRow, setNewCatRow] = useState(null); // row awaiting an inline new-category name (PWA-safe, replaces prompt())
+  const [newCatVal, setNewCatVal] = useState('');
   // How the register is grouped, and which group headers are collapsed.
   const [groupMode, setGroupMode] = useState('month');
   const [collapsed, setCollapsed] = useState(() => new Set());
@@ -438,17 +440,20 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     for (const s of suggestions) n += recategorizePayee(s.description, s.category) || 0;
     alert(`Auto-categorized ${n.toLocaleString()} transaction(s) the system could determine from the data. Every one is still editable if you want to change it.`);
   };
-  // Set a row's category. '__new__' opens a prompt so the user can ADD a category;
-  // a real category learns the payee rule and back-applies (recategorizePayee).
+  // Set a row's category. '__new__' reveals an inline input (PWA-safe — the old
+  // window.prompt() was blocked/no-op in the installed standalone PWA, so "+ New
+  // category" did nothing on a phone; Darrell 2026-07-30 class). A real category
+  // learns the payee rule and back-applies (recategorizePayee).
   const setRowCategory = (row, value) => {
     if (!canEditCat || !value) return;
-    let category = value;
-    if (value === '__new__') {
-      const entered = (typeof prompt === 'function' ? prompt('New category name (letters, e.g. "tuition")') : '') || '';
-      category = entered.trim().toLowerCase().replace(/[^a-z0-9- ]/g, '').replace(/\s+/g, '-');
-      if (!category) return;
-    }
-    recategorizePayee(row.name, category);
+    if (value === '__new__') { setNewCatRow(row); setNewCatVal(''); return; }
+    recategorizePayee(row.name, value);
+  };
+  // Commit the inline new-category input to the row that opened it.
+  const applyNewCategory = () => {
+    const category = String(newCatVal || '').trim().toLowerCase().replace(/[^a-z0-9- ]/g, '').replace(/\s+/g, '-');
+    if (category && newCatRow && recategorizePayee) recategorizePayee(newCatRow.name, category);
+    setNewCatRow(null); setNewCatVal('');
   };
 
   // Combine duplicates the family SPOTS themselves — "without needing to update the
@@ -619,6 +624,25 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
 
   return (
     <div className="space-y-3" data-surface="imported">
+      {newCatRow && (
+        <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex flex-wrap items-center gap-2" role="group" aria-label="Add a new category">
+          <span className="text-[0.75rem] text-[#1A1815]">
+            New category for <strong>{newCatRow.name}</strong>:
+          </span>
+          <input
+            type="text"
+            autoFocus
+            value={newCatVal}
+            onChange={(e) => setNewCatVal(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') applyNewCategory(); if (e.key === 'Escape') { setNewCatRow(null); setNewCatVal(''); } }}
+            placeholder="e.g. tuition"
+            inputMode="text"
+            className="flex-1 min-w-[8rem] border border-[#E8E4DC] px-2 py-1.5 min-h-[36px] text-[0.875rem] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          />
+          <button type="button" onClick={applyNewCategory} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Add</button>
+          <button type="button" onClick={() => { setNewCatRow(null); setNewCatVal(''); }} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815]">Cancel</button>
+        </div>
+      )}
       <div>
         <h2 className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontSize: '1.5rem', fontWeight: 600 }}>
           Imported transactions

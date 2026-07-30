@@ -44,11 +44,13 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const defaultEntityId = (entities[0] && entities[0].id) || null;
   const addSuggestedDebt = (s) => {
     const name = debtNameFromPayee(s.label);
-    const raw = typeof prompt === 'function'
-      ? prompt(`Add "${name}" as a debt. You pay about ${fmt(s.monthlyPayment)}/mo — what is the current total OWED on it? (Leave blank to add it now and set the balance later.)`, '')
-      : '';
-    const owed = parseFloat(String(raw == null ? '' : raw).replace(/[$,\s]/g, ''));
-    addAccount({ name, type: 'credit', treatAsDebt: true, balance: isFinite(owed) && owed > 0 ? owed : 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
+    // ONE-TAP add (Darrell 2026-07-30: the button "not working when you push it").
+    // It used to window.prompt() for the owed balance — but prompt() is blocked /
+    // no-op inside an installed standalone PWA (his phone), so the tap did nothing
+    // visible and the debt was never added. Add it immediately with the monthly
+    // payment pre-filled and $0 owed; the owed balance is then set with the
+    // existing inline edit on the debt row (EDITABLE-EVERYWHERE) — no dialog.
+    addAccount({ name, type: 'credit', treatAsDebt: true, balance: 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
   };
   const showAddPanel = (addAccount && debtSuggestions.length > 0) || (updateAccount && untrackedCards.length > 0);
   // v28+ All Debts table - excel-style sort by rate / balance / payoff date
