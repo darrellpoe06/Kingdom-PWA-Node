@@ -49,12 +49,45 @@ export const LOVE_CORNER_BRAND = {
   logo: '/lovecorner-icon-192.png',
 };
 
-// Is this load in the church's context (the church door / installed church app,
-// whose manifest start_url is ?view=church)? Pure; injectable search for tests.
-export function isChurchDoorContext(search) {
+// The church door's OWN launch param, following the door convention the other
+// doors already use (?moore=1, ?tlc=1). BUG FIX (Darrell 2026-07-30: "on the
+// Church Tab... it will automatically move me to the Love Corner App... why?"):
+// the door signal used to be `view=church` alone — but that is the SAME URL
+// nav-history writes when a family member taps the Church tab inside full
+// PoeTech, so any reload/restore of that tab booted as the church-only app.
+// The shell's own intent comment said a Church-tab tap "is NOT scoped"; the
+// reload path violated it. A dedicated param can never collide with in-app
+// navigation.
+export const DOOR_PARAM = 'lovecorner';
+
+// Installed-app display detection (iOS exposes navigator.standalone; everything
+// else exposes the display-mode media query). Already-installed Love Corner
+// apps launched with the PRE-param start_url (?view=church) — they run
+// standalone, a browser tab never does, so this keeps every existing install
+// scoped to the church until their manifest refresh picks up the new start_url.
+function isStandaloneDisplay() {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (window.navigator && window.navigator.standalone === true) return true;
+    return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  } catch { return false; }
+}
+
+// Is this load a real CHURCH-DOOR LAUNCH (the /lovecorner entry page or the
+// installed Love Corner app) — as opposed to a family member's Church-tab URL
+// inside full PoeTech? True when the door's own param is present, or (legacy
+// installs) when ?view=church is running as an installed standalone app.
+// Injectable search/standalone for tests.
+export function isChurchDoorContext(search, opts = {}) {
   const s = typeof search === 'string' ? search
     : (typeof window !== 'undefined' && window.location ? window.location.search : '');
-  try { return new URLSearchParams(s).get('view') === 'church'; } catch { return false; }
+  try {
+    const sp = new URLSearchParams(s);
+    if (sp.get(DOOR_PARAM) === '1') return true;
+    if (sp.get('view') !== 'church') return false;
+    const standalone = opts.standalone !== undefined ? !!opts.standalone : isStandaloneDisplay();
+    return standalone;
+  } catch { return false; }
 }
 
 // --- What is TRUE about the church's current web presence (verified, sourced) --

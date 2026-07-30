@@ -1103,16 +1103,14 @@ export default function PoeFinancialSystem() {
   );
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
-  // Church-door mode (DR-0174, Darrell 2026-07-12: "It should just be the church
-  // app... no need to change the PoeTech App... isn't it built as modular?").
-  // When the app was LAUNCHED via the church door (the installed Love Corner app
-  // or /lovecorner → ?view=church), it presents as a focused CHURCH-ONLY app:
-  // the top nav is scoped to the church (whose sub-nav already holds worship,
-  // giving, prayer, and the Word — Godhead study, Scripture, The Word). PoeTech
-  // itself is untouched. CAPTURED ONCE at first render (useState initializer),
-  // BEFORE nav-history rewrites the URL — so a family member tapping the Church
-  // tab inside full PoeTech (which sets ?view=church) is NOT scoped; only a real
-  // church-door launch is. Pure signal in lib/church-own-door.js.
+  // Church-door mode (DR-0174): LAUNCHED via the church door (installed Love
+  // Corner app or /lovecorner → ?view=church&lovecorner=1) presents as a
+  // focused CHURCH-ONLY app; PoeTech itself is untouched. CAPTURED ONCE at
+  // first render. The door signal is the door's OWN param (?lovecorner=1, the
+  // moore=1/tlc=1 convention) or a standalone-display legacy install — NEVER
+  // bare ?view=church, which nav-history also writes for the in-app Church
+  // tab: that collision made a RELOAD of the Church tab boot as the Love
+  // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
   // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
   // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
