@@ -62,6 +62,13 @@ jobs:
           - feature: viewer-readonly
             migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql"
             smokes: "0125-viewer-readonly-smoke.sql 0126-capability-checklist-smoke.sql"
+          # Folded in 2026-07-30 (access evaluation): 0127 briefly lived in its
+          # own sovereign-noise-thought-isolation.yml — the exact per-feature
+          # drift class this matrix was created to end, reintroduced the same
+          # day the matrix landed. One matrix, every proof, no siblings.
+          - feature: sovereign-noise-thought
+            migrations: "0127-sovereign-noise-and-thought.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
       - uses: actions/checkout@v4

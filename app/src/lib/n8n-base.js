@@ -77,18 +77,18 @@ export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : '';
 // client gate were ever bypassed. Defense in depth: either gate alone fails
 // closed.
 //
-// TOKEN SOURCE ORDER (2026-07-03, Darrell: close the shipped-bearer exposure).
-// The old source was ONLY VITE_N8N_BEARER — a build-time var inlined into the
-// PUBLIC client bundle, so any visitor could extract the NAS webhook bearer
-// from the site's JS (the old comment itself admitted "NOT a true secret").
-// The PRIMARY source is now the PER-DEVICE bridge token — localStorage
+// TOKEN SOURCE (2026-07-30, access evaluation — the transition CLOSED).
+// The ONLY source is the PER-DEVICE bridge token — localStorage
 // 'poetech-chat-bridge-token', the same token the NAS photo/history bridges
-// already use: typed once on a family device, never present in the bundle.
-// VITE_N8N_BEARER remains ONLY as a transition fallback; once every family
-// device carries the bridge token, delete the var from the Vercel project and
-// ROTATE the bearer on the NAS — the bundle-extractable value then dies.
-// Rotation steps: N8N-WEBHOOK-AUTH-PATTERN.md.
-const N8N_BEARER_FALLBACK = (import.meta.env?.VITE_N8N_BEARER || '').trim();
+// use: typed once on a family device, never present in the bundle. The
+// build-time VITE_N8N_BEARER fallback (added 2026-07-03 as a transition,
+// documented then as "delete once every family device carries the bridge
+// token") shipped the NAS bearer inside the PUBLIC bundle for 27 days — any
+// visitor could extract the secret gating the bank-PII webhook. Deleted here
+// together with the deploy workflow's build-env injection; a device without
+// the typed token now degrades honestly (server 401, feature fallback) instead
+// of the site leaking the key. Rotation of the NAS-side bearer completes the
+// close: N8N-WEBHOOK-AUTH-PATTERN.md.
 export const N8N_DEVICE_TOKEN_KEY = 'poetech-chat-bridge-token';
 
 // Resolve the bearer at CALL time (not module load) so pasting the token into
@@ -98,8 +98,8 @@ export function resolveN8nBearer(win) {
     const w = win || (typeof window !== 'undefined' ? window : null);
     const device = (w && w.localStorage && w.localStorage.getItem(N8N_DEVICE_TOKEN_KEY)) || '';
     if (device.trim()) return device.trim();
-  } catch { /* private mode — fall through to the transition fallback */ }
-  return N8N_BEARER_FALLBACK;
+  } catch { /* private mode — no device token readable */ }
+  return '';
 }
 
 // Returns the Authorization header object ONLY when a bearer is available AND

@@ -35,20 +35,20 @@ export const REVIEW_FEED_URL = '/review-feed';
 export const REVIEW_ACTION_URL = '/review-action';
 
 // Review token — PER-DEVICE first (typed once, localStorage, never in the
-// bundle), VITE_ build var only as a transition fallback (2026-07-03: a VITE_
-// var is inlined into the PUBLIC bundle, so it was extractable by any visitor;
-// same fix as the n8n bearer — once family devices carry the device token,
-// delete VITE_REVIEW_TOKEN from the Vercel project and rotate). Resolved at
-// call time so pasting the token takes effect without a reload.
+// bundle). The VITE_ transition fallback is DELETED (2026-07-30 access
+// evaluation, same class-close as the n8n bearer in lib/n8n-base.js): a VITE_
+// var is inlined into the PUBLIC bundle, extractable by any visitor, and the
+// 2026-07-03 transition window has closed. The per-device token is the only
+// source; rotate the NAS-side value to finish (N8N-WEBHOOK-AUTH-PATTERN.md).
+// Resolved at call time so pasting the token takes effect without a reload.
 export const REVIEW_DEVICE_TOKEN_KEY = 'poetech-review-token';
-const REVIEW_TOKEN_FALLBACK = (import.meta.env?.VITE_REVIEW_TOKEN || '').trim();
 export function resolveReviewToken(win) {
   try {
     const w = win || (typeof window !== 'undefined' ? window : null);
     const device = (w && w.localStorage && w.localStorage.getItem(REVIEW_DEVICE_TOKEN_KEY)) || '';
     if (device.trim()) return device.trim();
-  } catch { /* private mode — fall through */ }
-  return REVIEW_TOKEN_FALLBACK;
+  } catch { /* private mode — no device token readable */ }
+  return '';
 }
 
 // Pure shape-normalizer (exported for tests): tolerate a missing/garbled

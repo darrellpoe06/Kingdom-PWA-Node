@@ -80,8 +80,14 @@ jobs:
           # secret-handling risk, but the cutover is not done until each is set.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
-          VITE_REVIEW_TOKEN: ${{ secrets.VITE_REVIEW_TOKEN }}
+          # VITE_N8N_BEARER intentionally NOT injected (2026-07-30 access
+          # evaluation): a build-time var is inlined into the PUBLIC bundle, and
+          # this one carried the NAS bearer gating the bank-PII webhook — any
+          # visitor could extract it. The per-device localStorage bridge token
+          # (n8n-base.js) is the only client source now. The secret stays for
+          # the workflow-level announce path below (server-side, never bundled).
+          # VITE_REVIEW_TOKEN removed for the same reason, same day — the
+          # per-device localStorage token (ReviewFeed.jsx) is the only source.
           VITE_YOUTUBE_API_KEY: ${{ secrets.VITE_YOUTUBE_API_KEY }}
           VITE_SYNOLOGY_CHAT_BOT_URL: ${{ secrets.VITE_SYNOLOGY_CHAT_BOT_URL }}
           # NOTE: VITE_N8N_WEBHOOK_BASE is intentionally NOT set — it defaults to
