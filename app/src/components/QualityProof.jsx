@@ -336,7 +336,12 @@ export default function QualityProof({ defaultSection = 'gates' }) {
                             return (
                               <tr key={`${it.origin}-${it.sourceId}-${it.date}-${i}`} className="border-b border-[#F2EEE6] last:border-b-0 align-top">
                                 <td className="px-2 py-1.5 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.date}</td>
-                                <td className="px-2 py-1.5 text-[#1A1815]">{it.title}</td>
+                                <td className="px-2 py-1.5 text-[#1A1815]">
+                                  {it.title}
+                                  {it.detail && it.detail !== it.title ? (
+                                    <span className="block text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.detail}</span>
+                                  ) : null}
+                                </td>
                                 <td className="px-2 py-1.5 text-[#5A5751]">{TYPE_LABEL[it.type] || it.type}</td>
                                 <td className="px-2 py-1.5 text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.source}</td>
                                 <td className="px-2 py-1.5 text-right">

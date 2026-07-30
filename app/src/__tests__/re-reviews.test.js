@@ -172,6 +172,22 @@ describe('governance signal on the extracted item (2026-07-30 drive dry-run iter
   });
 });
 
+describe('detail distinguishes two same-title/same-date commitments (2026-07-30 Darrell screenshot — rows read as duplicates)', () => {
+  it('gives two 2026-07-12 commitments in ONE record DISTINCT, readable detail', () => {
+    const reviews = { items: [{
+      id: 'REV-0006', title: 'Orchestration review — the 2026-07-05 working day', type: 'orchestration',
+      findings: 'Frictions: batch small lanes per DR-0077 (practice, effective now, re-review 2026-07-12); '
+        + 'the migration-unlock hand-paste (NAS family instance vs cloud secret) and close it (re-review 2026-07-12).',
+    }] };
+    const rows = extractReReviews({ reviews }, Date.parse('2026-07-30T00:00:00Z'));
+    const july12 = rows.filter((r) => r.date === '2026-07-12');
+    expect(july12.length).toBe(2);                       // two real commitments, both kept
+    expect(july12[0].detail).not.toBe(july12[1].detail); // and they are DISTINGUISHABLE on the surface
+    expect(july12[0].detail.length).toBeGreaterThan(0);
+    expect(july12[1].detail).toMatch(/family instance|cloud secret/i);
+  });
+});
+
 describe('dashboard/console gov trigger is verb-scoped (2026-07-30 iter-4 — a benign build item must not false-gate)', () => {
   const N = Date.parse('2026-07-30T00:00:00Z');
   const one = (f) => extractReReviews({ reviews: { items: [{ id: 'X', findings: f }] } }, N)[0];
