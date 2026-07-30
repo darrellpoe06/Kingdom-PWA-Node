@@ -116,3 +116,19 @@ describe('proven-to-catch on the REAL registry', () => {
     expect(out.map((i) => i.date)).toContain('2026-07-13');
   });
 });
+
+describe('re-review DONE-marker — closed commitments stop counting (2026-07-30 drive dry-run F1)', () => {
+  const NOW2 = Date.parse('2026-07-30T00:00:00Z');
+  it('EXCLUDES a re-review immediately followed by a DONE marker; KEEPS the bare one on the same line', () => {
+    const items = [{ id: 'REV-9001', findings: 'build X — re-review: 2026-08-01; build Y — re-review: 2026-08-01 [DONE abc123]' }];
+    const out = extractReReviews({ reviews: { items } }, NOW2);
+    expect(out.length).toBe(1);
+    expect(out[0].date).toBe('2026-08-01');
+  });
+  it('honors the marker variants (✓DONE, — RESOLVED, (CLOSED)) but NOT lowercase prose "done"', () => {
+    const closed = [{ id: 'REV-9002', findings: 'a — re-review: 2026-08-02 ✓DONE; b — re-review: 2026-08-03 — RESOLVED; c — re-review: 2026-08-04 (CLOSED)' }];
+    expect(extractReReviews({ reviews: { items: closed } }, NOW2).length).toBe(0);
+    const prose = [{ id: 'REV-9003', findings: 'the work is done and shipped — re-review: 2026-08-05' }];
+    expect(extractReReviews({ reviews: { items: prose } }, NOW2).length).toBe(1); // lowercase "done" in prose does not close it
+  });
+});

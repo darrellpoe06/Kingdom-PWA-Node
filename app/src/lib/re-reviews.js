@@ -44,13 +44,24 @@ function makeItem(base, nowMs) {
   return { ...base, dueInDays, overdue, dueSoon };
 }
 
-// Pull every re-review date out of one free-text blob, tagged with its source.
+// A re-review commitment is CLOSED when its date is IMMEDIATELY followed by a
+// done-marker: `re-review: 2026-08-01 [DONE <sha/evidence>]` (also `✓DONE`,
+// `— DONE`, `(RESOLVED …)`). Scoped to the individual clause — a single
+// Findings line can carry both closed and open commitments (2026-07-30 drive
+// dry-run finding F1: the ledger recorded INTENT, not completion, so a naive
+// date-sort drive would redo done work and the watcher over-counted overdue).
+// The marker is an explicit ALL-CAPS token so prose "done" never false-closes.
+const DONE_MARKER_RE = /^[\s—:(\[]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
+
+// Pull every OPEN re-review date out of one free-text blob, tagged with source.
 function fromText(text, meta, nowMs, out) {
   const s = String(text || '');
   if (!s) return;
   RE_REVIEW_RE.lastIndex = 0;
   let m;
   while ((m = RE_REVIEW_RE.exec(s))) {
+    const after = s.slice(m.index + m[0].length, m.index + m[0].length + 48);
+    if (DONE_MARKER_RE.test(after)) continue; // closed commitment — not a live item
     out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}` }, nowMs));
   }
 }
