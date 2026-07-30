@@ -77,15 +77,19 @@ echo "== mcp install: funnel path mount (guarded, additive, reversible) =="
 # already mounted; on an old CLI without --set-path this prints the manual
 # line honestly instead of guessing.
 if command -v tailscale >/dev/null 2>&1; then
-  if tailscale serve status 2>/dev/null | grep -q "/mcp"; then
+  # FUNNEL, never serve: `tailscale serve` is tailnet-only and REPLACED the
+  # public funnel exposure when run 2026-07-30 (probe 30507138138 saw TLS
+  # resets; the webhook transport went dark until the funnel was restored).
+  # `tailscale funnel --set-path` adds the public path mount additively.
+  if tailscale funnel status 2>/dev/null | grep -q "/mcp"; then
     echo "  /mcp already mounted on the funnel"
-  elif tailscale serve --help 2>&1 | grep -q -- "--set-path"; then
-    tailscale serve --bg --set-path /mcp http://127.0.0.1:8795 \
-      && echo "  mounted /mcp -> 127.0.0.1:8795 (additive; '/' untouched)" \
-      || echo "  mount FAILED -- run by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
-    tailscale serve status 2>/dev/null || true
+  elif tailscale funnel --help 2>&1 | grep -q -- "--set-path"; then
+    tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795 \
+      && echo "  mounted /mcp -> 127.0.0.1:8795 on the PUBLIC funnel (additive)" \
+      || echo "  mount FAILED -- run by hand: tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
+    tailscale funnel status 2>/dev/null || true
   else
-    echo "  tailscale CLI lacks --set-path -- mount by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+    echo "  tailscale CLI lacks funnel --set-path -- mount by hand: tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
   fi
 else
   echo "  no tailscale CLI on PATH -- mount by hand from DSM: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
