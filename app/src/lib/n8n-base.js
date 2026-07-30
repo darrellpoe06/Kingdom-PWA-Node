@@ -63,7 +63,14 @@ const SAME_ORIGIN_PROXY = '/n8n';
 // Resolved base, trailing slashes stripped so callers never produce "//".
 // An explicit VITE_N8N_WEBHOOK_BASE override still wins (e.g. a future proper
 // subdomain); otherwise the same-origin proxy is the default the browser calls.
-export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : SAME_ORIGIN_PROXY;
+// RETIRED (DR-0218, Darrell 2026-07-30 "get rid of it now"): n8n is being taken
+// to ZERO. The base now resolves EMPTY by default so no app code calls n8n —
+// every remaining consumer degrades gracefully (mark-noise → local-only; the
+// relays simply do not fire). An explicit VITE_N8N_WEBHOOK_BASE override still
+// works only if someone deliberately sets it; the default is OFF.
+// eslint-disable-next-line no-unused-vars
+const _SAME_ORIGIN_PROXY_RETIRED = SAME_ORIGIN_PROXY;
+export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : '';
 
 // =============================================================================
 // L16 — Bearer header for the wf18 imported-transactions PII webhook.

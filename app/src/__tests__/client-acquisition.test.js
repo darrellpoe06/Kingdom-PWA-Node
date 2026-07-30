@@ -240,8 +240,8 @@ describe('output approval + reality-trace + webhook', () => {
     expect(s.won).toBe(1);
     expect(s.outputsByStage['market-signal'].total).toBe(1);
   });
-  it('uses the same-origin /n8n rewrite', () => {
-    expect(PRACTICE_GROWTH_WEBHOOK.startsWith('/n8n/')).toBe(true);
-    expect(PRACTICE_GROWTH_WEBHOOK).not.toMatch(/^https?:/);
+  it('is EMPTY — n8n RETIRED (DR-0218, 2026-07-30); the growth run degrades, never calls n8n', () => {
+    expect(PRACTICE_GROWTH_WEBHOOK).toBe('');
+    expect(PRACTICE_GROWTH_WEBHOOK).not.toMatch(/n8n/);
   });
 });

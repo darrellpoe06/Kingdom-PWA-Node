@@ -74,17 +74,18 @@ export function drLedgerFindings({ indexText, diskIds }) {
 // 2 + 3. Containment: a retired/foreign endpoint pattern may exist ONLY in its
 // pinned legacy set. New files reaching for it fail the build.
 // -----------------------------------------------------------------------------
-// The exact app/src files that referenced /n8n/webhook on 2026-07-25 (three of
-// them are the TESTS that forbid it elsewhere). Shrinking this list is the
-// DR-0132/DR-0218 migration; growing it is forbidden.
+// ZERO n8n in app SOURCE (DR-0218; Darrell 2026-07-30 "get rid of it now").
+// Every app source file that referenced /n8n/webhook has been cut over or
+// scrubbed — the last three live calls (thought, practice-growth, mark-noise)
+// were retired to graceful degrades on 2026-07-30. The ONLY remaining allowed
+// references are the TESTS that intentionally assert sovereignty / forbid n8n.
+// Any n8n webhook reference in NON-TEST app source now FAILS the build. This
+// list may only shrink to zero; growing it — or adding a source file — is
+// forbidden.
 export const N8N_ALLOWLIST = [
   'app/src/__tests__/conference-feedback-sovereign.test.jsx',
   'app/src/__tests__/nas-photos.test.js',
   'app/src/__tests__/review-feed.test.js',
-  'app/src/components/WorkflowStatus.jsx',
-  'app/src/lib/client-acquisition.js',
-  'app/src/lib/nas-photos.js',
-  'app/src/poe-financial-mvp-v28.jsx',
 ];
 
 // The one landing-page waitlist post (tracked exception; sovereign /waitlist

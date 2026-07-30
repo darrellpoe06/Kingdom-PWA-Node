@@ -3517,18 +3517,11 @@ export default function PoeFinancialSystem() {
     // device holding the bridge token, and sends it so wf26 can require
     // headerAuth. No token (anonymous/public visitor) → the local record
     // stands and nothing is relayed.
-    let bridgeToken = '';
-    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
-    if (!bridgeToken) return;
-    try {
-      fetch('/n8n/webhook/thought', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
-        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
-      }).then((r) => {
-        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
-      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
-    } catch (_) { /* same */ }
+    // n8n RETIRED (DR-0218, 2026-07-30 "get rid of it now"): the thought relay
+    // no longer posts to any n8n webhook. The local record stands exactly as it
+    // did for anonymous visitors; the sovereign relay (Supabase agent-inbox
+    // insert) is the cutover replacement, tracked — never n8n.
+    return;
   };
 
   // Single source of truth for displayed balances: the DERIVED "right now"
@@ -5309,7 +5302,7 @@ ${THEME_CSS}
 // OWN sovereign data only. On the public poetech.us demo / picker state every
 // visitor would otherwise see Darrell's real transaction stream. This guard
 // renders INSTEAD of <Imported /> whenever isAnyDemoMode is true: it never
-// imports the component, never fires the /n8n/webhook/imported-transactions
+// imports the component, never fires the the retired n8n imported-transactions webhook
 // fetch, and redirects the subview back to a safe tab. Defense in depth pairs
 // with hiding the tab from the demo subnav.
 function ImportedDemoGuard({ setBooksView }) {

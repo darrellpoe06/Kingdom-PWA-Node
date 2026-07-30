@@ -672,8 +672,10 @@ export function pipelineSummary(config = TLC_DEFAULT_CONFIG, { leads = [], outpu
     leads: m.total, activeLeads: m.active, won: m.won, conversionRate: m.conversionRate, consented: m.consented, outputsByStage: byStageOutputs };
 }
 
-// Same-origin /n8n rewrite per project_n8n_same_origin_rewrite (never the Funnel URL).
-export const PRACTICE_GROWTH_WEBHOOK = '/n8n/webhook/practice-growth';
+// n8n RETIRED (DR-0218, 2026-07-30): EMPTY — the growth run no longer calls n8n.
+// The caller degrades to a local/offline result; the sovereign replacement
+// (Supabase-bus growth pipeline) is the tracked cutover, never n8n.
+export const PRACTICE_GROWTH_WEBHOOK = '';
 export function sensitivityFor(config = TLC_DEFAULT_CONFIG) { return config.phiSensitive ? 'health-marketing-local-only' : 'commercial'; }
 
 // =============================================================================
