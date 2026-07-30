@@ -14,11 +14,11 @@ describe('the service catalog', () => {
       }
     }
   });
-  it('routes the waitlist sovereign-neutral, never an n8n webhook', () => {
+  it('routes interest intake sovereign-neutral, never an n8n webhook (no waitlist posture — a dated timeline, DR-0075/Darrell 2026-07-30)', () => {
     for (const s of SERVICES) {
-      expect(s.waitlist_endpoint).toBe('/waitlist');
-      expect(s.waitlist_endpoint).not.toContain('/webhook');
-      expect(s.waitlist_endpoint).not.toContain('/n8n');
+      expect(s.interest_endpoint).toBe('/interest');
+      expect(s.interest_endpoint).not.toContain('/webhook');
+      expect(s.interest_endpoint).not.toContain('/n8n');
     }
   });
 });

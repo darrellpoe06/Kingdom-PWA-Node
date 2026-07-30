@@ -15,7 +15,7 @@
 // FAIL-OPEN, ALWAYS: any parse error / unknown shape exits 0 (allow). A broken
 // guard must never wedge real file work.
 // =============================================================================
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 
 // Transcript-shaped targets: harness task outputs and per-agent transcript
 // JSONL. Ordinary project .jsonl data files (docs/orchestration/*.jsonl, the
@@ -25,11 +25,23 @@ const TRANSCRIPT_PATH = /(\/tasks\/[^\s"']+\.output\b|\bagent-[a-z0-9]+\.jsonl\b
 // Bash commands that would stream a matched file into context.
 const READS_FILE = /\b(cat|head|tail|less|more|sed|awk|grep|strings)\b/;
 
+// CARVE-OUT (2026-07-30 comprehensive review, delivery-context finding): a
+// session's OWN backgrounded Bash command writes its stdout to a
+// /tasks/<id>.output file, and the hook was blocking the session from reading
+// back its own few-line result (a vitest tail, a probe verdict) — forcing
+// re-runs of multi-minute commands. The hook's target is UNBOUNDED transcript
+// imports; a small task-output read is a bounded import, not the disease.
+// Deterministic line: /tasks/*.output at or under this size is allowed;
+// larger stays blocked; agent JSONL transcripts stay blocked at any size.
+const TASK_OUTPUT_PATH = /[^\s"'`;|&]*\/tasks\/[^\s"'`;|&]+\.output\b/i;
+const SMALL_OUTPUT_BYTES = 16 * 1024;
+
 /**
  * Pure decision: does this tool call import a raw subagent/task transcript?
+ * `sizeOf(path) -> bytes|null` is injectable for tests; null = unknown = block.
  * Returns { block: boolean, reason?: string }.
  */
-export function classifyTranscriptImport({ toolName, toolInput } = {}) {
+export function classifyTranscriptImport({ toolName, toolInput, sizeOf } = {}) {
   const inp = toolInput || {};
   let target = '';
   if (toolName === 'Read') {
@@ -41,6 +53,13 @@ export function classifyTranscriptImport({ toolName, toolInput } = {}) {
     target = cmd;
   } else {
     return { block: false };
+  }
+  const taskMatch = target.match(TASK_OUTPUT_PATH);
+  if (taskMatch && typeof sizeOf === 'function') {
+    const path = taskMatch[0];
+    let bytes = null;
+    try { bytes = sizeOf(path); } catch { bytes = null; }
+    if (bytes !== null && bytes <= SMALL_OUTPUT_BYTES) return { block: false };
   }
   return {
     block: true,
@@ -58,7 +77,8 @@ function main() {
   try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch { process.exit(0); }
   let verdict;
   try {
-    verdict = classifyTranscriptImport({ toolName: input.tool_name, toolInput: input.tool_input });
+    const sizeOf = (p) => { try { return statSync(p).size; } catch { return null; } };
+    verdict = classifyTranscriptImport({ toolName: input.tool_name, toolInput: input.tool_input, sizeOf });
   } catch { process.exit(0); }
   if (verdict && verdict.block) {
     // PreToolUse: exit 2 blocks the call; stderr is shown back to Claude.

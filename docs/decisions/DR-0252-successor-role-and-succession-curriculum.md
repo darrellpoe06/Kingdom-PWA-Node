@@ -1,4 +1,4 @@
-# DR-0111 — The Successor role (read-only on the books) + the Handed Forward succession curriculum
+# DR-0252 (renumbered 2026-07-30 from duplicate DR-0111; DR-0111 = do the work — don't re-ask) — The Successor role (read-only on the books) + the Handed Forward succession curriculum
 
 - **Status:** accepted
 - **Tier:** B for the pure permission-model contract + the curriculum (additive, deterministic, fully tested); the DB RLS enforcement of the read-only cut is a distinct **Tier C** slice, deferred with a re-review (see "Not done, with why").

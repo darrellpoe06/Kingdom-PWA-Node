@@ -56,6 +56,27 @@ const reviews = { items: existsSync(reviewsPath)
   ? [{ id: 'REVIEWS.md', title: 'UI/UX & Accessibility Review Registry', findings: readFileSync(reviewsPath, 'utf8'), source: 'docs/reviews/REVIEWS.md' }]
   : [] };
 
+// WIDENED 2026-07-30 (comprehensive review): the watcher scanned only
+// DR files + REVIEWS.md — 133 of the repo's 409 dated commitments. ~147
+// past-due commitments in session-notes, foundations, and INDEX.md were
+// INVISIBLE to the daily drive. Same extractor, three more ledgers; every
+// `re-review: <date>` in the repo's prose now reports to one instrument.
+const extraLedgers = [
+  { dir: 'docs/99-session-notes', label: 'session-note' },
+  { dir: 'docs/00-foundations/_root', label: 'foundation' },
+];
+for (const { dir, label } of extraLedgers) {
+  const abs = join(root, dir);
+  if (!existsSync(abs)) continue;
+  for (const f of readdirSync(abs).filter((n) => n.endsWith('.md'))) {
+    reviews.items.push({ id: `${label}:${f}`, title: f, findings: readFileSync(join(abs, f), 'utf8'), source: `${dir}/${f}` });
+  }
+}
+const indexPath = join(root, 'docs/decisions/INDEX.md');
+if (existsSync(indexPath)) {
+  reviews.items.push({ id: 'INDEX.md', title: 'Decision ledger index', findings: readFileSync(indexPath, 'utf8'), source: 'docs/decisions/INDEX.md' });
+}
+
 // File-backed store for the in-engine lock/heartbeat/failure-streak.
 const stateDir = argVal('--state', join(tmpdir(), 'poetech-review-watcher'));
 mkdirSync(stateDir, { recursive: true });
