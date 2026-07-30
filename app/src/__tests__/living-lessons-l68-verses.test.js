@@ -1,13 +1,14 @@
 // @vitest-environment node
 // =============================================================================
-// L68 (Out of the Way) — every quoted Scripture is KJV-VERBATIM (DR-0076).
-// The lesson was captured from a Deep End episode (Taylor Welch with Ezekiel
-// Azonwu) and quotes ~30 passages. This gate machine-checks the discipline the
-// series claims: each "quoted text" (Reference) pair in the audience-facing
-// lesson prose must match the in-repo KJV corpus (public/bible/kjv) exactly —
-// an ellipsis splits a quote into parts that must EACH match verbatim. A
-// paraphrase, a memory-slip, or a Yahweh-substitution INSIDE a quote (forbidden
-// by DR-0210's bright line) fails the build.
+// Captured-teaching lessons — every quoted Scripture is KJV-VERBATIM (DR-0076).
+// Began with L68 (Out of the Way, The Deep End — Welch/Azonwu, ~30 passages);
+// every captured lesson added since joins VERBATIM_GATED below. The gate
+// machine-checks the discipline the series claims: each "quoted text"
+// (Reference) pair in the audience-facing lesson prose must match the in-repo
+// KJV corpus (public/bible/kjv) exactly — an ellipsis splits a quote into
+// parts that must EACH match verbatim. A paraphrase, a memory-slip, or a
+// Yahweh-substitution INSIDE a quote (forbidden by DR-0210's bright line)
+// fails the build.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -37,12 +38,19 @@ function corpusText(book, ch, v1, v2) {
 // can match the corpus's curly ones without weakening word-level fidelity.
 const norm = (s) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim();
 
-describe('L68 — Out of the Way: every quote is corpus-verbatim', () => {
-  const l68 = LIVING_LESSONS_MODULES.find((m) => m.id === 'll68-out-of-the-way-consecration-and-the-broken-bread');
+// Captured lessons under the verbatim gate: [id, expected row index, min quotes,
+// attribution tokens the prose must carry (DR-0190)].
+const VERBATIM_GATED = [
+  ['ll68-out-of-the-way-consecration-and-the-broken-bread', 67, 20, ['The Deep End', 'Taylor Welch', 'Ezekiel Azonwu']],
+  ['ll69-faithful-over-a-few-things-stewardship-and-increase', 68, 20, ['Zach', 'NetWorth']],
+];
 
-  it('the lesson exists and is the 68th row', () => {
-    expect(l68, 'L68 must exist').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES.indexOf(l68)).toBe(67);
+describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
+  const mod = LIVING_LESSONS_MODULES.find((m) => m.id === id);
+
+  it('the lesson exists at its row', () => {
+    expect(mod, `${id} must exist`).toBeTruthy();
+    expect(LIVING_LESSONS_MODULES.indexOf(mod)).toBe(row);
   });
 
   it('every "quote" (Book C:V) pair in the lesson prose matches the KJV corpus verbatim', () => {
@@ -50,7 +58,7 @@ describe('L68 — Out of the Way: every quote is corpus-verbatim', () => {
     const RE = /"([^"]+)"\s*\(((?:[1-3]\s)?[A-Za-z]+)\s+(\d+):(\d+)(?:-(\d+))?\)/g;
     const failures = [];
     let checked = 0;
-    for (const match of l68.lesson.matchAll(RE)) {
+    for (const match of mod.lesson.matchAll(RE)) {
       const [, quote, book, ch, v1, v2] = match;
       const text = corpusText(book, +ch, +v1, +(v2 || v1));
       if (text == null) { failures.push(`${book} ${ch}:${v1} — not found in corpus`); continue; }
@@ -61,15 +69,19 @@ describe('L68 — Out of the Way: every quote is corpus-verbatim', () => {
         if (p && !norm(text).includes(p)) failures.push(`${book} ${ch}:${v1}${v2 ? '-' + v2 : ''}: "${p.slice(0, 60)}…" is not verbatim in the KJV text`);
       }
     }
-    expect(checked, 'the quote-matcher must actually find quotes (a regex drift would silently pass)').toBeGreaterThan(20);
+    expect(checked, 'the quote-matcher must actually find quotes (a regex drift would silently pass)').toBeGreaterThan(minQuotes);
     expect(failures, failures.join('\n')).toEqual([]);
   });
 
-  it('attribution is carried (DR-0190): the teaching names its source, and the quiz/anchor keep the Word senior', () => {
-    expect(l68.lesson).toMatch(/The Deep End/);
-    expect(l68.lesson).toMatch(/Taylor Welch/);
-    expect(l68.lesson).toMatch(/Ezekiel Azonwu/);
+  it('attribution is carried (DR-0190) and the quiz keeps the Word senior', () => {
+    for (const token of attribs) expect(mod.lesson, `lesson must attribute "${token}"`).toContain(token);
+    expect(mod.quiz.questions.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('L68 anchor pin', () => {
+  it('holds the consecration anchor', () => {
+    const l68 = LIVING_LESSONS_MODULES.find((m) => m.id === VERBATIM_GATED[0][0]);
     expect(l68.anchor.ref).toBe('John 3:30; John 15:1-5');
-    expect(l68.quiz.questions.length).toBeGreaterThanOrEqual(3);
   });
 });
