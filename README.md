@@ -6,7 +6,7 @@ SKOS is a sovereign-mesh human controls system grounded in biblical truth, scien
 
 ## Layout
 
-- [`app/`](app/) — the SKOS PWA. Vite + React + Tailwind. `cd app && npm install && npm run dev` for the local dev server at <http://localhost:5173/>. Source of truth: [`app/src/poe-financial-mvp-v28.jsx`](app/src/poe-financial-mvp-v28.jsx).
+- [`app/`](app/) — the SKOS PWA. Vite + React + Tailwind. `cd app && npm install && npm run dev` for the local dev server at <http://localhost:5173/>. The app shell [`app/src/poe-financial-mvp-v28.jsx`](app/src/poe-financial-mvp-v28.jsx) is FROZEN under a shrink-only budget (scripts/monolith-budget.json) mid-cutover to the modular surfaces in `app/src/components/` + `app/src/lib/` — new capability lands there, never in the shell.
 - [`docs/`](docs/) — architectural foundation.
   - [`docs/00-foundations/`](docs/00-foundations/) — the fifteen numbered foundation documents.
   - [`docs/00-foundations/_root/`](docs/00-foundations/_root/) — Root-tier foundations (`THE-WAY.md`, `MIND-OF-CHRIST.md`, `BEHAVIORAL-MIRROR.md`, `EXCELLENCE-STANDARD.md`, `SCRIPTURE-REFERENCE-STANDARD.md`, `UX-PATTERNS.md`, `ACCESS-TO-THE-HUMAN-MIND.md`, `INTAKE-AND-FIT.md`, `COUNCIL-CHAMBER.md`, `SERVICE-MANAGEMENT.md`, `MODE-ROUTING.md`, others). Authoritative — every SKOS-generated artifact must conform.
@@ -15,4 +15,4 @@ SKOS is a sovereign-mesh human controls system grounded in biblical truth, scien
 
 ## Build target
 
-Current scope: single-family Financial OS for the Poe household. Architectural intent (not in current scope): per-family instantiation so any family can stand up their own SKOS keyed to their history, skills, businesses, and IoT systems. Design decisions in the current build must not foreclose that path.
+Scope today: the PoeTech platform — family stewardship (money, learning, church, media) for the Poe household and the Church of the Living God, sovereign-first (COMMUNITY-FIRST-MISSION). Architectural intent (not in current scope): per-family instantiation so any family can stand up their own SKOS keyed to their history, skills, businesses, and IoT systems. Design decisions in the current build must not foreclose that path.

@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-07-30 (comprehensive-review doc cleaning):** this handoff names a branch (`feat/church-event-management`), a worktree (`.claude/worktrees/event-mgmt`), and an open-with-`hold` PR #220 that no longer exist in this state — its re-arm step was never run and the conference window it waited for has passed. Kept as Layer 4 history; nothing here is live. If event management resumes, it restarts from current main, not from this record.
+
 # HANDOFF — Church › Venues (community Event Management)
 
 **Status: PARKED / on ice (Darrell, 2026-06-17).** Valuable but NOT on the July
