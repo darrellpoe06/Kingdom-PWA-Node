@@ -47,6 +47,14 @@ jobs:
           # the key was minted with a tag, the key itself carries it — the
           # workflow must not require an ACL edit to run (friction removed
           # after the first setup attempt, DR-0249).
+      - name: Verify the tailnet actually joined (the action can retry-and-lie — proven run 30505444551)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY is invalid or was CONSUMED (a key not marked Reusable dies after one join; run #1 used it). Generate a new key with BOTH Reusable and Ephemeral toggled ON, update the TS_AUTHKEY secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
       - name: Bootstrap the NAS (idempotent — mirror pull + services-sync once)
         if: steps.gate.outputs.go == 'true'
         env:
