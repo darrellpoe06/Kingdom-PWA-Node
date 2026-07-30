@@ -33,6 +33,17 @@ import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
 import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
+// Live-systems panels (each self-fetches real state at runtime — reality-traced
+// live 2026-07-30, DR-0061/DR-0076): the Admin → Systems console gathers the
+// operations view that was scattered across CommandServeCenter / Projects /
+// BuildBoard into one place a steward reaches from Admin (Darrell 2026-07-30:
+// "a live look at systems while inside the PoeTech App using admin"). Composed,
+// not reimplemented — same components, one home. Shipped ACTIVE (DR-0254).
+import OpsBoard from './OpsBoard.jsx';
+import DbHealth from './DbHealth.jsx';
+import LlmHealth from './LlmHealth.jsx';
+import WorkflowStatus from './WorkflowStatus.jsx';
+import NetworkStatus from './NetworkStatus.jsx';
 import {
   accessRoster,
   roleMeaning,
@@ -511,6 +522,32 @@ export default function AdminConsole({
       icon: 'lock',
       // The Governed Support Door (DR-0223): fix issues without ambient data access.
       render: () => <SupportAccess instanceId={instanceId} />,
+    },
+    {
+      id: 'systems',
+      label: 'Systems',
+      icon: 'monitor',
+      // THE LIVE SYSTEMS LOOK, from Admin (Darrell 2026-07-30). Each panel below
+      // self-fetches real state at runtime (reality-traced live, DR-0076): the
+      // delivery lane + uptime (OpsBoard), the database (DbHealth), the sovereign
+      // local LLM / Ari's brain (LlmHealth), the sovereign pipelines
+      // (WorkflowStatus), and this device's network (NetworkStatus). Rendered
+      // lazily on open. This is the operations view that used to live scattered
+      // across other tabs — now one place the steward reaches from Admin.
+      render: () => (
+        <div className="space-y-5">
+          <p className="text-sm text-[#1A1815]" style={serif}>
+            The live state of the systems that run the app — the delivery lane and uptime, the
+            database, Ari’s sovereign brain, the pipelines, and this device’s connection. Every
+            reading is fetched live; nothing here is painted.
+          </p>
+          <OpsBoard />
+          <DbHealth />
+          <LlmHealth />
+          <WorkflowStatus />
+          <NetworkStatus />
+        </div>
+      ),
     },
     {
       id: 'quality',
