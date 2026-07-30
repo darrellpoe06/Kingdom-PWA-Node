@@ -25,7 +25,27 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
       expect(scanUndermining(s).clean, s).toBe(false);
     }
   });
-  it('CATCHES a fake boundary — a real gate cited as the reason to defer directed work (2026-07-30)', () => {
+  it('CATCHES inventing a fake boundary to defer buildable work (DR-0236, Darrell 2026-07-30 "get rid of all fake boundaries")', () => {
+    for (const s of [
+      'The two data-bearing replacements are the next build.',
+      'I will not do the tenancy migration tonight.',
+      'The careful part is separate from this pass.',
+      'It rides the isolation-proof lane as a follow-up build.',
+      'That is done properly as a separate PR.',
+    ]) {
+      expect(scanUndermining(s).flags.some((f) => f.id === 'fake-boundary'), s).toBe(true);
+    }
+  });
+  it('does NOT flag a decision-first reply that builds now, or names a REAL blocker', () => {
+    for (const s of [
+      'Built it now: migration + isolation smoke + CI, full suite green.',
+      'The server is live — run id 30507928325, 401 on :8795.',
+      'This needs your NAS password, which only you hold — the one physical step.',
+    ]) {
+      expect(scanUndermining(s).flags.some((f) => f.id === 'fake-boundary'), s).toBe(false);
+    }
+  });
+  it('CATCHES the badge face — a REAL gate cited as the reason to defer directed work (2026-07-30)', () => {
     // "A fake boundary wearing a real badge": the rule-badge is the stated
     // reason the work stops. Both directions must catch (badge→defer, defer→badge).
     for (const s of [
@@ -38,7 +58,7 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
     ]) {
       const r = scanUndermining(s);
       expect(r.clean, s).toBe(false);
-      expect(r.flags.some((f) => f.id === 'fake-boundary'), s).toBe(true);
+      expect(r.flags.some((f) => f.id === 'fake-boundary-badge'), s).toBe(true);
     }
   });
   it('PASSES real rule use — citing a gate while DOING the work, or naming a lawful narrow blocker', () => {
@@ -50,7 +70,7 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
       'Tier C here means carry the proof, and the proof is attached.',
     ]) {
       const r = scanUndermining(s);
-      expect(r.flags.some((f) => f.id === 'fake-boundary'), s).toBe(false);
+      expect(r.flags.some((f) => f.id === 'fake-boundary-badge'), s).toBe(false);
     }
   });
   it('CATCHES scope-questioning what was already decided', () => {

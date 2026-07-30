@@ -4,7 +4,7 @@
 // Brings the REAL system into the app: which automations exist, which are
 // active, and how the last run went — fetched live from the NAS at the sovereign
 // same-origin path GET /automation-status (DR-0218 zero-n8n). The old n8n fleet
-// readout (/n8n/webhook/workflow-status) is retired with n8n itself; this now
+// readout (the retired n8n workflow-status webhook) is retired with n8n itself; this now
 // points at where the sovereign automation-status server serves. Degrades
 // honestly: if the feed isn't wired yet it says so, instead of faking data —
 // and it never repaints the build-time repo count as if it were live run-status.

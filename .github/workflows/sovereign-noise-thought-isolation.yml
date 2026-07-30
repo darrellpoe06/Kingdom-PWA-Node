@@ -1,0 +1,54 @@
+# sovereign-noise-thought-isolation — PROVE the 0127 tenant isolation of the two
+# n8n replacements (transaction_noise, agent_inbox) in CI against the real
+# database, using the SAME SUPABASE_DB_URL secret db-migrate uses. Enablement
+# GATE for the sovereign mark-noise + thought cutover (DR-0218): the app may
+# persist to these tables only while this is GREEN (DR-0076; the
+# viewer-readonly / role-control isolation precedent).
+#
+# Self-contained + idempotent, safe against prod:
+#   1. Applies 0127 (IF NOT EXISTS / DROP+CREATE POLICY — re-runnable).
+#   2. Runs tests/0127-sovereign-noise-thought-smoke.sql: sets up two family
+#      instances with owner/member/viewer IN A TRANSACTION and asserts a member
+#      writes+reads, a viewer reads but cannot write, and a NON-member can
+#      neither read nor write the other instance's rows (the no-leak proof),
+#      then ROLLS BACK. A wrong grant RAISEs -> psql non-zero -> RED.
+#
+# FIRING: db-migrate dispatches this EXPLICITLY as a last step (workflow_run
+# never fires for the lane's GITHUB_TOKEN db-migrate runs — the DR-0107 class).
+# Manual dispatch works any time. Deploy-path only; not self-arming (the Cage).
+name: sovereign-noise-thought-isolation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [db-migrate]
+    types: [completed]
+
+concurrency:
+  group: sovereign-noise-thought-isolation
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: Apply 0127 (idempotent) then run the isolation smoke test
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            exit 1
+          fi
+          echo "=== applying 0127-sovereign-noise-and-thought.sql (idempotent) ==="
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+            -f infra/supabase/migrations-auto/0127-sovereign-noise-and-thought.sql
+          echo "=== running the sovereign noise+thought isolation smoke (rolls back) ==="
+          psql "$DBURL" -v ON_ERROR_STOP=1 \
+            -f infra/supabase/tests/0127-sovereign-noise-thought-smoke.sql
+          echo "isolation smoke completed without a wrong grant (PASS line above)"

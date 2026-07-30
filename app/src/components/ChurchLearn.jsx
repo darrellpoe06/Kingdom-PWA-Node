@@ -54,7 +54,8 @@ import {
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
-import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
@@ -73,6 +74,7 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
+import { getPlace, recordPlace, clearPlace } from '../lib/learn-resume.js';
 
 const fmtDate = formatClassDate;
 
@@ -430,11 +432,17 @@ function SopLibrary({ sequences, pipeline }) {
 // at once. The text is never invented or summarized — only chunked. Reaching the
 // last segment fires onSegmentComplete once (real engagement signal).
 // -----------------------------------------------------------------------------
-function AgePacedLesson({ plan, onSegmentComplete }) {
-  const [idx, setIdx] = useState(0);
+function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null }) {
+  const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+  // Report a move so the host can persist the learner's place (resume-your-place).
+  const moveTo = (i) => {
+    const n = Math.max(0, Math.min(totalSegments - 1, i));
+    setIdx(n);
+    if (onStepChange) onStepChange(n);
+  };
 
   // Adult/single-segment: just show the whole lesson, no stepper.
   if (totalSegments <= 1) {
@@ -443,29 +451,32 @@ function AgePacedLesson({ plan, onSegmentComplete }) {
     );
   }
 
-  const atLast = idx >= totalSegments - 1;
+  // Clamp so a stale saved place (a lesson re-paced shorter) can never point
+  // past the last segment — it lands on the end instead of crashing.
+  const cur = Math.min(idx, totalSegments - 1);
+  const atLast = cur >= totalSegments - 1;
   const advance = () => {
     if (atLast) {
       if (!firedRef.current && onSegmentComplete) { firedRef.current = true; onSegmentComplete(); }
       return;
     }
-    setIdx((i) => Math.min(totalSegments - 1, i + 1));
+    moveTo(cur + 1);
   };
   // Break nudge after every breakAfterSegments steps (young bands only).
-  const showBreak = breakAfterSegments > 0 && (idx + 1) % breakAfterSegments === 0 && !atLast;
-  const showCheckHint = (idx + 1) >= checkAfterSegments;
+  const showBreak = breakAfterSegments > 0 && (cur + 1) % breakAfterSegments === 0 && !atLast;
+  const showCheckHint = (cur + 1) >= checkAfterSegments;
 
   return (
     <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
-          Step {idx + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
+          Step {cur + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
         </span>
-        <div className="h-1.5 w-24 bg-[#E8E4DC]" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={totalSegments} aria-label="Lesson step">
-          <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((idx + 1) / totalSegments) * 100)}%` }} />
+        <div className="h-1.5 w-24 bg-[#E8E4DC]" role="progressbar" aria-valuenow={cur + 1} aria-valuemin={1} aria-valuemax={totalSegments} aria-label="Lesson step">
+          <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
         </div>
       </div>
-      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{segments[idx]}</p>
+      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{segments[cur]}</p>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}
@@ -475,8 +486,8 @@ function AgePacedLesson({ plan, onSegmentComplete }) {
       <div className="flex items-center gap-2 mt-2">
         <button
           type="button"
-          onClick={() => setIdx((i) => Math.max(0, i - 1))}
-          disabled={idx === 0}
+          onClick={() => moveTo(cur - 1)}
+          disabled={cur === 0}
           className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
           ◀ Back
@@ -561,7 +572,7 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -579,10 +590,30 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // the existing real-wired pieces (paced lesson, media, launch, quiz).
   const arc = buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel });
 
+  // Resume-your-place (Darrell 2026-07-30: "too easy to lose your place"):
+  // if THIS lesson is the device's saved place, reopen at the saved arc stage
+  // and paced step instead of the top. Read live so a stage-away-and-back
+  // lands on the step the learner actually reached. Fail-soft: no saved place
+  // (or a different lesson's) → 0, exactly the old behavior.
+  const savedHere = (() => {
+    const p = getPlace();
+    return p && p.lessonId === module.id ? p : null;
+  })();
+
   // Real engagement: this learner started this week (once per open).
   React.useEffect(() => {
     if (!startedRef.current && onEngagement) { startedRef.current = true; onEngagement('started', module.id); }
   }, [module.id, onEngagement]);
+
+  // While THIS lesson's guide is open, it is the screen's primary reading:
+  // register the FULL lesson (every teach segment, not the visible step) so the
+  // floating Read Aloud control reads ONE whole lesson start to finish instead
+  // of the page's mixed lesson cards (Darrell 2026-07-30). Cleared on close.
+  React.useEffect(() => {
+    const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    if (text) setReadTarget(module.id, { label: `this ${unitNoun}`, text });
+    return () => clearReadTarget(module.id);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun]);
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
@@ -630,7 +661,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             {/* Research → Plan → Execute — the shared doing-primitive */}
             <RpeBlock rpe={module.rpe} />
             {/* Authored walkthrough, PACED to age/depth (chunked, not summarized) */}
-            <AgePacedLesson plan={seg.audience.lessonPlan} onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)} />
+            <AgePacedLesson
+              plan={seg.audience.lessonPlan}
+              onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
+              initialIndex={savedHere ? savedHere.step : 0}
+              onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
+            />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
             {Array.isArray(seg.audience.stories) && seg.audience.stories.length > 0 && (
@@ -759,8 +795,16 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         🧭 {ARI.name} — your guide for this {unitNoun}
       </div>
 
-      {/* The lesson-flow STANDARD — one clean, paced stage at a time */}
-      <LessonFlowAudience arc={arc} renderStage={renderStage} unitNoun={unitNoun} />
+      {/* The lesson-flow STANDARD — one clean, paced stage at a time. Opens on
+          the saved stage when this lesson is the device's place; every move is
+          persisted so the place is never lost (resume-your-place). */}
+      <LessonFlowAudience
+        arc={arc}
+        renderStage={renderStage}
+        unitNoun={unitNoun}
+        initialIndex={savedHere ? savedHere.stage : 0}
+        onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
+      />
 
       {/* The chat with the local tutor */}
       <div className="mt-3 border-t border-[#E8E4DC] pt-3">
@@ -856,6 +900,7 @@ function CourseView({
   recordQuiz = null,
   onBecomeHelper = null,
   helped = false,
+  resumeLessonId = null, // "Pick up where you left off" target — opens + scrolls to this lesson
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
@@ -887,6 +932,25 @@ function CourseView({
   const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
   const handsOnLabel = meta.handsOnLabel || 'In the app';
   const U = unitLabels(meta); // "week"/"Week" by default; "lesson"/"Lesson" + self-paced for the lesson series
+  // Resume-your-place: every write goes through here so the record always
+  // carries THIS course's key (device-local, lib/learn-resume.js).
+  const savePlace = (patch) => recordPlace({ courseKey: course.key, ...patch });
+
+  // "Pick up where you left off" — the wrapper hands down the saved lesson id;
+  // open its guide and bring it into view (the same real path a tap on "Start
+  // this lesson" drives, minus the finger).
+  React.useEffect(() => {
+    if (!resumeLessonId || !schedule.some((m) => m.id === resumeLessonId)) return undefined;
+    setOpenTutorId(resumeLessonId);
+    recordUse(resumeLessonId);
+    setRecentTick((t) => t + 1);
+    const t = setTimeout(() => {
+      const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${resumeLessonId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [resumeLessonId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const prog = courseProgressSummary(progress);
   const canSendInterest = !!onSendInterest;
   // Real assessment from the learner's record (progress + quiz passes).
@@ -1157,7 +1221,7 @@ function CourseView({
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <button
                   type="button"
-                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); } setOpenTutorId(tutorOpen ? null : m.id); }}
+                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
                   className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
@@ -1214,6 +1278,7 @@ function CourseView({
                     onRecordQuiz={recordQuiz}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
+                    onPlace={savePlace}
                   />
                 </div>
               )}
@@ -1564,6 +1629,12 @@ export default function ChurchLearn({
   const [helped, setHelped] = useState({}); // keyed by course key
   const [activeKey, setActiveKey] = useState('ai');
   const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
+  // Resume-your-place (Darrell 2026-07-30): the device's saved Learn place,
+  // read once on mount (client-only app; same read-in-render pattern as
+  // ux-signals' "Recently opened"). Cleared from view on resume/dismiss.
+  const [savedPlace, setSavedPlace] = useState(() => getPlace());
+  // The lesson CourseView should open + scroll to after a resume tap.
+  const [resumeLessonId, setResumeLessonId] = useState(null);
 
   // The youth A.I. course, assembled from this component's existing flat props so
   // nothing about its wiring changes — it just becomes one entry in the picker.
@@ -1637,6 +1708,23 @@ export default function ChurchLearn({
   const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
   const active = courses.find((c) => c.key === activeKey) || aiCourse;
 
+  // Resolve the saved place against the MOUNTED catalog (verify before relying
+  // on it): a course or lesson that no longer exists offers nothing — the
+  // banner can never point at a dead door.
+  const placeCourse = savedPlace ? courses.find((c) => c.key === savedPlace.courseKey) : null;
+  const placeLesson = placeCourse ? ((placeCourse.schedule || []).find((m) => m.id === savedPlace.lessonId) || null) : null;
+  // Redundant while the saved lesson's guide is already the one open on screen.
+  const showResume = !!placeLesson && !(activeKey === savedPlace.courseKey && resumeLessonId === savedPlace.lessonId);
+  const resumeNow = () => {
+    setActiveKey(savedPlace.courseKey);
+    setResumeLessonId(savedPlace.lessonId);
+    setSavedPlace(null);
+  };
+  const startFresh = () => {
+    clearPlace();
+    setSavedPlace(null);
+  };
+
   // Engagement-by-age: TutorPanel emits (signal, moduleId); the wrapper injects the
   // active course + the learner's age band before handing it to the host's pipe.
   const onCourseEngagement = onEngagement
@@ -1663,6 +1751,42 @@ export default function ChurchLearn({
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
             {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
           </p>
+        )}
+
+        {/* Resume-your-place (Darrell 2026-07-30: "It's too easy to lose your
+            place inside of the Learn space after starting one self-paced
+            lesson"). The device's saved place — course, lesson, arc stage,
+            paced step — offered back as ONE tap, above the picker so it is the
+            first thing a returning learner meets. Device-local + private
+            (lib/learn-resume.js); verified against the mounted catalog, so a
+            renamed/removed lesson silently offers nothing instead of a dead
+            door. */}
+        {showResume && (
+          <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
+            <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {placeLesson.week} · {placeLesson.title}
+              {savedPlace.stage > 0 || savedPlace.step > 0 ? (
+                <span className="text-[#5A5751]"> (part {savedPlace.stage + 1}{savedPlace.step > 0 ? `, step ${savedPlace.step + 1}` : ''})</span>
+              ) : null}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={resumeNow}
+                className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[40px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                Resume →
+              </button>
+              <button
+                type="button"
+                onClick={startFresh}
+                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                Start fresh
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
@@ -1742,6 +1866,7 @@ export default function ChurchLearn({
         recordQuiz={recordQuiz}
         onBecomeHelper={onBecomeHelper}
         helped={!!helped[active.key]}
+        resumeLessonId={resumeLessonId}
       />
     </section>
   );

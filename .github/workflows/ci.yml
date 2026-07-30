@@ -85,6 +85,10 @@ jobs:
       # retired-n8n-transport and vendor-form-endpoint containment. Proven-to-
       # catch in vitest (business-systems-guard.test.js).
       - run: node ../scripts/business-systems-guard.mjs
+      # Infra transport guard (DR-0250; the 2026-07-30 outage class): any infra
+      # shell script mutating the Tailscale transport must cite RECORDED-STATE.
+      # Proven-to-catch in vitest (infra-transport-guard.test.js).
+      - run: node ../scripts/infra-transport-guard.mjs
       - run: npx vitest run
       # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
       # classification — a fresh upload's missing captions are TRANSIENT (YouTube

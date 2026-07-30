@@ -3517,18 +3517,17 @@ export default function PoeFinancialSystem() {
     // device holding the bridge token, and sends it so wf26 can require
     // headerAuth. No token (anonymous/public visitor) → the local record
     // stands and nothing is relayed.
-    let bridgeToken = '';
-    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
-    if (!bridgeToken) return;
-    try {
-      fetch('/n8n/webhook/thought', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
-        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
-      }).then((r) => {
-        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
-      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
-    } catch (_) { /* same */ }
+    // SOVEREIGN (DR-0218): relay to the RLS-scoped agent_inbox table (migration
+    // 0127), the DR-0132 outbound-poll bus — never n8n. Best-effort: signed-out
+    // or offline leaves the local record above canonical (the old behavior).
+    import('./lib/agent-inbox-sync.js')
+      .then(({ relayThought }) => relayThought({
+        body: text, tags: ['tell-poetech', 'poetech-app'], source: 'thinking-space', directiveId: id,
+      }))
+      .then((res) => {
+        if (res && res.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+      })
+      .catch(() => { /* offline — local record stands; the relay is best-effort */ });
   };
 
   // Single source of truth for displayed balances: the DERIVED "right now"
@@ -5309,7 +5308,7 @@ ${THEME_CSS}
 // OWN sovereign data only. On the public poetech.us demo / picker state every
 // visitor would otherwise see Darrell's real transaction stream. This guard
 // renders INSTEAD of <Imported /> whenever isAnyDemoMode is true: it never
-// imports the component, never fires the /n8n/webhook/imported-transactions
+// imports the component, never fires the the retired n8n imported-transactions webhook
 // fetch, and redirects the subview back to a safe tab. Defense in depth pairs
 // with hiding the tab from the demo subnav.
 function ImportedDemoGuard({ setBooksView }) {

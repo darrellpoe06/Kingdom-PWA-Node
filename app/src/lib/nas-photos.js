@@ -12,7 +12,7 @@
 // per-photo exception (the existing flows).
 //
 // Bridge contract (wf-property-photos, live on the NAS):
-//   GET /n8n/webhook/property-photos?channel=<name>&limit=N&offset=M
+//   GET the retired n8n property-photos webhook (channel,limit,offset)
 //   Authorization: Bearer <poetech-chat-bridge-token>   (per-device token)
 //   -> { photos: [{ id, thumb, date, text }] }
 //
@@ -38,7 +38,7 @@ export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 // Property photos are served by the SOVEREIGN PYTHON IMAGE SERVER on the NAS
 // (infra/nas-property-photos/photo_server.py) via the same-origin `/nas-photos`
 // Vercel rewrite -> Tailscale-fronted NAS. This REPLACED the old n8n bridge
-// (/n8n/webhook/property-photos) after the 2026-07-01 regression: the count
+// (the retired n8n property-photos webhook) after the 2026-07-01 regression: the count
 // (psql, live) kept working while every thumbnail came back null, because the
 // old n8n->SSH->resolver chain's thumbnail-path assumption drifted. One
 // deterministic Python process now owns the whole path -- no n8n hop. The
