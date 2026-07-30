@@ -47,6 +47,14 @@ jobs:
           # the key was minted with a tag, the key itself carries it — the
           # workflow must not require an ACL edit to run (friction removed
           # after the first setup attempt, DR-0249).
+      - name: Verify the tailnet actually joined (the action can retry-and-lie — proven run 30505444551)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY is invalid or was CONSUMED (a key not marked Reusable dies after one join; run #1 used it). Generate a new key with BOTH Reusable and Ephemeral toggled ON, update the TS_AUTHKEY secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
       - name: Bootstrap the NAS (idempotent — mirror pull + services-sync once)
         if: steps.gate.outputs.go == 'true'
         env:
@@ -58,6 +66,11 @@ jobs:
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $NAS"
           $SSH 'mkdir -p /volume1/PoeTech/repos'
           $SSH 'test -d /volume1/PoeTech/repos/Kingdom-PWA-Node/.git || git clone https://github.com/darrellpoe06/Kingdom-PWA-Node.git /volume1/PoeTech/repos/Kingdom-PWA-Node'
+          # The NAS checkout is a MIRROR — local drift (proven on run #1:
+          # 0074-isolation-smoke.sql held an uncommitted edit that aborted the
+          # pull) is STASHED, never destroyed, so the pull always lands and the
+          # drift stays recoverable via `git stash list` on the NAS.
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git stash push --include-untracked -m "nas-bootstrap auto-stash" 2>/dev/null || true'
           $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git pull --ff-only'
           $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && node infra/nas-loops/run.mjs --loop=services-sync'
           echo "Bootstrap complete. Register infra/nas-loops/run.sh in DSM Task Scheduler for boot-persistence (one-time; see infra/nas-loops/README.md), or re-dispatch this workflow to re-sync."
