@@ -38,7 +38,10 @@ jobs:
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-          tags: tag:ci
+          # No hard-coded ACL tag: a plain ephemeral auth key works as-is. If
+          # the key was minted with a tag, the key itself carries it — the
+          # workflow must not require an ACL edit to run (friction removed
+          # after the first setup attempt, DR-0249).
       - name: Bootstrap the NAS (idempotent — mirror pull + services-sync once)
         if: steps.gate.outputs.go == 'true'
         env:
