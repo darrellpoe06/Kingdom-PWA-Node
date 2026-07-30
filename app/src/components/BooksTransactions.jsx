@@ -13,7 +13,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TabScroll } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { fmt } from '../lib/format.js';
-import { N8N_BASE } from '../lib/n8n-base.js';
+// n8n retired (DR-0218): mark-noise persists via transaction-noise-sync (0127).
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
 import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile, parseAmount } from '../lib/statement-import.js';
@@ -403,17 +403,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       next.add(fitid);
       return next;
     });
-    const base = N8N_BASE;
-    if (!base) return; // local-only optimism; state will not persist
+    // SOVEREIGN (DR-0218): persist to the RLS-scoped transaction_noise table
+    // (migration 0127), not n8n. Signed-out degrades to local-only optimism.
     try {
-      const url = `${base.replace(/\/+$/, '')}/webhook/mark-noise`;
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ institution: inst, fitid, reason: 'pwa-tx-mark-noise' })
-      });
-      if (!r.ok) throw new Error('Mark-noise endpoint returned ' + r.status);
+      const { addNoiseFlag } = await import('../lib/transaction-noise-sync.js');
+      const res = await addNoiseFlag({ institution: inst, fitid, reason: 'pwa-tx-mark-noise' });
+      if (!res.ok) {
+        if (res.reason === 'signed-out') return; // local-only; will not persist
+        throw new Error(res.reason);
+      }
     } catch (e) {
       // Revert optimism on failure so the user knows it didn't stick.
       setNoisedLocally(prev => {

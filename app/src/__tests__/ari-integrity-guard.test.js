@@ -25,6 +25,26 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
       expect(scanUndermining(s).clean, s).toBe(false);
     }
   });
+  it('CATCHES inventing a fake boundary to defer buildable work (DR-0236, Darrell 2026-07-30 "get rid of all fake boundaries")', () => {
+    for (const s of [
+      'The two data-bearing replacements are the next build.',
+      'I will not do the tenancy migration tonight.',
+      'The careful part is separate from this pass.',
+      'It rides the isolation-proof lane as a follow-up build.',
+      'That is done properly as a separate PR.',
+    ]) {
+      expect(scanUndermining(s).flags.some((f) => f.id === 'fake-boundary'), s).toBe(true);
+    }
+  });
+  it('does NOT flag a decision-first reply that builds now, or names a REAL blocker', () => {
+    for (const s of [
+      'Built it now: migration + isolation smoke + CI, full suite green.',
+      'The server is live — run id 30507928325, 401 on :8795.',
+      'This needs your NAS password, which only you hold — the one physical step.',
+    ]) {
+      expect(scanUndermining(s).flags.some((f) => f.id === 'fake-boundary'), s).toBe(false);
+    }
+  });
   it('CATCHES scope-questioning what was already decided', () => {
     expect(scanUndermining('If "the TLC App" means all of those, that’s more scope — your call.').clean).toBe(false);
     expect(scanUndermining('That’s additional scope.').clean).toBe(false);

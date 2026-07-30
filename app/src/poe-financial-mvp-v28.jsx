@@ -3517,11 +3517,17 @@ export default function PoeFinancialSystem() {
     // device holding the bridge token, and sends it so wf26 can require
     // headerAuth. No token (anonymous/public visitor) → the local record
     // stands and nothing is relayed.
-    // n8n RETIRED (DR-0218, 2026-07-30 "get rid of it now"): the thought relay
-    // no longer posts to any n8n webhook. The local record stands exactly as it
-    // did for anonymous visitors; the sovereign relay (Supabase agent-inbox
-    // insert) is the cutover replacement, tracked — never n8n.
-    return;
+    // SOVEREIGN (DR-0218): relay to the RLS-scoped agent_inbox table (migration
+    // 0127), the DR-0132 outbound-poll bus — never n8n. Best-effort: signed-out
+    // or offline leaves the local record above canonical (the old behavior).
+    import('./lib/agent-inbox-sync.js')
+      .then(({ relayThought }) => relayThought({
+        body: text, tags: ['tell-poetech', 'poetech-app'], source: 'thinking-space', directiveId: id,
+      }))
+      .then((res) => {
+        if (res && res.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+      })
+      .catch(() => { /* offline — local record stands; the relay is best-effort */ });
   };
 
   // Single source of truth for displayed balances: the DERIVED "right now"

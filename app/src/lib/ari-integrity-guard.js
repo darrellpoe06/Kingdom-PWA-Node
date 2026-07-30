@@ -43,6 +43,14 @@ export const UNDERMINING_PATTERNS = Object.freeze([
   // only he holds) are stated as such — this catches the default-to-waiting.
   { id: 'waiting-by-default', why: 'parks agreed work on a human start — agreed work starts itself through the lane; the hand is a brake, never the starter (DR-0247)',
     re: /\b(until you (arm|run|activate|enable|start)|awaiting your (arm|hand|touch)|waiting (on|for) your (hand|touch|arm|word to start)|ships? (inert|inactive) until (you|the governor|darrell)|your hand (arms|starts|activates)|once you (arm|activate) (it|the)|the one step that.?s (genuinely )?(yours|your hand))\b/i },
+  // Darrell 2026-07-30 (law-tier, repeated): "Get rid of all fake boundaries!!!"
+  // Tonight's failure class: inventing a process wall — a tier, a lane, a
+  // "careful part," a "next build," a "value only you hold" — to DEFER work
+  // that is buildable now (DR-0236) or to hedge (DR-0100 over-claim). A real
+  // blocker is only a physical-access step or a genuinely-undecided bright
+  // line; naming anything else as a boundary to stop at is the undermining move.
+  { id: 'fake-boundary', why: 'invents a process boundary to defer buildable directed work — build it now; a real blocker is only physical access or an undecided bright line (DR-0236/DR-0111/DR-0225)',
+    re: /\b(as (the|a) (immediate )?(next|follow-?up|separate) (build|lane|pr|step|cutover)|the next build\b|that.?s (its own|a separate) (lane|pr|build|tier)|rides the .{2,30} lane\b|the careful part|done properly (as )?(a )?(separate|follow)|i (won.?t|will not|am not going to) .{2,50} (tonight|now|this session)|is the (immediate )?follow-through|comes out .{2,30} on (its|the) .{2,20} track|(tier c|isolation.proof) (so it|lane).{0,20}(wait|defer|separate|next))\b/i },
 ]);
 
 // Scan a draft reply / PR body for the undermining patterns. Returns the flags so
