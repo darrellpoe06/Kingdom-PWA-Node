@@ -243,6 +243,47 @@ export function planSessions(module, opts = {}) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// readAloudTextFromArc — ONE lesson as speakable text, start to finish.
+// Darrell 2026-07-30: "The reader reads different lessons not one full one...
+// Just the pages showing on the full list view." The Read Aloud control read
+// the page DOM — fragments of many lessons, and only the visible paced step of
+// the open one. This walks the built arc's AUDIENCE side instead: the title,
+// the big idea + anchor, EVERY paced teach segment (the whole authored lesson,
+// not the step on screen), the stories with their honest labels (parable vs
+// testimony — DR-0215), the discussion questions, the hands-on line, and the
+// benefits. NO-LEAK: reads only `audience` fields — facilitator say/do/howToRun
+// can never be spoken to a learner. Pure over the arc (DR-0076-testable).
+// ---------------------------------------------------------------------------
+export function readAloudTextFromArc(arc) {
+  if (!arc) return '';
+  const parts = [];
+  if (arc.title) parts.push(`${arc.title}.`);
+  for (const seg of arc.audienceSegments || []) {
+    const a = seg.audience || {};
+    if (seg.kind === 'open') {
+      if (a.bigIdea) parts.push(a.bigIdea);
+      if (a.anchorRef) parts.push(`Anchor scripture — ${a.anchorRef}${a.anchorTheme ? `: ${a.anchorTheme}` : ''}.`);
+    } else if (seg.kind === 'teach') {
+      parts.push(...(((a.lessonPlan && a.lessonPlan.segments) || [])));
+      for (const s of a.stories || []) {
+        parts.push(`${s.kind === 'testimony' ? 'A true story' : 'Picture this'}${s.title ? ` — ${s.title}` : ''}.`);
+        if (s.body) parts.push(s.body);
+        if (s.verse) parts.push(s.verse);
+      }
+    } else if (seg.kind === 'engage') {
+      if ((a.prompts || []).length) parts.push('Questions to think about:', ...a.prompts);
+    } else if (seg.kind === 'apply') {
+      if (a.inApp) parts.push(`${a.handsOnLabel || 'In the app'}: ${a.inApp}`);
+    } else if (seg.kind === 'send') {
+      if ((a.benefits || []).length) parts.push('What this frees in you:', ...a.benefits);
+    }
+  }
+  // Same ceiling the page reader uses, so the speech queue is never handed an
+  // unbounded string.
+  return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 32000);
+}
+
 export function buildLessonArc(module, opts = {}) {
   const m = module || {};
   const {

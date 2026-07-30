@@ -17,6 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import { readFromPoint } from '../lib/read-from-here.js';
+import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
@@ -50,6 +51,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // start — mapped to the exact word via lib/read-from-here, falling back to the
   // top of the page (never silence) when the device can't resolve the tap.
   const [armed, setArmed] = useState(false);
+  // READ ONE FULL PIECE (Darrell 2026-07-30: "The reader reads different
+  // lessons not one full one... Just the pages showing"): when a surface
+  // registers its primary reading (e.g. the open Learn lesson, complete —
+  // lib/read-target.js), reading THAT start-to-finish is the primary action;
+  // whole-page reading stays as the fallback below it.
+  const [target, setTarget] = useState(() => getReadTarget());
+  useEffect(() => subscribeReadTarget(setTarget), []);
   // The collapsed read-aloud button is a gentle reminder: it dims + settles when
   // idle and re-reveals on scroll/touch. Declared before the early return below
   // so the hook order is stable (rules-of-hooks). Applies to the collapsed button
@@ -136,7 +144,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <div className="grid grid-cols-3 gap-[0.25em] mb-[0.75em]">
             {!isReading ? (
               <>
-                <button type="button" onClick={start} className="col-span-3 bg-[#1A1815] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read this page</button>
+                {/* One full piece, start to finish — primary when a surface has
+                    registered its reading (the open lesson). Never the page mix. */}
+                {target && (
+                  <button type="button" onClick={() => read(target.text)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                )}
+                <button type="button" onClick={start} className={`col-span-3 px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${target ? 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white' : 'bg-[#1A1815] text-white hover:bg-[#B85838]'}`}>▶ Read this page</button>
                 {/* START WHERE I TAP — arm, then the next tap on the page picks
                     the word reading begins from (Esc or Cancel to stand down). */}
                 {!armed ? (
@@ -199,7 +212,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           ) : null}
 
           <p className="text-[0.5625em] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
+            {target ? `Read ${target.label} reads that one whole piece, start to finish — nothing else on the page mixed in. ` : ''}Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
         </div>
       ) : (

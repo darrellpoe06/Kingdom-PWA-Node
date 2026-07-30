@@ -54,7 +54,8 @@ import {
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
-import { buildLessonArc, sessionMinutesFromFlow } from '../lib/lesson-flow.js';
+import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
@@ -603,6 +604,16 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   React.useEffect(() => {
     if (!startedRef.current && onEngagement) { startedRef.current = true; onEngagement('started', module.id); }
   }, [module.id, onEngagement]);
+
+  // While THIS lesson's guide is open, it is the screen's primary reading:
+  // register the FULL lesson (every teach segment, not the visible step) so the
+  // floating Read Aloud control reads ONE whole lesson start to finish instead
+  // of the page's mixed lesson cards (Darrell 2026-07-30). Cleared on close.
+  React.useEffect(() => {
+    const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    if (text) setReadTarget(module.id, { label: `this ${unitNoun}`, text });
+    return () => clearReadTarget(module.id);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun]);
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
