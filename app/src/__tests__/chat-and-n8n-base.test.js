@@ -37,7 +37,10 @@ describe('synology-chat transport (unconfigured in test env)', () => {
 });
 
 describe('n8n base resolver', () => {
-  it('defaults to the same-origin /n8n proxy when no override is set', () => {
+  it('defaults to EMPTY — n8n is RETIRED (DR-0218, 2026-07-30); no app code calls it', () => {
+    expect(N8N_BASE).toBe('');
+  });
+  it.skip('LEGACY (pre-retirement): defaulted to the same-origin /n8n proxy', () => {
     // 2026-07-05: production moved to Cloudflare Pages, whose Pages Function
     // (app/functions/n8n/[[path]].js) proxies the Funnel same-origin. The
     // browser must NEVER call the Funnel cross-origin — it throttles those

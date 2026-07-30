@@ -58,12 +58,13 @@ const RAW = import.meta.env?.VITE_N8N_WEBHOOK_BASE;
 // (app/functions/n8n/[[path]].js); in `vite dev` the dev-server proxy in
 // vite.config.js forwards it to the LAN NAS. The browser never calls the
 // Tailscale Funnel cross-origin (it throttles those with 503 before n8n).
-const SAME_ORIGIN_PROXY = '/n8n';
-
-// Resolved base, trailing slashes stripped so callers never produce "//".
-// An explicit VITE_N8N_WEBHOOK_BASE override still wins (e.g. a future proper
-// subdomain); otherwise the same-origin proxy is the default the browser calls.
-export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : SAME_ORIGIN_PROXY;
+//
+// RETIRED (DR-0218, Darrell 2026-07-30 "get rid of it now"): n8n is taken to
+// ZERO. N8N_BASE resolves EMPTY by default, so no app code calls n8n — every
+// remaining consumer degrades gracefully (mark-noise → local-only; the relays
+// simply do not fire). An explicit VITE_N8N_WEBHOOK_BASE override still works
+// only if someone deliberately sets it; the default is OFF.
+export const N8N_BASE = RAW ? RAW.replace(/\/+$/, '') : '';
 
 // =============================================================================
 // L16 — Bearer header for the wf18 imported-transactions PII webhook.

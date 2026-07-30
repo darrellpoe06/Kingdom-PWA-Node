@@ -76,19 +76,32 @@ echo "== mcp install: funnel path mount (guarded, additive, reversible) =="
 # Guarded per DR-0076: only when the CLI exists, only when /mcp is not
 # already mounted; on an old CLI without --set-path this prints the manual
 # line honestly instead of guessing.
-if command -v tailscale >/dev/null 2>&1; then
-  if tailscale serve status 2>/dev/null | grep -q "/mcp"; then
-    echo "  /mcp already mounted on the funnel"
-  elif tailscale serve --help 2>&1 | grep -q -- "--set-path"; then
-    tailscale serve --bg --set-path /mcp http://127.0.0.1:8795 \
-      && echo "  mounted /mcp -> 127.0.0.1:8795 (additive; '/' untouched)" \
-      || echo "  mount FAILED -- run by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
-    tailscale serve status 2>/dev/null || true
-  else
-    echo "  tailscale CLI lacks --set-path -- mount by hand: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
-  fi
+# RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
+# ACTUATOR of the recorded public-transport baseline: verify/restore BOTH rows.
+# CHARACTERIZED (diagnostic run 30507928325): the CLI is NOT on the non-login
+# SSH PATH -- `command -v tailscale` was false every run, so the mount never
+# ran and /mcp stayed unmounted. Resolve the real DSM binary path (the same one
+# setup-tailscale-funnel.sh uses) and run FUNNEL (public, additive) as root.
+# `serve` is tailnet-only and must never be used here.
+TS="$(command -v tailscale 2>/dev/null || true)"
+[ -n "$TS" ] || TS="$(ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"
+if [ -n "$TS" ]; then
+  # funnel config is root-owned; try sudo -n, fall back to bare (already root under services-sync).
+  if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
+  # This installer mounts ONLY the sovereign /mcp path. It DOES NOT touch,
+  # depend on, or restore the n8n root — we are going to ZERO n8n (DR-0218),
+  # so nothing here props it up. Whatever n8n state exists is left exactly as
+  # found; if it is gone, that is progress, not a fault to heal.
+  FSTAT="$($TSC funnel status 2>/dev/null || true)"
+  printf '%s' "$FSTAT" | grep -q "/mcp" \
+    && echo "  /mcp already mounted on the funnel" \
+    || { $TSC funnel --bg --set-path /mcp http://127.0.0.1:8795 \
+         && echo "  mounted /mcp -> 127.0.0.1:8795 on the PUBLIC funnel (additive)" \
+         || echo "  mount FAILED -- by hand: sudo $TS funnel --bg --set-path /mcp http://127.0.0.1:8795"; }
+  $TSC funnel status 2>/dev/null || true
 else
-  echo "  no tailscale CLI on PATH -- mount by hand from DSM: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+  echo "  tailscale binary not found (checked PATH + /var/packages/Tailscale) -- mount by hand:"
+  echo "    sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
 fi
 
 echo "== mcp install: health (a real discover round-trip, DR-0076) =="

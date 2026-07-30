@@ -64,6 +64,9 @@ async function callPracticeGrowth(payload, signal) {
   const timer = setTimeout(() => ctrl.abort(), 14000);
   if (signal) signal.addEventListener('abort', () => ctrl.abort(), { once: true });
   try {
+    // n8n RETIRED (DR-0218): no endpoint to call. Degrade to an honest local
+    // result so the surface never errors; the sovereign pipeline is the cutover.
+    if (!PRACTICE_GROWTH_WEBHOOK) return { ok: false, retired: true, note: 'growth pipeline pending sovereign cutover (n8n retired)' };
     const res = await fetch(PRACTICE_GROWTH_WEBHOOK, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload), signal: ctrl.signal,
