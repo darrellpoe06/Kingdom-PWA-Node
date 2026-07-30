@@ -89,6 +89,11 @@ jobs:
       # shell script mutating the Tailscale transport must cite RECORDED-STATE.
       # Proven-to-catch in vitest (infra-transport-guard.test.js).
       - run: node ../scripts/infra-transport-guard.mjs
+      # DR-0108 capability re-sync (COMPREHENSIVE-REVIEW-STANDARD dim 5; the
+      # 2026-07-30 "(your hand)" miss): a review-ledger line that parks work as
+      # human-only must name why no team channel drives it, or it is a fake
+      # boundary. Proven-to-catch in vitest (his-hand-guard.test.js).
+      - run: node ../scripts/his-hand-guard.mjs
       - run: npx vitest run
       # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
       # classification — a fresh upload's missing captions are TRANSIENT (YouTube
