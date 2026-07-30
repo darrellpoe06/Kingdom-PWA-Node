@@ -72,7 +72,27 @@ jobs:
           # drift stays recoverable via `git stash list` on the NAS.
           $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git stash push --include-untracked -m "nas-bootstrap auto-stash" 2>/dev/null || true'
           $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git pull --ff-only'
-          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && node infra/nas-loops/run.mjs --loop=services-sync'
+          # Synology's non-login SSH shell lacks node on PATH (proven run
+          # 30506471422: the pull landed, then "node: command not found").
+          # Probe the standard DSM locations; if node truly isn't installed,
+          # fall back to running the manifest's IDEMPOTENT installers directly
+          # with sh — the bootstrap must not be hostage to PATH.
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          cd /volume1/PoeTech/repos/Kingdom-PWA-Node
+          NODE=$(command -v node 2>/dev/null || ls /volume1/@appstore/Node.js_v*/usr/local/bin/node 2>/dev/null | head -1 || true)
+          if [ -n "$NODE" ]; then
+            echo "using node at: $NODE (the braked runner path)"
+            "$NODE" infra/nas-loops/run.mjs --loop=services-sync
+          else
+            echo "node not found on the NAS - running manifest installers directly (bootstrap fallback; each is idempotent)"
+            for inst in $(grep -o '"install": *"[^"]*"' infra/nas-loops/services.json | cut -d'"' -f4); do
+              echo "== installer: $inst"
+              sh "$inst"
+            done
+          fi
+          EOS
           echo "Bootstrap complete. Register infra/nas-loops/run.sh in DSM Task Scheduler for boot-persistence (one-time; see infra/nas-loops/README.md), or re-dispatch this workflow to re-sync."
       - name: Verify — the /mcp discover answers through the Funnel
         if: steps.gate.outputs.go == 'true'
