@@ -81,10 +81,12 @@ function StageRail({ segments, current = -1, onJump = null }) {
 //     renderStage  — (segment, index) => ReactNode  (the stage body; host-wired)
 //     unitNoun     — "week" | "lesson" (label only)
 //     onComplete   — fired once when the learner reaches the final stage
+//     initialIndex — stage to open on (resume-your-place; clamped to the arc)
+//     onStageChange— (index) => void, fired on every move (persists the place)
 // -----------------------------------------------------------------------------
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null }) {
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null }) {
   const segments = (arc && arc.audienceSegments) || [];
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
   if (segments.length === 0) return null;
 
@@ -96,6 +98,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   const goTo = (i) => {
     const n = Math.max(0, Math.min(segments.length - 1, i));
     setIdx(n);
+    if (onStageChange) onStageChange(n);
     if (n === segments.length - 1 && !firedRef.current) { firedRef.current = true; if (onComplete) onComplete(); }
   };
 
