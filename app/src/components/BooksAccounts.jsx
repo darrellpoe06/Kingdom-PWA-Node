@@ -105,11 +105,12 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
   const defaultEntityId = (entities[0] && entities[0].id) || null;
   const addSuggestedDebt = (s) => {
     const name = debtNameFromPayee(s.label);
-    const raw = typeof prompt === 'function'
-      ? prompt(`Add "${name}" as a debt. You pay about ${fmt(s.monthlyPayment)}/mo — what is the current total OWED on it? (Leave blank to add it now and set the balance later.)`, '')
-      : '';
-    const owed = parseFloat(String(raw == null ? '' : raw).replace(/[$,\s]/g, ''));
-    addAccount({ name, type: 'credit', treatAsDebt: true, balance: isFinite(owed) && owed > 0 ? owed : 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
+    // ONE-TAP add (Darrell 2026-07-30: the "add as debt" button "not working").
+    // window.prompt() is blocked / no-op inside an installed standalone PWA, so
+    // the balance prompt made the tap appear dead. Add it immediately with the
+    // payment pre-filled and $0 owed; the owed balance is set with the inline
+    // edit on the Debts tab row (EDITABLE-EVERYWHERE) — no dialog.
+    addAccount({ name, type: 'credit', treatAsDebt: true, balance: 0, minPayment: s.monthlyPayment, entityId: defaultEntityId });
   };
 
   return (
