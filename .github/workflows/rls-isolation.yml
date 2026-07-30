@@ -1,0 +1,94 @@
+# rls-isolation — ONE matrix workflow proves every feature's RLS isolation
+# against the real database, replacing six near-identical copies
+# (choir-claim / delegated-pm / role-control / support-door / tv-sharing /
+# viewer-readonly), 362 lines -> this file (2026-07-30 comprehensive review).
+#
+# WHY ONE FILE (gate-the-class, DR-0239): the 2026-07-29 never-firing
+# workflow_run fix was applied to viewer-readonly only; the other five stayed
+# silently inert — five shipped features' DR-0076 enablement gates producing
+# no observations while green history said otherwise. A single workflow can't
+# drift feature-by-feature: db-migrate dispatches THIS file once and every
+# proof runs.
+#
+# WHY max-parallel: 1 — the smokes run against the REAL production database
+# (same SUPABASE_DB_URL secret db-migrate uses), and migration 0075 runs
+# ALTER PUBLICATION supabase_realtime, the statement class that deadlocked two
+# concurrent runs on 2026-07-01 (db-migrate.yml's own lock exists for this).
+# Serial keeps the proofs deadlock-free; fail-fast: false keeps each feature's
+# red/green independent, visible per matrix leg.
+#
+# Each leg is self-contained + idempotent, safe against prod:
+#   1. Applies the feature's migrations (idempotent; db-migrate applies them on
+#      merge anyway — this just removes ordering doubt).
+#   2. Runs the feature's isolation smoke(s): each sets up its actors IN A
+#      TRANSACTION, asserts the isolation contract, then ROLLS BACK (leaves no
+#      data). A leak RAISEs -> psql exits non-zero -> RED.
+#
+# Fired by db-migrate's explicit workflow_dispatch call after every migration
+# apply (workflow_run from token-driven runs is suppressed — the DR-0107
+# class), or by hand. Deploy-path only; not self-arming (respects the Cage).
+name: rls-isolation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: rls-isolation
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - feature: tv-sharing
+            migrations: "0074-tv-circle-sharing.sql"
+            smokes: "0074-isolation-smoke.sql"
+          - feature: delegated-pm
+            migrations: "0075-delegated-property-management.sql"
+            smokes: "0075-isolation-smoke.sql"
+          - feature: choir-claim
+            migrations: "0110-choir-member-self-claim.sql"
+            smokes: "0110-choir-claim-smoke.sql"
+          - feature: role-control
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql"
+            smokes: "0111-role-control-smoke.sql"
+          - feature: support-door
+            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql"
+            smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
+          - feature: viewer-readonly
+            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql"
+            smokes: "0125-viewer-readonly-smoke.sql 0126-capability-checklist-smoke.sql"
+    name: isolate — ${{ matrix.feature }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: Apply ${{ matrix.feature }} migrations (idempotent) then run the isolation smoke(s)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          # Sanitize the URL EXACTLY like scripts/db-migrate-apply.sh does — the
+          # SUPABASE_DB_URL secret carries a trailing newline, and raw
+          # `psql "$SUPABASE_DB_URL"` reads it into the dbname (FATAL: database
+          # "postgres\n" does not exist). Match its proven handling.
+          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            exit 1
+          fi
+          for mig in ${{ matrix.migrations }}; do
+            echo "=== applying ${mig} (idempotent) ==="
+            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
+              -f "infra/supabase/migrations-auto/${mig}"
+          done
+          for smoke in ${{ matrix.smokes }}; do
+            echo "=== running ${smoke} (rolls back) ==="
+            psql "$DBURL" -v ON_ERROR_STOP=1 \
+              -f "infra/supabase/tests/${smoke}"
+          done
+          echo "isolation smoke(s) completed without a leak for ${{ matrix.feature }}"

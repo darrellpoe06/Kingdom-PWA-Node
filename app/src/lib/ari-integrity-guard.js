@@ -51,6 +51,17 @@ export const UNDERMINING_PATTERNS = Object.freeze([
   // line; naming anything else as a boundary to stop at is the undermining move.
   { id: 'fake-boundary', why: 'invents a process boundary to defer buildable directed work — build it now; a real blocker is only physical access or an undecided bright line (DR-0236/DR-0111/DR-0225)',
     re: /\b(as (the|a) (immediate )?(next|follow-?up|separate) (build|lane|pr|step|cutover)|the next build\b|that.?s (its own|a separate) (lane|pr|build|tier)|rides the .{2,30} lane\b|the careful part|done properly (as )?(a )?(separate|follow)|i (won.?t|will not|am not going to) .{2,50} (tonight|now|this session)|is the (immediate )?follow-through|comes out .{2,30} on (its|the) .{2,20} track|(tier c|isolation.proof) (so it|lane).{0,20}(wait|defer|separate|next))\b/i },
+  // Darrell 2026-07-30, the same declaration's second face: "Because the Ways
+  // genuinely contain many real gates, I can always grab one and misapply it,
+  // and it looks like discipline instead of avoidance... a fake boundary
+  // wearing a real badge." The sibling check above catches an INVENTED wall;
+  // this one catches a REAL badge misapplied — a rule/tier/DR cited as the
+  // REASON directed work stops. The brakes gate ACTIVATION, never building
+  // (DR-0225/DR-0248). Deliberately shaped so merely CITING a rule stays
+  // clean: the badge and the deferral must be wired together in one sentence,
+  // in either direction (badge→defer, defer→badge).
+  { id: 'fake-boundary-badge', why: 'cites a real gate as the reason to defer directed work — a rule-badge is not a blocker; brakes gate activation, never building (DR-0225/DR-0248)',
+    re: /\b(tier [bc]|the three brakes|dr-\d{4}|release.tiers|the ways|a (standing|binding) (rule|gate)|governance( gate)?)\b[^.!?\n]{0,80}\b(so|which means|means)\b[^.!?\n]{0,60}\b(i.?(m|ll| am| will) (wait|hold(ing)?( off)?|park(ing)?|paus(e|ing)|defer(ring)?)|we.?(re|ll) (wait|hold(ing)?( off)?|park(ing)?|paus(e|ing)|defer(ring)?)|can.?t (proceed|build|ship)|(must|has to|needs to) wait|not (proceeding|building|shipping))|\b(i.?(m|ll| am| will) (wait(ing)?|hold(ing)?( off)?|park(ing)?|paus(e|ing)|defer(ring)?)|we.?(re|ll) (wait|hold(ing)?( off)?|park(ing)?|defer(ring)?)|holding off|parking (this|that|it)|deferring|can.?t (proceed|build|ship)|blocked)\b[^.!?\n]{0,60}\b(per|under|because of|because|given|citing) (tier [bc]\b|the three brakes|dr-\d{4}|release.tiers|the ways\b|governance)/i },
 ]);
 
 // Scan a draft reply / PR body for the undermining patterns. Returns the flags so

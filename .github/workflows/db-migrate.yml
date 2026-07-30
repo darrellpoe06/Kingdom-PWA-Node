@@ -67,7 +67,16 @@ jobs:
       # (2026-07-29, after #1097 and #1098) before this explicit dispatch.
       # An explicit workflow_dispatch API call is NOT suppressed (the deploy
       # rides the same pattern). Same-lane, deploy-path only — not self-arming.
-      - name: Dispatch the viewer-readonly isolation proof
+      #
+      # ALL SIX isolation proofs are dispatched via the ONE rls-isolation
+      # matrix workflow (2026-07-30 comprehensive review): the five siblings of
+      # viewer-readonly carried the same never-firing workflow_run trigger and
+      # had been silently inert since the lane took over — five shipped
+      # features' DR-0076 enablement gates producing no observations. The
+      # 2026-07-29 fix that was applied to one file is here generalized to the
+      # class (gate-the-class, DR-0239): one dispatch, every proof runs, serial
+      # against the prod DB (the 2026-07-01 ALTER PUBLICATION deadlock class).
+      - name: Dispatch the isolation proofs (all features, one matrix)
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,9 +84,9 @@ jobs:
           curl -sS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/viewer-readonly-isolation.yml/dispatches" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rls-isolation.yml/dispatches" \
             -d '{"ref":"main"}' \
-            && echo "isolation proof dispatched"
+            && echo "isolation proofs dispatched (rls-isolation matrix)"
       - name: Dispatch the sovereign noise+thought isolation proof (0127, DR-0218)
         if: success()
         env:
