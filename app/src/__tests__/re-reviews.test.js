@@ -171,3 +171,16 @@ describe('governance signal on the extracted item (2026-07-30 drive dry-run iter
     expect(byDate['2026-08-03']).toBe(false); // pure repo
   });
 });
+
+describe('dashboard/console gov trigger is verb-scoped (2026-07-30 iter-4 — a benign build item must not false-gate)', () => {
+  const N = Date.parse('2026-07-30T00:00:00Z');
+  const one = (f) => extractReReviews({ reviews: { items: [{ id: 'X', findings: f }] } }, N)[0];
+  it('GATES a real dashboard/console human action', () => {
+    expect(one('vercel preview shutoff + secret scanning check dashboard sitting — re-review: 2026-08-06').governorGated).toBe(true);
+    expect(one('flip the setting in the Supabase console by hand — re-review: 2026-08-06').governorGated).toBe(true);
+  });
+  it('does NOT gate a benign buildable item that merely says dashboard/console', () => {
+    expect(one('add a dashboard chart to OpsBoard — re-review: 2026-08-10').governorGated).toBe(false);
+    expect(one('remove a stray console.log — re-review: 2026-08-11').governorGated).toBe(false);
+  });
+});

@@ -87,7 +87,10 @@ function fromText(text, meta, nowMs, out) {
     // consumer of this OUTPUT would not — and unattended = machinery. The flag
     // travels ON the item, computed from the item's FULL text, so any consumer
     // classifying GATE-1 sees the governance signal without re-reading the source.
-    const governorGated = /governor-gated|human-gated|darrell'?s decision|never merges?\b|secret-onto-device|onto (?:the |family )?devices?\b|\bdashboard\b|bright line|\btier [bc]\b|front-door|\bcolg\b/i.test(itemText);
+    // `dashboard`/`console` gate ONLY with a governance verb nearby (a "sitting",
+    // a "click", a "setting" a human performs) — a bare "add a dashboard chart"
+    // BUILD item must not be falsely gated (2026-07-30 iter-4 dry-run note).
+    const governorGated = /governor-gated|human-gated|darrell'?s decision|never merges?\b|secret-onto-device|onto (?:the |family )?devices?\b|(?:dashboard|console)(?:\s+\w+){0,3}\s*(?:sitting|click|setting|shutoff|toggle|by hand)|(?:sitting|click|setting|shutoff|toggle|by hand)(?:\s+\w+){0,3}\s*(?:dashboard|console)|bright line|\btier [bc]\b|front-door|\bcolg\b/i.test(itemText);
     out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, governorGated }, nowMs));
   }
 }
