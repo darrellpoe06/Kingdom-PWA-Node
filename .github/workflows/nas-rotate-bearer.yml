@@ -1,0 +1,96 @@
+# nas-rotate-bearer — rotate the wf18 PII-webhook bearer through the SAME
+# remote-hands channel nas-bootstrap uses. Built 2026-07-30 (access evaluation)
+# to correct a fake boundary: the rotation was mislabeled "Darrell's hand" when
+# the runner-joins-tailnet-and-SSHes-as-dpoe channel (nas-bootstrap.yml) drives
+# the NAS-side work itself (DR-0108 — account for the WHOLE team's capabilities;
+# a stated must-be-by-hand is an unverified premise, not a stopping place).
+#
+# WHAT IS CHANNEL-DRIVEN (this workflow): delete the secret file, re-run the
+# idempotent apply script (scripts/nas-update-wf18-bearer-guard.sh) which mints
+# a fresh bearer and re-imports/activates wf18. The old bundle-extractable value
+# (deleted from the client build the same day) then dies server-side.
+#
+# WHAT STAYS GENUINELY HUMAN (the small tail, by design, not by fake boundary):
+# reading the NEW secret value and typing it into each family device's
+# localStorage bridge token. A secret value must NEVER be echoed to a PUBLIC
+# Actions log (this repo is public), and localStorage lives on the physical
+# device — so this workflow CONFIRMS the rotation and NEVER prints the token.
+# Retrieve it via ConnectBot: `cat /volume1/PoeTech/finance-events/_secrets/
+# n8n-webhook-bearer.txt`, then type it on the family phones.
+#
+# DISPATCH-ONLY on purpose (a timing choice, not a hand-chore): rotation 401s
+# the family's Imported tab until devices are re-tokened, so a human picks a
+# low-traffic moment to fire it. The WORK is the channel's; only the WHEN is
+# Darrell's. Brakes: dispatch-only (no schedule), secrets-absent no-op,
+# idempotent, token never logged.
+name: nas-rotate-bearer
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (ephemeral) and NAS_SSH_KEY (dpoe's authorized key), then re-dispatch. Same secrets nas-bootstrap uses."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Update the secret and re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
+      - name: Rotate the bearer on the NAS (never prints the token)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          NAS="dpoe@poetech.tail5a2f35.ts.net"
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $NAS"
+          # Refresh the NAS repo mirror so the apply script is current (same
+          # auto-stash-then-ff-pull pattern nas-bootstrap proved).
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git stash push --include-untracked -m "nas-rotate auto-stash" 2>/dev/null || true; git pull --ff-only' || echo "mirror pull skipped (already current or absent — bootstrap first)"
+          # Rotate: delete the file so the idempotent apply script mints a NEW
+          # one. sudo -n when the narrow grant exists (root-owned secret dir).
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          if sudo -n true 2>/dev/null; then SUDO="sudo -n"; else SUDO=""; echo "no NOPASSWD grant — running unprivileged (may fail on root-owned _secrets)"; fi
+          SECRET=/volume1/PoeTech/finance-events/_secrets/n8n-webhook-bearer.txt
+          $SUDO rm -f "$SECRET"
+          $SUDO sh /volume1/PoeTech/repos/Kingdom-PWA-Node/scripts/nas-update-wf18-bearer-guard.sh > /tmp/rotate.out 2>&1 || { echo "::error::apply script failed"; tail -20 /tmp/rotate.out; exit 1; }
+          # Confirm a NON-EMPTY secret now exists WITHOUT printing it.
+          if $SUDO test -s "$SECRET"; then
+            echo "ROTATED: a fresh bearer was written to $SECRET (value NOT printed — public log)."
+          else
+            echo "::error::rotation did not produce a secret file"; exit 1
+          fi
+          EOS
+          echo ""
+          echo "=== NEXT (Darrell, the genuinely-human tail) ==="
+          echo "1. Read the new token via ConnectBot:"
+          echo "   cat /volume1/PoeTech/finance-events/_secrets/n8n-webhook-bearer.txt"
+          echo "2. Type it into each family device (the app stores it as the"
+          echo "   per-device bridge token; Imported tab 401s until re-tokened)."
+          echo "The build carries no bearer, so nothing to redeploy (2026-07-30)."
