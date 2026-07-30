@@ -11,7 +11,7 @@
 //
 // The service catalog lives HERE (as it did in the workflow). Each entry carries
 // all five BUSINESS-PROCESS-CONNECTIONS fields: invites / pipeline / governor /
-// promise / timeline. waitlist routing is sovereign-neutral (`/waitlist`), not an
+// promise / timeline. interest routing is sovereign-neutral (`/interest`), not an
 // n8n webhook.
 //
 // matchServices({ profile, transactions, stats, personaHint }) ->
@@ -24,37 +24,37 @@ export const SERVICES = [
     service_id: 'family-os-public-beta',
     name: 'Family OS Public Beta',
     audience: 'Two-earner families managing $5k-15k/mo combined income, looking for one place where bills, paycheck, tithe, groceries, and debt all answer what/when/why/how.',
-    invites: 'Sign up for the waitlist; we engage when capacity opens and you fit the cohort.',
-    pipeline: 'Workflow 30 waitlist intake + Governor review queue.',
+    invites: 'Register interest; the dated timeline below is the commitment — nobody is parked on a list.',
+    pipeline: 'Sovereign interest intake (/interest) + Governor review queue.',
     governor: 'Darrell as primary; Christina governs brand + UX feedback loop.',
-    promise: 'No date until we have confidence. Honest waitlist position. Real human reaches out when there is a fit.',
+    promise: 'A dated timeline driven by the delivery record — no open-ended waiting. Real human reaches out when there is a fit.',
     timeline: 'Q4 2027 target. Confidence: medium. Depends on Phase 1 (security) + Phase 2 (Postgres) + Phase 4 (multi-tenant) landing in sequence.',
-    waitlist_endpoint: '/waitlist',
-    waitlist_field: 'family-os',
+    interest_endpoint: '/interest',
+    interest_field: 'family-os',
   },
   {
     service_id: 'solo-practice-module',
     name: 'Solo Practice Module',
     audience: 'Solo therapists, lawyers, consultants, and small-practice owners running W-2 + LLC income with quarterly tax obligations.',
-    invites: 'Specific module waitlist; signals when the module opens for cohort onboarding.',
-    pipeline: 'Workflow 30 waitlist intake (interest=solo-practice) + Governor review.',
+    invites: 'Register module interest; the dated timeline signals when cohort onboarding opens.',
+    pipeline: 'Sovereign interest intake (/interest, field=solo-practice) + Governor review.',
     governor: 'Darrell governs; Christina advises on clinical-practice usability when relevant.',
     promise: 'Module ships after Family OS Public Beta proves the foundation. Quarterly tax set-aside, CEU tracking, owner-draw automation included.',
     timeline: 'Q2 2028 target. Confidence: medium-low (depends on Family OS sequencing).',
-    waitlist_endpoint: '/waitlist',
-    waitlist_field: 'solo-practice',
+    interest_endpoint: '/interest',
+    interest_field: 'solo-practice',
   },
   {
     service_id: 'landlord-module',
     name: 'Landlord Module',
     audience: 'Property owners running 1-20 rentals with day-job income, mortgage timing concerns, and capex reserve discipline gaps.',
-    invites: 'Module waitlist; per-property cash flow + late-tenant flagging + capex auto-fund visibility.',
-    pipeline: 'Workflow 30 waitlist intake (interest=landlord) + Governor review.',
+    invites: 'Register module interest; per-property cash flow + late-tenant flagging + capex auto-fund visibility.',
+    pipeline: 'Sovereign interest intake (/interest, field=landlord) + Governor review.',
     governor: 'Darrell governs (operates rentals himself, knows the user).',
     promise: 'Per-property cash flow without spreadsheets. Mortgage timing protected. Capex reserve auto-funded.',
     timeline: 'Q3 2028 target. Confidence: medium-low.',
-    waitlist_endpoint: '/waitlist',
-    waitlist_field: 'landlord',
+    interest_endpoint: '/interest',
+    interest_field: 'landlord',
   },
   {
     service_id: 'specialist-consultation',
@@ -65,8 +65,8 @@ export const SERVICES = [
     governor: 'Darrell + the partner specialist (vetting per-relationship).',
     promise: 'Experience over credentials. Real practitioners with track records. You decide when to reveal yourself.',
     timeline: '2028+ target. Confidence: low. Requires specialist directory infrastructure (v3) which requires separate pilot.',
-    waitlist_endpoint: '/waitlist',
-    waitlist_field: 'specialist-consultation',
+    interest_endpoint: '/interest',
+    interest_field: 'specialist-consultation',
   },
   {
     service_id: 'church-financial-discipleship',
@@ -77,8 +77,8 @@ export const SERVICES = [
     governor: 'Christina + Darrell jointly (relationship + theological alignment + operations).',
     promise: 'Pilot with one church first. Scale only after pilot proves the model.',
     timeline: '2028+ target. Confidence: low. Requires v3 church directory infrastructure + one successful pilot.',
-    waitlist_endpoint: '/waitlist',
-    waitlist_field: 'church-discipleship',
+    interest_endpoint: '/interest',
+    interest_field: 'church-discipleship',
   },
 ];
 

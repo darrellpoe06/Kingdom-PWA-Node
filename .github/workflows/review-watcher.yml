@@ -41,6 +41,7 @@ on:
 
 permissions:
   contents: read
+  issues: write  # the rolling `overdue` ledger issue (2026-07-30 actuator)
 
 concurrency:
   group: review-watcher
@@ -65,3 +66,35 @@ jobs:
             echo ""
             cat watch-report.md
           } >> "$GITHUB_STEP_SUMMARY"
+      # ACTUATOR (2026-07-30 comprehensive review): 25 consecutive green runs
+      # wrote step summaries nobody read while the overdue backlog grew 49→73
+      # (then the same day's glob-widening measured the honest 112). Machinery
+      # without an actuator is a report, not pressure — same pattern as
+      # site-health's rolling `incident` issue: one open `overdue`-labeled
+      # issue carries the current drive report; each daily pass updates it;
+      # it closes itself the day the overdue count reaches zero.
+      - name: Keep the rolling `overdue` ledger issue current
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          overdue_line=$(grep -oE '\*\*Overdue \([0-9]+\)\*\*' watch-report.md | head -1 || true)
+          count=$(printf '%s' "$overdue_line" | grep -oE '[0-9]+' || echo 0)
+          title="review-watcher: ${count} overdue re-review commitments"
+          open_issue=$(gh issue list --repo "$REPO" --label overdue --state open --search "in:title review-watcher" --json number --jq '.[0].number // ""')
+          if [ "$count" = "0" ]; then
+            if [ -n "$open_issue" ]; then
+              gh issue close "$open_issue" --repo "$REPO" --comment "$(date -u +%FT%TZ) — overdue count reached ZERO. The drive is caught up."
+            fi
+            exit 0
+          fi
+          body="$(date -u +%FT%TZ) — daily drive report (run ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}):
+
+          $(head -c 60000 watch-report.md)"
+          if [ -n "$open_issue" ]; then
+            gh issue edit "$open_issue" --repo "$REPO" --title "$title" --body "$body"
+          else
+            gh label create overdue --repo "$REPO" --color D93F0B --description "Dated re-review commitments past due (review-watcher ledger)" 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "$title" --label overdue --body "$body"
+          fi

@@ -1,5 +1,5 @@
 ---
-id: DR-0186
+id: DR-0253
 title: A phone account can add a verified login email — built now, no orphaned "follow-up later"
 status: accepted
 date: 2026-07-13

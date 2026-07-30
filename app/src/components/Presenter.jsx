@@ -471,6 +471,12 @@ export default function Presenter({
   const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age, reveal }) : null;
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
+  // The mini mirror defaults OPEN on a wide screen (side console next to a
+  // projector) and CLOSED on a phone, where it is unreadable at 50% scale and
+  // only repeats the script (Darrell 2026-07-30 screenshot). One tap toggles.
+  const [showMirror, setShowMirror] = useState(() => {
+    try { return typeof window !== 'undefined' && window.innerWidth >= 900; } catch { return true; }
+  });
 
   // --- budget + override + curriculum-edit handlers ---
   const applyBudget = useCallback((raw) => {
@@ -727,25 +733,36 @@ export default function Presenter({
           )}
         </div>
 
-        {/* PRESENTER VIEW — a live preview of exactly what the class screen shows,
-            ABOVE the readable copy + the flow + notes, so the presenter sees the
-            room's slide and their own notes together, automatically (no window to
-            drag onto a second display, no backing out). */}
+        {/* PRESENTER VIEW — two ROLES, visibly distinct (Darrell 2026-07-30,
+            screenshot: "this shows the same thing on the screen for the audience
+            as the speakers... why?"): the room's slide is a CONFIDENCE MONITOR
+            (a mini mirror, opt-in — on a phone it is unreadable at 50% scale and
+            merely repeats the script below), and the legible block is YOUR
+            SCRIPT — the speaker's console, not a copy. The projector/broadcast
+            is untouched either way; the mirror stays one tap away so the
+            speaker can always verify what the room actually sees (DR-0076). */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
-          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 8, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <span>What the class screen shows{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 8, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span>Class screen{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
             {curPlan && budgetMin > 0 && (
               <span style={{ color: curPlan.skipped ? '#7A1F1F' : (curPlan.atFloor ? '#B85838' : '#5A6E3D') }}>
                 {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min${curPlan.atFloor ? ' (floor)' : ''}`}
               </span>
             )}
+            <button type="button" onClick={() => setShowMirror((s) => !s)} aria-expanded={showMirror}
+              style={{ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.625rem', padding: '4px 10px', minHeight: 28, border: '1px solid #CFC9BD', background: showMirror ? '#1A1815' : '#fff', color: showMirror ? '#fff' : '#1A1815' }}>
+              {showMirror ? 'Hide mirror' : 'Show what the room sees'}
+            </button>
           </div>
           {/* the real audience slide, miniaturized — a faithful mirror of the projector */}
-          <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
-              <AudienceSlide slide={previewSlide} />
+          {showMirror && (
+            <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
+                <AudienceSlide slide={previewSlide} />
+              </div>
             </div>
-          </div>
+          )}
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A6E3D', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Your script — say it to the room</div>
           <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(1.375rem, 3vw, 2rem)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
           {liveLead && <p style={{ fontSize: '1.0625rem', lineHeight: 1.5, margin: '0 0 10px' }}>{liveLead}</p>}
           {a.detail && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}

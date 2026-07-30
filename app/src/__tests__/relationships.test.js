@@ -158,7 +158,7 @@ describe('guardian <-> child: child-safety is structural', () => {
   });
 });
 
-describe('family circle: successor is read-only on the books (DR-0111)', () => {
+describe('family circle: successor is read-only on the books (DR-0252)', () => {
   // Darrell 2026-07-06: a steward-in-training being raised to take over. The
   // staged middle rung — SEES the real books to learn on them, but cannot change
   // them. Read, don't wreck.

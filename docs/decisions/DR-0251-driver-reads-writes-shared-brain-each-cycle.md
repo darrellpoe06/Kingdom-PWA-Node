@@ -1,5 +1,5 @@
 ---
-id: DR-0086
+id: DR-0251
 title: The build driver reads the shared brain IN and writes decisions+outcomes OUT every cycle — institutional memory is the shared brain both humans and agents read/write
 date: 2026-07-01
 status: accepted

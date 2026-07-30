@@ -61,3 +61,23 @@ describe('classifyTranscriptImport — never touches ordinary work', () => {
     expect(classifyTranscriptImport({ toolName: 'Edit', toolInput: {} }).block).toBe(false);
   });
 });
+
+describe('small own-output carve-out (2026-07-30): bounded task-output reads allowed, transcripts stay blocked', () => {
+  const small = () => 900;          // bytes — a vitest tail / probe verdict
+  const large = () => 500 * 1024;   // bytes — a raw transcript dump
+  it('allows a small tasks .output read (Read and Bash); the FULL absolute path reaches sizeOf', () => {
+    let seen = '';
+    const sizeOf = (p) => { seen = p; return small(); };
+    const out = '/tmp/x/tasks/abc.output';
+    expect(classifyTranscriptImport({ toolName: 'Read', toolInput: { file_path: out }, sizeOf }).block).toBe(false);
+    expect(seen).toBe(out);
+    expect(classifyTranscriptImport({ toolName: 'Bash', toolInput: { command: `tail -5 ${out}` }, sizeOf }).block).toBe(false);
+    expect(seen).toBe(out);
+  });
+  it('still blocks a LARGE task output, an unknown size, and agent JSONL at any size', () => {
+    const out = '/tmp/x/tasks/abc.output';
+    expect(classifyTranscriptImport({ toolName: 'Read', toolInput: { file_path: out }, sizeOf: large }).block).toBe(true);
+    expect(classifyTranscriptImport({ toolName: 'Read', toolInput: { file_path: out }, sizeOf: () => null }).block).toBe(true);
+    expect(classifyTranscriptImport({ toolName: 'Read', toolInput: { file_path: '/tmp/x/subagents/agent-a1.jsonl' }, sizeOf: small }).block).toBe(true);
+  });
+});

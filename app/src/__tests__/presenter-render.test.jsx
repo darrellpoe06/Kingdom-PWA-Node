@@ -211,4 +211,27 @@ describe('Presenter — time-adaptive render', () => {
     expect(container.textContent).toMatch(/Stay kind when notes go wrong/);
     expect(container.textContent).not.toMatch(/the greatest servant is the king/i);
   });
+
+  it('speaker view is a CONSOLE, not a copy: phone hides the mirror by default, labels the script, one tap shows the room (2026-07-30)', () => {
+    // Darrell 2026-07-30 (screenshot): "this shows the same thing on the screen
+    // for the audience as the speakers... why?" On a narrow screen the 50%-scale
+    // mirror is unreadable and repeats the script — so it defaults CLOSED there,
+    // the legible block is labeled as the speaker's script, and the mirror is
+    // one tap away (never gone — the speaker can always verify the room).
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true, writable: true });
+    try {
+      act(() => { root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store, onClose: () => {} })); });
+      const toggle = [...container.querySelectorAll('button')].find((b) => /show what the room sees/i.test(b.textContent));
+      expect(toggle, 'mirror toggle missing').toBeTruthy();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(container.textContent).toMatch(/Your script — say it to the room/i);
+      act(() => toggle.click());
+      const shown = [...container.querySelectorAll('button')].find((b) => /hide mirror/i.test(b.textContent));
+      expect(shown, 'toggle did not open the mirror').toBeTruthy();
+      expect(shown.getAttribute('aria-expanded')).toBe('true');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: original, configurable: true, writable: true });
+    }
+  });
 });

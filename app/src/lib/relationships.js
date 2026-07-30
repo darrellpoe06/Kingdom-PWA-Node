@@ -81,7 +81,7 @@ export const RELATIONSHIPS = Object.freeze([
       'steward; members use the shared family circle and can work the books; a SUCCESSOR ' +
       '(a steward-in-training being raised to take over) SEES the real books but cannot ' +
       'change them — read-only, so they learn on the family’s actual numbers without ' +
-      'risk (DR-0111); children see only their child-safe slice.',
+      'risk (DR-0252, formerly duplicate DR-0111); children see only their child-safe slice.',
     roles: ['governor', 'member', 'successor', 'child'],
     steward: 'governor',
   },
@@ -406,7 +406,7 @@ export const MATRIX = Object.freeze({
       'finance.view': ALLOW,
       'finance.manage': ALLOW,
     },
-    // SUCCESSOR — the steward-in-training being raised to take over (DR-0111;
+    // SUCCESSOR — the steward-in-training being raised to take over (DR-0252, formerly duplicate DR-0111;
     // Darrell 2026-07-06: "we can't expect our heirs to learn how we did… there
     // are new issues that older people want young people to take care of"). The
     // whole point of this role is a STAGED, REVOCABLE middle rung between a
@@ -415,7 +415,7 @@ export const MATRIX = Object.freeze({
     // finance.manage is DENY so a read never becomes an accidental write. Read,
     // don't wreck. Deepening this to write access is a deliberate promotion to
     // member/governor, never automatic. (RLS enforcement of the read-only cut
-    // is the next verified slice — see DR-0111 "Not done, with why".)
+    // is the next verified slice — see DR-0252 "Not done, with why".)
     successor: {
       'family.shared': ALLOW,
       'finance.view': ALLOW,
