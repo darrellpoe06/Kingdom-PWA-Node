@@ -37,18 +37,3 @@ jobs:
             200)     echo "RESULT: UP BUT UNAUTHENTICATED 200 — auth appears unset; investigate the token stamp"; exit 1 ;;
             *)       echo "RESULT: NOT SERVING (HTTP $CODE) — services-sync may not have ticked yet, or Caddy /mcp route absent"; exit 1 ;;
           esac
-      - name: Read the loop reel (informational — is the NAS fleet ticking at all?)
-        if: always()
-        run: |
-          # The reel is served by n8n at the Funnel root the /mcp probe proved
-          # reachable, so this distinguishes "tick pending" from "fleet not
-          # armed / not scheduled" without any NAS access. Informational only:
-          # the /mcp probe above is the verdict; this step never fails the run.
-          REEL=$(curl -sS --max-time 20 "https://poetech.tail5a2f35.ts.net/webhook/dispatch-status?section=reel" 2>&1 || true)
-          echo "reel head (newest first, first 800 chars):"
-          printf '%s' "$REEL" | head -c 800; echo ""
-          if printf '%s' "$REEL" | grep -qi "services-sync"; then
-            echo "REEL: services-sync entries PRESENT — the fleet ticks; a 404 above means the installer/mount needs its log read on the NAS"
-          else
-            echo "REEL: no services-sync entry seen — fleet may be unarmed/unscheduled (LOOPS_ARMED ships unset by design), or this reel endpoint is not the loops' reel"
-          fi
