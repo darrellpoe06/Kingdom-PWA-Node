@@ -100,6 +100,17 @@ jobs:
           fi
           EOS
           echo "Bootstrap complete. Register infra/nas-loops/run.sh in DSM Task Scheduler for boot-persistence (one-time; see infra/nas-loops/README.md), or re-dispatch this workflow to re-sync."
+      - name: Diagnose — characterize the real NAS transport state (READ-ONLY, DR-0076 §5)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          umask 077; printf '%s\n' "${{ secrets.NAS_SSH_KEY }}" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          echo "=== tailscale funnel status ==="; $SSH 'tailscale funnel status 2>&1 || true'
+          echo "=== tailscale serve status ==="; $SSH 'tailscale serve status 2>&1 || true'
+          echo "=== poetech-mcp service ==="; $SSH 'systemctl is-active poetech-mcp 2>&1; systemctl status poetech-mcp --no-pager -n 5 2>&1 || true'
+          echo "=== localhost :8795 discover (does the server itself answer?) ==="
+          $SSH "curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 10 -X POST http://127.0.0.1:8795/mcp -H 'Mcp-Method: server/discover' -d '{}' 2>&1 || true"
+          echo "=== funnel --set-path help (is the syntax even supported here?) ==="; $SSH 'tailscale funnel --help 2>&1 | head -30 || true'
       - name: Verify — the /mcp discover answers through the Funnel
         if: steps.gate.outputs.go == 'true'
         run: |
