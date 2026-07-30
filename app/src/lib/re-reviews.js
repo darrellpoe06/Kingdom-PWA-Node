@@ -80,6 +80,14 @@ function fromText(text, meta, nowMs, out) {
     // Dedup fingerprint: normalized tail of THIS item's text (per-clause, so two
     // distinct same-date commitments don't collapse — G2).
     const clue = itemText.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(-60);
+    // Human-readable DISTINGUISHER for the row (2026-07-30, Darrell screenshot:
+    // one REV title — "the 2026-07-05 working day" — carried TWO distinct
+    // 2026-07-12 commitments, so both rows rendered IDENTICALLY and read as
+    // duplicates). `clue` is a normalized dedup fingerprint (ugly); `detail` is
+    // the raw commitment clause tail, preserved punctuation, for display — so
+    // two commitments that share a title/date are told apart on the surface.
+    const detailRaw = itemText.replace(/\s+/g, ' ').replace(/^[\s—:;.·)+-]+/, '').trim();
+    const detail = detailRaw.length > 96 ? `…${detailRaw.slice(-96)}` : detailRaw;
     // GOVERNANCE SIGNAL carried ON the item (2026-07-30 drive dry-run iter-3, the
     // highest residual risk): the `clue` is a 60-char tail, which for a
     // GOVERNOR-GATED item truncates the "GOVERNOR-GATED" head away so it reads
@@ -91,7 +99,7 @@ function fromText(text, meta, nowMs, out) {
     // a "click", a "setting" a human performs) — a bare "add a dashboard chart"
     // BUILD item must not be falsely gated (2026-07-30 iter-4 dry-run note).
     const governorGated = /governor-gated|human-gated|darrell'?s decision|never merges?\b|secret-onto-device|onto (?:the |family )?devices?\b|(?:dashboard|console)(?:\s+\w+){0,3}\s*(?:sitting|click|setting|shutoff|toggle|by hand)|(?:sitting|click|setting|shutoff|toggle|by hand)(?:\s+\w+){0,3}\s*(?:dashboard|console)|bright line|\btier [bc]\b|front-door|\bcolg\b/i.test(itemText);
-    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, governorGated }, nowMs));
+    out.push(makeItem({ ...meta, date: `${m[1]}-${m[2]}-${m[3]}`, clue, detail, governorGated }, nowMs));
   }
 }
 
