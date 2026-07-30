@@ -137,14 +137,23 @@ silently, so re-applying never breaks the live client).
 1. On the NAS host, delete the secret file:
    `rm /volume1/PoeTech/finance-events/_secrets/n8n-webhook-bearer.txt`
 2. Re-run the apply script (it generates a fresh token and prints it).
-3. Paste the new value into the Vercel env var `VITE_N8N_BEARER` (Production +
-   Preview).
-4. Redeploy the PWA so the build inlines the new token.
+3. Type the new value into each family device: the app stores it as the
+   per-device localStorage bridge token (`poetech-chat-bridge-token`,
+   `lib/n8n-base.js`). **The build no longer carries any bearer** — the
+   `VITE_N8N_BEARER` build-time injection was deleted 2026-07-30 (access
+   evaluation) because a build-inlined value is extractable by any visitor
+   from the public bundle. There is no env var to update and no redeploy
+   needed for rotation; the GitHub secret of the same name remains only for
+   the deploy workflow's server-side announce path (never bundled).
 
-There is a brief window during rotation where the old client build holds the
-old token and the server expects the new one. The Imported tab will 401 for the
-family until the redeploy completes. That is acceptable (the data simply does
-not load; nothing leaks). Rotate at a low-traffic time.
+A device that has not yet been given the new token simply 401s (the data does
+not load; nothing leaks) until the token is typed. Rotate at a low-traffic
+time and walk the family devices in the same sitting.
+
+*(Updated 2026-07-30: steps 3–4 previously said "paste into the Vercel env
+var + redeploy" — stale twice over: Vercel is a dead host for this project,
+and shipping the bearer via ANY build var is the exposure this rotation
+exists to close.)*
 
 ---
 
@@ -156,7 +165,8 @@ missing after a volume event, or the Vercel env var was not set):
 - **Fastest unblock (no PII exposure):** the D17 client gate is still in force,
   so even with wf18 returning 401 the public surface is safe. The only symptom
   is the family's own Imported tab failing to load. Re-run the apply script to
-  re-create the secret file, confirm the Vercel env var matches, redeploy.
+  re-create the secret file, then re-type the token on the family devices
+  (per-device localStorage — no env var, no redeploy; see rotation above).
 - **Full rollback (last resort):** re-import the pre-L16 wf18 JSON (git history,
   parent of the L16 commit) to drop the Bearer check node, restart n8n. The
   endpoint returns to D17-only protection. Do this only if the guard is actively

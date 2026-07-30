@@ -114,6 +114,7 @@ import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/conc
 import { gameSavesSync, subscriptionsSync, skillProfilesSync, prayerRequestsSync, churchVoiceSync } from './lib/doc-sync.js';
 import { uploadSymbol as uploadWatchlistSymbol, removeSymbol as removeWatchlistSymbolRemote } from './lib/watchlist-sync.js';
 import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-sync.js';
+import { submitInterest as submitAppInterest } from './lib/interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
 import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
@@ -1492,14 +1493,13 @@ export default function PoeFinancialSystem() {
   // top instead, which stays put until they close the tab.
   const [demoWelcomeOpen, setDemoWelcomeOpen] = useState(isDemoMode);
 
-  // Waitlist intake modal — 2026-05-28 evening, vacation-mode pivot.
-  // Originally pointed at n8n workflow 29 on the NAS, but that path requires
-  // a bind mount we can't add before Darrell leaves for Hawaii. Switched to
-  // formsubmit.co — they email darrellpoe06@gmail.com on every signup, zero
-  // NAS dependency, works from anywhere. First time anyone signs up Darrell
-  // will get a "confirm subscription" email from formsubmit; one click and
-  // every subsequent signup flows to his Gmail inbox. Post-vacation we move
-  // back to n8n once the bind mount + bearer auth land. Per Darrell:
+  // Interest intake modal — SOVEREIGN since 2026-07-30 (access evaluation):
+  // submits to the app_interest Supabase lane (migration 0025, anon-insert
+  // RLS, admin-read in-app) — no third party. History: born 2026-05-28 as a
+  // vacation-mode third-party-form stopgap ("post-vacation we move back") that
+  // outlived its window by two months, sending name/email/phone PII off-site;
+  // the vendor-form guard's allowlist is now EMPTY so that class cannot
+  // silently return (scripts/business-systems-guard.mjs). Per Darrell:
   // "this is a once in a lifetime opportunity I might meet the person who
   // makes a good fit for our services. I want to prove our MVP."
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -1511,33 +1511,24 @@ export default function PoeFinancialSystem() {
       return;
     }
     setWaitlistState({ submitting: true, success: false, error: null, id: null });
-    // Client-side id for the user-facing confirmation. formsubmit doesn't
-    // return one of its own, but the user expects to see a confirmation ref.
+    // Client-side id for the user-facing confirmation ref.
     const localId = 'wl-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + Math.floor(Math.random() * 10000);
     try {
-      const r = await fetch('https://formsubmit.co/ajax/darrellpoe06@gmail.com', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          _subject: 'PoeTech waitlist · new signup',
-          _captcha: 'false',
-          _template: 'table',
-          confirmation_id: localId,
-          name: waitlistForm.name || '(no name)',
-          email: waitlistForm.email,
-          phone: waitlistForm.phone || '(none)',
-          interest: waitlistForm.interest || '(not specified)',
-          notes: waitlistForm.notes || '(none)',
-          source: 'poetech.us · picker',
-          captured_at: new Date().toISOString(),
-        })
+      // SOVEREIGN intake (2026-07-30 access evaluation): the proven app_interest
+      // lane (migration 0025, anon-insert RLS, admin-read in-app) replaces the
+      // third-party form POST that sent name/email/phone PII off-site — the
+      // 2026-05-28 "vacation-mode stopgap" that outlived its window. Same
+      // no-waitlist posture as matched-services: interest + a dated timeline.
+      const r = await submitAppInterest({
+        name: waitlistForm.name,
+        email: waitlistForm.email,
+        phone: waitlistForm.phone,
+        issue: `interest: ${waitlistForm.interest || '(not specified)'} · notes: ${waitlistForm.notes || '(none)'} · ref: ${localId}`,
+        platform: 'poetech.us · picker',
+        source: 'interest-picker',
       });
-      const json = await r.json().catch(() => ({}));
-      // formsubmit returns { success: 'true'|'false' OR true|false, message }.
-      // Treat anything non-2xx OR success === 'false' as failure.
-      const succeeded = r.ok && json.success !== 'false' && json.success !== false;
-      if (!succeeded) {
-        setWaitlistState({ submitting: false, success: false, error: (json.message || `Submission failed (HTTP ${r.status}). Please try again or email darrellpoe06@gmail.com.`), id: null });
+      if (!r.ok) {
+        setWaitlistState({ submitting: false, success: false, error: 'Submission failed. Please try again or email darrellpoe06@gmail.com.', id: null });
         return;
       }
       setWaitlistState({ submitting: false, success: true, error: null, id: localId });

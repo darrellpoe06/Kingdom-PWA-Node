@@ -415,7 +415,9 @@ export const MATRIX = Object.freeze({
     // finance.manage is DENY so a read never becomes an accidental write. Read,
     // don't wreck. Deepening this to write access is a deliberate promotion to
     // member/governor, never automatic. (RLS enforcement of the read-only cut
-    // is the next verified slice — see DR-0252 "Not done, with why".)
+    // SHIPPED in migration 0082 — successor reads the books, cannot write
+    // them, at the database. Open remainder: the LIVE smoke proof in the
+    // rls-isolation matrix, on DR-0252's re-review line — 2026-07-30.)
     successor: {
       'family.shared': ALLOW,
       'finance.view': ALLOW,

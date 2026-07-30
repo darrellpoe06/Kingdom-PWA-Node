@@ -90,9 +90,11 @@ export const N8N_ALLOWLIST = [
 
 // The one landing-page waitlist post (tracked exception; sovereign /waitlist
 // replacement is the dated plan item). New vendor form endpoints are forbidden.
-export const VENDOR_FORM_ALLOWLIST = [
-  'app/src/poe-financial-mvp-v28.jsx',
-];
+// EMPTY since 2026-07-30: the last vendor form (the formsubmit.co waitlist
+// stopgap in the monolith) was rewired to the sovereign app_interest lane.
+// Any vendor form endpoint appearing anywhere now FAILS this guard — the
+// allowlist grows only with a recorded decision, never a drive-by.
+export const VENDOR_FORM_ALLOWLIST = [];
 
 export function containmentFindings({ label, files, allowlist }) {
   const allowed = new Set(allowlist);
