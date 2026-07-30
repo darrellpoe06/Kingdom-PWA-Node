@@ -76,31 +76,33 @@ echo "== mcp install: funnel path mount (guarded, additive, reversible) =="
 # Guarded per DR-0076: only when the CLI exists, only when /mcp is not
 # already mounted; on an old CLI without --set-path this prints the manual
 # line honestly instead of guessing.
-if command -v tailscale >/dev/null 2>&1; then
-  # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
-  # This section is the ACTUATOR of the recorded public-transport baseline:
-  # it verifies and restores BOTH rows idempotently. FUNNEL, never serve —
-  # `tailscale serve` is tailnet-only and REPLACED the public exposure on
-  # 2026-07-30 (probes 30507138138/30507540039: TLS resets; webhook transport
-  # dark). funnel --set-path mounts are additive and public.
-  FSTAT="$(tailscale funnel status 2>/dev/null || true)"
-  if printf '%s' "$FSTAT" | grep -q "127.0.0.1:5678"; then
-    echo "  funnel root -> 5678 (n8n legacy webhooks) present per RECORDED-STATE"
-  else
-    tailscale funnel --bg http://127.0.0.1:5678 \
-      && echo "  RESTORED funnel root -> 127.0.0.1:5678 (the recorded baseline; was missing)" \
-      || echo "  funnel root restore FAILED -- run by hand: tailscale funnel --bg http://127.0.0.1:5678"
-  fi
-  if printf '%s' "$FSTAT" | grep -q "/mcp"; then
-    echo "  /mcp already mounted on the funnel"
-  else
-    tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795 \
-      && echo "  mounted /mcp -> 127.0.0.1:8795 on the PUBLIC funnel (additive)" \
-      || echo "  mount FAILED -- run by hand: tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
-  fi
-  tailscale funnel status 2>/dev/null || true
+# RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
+# ACTUATOR of the recorded public-transport baseline: verify/restore BOTH rows.
+# CHARACTERIZED (diagnostic run 30507928325): the CLI is NOT on the non-login
+# SSH PATH -- `command -v tailscale` was false every run, so the mount never
+# ran and /mcp stayed unmounted. Resolve the real DSM binary path (the same one
+# setup-tailscale-funnel.sh uses) and run FUNNEL (public, additive) as root.
+# `serve` is tailnet-only and must never be used here.
+TS="$(command -v tailscale 2>/dev/null || true)"
+[ -n "$TS" ] || TS="$(ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"
+if [ -n "$TS" ]; then
+  # funnel config is root-owned; try sudo -n, fall back to bare (already root under services-sync).
+  if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
+  FSTAT="$($TSC funnel status 2>/dev/null || true)"
+  printf '%s' "$FSTAT" | grep -q "127.0.0.1:5678" \
+    && echo "  funnel root -> 5678 (n8n legacy webhooks) present per RECORDED-STATE" \
+    || { $TSC funnel --bg http://127.0.0.1:5678 \
+         && echo "  RESTORED funnel root -> 127.0.0.1:5678 (recorded baseline)" \
+         || echo "  funnel root restore FAILED -- by hand: sudo $TS funnel --bg http://127.0.0.1:5678"; }
+  printf '%s' "$FSTAT" | grep -q "/mcp" \
+    && echo "  /mcp already mounted on the funnel" \
+    || { $TSC funnel --bg --set-path /mcp http://127.0.0.1:8795 \
+         && echo "  mounted /mcp -> 127.0.0.1:8795 on the PUBLIC funnel (additive)" \
+         || echo "  mount FAILED -- by hand: sudo $TS funnel --bg --set-path /mcp http://127.0.0.1:8795"; }
+  $TSC funnel status 2>/dev/null || true
 else
-  echo "  no tailscale CLI on PATH -- mount by hand from DSM: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
+  echo "  tailscale binary not found (checked PATH + /var/packages/Tailscale) -- mount by hand:"
+  echo "    sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
 fi
 
 echo "== mcp install: health (a real discover round-trip, DR-0076) =="

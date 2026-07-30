@@ -1,11 +1,18 @@
 # RECORDED-STATE — the NAS public transport baseline (DR-0076 §5: characterize before you change)
 
 **This file is the recorded truth any infra-mutating command must cite and preserve.**
-Born 2026-07-30 from the incident that proved its absence: an installer ran
-`tailscale serve --set-path` against an unrecorded baseline and REPLACED the
-public Funnel exposure — the webhook transport went dark (probe runs
-30507138138 / 30507540039: TLS resets from outside). No session may mutate the
-transport without reading this file and keeping every entry true.
+Born 2026-07-30. Honest cause history (DR-0100 — no over-claim): an installer
+shipped a `tailscale serve --set-path` command (wrong: `serve` is tailnet-only
+and would REPLACE the public exposure, not add to it). Probe runs 30507138138 /
+30507540039 showed TLS resets from outside around that window. **Diagnostic run
+30507928325 then established the CLI was never on the non-login SSH PATH, so the
+`serve` command NEVER RAN** — the TLS resets' cause is therefore UNCONFIRMED and
+must not be attributed to that command. What IS verified: `poetech-mcp.service`
+is active and answers 401 on `127.0.0.1:8795`; the funnel root (n8n) is up; only
+the public `/mcp` path mount is missing, because the CLI path was unresolved.
+The rule this file exists to enforce stands regardless: no session mutates the
+transport without reading this file, keeping every row true, and using `funnel`
+(never `serve`).
 
 ## The public Funnel (hostname poetech.tail5a2f35.ts.net, port 443 — PUBLIC via Tailscale Funnel, never merely `serve`)
 
