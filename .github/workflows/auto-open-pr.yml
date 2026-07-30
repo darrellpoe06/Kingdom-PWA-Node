@@ -64,8 +64,18 @@ jobs:
             num="$existing"
             echo "PR #$num already open for $BRANCH."
           else
-            title=$(git log -1 --pretty=%s)
+            subject=$(git log -1 --pretty=%s)
             body=$(git log -1 --pretty=%b)
+            # GitHub caps a PR title at 256 chars; a longer commit subject makes
+            # `gh pr create` hard-fail ("GraphQL: Title is too long") and the
+            # branch is left with NO PR — invisible until someone notices the
+            # missing PR (2026-07-30 incident, REV-0217). pr-safe-title.sh
+            # truncates; when it had to, we carry the FULL subject into the body
+            # so nothing is lost. (Script is proven-to-catch in vitest.)
+            title=$(bash scripts/pr-safe-title.sh "$subject")
+            if [ "$title" != "$subject" ]; then
+              body="$(printf '%s\n\n%s' "$subject" "$body")"
+            fi
             num=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
                     --title "$title" \
                     --body "${body:-Opened automatically on push. Rides auto-merge on green CI; label \`hold\` to keep it out of the merge lane.}" \
