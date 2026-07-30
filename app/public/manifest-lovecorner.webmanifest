@@ -3,7 +3,7 @@
   "short_name": "The Love Corner",
   "description": "The Church of the Living God, Pillar and Ground of the Truth — The Love Corner, Champaign IL. Sunday Worship, Bible Study, live worship, sermons, and giving. Powered by PoeTech.",
   "id": "/poetech-app/?view=church",
-  "start_url": "/poetech-app/?view=church",
+  "start_url": "/poetech-app/?view=church&lovecorner=1",
   "scope": "/poetech-app/",
   "display": "standalone",
   "orientation": "portrait-primary",

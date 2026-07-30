@@ -105,11 +105,32 @@ export function navKey(loc) {
 
 // ── the browser-history spine hook (used once, in the shell) ────────────────
 
+// Door/context params that must SURVIVE in-app navigation. A door launch
+// (?lovecorner=1 / ?moore=1 / ?tlc=1 / ?biz=slug) scopes the whole session;
+// serializeNav writes only view/sub, so without this a door visitor's first
+// tab-tap rewrote the URL bare and the NEXT reload booted as full PoeTech —
+// while the reverse collision (a PoeTech reload booting as the church door off
+// bare ?view=church) is fixed in church-own-door.js. Exported for tests.
+export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz'];
+
 // Compose the full URL for a location, preserving the app's base path
-// (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query.
+// (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —
+// and carrying the door/context params through every push.
 function urlFor(loc) {
   const path = (typeof window !== 'undefined' && window.location && window.location.pathname) || '/';
-  return path + serializeNav(loc);
+  const nav = serializeNav(loc);
+  try {
+    const cur = new URLSearchParams((typeof window !== 'undefined' && window.location && window.location.search) || '');
+    const out = new URLSearchParams(nav ? nav.slice(1) : '');
+    for (const p of PRESERVED_PARAMS) {
+      const v = cur.get(p);
+      if (v != null) out.set(p, v);
+    }
+    const s = out.toString();
+    return path + (s ? `?${s}` : '');
+  } catch (e) {
+    return path + nav;
+  }
 }
 
 // useBrowserHistoryNav — wires the shell's nav triple to window.history.

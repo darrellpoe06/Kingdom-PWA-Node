@@ -106,14 +106,33 @@ describe('the focused church app — church-door context (DR-0174)', () => {
     expect(LOVE_CORNER_BRAND.logo).toMatch(/^\/lovecorner-icon-/);
   });
 
-  it('isChurchDoorContext is true ONLY for a ?view=church launch', () => {
-    expect(isChurchDoorContext('?view=church')).toBe(true);
-    expect(isChurchDoorContext('?view=church&sub=home')).toBe(true);
-    // NOT the church door: PoeTech default, or any other view
-    expect(isChurchDoorContext('')).toBe(false);
-    expect(isChurchDoorContext('?view=overview')).toBe(false);
-    expect(isChurchDoorContext('?moore=1')).toBe(false);
-    expect(isChurchDoorContext('?join=1')).toBe(false);
+  it('isChurchDoorContext is true ONLY for a real church-door LAUNCH — never a bare in-app Church URL', () => {
+    // The door's own param (the moore=1/tlc=1 convention) — the entry page and
+    // the manifest start_url both carry it.
+    expect(isChurchDoorContext('?view=church&lovecorner=1')).toBe(true);
+    expect(isChurchDoorContext('?view=church&lovecorner=1&sub=home')).toBe(true);
+    // Legacy installed Love Corner app: pre-param start_url, standalone display.
+    expect(isChurchDoorContext('?view=church', { standalone: true })).toBe(true);
+    expect(isChurchDoorContext('?view=church&sub=learn', { standalone: true })).toBe(true);
+    // THE 2026-07-30 REGRESSION: a family member on the Church tab inside full
+    // PoeTech (nav-history writes ?view=church) reloads in a BROWSER TAB — that
+    // must stay PoeTech, never flip to the Love Corner app.
+    expect(isChurchDoorContext('?view=church', { standalone: false })).toBe(false);
+    expect(isChurchDoorContext('?view=church&sub=learn', { standalone: false })).toBe(false);
+    // NOT the church door: PoeTech default, or any other view/door
+    expect(isChurchDoorContext('', { standalone: false })).toBe(false);
+    expect(isChurchDoorContext('?view=overview', { standalone: false })).toBe(false);
+    expect(isChurchDoorContext('?moore=1', { standalone: false })).toBe(false);
+    expect(isChurchDoorContext('?join=1', { standalone: false })).toBe(false);
+  });
+
+  it('the entry page and the manifest both launch WITH the door param (the signal actually ships)', () => {
+    expect(read('lovecorner/index.html')).toMatch(/http-equiv="refresh"[^>]*view=church&lovecorner=1/);
+    const manifest = JSON.parse(read('manifest-lovecorner.webmanifest'));
+    expect(manifest.start_url).toContain('lovecorner=1');
+    // The manifest id is the install identity — it must NOT change (existing
+    // congregation installs keep working and pick the new start_url up in place).
+    expect(manifest.id).toBe('/poetech-app/?view=church');
   });
 });
 
