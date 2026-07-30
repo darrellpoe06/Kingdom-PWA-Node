@@ -9,7 +9,7 @@
 //
 // (!!) THE GATE (DR-0076 + 0072's own note). TV_SHARING_ENABLED was FALSE until the
 // data-isolation smoke test (infra/supabase/tests/0074-isolation-smoke.sql) PASSED
-// against the real database (the tv-sharing-isolation CI lane, SUPABASE_DB_URL).
+// against the real database (the rls-isolation CI lane tv-sharing leg, SUPABASE_DB_URL).
 // It has now PASSED (2026-07-04), so the flag is true and the circle setup +
 // Family/Us/Circle views mount. While it was false the UI mounted none of them, so
 // no cross-person read happened in production (no painted "coming soon"). This one
