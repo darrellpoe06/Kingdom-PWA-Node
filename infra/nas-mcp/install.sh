@@ -77,20 +77,28 @@ echo "== mcp install: funnel path mount (guarded, additive, reversible) =="
 # already mounted; on an old CLI without --set-path this prints the manual
 # line honestly instead of guessing.
 if command -v tailscale >/dev/null 2>&1; then
-  # FUNNEL, never serve: `tailscale serve` is tailnet-only and REPLACED the
-  # public funnel exposure when run 2026-07-30 (probe 30507138138 saw TLS
-  # resets; the webhook transport went dark until the funnel was restored).
-  # `tailscale funnel --set-path` adds the public path mount additively.
-  if tailscale funnel status 2>/dev/null | grep -q "/mcp"; then
+  # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
+  # This section is the ACTUATOR of the recorded public-transport baseline:
+  # it verifies and restores BOTH rows idempotently. FUNNEL, never serve —
+  # `tailscale serve` is tailnet-only and REPLACED the public exposure on
+  # 2026-07-30 (probes 30507138138/30507540039: TLS resets; webhook transport
+  # dark). funnel --set-path mounts are additive and public.
+  FSTAT="$(tailscale funnel status 2>/dev/null || true)"
+  if printf '%s' "$FSTAT" | grep -q "127.0.0.1:5678"; then
+    echo "  funnel root -> 5678 (n8n legacy webhooks) present per RECORDED-STATE"
+  else
+    tailscale funnel --bg http://127.0.0.1:5678 \
+      && echo "  RESTORED funnel root -> 127.0.0.1:5678 (the recorded baseline; was missing)" \
+      || echo "  funnel root restore FAILED -- run by hand: tailscale funnel --bg http://127.0.0.1:5678"
+  fi
+  if printf '%s' "$FSTAT" | grep -q "/mcp"; then
     echo "  /mcp already mounted on the funnel"
-  elif tailscale funnel --help 2>&1 | grep -q -- "--set-path"; then
+  else
     tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795 \
       && echo "  mounted /mcp -> 127.0.0.1:8795 on the PUBLIC funnel (additive)" \
       || echo "  mount FAILED -- run by hand: tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
-    tailscale funnel status 2>/dev/null || true
-  else
-    echo "  tailscale CLI lacks funnel --set-path -- mount by hand: tailscale funnel --bg --set-path /mcp http://127.0.0.1:8795"
   fi
+  tailscale funnel status 2>/dev/null || true
 else
   echo "  no tailscale CLI on PATH -- mount by hand from DSM: tailscale serve --bg --set-path /mcp http://127.0.0.1:8795"
 fi
