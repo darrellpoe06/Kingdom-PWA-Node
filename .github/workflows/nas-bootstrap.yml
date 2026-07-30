@@ -1,0 +1,64 @@
+# nas-bootstrap — the governed remote-hands channel (DR-0249 answer to
+# "why can't you do it?"). The sandbox has no NAS route (verified: Funnel 000
+# from the cloud, HTTPS-only, DR-0132 outbound-only design) — but a RUNNER can
+# join the tailnet ephemerally and run the one-time bootstrap itself, so the
+# only human part left is installing two repo secrets ONCE:
+#   TS_AUTHKEY   an ephemeral, ACL-scoped Tailscale auth key (Admin console ->
+#                Settings -> Keys; tag it to reach only the NAS, short expiry)
+#   NAS_SSH_KEY  a private key whose public half is in dpoe's
+#                ~/.ssh/authorized_keys on the NAS
+# Dispatch-only. Missing secrets => a clear no-op message, never a half-run.
+# Every step is idempotent (safe to dispatch again).
+name: nas-bootstrap
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (ephemeral, ACL-scoped) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          tags: tag:ci
+      - name: Bootstrap the NAS (idempotent — mirror pull + services-sync once)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          NAS="dpoe@poetech.tail5a2f35.ts.net"
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $NAS"
+          $SSH 'mkdir -p /volume1/PoeTech/repos'
+          $SSH 'test -d /volume1/PoeTech/repos/Kingdom-PWA-Node/.git || git clone https://github.com/darrellpoe06/Kingdom-PWA-Node.git /volume1/PoeTech/repos/Kingdom-PWA-Node'
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git pull --ff-only'
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && node infra/nas-loops/run.mjs --loop=services-sync'
+          echo "Bootstrap complete. Register infra/nas-loops/run.sh in DSM Task Scheduler for boot-persistence (one-time; see infra/nas-loops/README.md), or re-dispatch this workflow to re-sync."
+      - name: Verify — the /mcp discover answers through the Funnel
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            -X POST "https://poetech.tail5a2f35.ts.net/mcp" \
+            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' \
+            -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"server/discover"}')
+          echo "post-bootstrap /mcp probe: HTTP $CODE (401 = live and enforcing auth)"
+          [ "$CODE" = "401" ] || [ "$CODE" = "403" ]
