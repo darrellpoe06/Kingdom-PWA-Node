@@ -69,6 +69,22 @@ jobs:
           - feature: sovereign-noise-thought
             migrations: "0127-sovereign-noise-and-thought.sql"
             smokes: "0127-sovereign-noise-thought-smoke.sql"
+          # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
+          # core-books ROLE wall. 0082 (child walled / successor read-only) and
+          # 0100 (assistant walled) both shipped their DB gate but had NO live
+          # proof here — their own headers name an "adversarial LIVE RLS test"
+          # as the DR-0111 re-review item, and until now nothing ran it. ONE
+          # leg, BOTH migrations in dependency order (0100 re-gates the same
+          # five tables 0082 does — applying 0082 alone would DROP the assistant
+          # exclusion and REGRESS the wall on prod), so the live DB only ever
+          # reaches the final combined state. Two smokes assert the full
+          # contract against that state: child+successor (0082) and assistant +
+          # a no-regression guard (0100). Proven-to-catch: a books read/write
+          # policy that stops excluding child/assistant, or narrows successor
+          # read / member write, RAISEs -> the leg goes RED.
+          - feature: books-role-wall
+            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql"
+            smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
       - uses: actions/checkout@v4
