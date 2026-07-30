@@ -51,7 +51,7 @@ function makeItem(base, nowMs) {
 // dry-run finding F1: the ledger recorded INTENT, not completion, so a naive
 // date-sort drive would redo done work and the watcher over-counted overdue).
 // The marker is an explicit ALL-CAPS token so prose "done" never false-closes.
-const DONE_MARKER_RE = /^[\s—:(\[]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
+const DONE_MARKER_RE = /^[\s—:([]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
 
 // Pull every OPEN re-review date out of one free-text blob, tagged with source.
 function fromText(text, meta, nowMs, out) {
