@@ -43,6 +43,7 @@ const norm = (s) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replac
 const VERBATIM_GATED = [
   ['ll68-out-of-the-way-consecration-and-the-broken-bread', 67, 20, ['The Deep End', 'Taylor Welch', 'Ezekiel Azonwu']],
   ['ll69-faithful-over-a-few-things-stewardship-and-increase', 68, 20, ['Zach', 'NetWorth']],
+  ['ll70-the-bridegrooms-answer-only-the-father-names-the-day', 69, 25, ['video teaching', 'reconstruction']],
 ];
 
 describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
