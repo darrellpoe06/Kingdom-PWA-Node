@@ -14,7 +14,7 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-import { UpdatePrompt, InstallPrompt, applyBootBrandManifest } from '../components/PwaPrompts.jsx';
+import { UpdatePrompt, InstallPrompt, applyBootBrandManifest, currentFace } from '../components/PwaPrompts.jsx';
 
 let container, root;
 async function mount(Component, props) {
@@ -29,7 +29,11 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  try { window.localStorage.removeItem('pwa-install-dismissed'); } catch (e) {}
+  try {
+    window.localStorage.removeItem('pwa-install-dismissed');
+    window.localStorage.removeItem('pwa-install-dismissed:poetech');
+    window.localStorage.removeItem('pwa-install-dismissed:lovecorner');
+  } catch (e) {}
 });
 
 describe('UpdatePrompt — silent until updated, then confirms', () => {
@@ -64,6 +68,45 @@ describe('InstallPrompt — silent without an install signal', () => {
     });
     expect(container.textContent).toContain('Install PoeTech');
     expect(container.textContent).toContain('Install on this device');
+  });
+});
+
+describe('currentFace — two installable identities on one origin (DR-0133)', () => {
+  it('maps church-boot views to the Love Corner face, everything else to PoeTech', () => {
+    for (const v of ['church', 'choir', 'engagement', 'pulpit', 'learn', 'events']) {
+      expect(currentFace(`?view=${v}`)).toEqual({ key: 'lovecorner', label: 'The Love Corner' });
+    }
+    expect(currentFace('')).toEqual({ key: 'poetech', label: 'PoeTech' });
+    expect(currentFace('?view=books')).toEqual({ key: 'poetech', label: 'PoeTech' });
+  });
+});
+
+describe('InstallPrompt — per-face dismissal (the 2026-07-30 "can\'t download PoeTech, I have Love Corner" bug)', () => {
+  it('a Love Corner dismissal does NOT suppress the PoeTech install banner', async () => {
+    // Simulate: the user installed / dismissed Love Corner (its per-face flag set).
+    window.localStorage.setItem('pwa-install-dismissed:lovecorner', String(Date.now()));
+    // Default (PoeTech) face mount — the banner must still appear on an install signal.
+    await mount(InstallPrompt);
+    await act(async () => {
+      const e = new Event('beforeinstallprompt');
+      e.prompt = () => {};
+      e.userChoice = Promise.resolve({ outcome: 'dismissed' });
+      window.dispatchEvent(e);
+    });
+    expect(container.textContent).toContain('Install PoeTech');
+    expect(container.textContent).toContain('Install on this device');
+  });
+
+  it('a stale PER-ORIGIN legacy flag no longer suppresses either face', async () => {
+    window.localStorage.setItem('pwa-install-dismissed', String(Date.now())); // the old shared key
+    await mount(InstallPrompt);
+    await act(async () => {
+      const e = new Event('beforeinstallprompt');
+      e.prompt = () => {};
+      e.userChoice = Promise.resolve({ outcome: 'dismissed' });
+      window.dispatchEvent(e);
+    });
+    expect(container.textContent).toContain('Install PoeTech'); // banner appears; legacy key ignored
   });
 });
 
