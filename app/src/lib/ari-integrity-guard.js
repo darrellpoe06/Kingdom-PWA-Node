@@ -115,15 +115,35 @@ export function comprehensiveReviewConformance(text) {
   return { claims: true, ok: shown.length >= MIN_DIMENSIONS_SHOWN, shown };
 }
 
+// A reply that PRESENTS a review's results must show where the review LANDED —
+// the REV record / DR / registry file it produced (DR-0259, Darrell 2026-07-31:
+// "Ways and documentation required every time claude reviews etc... add").
+// The chat reply is the briefing; the registry, the ledger, and the gates are
+// the deliverable — a chat-only review is the same failure class as DR-0158's
+// chat-only research answer. Deliberately specific: fires only when the reply
+// claims a review ran/concluded, never on the bare word "review" (a request to
+// review, a code-review comment, a future plan stays clean).
+const REVIEW_CLAIM = /\b(the|my|this|our) [a-z/ -]{0,20}review (found|exposed|shows|showed|traced|confirms|confirmed|is (done|complete)|ran)\b|\bran (a|the) [a-z/ -]{0,20}review\b|\breview complete\b|\bcomprehensive review\b|\breviewed (the|our|all|every) [a-z]/i;
+const REVIEW_DOCS = /\bREV-\d{4}\b|\bDR-\d{4}\b|REVIEWS\.md/i;
+
+export function reviewLandsAsDocumentation(text) {
+  const s = asStr(text);
+  const claims = REVIEW_CLAIM.test(s);
+  const documented = REVIEW_DOCS.test(s);
+  return { claims, documented, ok: !claims || documented };
+}
+
 // The one call Ari makes: is this draft safe to send, or does it undermine?
 export function checkAriIntegrity(text) {
   const u = scanUndermining(text);
   const d = doneClaimNeedsEvidence(text);
   const c = comprehensiveReviewConformance(text);
+  const r = reviewLandsAsDocumentation(text);
   const problems = [
     ...u.flags.map((f) => `${f.id}: “${f.match}” — ${f.why}`),
     ...(d.ok ? [] : ['unverified-done: claims completion with no attached evidence (a test count, a run, a file:line — DR-0076)']),
     ...(c.ok ? [] : [`unstructured-comprehensive: claims a comprehensive review but shows only ${c.shown.length}/${REVIEW_DIMENSIONS.length} standard dimensions (${c.shown.join(', ') || 'none'}) — run COMPREHENSIVE-REVIEW-STANDARD's seven, or don't call it comprehensive (DR-0239)`]),
+    ...(r.ok ? [] : ['undocumented-review: presents a review that landed no Ways/documentation — name the REV record + DR/gate it produced (DR-0259; the chat reply is the briefing, the registry is the deliverable)']),
   ];
-  return { ok: problems.length === 0, problems, undermining: u.flags, doneClaim: d, comprehensive: c };
+  return { ok: problems.length === 0, problems, undermining: u.flags, doneClaim: d, comprehensive: c, reviewDocs: r };
 }

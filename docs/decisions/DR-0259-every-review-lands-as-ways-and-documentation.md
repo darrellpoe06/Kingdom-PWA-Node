@@ -41,9 +41,23 @@ A review delivered only as a chat reply is INCOMPLETE — the same failure
 class as DR-0158's chat-only research answer. The chat reply is the
 briefing; the registry, the ledger, and the gates are the deliverable.
 
+## Enforcement is machinery, not memory (built same session)
+
+Darrell, same sitting, setting the expectation plainly: *"we want perpetual
+fixes based on our experiences which sets the expectations etc"* and *"every
+failure becomes data for the fixes to not reoccur."* So this rule does not
+lean on any session remembering it: `reviewLandsAsDocumentation` in
+`app/src/lib/ari-integrity-guard.js` fires on any reply that PRESENTS a
+review's results without naming the REV record / DR / registry file it landed
+as — carried by `checkAriIntegrity`, which the harness stop-hook
+(`scripts/ari-guard-stop-hook.mjs`) runs on every reply. Proven-to-catch both
+ways in `ari-integrity-guard.test.js` (chat-only review blocked; documented
+review passes; the bare word "review" never false-positives).
+
 ## Applied in the same session (the rule eats first)
 
 The 2026-07-31 install-collision review landed as: REV-0218 (the review
 record), DR-0258 (the scope-split decision), the disjoint-scope gate in
 `lovecorner-door.test.js`, and the static-identity pins in
-`pwa-prompts-render.test.jsx` — plus this DR recording the directive itself.
+`pwa-prompts-render.test.jsx` — plus this DR recording the directive itself,
+and the detector above enforcing it perpetually.

@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanUndermining, doneClaimNeedsEvidence, checkAriIntegrity, UNDERMINING_PATTERNS,
-  comprehensiveReviewConformance,
+  comprehensiveReviewConformance, reviewLandsAsDocumentation,
 } from '../lib/ari-integrity-guard.js';
 
 describe('ari-integrity-guard — Ari catches Claude undermining the work', () => {
@@ -128,6 +128,38 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
     expect(comprehensiveReviewConformance('Fixed the header and pushed; 6751 tests green.').ok).toBe(true);
     // And the one-call gate carries it.
     expect(checkAriIntegrity('My comprehensive review: all good.').ok).toBe(false);
+  });
+
+  it('BLOCKS a review presented with no landed Ways/documentation and PASSES one that names where it landed (DR-0259)', () => {
+    // Presents review results, no REV/DR/registry named -> the chat-only review class.
+    for (const s of [
+      'The review found three gaps; all fixed and pushed.',
+      'Ran a full install review — the scope overlap was the cause.',
+      'This review shows the manifests collide on scope.',
+    ]) {
+      const r = reviewLandsAsDocumentation(s);
+      expect(r.claims, s).toBe(true);
+      expect(r.ok, s).toBe(false);
+    }
+    // The same claims WITH the landed documentation named -> pass.
+    for (const s of [
+      'The review found three gaps — landed as REV-0218 with the scope gate.',
+      'Ran a full install review; recorded as DR-0258 and the disjoint-scope test.',
+      'This review shows the collision; the record is in REVIEWS.md.',
+    ]) {
+      expect(reviewLandsAsDocumentation(s).ok, s).toBe(true);
+    }
+    // No review claim at all -> untouched (no false positives on the bare word).
+    for (const s of [
+      'Fixed the header and pushed; 6751 tests green.',
+      'Please review the PR when you get a chance.',
+      'I will review the deploy logs next.',
+    ]) {
+      expect(reviewLandsAsDocumentation(s).claims, s).toBe(false);
+    }
+    // And the one-call gate carries it.
+    expect(checkAriIntegrity('The review found two issues; both fixed.').ok).toBe(false);
+    expect(checkAriIntegrity('The review found two issues; both fixed — recorded as REV-0218 / DR-0258.').ok).toBe(true);
   });
 
   it('is not vacuous — it defines real patterns', () => {
