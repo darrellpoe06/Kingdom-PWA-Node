@@ -33,7 +33,8 @@ import {
   checkoutEndpoint, PROCESSOR_NOTE,
 } from '../lib/checkout-seam.js';
 
-const P = { ink: '#1A1815', muted: '#5A5751', accent: '#B85838', line: '#E0DBD0', panel: '#FAF8F4' };
+// Themed classes, never inline hex — same law as Library.jsx (2026-07-30
+// midnight-illegibility fix); pinned by library-theme-classes.test.js.
 
 // Darrell arms checkout by setting VITE_CHECKOUT_ENABLED=true in the deploy env
 // once his processor keys are configured (DR-0230 runbook Step 4) — an env flip,
@@ -49,24 +50,24 @@ function TrialBanner({ sub }) {
   const paid = t.phase === 'paid';
   const expired = t.phase === 'expired';
   return (
-    <div className="border p-3 mb-4" style={{ borderColor: expired ? P.line : P.accent, background: P.panel }}>
+    <div className={`border p-3 mb-4 bg-[#FAF8F4] ${expired ? 'border-[#E8E4DC]' : 'border-[#B85838]'}`}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold" style={{ color: P.accent }}>
+          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold text-[#B85838]" >
             {paid ? 'Membership · active' : '90-day free access'}
           </div>
-          <div className="text-sm" style={{ color: P.ink, fontFamily: '"Fraunces", serif' }}>{t.message}</div>
+          <div className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.message}</div>
         </div>
         {t.phase === 'trial' && (
           <div className="text-right">
-            <div className="text-lg font-semibold" style={{ color: P.ink }}>{t.daysLeft}</div>
-            <div className="text-[0.625rem]" style={{ color: P.muted }}>days left</div>
+            <div className="text-lg font-semibold text-[#1A1815]" >{t.daysLeft}</div>
+            <div className="text-[0.625rem] text-[#5A5751]" >days left</div>
           </div>
         )}
       </div>
       {t.phase === 'trial' && (
-        <div className="mt-2 h-1.5 w-full" style={{ background: P.line }}>
-          <div style={{ width: `${t.percentElapsed}%`, height: '100%', background: P.accent }} />
+        <div className="mt-2 h-1.5 w-full bg-[#E8E4DC]" >
+          <div className="h-full bg-[#B85838]" style={{ width: `${t.percentElapsed}%` }} />
         </div>
       )}
     </div>
@@ -90,24 +91,24 @@ function ConversationPanel({ product, sub, userKey }) {
   }, [messages, draft, userKey, sub, product]);
 
   if (!gate.allowed) {
-    return <div className="text-xs p-2 border" style={{ borderColor: P.line, color: P.muted, background: P.panel }}>🔒 {gate.reason}</div>;
+    return <div className="text-xs p-2 border border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]">🔒 {gate.reason}</div>;
   }
   return (
-    <div className="border p-2" style={{ borderColor: P.line }}>
-      <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Conversation ({list.length})</div>
+    <div className="border p-2 border-[#E8E4DC]" >
+      <div className="text-[0.6875rem] uppercase tracking-wider mb-1 text-[#5A5751]" >Conversation ({list.length})</div>
       <div className="space-y-1 max-h-48 overflow-y-auto mb-2">
-        {list.length === 0 && <p className="text-xs" style={{ color: P.muted }}>Be the first to start the conversation around this book.</p>}
+        {list.length === 0 && <p className="text-xs text-[#5A5751]" >Be the first to start the conversation around this book.</p>}
         {list.map((m) => (
-          <div key={m.id} className="text-xs" style={{ color: P.ink }}>
-            <span className="font-semibold" style={{ color: m.role === 'author' ? P.accent : P.ink }}>{m.authorName}{m.role === 'author' ? ' · author' : ''}:</span> {m.body}
+          <div key={m.id} className="text-xs text-[#1A1815]" >
+            <span className={`font-semibold ${m.role === 'author' ? 'text-[#B85838]' : 'text-[#1A1815]'}`}>{m.authorName}{m.role === 'author' ? ' · author' : ''}:</span> {m.body}
           </div>
         ))}
       </div>
       <div className="flex gap-1">
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask a question or share…" className="flex-1 text-xs border px-2 py-1" style={{ borderColor: P.line }} />
-        <button type="button" onClick={post} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Post</button>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask a question or share…" className="flex-1 text-xs border px-2 py-1 border-[#E8E4DC]"  />
+        <button type="button" onClick={post} className={btn} className="border-[#1A1815] text-[#1A1815]" >Post</button>
       </div>
-      {notice && <p className="text-[0.6875rem] mt-1" style={{ color: P.accent }}>{notice}</p>}
+      {notice && <p className="text-[0.6875rem] mt-1 text-[#B85838]" >{notice}</p>}
     </div>
   );
 }
@@ -117,23 +118,23 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
   const t = useMemo(() => trialEconomics({ monthlyCents: 3900, convertPct: 50 }), []);
   const [price, setPrice] = useState((product.priceCents / 100).toFixed(2));
   return (
-    <div className="border p-2 mt-2" style={{ borderColor: P.accent, background: P.panel }}>
-      <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.accent }}>Cost-efficiency screen (Governor)</div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs" style={{ color: P.ink }}>
+    <div className="border p-2 mt-2 border-[#B85838] bg-[#FAF8F4]" >
+      <div className="text-[0.6875rem] uppercase tracking-wider mb-1 text-[#B85838]" >Cost-efficiency screen (Governor)</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-[#1A1815]" >
         <span>Price</span><span>{formatPrice(e.priceCents)}</span>
         <span>Processor fee</span><span>−{formatPrice(e.processorFeeCents)}</span>
-        <span>Net per sale</span><span style={{ color: e.isProfitable ? '#216E39' : P.accent }}>{formatPrice(e.netCents)} ({e.marginPct}%)</span>
+        <span>Net per sale</span><span className={e.isProfitable ? 'text-[#216E39]' : 'text-[#B85838]'}>{formatPrice(e.netCents)} ({e.marginPct}%)</span>
         <span>Per-sale profitable</span><span>{e.isProfitable ? 'Yes' : 'No'}</span>
         <span>90-free justified</span><span>{t.justified ? 'Yes (LTV &gt; trial cost)' : 'Review'}</span>
       </div>
-      <p className="text-[0.625rem] mt-1" style={{ color: P.muted }}>{e.leanAlternative}</p>
-      <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t" style={{ borderColor: P.line }}>
-        <label className="text-[0.6875rem]" style={{ color: P.muted }}>Price $
-          <input value={price} onChange={(e2) => setPrice(e2.target.value)} className="w-16 text-xs border px-1 py-0.5 ml-1" style={{ borderColor: P.line }} />
+      <p className="text-[0.625rem] mt-1 text-[#5A5751]" >{e.leanAlternative}</p>
+      <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-[#E8E4DC]" >
+        <label className="text-[0.6875rem] text-[#5A5751]" >Price $
+          <input value={price} onChange={(e2) => setPrice(e2.target.value)} className="w-16 text-xs border px-1 py-0.5 ml-1 border-[#E8E4DC]"  />
         </label>
-        <button type="button" onClick={() => onPrice(product, Math.round(parseFloat(price || '0') * 100))} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Preview → set price</button>
+        <button type="button" onClick={() => onPrice(product, Math.round(parseFloat(price || '0') * 100))} className={btn} className="border-[#1A1815] text-[#1A1815]" >Preview → set price</button>
         {product.status !== 'published' && publishableProduct(product).ok && (
-          <button type="button" onClick={() => onPublish(product)} className={`${btn} text-white`} style={{ background: P.ink, borderColor: P.ink }}>Preview → publish</button>
+          <button type="button" onClick={() => onPublish(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Preview → publish</button>
         )}
         {product.status === 'published' && <span className="text-[0.6875rem] text-[#216E39]">● published</span>}
       </div>
@@ -190,19 +191,19 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
   return (
     <div className="max-w-4xl">
       <SectionTitle eyebrow="Books · Store">The Bookstore</SectionTitle>
-      <p className="text-sm mb-3" style={{ color: P.muted }}>
+      <p className="text-sm mb-3 text-[#5A5751]" >
         Full books from Darrell's teaching — yours to read, with a conversation space for everyone who has the book.
       </p>
 
       <TrialBanner sub={sub} />
       {!access.fullApp && access.phase === 'expired' && (
-        <button type="button" onClick={() => subscribe(sub.tier)} className={`${btn} text-white mb-3`} style={{ background: P.ink, borderColor: P.ink }}>
+        <button type="button" onClick={() => subscribe(sub.tier)} className={`${btn} text-white mb-3 bg-[#1A1815] border-[#1A1815]`}>
           Restore full access →
         </button>
       )}
 
       {checkoutNote && (
-        <div className="border p-2 mb-3 text-xs" style={{ borderColor: P.accent, background: P.panel, color: P.ink }}>{checkoutNote}</div>
+        <div className="border p-2 mb-3 text-xs border-[#B85838] bg-[#FAF8F4] text-[#1A1815]" >{checkoutNote}</div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -210,22 +211,22 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
           const owned = entitledToBook(sub, product, nowIso());
           const open = selected === product.id;
           return (
-            <div key={product.id} className="border bg-white p-3" style={{ borderColor: P.line }}>
+            <div key={product.id} className="border bg-white p-3 border-[#E8E4DC]" >
               <div className="flex items-start gap-2">
                 <div className="text-2xl" aria-hidden="true">{product.coverEmoji}</div>
                 <div className="flex-1">
-                  <div className="font-semibold" style={{ color: P.ink, fontFamily: '"Fraunces", serif' }}>{product.title}</div>
-                  <div className="text-[0.6875rem] italic" style={{ color: P.muted }}>{product.subtitle} · {product.author}</div>
-                  <p className="text-xs mt-1" style={{ color: P.ink }}>{product.blurb}</p>
+                  <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{product.title}</div>
+                  <div className="text-[0.6875rem] italic text-[#5A5751]" >{product.subtitle} · {product.author}</div>
+                  <p className="text-xs mt-1 text-[#1A1815]" >{product.blurb}</p>
                 </div>
-                <div className="text-sm font-semibold" style={{ color: P.accent }}>{owned ? 'Owned' : formatPrice(product.priceCents)}</div>
+                <div className="text-sm font-semibold text-[#B85838]" >{owned ? 'Owned' : formatPrice(product.priceCents)}</div>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {owned
-                  ? <button type="button" onClick={() => onReadProduct && onReadProduct(product)} className={`${btn} text-white`} style={{ background: P.ink, borderColor: P.ink }}>Read</button>
-                  : <button type="button" onClick={() => buy(product)} className={`${btn} text-white`} style={{ background: P.accent, borderColor: P.accent }}>Buy {formatPrice(product.priceCents)}</button>}
-                <button type="button" onClick={() => setSelected(open ? null : product.id)} className={btn} style={{ borderColor: P.line, color: P.muted }}>{open ? 'Hide' : 'Conversation'}</button>
-                {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={btn} style={{ borderColor: P.line, color: P.muted }} title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
+                  ? <button type="button" onClick={() => onReadProduct && onReadProduct(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Read</button>
+                  : <button type="button" onClick={() => buy(product)} className={`${btn} text-white bg-[#B85838] border-[#B85838]`}>Buy {formatPrice(product.priceCents)}</button>}
+                <button type="button" onClick={() => setSelected(open ? null : product.id)} className={btn} className="border-[#E8E4DC] text-[#5A5751]" >{open ? 'Hide' : 'Conversation'}</button>
+                {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={btn} className="border-[#E8E4DC] text-[#5A5751]"  title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
               </div>
               {open && <div className="mt-2"><ConversationPanel product={product} sub={sub} userKey={userKey} /></div>}
               {isFamilyMember && <GovernorEconomics product={product} onPublish={publish} onPrice={setPrice} />}
@@ -235,14 +236,14 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
       </div>
 
       {isFamilyMember && (
-        <div className="mt-4 border p-3" style={{ borderColor: P.line }}>
-          <div className="text-[0.6875rem] uppercase tracking-wider mb-1" style={{ color: P.muted }}>Drafts (Governor)</div>
+        <div className="mt-4 border p-3 border-[#E8E4DC]" >
+          <div className="text-[0.6875rem] uppercase tracking-wider mb-1 text-[#5A5751]" >Drafts (Governor)</div>
           {catalog.filter((p) => p.status !== 'published').map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-1" style={{ color: P.ink }}>
-              <span>{p.coverEmoji} {p.title} <span style={{ color: P.muted }}>— {p.blurb}</span></span>
+            <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-1 text-[#1A1815]" >
+              <span>{p.coverEmoji} {p.title} <span className="text-[#5A5751]" >— {p.blurb}</span></span>
               {publishableProduct(p).ok
-                ? <button type="button" onClick={() => publish(p)} className={btn} style={{ borderColor: P.ink, color: P.ink }}>Publish</button>
-                : <span className="text-[0.625rem]" style={{ color: P.muted }}>{publishableProduct(p).reasons[0]}</span>}
+                ? <button type="button" onClick={() => publish(p)} className={btn} className="border-[#1A1815] text-[#1A1815]" >Publish</button>
+                : <span className="text-[0.625rem] text-[#5A5751]" >{publishableProduct(p).reasons[0]}</span>}
             </div>
           ))}
         </div>

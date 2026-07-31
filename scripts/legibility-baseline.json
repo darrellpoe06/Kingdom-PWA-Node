@@ -6,9 +6,6 @@
     "components/BooksAccounts.jsx": [
       "inline-dark-text|#1f6feb|midnight/card"
     ],
-    "components/Bookstore.jsx": [
-      "inline-dark-text|#216e39|midnight/card"
-    ],
     "components/BooksTransactions.jsx": [
       "inline-dark-text|#1f6feb|midnight/card",
       "inline-dark-text|#db4444|midnight/card"

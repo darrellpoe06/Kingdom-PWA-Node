@@ -6,11 +6,11 @@
   ],
   "summary": {
     "pages": 198,
-    "passing": 184,
-    "trackedDebtPages": 14,
+    "passing": 185,
+    "trackedDebtPages": 13,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 84
+    "debtViolations": 83
   },
   "pages": [
     {
@@ -96,15 +96,6 @@
     },
     {
       "page": "components/BooksAccounts.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 1,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/Bookstore.jsx",
       "status": "TRACKED-DEBT",
       "violations": 1,
       "regressions": 0,
