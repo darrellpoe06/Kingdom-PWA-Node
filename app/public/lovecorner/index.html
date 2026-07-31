@@ -5,7 +5,9 @@
   "install-identity"): link previews (RCS/iMessage/social) read the STATIC HTML
   at the shared URL — they never run the app, so ?view=church would preview as
   "PoeTech Family OS". This page carries the CHURCH's name in the tags, then
-  meta-refreshes into the real church door (/poetech-app/?view=church). No
+  meta-refreshes into the real church door (/lovecorner/app/?view=church —
+  the church's OWN install scope per DR-0258, disjoint from /poetech-app/ so
+  Chrome can install The Love Corner AND PoeTech side by side). No
   inline JS (CSP: script-src 'self'). Icon artwork reuses the platform icons
   until the church supplies its own (routed opportunity — an asset only COLG
   holds). Brand strings mirror manifest-lovecorner + lib/church-own-door.js.
@@ -31,7 +33,7 @@
   <link rel="manifest" href="/manifest-lovecorner.webmanifest" />
   <link rel="apple-touch-icon" href="/lovecorner-apple-touch.png" />
   <link rel="icon" href="/lovecorner-icon-192.png" />
-  <meta http-equiv="refresh" content="0; url=/poetech-app/?view=church&lovecorner=1" />
+  <meta http-equiv="refresh" content="0; url=/lovecorner/app/?view=church&lovecorner=1" />
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FAF8F4; color: #1A1815; font-family: Georgia, 'Times New Roman', serif; text-align: center; }
     .card { padding: 2rem; max-width: 28rem; }
@@ -44,7 +46,7 @@
   <div class="card">
     <h1>The Church of the Living God</h1>
     <p>The Love Corner · Champaign, IL</p>
-    <p>Opening the church… <a href="/poetech-app/?view=church">tap here if it doesn't open</a>.</p>
+    <p>Opening the church… <a href="/lovecorner/app/?view=church&amp;lovecorner=1">tap here if it doesn't open</a>.</p>
   </div>
 </body>
 </html>

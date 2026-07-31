@@ -36,6 +36,11 @@ export const DOOR_DOMAIN = 'thechurchofthelivinggod.com';
 // (QR, texted link) encodes THIS url. Mirrors Moore's MOORE_SHARE_URL.
 export const SHARE_DOOR_URL = 'https://poetech.us/lovecorner/';
 export const SHARE_DOOR_ALIASES = ['/church', '/thelovecorner'];
+// DR-0258: the church installs under its OWN scope (/lovecorner/), disjoint
+// from PoeTech's /poetech-app/ — overlapping scopes made Chrome treat the two
+// as one app ("already installed"). The manifest is linked STATICALLY by the
+// church's own served page (app/lovecorner/app/index.html), never swapped at
+// runtime.
 export const INSTALL_MANIFEST = '/manifest-lovecorner.webmanifest';
 
 // The church's brand, used to SKIN the entry a member meets when they open the

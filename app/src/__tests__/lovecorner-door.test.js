@@ -50,6 +50,49 @@ describe('the church-branded install manifest', () => {
       expect(existsSync(pub(rel)), `${rel} missing — the church icon won't ship`).toBe(true);
     }
   });
+
+  // THE GATE FOR THE CLASS (DR-0258, proven-to-catch): two installable PWAs on
+  // one origin MUST have disjoint scopes. When Love Corner shared PoeTech's
+  // /poetech-app/ scope, Chrome collapsed them into one app — installing either
+  // made the other's install sheet say "This app is already installed"
+  // (Darrell's 2026-07-31 screenshots; the 2026-07-30 "can't download PoeTech"
+  // report). This test fails on any regression where one scope contains the
+  // other, so the collision class can never silently return.
+  it('the church scope is DISJOINT from the PoeTech scope — neither contains the other', () => {
+    const poetech = JSON.parse(read('manifest.webmanifest'));
+    expect(manifest.scope.startsWith(poetech.scope)).toBe(false);
+    expect(poetech.scope.startsWith(manifest.scope)).toBe(false);
+    // and each app's install identity lives inside its own scope
+    expect(manifest.id.startsWith(manifest.scope)).toBe(true);
+    expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
+  });
+});
+
+describe('the church app PAGE — static install identity under the church scope (DR-0258)', () => {
+  const appHtmlPath = join(dirname(fileURLToPath(import.meta.url)), '../../lovecorner/app/index.html');
+
+  it('the served church app page exists as a real Vite build input', () => {
+    expect(existsSync(appHtmlPath), 'app/lovecorner/app/index.html missing — the church scope has no page to install from').toBe(true);
+  });
+
+  it('it links the church manifest STATICALLY and boots the same app entry', () => {
+    const html = readFileSync(appHtmlPath, 'utf8');
+    expect(html).toContain('href="/manifest-lovecorner.webmanifest"');
+    expect(html).not.toContain('href="/manifest.webmanifest"');
+    expect(html).toContain('src="/src/main.jsx"');
+    // the boot watchdog rides along, same as the PoeTech page (LESSONS P32)
+    expect(html).toContain('/poetech-app/watchdog.js');
+  });
+
+  it('the vite config actually builds it (an unbuilt input would 404 the whole scope)', () => {
+    const cfg = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../vite.config.js'), 'utf8');
+    expect(cfg).toMatch(/lovecorner\/app\/index\.html/);
+  });
+
+  it('the manifest start_url resolves to this page\'s directory (install opens the page that exists)', () => {
+    const manifest = JSON.parse(read('manifest-lovecorner.webmanifest'));
+    expect(manifest.start_url.startsWith('/lovecorner/app/')).toBe(true);
+  });
 });
 
 describe('the shareable entry page', () => {
@@ -130,9 +173,13 @@ describe('the focused church app — church-door context (DR-0174)', () => {
     expect(read('lovecorner/index.html')).toMatch(/http-equiv="refresh"[^>]*view=church&lovecorner=1/);
     const manifest = JSON.parse(read('manifest-lovecorner.webmanifest'));
     expect(manifest.start_url).toContain('lovecorner=1');
-    // The manifest id is the install identity — it must NOT change (existing
-    // congregation installs keep working and pick the new start_url up in place).
-    expect(manifest.id).toBe('/poetech-app/?view=church');
+    // DR-0258: the install identity moved to the church's OWN disjoint scope.
+    // The old id (/poetech-app/?view=church) shared PoeTech's scope, and Chrome
+    // treats overlapping-scope PWAs as ONE app — with either installed, the
+    // other's install sheet said "already installed" (2026-07-31 screenshots).
+    // Existing legacy installs keep their frozen old identity and keep working;
+    // they are reinstalled once under the new identity to coexist with PoeTech.
+    expect(manifest.id).toBe('/lovecorner/');
   });
 });
 
