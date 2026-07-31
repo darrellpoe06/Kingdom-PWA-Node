@@ -53,7 +53,11 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
   const startAdd = () => { setForm(blank); setEditingId(null); setShowForm(true); };
   // r20 — Inline edit per IN-PLACE-FIRST.md. Top form for Add only;
   // edit mounts inline under the row the user tapped.
-  const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: a.balance, entityId: a.entityId, notes: a.notes || '', isPrimary: !!a.isPrimary }); setEditingId(a.id); setShowForm(false); };
+  // The Balance field pre-fills with the DISPLAYED (derived) balance — the same
+  // number the row shows — so saving the form unchanged never moves anything,
+  // and a corrected entry means "this is my current balance" (updateAccount
+  // records it as a balance-adjustment row when the account has a ledger).
+  const startEdit = (a) => { setForm({ name: a.name, institution: a.institution, type: a.type, fragment: a.fragment || '', balance: (a.derivedBalance ?? a.balance), entityId: a.entityId, notes: a.notes || '', isPrimary: !!a.isPrimary }); setEditingId(a.id); setShowForm(false); };
   const cancel = () => { setShowForm(false); setEditingId(null); setForm(blank); };
   const submit = () => {
     if (!form.name || !form.institution) { alert('Account name and institution are required.'); return; }

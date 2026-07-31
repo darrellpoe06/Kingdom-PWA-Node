@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
-  auditBalanceContinuity, reconcileAccounts, runningBalanceByTxId,
+  isBalanceAdjustment, auditBalanceContinuity, reconcileAccounts, runningBalanceByTxId,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -145,6 +145,23 @@ describe('totals — internal transfers do NOT inflate gross In / Out', () => {
     expect(t.in).toBe(1700);
     expect(t.out).toBe(115);
     expect(t.net).toBe(1585); // net over MOVEMENTS, not over transfer legs
+  });
+});
+
+describe('isBalanceAdjustment + totals — a manual balance correction is not income or spend', () => {
+  it('recognizes both markers (category survives the sync round-trip; the flag is local)', () => {
+    expect(isBalanceAdjustment({ category: 'balance-adjustment', amount: -12602.58 })).toBe(true);
+    expect(isBalanceAdjustment({ isBalanceAdjustment: true, amount: 40 })).toBe(true);
+    expect(isBalanceAdjustment({ category: 'groceries', amount: -50 })).toBe(false);
+    expect(isBalanceAdjustment(null)).toBe(false);
+  });
+  it('a balance-adjustment row is excluded from In, Out, and Net', () => {
+    const adj = { id: 'adj', posted: '2026-06-25', amount: -12602.58, category: 'balance-adjustment' };
+    const t = totals([...ROWS, adj]);
+    expect(t.in).toBe(1700);   // unchanged
+    expect(t.out).toBe(115);   // NOT 12717.58 — the correction is not spending
+    expect(t.net).toBe(1585);  // unchanged
+    expect(t.count).toBe(6);   // the row is still a real row in the set
   });
 });
 
