@@ -53,3 +53,21 @@
 # PWA manifest: never cache so install metadata stays current.
 /poetech-app/manifest.webmanifest
   Cache-Control: no-cache, no-store, must-revalidate
+
+# The Love Corner app shell (DR-0258 — the church's own install scope at
+# /lovecorner/app/): same no-store rule as the PoeTech shell, for the same
+# iOS-Safari-over-caches-HTML reason. Assets are shared (/poetech-app/assets/*,
+# already immutable above).
+/lovecorner/app/
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/lovecorner/app/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# The church manifest: never cache — its id/scope ARE the install identity.
+/manifest-lovecorner.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate

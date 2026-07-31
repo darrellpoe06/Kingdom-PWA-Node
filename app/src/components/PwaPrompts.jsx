@@ -20,64 +20,43 @@
 //     is stored in localStorage for 30 days. Auto-hides once installed.
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
-import { INSTALL_MANIFEST } from '../lib/church-own-door.js';
 
 const UPDATED_TOAST_MS = 4000;
 
-// applyBootBrandManifest — page-load install identity (DR-0227). Moore and TLC
-// swap their brand manifest inside their door components, but a church boot
-// (?view=church, or a church-alias deep link) kept the DEFAULT PoeTech
-// manifest — so Chrome's install sheet said "This app is already installed"
-// (the PoeTech id) instead of offering The Love Corner (Darrell's 2026-07-23
-// screenshot). Read the LAUNCH URL once at boot — install identity is a
-// page-load property (Chrome computes installability from the manifest present
-// at load; mid-session SPA swaps are flaky) — and link the church manifest
-// when the page booted as the church. Exported for the render test.
-const CHURCH_BOOT_VIEWS = ['church', 'engagement', 'choir', 'pulpit', 'learn', 'events'];
-
 // currentFace — which installable identity this page booted as (DR-0133 install-
 // identity). PoeTech and The Love Corner are TWO installable PWAs on the SAME
-// origin (poetech.us), distinguished by manifest `id`. Everything keyed to the
-// install prompt (the dismissal flag, the banner label) MUST be per-face, or the
-// two collide on the shared origin. THE BUG (Darrell 2026-07-30, "I can't
-// download the PoeTech App when I already have the Love Corner App"): installing
-// Love Corner wrote a single per-ORIGIN 'pwa-install-dismissed' flag, which then
-// suppressed PoeTech's install banner too — and since we preventDefault() the
-// native infobar, the banner is the only install affordance, so PoeTech became
-// un-installable for 30 days. Per-face keys fix it (and bypass the stuck flag).
-export function currentFace(search) {
+// origin (poetech.us). Since DR-0258 they live under DISJOINT install scopes
+// (/poetech-app/ vs /lovecorner/), each served by its OWN static HTML that
+// links its OWN manifest — the DR-0227 runtime <link rel=manifest> swap is
+// retired (install identity is a page-load property; mid-session swaps were
+// flaky and, post-split, would have made the /poetech-app/ Church tab
+// un-installable as PoeTech). The face is therefore decided by WHERE the page
+// booted: the church's path (/lovecorner/…) or a church-door launch param
+// (?lovecorner=1) — never the in-app ?view=church tab, which is a PoeTech page
+// whose installable identity IS PoeTech.
+// Everything keyed to the install prompt (the dismissal flag, the banner
+// label) stays per-face. THE 2026-07-30 BUG this preserves the fix for
+// ("I can't download the PoeTech App when I already have the Love Corner
+// App"): a single per-ORIGIN 'pwa-install-dismissed' flag let one face's
+// dismissal suppress the other's banner for 30 days. Per-face keys keep the
+// two independent.
+export function currentFace(search, pathname) {
   try {
-    const v = (new URLSearchParams(search || '').get('view') || '').toLowerCase().trim();
-    if (CHURCH_BOOT_VIEWS.includes(v)) return { key: 'lovecorner', label: 'The Love Corner' };
+    const path = pathname !== undefined ? pathname
+      : (typeof window !== 'undefined' && window.location ? window.location.pathname : '');
+    if (typeof path === 'string' && path.startsWith('/lovecorner/')) {
+      return { key: 'lovecorner', label: 'The Love Corner' };
+    }
+    if (new URLSearchParams(search || '').get('lovecorner') === '1') {
+      return { key: 'lovecorner', label: 'The Love Corner' };
+    }
   } catch { /* fall through to default */ }
   return { key: 'poetech', label: 'PoeTech' };
 }
 const DISMISS_KEY = (face) => `pwa-install-dismissed:${face.key}`;
 
-export function applyBootBrandManifest(search, doc) {
-  try {
-    const v = (new URLSearchParams(search || '').get('view') || '').toLowerCase().trim();
-    if (!CHURCH_BOOT_VIEWS.includes(v)) return false;
-    let link = doc.querySelector('link[rel="manifest"]');
-    if (!link) {
-      link = doc.createElement('link');
-      link.rel = 'manifest';
-      doc.head.appendChild(link);
-    }
-    link.href = INSTALL_MANIFEST;
-    return true;
-  } catch { return false; }
-}
-
 export function UpdatePrompt() {
   const [confirmed, setConfirmed] = useState(false);
-
-  // Boot-time brand-manifest swap rides the always-mounted PWA-chrome widget
-  // (no shell coupling — reads the launch URL only, once).
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    applyBootBrandManifest(window.location.search, document);
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

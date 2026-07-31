@@ -411,6 +411,16 @@ export default defineConfig({
   plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
   build: {
     rollupOptions: {
+      // MPA inputs (DR-0258 install-scope split): the church's app page at
+      // /lovecorner/app/ serves the SAME app from a second HTML whose STATIC
+      // markup links manifest-lovecorner — install identity is a page-load
+      // property, so each installable face gets its own served HTML instead of
+      // a flaky runtime <link> swap. Scopes are disjoint (/poetech-app/ vs
+      // /lovecorner/), which is what lets Chrome install both on one device.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        lovecorner: fileURLToPath(new URL('./lovecorner/app/index.html', import.meta.url)),
+      },
       output: {
         // Per-BUILD banner on every JS chunk (DR-0139 incident, 2026-07-10).
         // Cloudflare Pages' wrangler upload DEDUPES by content hash: a chunk

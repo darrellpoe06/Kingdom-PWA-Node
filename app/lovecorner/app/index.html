@@ -1,0 +1,55 @@
+<!doctype html>
+<!-- =========================================================================
+  /lovecorner/app/ — The Love Corner's OWN app page (DR-0258 scope split).
+  WHY THIS FILE EXISTS: PoeTech and The Love Corner are two installable PWAs on
+  one origin. When both manifests shared scope /poetech-app/, Chrome treated
+  them as ONE app — with either installed, the other's install sheet said
+  "This app is already installed" (Darrell's 2026-07-31 screenshots), and the
+  DR-0227 runtime <link rel=manifest> swap was flaky because install identity
+  is a page-load property. This page is the structural fix: a second Vite MPA
+  input serving the SAME app (same /src/main.jsx, same absolute /poetech-app/
+  assets) whose STATIC HTML links the church manifest, under the church's own
+  disjoint scope /lovecorner/. nav-history preserves the pathname, so in-app
+  navigation never leaves the scope. Mirrors app/index.html — keep the two in
+  step when the boot chain changes (pinned by lovecorner-door.test.js).
+========================================================================== -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>The Church of the Living God · The Love Corner</title>
+    <meta name="description" content="The Church of the Living God, Pillar and Ground of the Truth — The Love Corner, Champaign IL. Sunday Worship, Bible Study, live worship, sermons, and giving. Powered by PoeTech." />
+    <link rel="manifest" href="/manifest-lovecorner.webmanifest" />
+    <meta name="theme-color" content="#1A1815" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/lovecorner-icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/lovecorner-icon-512.png" />
+    <link rel="apple-touch-icon" href="/lovecorner-apple-touch.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="The Love Corner" />
+    <script>
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'share', 'oauth_popup']
+          .some(function (k) { return p.get(k) === '1'; });
+        var href = '__MONOLITH_PRELOAD_HREF__';
+        if (!standalone && href.charAt(0) === '/') {
+          var l = document.createElement('link');
+          l.rel = 'modulepreload';
+          l.href = href;
+          l.crossOrigin = '';
+          document.head.appendChild(l);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script defer src="/poetech-app/watchdog.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
