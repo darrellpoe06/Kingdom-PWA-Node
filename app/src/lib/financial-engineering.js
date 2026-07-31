@@ -105,6 +105,72 @@ export function deriveAccountBalances(data, asOf = new Date()) {
 }
 
 // -----------------------------------------------------------------------------
+// applyManualBalance — honor a hand-entered CURRENT balance (Christina's books,
+// 2026-07-31). The number typed into the account editor is the account's current
+// available balance — it must be what every surface displays, immediately.
+//
+// The defect this closes: for an account with imported history, the stored
+// `balance` is only the derivation ANCHOR (`openingBalance ?? balance` at the
+// start of the ledger), so writing the manual entry into `balance` made the app
+// display entered + the whole imported history on top ($4,350.42 typed,
+// $16,953 shown). And `openingBalance` cannot carry the correction because the
+// accounts sync round-trip strips it (schema v1.2 has no such column — see
+// accounts-sync.js fromRow), which would leave each device with a different
+// balance (DR-0076 forbids device-dependent truth).
+//
+// So the correction is expressed IN the ledger, where it syncs like everything
+// else: a visible `balance-adjustment` transaction of exactly (entered − derived
+// now), which lands deriveAccountBalances on the entered number on every device
+// and every surface. Imported rows (and their bank running balances) stay
+// historical reference; they can never override the manual entry again.
+//
+// Three outcomes:
+//  · anchor     — account has no cleared ledger rows: the stored balance IS the
+//                 current balance; write it directly (fresh accounts, manual debts).
+//  · adjustment — account has cleared rows: post the delta row, leave the anchor
+//                 untouched (moving it would double-apply the correction).
+//  · noop       — entered equals what is already displayed; nothing to record.
+// -----------------------------------------------------------------------------
+export function applyManualBalance(data, accountId, entered, asOf = new Date()) {
+  const amount = round2(entered);
+  const hasCleared = (data?.transactions || []).some((t) => {
+    if (!t || t.accountId !== accountId) return false;
+    const d = new Date(t.date);
+    return !isNaN(d.getTime()) && d <= asOf;
+  });
+  if (!hasCleared) return { mode: 'anchor', balance: amount };
+  const derivedNow = deriveAccountBalances(data, asOf)[accountId] ?? 0;
+  const delta = round2(amount - derivedNow);
+  if (Math.abs(delta) < 0.005) return { mode: 'noop' };
+  return {
+    mode: 'adjustment',
+    adjustment: {
+      date: asOf.toISOString().slice(0, 10),
+      accountId,
+      amount: delta,
+      description: `Balance set to ${amount.toFixed(2)} — manual adjustment`,
+      category: 'balance-adjustment',
+      isBalanceAdjustment: true,
+    },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// resolveAccountUpdates — updateAccount's front door for the manual balance
+// edit. Returns the updates the account row should actually store, posting the
+// balance-adjustment row through `postTx` when applyManualBalance says this
+// ledgered account needs one. In that case `balance` is blanked (undefined) so
+// the stored anchor never moves — moving it too would double-apply the edit.
+// -----------------------------------------------------------------------------
+export function resolveAccountUpdates(data, accountId, updates, asOf = new Date(), postTx = () => {}) {
+  if (!updates || updates.balance === undefined) return updates;
+  const manual = applyManualBalance(data, accountId, parseFloat(updates.balance) || 0, asOf);
+  if (manual.mode === 'anchor') return updates;
+  if (manual.mode === 'adjustment') postTx(manual.adjustment);
+  return { ...updates, balance: undefined };
+}
+
+// -----------------------------------------------------------------------------
 // liveCashOnHand — TODAY'S spendable cash, derived from the real ledger. Cash =
 // spendable balances only (excludes credit/loan debts + inLegal accounts).
 // Reads deriveAccountBalances so it can never drift from the rest of the app.

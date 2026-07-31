@@ -39,6 +39,17 @@ export function isTransferTxn(t) {
   return String(t.category || '').toLowerCase() === 'transfer';
 }
 
+// A balance-adjustment row is the ledger form of a MANUAL balance entry
+// (applyManualBalance, financial-engineering.js): it moves the account's derived
+// balance to the number the user typed, but it is not income or spend — so it is
+// excluded from In/Out/Net the same way transfers are. The flag survives the
+// sync round-trip via the category string (transactions-sync carries category).
+export function isBalanceAdjustment(t) {
+  if (!t) return false;
+  if (t.isBalanceAdjustment === true) return true;
+  return String(t.category || '').toLowerCase() === 'balance-adjustment';
+}
+
 // Parse a transaction's posted date to epoch ms. Accepts 'YYYY-MM-DD' (treated
 // as local midnight, matching the component's formatDate) or a full ISO string.
 // Returns null when unparseable so undated rows are handled honestly, never
@@ -64,7 +75,7 @@ export function postedMs(t) {
 export function totals(txns) {
   let inSum = 0, outSum = 0;
   for (const t of txns) {
-    if (isTransferTxn(t)) continue;
+    if (isTransferTxn(t) || isBalanceAdjustment(t)) continue;
     const a = typeof t.amount === 'number' ? t.amount : Number(t.amount);
     if (!Number.isFinite(a)) continue;
     if (a < 0) outSum += -a; else inSum += a;

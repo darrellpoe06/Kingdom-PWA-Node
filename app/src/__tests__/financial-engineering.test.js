@@ -9,6 +9,8 @@ import {
   monthsBetween,
   monthLabelFrom,
   deriveAccountBalances,
+  applyManualBalance,
+  resolveAccountUpdates,
   deriveEntityRollups,
   liveCashOnHand,
   deriveMonthlyFlows,
@@ -116,6 +118,68 @@ describe('deriveAccountBalances — the single source of truth for displayed bal
     expect(after).toBe(before - 125.50); // 1300 -> 1174.50
   });
 });
+
+describe('applyManualBalance — a hand-entered balance IS the displayed balance (Christina 2026-07-31)', () => {
+  it('THE BUG IT CLOSES: writing the manual entry into `balance` re-added the whole history on top', () => {
+    // A synced account (no openingBalance — the sync round-trip strips it) with
+    // imported history. The user sees 16,953 and types their real 4,350.42.
+    const data = {
+      accounts: [{ id: 'chk', type: 'checking', balance: 4350.42 }],
+      transactions: [
+        { id: 'i1', date: '2026-01-05', accountId: 'chk', amount: 15000 },
+        { id: 'i2', date: '2026-01-12', accountId: 'chk', amount: -2397.42 },
+      ],
+    };
+    // The old path (balance as anchor) displays entered + history — the defect:
+    expect(deriveAccountBalances(data, CD).chk).toBe(16953);
+    // The fix: the edit becomes an adjustment row and the display lands exactly
+    // on the entered number.
+    const res = applyManualBalance(data, 'chk', 4350.42, CD);
+    expect(res.mode).toBe('adjustment');
+    expect(res.adjustment.amount).toBe(-12602.58); // 4350.42 − 16953
+    expect(res.adjustment.category).toBe('balance-adjustment');
+    data.transactions.push(res.adjustment);
+    expect(deriveAccountBalances(data, CD).chk).toBe(4350.42);
+  });
+  it('an account with no cleared rows keeps the direct anchor write (fresh accounts, manual debts)', () => {
+    const data = { accounts: [{ id: 'sav', type: 'savings', balance: 100 }], transactions: [] };
+    expect(applyManualBalance(data, 'sav', 900, CD)).toEqual({ mode: 'anchor', balance: 900 });
+  });
+  it('future-dated rows alone do not force the adjustment path', () => {
+    const data = {
+      accounts: [{ id: 'chk', type: 'checking', balance: 100 }],
+      transactions: [{ id: 'f1', date: '2026-12-01', accountId: 'chk', amount: -50 }],
+    };
+    expect(applyManualBalance(data, 'chk', 250, CD).mode).toBe('anchor');
+  });
+  it('re-entering the number already displayed records nothing (noop)', () => {
+    const data = fixture();
+    // a1 displays 1300 at CD (1000 opening + 500 − 200).
+    expect(applyManualBalance(data, 'a1', 1300, CD).mode).toBe('noop');
+  });
+  it('honors the entry even when openingBalance is present (seed accounts)', () => {
+    const data = fixture();
+    const res = applyManualBalance(data, 'a1', 1000, CD);
+    expect(res.mode).toBe('adjustment');
+    data.transactions.push(res.adjustment);
+    expect(deriveAccountBalances(data, CD).a1).toBe(1000);
+  });
+  it('resolveAccountUpdates blanks the anchor write and posts the row (the updateAccount front door)', () => {
+    const data = fixture();
+    const posted = [];
+    const out = resolveAccountUpdates(data, 'a1', { name: 'Chk', balance: '4350.42' }, CD, (t) => posted.push(t));
+    expect(out.balance).toBeUndefined();       // stored anchor never moves
+    expect(out.name).toBe('Chk');              // other edits pass through
+    expect(posted).toHaveLength(1);
+    expect(posted[0].amount).toBe(round2Test(4350.42 - 1300));
+    // No-ledger account: direct anchor write, no row posted.
+    const posted2 = [];
+    const out2 = resolveAccountUpdates(data, 'a2', { balance: '900' }, CD, (t) => posted2.push(t));
+    expect(out2.balance).toBe('900');
+    expect(posted2).toHaveLength(0);
+  });
+});
+const round2Test = (x) => Math.round(x * 100) / 100;
 
 describe('deriveEntityRollups — Accounts/Entities/Big Picture share one derived source', () => {
   const entities = [

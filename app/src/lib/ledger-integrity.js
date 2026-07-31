@@ -21,7 +21,7 @@
 // drives it with thousands of synthetic rows across multi-year spans).
 // =============================================================================
 import { deriveAccountBalances } from './financial-engineering.js';
-import { totals as importedTotals, isTransferTxn } from './imported-view.js';
+import { totals as importedTotals, isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 
 // Integer-cents conversion — the same discipline reconciliation.js proved out:
 // compare money in cents so float noise can never flip a verdict.
@@ -70,13 +70,15 @@ export function checkBalanceDerivation(data, asOf = new Date()) {
 // ---------------------------------------------------------------------------
 // Check 2 — rollup consistency. The transaction view's IN/OUT/NET must satisfy
 // in − out = net, and must match an independent integer-cents recomputation
-// (transfers excluded on both sides, mirroring the 2026-07-05 transfer fix).
+// (transfers excluded on both sides, mirroring the 2026-07-05 transfer fix;
+// balance-adjustment rows likewise — a manual balance correction moves the
+// account balance but is not income or spend).
 // ---------------------------------------------------------------------------
 export function checkRollupConsistency(transactions = []) {
   const view = importedTotals(transactions);
   let inC = 0, outC = 0;
   for (const t of transactions) {
-    if (!t || isTransferTxn(t)) continue;
+    if (!t || isTransferTxn(t) || isBalanceAdjustment(t)) continue;
     const c = toCents(t.amount);
     if (c > 0) inC += c; else outC += -c;
   }
@@ -90,7 +92,7 @@ export function checkRollupConsistency(transactions = []) {
     status: problems.length ? 'fail' : 'pass',
     detail: problems.length
       ? 'The displayed rollup disagrees with the independent recomputation.'
-      : `${transactions.length} row(s): in − out = net holds and matches the independent cents sum (transfers excluded on both sides).`,
+      : `${transactions.length} row(s): in − out = net holds and matches the independent cents sum (transfers + balance adjustments excluded on both sides).`,
     receipts: problems,
   };
 }

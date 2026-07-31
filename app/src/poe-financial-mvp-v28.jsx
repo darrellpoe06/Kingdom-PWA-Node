@@ -156,7 +156,7 @@ import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
 import { persistSnapshot, storageBannerMessage } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
-import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
+import { deriveAccountBalances, deriveEntityRollups, deriveDebts, resolveAccountUpdates } from './lib/financial-engineering.js';
 import { reconcileAccounts } from './lib/imported-view.js';
 import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
 import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
@@ -3058,16 +3058,16 @@ export default function PoeFinancialSystem() {
       }).catch(e => syncWarn('[accounts-sync] upload failed', e));
     }
   };
-  // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
-  // removes it from cash totals and the Accounts tab and surfaces it in the
-  // Legal tab. Reversible; Legal tab has a Restore button that calls back
-  // through updateAccount with inLegal: false.
+  // 2026-05-24 — Move-to-Legal toggle: flips inLegal (out of cash totals and the
+  // Accounts tab, into Legal). Reversible via the Legal tab's Restore button.
   const toggleAccountLegal = (id) => {
     const a = (data.accounts || []).find(x => x.id === id);
     if (!a) return;
     updateAccount(id, { inLegal: !a.inLegal });
   };
   const updateAccount = (id, updates) => {
+    // Manual balance on a ledgered account → an adjustment ROW, never a moved anchor that re-adds imported history (see resolveAccountUpdates).
+    updates = resolveAccountUpdates(data, id, updates, currentDate, addTransaction);
     setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.accounts || []).find(a => a.id === id);
@@ -3081,7 +3081,7 @@ export default function PoeFinancialSystem() {
         if (updates.inLegal !== undefined)     patch.in_legal = !!updates.inLegal;
         if (updates.isPrimary !== undefined)   patch.is_primary = !!updates.isPrimary;
         if (updates.entityId !== undefined)    patch.entity_slug = updates.entityId;
-        accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
+        if (Object.keys(patch).length) accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
       }
     }
   };
