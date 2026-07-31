@@ -39,16 +39,21 @@ import { loadLibrary } from '../lib/eternal-algorithms.js';
 import { useReadingResume, anchorProps } from '../lib/reading-position.js';
 import Bookstore from './Bookstore.jsx';
 
-const PALETTE = {
-  ink: '#1A1815', muted: '#5A5751', accent: '#B85838', line: '#E0DBD0', panel: '#FAF8F4',
-};
+// THEMED CLASSES, NEVER INLINE HEX (2026-07-30, from a live midnight-theme
+// screenshot: every title/button on this surface painted #1A1815 ink via
+// inline `style` on the dark #141414 card — invisible). The theme engine
+// (lib/theme-css.js) remaps CLASS tokens (`.text-[#1A1815]` etc.) with
+// !important; an inline style is unreachable by every theme, not just dark.
+// All color on this surface rides the tokenized classes; inline style is for
+// non-color concerns (fontFamily, width%) only. Pinned by
+// library-theme-classes.test.js (the gate for this miss class).
 
 function Badge({ tone = 'ok', children }) {
-  const styles = tone === 'ok'
-    ? { bg: '#EAF3EC', fg: '#216E39', bd: '#B7D7BF' }
-    : { bg: '#FBF0E6', fg: '#8A4B1F', bd: '#E7C9AC' };
+  const cls = tone === 'ok'
+    ? 'bg-[#F2F4EC] text-[#216E39] border-[#5A6E3D]'
+    : 'bg-[#FAF1EC] text-[#B45309] border-[#B85838]';
   return (
-    <span className="inline-block text-[0.6875rem] px-2 py-0.5 rounded-sm border" style={{ background: styles.bg, color: styles.fg, borderColor: styles.bd }}>
+    <span className={`inline-block text-[0.6875rem] px-2 py-0.5 rounded-sm border ${cls}`}>
       {children}
     </span>
   );
@@ -57,15 +62,15 @@ function Badge({ tone = 'ok', children }) {
 function IntegrityPanel({ book }) {
   const ok = book?.integrity?.ok;
   return (
-    <div className="border bg-white p-3" style={{ borderColor: PALETTE.line }}>
+    <div className="border bg-white p-3 border-[#E8E4DC]" >
       <div className="flex items-center gap-2 mb-1">
         {ok ? <Badge tone="ok">Verified</Badge> : <Badge tone="warn">Review needed</Badge>}
-        <span className="text-xs" style={{ color: PALETTE.muted }}>
+        <span className="text-xs text-[#5A5751]" >
           {ok ? 'Sourced · no fabrication · Scripture verbatim (KJV)' : 'This book is honest about its gaps before it ships.'}
         </span>
       </div>
       {!ok && (
-        <ul className="text-xs mt-1 list-disc pl-5" style={{ color: PALETTE.ink }}>
+        <ul className="text-xs mt-1 list-disc pl-5 text-[#1A1815]" >
           {(book.integrity.issues || []).map((i, n) => <li key={n}>{i}</li>)}
         </ul>
       )}
@@ -84,14 +89,14 @@ function FlywheelStrip({ book }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {loops.map((l) => (
-        <div key={l.k} className="border p-2" style={{ borderColor: PALETTE.line, background: PALETTE.panel }}>
-          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold" style={{ color: PALETTE.accent }}>{l.k}</div>
-          <div className="text-xs" style={{ color: PALETTE.ink }}>{l.t}</div>
+        <div key={l.k} className="border p-2 border-[#E8E4DC] bg-[#FAF8F4]" >
+          <div className="text-[0.6875rem] uppercase tracking-wider font-semibold text-[#B85838]" >{l.k}</div>
+          <div className="text-xs text-[#1A1815]" >{l.t}</div>
         </div>
       ))}
       <div className="sm:col-span-2 flex flex-wrap gap-1">
         {f.marketing.assets.map((a) => (
-          <span key={a.business} className="text-[0.6875rem] px-2 py-0.5 border" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+          <span key={a.business} className="text-[0.6875rem] px-2 py-0.5 border border-[#E8E4DC] text-[#5A5751]" >
             Markets for: {a.business}
           </span>
         ))}
@@ -111,9 +116,9 @@ function DownloadRow({ book }) {
   const btn = 'text-xs px-3 py-1.5 border font-semibold hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => dl('epub')} className={btn} style={{ borderColor: PALETTE.ink, color: PALETTE.ink }}>Download .epub</button>
-      <button type="button" onClick={() => dl('html')} className={btn} style={{ borderColor: PALETTE.ink, color: PALETTE.ink }}>Download .html</button>
-      <button type="button" onClick={() => dl('md')} className={btn} style={{ borderColor: PALETTE.ink, color: PALETTE.ink }}>Download .md</button>
+      <button type="button" onClick={() => dl('epub')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .epub</button>
+      <button type="button" onClick={() => dl('html')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .html</button>
+      <button type="button" onClick={() => dl('md')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .md</button>
     </div>
   );
 }
@@ -121,20 +126,20 @@ function DownloadRow({ book }) {
 // --- The reader (with companion deep-links) ---------------------------------
 
 function ChapterBlock({ block }) {
-  if (block.kind === 'heading') return <h4 className="font-semibold mt-3 mb-1" style={{ color: PALETTE.ink }}>{block.text}</h4>;
-  if (block.kind === 'list') return <ul className="list-disc pl-5 my-2" style={{ color: PALETTE.ink }}>{block.items.map((i, n) => <li key={n}>{i}</li>)}</ul>;
+  if (block.kind === 'heading') return <h4 className="font-semibold mt-3 mb-1 text-[#1A1815]" >{block.text}</h4>;
+  if (block.kind === 'list') return <ul className="list-disc pl-5 my-2 text-[#1A1815]" >{block.items.map((i, n) => <li key={n}>{i}</li>)}</ul>;
   if (block.kind === 'note') return (
-    <div className="my-2 p-2 border text-sm" style={{ borderColor: PALETTE.line, background: PALETTE.panel, color: PALETTE.ink }}>
+    <div className="my-2 p-2 border text-sm border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" >
       <strong>{block.label}.</strong> {block.text}
     </div>
   );
   if (block.kind === 'scripture') return (
-    <blockquote className="my-2 pl-3 border-l-2 italic text-sm" style={{ borderColor: PALETTE.accent, color: PALETTE.ink }}>
-      <span className="block not-italic font-semibold text-[0.6875rem]" style={{ color: PALETTE.accent }}>{block.version || 'KJV'} — {block.ref}</span>
+    <blockquote className="my-2 pl-3 border-l-2 italic text-sm border-[#B85838] text-[#1A1815]" >
+      <span className="block not-italic font-semibold text-[0.6875rem] text-[#B85838]" >{block.version || 'KJV'} — {block.ref}</span>
       {block.text ? `"${block.text}"` : 'See the Scripture library.'}
     </blockquote>
   );
-  return <p className="my-2 leading-relaxed" style={{ color: PALETTE.ink }}>{block.text}</p>;
+  return <p className="my-2 leading-relaxed text-[#1A1815]" >{block.text}</p>;
 }
 
 function Reader({ book, onNavigate, onBack, userKey }) {
@@ -144,25 +149,25 @@ function Reader({ book, onNavigate, onBack, userKey }) {
   const { hasResume, resume, label } = useReadingResume({ userKey, surface: 'book', itemId: book.id });
   return (
     <div className="w-full">
-      <button type="button" onClick={onBack} className="text-xs underline mb-3" style={{ color: PALETTE.accent }}>← Back to the shelf</button>
-      <h2 className="text-2xl" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{book.title}</h2>
-      {book.subtitle && <p className="italic mb-1" style={{ color: PALETTE.muted }}>{book.subtitle}</p>}
-      <p className="text-xs mb-4" style={{ color: PALETTE.muted }}>{book.author} · {book.stats?.chapters} chapters · ~{book.stats?.estReadingMinutes} min</p>
+      <button type="button" onClick={onBack} className="text-xs underline mb-3 text-[#B85838]" >← Back to the shelf</button>
+      <h2 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{book.title}</h2>
+      {book.subtitle && <p className="italic mb-1 text-[#5A5751]" >{book.subtitle}</p>}
+      <p className="text-xs mb-4 text-[#5A5751]" >{book.author} · {book.stats?.chapters} chapters · ~{book.stats?.estReadingMinutes} min</p>
       {hasResume && (
-        <button type="button" onClick={resume} className="mb-4 text-xs px-3 py-2 border w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.accent, background: PALETTE.panel, color: PALETTE.ink }}>
+        <button type="button" onClick={resume} className="mb-4 text-xs px-3 py-2 border w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838] border-[#B85838] bg-[#FAF8F4] text-[#1A1815]" >
           ↓ {label || 'Continue where you left off'}
         </button>
       )}
-      {book.frontMatter && <p className="mb-4" style={{ color: PALETTE.ink }}>{book.frontMatter}</p>}
+      {book.frontMatter && <p className="mb-4 text-[#1A1815]" >{book.frontMatter}</p>}
       {book.chapters.map((c) => (
         <section key={c.id} {...anchorProps(`ch-${c.id}`)} className="mb-6 pt-2">
-          <h3 className="text-lg border-b-2 pb-1 mb-2" style={{ color: PALETTE.ink, borderColor: PALETTE.accent, fontFamily: '"Fraunces", serif' }}>{c.number}. {c.title}</h3>
-          {c.intro && <p className="my-2" style={{ color: PALETTE.ink }}>{c.intro}</p>}
+          <h3 className="text-lg border-b-2 pb-1 mb-2 text-[#1A1815] border-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{c.number}. {c.title}</h3>
+          {c.intro && <p className="my-2 text-[#1A1815]" >{c.intro}</p>}
           {c.blocks.map((b, n) => <ChapterBlock key={n} block={b} />)}
           {c.deepLinks?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {c.deepLinks.filter((l) => l.view).map((l, n) => (
-                <button key={n} type="button" onClick={() => onNavigate(l)} className="text-[0.6875rem] px-2 py-1 border hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.accent, color: PALETTE.accent }}>
+                <button key={n} type="button" onClick={() => onNavigate(l)} className="text-[0.6875rem] px-2 py-1 border hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] border-[#B85838] text-[#B85838]" >
                   {l.label} →
                 </button>
               ))}
@@ -170,7 +175,7 @@ function Reader({ book, onNavigate, onBack, userKey }) {
           )}
         </section>
       ))}
-      <div className="mt-6 pt-3 border-t text-xs" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+      <div className="mt-6 pt-3 border-t text-xs border-[#E8E4DC] text-[#5A5751]" >
         <p>{book.attribution?.note}</p>
         <p className="mt-1">{book.attribution?.scripture}</p>
       </div>
@@ -190,36 +195,36 @@ function Studio({ ctx, preview, setPreview, onSave, canPublish }) {
   const card = 'border bg-white p-3 flex flex-col gap-1';
   return (
     <div className="space-y-4">
-      <p className="text-sm" style={{ color: PALETTE.muted }}>
+      <p className="text-sm text-[#5A5751]" >
         Assemble a book from what the family and community already created. Nothing is fetched anew, and nothing is written by a machine — the app only arranges existing teaching and reproduces Scripture verbatim (KJV).
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {recipes.map((r) => (
-          <div key={r.id} className={card} style={{ borderColor: PALETTE.line }}>
-            <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{r.title}</div>
-            <div className="text-[0.6875rem]" style={{ color: PALETTE.muted }}>{r.source} · {r.count} {r.count === 1 ? 'piece' : 'pieces'}</div>
+          <div key={r.id} className={card} className="border-[#E8E4DC]" >
+            <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</div>
+            <div className="text-[0.6875rem] text-[#5A5751]" >{r.source} · {r.count} {r.count === 1 ? 'piece' : 'pieces'}</div>
             {r.available
-              ? <button type="button" onClick={() => build(r.id)} className="text-xs px-3 py-1.5 border font-semibold self-start mt-1 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.ink, color: PALETTE.ink }}>Preview book</button>
-              : <span className="text-[0.6875rem] mt-1" style={{ color: PALETTE.muted }}>{r.reason || 'Not available yet.'}</span>}
+              ? <button type="button" onClick={() => build(r.id)} className="text-xs px-3 py-1.5 border font-semibold self-start mt-1 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] text-[#1A1815]" >Preview book</button>
+              : <span className="text-[0.6875rem] mt-1 text-[#5A5751]" >{r.reason || 'Not available yet.'}</span>}
           </div>
         ))}
       </div>
 
       {preview && (
-        <div className="border p-4 space-y-3" style={{ borderColor: PALETTE.accent, background: PALETTE.panel }}>
+        <div className="border p-4 space-y-3 border-[#B85838] bg-[#FAF8F4]" >
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="text-xl" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{preview.title}</h3>
-              <p className="text-xs" style={{ color: PALETTE.muted }}>{preview.stats?.chapters} chapters · {preview.stats?.words} words · {preview.stats?.scriptures} Scripture references · ~{preview.stats?.estReadingMinutes} min</p>
+              <h3 className="text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{preview.title}</h3>
+              <p className="text-xs text-[#5A5751]" >{preview.stats?.chapters} chapters · {preview.stats?.words} words · {preview.stats?.scriptures} Scripture references · ~{preview.stats?.estReadingMinutes} min</p>
             </div>
-            <button type="button" onClick={() => setPreview(null)} className="text-xs underline" style={{ color: PALETTE.muted }}>Close</button>
+            <button type="button" onClick={() => setPreview(null)} className="text-xs underline text-[#5A5751]" >Close</button>
           </div>
           <IntegrityPanel book={preview} />
           <FlywheelStrip book={preview} />
           <DownloadRow book={preview} />
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t" style={{ borderColor: PALETTE.line }}>
-            <button type="button" onClick={() => onSave(preview)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Save to my Library</button>
-            <span className="text-[0.6875rem]" style={{ color: PALETTE.muted }}>
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#E8E4DC]" >
+            <button type="button" onClick={() => onSave(preview)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838] bg-[#1A1815]" >Save to my Library</button>
+            <span className="text-[0.6875rem] text-[#5A5751]" >
               {canPublish
                 ? 'Publishing beyond the app is gated — it stages an approve-to-publish hand-off, never auto-sends.'
                 : 'Reading + downloading is yours. Publishing to the community is a Governor decision.'}
@@ -310,8 +315,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   // and feels identical to every other section row (tab-overflow-guard inv. 3).
   const tabBtn = (id, label) => (
     <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}
-      className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium' : ''}`}
-      style={{ borderColor: mode === id ? PALETTE.accent : 'transparent', color: mode === id ? PALETTE.ink : PALETTE.muted }}>
+      className={`px-3 py-2 text-sm whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${mode === id ? 'font-medium border-[#B85838] text-[#1A1815]' : 'border-transparent text-[#5A5751]'}`}>
       {label}
     </button>
   );
@@ -319,11 +323,11 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
   return (
     <div className="w-full">
       <SectionTitle eyebrow="Books">Library</SectionTitle>
-      <p className="text-sm mb-3" style={{ color: PALETTE.muted }}>
+      <p className="text-sm mb-3 text-[#5A5751]" >
         Books made from the house's own teaching — that read you straight back into the living app.
       </p>
 
-      <div className="border-b mb-4" style={{ borderColor: PALETTE.line }}>
+      <div className="border-b mb-4 border-[#E8E4DC]" >
         <TabScroll label="Library sections">
           {tabBtn('store', 'Store')}
           {tabBtn('shelf', `My shelf${shelf.length ? ` (${shelf.length})` : ''}`)}
@@ -332,7 +336,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
         </TabScroll>
       </div>
 
-      {toast && <div className="mb-3 text-xs px-3 py-2 border" style={{ borderColor: PALETTE.line, background: PALETTE.panel, color: PALETTE.ink }}>{toast}</div>}
+      {toast && <div className="mb-3 text-xs px-3 py-2 border border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" >{toast}</div>}
 
       {mode === 'store' && (
         <Bookstore email={email} isFamilyMember={isFamilyMember} onReadProduct={onReadProduct} />
@@ -341,14 +345,14 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
       {mode === 'shelf' && (
         shelf.length === 0
           ? (
-            <div className="border p-6 text-center" style={{ borderColor: PALETTE.line, background: 'white' }}>
+            <div className="border p-6 text-center border-[#E8E4DC] bg-white" >
               <div className="text-2xl mb-1" aria-hidden="true">📖</div>
-              <p className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>Your shelf is empty.</p>
-              <p className="text-xs mt-1" style={{ color: PALETTE.muted }}>
+              <p className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Your shelf is empty.</p>
+              <p className="text-xs mt-1 text-[#5A5751]" >
                 {isFamilyMember ? 'Open the Studio to assemble your first book from the corpus.' : 'Published books will appear here.'}
               </p>
               {isFamilyMember && (
-                <button type="button" onClick={() => setMode('studio')} className="mt-3 text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Open the Studio →</button>
+                <button type="button" onClick={() => setMode('studio')} className="mt-3 text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838] bg-[#1A1815]" >Open the Studio →</button>
               )}
             </div>
           )
@@ -358,15 +362,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
                 {shelf.slice(0, visibleCount).map((b) => {
                   const stats = b.stats || bookStats(b);
                   return (
-                    <div key={b.id} className="border bg-white p-3 flex flex-col gap-2" style={{ borderColor: PALETTE.line }}>
+                    <div key={b.id} className="border bg-white p-3 flex flex-col gap-2 border-[#E8E4DC]" >
                       <div>
-                        <div className="font-semibold" style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif' }}>{b.title}</div>
-                        {b.subtitle && <div className="text-[0.6875rem] italic" style={{ color: PALETTE.muted }}>{b.subtitle}</div>}
-                        <div className="text-[0.6875rem] mt-0.5" style={{ color: PALETTE.muted }}>{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
+                        <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b.title}</div>
+                        {b.subtitle && <div className="text-[0.6875rem] italic text-[#5A5751]" >{b.subtitle}</div>}
+                        <div className="text-[0.6875rem] mt-0.5 text-[#5A5751]" >{stats.chapters} chapters · ~{stats.estReadingMinutes} min</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ background: PALETTE.ink }}>Read</button>
-                        <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>Remove</button>
+                        <button type="button" onClick={() => setReading(b)} className="text-xs px-3 py-1.5 font-semibold text-white focus:outline focus:outline-2 focus:outline-[#B85838] bg-[#1A1815]" >Read</button>
+                        <button type="button" onClick={() => onRemove(b.id)} className="text-xs px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] border-[#E8E4DC] text-[#5A5751]" >Remove</button>
                       </div>
                       <DownloadRow book={b} />
                     </div>
@@ -375,8 +379,8 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
               </div>
               {shelf.length > visibleCount && (
                 <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
-                  className="mt-3 w-full text-xs px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838]"
-                  style={{ borderColor: PALETTE.line, color: PALETTE.muted }}>
+                  className="mt-3 w-full text-xs px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#B85838] border-[#E8E4DC] text-[#5A5751]"
+                  >
                   Show more · {shelf.length - visibleCount} remaining
                 </button>
               )}
@@ -394,15 +398,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
           artist as the family pins them (lib/family-listening.js). */}
       {mode === 'listening' && (
         <div>
-          <p className="text-sm mb-3" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{LISTENING_TAGLINE}</p>
+          <p className="text-sm mb-3 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{LISTENING_TAGLINE}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {FAMILY_ARTISTS.map((a) => (
-              <div key={a.id} className="bg-white border p-3" style={{ borderColor: PALETTE.line }}>
+              <div key={a.id} className="bg-white border p-3 border-[#E8E4DC]" >
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</span>
-                  <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{a.tag}</span>
+                  <span className="text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{a.name}</span>
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" >{a.tag}</span>
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{a.note}</p>
+                <p className="text-xs mt-0.5 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{a.note}</p>
                 <a href={a.searchUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Listen on YouTube ↗
@@ -413,15 +417,15 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
           {/* The picks — specific tracks vouched by name, with the why. */}
           {FAMILY_PICKS.length > 0 && (
             <div className="mt-4">
-              <div className="text-[0.5625rem] uppercase tracking-[0.25em] font-semibold mb-1.5" style={{ color: PALETTE.muted }}>The picks · vouched by name</div>
+              <div className="text-[0.5625rem] uppercase tracking-[0.25em] font-semibold mb-1.5 text-[#5A5751]" >The picks · vouched by name</div>
               <div className="space-y-2">
                 {FAMILY_PICKS.map((p) => (
-                  <div key={p.id} className="bg-white border-l-2 border p-3" style={{ borderColor: PALETTE.line, borderLeftColor: '#B85838' }}>
+                  <div key={p.id} className="bg-white border-l-2 border p-3 border-[#E8E4DC] border-l-[#B85838]" >
                     <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <span style={{ color: PALETTE.ink, fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</span>
-                      <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: PALETTE.muted }}>{p.artist} · {p.album}</span>
+                      <span className="text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{p.title}</span>
+                      <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" >{p.artist} · {p.album}</span>
                     </div>
-                    <p className="text-xs mt-0.5" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>{p.why}</p>
+                    <p className="text-xs mt-0.5 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{p.why}</p>
                     <a href={p.searchUrl} target="_blank" rel="noopener noreferrer"
                       className="inline-block mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">
                       Listen on YouTube ↗
@@ -431,7 +435,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
               </div>
             </div>
           )}
-          <p className="text-[0.625rem] mt-3 italic" style={{ color: PALETTE.muted, fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] mt-3 italic text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
             Curated by the family — name an artist or a track and the shelf carries them.
           </p>
         </div>

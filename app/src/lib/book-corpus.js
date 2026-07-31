@@ -226,7 +226,10 @@ export function availableRecipes(ctx = {}) {
     id: 'sermons', title: 'Messages from the House', kind: 'sermon',
     source: 'Sermon corpus', count: sermons.length, available: sermons.length > 0,
     businesses: ['church'],
-    reason: sermons.length ? '' : 'Open the Church > The Word tab to load messages first.',
+    // Surface-says-truth (DR-0239 §3): the Library SELF-subscribes to the
+    // sermon stream, so "open the Word tab first" was stale advice — an empty
+    // count now means the library itself has no rows yet (or you're signed out).
+    reason: sermons.length ? '' : 'No messages have been loaded into the sermon library yet — sign in, and see Church → The Word.',
   });
   return list;
 }
