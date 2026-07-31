@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0176 · Orchestration — a 60-minute check-in armed on a ~3-minute lane: the generic harness default lost to DR-0255, caught by the Governor
+- **Date:** 2026-07-31
+- **Surface:** docs/decisions/DR-0255 (watch cadence) · CLAUDE.md §The Streamlined Delivery Loop item 3 · this session's PR #1151 watch
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** While watching PR #1151 (the manual-balance adjustment fix), the agent armed a **60-minute** self check-in on a lane whose required gate (lint + full Vitest) completes in **~3 minutes** — the exact reflexive-hour anti-pattern DR-0255 forbids ("a ~3-min CI gets ~3–5 min, never a reflexive hour"). Darrell declined the timer and named it ("60 min? Ways and documentation..."). Root cause named per DR-0108: the **generic PR-watch harness guidance says "schedule a self check-in roughly an hour out"**, and that default was followed over the repo's own documented way — Layer 0 already carried the rule; the failure was compliance under a conflicting generic prompt, not a missing rule. Correction applied in-session: the check-in re-armed at **5 minutes**, sized to the gate. The durable teach, recorded here so every future session inherits it: **when generic harness guidance and a repo DR conflict, the repo's way governs** — and any timer armed on in-flight work must cite the change rate it is sized to (event-driven first; the timer is only the short fallback). `re-review: 2026-08-07` with the DR-0104 live pass — confirm subsequent sessions' watch timers were DR-0255-sized.
+- **Source:** docs/decisions/DR-0108-review-our-ways-is-mandatory-and-documented.md
+
 ### REV-0175 · Orchestration — the watcher's first drive: every overdue re-review commitment dispositioned with evidence
 - **Date:** 2026-07-23
 - **Surface:** docs/reviews/REVIEWS.md · docs/decisions/DR-0121-no-static-data-cleaning-program.md · docs/decisions/INDEX.md · .github/workflows/review-watcher.yml

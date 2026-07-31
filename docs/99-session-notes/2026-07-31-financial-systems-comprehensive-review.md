@@ -22,7 +22,9 @@ Requested by Darrell mid-session ("comprehensive review of the financial systems
 1. **The table-sync wiring loop** (monolith ~2129–2281) — self-contained, list-driven, ~150 lines.
 2. **Numeric CRUD** (accounts/transactions reducers + their sync patches) into a `lib/books-crud.js` that takes `setData`/`syncs` as arguments — this is where finance bugs live, and where this session paid the tax.
 3. **Derived-totals memos** (~3520–3590) into a composed hook.
-Each lands as its own DR-0078-lane PR with a lowered budget number. Recommend queuing this as directed Ari-team work; the brakes (DR-0256) and gates make it Tier-A-shaped per peel even though the program is large.
+Each lands as its own DR-0078-lane PR with a lowered budget number.
+
+**CORRECTED IN-SESSION (Darrell 2026-07-31: "there is an explicit commitment to reducing the monolith").** The original draft of this section said "recommend queuing this as Ari-team work" — that framing was the DR-0111-class miss: **DR-0078's reduction is a DECIDED, standing commitment**, so a peel that is buildable now is built now (DR-0236), never re-presented as an open question. How intentions work here, recorded so it is not re-lost: a declared intention/DR **is** the authorization; the agent executes toward it and reports, and only a genuine bright line re-opens the decision. Accordingly the **first peel shipped this same session**: the accounts CRUD (add/update/toggle-legal/delete + sync patches — the exact code the balance fix threaded through) moved verbatim to `lib/books-accounts-crud.js` with its own unit suite (`books-accounts-crud.test.js`, characterize-before-change pins), and the ratchet re-froze **5,444 → 5,404**. The remaining peels (table-sync loop, transactions CRUD, derived-totals memos) continue under the same standing authorization, one lane-PR each — Ari's team runs them; nothing waits on a re-ask.
 
 ## 3. Structural constraint: the accounts sync schema silently drops fields
 
@@ -57,5 +59,5 @@ Schema v1.2 `accounts` carries only slug/entity/display_name/institution/type/fr
 | Live user-review pass + site-health dispatch after merge | DR-0104 | 2026-08-07 |
 | Schema v1.3: sync the dropped account fields (§3) | migration PR | 2026-08-07 |
 | One-tap bank reconcile using adjustment rows | app PR | 2026-08-14 |
-| Ari-team monolith peel plan (planner-first, DR-0256) | Ari | 2026-08-14 |
+| Monolith peels 2–4 (table-sync loop, transactions CRUD, derived memos) — peel 1 SHIPPED this session (5,444 → 5,404) | Ari team, standing DR-0078 authorization | 2026-08-14 |
 | Adjustment-row marker + undo in the register | app PR | 2026-08-14 |
