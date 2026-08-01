@@ -95,6 +95,12 @@ describe('RentLedger — the real ledger surface', () => {
     await act(async () => { btn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await flush(); await flush(); // submit awaits getUser → getInstanceId → record → reload
     expect(h.recorded).toHaveLength(1);
-    expect(h.recorded[0]).toMatchObject({ leaseId: 'L1', month: '2026-07', expectedAmount: 950, amount: '350', location: 'in person' });
+    // The form defaults to the REAL current month (the component's thisMonth() is
+    // new Date().toISOString().slice(0,7)), so the expectation derives it the same
+    // way — a hardcoded '2026-07' here passed all July and broke the CI lane the
+    // hour UTC rolled into August (PR #1155). Frozen-clock literals never pin a
+    // value the code derives from the live clock.
+    const expectedMonth = new Date().toISOString().slice(0, 7);
+    expect(h.recorded[0]).toMatchObject({ leaseId: 'L1', month: expectedMonth, expectedAmount: 950, amount: '350', location: 'in person' });
   });
 });
