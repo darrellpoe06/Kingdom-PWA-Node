@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0219 · Ways review — "can't connect to GitHub" is by-design (the Code integration IS the path); the Supabase MCP channel goes live with its first measured baseline
+- **Date:** 2026-08-01
+- **Surface:** claude.ai connectors (phone screenshots) · docs/decisions/DR-0260 · Supabase project mjjlevhdufpaplypnqrv (live advisors read)
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** Darrell 2026-08-01 (four screenshots: "cant connect to GitHub..."): Browse-connectors search for GitHub returns nothing — VERIFIED as deliberate (researched, tracked upstream, closed not-planned): GitHub rides the Claude Code integration, which is already live and proven this same day (PRs #1153/#1154 pushed, auto-merged, deploy-verified through it) — nothing broken, nothing to fix; phone-side repo work = open a claude.ai/code session. The Supabase connector AUTHORIZED cleanly (org PoeTech; the MCP tools went live in the working session the same minute) — a NEW ACCESS WAY recorded with rails per DR-0260: read-first standing use; writes STAY in the migration lane (ad-hoc MCP DDL forbidden — the lane is the protection); no automation may depend on an interactively-authenticated channel. First fruit, measured: live security advisors baseline **0 ERROR · 175 WARN · 5 INFO** (security-definer executable-by-anon 71 / by-authenticated 85; mutable search_path 15; leaked-password protection off 1; always-true RLS policies 3; RLS-no-policy 5) — triage queued `re-review: 2026-08-07` with the DR-0258 carried items (the /lovecorner/app/ auth allow-list is now channel-checkable). Honest scope note (DR-0259 applied to itself): the review ran on Darrell's ask; the GitHub verification + advisors baseline were unprompted within it; the documentation landing followed his nudge — the #1154 detector is what closes that residue permanently.
+- **Source:** docs/decisions/DR-0260-supabase-mcp-channel-live-github-rides-the-code-integration.md
+
 ### REV-0218 · Comprehensive install review — "won't let me install both" traced to overlapping PWA scopes; the scope split ships with its gate
 - **Date:** 2026-07-31
 - **Surface:** app/public/manifest-lovecorner.webmanifest · app/lovecorner/app/index.html (new) · app/vite.config.js · app/src/components/PwaPrompts.jsx · app/public/lovecorner/index.html · app/public/_headers · app/vercel.json · docs/decisions/DR-0258 · docs/decisions/DR-0259
