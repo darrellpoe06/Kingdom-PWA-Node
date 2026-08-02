@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0221 · UI/UX — the Learn reader was SET UP to lose their place; every lesson now opens in its own space
+- **Date:** 2026-08-02
+- **Surface:** app/src/components/ChurchLearn.jsx (CourseView) · app/src/__tests__/learn-lesson-space.test.jsx · docs/decisions/DR-0262
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-08-02 (four Learn screenshots): "each one needs a space that dont allow for loosing your place... the system sets up the reader to lose their places." SHOULD/ARE traced: all ~70 Living Lessons rendered stacked in ONE scroll; the 2026-07-15 title index and the 2026-07-30 resume banner both ended in scrollIntoView — a jump inside the ocean, not a place; any wander/reload/tab-restore dropped the reader back into the full scroll. The structure was the fault — the resume build fixed re-entry, not the reading surface. Fix (DR-0262): a tapped title opens THAT lesson ALONE — index and stack leave the tree; sticky bar carries ← All lessons · "Lesson N of M" · Prev/Next; device Back exits the space via useHistoryValue (composes with the nav spine); returning to the index scrolls to the lesson just left (place survives both directions); opening the space records the resume place so a reload is one Resume-tap away, and Resume now lands IN the space with the guide open. Proven-to-catch: learn-lesson-space.test.jsx (3 end-to-end pins) + the existing learn-resume contract green beside it. Carried (dated): per-lesson scroll-offset persistence + the same space pattern for other one-long-scroll surfaces (Scripture library, Godhead studies) — `re-review: 2026-08-16`.
+- **Source:** docs/decisions/DR-0262-every-lesson-gets-its-own-space-place-survives-both-directions.md
+
 ### REV-0220 · On-device proof + the class closed: Love Corner install verified on real hardware; Moore + TLC get the same scope split, gate generalized to all faces
 - **Date:** 2026-08-01
 - **Surface:** app/public/manifest-moore.webmanifest · app/public/manifest-tlc.webmanifest · app/moore/app/index.html (new) · app/tlc/app/index.html (new) · app/src/components/MooreDoor.jsx · app/src/components/TlcPublicDoor.jsx · app/public/moore/index.html · app/public/tlc/index.html · docs/decisions/DR-0261
