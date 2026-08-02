@@ -58,13 +58,24 @@ describe('the church-branded install manifest', () => {
   // (Darrell's 2026-07-31 screenshots; the 2026-07-30 "can't download PoeTech"
   // report). This test fails on any regression where one scope contains the
   // other, so the collision class can never silently return.
-  it('the church scope is DISJOINT from the PoeTech scope — neither contains the other', () => {
-    const poetech = JSON.parse(read('manifest.webmanifest'));
-    expect(manifest.scope.startsWith(poetech.scope)).toBe(false);
-    expect(poetech.scope.startsWith(manifest.scope)).toBe(false);
-    // and each app's install identity lives inside its own scope
-    expect(manifest.id.startsWith(manifest.scope)).toBe(true);
-    expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
+  it('EVERY installable face has a DISJOINT scope — no manifest scope contains another (DR-0258/DR-0261)', () => {
+    // Extended 2026-08-01 after the on-device proof: Moore and TLC hit the same
+    // "already installed" wall the church did (Darrell's screenshots), so the
+    // gate now sweeps ALL FOUR faces pairwise. Any new installable manifest
+    // added to public/ joins this list or the collision class returns.
+    const faces = ['manifest.webmanifest', 'manifest-lovecorner.webmanifest',
+      'manifest-moore.webmanifest', 'manifest-tlc.webmanifest']
+      .map((f) => ({ f, m: JSON.parse(read(f)) }));
+    for (const { f, m } of faces) {
+      expect(m.id.startsWith(m.scope), `${f}: id must live inside its own scope`).toBe(true);
+      expect(m.start_url.startsWith(m.scope), `${f}: start_url must live inside its own scope`).toBe(true);
+    }
+    for (const a of faces) {
+      for (const b of faces) {
+        if (a.f === b.f) continue;
+        expect(a.m.scope.startsWith(b.m.scope), `${a.f} scope ${a.m.scope} is inside ${b.f} scope ${b.m.scope} — Chrome will collapse them into one app`).toBe(false);
+      }
+    }
   });
 });
 

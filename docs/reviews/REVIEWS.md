@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0220 · On-device proof + the class closed: Love Corner install verified on real hardware; Moore + TLC get the same scope split, gate generalized to all faces
+- **Date:** 2026-08-01
+- **Surface:** app/public/manifest-moore.webmanifest · app/public/manifest-tlc.webmanifest · app/moore/app/index.html (new) · app/tlc/app/index.html (new) · app/src/components/MooreDoor.jsx · app/src/components/TlcPublicDoor.jsx · app/public/moore/index.html · app/public/tlc/index.html · docs/decisions/DR-0261
+- **Type:** code-review
+- **Status:** addressed
+- **Findings:** Darrell 2026-08-01 (three screenshots): **DR-0258's on-device witness LANDED** — PoeTech and The Love Corner install side by side on his fold, closing the one open verification the DR held. The same screenshots show Moore (?moore=1) and TLC (?tlc=1) hitting the predicted "already installed" wall — the exact collision class DR-0258 carried with a 2026-08-07 re-review, pulled forward six days by the Governor's own report. Fix: the proven pattern applied verbatim (disjoint scopes /moore/ and /tlc/, static-manifest served pages as Vite inputs, runtime swaps retired from both door components, share doors repointed, no-store headers both hosts). **Gate generalized:** the disjoint-scope test now sweeps ALL FOUR manifests pairwise — any future face joins the roster or CI is red; TLC's door test re-pinned from "the door swaps the manifest" (the old bug's behavior) to "the door NEVER touches the manifest link." Remaining honest tail: Darrell's install pass on /moore/ and /tlc/ after deploy; per-device one-time uninstall of any old Moore/TLC install; Moore's printed QRs verified unaffected (they encode URLs, which now land in her own scope). The Supabase advisors triage + auth allow-list items keep their 2026-08-07 date. **Same-sitting addition (Darrell's second screenshot: "The Love Corner App introduces the PoeTech App"):** the installed church app opened onto the PLATFORM's "Welcome to PoeTech — quick tour" (money/business/CRM stops a congregation member doesn't have). Fixed: HelpWalkthrough now returns nothing in a church-door context (isChurchDoorContext gate) — no tour is more honest than the wrong tour; the church's OWN welcome is a queued COLG-facing content build, `re-review: 2026-08-07`. Proven-to-catch both ways in help-walkthrough-church-door.test.jsx (family boot still offered; ?lovecorner=1 boot renders nothing).
+- **Source:** docs/decisions/DR-0261-scope-split-extended-to-moore-and-tlc-all-faces-disjoint.md
+
 ### REV-0219 · Ways review — "can't connect to GitHub" is by-design (the Code integration IS the path); the Supabase MCP channel goes live with its first measured baseline
 - **Date:** 2026-08-01
 - **Surface:** claude.ai connectors (phone screenshots) · docs/decisions/DR-0260 · Supabase project mjjlevhdufpaplypnqrv (live advisors read)
