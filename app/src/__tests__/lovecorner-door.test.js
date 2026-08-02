@@ -79,6 +79,28 @@ describe('the church-branded install manifest', () => {
   });
 });
 
+describe('hand-typed capitalization always reaches the right door (DR-0261 follow-up)', () => {
+  // Darrell's 2026-08-02 text: Messages auto-capitalized the link to
+  // "PoeTech.us/LoveCorner"; paths are case-sensitive, nothing matched, the
+  // SPA fallback served the PoeTech shell, and the RCS preview introduced the
+  // church's link as "PoeTech Family OS". Every door's likely human
+  // capitalizations must be enumerated in _redirects — this gate fails when a
+  // variant is missing, so a texted link can never preview as the wrong brand.
+  it('_redirects covers first-letter caps, camel-case, and all-caps for every door', () => {
+    const redirects = read('_redirects');
+    const expectations = [
+      ['/LoveCorner', '/lovecorner/'], ['/Lovecorner', '/lovecorner/'], ['/LOVECORNER', '/lovecorner/'],
+      ['/Church', '/lovecorner/'], ['/CHURCH', '/lovecorner/'], ['/TheLoveCorner', '/lovecorner/'],
+      ['/Moore', '/moore/'], ['/MOORE', '/moore/'], ['/MooreDivahs', '/moore/'],
+      ['/TLC', '/tlc/'], ['/Tlc', '/tlc/'], ['/TLCTherapy', '/tlc/'],
+    ];
+    for (const [alias, target] of expectations) {
+      const re = new RegExp(`^${alias.replace(/\//g, '\\/')}\\s+${target.replace(/\//g, '\\/')}\\s+301`, 'm');
+      expect(re.test(redirects), `${alias} -> ${target} missing from _redirects — a texted link previews as the wrong brand`).toBe(true);
+    }
+  });
+});
+
 describe('the church app PAGE — static install identity under the church scope (DR-0258)', () => {
   const appHtmlPath = join(dirname(fileURLToPath(import.meta.url)), '../../lovecorner/app/index.html');
 
