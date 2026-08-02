@@ -75,6 +75,7 @@ import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace } from '../lib/learn-resume.js';
+import { useHistoryValue } from '../lib/nav-history.js';
 
 const fmtDate = formatClassDate;
 
@@ -936,17 +937,54 @@ function CourseView({
   // carries THIS course's key (device-local, lib/learn-resume.js).
   const savePlace = (patch) => recordPlace({ courseKey: course.key, ...patch });
 
+  // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
+  // doesn't allow for losing your place... the system sets up the reader to
+  // lose their place"). Before this, all N lessons rendered stacked in one
+  // scroll and the title index only scrollIntoView-jumped within the ocean —
+  // any wander, reload, or tab-restore dropped the reader back into 70 lessons
+  // of scroll. Now a tapped lesson OPENS ALONE: only its card renders, in a
+  // contained space with a sticky bar (back to the index + previous/next).
+  // The device Back button exits the space (useHistoryValue — one history
+  // entry, composes with the app's nav spine), and returning to the index
+  // scrolls the list to the lesson just left, so the reader's place survives
+  // in BOTH directions. Opening a lesson records the resume place, so even a
+  // reload lands one "Resume →" tap from the same spot.
+  const [focusId, setFocusId] = useState(null);
+  useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
+  const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  const lastFocusRef = React.useRef(null);
+  const openLesson = (id) => {
+    lastFocusRef.current = id;
+    setFocusId(id);
+    savePlace({ lessonId: id });
+    recordUse(id);
+    setRecentTick((t) => t + 1);
+    try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
+  };
+  // Leaving the space (back button/bar): put the index back at the lesson the
+  // reader just left — their place in the LIST survives the round trip too.
+  React.useEffect(() => {
+    if (focusId !== null || !lastFocusRef.current) return undefined;
+    const id = lastFocusRef.current;
+    const t = setTimeout(() => {
+      const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
+    }, 60);
+    return () => clearTimeout(t);
+  }, [focusId]);
+
   // "Pick up where you left off" — the wrapper hands down the saved lesson id;
-  // open its guide and bring it into view (the same real path a tap on "Start
-  // this lesson" drives, minus the finger).
+  // open the lesson's OWN space with its guide open (the same real path a tap
+  // on "Start this lesson" drives, minus the finger).
   React.useEffect(() => {
     if (!resumeLessonId || !schedule.some((m) => m.id === resumeLessonId)) return undefined;
+    lastFocusRef.current = resumeLessonId;
+    setFocusId(resumeLessonId);
     setOpenTutorId(resumeLessonId);
     recordUse(resumeLessonId);
     setRecentTick((t) => t + 1);
     const t = setTimeout(() => {
-      const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${resumeLessonId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
     return () => clearTimeout(t);
   }, [resumeLessonId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1106,7 +1144,7 @@ function CourseView({
           title index jumps straight to any one. Follows the current SORT (it maps
           the already-sorted `schedule`). Shown once a course has enough lessons to
           be worth an index. */}
-      {schedule.length > 4 && (
+      {schedule.length > 4 && !focusModule && (
         <nav aria-label={`Pick a ${U.noun} by title`} className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
             Pick a {U.noun} by title · {schedule.length}
@@ -1129,10 +1167,7 @@ function CourseView({
                       <button
                         key={id}
                         type="button"
-                        onClick={() => {
-                          const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }}
+                        onClick={() => openLesson(id)}
                         className="text-[0.6875rem] px-2 py-1 border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
                         style={{ fontFamily: '"Fraunces", serif' }}
                       >
@@ -1149,10 +1184,7 @@ function CourseView({
               <li key={m.id}>
                 <button
                   type="button"
-                  onClick={() => {
-                    const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${m.id}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
+                  onClick={() => openLesson(m.id)}
                   className="w-full text-left py-1 text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
                   style={{ fontFamily: '"Fraunces", serif' }}
                 >
@@ -1164,8 +1196,47 @@ function CourseView({
           </ol>
         </nav>
       )}
+      {/* The lesson's own space: a sticky bar naming where you are, the way
+          back, and previous/next — the reader can never fall into the full
+          list by accident. Rendered only while a lesson is open alone. */}
+      {focusModule && (() => {
+        const idx = schedule.findIndex((m) => m.id === focusModule.id);
+        const prev = idx > 0 ? schedule[idx - 1] : null;
+        const next = idx >= 0 && idx < schedule.length - 1 ? schedule[idx + 1] : null;
+        return (
+          <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap" data-testid="lesson-space-bar">
+            <button
+              type="button"
+              onClick={() => setFocusId(null)}
+              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              ← All {U.noun}s
+            </button>
+            <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              {U.cap} {focusModule.week} of {schedule.length}
+            </span>
+            <span className="flex-1" />
+            <button
+              type="button"
+              disabled={!prev}
+              onClick={() => prev && openLesson(prev.id)}
+              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] enabled:hover:border-[#1A1815] enabled:hover:text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              ← Prev
+            </button>
+            <button
+              type="button"
+              disabled={!next}
+              onClick={() => next && openLesson(next.id)}
+              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] enabled:hover:border-[#1A1815] enabled:hover:text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              Next →
+            </button>
+          </div>
+        );
+      })()}
       <ol className="space-y-3">
-        {schedule.map((m) => {
+        {(focusModule ? [focusModule] : schedule).map((m) => {
           const done = !!progress[m.id];
           const tutorOpen = openTutorId === m.id;
           return (
