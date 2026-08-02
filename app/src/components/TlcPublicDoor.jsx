@@ -16,7 +16,7 @@
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import { TLC_TEAM, TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
-import { TLC_DOOR_BRAND, TLC_INSTALL_MANIFEST, TLC_SHARE_URL } from '../lib/tlc-door.js';
+import { TLC_DOOR_BRAND, TLC_SHARE_URL } from '../lib/tlc-door.js';
 import supabase, { onAuthChange } from '../lib/supabase.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
@@ -105,25 +105,21 @@ export default function TlcPublicDoor() {
   // while you read down the page, and comes back down the moment you scroll up.
   const headerHidden = useAutoHideHeader();
 
-  // Make this an APP, not a website: swap the document's manifest + title so
-  // "Add to Home Screen" installs "TLC Therapy" standalone (its own icon).
+  // Title + theme-color carry TLC's brand while the door is mounted. The
+  // manifest-link swap that used to live here is RETIRED (DR-0261/DR-0258):
+  // install identity is a page-load property, and TLC's manifest now has its
+  // own disjoint scope (/tlc/) linked STATICALLY by its served page
+  // (app/tlc/app/index.html) — a runtime swap on a /poetech-app/ page would
+  // make that page un-installable as anything (the linked manifest's scope
+  // wouldn't contain the page).
   useEffect(() => {
     const prevTitle = document.title;
     document.title = `${TLC_BRAND.name} — ${TLC_BRAND.tagline}`;
-    let link = document.querySelector('link[rel="manifest"]');
-    const prevHref = link ? link.getAttribute('href') : null;
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'manifest';
-      document.head.appendChild(link);
-    }
-    link.href = TLC_INSTALL_MANIFEST;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     const prevTheme = themeMeta ? themeMeta.getAttribute('content') : null;
     if (themeMeta) themeMeta.setAttribute('content', '#1A1815');
     return () => {
       document.title = prevTitle;
-      if (prevHref) link.href = prevHref;
       if (themeMeta && prevTheme) themeMeta.setAttribute('content', prevTheme);
     };
   }, []);

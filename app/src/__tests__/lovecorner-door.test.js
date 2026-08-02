@@ -58,13 +58,46 @@ describe('the church-branded install manifest', () => {
   // (Darrell's 2026-07-31 screenshots; the 2026-07-30 "can't download PoeTech"
   // report). This test fails on any regression where one scope contains the
   // other, so the collision class can never silently return.
-  it('the church scope is DISJOINT from the PoeTech scope — neither contains the other', () => {
-    const poetech = JSON.parse(read('manifest.webmanifest'));
-    expect(manifest.scope.startsWith(poetech.scope)).toBe(false);
-    expect(poetech.scope.startsWith(manifest.scope)).toBe(false);
-    // and each app's install identity lives inside its own scope
-    expect(manifest.id.startsWith(manifest.scope)).toBe(true);
-    expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
+  it('EVERY installable face has a DISJOINT scope — no manifest scope contains another (DR-0258/DR-0261)', () => {
+    // Extended 2026-08-01 after the on-device proof: Moore and TLC hit the same
+    // "already installed" wall the church did (Darrell's screenshots), so the
+    // gate now sweeps ALL FOUR faces pairwise. Any new installable manifest
+    // added to public/ joins this list or the collision class returns.
+    const faces = ['manifest.webmanifest', 'manifest-lovecorner.webmanifest',
+      'manifest-moore.webmanifest', 'manifest-tlc.webmanifest']
+      .map((f) => ({ f, m: JSON.parse(read(f)) }));
+    for (const { f, m } of faces) {
+      expect(m.id.startsWith(m.scope), `${f}: id must live inside its own scope`).toBe(true);
+      expect(m.start_url.startsWith(m.scope), `${f}: start_url must live inside its own scope`).toBe(true);
+    }
+    for (const a of faces) {
+      for (const b of faces) {
+        if (a.f === b.f) continue;
+        expect(a.m.scope.startsWith(b.m.scope), `${a.f} scope ${a.m.scope} is inside ${b.f} scope ${b.m.scope} — Chrome will collapse them into one app`).toBe(false);
+      }
+    }
+  });
+});
+
+describe('hand-typed capitalization always reaches the right door (DR-0261 follow-up)', () => {
+  // Darrell's 2026-08-02 text: Messages auto-capitalized the link to
+  // "PoeTech.us/LoveCorner"; paths are case-sensitive, nothing matched, the
+  // SPA fallback served the PoeTech shell, and the RCS preview introduced the
+  // church's link as "PoeTech Family OS". Every door's likely human
+  // capitalizations must be enumerated in _redirects — this gate fails when a
+  // variant is missing, so a texted link can never preview as the wrong brand.
+  it('_redirects covers first-letter caps, camel-case, and all-caps for every door', () => {
+    const redirects = read('_redirects');
+    const expectations = [
+      ['/LoveCorner', '/lovecorner/'], ['/Lovecorner', '/lovecorner/'], ['/LOVECORNER', '/lovecorner/'],
+      ['/Church', '/lovecorner/'], ['/CHURCH', '/lovecorner/'], ['/TheLoveCorner', '/lovecorner/'],
+      ['/Moore', '/moore/'], ['/MOORE', '/moore/'], ['/MooreDivahs', '/moore/'],
+      ['/TLC', '/tlc/'], ['/Tlc', '/tlc/'], ['/TLCTherapy', '/tlc/'],
+    ];
+    for (const [alias, target] of expectations) {
+      const re = new RegExp(`^${alias.replace(/\//g, '\\/')}\\s+${target.replace(/\//g, '\\/')}\\s+301`, 'm');
+      expect(re.test(redirects), `${alias} -> ${target} missing from _redirects — a texted link previews as the wrong brand`).toBe(true);
+    }
   });
 });
 

@@ -71,3 +71,31 @@
 # The church manifest: never cache — its id/scope ARE the install identity.
 /manifest-lovecorner.webmanifest
   Cache-Control: no-cache, no-store, must-revalidate
+
+# Moore Divahs + TLC app shells and manifests (DR-0261 — same scope-split
+# pattern as the church above; same no-store reasons).
+/moore/app/
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/moore/app/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/tlc/app/
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/tlc/app/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/manifest-moore.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest-tlc.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate

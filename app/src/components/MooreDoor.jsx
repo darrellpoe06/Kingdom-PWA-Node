@@ -545,19 +545,14 @@ export default function MooreDoor({ business = null }) {
   const [customerView, setCustomerView] = useState(false);
   const view = doorView(role, customerView);
   const isSteward = view.isSteward;
-  // Install-to-home-screen carries HER name: swap the document's manifest to the
-  // Moore Divahs one (and title/theme to match) while the door is mounted. Icon
-  // artwork still reuses the platform icons until Shay supplies hers (md-handles
-  // sibling — an asset only she holds).
+  // Title carries HER name while the door is mounted. The manifest-link swap
+  // that used to live here is RETIRED (DR-0261/DR-0258): install identity is a
+  // page-load property, and Moore's manifest now has its own disjoint scope
+  // (/moore/) linked STATICALLY by her served page (app/moore/app/index.html) —
+  // a runtime swap on a /poetech-app/ page would make that page un-installable
+  // as anything (the linked manifest's scope wouldn't contain the page).
   useEffect(() => {
     document.title = `${BIZ.brand.label} — ${BIZ.brand.tagline}`;
-    let link = document.querySelector('link[rel="manifest"]');
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'manifest';
-      document.head.appendChild(link);
-    }
-    link.href = BIZ.manifest;
   }, []);
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">

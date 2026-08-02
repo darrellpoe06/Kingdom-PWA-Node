@@ -18,6 +18,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { RoadmapOverview } from './HelpButton.jsx';
+import { isChurchDoorContext } from '../lib/church-own-door.js';
 
 // Bumping this key re-offers the tour after a major experience change.
 const SEEN_KEY = 'poetech.help.tour.v1';
@@ -36,9 +37,21 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
   const [showCard, setShowCard] = useState(false);
   const [openTour, setOpenTour] = useState(false);
 
+  // A church-door launch (the installed Love Corner app, or /lovecorner/…)
+  // NEVER gets the PoeTech quick tour — it introduced "PoeTech: money,
+  // business, CRM, inventory" inside the church's own app (Darrell's
+  // 2026-08-01 screenshot), surfaces a congregation member doesn't even have.
+  // The church door's own welcome is a separate COLG-facing content build
+  // (DR-0261 follow-up, re-review: 2026-08-07); until it lands, no tour is
+  // more honest than the wrong tour.
+  const churchDoor = isChurchDoorContext();
+
   useEffect(() => {
+    if (churchDoor) return;
     if (!hasSeen()) setShowCard(true);
-  }, []);
+  }, [churchDoor]);
+
+  if (churchDoor) return null;
 
   function dismissForNow() {
     // "Maybe later" — keep it out of the way this session but offer again next

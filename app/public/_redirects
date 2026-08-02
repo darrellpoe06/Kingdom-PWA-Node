@@ -16,6 +16,14 @@
 # automatically at /moore/; only the alias needs a rule.
 /mooredivahs   /moore/  301
 /mooredivahs/  /moore/  301
+/Moore         /moore/  301
+/Moore/        /moore/  301
+/MOORE         /moore/  301
+/MOORE/        /moore/  301
+/MooreDivahs   /moore/  301
+/MooreDivahs/  /moore/  301
+/Mooredivahs   /moore/  301
+/Mooredivahs/  /moore/  301
 
 # The church's share links (DR-0133 phase install-identity): /lovecorner serves
 # the static Church-of-the-Living-God entry page (its own og tags so a texted
@@ -27,6 +35,31 @@
 /thelovecorner   /lovecorner/  301
 /thelovecorner/  /lovecorner/  301
 
+# HAND-TYPED CAPITALIZATION (DR-0261 follow-up, Darrell's 2026-08-02 text
+# screenshot): Messages auto-capitalizes, so the family types
+# "PoeTech.us/LoveCorner" — paths are case-sensitive, /LoveCorner matched
+# nothing, and the SPA fallback served the POETECH shell, so the RCS preview
+# read "PoeTech Family OS" instead of the church. Path rules can't be made
+# case-insensitive here, so the likely human capitalizations are enumerated
+# for EVERY door (first-letter caps, brand camel-case, all-caps). Gated by
+# lovecorner-door.test.js (case-alias roster).
+/LoveCorner      /lovecorner/  301
+/LoveCorner/     /lovecorner/  301
+/Lovecorner      /lovecorner/  301
+/Lovecorner/     /lovecorner/  301
+/LOVECORNER      /lovecorner/  301
+/LOVECORNER/     /lovecorner/  301
+/loveCorner      /lovecorner/  301
+/loveCorner/     /lovecorner/  301
+/Church          /lovecorner/  301
+/Church/         /lovecorner/  301
+/CHURCH          /lovecorner/  301
+/CHURCH/         /lovecorner/  301
+/TheLoveCorner   /lovecorner/  301
+/TheLoveCorner/  /lovecorner/  301
+/Thelovecorner   /lovecorner/  301
+/Thelovecorner/  /lovecorner/  301
+
 # TLC Therapy Solutions' share links: /tlc serves the static TLC client-door
 # entry page (its own og tags so a texted link previews as TLC, then meta-
 # refresh into ?tlc=1). public/tlc/index.html is served automatically at /tlc/;
@@ -36,6 +69,14 @@
 /tlctherapy/           /tlc/  301
 /tlctherapysolutions   /tlc/  301
 /tlctherapysolutions/  /tlc/  301
+/TLC                   /tlc/  301
+/TLC/                  /tlc/  301
+/Tlc                   /tlc/  301
+/Tlc/                  /tlc/  301
+/TLCTherapy            /tlc/  301
+/TLCTherapy/           /tlc/  301
+/TlcTherapy            /tlc/  301
+/TlcTherapy/           /tlc/  301
 
 # The bare root must land INSIDE the manifest scope (/poetech-app/), or the
 # page a phone naturally opens (poetech.us) is out of scope and Chrome refuses

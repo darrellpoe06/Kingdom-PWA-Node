@@ -94,10 +94,17 @@ describe('the installable app — manifest + icon (Add to Home Screen)', () => {
   it('TLC_INSTALL_MANIFEST is wired to the manifest file', () => {
     expect(TLC_INSTALL_MANIFEST).toBe('/manifest-tlc.webmanifest');
   });
-  it('the running door SWAPS the document manifest so in-app install carries TLC (source-pinned)', () => {
+  it('install identity is STATIC — the door never swaps the document manifest (DR-0261 scope split)', () => {
+    // The old runtime swap collapsed every face into PoeTech's /poetech-app/
+    // scope ("already installed", Darrell's 2026-08-01 screenshots). TLC's
+    // manifest now lives at its own scope, linked statically by its served
+    // page — a swap surviving here would break installability both ways.
     const doorJsx = readFileSync(join(here, '../components/TlcPublicDoor.jsx'), 'utf8');
-    expect(doorJsx).toMatch(/link\[rel="manifest"\]/);
-    expect(doorJsx).toMatch(/TLC_INSTALL_MANIFEST/);
+    expect(doorJsx).not.toMatch(/link\[rel="manifest"\]/);
+    const appHtml = readFileSync(join(here, '../../tlc/app/index.html'), 'utf8');
+    expect(appHtml).toContain('href="/manifest-tlc.webmanifest"');
+    expect(appHtml).not.toContain('href="/manifest.webmanifest"');
+    expect(appHtml).toContain('src="/src/main.jsx"');
   });
 });
 
