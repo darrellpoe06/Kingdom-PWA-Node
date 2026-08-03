@@ -52,6 +52,19 @@ payments-functions.test.js (20 green).
 
 ## Go-live — the Governor's steps (all his custody, ~30 min)
 
+0. **Confirm the price ladder FIRST (found 2026-08-03, REV-0223):** the repo
+   carries TWO ladders — the stale schema comments ($9/$19/$49/$99/$299) and
+   the OPERATIVE in-app ladder every surface and the moat math run on
+   (**Foundation free · PoeTech+ $39 · Family/Household $89 · Premium $149 ·
+   Business $249**, +$8/door landlord add-on), with a $39-vs-$39.99 drift on
+   PoeTech+ (DR-0184 said $39.99; the shell label and tier math say $39).
+   ACCESS-AND-ONBOARDING-MODEL.md already carries this as the "pricing
+   reconciliation — pick one before either store submission" item. Whatever
+   Prices are created in Stripe ARE the charge — the pick must precede the
+   keys. Recommendation: **$39 / $89 / $149 / $249 flat** (the ladder in
+   force everywhere; flat numbers, no .99 psychology, match the house's
+   plain-dealing voice); on the Governor's word the schema comments and the
+   .99 copy sweep to the one number and a price-consistency gate holds it.
 1. Stripe account → create Products/Prices for the paid tiers (monthly).
 2. Cloudflare Pages env: `STRIPE_SECRET_KEY`, `STRIPE_CATALOG`,
    `STRIPE_TIER_PRICES` ({"tier":"price_..."}), `STRIPE_WEBHOOK_SECRET`,

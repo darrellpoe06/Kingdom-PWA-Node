@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0223 · Pricing history review — "are those prices correct?" No: two ladders live in the repo; the operative one is $39/$89/$149/$249 and the pick is the Governor's
+- **Date:** 2026-08-03
+- **Surface:** infra/supabase/schema-v2.1-infra.sql (tier comments) · app/src/poe-financial-mvp-v28.jsx:576,3792 · app/src/components/DevOps.jsx:705,730-732 · docs/decisions/DR-0184 · app/src/components/{MinistryOps,CohortPrograms,Bookstore}.jsx · docs/00-foundations/_root/ACCESS-AND-ONBOARDING-MODEL.md:96
+- **Type:** code-review
+- **Status:** logged
+- **Findings:** Darrell 2026-08-03 ("Are those prices correct? Review prices and historical prices"). The DR-0263/REV-0222 answer quoted the SCHEMA COMMENTS ($9/$19/$49/$99/$299+) — measured against the whole record those are the STALE early draft, not the operative ladder. The record, in time order: (1) schema-v2.1 comments (May era): $9/$19/$49/$99/landlord $99/enterprise $299+ — never updated; (2) the OPERATIVE in-app ladder every user-facing surface and the revenue math run on: Foundation free · **PoeTech+ $39** · **Family/Household $89** · **Premium $149** · **Business $249** (tierPrices map, shell label "PoeTech+ ($39/mo)", "from $39", "$39–$249/mo", the Business-vs-QuickBooks value math, the +$8/door landlord add-on ON TOP of $39 — a decided strategy); (3) DR-0184 (2026-07-13, Darrell's words): "$39.99" = poetech-plus (Ministry Ops + CohortPrograms copy carry .99; Bookstore economics uses 3900¢); (4) ACCESS-AND-ONBOARDING-MODEL.md:96 ALREADY records the conflict as the open "pricing reconciliation — pick one before either store submission" item. Verdict (DR-0100 tier 1): the $9-ladder answer was WRONG — corrected here; the operative set is $39/$89/$149/$249 with a $39-vs-$39.99 drift on PoeTech+; the FINAL pick is real pricing = the Governor's bright line (DR-0111). Recommendation on record (DR-0263 step 0): $39/$89/$149/$249 flat; on his word the sweep + a price-consistency gate ship same-session (gate-the-class: every price literal must match one canonical map so two ladders can never coexist again). Also open in the reconciliation: whether landlord/enterprise are live tiers (schema has them; the shell's TIER_ORDER does not).
+- **Source:** docs/decisions/DR-0263-monthly-subscription-readiness-activation-write-and-the-governors-keys.md
+
 ### REV-0222 · Comprehensive payments review — "Can they purchase a monthly subscription?" answered from the code; the entitlement-activation gap found and closed
 - **Date:** 2026-08-03
 - **Surface:** app/functions/api/stripe-webhook.js · app/functions/api/checkout.js · app/src/lib/checkout-seam.js · app/src/lib/entitlements.js · app/src/lib/trial-status.js · docs/decisions/DR-0263
