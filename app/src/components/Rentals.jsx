@@ -9,6 +9,7 @@ import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
+import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provision.js';
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
@@ -918,6 +919,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         if (live) setPaidPortfolio(out);
       } catch { /* keep the honest empty default */ }
     })();
+    return () => { live = false; };
+  }, []);
+  // The bridge token provisions ITSELF on a signed-in family device (0128 /
+  // DR-0268 — "Humans don't do anything"): a device without the token pulls it
+  // through the owner-gated RPC into localStorage, so the photos/history
+  // panels open working instead of on a paste gate. Signed-out / demo gets
+  // nothing and keeps the honest gate. The state bump re-renders the panels
+  // that read hasBridgeToken() at open time.
+  const [, setBridgeReady] = useState(0);
+  useEffect(() => {
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live && r === 'provisioned') setBridgeReady((n) => n + 1); });
     return () => { live = false; };
   }, []);
   // Real per-property photo count: the live NAS chat-channel archive (the photos
@@ -2288,7 +2301,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 </p>
                                 <div className="flex gap-1.5">
                                   <input type="password" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="paste the bridge token" value={bridgeTokenInput} onChange={ev => setBridgeTokenInput(ev.target.value)} />
-                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[0.625rem] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
+                                  <button type="button" onClick={() => { const tok = bridgeTokenInput.trim(); localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, tok); publishBridgeToken(supabase, tok); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[0.625rem] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
                                 </div>
                               </div>
                             )}

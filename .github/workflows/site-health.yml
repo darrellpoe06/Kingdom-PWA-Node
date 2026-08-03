@@ -136,9 +136,28 @@ jobs:
           note "- \`GET pages.dev/poetech-app/\` -> **$CODE** (isolates domain layer vs project)"
           PAGES_CODE="$CODE"
 
+          # 6. PHOTO PATH (DR-0268): the sovereign photo server, outside-in —
+          # the runner is the only eye that can see this hop (the sandbox has
+          # no route). healthz is unauthenticated liveness; /property-history
+          # answering 401 PROVES the history bridge is alive (auth-gated is
+          # alive; only connect-fail/5xx is down). v1 scope: a red photo path
+          # is a loud warning + its own output, NOT the site-incident ledger
+          # (the NAS is a family box that can be legitimately off; escalation
+          # to the ledger is re-review 2026-08-17, REV-0228).
+          fetch "https://poetech.us/nas-photos/healthz"
+          PHOTO_CODE="$CODE"
+          note "- \`GET /nas-photos/healthz\` -> **$CODE** (sovereign photo server, via Funnel)"
+          [ "$PHOTO_CODE" = "200" ] || echo "::warning::photo path DOWN — /nas-photos/healthz returned HTTP $PHOTO_CODE (photo_server.py / Funnel / Pages Function hop)"
+          fetch "https://poetech.us/property-history?channel=healthprobe"
+          HIST_CODE="$CODE"
+          note "- \`GET /property-history\` -> **$CODE** (401 = alive+gated; 000/5xx = down)"
+          case "$HIST_CODE" in 200|400|401|403|404) : ;; *) echo "::warning::history bridge DOWN — /property-history returned HTTP $HIST_CODE" ;; esac
+
           echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
           echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
+          echo "photo_code=$PHOTO_CODE" >> "$GITHUB_OUTPUT"
+          echo "history_code=$HIST_CODE" >> "$GITHUB_OUTPUT"
           echo "served_sha=${served_sha:-unknown}" >> "$GITHUB_OUTPUT"
           echo "main_sha=${main_sha:-unknown}" >> "$GITHUB_OUTPUT"
           if [ -n "$fail_reasons" ]; then
