@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0222 · Comprehensive payments review — "Can they purchase a monthly subscription?" answered from the code; the entitlement-activation gap found and closed
+- **Date:** 2026-08-03
+- **Surface:** app/functions/api/stripe-webhook.js · app/functions/api/checkout.js · app/src/lib/checkout-seam.js · app/src/lib/entitlements.js · app/src/lib/trial-status.js · docs/decisions/DR-0263
+- **Type:** code-review
+- **Status:** addressed
+- **Findings:** All DR-0239 dimensions run: **SHOULD/ARE (DR-0219)** — the whole monthly-subscription lane is BUILT (client seam preview→execute; server-side price truth via STRIPE_TIER_PRICES; signature-verified idempotent webhook → append-only payments ledger; 90-day trial falling to free Foundation, never a lockout) and deliberately INERT until the Governor's keys exist (money is the owner's hand — unconfigured = 503/preview, not a cent can move). **Journey walk** — day-91 user taps SUBSCRIBE → tier chooser → checkout previews only; after go-live the same taps charge the Stripe Price and return to ?paid=1. **Surface-says-truth** — the trial meter's "upgrade any time" is honest about intent; purchase completes only after the keys land (the preview posture never fakes a charge). **THE FOUND GAP (closed same-session)** — the webhook wrote the LEDGER but never flipped instance_subscriptions: a paying member's money would land while their tier stayed Foundation. Built: subscriptionActivation (pure; only settled subscription checkouts with schema-valid paid tiers activate) + PATCH of the instance's existing row (PATCH-only — created_by NOT NULL forbids blind inserts; a missing row reports `no-subscription-row` honestly). Proven-to-catch both directions (payments-functions.test.js 20 green: book purchases/unknown tiers/unpaid sessions never flip; missing row named, Stripe still 200). **Findings-are-a-work-queue** — renewal-lifecycle events (past-due/cancelled) NOT yet handled: `re-review: 2026-08-17` before real members subscribe; the Governor's go-live runbook (Stripe account, 6 env values, webhook URL, one live test purchase) recorded in DR-0263. **Delivery-context** — every go-live step is his-custody by standing rule, enumerated paste-ready in the DR. **Gate-the-class** — the activation contract now lives in CI beside the signature/idempotency/conformance pins.
+- **Source:** docs/decisions/DR-0263-monthly-subscription-readiness-activation-write-and-the-governors-keys.md
+
 ### REV-0221 · UI/UX — the Learn reader was SET UP to lose their place; every lesson now opens in its own space
 - **Date:** 2026-08-02
 - **Surface:** app/src/components/ChurchLearn.jsx (CourseView) · app/src/__tests__/learn-lesson-space.test.jsx · docs/decisions/DR-0262

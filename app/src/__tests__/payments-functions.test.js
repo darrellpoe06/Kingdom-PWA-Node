@@ -12,6 +12,7 @@ import {
 import {
   PRODUCT_ENTITY as WEBHOOK_PRODUCT_ENTITY,
   parseSignatureHeader, verifyStripeSignature, normalizeStripeEvent, toTableRow,
+  subscriptionActivation, ACTIVATABLE_TIERS,
   onRequestPost as webhookPost,
 } from '../../functions/api/stripe-webhook.js';
 import { PRODUCT_ENTITY, normalizePayment } from '../lib/payments-ledger.js';
@@ -159,6 +160,62 @@ describe('stripe-webhook — the write path', () => {
     expect(res.status).toBe(200);
     expect((await res.json()).ignored).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('stripe-webhook — a settled SUBSCRIPTION activates the tier (DR-0263: the ledger-only gap)', () => {
+  const subEvt = (over = {}) => ({
+    id: 'evt_s1', type: 'checkout.session.completed', created: 1784592000,
+    data: { object: { id: 'cs_s1', payment_status: 'paid', amount_total: 900, currency: 'usd', customer: 'cus_1', subscription: 'sub_1', metadata: { kind: 'subscription', tier: 'poetech-plus', instanceId: 'inst-poe' }, ...over } },
+  });
+  const env = { STRIPE_WEBHOOK_SECRET: 'whsec_1', SUPABASE_URL: 'https://db.example.co', SUPABASE_SERVICE_KEY: 'srv_1' };
+  const post = (payload, header) =>
+    webhookPost({ env, request: new Request('https://poetech.us/api/stripe-webhook', { method: 'POST', body: payload, headers: { 'stripe-signature': header } }) });
+
+  it('extracts the activation from a settled subscription checkout', () => {
+    const a = subscriptionActivation(subEvt());
+    expect(a).toEqual({ tier: 'poetech-plus', stripeCustomerId: 'cus_1', stripeSubscriptionId: 'sub_1' });
+  });
+
+  it('CATCHES the non-activating shapes — a book purchase, an unknown tier, an unpaid session never flip a tier', () => {
+    expect(subscriptionActivation({ ...subEvt(), data: { object: { payment_status: 'paid', metadata: { kind: 'book', product: 'p1' } } } })).toBeNull();
+    expect(subscriptionActivation(subEvt({ metadata: { kind: 'subscription', tier: 'not-a-tier', instanceId: 'inst-poe' } }))).toBeNull();
+    expect(subscriptionActivation(subEvt({ payment_status: 'unpaid', status: 'open' }))).toBeNull();
+    expect(ACTIVATABLE_TIERS).not.toContain('foundation'); // the free tier is never a purchase
+  });
+
+  it('PATCHes the instance subscription row to the paid tier after the ledger write', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', async (url, init) => {
+      calls.push({ url, init });
+      if (String(url).includes('/rest/v1/payments')) return new Response(null, { status: 201 });
+      return new Response(JSON.stringify([{ id: 'row1' }]), { status: 200 });
+    });
+    const payload = JSON.stringify(subEvt());
+    const t = Math.floor(Date.now() / 1000);
+    const res = await post(payload, sign(payload, 'whsec_1', t));
+    const body = await res.json();
+    expect(body.activation).toBe('activated');
+    expect(body.tier).toBe('poetech-plus');
+    const patch = calls.find((c) => String(c.url).includes('instance_subscriptions'));
+    expect(patch.url).toContain('instance_id=eq.inst-poe');
+    expect(patch.init.method).toBe('PATCH');
+    const sent = JSON.parse(patch.init.body);
+    expect(sent.tier).toBe('poetech-plus');
+    expect(sent.status).toBe('active');
+    expect(sent.stripe_subscription_id).toBe('sub_1');
+  });
+
+  it('reports a MISSING subscription row honestly — the payment stays ledgered, the gap is named, Stripe still gets its 200', async () => {
+    vi.stubGlobal('fetch', async (url) => {
+      if (String(url).includes('/rest/v1/payments')) return new Response(null, { status: 201 });
+      return new Response(JSON.stringify([]), { status: 200 });
+    });
+    const payload = JSON.stringify(subEvt());
+    const t = Math.floor(Date.now() / 1000);
+    const res = await post(payload, sign(payload, 'whsec_1', t));
+    expect(res.status).toBe(200);
+    expect((await res.json()).activation).toBe('no-subscription-row');
   });
 });
 
