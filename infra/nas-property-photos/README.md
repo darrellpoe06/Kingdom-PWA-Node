@@ -1,6 +1,6 @@
 # nas-property-photos — sovereign property-photo image server (no n8n)
 
-**Status: built + verified locally 2026-07-01; NAS deploy pending Darrell.**
+**Status: on the services-sync self-deploy manifest since 2026-08-03 (DR-0268) — merge installs/repairs/starts it; the hand-deploy era ("pending Darrell") is over.** Originally built + verified locally 2026-07-01.
 Fixes the 2026-07-01 regression where property photos stopped RENDERING on Real
 Estate while the photo COUNT stayed correct (e.g. 1003 Koehn Dr "233 PHOTOS").
 

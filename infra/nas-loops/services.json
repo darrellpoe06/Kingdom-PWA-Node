@@ -15,6 +15,12 @@
       "description": "Scribe ingest server (poetech-scribe.service on 127.0.0.1:8791) + data dir + token + venv + best-effort Caddy /scribe/* snippet. Pairs with the scribe-transcribe loop (the braked whisper-queue consumer)."
     },
     {
+      "name": "property-photos",
+      "install": "infra/nas-property-photos/install.sh",
+      "enabled": true,
+      "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one."
+    },
+    {
       "name": "ytzero",
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
