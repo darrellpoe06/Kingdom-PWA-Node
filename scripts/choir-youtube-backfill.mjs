@@ -31,7 +31,7 @@
 // Requires yt-dlp on PATH (or `python -m yt_dlp`).
 
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { parseServiceTitle, extractYoutubeId } from '../app/src/lib/youtube-title-parse.js';
 
 const DEFAULT_BASE = 'https://www.youtube.com/@thelovecorner';
@@ -103,6 +103,31 @@ for (const line of lines) {
 
 const withDate = rows.filter((r) => r.serviceDate);
 const undated = rows.filter((r) => !r.serviceDate);
+
+// HISTORICAL-RECORD GUARD (2026-08-03, Darrell: "supposed to be an historical
+// events review every time? what happened?"). The repo's own record measured
+// the channel at 836 videos on 2026-06-23 (memory/MEMORY.md; the course-
+// pipeline research review) while the /videos-only manifest read 339 — and NO
+// instrument diffed the two, so the gap sat invisible until the Governor asked.
+// Two deterministic checks close the class:
+//   1. MONOTONIC: a new listing may never SHRINK the committed manifest — a
+//      partial listing (a tab failed, YouTube throttled) must not quietly
+//      replace a fuller one. Shrink = hard red.
+//   2. RECORDED FLOOR: the channel's own page reported 836 on 2026-06-23; a
+//      listing far below that is loudly named PARTIAL (warn, not red — the 836
+//      may include Shorts/members-only items the sweep rightly excludes; the
+//      warning is the instrument, the manifest stays honest either way).
+const RECORDED_CHANNEL_TOTAL_2026_06_23 = 836;
+let prevTotal = 0;
+try { prevTotal = JSON.parse(readFileSync('app/src/lib/corpus-manifest.json', 'utf8')).total || 0; } catch { /* first generation */ }
+if (rows.length < prevTotal) {
+  console.error(`REFUSING to shrink the corpus: this listing found ${rows.length} videos but the committed manifest holds ${prevTotal}. A partial listing must never replace a fuller one (DR-0076).`);
+  process.exit(1);
+}
+if (rows.length < RECORDED_CHANNEL_TOTAL_2026_06_23 * 0.9) {
+  console.error(`WARNING: listed ${rows.length} videos, but the channel itself reported ~${RECORDED_CHANNEL_TOTAL_2026_06_23} on 2026-06-23 — this sweep is likely PARTIAL (a tab failed, or content sits outside /videos+/streams). The gap is named, not hidden.`);
+}
+
 mkdirSync('scripts/out', { recursive: true });
 writeFileSync('scripts/out/choir-sermons-backfill.json', JSON.stringify(rows, null, 2));
 
