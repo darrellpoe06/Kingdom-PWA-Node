@@ -326,6 +326,10 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
   // setlist, OR a recording to watch (DR-0137: a recorded service IS history;
   // the old planned-or-songs filter is why only 7 of 300+ videos showed).
   const past = buildPastServices(schedule, sermons, songs, today);
+  // The truthful remainder (DR-0100): channel videos whose title carried no
+  // parseable date can't sit on a dated list — say how many are waiting
+  // instead of letting the count read as the whole archive.
+  const undatedVideos = (sermons || []).filter((s) => s && !s.serviceDate && s.youtubeUrl).length;
   return (
     <div className="space-y-5">
       {upcoming.length ? WEEK_GROUPS.map(([bucket, label]) => {
@@ -354,7 +358,12 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
           </button>
           {showPast && (
             <div className="space-y-3 mt-2">
-              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past service to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
+              {undatedVideos > 0 && (
+                <p className="text-[0.6875rem] text-[#8A6E1F]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {undatedVideos} more channel videos are in the library without a service date yet — they join this list as the corpus pipeline dates them.
+                </p>
+              )}
               {past.slice(0, pastShown).map((svc) => (
                 <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} past />
               ))}
