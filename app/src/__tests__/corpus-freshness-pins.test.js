@@ -51,3 +51,15 @@ describe('the backfill lists BOTH channel tabs (streams are half the corpus)', (
     expect(BACKFILL).toMatch(/tab === 'videos'.*throw e|throw e.*tab === 'videos'/s);
   });
 });
+
+describe('the historical-record guard holds (the 836 gap sat invisible once — never again)', () => {
+  it('a new listing REFUSES to shrink the committed manifest', () => {
+    expect(BACKFILL).toMatch(/rows\.length < prevTotal/);
+    expect(BACKFILL).toMatch(/REFUSING to shrink/);
+    expect(BACKFILL).toMatch(/process\.exit\(1\)/);
+  });
+  it('a listing far under the recorded channel total is loudly named PARTIAL', () => {
+    expect(BACKFILL).toMatch(/RECORDED_CHANNEL_TOTAL_2026_06_23\s*=\s*836/);
+    expect(BACKFILL).toMatch(/likely PARTIAL/);
+  });
+});

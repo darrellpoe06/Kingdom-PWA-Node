@@ -120,6 +120,13 @@ it.
 
 ## Perpetual-improvement ledger (DR-0075 — why + re-review)
 
+- **Follow-the-channel + enable-downloads WITHOUT a human click** (Darrell
+  2026-08-03: "Humans don't do anything is our Ways"). Blocked only on the
+  schema being unmeasured: the installer now writes a read-only schema probe
+  (`SCHEMA-PROBE.txt`, surfaced in the loop log) on its first healthy cycle;
+  the idempotent follow-seed for @thelovecorner + per-profile downloads ships
+  written against that measured schema — never a blind write to another app's
+  database (DR-0076). `re-review: 2026-08-10`.
 - **Do completed LIVE STREAMS reach YT Zero's feed?** YT Zero reads the channel
   RSS feed; whether a finished @thelovecorner live stream appears there like a
   regular upload is UNVERIFIED (the sandbox has no YouTube route to test it).

@@ -64,6 +64,27 @@ while [ "$TRIES" -lt 12 ]; do
 done
 if [ "$UP" = "1" ]; then
   echo "  ytzero answering on 127.0.0.1:3701"
+  # READ-ONLY schema probe (DR-0108 — humans don't do anything): the follow-
+  # the-channel + enable-downloads steps are UI clicks today ONLY because the
+  # app's storage schema is unmeasured. This dumps it once into the loop log
+  # (visible in-app via Dispatch Status) and to $DATA/SCHEMA-PROBE.txt, so the
+  # follow-seed step ships written against MEASURED reality (DR-0076), zero
+  # blind writes to another app's database.
+  PROBE="$DATA/SCHEMA-PROBE.txt"
+  if [ ! -s "$PROBE" ]; then
+    DB="$(ls "$DATA"/*.db "$DATA"/*.sqlite "$DATA"/*.sqlite3 2>/dev/null | head -1)"
+    if [ -n "$DB" ] && command -v sqlite3 >/dev/null 2>&1; then
+      sqlite3 "$DB" '.schema' > "$PROBE" 2>/dev/null || true
+    elif [ -n "$DB" ]; then
+      "$DOCKER" run --rm -v "$DATA":/probe:ro alpine:3.20 sh -c 'apk add -q sqlite >/dev/null 2>&1 && sqlite3 /probe/'"$(basename "$DB")"' .schema' > "$PROBE" 2>/dev/null || true
+    fi
+    if [ -s "$PROBE" ]; then
+      echo "  schema probe written ($PROBE); table list:"
+      grep -oE 'CREATE TABLE [^(]+' "$PROBE" | head -20
+    else
+      echo "  schema probe pending (no db file yet or no sqlite3 reader) -- next cycle retries"
+    fi
+  fi
 else
   echo "  health probe silent after 60s (start_period is 90s; first start can outlast this probe)"
   echo "  next services-sync cycle re-checks -- or see: $DOCKER logs ytzero"
