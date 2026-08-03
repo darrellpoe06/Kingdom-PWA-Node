@@ -17,9 +17,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
-  buildFollowMap, segmentRange, wordRange, highlightSegment, highlightWord,
-  clearReadingHighlights, followRange,
+  buildFollowMap, wordRange, highlightSegment, highlightWord,
+  clearReadingHighlights, followRange, rangeFor,
+  segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
 } from '../lib/read-follow.js';
+import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
 import UiIcon from './UiIcon.jsx';
@@ -40,6 +42,12 @@ function readablePageText() {
 
 export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
   const [isOpen, setIsOpen] = useState(false);
+  // WHILE READING, THE PANEL GETS OUT OF THE WAY (Darrell 2026-08-03: "the
+  // read along blocks the readers page with the data being read"): once
+  // reading starts, the full card collapses to a slim pill (pause/stop/
+  // expand) so the page — and its moving highlight — stays visible. Expanding
+  // re-opens the full card; stopping restores it.
+  const [minimized, setMinimized] = useState(false);
   // "Talk about this" state: thinking, and the source of the last explanation
   // (live NAS A.I. vs on-device authored) so the user knows which they heard.
   const [talking, setTalking] = useState(false);
@@ -47,7 +55,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
     catalog, voiceId, setVoiceId, currentItem,
-    segmentIndex, setBoundaryHandler, deviceRead,
+    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
   } = useReadAloud({ isOwner });
 
   // FOLLOW-ALONG (DR-0264, Darrell 2026-08-03: readers "could be 6 or 60 years
@@ -57,26 +65,54 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // live DOM ranges (read-follow.js — alignment by construction). The engine's
   // segmentIndex then drives a sentence highlight + centered auto-scroll, and
   // word boundaries (where the device fires them) drive the word highlight.
+  // followRef holds { ranges (Range|null per SPOKEN segment), lens (spoken
+  // segment char lengths — cloud fraction mapping), follow + base (word-level
+  // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
+  const lastCloudIdxRef = useRef(-1);
   useEffect(() => {
     if (!isReading || !deviceRead || !followRef.current) {
-      if (!isReading) { clearReadingHighlights(); highlightWord(null); }
+      if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
       return;
     }
-    const r = segmentRange(followRef.current, segmentIndex);
+    const r = followRef.current.ranges[segmentIndex] || null;
     highlightSegment(r);
     highlightWord(null); // a new sentence clears the previous word
     followRange(r);
   }, [segmentIndex, isReading, deviceRead]);
+  // CLOUD (cloned-voice) sentence-follow (DR-0265): the clip has no word
+  // timings, but playback fraction → character position → sentence works at
+  // sentence granularity. Only re-highlights when the sentence changes.
+  useEffect(() => {
+    if (!isReading || deviceRead || !followRef.current) return;
+    const idx = segmentIndexAtFraction(followRef.current.lens, cloudProgress);
+    if (idx < 0 || idx === lastCloudIdxRef.current) return;
+    lastCloudIdxRef.current = idx;
+    const r = followRef.current.ranges[idx] || null;
+    highlightSegment(r);
+    followRange(r);
+  }, [cloudProgress, isReading, deviceRead]);
+  // Reading over (or never started) → the full card comes back next open.
+  useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
   useEffect(() => {
     if (!setBoundaryHandler) return undefined;
     setBoundaryHandler((segIdx, charIndex) => {
-      if (!followRef.current) return;
-      const r = wordRange(followRef.current, segIdx, charIndex);
+      const f = followRef.current;
+      if (!f || !f.wordable) return;
+      const r = wordRange(f.follow, f.base + segIdx, charIndex);
       if (r) highlightWord(r);
     });
     return () => setBoundaryHandler(null);
   }, [setBoundaryHandler]);
+
+  // Builders for the three followable read modes (DR-0264/DR-0265).
+  const pageFollowState = (follow, base = 0) => ({
+    follow,
+    base,
+    ranges: follow.segments.slice(base).map((s) => (s ? rangeFor(follow, s.start, s.end) : null)),
+    lens: follow.segments.slice(base).map((s) => (s ? s.text.length : 0)),
+    wordable: true,
+  });
 
   // START WHERE I TAP (DR-0144): "if Ari could start right at wherever users
   // want it to start... whatever word on the page" (Darrell, 2026-07-10). Arm a
@@ -105,9 +141,30 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       e.preventDefault();
       e.stopPropagation();
       setArmed(false);
+      // START-AT-TAP now FOLLOWS too (DR-0265): resolve the tapped character,
+      // find its sentence in the page map, and read from that sentence with the
+      // highlight tracking from there. Falls back to the unmapped legacy path
+      // when the device can't resolve the tap into the map.
+      const follow = buildFollowMap(main);
+      let caret = null;
+      try {
+        if (document.caretRangeFromPoint) {
+          const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+          if (r) caret = { node: r.startContainer, offset: r.startOffset };
+        } else if (document.caretPositionFromPoint) {
+          const p = document.caretPositionFromPoint(e.clientX, e.clientY);
+          if (p) caret = { node: p.offsetNode, offset: p.offset };
+        }
+      } catch (_) { caret = null; }
+      const segIdx = follow && caret ? segmentIndexAtDomPoint(follow, caret.node, caret.offset) : -1;
+      if (follow && segIdx >= 0) {
+        followRef.current = pageFollowState(follow, segIdx);
+        read(follow.text.slice(follow.segments[segIdx].start));
+        return;
+      }
       const hit = readFromPoint(main, e.clientX, e.clientY);
       const text = (hit && hit.text) || readablePageText();
-      followRef.current = null; // start-at-tap reads unmapped text — no stale highlight
+      followRef.current = null; // unresolvable tap reads unmapped — no stale highlight
       if (text) read(text);
     };
     const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
@@ -129,13 +186,43 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
     const follow = main ? buildFollowMap(main) : null;
     if (follow && follow.text) {
-      followRef.current = follow;
+      followRef.current = pageFollowState(follow);
+      setMinimized(true);
       read(follow.text);
       return;
     }
     followRef.current = null;
     const text = readablePageText();
-    if (text) read(text);
+    if (text) { setMinimized(true); read(text); }
+  };
+
+  // READ-THIS-LESSON now FOLLOWS too (DR-0265): map the open lesson's own
+  // card and align the registered full text to it sentence-by-sentence. The
+  // spoken text can include passages not currently rendered (paced tutor
+  // steps) — those sentences simply carry no highlight while everything
+  // on-screen highlights and scrolls; word-level stays off in this mode
+  // (the alignment is per-sentence). Falls back to plain reading when the
+  // lesson element isn't in the DOM.
+  const readTargetNow = (t) => {
+    const el = (typeof document !== 'undefined' && t && t.owner)
+      ? document.getElementById(`learn-lesson-${t.owner}`) : null;
+    const follow = el ? buildFollowMap(el) : null;
+    if (follow && follow.text) {
+      const spoken = segmentText(t.text);
+      followRef.current = {
+        follow,
+        base: 0,
+        ranges: alignSegments(follow, spoken),
+        lens: spoken.map((s) => s.length),
+        wordable: false,
+      };
+      setMinimized(true);
+      read(t.text);
+      return;
+    }
+    followRef.current = null;
+    setMinimized(true);
+    read(t.text);
   };
 
   // TALK ABOUT THIS: build a grounded digest of the CURRENT surface (real
@@ -166,7 +253,29 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
   return (
     <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden">
-      {isOpen ? (
+      {isOpen && minimized && isReading ? (
+        /* THE READING PILL (DR-0265): while the voice is reading, the full card
+           would sit on top of the very words being read + highlighted — so it
+           collapses to this slim pill. Pause/resume, stop, and expand only;
+           everything else waits behind the ⌃. */
+        <div
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex items-center gap-[0.375em]"
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+          role="region"
+          aria-label="Reading controls (minimized)"
+        >
+          <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}</span>
+          <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+            {isPaused ? '▶' : '⏸'}
+          </button>
+          <button type="button" onClick={() => { stop(); }} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ⏹
+          </button>
+          <button type="button" onClick={() => setMinimized(false)} aria-label="Expand reading controls" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ⌃
+          </button>
+        </div>
+      ) : isOpen ? (
         /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
            "The sizes of text makes the talk section not useful" — at A+++/A44
            the rem-based labels ballooned inside the fixed 260px box: buttons
@@ -197,7 +306,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
                 {target && (
-                  <button type="button" onClick={() => { followRef.current = null; read(target.text); }} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" onClick={() => readTargetNow(target)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 <button type="button" onClick={start} className={`col-span-3 px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${target ? 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white' : 'bg-[#1A1815] text-white hover:bg-[#B85838]'}`}>▶ Read this page</button>
                 {/* START WHERE I TAP — arm, then the next tap on the page picks

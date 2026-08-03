@@ -37,6 +37,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
   const [cloudPlaying, setCloudPlaying] = useState(false);
+  const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
   const [notice, setNotice] = useState('');
   const audioRef = useRef(null);
 
@@ -119,6 +120,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   const stopCloud = useCallback(() => {
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
+    setCloudProgress(0);
   }, []);
 
   // Surface a silent-start miss (mobile blocked/suspended synth) instead of a dead
@@ -151,12 +153,22 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
               setNotice('Read in your voice via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
             }
             try {
-              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true);
-              a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
-              a.onerror = () => { setCloudPlaying(false); if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId)); };
+              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+              // Follow-along for CLOUD audio (DR-0265): the clip carries no word
+              // timings, but its playback fraction maps to a text position well
+              // enough for sentence-level follow — the caller converts this
+              // 0..1 into the segment to highlight. Estimation, honestly named:
+              // exact per-word timing needs the voice service to return
+              // timestamps (its own carried item).
+              a.ontimeupdate = () => {
+                const d = a.duration;
+                if (Number.isFinite(d) && d > 0) setCloudProgress(Math.min(1, a.currentTime / d));
+              };
+              a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
+              a.onerror = () => { setCloudPlaying(false); setCloudProgress(0); if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId)); };
               await a.play();
               return;
-            } catch (_) { setCloudPlaying(false); }
+            } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
           }
           setNotice('Voice endpoint unreachable — using a stand-in voice.');
         } else {
@@ -213,6 +225,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     // sentence 0 while a cloud clip plays.
     setBoundaryHandler: tts.setBoundaryHandler,
     deviceRead: !cloudPlaying,
+    cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
     read, pause: tts.pause, resume: tts.resume, stop, setRate: tts.setRate,
   };

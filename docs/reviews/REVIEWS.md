@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0225 · Fix pass — the DR-0264 voice constraints closed same-day (tap follows, lesson follows, cloud follows at sentence level)
+- **Date:** 2026-08-03
+- **Surface:** app/src/lib/read-follow.js · app/src/lib/use-read-aloud.js · app/src/components/TTSControl.jsx · docs/decisions/DR-0265
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-08-03 ("fix the voices issues constraints") — the three carried DR-0264 items driven, not re-dated: (1) tap-to-start resolves the tapped character to its sentence and reads from there WITH the highlight (slice at a sentence boundary keeps alignment exact; unresolvable taps fall back, speech never breaks); (2) read-this-lesson maps the open card and aligns the registered full text per sentence — unrendered paced steps carry NO highlight rather than a wrong one; (3) cloned-voice clips follow at sentence level via playback-fraction→character-weight mapping (estimation, honestly named). Remainder narrowed to the one true server gap (per-word timestamps from the sovereign voice studio, re-review 2026-08-24) and the one platform fact (device engines that never fire word boundaries). Proven-to-catch +3 in read-follow.test.js (10 green); lint clean; full suite green before merge. **Same-sitting screenshot fix:** the open Read Aloud card was covering the very text being read (Darrell's 6:42 lesson screenshot) — while reading it now collapses to a slim pill (status · ⏸/▶ · ⏹ · expand) so the page and its highlight stay visible; the card returns on stop/expand. The screenshot also confirmed the secure lesson space live on his fold, and answered his "when should I see the highlight": his tap was "Read this lesson" — the one path that had no follow in the deployed build; THIS batch is that fix, so highlights appear after this deploy + one fresh reload.
+- **Source:** docs/decisions/DR-0265-voice-follow-constraints-fixed-tap-lesson-cloud.md
+
 ### REV-0224 · UI/UX — read-aloud gains follow-along (highlight + keep-in-sight); the lesson space becomes SECURE; presentations O&C reviewed
 - **Date:** 2026-08-03
 - **Surface:** app/src/lib/read-follow.js (new) · app/src/lib/tts.js · app/src/lib/use-read-aloud.js · app/src/components/TTSControl.jsx · app/src/index.css · app/src/components/ChurchLearn.jsx · docs/decisions/DR-0264

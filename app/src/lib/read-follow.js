@@ -112,6 +112,69 @@ export function wordRange(follow, index, charIndex, doc) {
   return end > start ? rangeFor(follow, start, end, doc) : null;
 }
 
+/**
+ * The segment index containing a DOM point (node + character offset) — the
+ * "start where I tap" bridge (DR-0265): the tapped position resolves to its
+ * normalized-text position via the char map, then to the sentence holding it.
+ * Returns -1 when the point isn't part of the readable text.
+ */
+export function segmentIndexAtDomPoint(follow, node, offset) {
+  if (!follow || !node) return -1;
+  let pos = -1;
+  for (let i = 0; i < follow.map.length; i++) {
+    const m = follow.map[i];
+    if (m.node === node && m.offset >= (offset | 0)) { pos = i; break; }
+    if (m.node === node) pos = i; // last char of this node before the offset
+  }
+  if (pos === -1) return -1;
+  for (let s = 0; s < follow.segments.length; s++) {
+    const seg = follow.segments[s];
+    if (seg && pos >= seg.start && pos < seg.end) return s;
+    if (seg && pos < seg.start) return s; // point fell in inter-segment space
+  }
+  return follow.segments.length ? follow.segments.length - 1 : -1;
+}
+
+/**
+ * Align independently-spoken segments to this container's text by moving-cursor
+ * search — the "read this lesson start-to-finish" bridge (DR-0265). The spoken
+ * text (the registered FULL lesson) can contain passages that are not rendered
+ * (paced tutor steps); those return null and simply carry no highlight, while
+ * every sentence that IS on screen highlights and scrolls. Never guesses.
+ */
+export function alignSegments(follow, spokenSegments, doc) {
+  if (!follow || !Array.isArray(spokenSegments)) return [];
+  let cursor = 0;
+  return spokenSegments.map((seg) => {
+    const s = String(seg || '');
+    if (!s) return null;
+    const at = follow.text.indexOf(s, cursor);
+    if (at === -1) return null; // spoken but not rendered — honest gap, no highlight
+    cursor = at + s.length;
+    return rangeFor(follow, at, at + s.length, doc);
+  });
+}
+
+/**
+ * Which spoken segment a playback fraction (0..1) falls in, weighted by each
+ * segment's character length — the CLOUD-audio sentence-follow bridge
+ * (DR-0265): a cloned-voice clip has no word timings, but uniform-rate speech
+ * maps fraction→characters well enough for sentence-level follow.
+ */
+export function segmentIndexAtFraction(lens, fraction) {
+  const list = Array.isArray(lens) ? lens : [];
+  const total = list.reduce((t, n) => t + (n > 0 ? n : 0), 0);
+  if (!total) return -1;
+  const f = Math.min(1, Math.max(0, Number(fraction) || 0));
+  const pos = f * total;
+  let acc = 0;
+  for (let i = 0; i < list.length; i++) {
+    acc += list[i] > 0 ? list[i] : 0;
+    if (pos < acc) return i;
+  }
+  return list.length - 1;
+}
+
 export function supportsHighlight(win = typeof window !== 'undefined' ? window : null) {
   return !!(win && win.CSS && win.CSS.highlights && typeof win.Highlight === 'function');
 }
