@@ -11,6 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   buildFollowMap, segmentRange, wordRange, supportsHighlight,
   highlightSegment, clearReadingHighlights, followRange,
+  segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
 } from '../lib/read-follow.js';
 import { segmentText, createBrowserTTS } from '../lib/tts.js';
 
@@ -69,6 +70,47 @@ describe('buildFollowMap — alignment by construction', () => {
     const r = wordRange(follow, 0, at);
     expect(norm(r.toString())).toBe('Perfect');
     root.remove();
+  });
+});
+
+describe('the DR-0265 bridges — tap-to-start, lesson alignment, cloud fraction', () => {
+  it('segmentIndexAtDomPoint resolves a tapped character to its sentence', () => {
+    const root = pageRoot();
+    const follow = buildFollowMap(root);
+    // Tap inside the second paragraph's <strong> ("be perfect").
+    const strong = root.querySelector('strong').firstChild;
+    const idx = segmentIndexAtDomPoint(follow, strong, 1);
+    expect(idx).toBeGreaterThan(-1);
+    expect(follow.segments[idx].text).toMatch(/be perfect/);
+    // An unknown node is honestly unresolvable.
+    expect(segmentIndexAtDomPoint(follow, document.createTextNode('x'), 0)).toBe(-1);
+    root.remove();
+  });
+
+  it('alignSegments highlights what IS rendered and returns null for spoken-but-unrendered passages', () => {
+    const root = pageRoot();
+    const follow = buildFollowMap(root);
+    const spoken = [
+      'The Perfect You Were Made For.',
+      'This paced step is not rendered anywhere on the card.',
+      'You were made to be whole.',
+    ];
+    const ranges = alignSegments(follow, spoken);
+    expect(ranges[0]).toBeTruthy();
+    expect(norm(ranges[0].toString())).toBe(spoken[0]);
+    expect(ranges[1]).toBeNull(); // honest gap — no highlight, never a wrong one
+    expect(ranges[2]).toBeTruthy();
+    root.remove();
+  });
+
+  it('segmentIndexAtFraction maps playback fraction to the sentence by character weight', () => {
+    const lens = [10, 30, 60]; // total 100
+    expect(segmentIndexAtFraction(lens, 0)).toBe(0);
+    expect(segmentIndexAtFraction(lens, 0.05)).toBe(0);
+    expect(segmentIndexAtFraction(lens, 0.2)).toBe(1);
+    expect(segmentIndexAtFraction(lens, 0.9)).toBe(2);
+    expect(segmentIndexAtFraction(lens, 1)).toBe(2);
+    expect(segmentIndexAtFraction([], 0.5)).toBe(-1); // nothing to follow
   });
 });
 
