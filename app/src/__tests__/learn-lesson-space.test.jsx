@@ -19,6 +19,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { getPlace } from '../lib/learn-resume.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -117,6 +118,37 @@ describe('the lesson\'s own space — no more losing your place', () => {
     cards = lessonCards();
     expect(cards.length).toBeGreaterThan(4); // the full index is back
     expect(container.textContent).toContain('Pick a lesson by title');
+  });
+
+  it('one lesson, ONE copy — opening the guide removes the card\'s duplicate preview (Darrell 2026-08-03)', () => {
+    // Reported from the phone: "each page is a duplicate on the same page" —
+    // the card's big idea / benefits / hands-on / anchor stayed rendered ABOVE
+    // the open guide, whose Open/Apply/Send-off stages render the SAME four
+    // fields. The pin: with the guide open, each field appears exactly once.
+    const m = LIVING_LESSONS_MODULES.find((x) => x.id === 'll3-bodybuilding-christ');
+    // Scope to the lesson card — the on-screen surface. (The print-only
+    // curriculum block is CSS-hidden but present in jsdom text, so a
+    // whole-container count would see it.)
+    const count = (needle) => lessonCards()[0].textContent.split(needle).length - 1;
+
+    mount();
+    openLivingLessons();
+    click(buttonByText('Bodybuilding Christ'));
+
+    // Guide closed: the card preview is the one copy.
+    expect(count(m.bigIdea)).toBe(1);
+
+    click(buttonByText('Start this lesson'));
+
+    // Guide open: the guide's stages are the one copy — the card preview left.
+    expect(count(m.bigIdea)).toBe(1);
+    expect(count(`Anchor — ${m.anchor.ref}`)).toBe(1);
+    expect(count('What this frees in you')).toBeLessThanOrEqual(1);
+    expect(count(m.inApp)).toBeLessThanOrEqual(1);
+
+    // Closing the guide brings the scannable preview back.
+    click(buttonByText('Close the guide'));
+    expect(count(m.bigIdea)).toBe(1);
   });
 
   it('Resume from the banner lands IN the lesson\'s own space with its guide open', () => {
