@@ -1271,6 +1271,13 @@ function CourseView({
                   </div>
                 ) : null;
               })()}
+              {/* The card's scannable preview (big idea, benefits, hands-on,
+                  anchor) shows only while the guide is CLOSED. The open guide's
+                  Open/Apply/Send-off stages render the SAME four fields, so
+                  keeping both put the whole lesson on screen twice in one
+                  scroll (reported from the phone, 2026-08-03) — one lesson,
+                  one copy. */}
+              {!tutorOpen && (<>
               <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
@@ -1290,6 +1297,7 @@ function CourseView({
                   <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
                 </p>
               )}
+              </>)}
 
               {/* World-Issues / Discernment modules carry a structured `issue`:
                   render the dedicated five-stage walk-through. Other courses have
