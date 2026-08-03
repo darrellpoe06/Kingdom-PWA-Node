@@ -15,10 +15,18 @@
 #      auto-opens the PR, CI gates it, and on merge the in-app corpus-wholeness
 #      strip (Harvest Ledger) measures live rows against the new expected list.
 #
-# THREE BRAKES (CLAUDE.md autonomous-automation rule):
+# BRAKES (deterministic class — DR-0247/DR-0248 amended posture):
 #   (1) Budget — one channel listing + one SQL apply per run; no loops.
-#   (2) Lock   — concurrency group; a second dispatch queues, never stacks.
-#   (3) Kill   — workflow_dispatch ONLY (ships inactive; a human arms each run).
+#   (2) Lock   — concurrency group; a second fire queues, never stacks.
+#   Stop-paths are deterministic: remove the schedule block in a PR, or disable
+#   the workflow in the Actions UI. (The original "dispatch-only, a human arms
+#   each run" kill brake predated DR-0247; it left the corpus frozen at the
+#   2026-07-10 reconcile — nothing imported for ~4 weeks while services kept
+#   landing. Agreed work starts itself; the schedule below is the fix.)
+#
+# SCHEDULE (added 2026-08-03, DR-0267): Mon + Thu 16:00 UTC — the morning after
+# the Sunday and Wednesday services — so every new upload is in the corpus
+# within ~1 day, and the /streams tab (added the same day) is swept too.
 #
 # NOTE: yt-dlp flat-playlist listing generally works from GitHub runner IPs
 # (it is not the caption endpoint that YouTube rate-limits) — but if YouTube
@@ -28,6 +36,8 @@
 name: corpus-reconcile
 
 on:
+  schedule:
+    - cron: '0 16 * * 1,4'
   workflow_dispatch:
     inputs:
       apply_sql:

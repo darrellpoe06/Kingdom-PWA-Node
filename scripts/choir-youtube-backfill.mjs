@@ -20,29 +20,66 @@
 // (CLAUDE.md three-brakes rule).
 //
 // Usage:
-//   node scripts/choir-youtube-backfill.mjs "https://www.youtube.com/@thelovecorner/videos" [maxItems]
+//   node scripts/choir-youtube-backfill.mjs [channelBaseOrTabUrl] [maxItems]
+// Default lists BOTH the /videos AND /streams tabs (2026-08-03, Darrell: "BG
+// should have double the number of videos currently inside the Love Corner
+// App" — a channel that live-streams its services accumulates the service
+// archive on the STREAMS tab, which a /videos-only listing never sees; every
+// prior run listed /videos only, so the streams half was structurally
+// invisible). Passing an explicit tab URL (.../videos or /streams) lists just
+// that tab — the old single-tab behavior, kept for targeted re-runs.
 // Requires yt-dlp on PATH (or `python -m yt_dlp`).
 
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { parseServiceTitle, extractYoutubeId } from '../app/src/lib/youtube-title-parse.js';
 
-const channel = process.argv[2] || 'https://www.youtube.com/@thelovecorner/videos';
+const DEFAULT_BASE = 'https://www.youtube.com/@thelovecorner';
+const TAB_NAMES = ['videos', 'streams'];
+const arg = process.argv[2] || DEFAULT_BASE;
 const max = Number(process.argv[3]) || 0; // 0 = all
 
+// Explicit tab URL -> that tab only; channel base -> every tab in TAB_NAMES.
+const explicitTab = TAB_NAMES.find((t) => arg.replace(/\/+$/, '').endsWith(`/${t}`));
+const base = explicitTab ? arg.replace(/\/+$/, '').slice(0, -(explicitTab.length + 1)) : arg.replace(/\/+$/, '');
+const tabs = explicitTab ? [explicitTab] : TAB_NAMES;
+const channel = base;
+
 function ytdlp(args) {
+  let lastErr = '';
   for (const cmd of [['yt-dlp', args], ['python', ['-m', 'yt_dlp', ...args]]]) {
     const r = spawnSync(cmd[0], cmd[1], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (r.status === 0) return r.stdout;
+    lastErr = (r.stderr || r.error?.message || `exit ${r.status}`).toString().slice(-400);
   }
-  throw new Error('yt-dlp not found. Install with: pip install --user yt-dlp');
+  throw new Error(`yt-dlp failed: ${lastErr || 'not found. Install with: pip install --user yt-dlp'}`);
 }
 
-const args = ['--flat-playlist', '--print', '%(id)s\t%(title)s'];
-if (max > 0) args.push('--playlist-end', String(max));
-args.push(channel);
+function listTab(tab) {
+  const args = ['--flat-playlist', '--print', '%(id)s\t%(title)s'];
+  if (max > 0) args.push('--playlist-end', String(max));
+  args.push(`${base}/${tab}`);
+  return ytdlp(args).split('\n').map((l) => l.trim()).filter(Boolean);
+}
 
-const lines = ytdlp(args).split('\n').map((l) => l.trim()).filter(Boolean);
+// The videos tab MUST list (a channel always has it; an empty/failed listing is
+// an honest-red, never a silently smaller corpus — DR-0076). The streams tab is
+// OPTIONAL structurally (a channel that never streamed has no such tab) but a
+// failure there is still printed loudly, because for THIS channel the streams
+// tab is where the services live.
+const lines = [];
+const perTab = {};
+for (const tab of tabs) {
+  try {
+    const tabLines = listTab(tab);
+    perTab[tab] = tabLines.length;
+    lines.push(...tabLines);
+  } catch (e) {
+    perTab[tab] = 0;
+    if (tab === 'videos' || explicitTab) throw e;
+    console.error(`WARNING: /${tab} tab listing failed (${e.message}). Continuing with the other tab(s) — if this channel DOES have streams, this run is PARTIAL.`);
+  }
+}
 const sqlEsc = (s) => (s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`);
 
 const rows = [];
@@ -94,6 +131,7 @@ writeFileSync('scripts/out/choir-sermons-backfill.sql', sql + '\n');
 const manifest = {
   generatedAt: new Date().toISOString().slice(0, 10),
   channel,
+  tabs: perTab,
   total: rows.length,
   dated: withDate.length,
   undated: undated.length,
@@ -101,7 +139,7 @@ const manifest = {
 };
 writeFileSync('app/src/lib/corpus-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
 
-console.log(`Parsed ${rows.length} videos (${withDate.length} dated, ${undated.length} undated — ALL emitted).`);
+console.log(`Parsed ${rows.length} videos (${withDate.length} dated, ${undated.length} undated — ALL emitted). Tabs: ${JSON.stringify(perTab)} (overlap deduped by id).`);
 console.log(`Sunday: ${withDate.filter((r) => r.serviceType === 'sunday').length} · Wednesday: ${withDate.filter((r) => r.serviceType === 'wednesday').length}`);
 console.log('Wrote scripts/out/choir-sermons-backfill.{json,sql} and app/src/lib/corpus-manifest.json');
 if (rows.length) console.log('Sample:', JSON.stringify(rows[0], null, 2));
