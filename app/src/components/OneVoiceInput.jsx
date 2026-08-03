@@ -16,7 +16,7 @@
 // dispatch in ChurchOneVoice + ThinkingSpace (Darrell 2026-06-15: "consolidate
 // the inputs to make a master multiinput").
 import React, { useState, useRef, useEffect } from 'react';
-import { suggestDestination, destinationsFor, planDispatch } from '../lib/one-voice-routing.js';
+import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
 import { resolveSurface } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
@@ -62,7 +62,9 @@ export function OneVoiceInput({
 
   const onText = (v) => {
     setText(v);
-    if (!touchedRoute) setRoute(suggestDestination(v, cfg.defaultRoute));
+    // Suggestions are clamped to the destinations THIS surface offers — a
+    // route with no visible chip must never be selected for the person.
+    if (!touchedRoute) setRoute(suggestDestination(v, cfg.defaultRoute, DESTS.map(d => d.key)));
   };
 
   // Voice — same box, spoken. The mic only appears where the browser supports
@@ -103,10 +105,10 @@ export function OneVoiceInput({
         // contact intent only; the words never cross. On the notes surface the
         // verbatim text is ALSO kept as a private device-local note.
         addInquiry({ firstName: who || cfg.inquiryFrom, lastName: '', phone: '', email: '', source: cfg.sourceTag, interest: 'counseling', bestTime: 'anytime', notes: cfg.counselingNote });
-        if (plan.savesPrivateNote) addNote(t);
+        if (plan.savesPrivateNote) addNote(cfg.nameIsLabel ? composeNoteText(t, who) : t);
         break;
       case 'private':
-      case 'fallback-note': addNote(t); break;
+      case 'fallback-note': addNote(cfg.nameIsLabel ? composeNoteText(t, who) : t); break;
       case 'fallback-voice': voiceNote('voice'); break;
       default: break; // 'none' — no handler available
     }
@@ -188,7 +190,7 @@ export function OneVoiceInput({
       <div className="flex gap-1.5 mt-2 flex-wrap items-center">
         <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
         {showName && (
-          <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Your name (optional)" value={name} onChange={e => setName(e.target.value)} />
+          <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder={cfg.namePlaceholder || 'Your name (optional)'} value={name} onChange={e => setName(e.target.value)} />
         )}
         <button type="button" onClick={send} disabled={!text.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">{submitLabel}</button>
       </div>
