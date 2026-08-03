@@ -92,6 +92,36 @@ export function normalizeStripeEvent(evt = {}, meta = {}) {
   };
 }
 
+// The tiers a paid Stripe subscription may activate (schema-v2.1 CHECK list,
+// minus 'foundation' — the free tier is never a purchase).
+export const ACTIVATABLE_TIERS = Object.freeze([
+  'poetech-plus', 'family', 'premium', 'business', 'landlord', 'enterprise',
+]);
+
+// subscriptionActivation — does this verified event SETTLE a monthly
+// subscription, and to what tier? (DR-0263: the found gap — the webhook wrote
+// the payments LEDGER but never flipped instance_subscriptions, so a paid
+// member would have stayed on Foundation until a hand fixed the row. This
+// pure half decides; onRequestPost applies it as a PATCH of the instance's
+// existing subscription row — never a blind INSERT, which the table's
+// created_by NOT NULL REFERENCES auth.users would reject for our email-keyed
+// checkout metadata.) Returns null for one-off purchases, unknown tiers, and
+// unsettled events — proven-to-catch in payments-functions.test.js.
+export function subscriptionActivation(evt = {}) {
+  if (asStr(evt.type) !== 'checkout.session.completed') return null;
+  const obj = (evt.data && evt.data.object) || {};
+  const md = obj.metadata || {};
+  if (asStr(md.kind) !== 'subscription') return null;
+  if (!(obj.payment_status === 'paid' || obj.status === 'complete')) return null;
+  const tier = asStr(md.tier);
+  if (!ACTIVATABLE_TIERS.includes(tier)) return null;
+  return {
+    tier,
+    stripeCustomerId: asStr(obj.customer) || null,
+    stripeSubscriptionId: asStr(obj.subscription) || null,
+  };
+}
+
 // Ledger row (camelCase engine shape) -> the payments table row (snake_case).
 export function toTableRow(row, { instanceId = '' } = {}) {
   return {
@@ -147,5 +177,48 @@ export async function onRequestPost(context) {
     });
   } catch { return json({ error: 'ledger-unreachable' }, 502); }
   if (!upstream.ok) return json({ error: `ledger-${upstream.status}` }, 502);
+
+  // ENTITLEMENT ACTIVATION (DR-0263): a settled SUBSCRIPTION flips the
+  // instance's existing subscription row to the paid tier — the ledger row
+  // alone never changed what the member could use. PATCH-only by design (see
+  // subscriptionActivation); a missing row is reported honestly in the
+  // response and in the row-less marker below, never retried forever (the
+  // ledger write above already succeeded, so Stripe gets its 200 either way).
+  const activation = subscriptionActivation(evt);
+  if (activation && instanceId) {
+    try {
+      const patch = await fetch(
+        `${supabaseUrl}/rest/v1/instance_subscriptions?instance_id=eq.${encodeURIComponent(instanceId)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            apikey: serviceKey,
+            Authorization: `Bearer ${serviceKey}`,
+            'content-type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({
+            tier: activation.tier,
+            status: 'active',
+            stripe_customer_id: activation.stripeCustomerId,
+            stripe_subscription_id: activation.stripeSubscriptionId,
+            current_period_start: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+      const rows = patch.ok ? await patch.json().catch(() => []) : [];
+      if (!patch.ok) return json({ received: true, activation: `patch-${patch.status}` });
+      if (!Array.isArray(rows) || rows.length === 0) {
+        // No subscription row exists for this instance — the payment is in the
+        // ledger; the tier flip needs the steward's one-time row (visible in
+        // Admin, where the tier reads from this same table).
+        return json({ received: true, activation: 'no-subscription-row' });
+      }
+      return json({ received: true, activation: 'activated', tier: activation.tier });
+    } catch {
+      return json({ received: true, activation: 'activation-unreachable' });
+    }
+  }
   return json({ received: true });
 }
