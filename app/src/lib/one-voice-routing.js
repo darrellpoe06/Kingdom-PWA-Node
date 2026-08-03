@@ -50,17 +50,39 @@ const RULES = [
   { key: 'pastor',     re: /\b(pastor|bishop|shepherd|sermon|scripture question|bible question|word from)\b/i },
 ];
 
+// A keyword is a strong signal in a short message and pure noise in a long
+// dictation: on 2026-08-03 a 29k-character spoken conference-review session
+// was silently rerouted to 'work' — and filed as a maintenance incident —
+// because the word "paint" appeared once, mid-meeting. Past this length the
+// text is a long-form note, not a request, and it STAYS on the surface
+// default; the person can still tap a chip (they always have the last word).
+export const SUGGEST_MAX_CHARS = 400;
+
 // Suggests a destination for the text. `surfaceDefault` is the entry page's
 // expectation (Notes: 'private', Church: 'prayer') — used only when the
 // words don't clearly pull elsewhere. The same words route the same way on
 // every surface: that is the "same system under the hood."
-export function suggestDestination(text, surfaceDefault = 'private') {
+// `allowedKeys` (optional): the destinations the surface actually offers —
+// a suggestion the surface has no chip for would select an INVISIBLE route
+// (e.g. 'conference' on Notes), so those rules are skipped.
+export function suggestDestination(text, surfaceDefault = 'private', allowedKeys = null) {
   const t = (text || '').trim();
   if (!t) return surfaceDefault;
+  if (t.length > SUGGEST_MAX_CHARS) return surfaceDefault;
   for (const rule of RULES) {
+    if (allowedKeys && !allowedKeys.includes(rule.key)) continue;
     if (rule.re.test(t)) return rule.key;
   }
   return surfaceDefault;
+}
+
+// A saved private note keeps the label the person typed (the field beside
+// Save) as its title line — "Conference Review and Future Plans" was typed
+// there and silently dropped. Pure; empty label returns the text unchanged.
+export function composeNoteText(text, label) {
+  const t = String(text ?? '').trim();
+  const l = String(label ?? '').trim();
+  return l ? `${l}\n\n${t}` : t;
 }
 
 export function destinationsFor(surface) {

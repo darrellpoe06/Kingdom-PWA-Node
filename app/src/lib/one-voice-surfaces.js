@@ -42,6 +42,11 @@ export const SURFACES = {
     sourceTag: 'thinking-space',
     sourceLabel: 'from Thinking Space',
     inquiryFrom: '(from notes)',
+    // On the diary the field beside Save is a TITLE, not a signature — Darrell
+    // typed "Conference Review and Future Plans" there (2026-08-03) and the
+    // label was silently dropped. nameIsLabel keeps it as the note's title line.
+    namePlaceholder: 'Title / label (optional)',
+    nameIsLabel: true,
     counselingNote: 'Requested counseling via Thinking Space. Their words stay private on their device — TLC connects directly.',
     saveNoteOnCounseling: true,
     confirmations: {
