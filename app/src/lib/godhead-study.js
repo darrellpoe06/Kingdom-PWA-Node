@@ -1433,6 +1433,24 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'The felt distance of God is a dimensional category error, not His absence: He is not far "up" but outside-and-holding — which is why He can be beyond comprehension and closer than the walls at the same time.',
     tags: ['transcendence', 'dimension', 'sovereignty', 'awe'],
   },
+  {
+    // --- Spoken lesson captured (Darrell, 2026-08-03): Galatians 5:22-23 —
+    // "against such there is no law." Distilled from his lesson input: the
+    // ninefold fruit read as three triads (a heart at rest before Yahweh; how
+    // we treat the people around us; steady character under command), and the
+    // no-law clause taught from the Word's own logic (Galatians 5:18; Romans
+    // 13:10) — laws are written to stop the works of the flesh, never the
+    // Spirit's harvest (DR-0098: taught from the Word, not staged as a poll
+    // of opinions). Verses fetched verbatim KJV (DR-0076). ---
+    id: 'gh-fruit-no-law', section: 'epistles', name: 'The Fruit of the Spirit (against such there is no law)',
+    refs: ['Galatians 5:22-23', 'Galatians 5:18', 'Romans 13:10'],
+    condition: 'Be LED of the Spirit — connected, walking, abiding. The chapter itself draws the contrast: the flesh has WORKS (Galatians 5:19), manufactured by effort; the Spirit has FRUIT — grown from the connection, never ground out by willpower.',
+    consequence: 'Love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance — and "against such there is no law." No statute in any code forbids this life: laws are written to stop the works of the flesh, never the Spirit\'s harvest. "If ye be led of the Spirit, ye are not under the law" — and "love is the fulfilling of the law": the fruit does not dodge what the law demands; it completes it.',
+    threeD: 'Read the fruit as three triads and audit each honestly: a heart at rest in Yahweh (love, joy, peace); how you treat the people around you (longsuffering, gentleness, goodness); steady character under the General\'s command (faith, meekness, temperance). When a fruit is missing, fix the root, not the branch — white-knuckling a virtue is flesh-work in fruit\'s clothing; reconnect to the Vine that grows it. No legislature ever criminalized kindness: live the one life no court can prosecute.',
+    outcome: 'A life beyond legislation — character no law forbids and every good law was reaching for, grown from the Spirit instead of extracted by rules.',
+    psyche: 'Rule-based change fights the desire and exhausts; source-based change replaces the desire and lasts. And the fruit is SINGULAR on purpose — one life from one root, not nine separate merit badges to earn.',
+    tags: ['fruit-of-the-spirit', 'no-law', 'galatians', 'led-of-the-spirit', 'character'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
