@@ -75,4 +75,9 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.set_family_bridge_token(text) TO authenticated;
 
+-- New instance-scoped table => the viewer read-only overlay MUST re-run so a
+-- viewer role can never write it (DR-0241; enforced by tenancy-guard.test.js —
+-- which correctly went red on the first cut of this migration).
+SELECT public.apply_viewer_readonly_overlay();
+
 NOTIFY pgrst, 'reload schema';
