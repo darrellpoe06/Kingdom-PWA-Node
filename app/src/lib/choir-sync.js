@@ -275,17 +275,19 @@ export function buildPastServices(schedule, sermons, songs, todayIso) {
   };
   for (const s of schedule || []) consider(s, true);
   for (const s of sermons || []) consider(s, false);
-  // Keep a service if it was planned, has a setlist, or is a WATCHABLE SUNDAY.
-  // The choir sings on Sunday (Darrell 2026-07-10): a video-only row on any
-  // other real weekday (Wednesday Bible study, Monday-posted revival nights) is
-  // the sermon library's history, not the choir's — it only earns a card here
-  // by being planned or actually carrying songs. The weekday comes from the
-  // DATE (service-day.js), never asserted from the stored type.
+  // Keep a service if it was planned, has a setlist, or is WATCHABLE (any
+  // dated recording). The old Sunday-only rule (2026-07-10) hid 142 dated
+  // weekday recordings and left 52 of an 897-row corpus visible — superseded
+  // by Darrell 2026-08-03 ("only 52 of the 800 plus"): every dated service
+  // with a recording is the choir's browsable history; the card's own
+  // day/type label says which weekday it was. Rows with no date at all still
+  // cannot render on a dated list — they surface via the undated-remainder
+  // note until the corpus pipeline dates them (DR-0266/DR-0267).
   const out = [];
   for (const svc of byKey.values()) {
     const hasSongs = songsForService(songs, svc.serviceDate, svc.serviceType).length > 0;
-    const watchableSunday = !!svc.youtubeUrl && weekdayName(svc.serviceDate) === 'Sunday';
-    if (svc._scheduled || hasSongs || watchableSunday) {
+    const watchable = !!svc.youtubeUrl;
+    if (svc._scheduled || hasSongs || watchable) {
       const { _scheduled, ...clean } = svc;
       out.push(clean);
     }
@@ -394,7 +396,6 @@ export function youtubeTimedUrl(url, startSeconds) {
 // The YouTube title parser lives in a dependency-free module so the local
 // backfill script can share it. Re-exported here for the app + tests.
 import { parseServiceTitle as _parseTitle, decodeHtmlEntities } from './youtube-title-parse.js';
-import { weekdayName } from './service-day.js';
 export { parseServiceTitle, extractYoutubeId, decodeHtmlEntities } from './youtube-title-parse.js';
 
 // Pure: turn raw {videoId, title} channel items into NEW choir_sermons rows —

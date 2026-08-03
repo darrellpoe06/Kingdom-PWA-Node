@@ -161,11 +161,16 @@ describe('buildPastServices', () => {
     expect(hit).toBeTruthy();
     expect(hit.youtubeUrl).toBe('y21'); // the Watch-service link rides the card
   });
-  it('the choir sings on Sunday: video-only rows on other real weekdays leave the choir room (Darrell 2026-07-10)', () => {
+  it('every DATED recording is browsable history, any weekday (Darrell 2026-08-03: "only 52 of the 800 plus" — supersedes the 2026-07-10 Sunday-only rule)', () => {
     const dates = buildPastServices(schedule, sermons, songs, today).map((s) => s.serviceDate);
-    expect(dates).not.toContain('2026-06-24'); // Wednesday Bible study video
-    expect(dates).not.toContain('2026-06-22'); // Monday-posted video, no songs, not planned
-    expect(dates).toContain('2026-06-29');     // Monday date but the harvester found its songs -> stays
+    expect(dates).toContain('2026-06-24'); // Wednesday Bible study video — watchable, so it shows
+    expect(dates).toContain('2026-06-22'); // Monday-posted video — watchable, so it shows
+    expect(dates).toContain('2026-06-29'); // Monday date with harvested songs — stays
+  });
+  it('a row with NO date cannot sit on the dated list (the undated corpus surfaces via the remainder note)', () => {
+    const withUndated = [...sermons, { videoId: 'v9', serviceDate: null, title: 'Stream, no date', youtubeUrl: 'y9' }];
+    const past = buildPastServices(schedule, withUndated, songs, today);
+    expect(past.find((s) => s.title === 'Stream, no date')).toBeUndefined();
   });
   it('still excludes a past row with no plan, no setlist, AND no video (pure noise)', () => {
     const past = buildPastServices(schedule, sermons, songs, today);

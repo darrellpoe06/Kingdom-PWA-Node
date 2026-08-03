@@ -76,6 +76,7 @@ function ConferenceModuleInner() {
     setForm({
       name: view.name, theme: view.theme, host: view.host, location: view.location,
       dates: view.dates, livestreamUrl: view.livestreamUrl, siteUrl: view.siteUrl,
+      startDate: conf?.startDate || '', endDate: conf?.endDate || '',
     });
     setEditing(true);
   };
@@ -85,6 +86,7 @@ function ConferenceModuleInner() {
       id: conf?.id,
       name: form.name, theme: form.theme, host: form.host, location: form.location,
       datesLabel: form.dates, livestreamUrl: form.livestreamUrl, siteUrl: form.siteUrl,
+      startDate: form.startDate || null, endDate: form.endDate || null,
       status: 'active',
     };
     const res = await saveConference(payload);
@@ -143,7 +145,10 @@ function ConferenceModuleInner() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className={labelCls}>Conference name</label><input className={fieldCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
             <div><label className={labelCls}>Theme</label><input className={fieldCls} value={form.theme} onChange={e => setForm({ ...form, theme: e.target.value })} /></div>
+            <div><label className={labelCls}>Host</label><input className={fieldCls} value={form.host} onChange={e => setForm({ ...form, host: e.target.value })} /></div>
             <div><label className={labelCls}>Dates (e.g., July 14–18, 2026)</label><input className={fieldCls} value={form.dates} onChange={e => setForm({ ...form, dates: e.target.value })} /></div>
+            <div><label className={labelCls}>Start date</label><input type="date" className={fieldCls} value={form.startDate || ''} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
+            <div><label className={labelCls}>End date</label><input type="date" className={fieldCls} value={form.endDate || ''} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
             <div><label className={labelCls}>Location</label><input className={fieldCls} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
             <div><label className={labelCls}>Livestream link</label><input className={fieldCls} value={form.livestreamUrl} onChange={e => setForm({ ...form, livestreamUrl: e.target.value })} /></div>
             <div><label className={labelCls}>Website page</label><input className={fieldCls} value={form.siteUrl} onChange={e => setForm({ ...form, siteUrl: e.target.value })} /></div>
