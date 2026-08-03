@@ -81,3 +81,16 @@
   body.print-scope .print-sheet * { visibility: visible; }
   body.print-scope .print-sheet { position: absolute; left: 0; top: 0; width: 100%; }
 }
+
+/* Read-aloud follow-along (DR-0264 — "highlighted as it reads so users can see
+   their place", readers age 6 to 60). CSS Custom Highlight API: no DOM
+   mutation, no reflow; browsers without the API simply never paint these and
+   the auto-scroll floor still follows. House rust, never true red (DR-0099 —
+   red is reserved). The sentence wash is soft; the word is emphatic. */
+::highlight(poe-read-seg) {
+  background-color: rgba(184, 88, 56, 0.22);
+}
+::highlight(poe-read-word) {
+  background-color: rgba(184, 88, 56, 0.85);
+  color: #ffffff;
+}

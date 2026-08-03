@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0224 · UI/UX — read-aloud gains follow-along (highlight + keep-in-sight); the lesson space becomes SECURE; presentations O&C reviewed
+- **Date:** 2026-08-03
+- **Surface:** app/src/lib/read-follow.js (new) · app/src/lib/tts.js · app/src/lib/use-read-aloud.js · app/src/components/TTSControl.jsx · app/src/index.css · app/src/components/ChurchLearn.jsx · docs/decisions/DR-0264
+- **Type:** ui-ux
+- **Status:** addressed
+- **Findings:** Darrell 2026-08-03 (two directives + presentations O&C). (1) **Follow-along:** the tts engine already spoke sentence segments and even documented "lets a caller highlight-as-it-reads" — the screen half was never built. Built: buildFollowMap walks the visible page into normalized text + a per-char DOM map, segments it with the engine's OWN segmentText, and Play speaks that exact string — sentence N on screen and in the ear are identical by construction. Each sentence gets a soft house-rust highlight (CSS Custom Highlight API, no DOM mutation; true red untouched per DR-0099) + centered smooth scroll; device engines that fire word boundaries get the karaoke word highlight on top. Chrome/aria-hidden/panel text never enters the read. (2) **Secure lesson space:** DR-0262's space sealed — while a lesson is open, the tagline, progress strip, graduation banner, section chips, catalog line, course picker/sort, and resume banner all leave the screen; the focus bar + one lesson are the whole surface; exit restores everything. (3) **Presentations O&C** recorded in DR-0264 (follow-along in present mode; presenting from the space; projected-window constraints). Proven-to-catch: read-follow.test.js (8 — alignment law, chrome exclusion, word mapping, boundary routing, unbreakable-without-API) + learn-lesson-space.test.jsx (+1 secure-space both ways) — 37 green across the four adjacent files. Carried honestly: cloned-voice audio has no timing events (no follow) `re-review: 2026-08-24`; tap-to-start + read-this-lesson paths speak unmapped (no highlight yet) — same date; on-device feel pass is the live witness.
+- **Source:** docs/decisions/DR-0264-follow-along-reading-and-the-secure-lesson-space.md
+
 ### REV-0223 · Pricing history review — "are those prices correct?" No: two ladders live in the repo; the operative one is $39/$89/$149/$249 and the pick is the Governor's
 - **Date:** 2026-08-03
 - **Surface:** infra/supabase/schema-v2.1-infra.sql (tier comments) · app/src/poe-financial-mvp-v28.jsx:576,3792 · app/src/components/DevOps.jsx:705,730-732 · docs/decisions/DR-0184 · app/src/components/{MinistryOps,CohortPrograms,Bookstore}.jsx · docs/00-foundations/_root/ACCESS-AND-ONBOARDING-MODEL.md:96

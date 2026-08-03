@@ -13,9 +13,13 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
+import {
+  buildFollowMap, segmentRange, wordRange, highlightSegment, highlightWord,
+  clearReadingHighlights, followRange,
+} from '../lib/read-follow.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
 import UiIcon from './UiIcon.jsx';
@@ -43,7 +47,36 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
     catalog, voiceId, setVoiceId, currentItem,
+    segmentIndex, setBoundaryHandler, deviceRead,
   } = useReadAloud({ isOwner });
+
+  // FOLLOW-ALONG (DR-0264, Darrell 2026-08-03: readers "could be 6 or 60 years
+  // old... highlighted as it reads so users can see their place and the screen
+  // should move with the location of the words"). When Play starts from the
+  // visible page, the SAME normalized text handed to the engine is mapped to
+  // live DOM ranges (read-follow.js — alignment by construction). The engine's
+  // segmentIndex then drives a sentence highlight + centered auto-scroll, and
+  // word boundaries (where the device fires them) drive the word highlight.
+  const followRef = useRef(null);
+  useEffect(() => {
+    if (!isReading || !deviceRead || !followRef.current) {
+      if (!isReading) { clearReadingHighlights(); highlightWord(null); }
+      return;
+    }
+    const r = segmentRange(followRef.current, segmentIndex);
+    highlightSegment(r);
+    highlightWord(null); // a new sentence clears the previous word
+    followRange(r);
+  }, [segmentIndex, isReading, deviceRead]);
+  useEffect(() => {
+    if (!setBoundaryHandler) return undefined;
+    setBoundaryHandler((segIdx, charIndex) => {
+      if (!followRef.current) return;
+      const r = wordRange(followRef.current, segIdx, charIndex);
+      if (r) highlightWord(r);
+    });
+    return () => setBoundaryHandler(null);
+  }, [setBoundaryHandler]);
 
   // START WHERE I TAP (DR-0144): "if Ari could start right at wherever users
   // want it to start... whatever word on the page" (Darrell, 2026-07-10). Arm a
@@ -74,6 +107,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       setArmed(false);
       const hit = readFromPoint(main, e.clientX, e.clientY);
       const text = (hit && hit.text) || readablePageText();
+      followRef.current = null; // start-at-tap reads unmapped text — no stale highlight
       if (text) read(text);
     };
     const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
@@ -87,7 +121,22 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
   if (!supported) return null; // graceful: device can't speak — show nothing
 
-  const start = () => { const text = readablePageText(); if (text) read(text); };
+  const start = () => {
+    // Build the follow map from the LIVE page and speak its exact normalized
+    // text, so the engine's sentence N and the on-screen range N are the same
+    // sentence by construction. Falls back to the plain extractor when the map
+    // can't be built (empty page) — reading always still works.
+    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
+    const follow = main ? buildFollowMap(main) : null;
+    if (follow && follow.text) {
+      followRef.current = follow;
+      read(follow.text);
+      return;
+    }
+    followRef.current = null;
+    const text = readablePageText();
+    if (text) read(text);
+  };
 
   // TALK ABOUT THIS: build a grounded digest of the CURRENT surface (real
   // on-screen numbers via data-talk markers, else the surface's "?" help), have
@@ -102,6 +151,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const { text, source } = await talkAboutSurface(digest);
     setTalking(false);
     setTalkSource(source === 'live' ? 'Ari, live' : 'Ari, on-device');
+    followRef.current = null; // Ari's explanation isn't on-screen text — no highlight map
     if (text) read(text);
   };
 
@@ -147,7 +197,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
                 {target && (
-                  <button type="button" onClick={() => read(target.text)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" onClick={() => { followRef.current = null; read(target.text); }} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 <button type="button" onClick={start} className={`col-span-3 px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${target ? 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white' : 'bg-[#1A1815] text-white hover:bg-[#B85838]'}`}>▶ Read this page</button>
                 {/* START WHERE I TAP — arm, then the next tap on the page picks

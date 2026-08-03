@@ -80,6 +80,28 @@ describe('the lesson\'s own space — no more losing your place', () => {
     expect(p && p.lessonId).toBe('ll3-bodybuilding-christ'); // reload = one Resume tap away
   });
 
+  it('the space is SECURE — course picker, catalog line, progress strip, and section chips all leave the screen (DR-0264)', () => {
+    mount();
+    openLivingLessons();
+    expect(container.querySelector('#learn-course-pick')).toBeTruthy();
+    expect(container.textContent).toContain('Your progress');
+
+    click(buttonByText('Bodybuilding Christ'));
+
+    // Only the lesson remains: no course switcher, no sort, no catalog count,
+    // no progress strip, no section chips — the whole screen is the lesson.
+    expect(container.querySelector('#learn-course-pick')).toBeNull();
+    expect(container.querySelector('#learn-course-sort')).toBeNull();
+    expect(container.textContent).not.toContain('every finished lesson in the PoeTech App');
+    expect(container.textContent).not.toContain('Your progress');
+    expect(container.textContent).not.toContain('Story Library');
+
+    // Leaving the space brings the full course back.
+    click(buttonByText('← All lessons'));
+    expect(container.querySelector('#learn-course-pick')).toBeTruthy();
+    expect(container.textContent).toContain('Your progress');
+  });
+
   it('Next → moves to the next lesson INSIDE the space; ← All lessons returns to the index', () => {
     mount();
     openLivingLessons();
