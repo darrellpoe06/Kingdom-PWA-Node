@@ -120,6 +120,14 @@ it.
 
 ## Perpetual-improvement ledger (DR-0075 — why + re-review)
 
+- **Do completed LIVE STREAMS reach YT Zero's feed?** YT Zero reads the channel
+  RSS feed; whether a finished @thelovecorner live stream appears there like a
+  regular upload is UNVERIFIED (the sandbox has no YouTube route to test it).
+  The check is two minutes on the live instance after the next Sunday stream
+  ends: if the stream shows in YT Zero's feed, forward-capture covers services;
+  if not, the twice-weekly corpus reconcile (DR-0267) still catalogs it and
+  only the offline-download convenience is affected. `re-review: 2026-08-10`.
+
 - **In-app surface / same-origin route:** not shipped — cross-origin Funnel
   throttling (the transport memory) and unproven path-prefix behavior.
   `re-review: 2026-08-17`.
