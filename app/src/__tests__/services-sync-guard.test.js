@@ -26,6 +26,32 @@ export function manifestProblems(doc, fileExists) {
   return problems;
 }
 
+// Pinned-image gate (DR-0266): every ENABLED manifest service that ships a
+// docker-compose.yml must pin its image tags. A floating tag (:latest/:main/
+// :edge or no tag at all) turns "merge is the deploy" into a silent moving
+// target the gates never saw — the exact drift class DR-0076 exists to stop.
+// readCompose(dirRel) returns the compose text, or null when the service has
+// no compose file (the venv/systemd class — not this gate's business).
+export function composePinProblems(doc, readCompose) {
+  const problems = [];
+  const FLOATING = new Set(['latest', 'main', 'edge']);
+  for (const svc of (doc && doc.services) || []) {
+    if (!svc.enabled || !svc.install) continue;
+    const dir = svc.install.replace(/\/[^/]*$/, '');
+    const text = readCompose(dir);
+    if (text == null) continue;
+    for (const line of text.split('\n')) {
+      const m = line.match(/^\s*image:\s*["']?([^\s"']+)/);
+      if (!m) continue;
+      const ref = m[1];
+      const lastColon = ref.lastIndexOf(':');
+      const tag = lastColon > ref.lastIndexOf('/') ? ref.slice(lastColon + 1) : null;
+      if (!tag || FLOATING.has(tag)) problems.push(`${svc.name}:floating-image:${ref}`);
+    }
+  }
+  return problems;
+}
+
 export function registryProblems(doc, fileExists) {
   const problems = [];
   for (const loop of (doc && doc.loops) || []) {
@@ -58,6 +84,25 @@ describe('proven-to-catch — the guard flags each rot class', () => {
     const doc = { loops: [{ name: 'ghost', kind: 'deterministic', script: 'gone.sh', max_calls_per_day: 1, timeout_seconds: 1 }] };
     expect(registryProblems(doc, () => false)).toEqual(['ghost:script-not-found:gone.sh']);
   });
+  it('CATCHES a floating :latest image on an enabled docker service', () => {
+    const doc = { services: [{ name: 'drifty', enabled: true, install: 'infra/nas-drifty/install.sh' }] };
+    expect(composePinProblems(doc, () => 'services:\n  x:\n    image: ghcr.io/some/thing:latest\n'))
+      .toEqual(['drifty:floating-image:ghcr.io/some/thing:latest']);
+  });
+  it('CATCHES a tagless image (implicit latest), including a registry-port ref', () => {
+    const doc = { services: [{ name: 'bare', enabled: true, install: 'infra/nas-bare/install.sh' }] };
+    expect(composePinProblems(doc, () => '    image: "registry.example:5000/some/thing"\n'))
+      .toEqual(['bare:floating-image:registry.example:5000/some/thing']);
+  });
+  it('a PINNED image passes; a service with no compose file is not this gate\'s business', () => {
+    const pinned = { services: [{ name: 'ok', enabled: true, install: 'infra/nas-ok/install.sh' }] };
+    expect(composePinProblems(pinned, () => 'image: ghcr.io/pelski/ytzero:0.25.3\n')).toEqual([]);
+    expect(composePinProblems(pinned, () => null)).toEqual([]);
+  });
+  it('a DISABLED service with a floating tag is NOT a failure (committed off)', () => {
+    const doc = { services: [{ name: 'parked', enabled: false, install: 'infra/nas-parked/install.sh' }] };
+    expect(composePinProblems(doc, () => 'image: thing:latest\n')).toEqual([]);
+  });
 });
 
 describe('the REAL manifest + registry hold', () => {
@@ -66,6 +111,14 @@ describe('the REAL manifest + registry hold', () => {
     const doc = JSON.parse(readFileSync(join(LOOPS_DIR, 'services.json'), 'utf-8'));
     expect(doc.services.length).toBeGreaterThan(0);
     expect(manifestProblems(doc, (rel) => existsSync(join(ROOT, rel)))).toEqual([]);
+  });
+  it('every enabled docker service in the REAL manifest rides a pinned image', () => {
+    const doc = JSON.parse(readFileSync(join(LOOPS_DIR, 'services.json'), 'utf-8'));
+    const readCompose = (dirRel) => {
+      const p = join(ROOT, dirRel, 'docker-compose.yml');
+      return existsSync(p) ? readFileSync(p, 'utf-8') : null;
+    };
+    expect(composePinProblems(doc, readCompose)).toEqual([]);
   });
   it('registry.json parses, every loop script exists, every loop carries its brakes', () => {
     const doc = JSON.parse(readFileSync(join(LOOPS_DIR, 'registry.json'), 'utf-8'));

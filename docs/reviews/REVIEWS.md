@@ -12,6 +12,14 @@
 
 ## Records
 
+### REV-0226 · Ways review — YT Zero landed through OUR lane, not the guide's; the pin discipline becomes a gate
+- **Date:** 2026-08-03
+- **Surface:** infra/nas-ytzero/{docker-compose.yml,install.sh,README.md} · infra/nas-loops/services.json · app/src/__tests__/services-sync-guard.test.js · docs/decisions/DR-0266
+- **Type:** orchestration
+- **Status:** addressed
+- **Findings:** Darrell spoke the mariushosting YT Zero guide into the channel ("opportunities and constraints for our projects and services"); the DR-0108 ways questions were run against it. (1) **Way replaced:** the guide's hand-driven Portainer stack (File Station folder → Live connect → Add stack → Deploy) is five human steps our services-sync lane already does with zero — the service landed as manifest entry + idempotent installer, merge = deploy (PR #1164, merged same sitting; guard tests 18/18 before push). (2) **Way tightened into a gate:** the guide ships `image: ...:latest`; we pinned (`0.25.3`, tag verified against the ghcr.io registry API, which also showed the article's `0.25.1` already superseded) — and the pin discipline now machine-checks the whole manifest-managed docker class (`composePinProblems`, proven-to-catch: floating tag, tagless ref, registry-port ref; pinned passes; disabled/non-docker exempt). (3) **Way honestly bounded:** the sandbox has no route to the NAS — live-install proof is the next services-sync cycle plus the README's paste-block probe (stated, not claimed, DR-0076 §8). (4) **Opportunities/constraints recorded** where they live (`infra/nas-ytzero/README.md`): family profiles with locks, COLG/teaching intake, offline sanctuary playback, $0/mo — against LAN-only v1, RSS ~15-newest-per-channel, yt-dlp breakage cadence, storage growth. Carried with dates: in-app surface / same-origin route `re-review: 2026-08-17`; pin-bump cadence + download pruning/backup exclusion `re-review: 2026-09-03`.
+- **Source:** docs/decisions/DR-0266-ytzero-sovereign-video-inbox-through-the-services-sync-lane.md
+
 ### REV-0225 · Fix pass — the DR-0264 voice constraints closed same-day (tap follows, lesson follows, cloud follows at sentence level)
 - **Date:** 2026-08-03
 - **Surface:** app/src/lib/read-follow.js · app/src/lib/use-read-aloud.js · app/src/components/TTSControl.jsx · docs/decisions/DR-0265
