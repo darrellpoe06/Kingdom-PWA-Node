@@ -1,0 +1,71 @@
+#!/bin/sh
+# install.sh -- idempotent, self-running installer for YT Zero (DR-0236:
+# nothing waits -- the NAS installs this ITSELF via the services-sync loop;
+# no human hand, no Portainer). Safe to run every cycle: every step no-ops
+# when already done. It:
+#   1. creates the data dir (/volume1/docker/ytzero -> /data in-container)
+#   2. locates docker + compose (Synology sudo strips PATH -- the Container
+#      Manager absolute path is the known fallback, INSTALL.md gotcha #5)
+#   3. runs `compose up -d` against the PINNED compose file in the repo
+#      checkout (the repo is the source of truth; no copy step to drift)
+#   4. probes http://127.0.0.1:3701/ -- warns loudly on silence, scribe-style
+# It never edits a config it cannot verify (DR-0076): no Caddy writes here;
+# YT Zero is LAN/Tailscale-only until a proxy route is proven (README.md).
+set -e
+
+REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
+SRC="$REPO/infra/nas-ytzero"
+DATA="${YTZERO_DATA:-/volume1/docker/ytzero}"
+
+echo "== ytzero install: data dir =="
+mkdir -p "$DATA"
+
+echo "== ytzero install: locate docker =="
+DOCKER=""
+for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+  if command -v "$CAND" >/dev/null 2>&1; then
+    DOCKER="$(command -v "$CAND")"
+    break
+  fi
+done
+if [ -z "$DOCKER" ]; then
+  echo "ytzero install: docker not found -- is Container Manager installed?" >&2
+  exit 1
+fi
+
+COMPOSE=""
+if "$DOCKER" compose version >/dev/null 2>&1; then
+  COMPOSE="$DOCKER compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE="docker-compose"
+elif [ -x /var/packages/ContainerManager/target/usr/bin/docker-compose ]; then
+  COMPOSE=/var/packages/ContainerManager/target/usr/bin/docker-compose
+else
+  echo "ytzero install: no compose plugin or docker-compose found" >&2
+  exit 1
+fi
+
+echo "== ytzero install: compose up (pinned image; no-op when current) =="
+# First-ever run pulls the image and can outlast the services-sync 480s
+# ceiling; that run fails LOUDLY and the next cycle resumes the pull and
+# finishes -- self-healing by design, never silent.
+$COMPOSE -f "$SRC/docker-compose.yml" -p ytzero up -d
+
+echo "== ytzero install: health =="
+TRIES=0
+UP=0
+while [ "$TRIES" -lt 12 ]; do
+  if curl -fsS -o /dev/null http://127.0.0.1:3701/ 2>/dev/null; then
+    UP=1
+    break
+  fi
+  TRIES=$((TRIES + 1))
+  sleep 5
+done
+if [ "$UP" = "1" ]; then
+  echo "  ytzero answering on 127.0.0.1:3701"
+else
+  echo "  health probe silent after 60s (start_period is 90s; first start can outlast this probe)"
+  echo "  next services-sync cycle re-checks -- or see: $DOCKER logs ytzero"
+fi
+echo "== ytzero install: done =="
