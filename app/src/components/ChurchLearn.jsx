@@ -902,6 +902,7 @@ function CourseView({
   onBecomeHelper = null,
   helped = false,
   resumeLessonId = null, // "Pick up where you left off" target — opens + scrolls to this lesson
+  onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
@@ -961,6 +962,13 @@ function CourseView({
     setRecentTick((t) => t + 1);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
+  // The wrapper hides its own chrome (course picker/sort) while the space is
+  // open — the whole screen belongs to the one lesson (DR-0264).
+  React.useEffect(() => {
+    if (onFocusChange) onFocusChange(!!focusModule);
+    return () => { if (onFocusChange) onFocusChange(false); };
+  }, [!!focusModule]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Leaving the space (back button/bar): put the index back at the lesson the
   // reader just left — their place in the LIST survives the round trip too.
   React.useEffect(() => {
@@ -1582,13 +1590,21 @@ function CourseView({
     <>
       {/* ===== Screen UI (hidden when printing) ===== */}
       <div className="print:hidden">
+      {/* THE LESSON'S SECURE SPACE (DR-0264, Darrell 2026-08-03: "one you pick
+          your lesson that should be for only that lesson... so the user can
+          focus"). While a lesson is open alone, the course chrome — tagline,
+          progress strip, graduation banner, section chips — leaves the screen
+          entirely; only the focus bar + the lesson render (the weeks section
+          below). Exiting the space brings the full course back. */}
+      {!focusModule && (<>
       <p className="text-sm text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{meta.tagline}</p>
       <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         For {meta.audience}. {meta.format}.
       </p>
+      </>)}
 
       {/* Your progress — real, from the signed-in record */}
-      {toggleModule && (
+      {toggleModule && !focusModule && (
         <div className="border border-[#E8E4DC] p-4 mb-5">
           <div className="flex items-baseline justify-between gap-2 mb-2">
             <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Your progress</h3>
@@ -1604,7 +1620,7 @@ function CourseView({
       )}
 
       {/* Graduate → next-cohort helper (the course teaches itself forward) */}
-      {assessment.complete && (
+      {assessment.complete && !focusModule && (
         <div className="bg-[#5A6E3D]/10 border-2 border-[#5A6E3D] p-4 mb-5">
           <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You finished {meta.title}. 🎓</h3>
           <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -1625,11 +1641,15 @@ function CourseView({
         </div>
       )}
 
-      <SectionTabs variant="sub" sections={sections} ariaLabel={`${meta.title} sections`} idBase={`learn-${meta.key}`} defaultId="weeks" />
+      {focusModule
+        ? (sections.find((s) => s.id === 'weeks') || sections[0]).render()
+        : <SectionTabs variant="sub" sections={sections} ariaLabel={`${meta.title} sections`} idBase={`learn-${meta.key}`} defaultId="weeks" />}
 
+      {!focusModule && (
       <p className="text-[0.6875rem] text-[#5A5751] mt-5" style={{ fontFamily: '"Fraunces", serif' }}>
         Taught by Darrell Poe · The Church of the Living God · built on PoeTech. The first community we serve, the way we serve every community after.
       </p>
+      )}
       </div>
 
       {/* ===== Print-only full curriculum (paper) ===== */}
@@ -1779,6 +1799,11 @@ export default function ChurchLearn({
   const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
   const active = courses.find((c) => c.key === activeKey) || aiCourse;
 
+  // A lesson space is open in the active course (DR-0264): the wrapper's own
+  // chrome — catalog line, course picker/sort, resume banner — leaves the
+  // screen so the space holds ONLY the lesson. Set by CourseView.
+  const [lessonFocus, setLessonFocus] = useState(false);
+
   // Resolve the saved place against the MOUNTED catalog (verify before relying
   // on it): a course or lesson that no longer exists offers nothing — the
   // banner can never point at a dead door.
@@ -1818,7 +1843,7 @@ export default function ChurchLearn({
         {/* Derived catalog line — counted LIVE from the mounted courses (never a
             hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
             by learn-catalog-render.test.jsx. */}
-        {courses.length > 1 && (
+        {courses.length > 1 && !lessonFocus && (
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
             {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
           </p>
@@ -1832,7 +1857,7 @@ export default function ChurchLearn({
             (lib/learn-resume.js); verified against the mounted catalog, so a
             renamed/removed lesson silently offers nothing instead of a dead
             door. */}
-        {showResume && (
+        {showResume && !lessonFocus && (
           <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
             <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -1866,7 +1891,7 @@ export default function ChurchLearn({
             phone's own picker in one tap, with the Deep-Processing family in its
             own group and a sort control. Groups + counts derive live from the
             mounted courses (lib/learn-organize.js, DR-0121). */}
-        {courses.length > 1 && (
+        {courses.length > 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
               <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Choose a course</label>
@@ -1938,6 +1963,7 @@ export default function ChurchLearn({
         onBecomeHelper={onBecomeHelper}
         helped={!!helped[active.key]}
         resumeLessonId={resumeLessonId}
+        onFocusChange={setLessonFocus}
       />
     </section>
   );

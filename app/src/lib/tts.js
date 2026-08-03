@@ -210,6 +210,8 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     onState: typeof onState === 'function' ? onState : () => {},
     segments: [],
     idx: 0,
+    // Follow-along word-boundary listener (settable; default no-op).
+    onBoundary: () => {},
     rate: clampRate(p.rate),
     pitch: Number.isFinite(Number(p.pitch)) ? Number(p.pitch) : DEFAULT_PITCH,
     voice: null,
@@ -262,6 +264,16 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
         this.idx += 1;
         if (this.status === 'playing' && this.idx < this.segments.length) this._speakSegment();
         else if (this.idx >= this.segments.length) this._finish();
+      };
+      // WORD boundaries (follow-along, DR-0264): where the device's engine fires
+      // them, report (segmentIndex, charIndex-within-segment) so a caller can
+      // karaoke-highlight the exact word. Many mobile engines never fire these —
+      // the per-SEGMENT highlight via onState is the guaranteed floor, this is
+      // the enhancement. Never throws into the synth's callback.
+      u.onboundary = (e) => {
+        if (gen !== this._gen) return;
+        if (e && e.name && e.name !== 'word') return;
+        try { this.onBoundary(this.idx, (e && e.charIndex) || 0, (e && e.charLength) || 0); } catch (_) { /* listener's problem, never playback's */ }
       };
       u.onerror = (e) => {
         if (gen !== this._gen) return;
@@ -545,5 +557,9 @@ export function useTextToSpeech() {
     segmentIndex: state.segmentIndex || 0,
     segmentCount: state.segmentCount || 0,
     speak, pause, resume, stop, setRate, setVoiceURI,
+    // Register the follow-along word-boundary listener (cb(segmentIndex,
+    // charIndex, charLength)); pass null to clear. Boundary support varies by
+    // device engine — the segmentIndex state above is the guaranteed floor.
+    setBoundaryHandler: (cb) => { if (engineRef.current) engineRef.current.onBoundary = typeof cb === 'function' ? cb : () => {}; },
   };
 }

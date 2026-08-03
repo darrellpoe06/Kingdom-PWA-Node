@@ -206,6 +206,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     isPaused: tts.isPaused,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,
+    // Follow-along (DR-0264): device-voice reads report per-sentence progress
+    // via segmentIndex and, where the engine fires them, per-word boundaries
+    // via this handler. Cloud (cloned-voice) audio has neither — a caller
+    // checks deviceRead before following so a highlight never sits frozen on
+    // sentence 0 while a cloud clip plays.
+    setBoundaryHandler: tts.setBoundaryHandler,
+    deviceRead: !cloudPlaying,
     voiceId, setVoiceId, catalog, currentItem, notice,
     read, pause: tts.pause, resume: tts.resume, stop, setRate: tts.setRate,
   };
