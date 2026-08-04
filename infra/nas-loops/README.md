@@ -90,9 +90,14 @@ reel line. To arm PERSISTENTLY for the scheduler, put `LOOPS_ARMED=1` in
 attended — never while you travel** (the June-6 rule). Deterministic loops are the
 safe class, but the discipline holds.
 
-### Step 4 — register the DSM Task Scheduler entry (DSM UI; one-time, by hand)
-DSM is the governance UI — the entry is a named task you enable/disable, root-owned,
-boot-persistent. There is no paste for this; it's the DSM web UI:
+### Step 4 — register the schedule (one-time; two equal ways)
+
+**Way 4B below is the proven paste-path** (DR-0108: "no paste for this" was an
+unverified must-be-by-hand premise — disproven 2026-08-04 when the choir-dates
+registration went in over SSH from a phone; REV-0230, DR-0272). Way 4A remains
+right when you want the task visible and toggleable in the DSM web UI.
+
+#### Way 4A — DSM Task Scheduler (web UI; governance-visible)
 
 1. **DSM → Control Panel → Task Scheduler → Create → Scheduled Task → User-defined script.**
 2. **General:** Task = `nas-loop health-check`; **User = `root`**.
@@ -103,6 +108,34 @@ boot-persistent. There is no paste for this; it's the DSM web UI:
    ```
 5. Save. (For a daemon-style loop you'd use a **Triggered Task → Boot-up** instead;
    the health-check is periodic, so Scheduled is correct.)
+
+#### Way 4B — root crontab over SSH (paste-ready; what registered the fleet 2026-08-04)
+
+Synology's Task Scheduler is root's `/etc/crontab` underneath (TAB-separated
+fields — the `\t` in the printf below is load-bearing). Idempotent: appends only
+if the line is missing, restarts crond, echoes the line as proof. Works from
+ConnectBot on a phone the same as from a desktop. Requires password sudo (the
+narrow NOPASSWD grant covers only the loop runner, by design):
+
+```
+cd C:\Users\dpoe\Kingdom-PWA-Node
+ssh dpoe@192.168.1.26
+```
+
+then at the NAS prompt:
+
+```
+sudo sh -c 'grep -q "nas-loops/run.sh" /etc/crontab || printf "*/15\t*\t*\t*\t*\troot\tbash /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/run.sh >> /volume1/PoeTech/state/nas-loops-cron.log 2>&1\n" >> /etc/crontab; systemctl restart crond 2>/dev/null || synoservice -restart crond; grep nas-loops /etc/crontab'
+```
+
+Two caveats, known and accepted (REV-0230): the entry does NOT appear in the
+DSM Task Scheduler UI (cron runs it all the same; the log is
+`/volume1/PoeTech/state/nas-loops-cron.log`), and a later task edit in the DSM
+UI can rewrite `/etc/crontab` and drop hand-added lines — if the fleet goes
+quiet after a UI change, re-paste the block (idempotent). Verification is
+measured, never assumed (DR-0076): the next `nas-bootstrap` log's
+`usedToday` counter accumulating beyond the dispatched runs is the proof the
+clock fires on its own.
 
 Watch the reel confirm runs:
 ```

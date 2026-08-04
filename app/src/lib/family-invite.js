@@ -20,7 +20,10 @@ export function isValidInviteEmail(email) {
   return e.length > 3 && /\S+@\S+\.\S+/.test(e);
 }
 
-export const INVITE_ROLES = ['member', 'admin', 'viewer'];
+// 'assistant' joined 2026-08-04 (DR-0271, migration 0130): a 1099 assistant
+// invite carries the role through the same claim+confirm handshake; the RLS
+// scope overlay walls the granted account to the office workspace. Never 'owner'.
+export const INVITE_ROLES = ['member', 'admin', 'viewer', 'assistant'];
 
 // Split a free-text field (commas / semicolons / whitespace / newlines) into a
 // deduped, lowercased list of valid emails, plus the invalid fragments so the
@@ -67,7 +70,7 @@ export function readClaimTokenFromUrl(href) {
 // picker means what it says); omitted, the server resolves family-first.
 export async function inviteToInstance(email, role = 'member', instanceId = null) {
   if (!isValidInviteEmail(email)) return { email, ok: false, reason: 'bad-email' };
-  const safeRole = INVITE_ROLES.includes(role) ? role : 'member';
+  const safeRole = INVITE_ROLES.includes(role) ? role : 'member'; // never 'owner' (RPC enforces too)
   const args = {
     email_in: String(email).trim().toLowerCase(),
     role_in: safeRole,

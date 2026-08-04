@@ -41,7 +41,7 @@ function Bar({ pct: p, good }) {
   );
 }
 
-export default function OfficeAssistant({ config, store, model: modelProp = null, isGovernor = false }) {
+export default function OfficeAssistant({ config, store, model: modelProp = null, isGovernor = false, extraSections = [] }) {
   // The model is pure — derive it from config once (or accept an injected one).
   const model = useMemo(() => modelProp || createOfficeModel(config), [modelProp, config]);
   const state = store.useStore();
@@ -67,6 +67,8 @@ export default function OfficeAssistant({ config, store, model: modelProp = null
     { id: 'content', label: 'Content', icon: 'palette', render: () => <ContentSection {...ctx} posts={posts} ideas={state.ideas || []} /> },
     { id: 'goals', label: 'Weekly goals', icon: 'chart', render: () => <GoalsSection {...ctx} week={week} /> },
     { id: 'ari', label: 'Ari 24/7', icon: 'sparkle', render: () => <AriSection {...ctx} converting={converting} /> },
+    // Mount-provided extras (e.g. TLC's owner-only Team access panel — DR-0271).
+    ...(Array.isArray(extraSections) ? extraSections : []),
   ];
 
   const eyebrow = [config.brand, config.brandTagline].filter(Boolean).join(' · ');

@@ -51,13 +51,13 @@ jobs:
             migrations: "0075-delegated-property-management.sql"
             smokes: "0075-isolation-smoke.sql"
           - feature: choir-claim
-            migrations: "0110-choir-member-self-claim.sql"
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0110-choir-claim-smoke.sql"
           - feature: role-control
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
-            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql"
+            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
           - feature: viewer-readonly
             migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql"
@@ -83,8 +83,20 @@ jobs:
           # policy that stops excluding child/assistant, or narrows successor
           # read / member write, RAISEs -> the leg goes RED.
           - feature: books-role-wall
-            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql"
+            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
+          # Added 2026-08-04 (DR-0271, Christina's assistant-rights request):
+          # the ASSISTANT becomes grantable (invite/role/remove RPCs) and is
+          # scoped by a RESTRICTIVE deny-overlay to the shared office_records
+          # workspace + the six participation tables — "everything in the
+          # Assistant tab", nothing on the other tabs. The smoke proves both
+          # directions live: the assistant works the workspace, a member sees
+          # the assistant's rows, and the books + membership-gated family data
+          # (inquiries) read as ZERO rows for the assistant. Static shape proof
+          # runs every merge in scripts/assistant-scope-guard.mjs.
+          - feature: assistant-scope
+            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            smokes: "0130-assistant-scope-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
       - uses: actions/checkout@v4

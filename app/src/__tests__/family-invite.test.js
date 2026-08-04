@@ -31,8 +31,8 @@ describe('family-invite — parse a person + their family from one field', () =>
     expect(isValidInviteEmail(null)).toBe(false);
   });
 
-  it('roles never offer owner (only member/admin/viewer)', () => {
-    expect(INVITE_ROLES).toEqual(['member', 'admin', 'viewer']);
+  it('roles never offer owner (member/admin/viewer/assistant — DR-0271)', () => {
+    expect(INVITE_ROLES).toEqual(['member', 'admin', 'viewer', 'assistant']);
     expect(INVITE_ROLES).not.toContain('owner');
   });
 });
