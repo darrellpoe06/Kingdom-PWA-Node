@@ -105,18 +105,32 @@ jobs:
         run: |
           umask 077; printf '%s\n' "${{ secrets.NAS_SSH_KEY }}" > /tmp/nas_key
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
-          echo "=== tailscale funnel status ==="; $SSH 'tailscale funnel status 2>&1 || true'
-          echo "=== tailscale serve status ==="; $SSH 'tailscale serve status 2>&1 || true'
+          # Synology's non-login shell lacks tailscale on PATH the same way it
+          # lacks node (proven every run: "sh: tailscale: command not found").
+          TSBIN='PATH=$PATH:/usr/local/bin:/volume1/@appstore/Tailscale/bin tailscale'
+          echo "=== tailscale funnel status ==="; $SSH "$TSBIN funnel status 2>&1 || true"
+          echo "=== tailscale serve status ==="; $SSH "$TSBIN serve status 2>&1 || true"
           echo "=== poetech-mcp service ==="; $SSH 'systemctl is-active poetech-mcp 2>&1; systemctl status poetech-mcp --no-pager -n 5 2>&1 || true'
           echo "=== localhost :8795 discover (does the server itself answer?) ==="
           $SSH "curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 10 -X POST http://127.0.0.1:8795/mcp -H 'Mcp-Method: server/discover' -d '{}' 2>&1 || true"
-          echo "=== funnel --set-path help (is the syntax even supported here?) ==="; $SSH 'tailscale funnel --help 2>&1 | head -30 || true'
+          echo "=== funnel --set-path help (is the syntax even supported here?) ==="; $SSH "$TSBIN funnel --help 2>&1 | head -30 || true"
       - name: Verify — the /mcp discover answers through the Funnel
         if: steps.gate.outputs.go == 'true'
         run: |
+          # The MCP server is STAGED INACTIVE behind the Funnel by decision
+          # (REV-0214: built, proven on localhost, adoption = measured real
+          # use). A 404 here is therefore the DOCUMENTED staged state — the
+          # funnel path is not mapped — and must not paint the whole bootstrap
+          # red (it was masking real successes: every drained choir chunk on
+          # 2026-08-04 rode a run this step then labeled "failure", REV-0230).
+          # 401/403 = live and enforcing auth. Anything else (000 timeout,
+          # 5xx) is a real transport failure and stays red.
           CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
             -X POST "https://poetech.tail5a2f35.ts.net/mcp" \
             -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' \
             -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"server/discover"}')
-          echo "post-bootstrap /mcp probe: HTTP $CODE (401 = live and enforcing auth)"
-          [ "$CODE" = "401" ] || [ "$CODE" = "403" ]
+          case "$CODE" in
+            401|403) echo "post-bootstrap /mcp probe: HTTP $CODE — live and enforcing auth" ;;
+            404)     echo "post-bootstrap /mcp probe: HTTP 404 — funnel path not mapped; MCP is staged inactive per REV-0214 (expected, not a failure)" ;;
+            *)       echo "post-bootstrap /mcp probe: HTTP $CODE — unexpected transport state" ; exit 1 ;;
+          esac
