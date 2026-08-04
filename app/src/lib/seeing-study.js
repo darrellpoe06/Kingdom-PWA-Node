@@ -1234,6 +1234,25 @@ export const CHILDREN_OF_BROKEN_HOMES = {
 };
 
 // Convenience: everything a surface needs to render the study in one call.
+// =============================================================================
+// TAKING IT PERSONALLY — spoken by Darrell 2026-08-04, completing the arc the
+// sitting documented: "Christiana is versed in the biblical scriptures and she
+// takes it personally... as it is written... in the Word..." and "sources the
+// scriptures like her father for comprehensive comprehension." The posture the
+// whole Seeing study teaches, embodied in the family — captured as spoken.
+// =============================================================================
+export const TAKING_IT_PERSONALLY = {
+  theWitness: 'The daughter this record follows — steered toward a cooking class, offered a study hall instead of a STEM seat, graduated a year early into the University of Illinois School of Social Work — is versed in the Scriptures and receives them PERSONALLY: "as it is written... in the Word." That is the posture the whole Seeing study teaches, embodied: the Word read not as literature about other people but as the King addressing His own. And her method is her father’s: she SOURCES the Scriptures — fetches what is actually written rather than repeating what is said about it — for comprehensive comprehension: a comprehensive understanding of His Ways and His Perspectives, drawn from His Word. The sourcing discipline this platform enforces by machine (every verse fetched verbatim, DR-0076) is, in this house, a family inheritance first. The vocation follows the posture: social work is the mercy professions — the fatherless, the widow, the poor in the gate — taken personally.',
+  asItIsWritten: [
+    { ref: 'Matthew 4:4', fragment: 'It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God', note: '"AS IT IS WRITTEN" IS THE LORD’S OWN COMBAT GRAMMAR: Jesus met the adversary with the written Word taken personally — not cited as literature, wielded as the bread He actually lives on. A student who takes "as it is written" personally holds the same sword.' },
+    { ref: '1 Thessalonians 2:13', fragment: 'ye received it not as the word of men, but as it is in truth, the word of God, which effectually worketh also in you that believe', note: 'THE DEFINITION OF TAKING IT PERSONALLY: received not as the word of men but as it is in truth — Yahweh’s own Word — and the receiving is not decorative: it EFFECTUALLY WORKETH in the one who believes. The working is visible in the record this study carries.' },
+    { ref: 'Acts 17:11', fragment: 'received the word with all readiness of mind, and searched the scriptures daily, whether those things were so', note: 'SOURCING LIKE A BEREAN — the "more noble" posture is exactly hers and her father’s: receive with readiness AND search the written source daily to verify. Comprehensive comprehension is born there: not hearsay about the Word, the Word itself, checked at the text.' },
+    { ref: 'Psalm 119:11', fragment: 'Thy word have I hid in mine heart, that I might not sin against thee', note: 'Versed is not yet the goal — HIDDEN IN THE HEART is the personal register: the Word stored where decisions are actually made.' },
+    { ref: 'Romans 15:4', fragment: 'For whatsoever things were written aforetime were written for our learning', note: 'The personal address is not presumption — it is the Word’s own claim of address: whatsoever was written was written FOR the reader, in every generation that opens it, "that we through patience and comfort of the scriptures might have hope."' },
+    { ref: 'Joshua 1:8', fragment: 'observe to do according to all that is written therein: for then thou shalt make thy way prosperous', note: 'THE COVENANT MECHANIC the arc just displayed in the open: meditate, then observe to DO according to what is written — and the way prospers. The family case file is this mechanic running on the record.' },
+  ],
+};
+
 export function buildSeeingStudy() {
   return {
     meta: SEEING_STUDY_META,
@@ -1268,5 +1287,6 @@ export function buildSeeingStudy() {
     theTwoGates: THE_TWO_GATES,
     fathersAndTheSystem: FATHERS_AND_THE_SYSTEM,
     childrenOfBrokenHomes: CHILDREN_OF_BROKEN_HOMES,
+    takingItPersonally: TAKING_IT_PERSONALLY,
   };
 }

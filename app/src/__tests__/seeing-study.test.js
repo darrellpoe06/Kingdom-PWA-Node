@@ -23,7 +23,7 @@ import {
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
   GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
   GENEROSITY_IN_THE_HOUSE, WHOLE_PERSON_WHOLE_HOUSE, EDUCATION_FOR_WEIGHT,
-  THE_TWO_GATES, FATHERS_AND_THE_SYSTEM, CHILDREN_OF_BROKEN_HOMES,
+  THE_TWO_GATES, FATHERS_AND_THE_SYSTEM, CHILDREN_OF_BROKEN_HOMES, TAKING_IT_PERSONALLY,
   buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
@@ -139,6 +139,7 @@ function allQuotedPairs() {
   for (const list of [cb.theIdentityFirst, cb.theFiveMechanisms, cb.theFourthDimensionalDesign, cb.whenParentsOpposeTheChild]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
+  for (const v of TAKING_IT_PERSONALLY.asItIsWritten) pairs.push({ ref: v.ref, fragment: v.fragment });
   return pairs;
 }
 
