@@ -17,7 +17,8 @@ import {
   SEEING_STUDY_META, WAYS_OF_SEEING, QUALITATIVE_METHODS,
   measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
-  MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, buildSeeingStudy,
+  MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
+  RELATIONSHIP_CIRCUIT, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -57,6 +58,18 @@ function allQuotedPairs() {
   for (const v of e.howTheGodheadSeesTheEndurer.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
   for (const v of e.abidingPhysiology.wordClaims) pairs.push({ ref: v.ref, fragment: v.fragment });
   for (const v of e.notCondemnedButSaved.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
+  const u = USING_HIS_WAYS;
+  for (const list of [u.theRansomIsNeverOurs, u.yetTheWordSaysIt, u.whatWeAreDoing, u.whatWeAreNotDoing]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const k = HOW_WE_KNOW;
+  for (const list of [k.theBoundary, k.theKnowableAssurance, k.theAnchor]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const rc = RELATIONSHIP_CIRCUIT;
+  for (const list of [rc.theWiring, rc.theVerification, rc.theRouting]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
   return pairs;
 }
 

@@ -380,6 +380,111 @@ export const ENDURING_AND_ABIDING = {
   },
 };
 
+// =============================================================================
+// SAVING OURSELVES BY USING HIS WAYS — Darrell's question, same sitting: "How
+// are we literally saving ourselves by using His Ways what are we doing and
+// not doing exactly." The Word holds both sides without blinking: the ransom
+// is never ours (Ephesians 2:8-9) AND Scripture literally says "save
+// yourselves" (Acts 2:40) — because He provides the ark, and USING His Ways
+// is boarding it. Noah is the type: he did not invent the rescue; he built to
+// the spec and got in, and the Word credits that obedient using with "the
+// saving of his house" (Hebrews 11:7).
+// =============================================================================
+export const USING_HIS_WAYS = {
+  theRansomIsNeverOurs: [
+    { ref: 'Ephesians 2:8', fragment: 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God', note: 'What we are NOT doing: purchasing, earning, or contributing to the ransom —' },
+    { ref: 'Ephesians 2:9', fragment: 'Not of works, lest any man should boast', note: '— the purchase is finished and sealed against boasting.' },
+    { ref: 'Titus 3:5', fragment: 'Not by works of righteousness which we have done, but according to his mercy he saved us', note: 'Nobody swims out of the second death. The Blood, the Cross, the opened prison — His alone, done.' },
+  ],
+  yetTheWordSaysIt: [
+    { ref: 'Acts 2:40', fragment: 'Save yourselves from this untoward generation', note: 'Scripture’s own imperative — the operational side of salvation has OUR verbs on it.' },
+    { ref: '1 Timothy 4:16', fragment: 'thou shalt both save thyself, and them that hear thee', note: 'Taking heed to self and doctrine, continued in, is credited as saving — self AND hearers.' },
+    { ref: 'Philippians 2:12', fragment: 'work out your own salvation with fear and trembling', note: 'We work OUT what He works IN —' },
+    { ref: 'Philippians 2:13', fragment: 'For it is God which worketh in you both to will and to do of his good pleasure', note: '— the engine is His; the walking is ours.' },
+    { ref: 'James 1:21', fragment: 'receive with meekness the engrafted word, which is able to save your souls', note: 'The received, engrafted Word is named ABLE TO SAVE — using it is the receiving.' },
+    { ref: 'Jude 1:21', fragment: 'Keep yourselves in the love of God', note: 'Kept — by keeping.' },
+    { ref: 'Hebrews 11:7', fragment: 'prepared an ark to the saving of his house', note: 'Noah, the type of the whole answer: grace designed the ark, faith built to spec and boarded — and the Word credits the using with the saving of his house.' },
+  ],
+  whatWeAreDoing: [
+    { ref: 'Matthew 7:24', fragment: 'whosoever heareth these sayings of mine, and doeth them', note: 'HEARING AND DOING — and the doing is literally what makes the house survive: "and the floods came... and it fell not: for it was founded upon a rock" (Matthew 7:25).' },
+    { ref: 'Proverbs 16:17', fragment: 'The highway of the upright is to depart from evil: he that keepeth his way preserveth his soul', note: 'DEPARTING — separation from the untoward generation is the Acts 2:40 mechanism: you save yourself FROM it by walking out of it.' },
+    { ref: 'Proverbs 4:22', fragment: 'For they are life unto those that find them, and health to all their flesh', note: 'ATTENDING DAILY to His words (Proverbs 4:20) — the king’s regimen, with measurable yield.' },
+    { ref: 'Galatians 6:8', fragment: 'he that soweth to the Spirit shall of the Spirit reap life everlasting', note: 'SOWING TO THE SPIRIT — every deed is seed; the harvest law runs deterministically.' },
+    { ref: '1 John 1:9', fragment: 'If we confess our sins, he is faithful and just to forgive us our sins', note: 'CONFESSING FAST and FORGIVING ALWAYS ("if ye forgive men their trespasses, your heavenly Father will also forgive you," Matthew 6:14) — keeping the connection unclogged.' },
+    { ref: 'Hebrews 10:25', fragment: 'Not forsaking the assembling of ourselves together', note: 'STAYING ASSEMBLED — a lone branch dries out —' },
+    { ref: 'Jude 1:23', fragment: 'And others save with fear, pulling them out of the fire', note: '— and PULLING OTHERS OUT: the saved become rescuers in the same motion.' },
+  ],
+  whatWeAreNotDoing: [
+    { ref: 'Galatians 6:8', fragment: 'he that soweth to his flesh shall of the flesh reap corruption', note: 'Not sowing to the flesh — the same harvest law, run in reverse.' },
+    { ref: 'Proverbs 14:12', fragment: 'There is a way which seemeth right unto a man, but the end thereof are the ways of death', note: 'Not trusting the self-invented route — the seems-right way is the competing operating system, and its end state is named.' },
+    { ref: 'Proverbs 11:4', fragment: 'Riches profit not in the day of wrath: but righteousness delivereth from death', note: 'Not buying protection — wealth has no purchase in the day that matters; righteousness is the delivering currency.' },
+  ],
+  oneSentence: 'He alone saves; His Ways are how the saved stay out of what He saved them from — grace builds the ark, faith boards it daily, and the Word calls that boarding "saving yourselves."',
+};
+
+// =============================================================================
+// HOW WE KNOW — Darrell's follow-through, same sitting: "obviously His Blood
+// Is The Saved however we must believe etc... how do you we know when others
+// thought they knew and were wrong in their timelines etc..." The autopsy of
+// every failed predictor: confident precisely where the Word withholds
+// knowledge, shaky where it grants it. Assurance lives in the REVEALED
+// category (1 John was written so we could KNOW), and it is evidence-based —
+// the verification doctrine applied to the self — while timelines sit in the
+// SECRET category the Son Himself placed off-limits.
+// =============================================================================
+export const HOW_WE_KNOW = {
+  theBoundary: [
+    { ref: 'Deuteronomy 29:29', fragment: 'The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever', note: 'The boundary line in one verse: confidence is safe exactly as far as the written Word goes, and not one step further.' },
+    { ref: 'Matthew 24:36', fragment: 'But of that day and hour knoweth no man, no, not the angels of heaven, but my Father only', note: 'The date-setters claimed the one datum the Son placed off-limits —' },
+    { ref: 'Acts 1:7', fragment: 'It is not for you to know the times or the seasons', note: '— restated after the resurrection, to the apostles themselves.' },
+    { ref: '1 Corinthians 4:6', fragment: 'not to think of men above that which is written', note: 'The failed predictors’ error was never too much trust in Scripture; it was stepping PAST it.' },
+    { ref: 'Deuteronomy 18:22', fragment: 'if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken', note: 'The Word’s own falsifier: every failed timeline self-identifies as presumption.' },
+  ],
+  theKnowableAssurance: [
+    { ref: '1 John 5:13', fragment: 'that ye may know that ye have eternal life', note: 'Assurance is in the REVEALED category — the Word wrote a whole book so we could KNOW.' },
+    { ref: '1 John 2:3', fragment: 'And hereby we do know that we know him, if we keep his commandments', note: 'The obedience evidence.' },
+    { ref: '1 John 3:14', fragment: 'We know that we have passed from death unto life, because we love the brethren', note: 'The love evidence.' },
+    { ref: '1 John 4:13', fragment: 'Hereby know we that we dwell in him, and he in us, because he hath given us of his Spirit', note: 'The Spirit’s witness (with Romans 8:16).' },
+    { ref: '2 Corinthians 13:5', fragment: 'Examine yourselves, whether ye be in the faith; prove your own selves', note: 'The standing self-audit — assurance is re-verified, never assumed from the memory of a prayer.' },
+  ],
+  theAnchor: [
+    { ref: '2 Timothy 1:12', fragment: 'for I know whom I have believed, and am persuaded that he is able to keep that which I have committed unto him against that day', note: 'The anchor is not our certainty-feeling — it is WHO holds the deposit.' },
+    { ref: '2 Timothy 2:19', fragment: 'The Lord knoweth them that are his', note: 'Sealed from His side.' },
+    { ref: 'Matthew 24:42', fragment: 'Watch therefore: for ye know not what hour', note: 'The posture toward timelines: watch —' },
+    { ref: 'Luke 19:13', fragment: 'Occupy till I come', note: '— and work. The date-setter calendars and quits; the assured one watches and occupies.' },
+  ],
+  oneSentence: 'The wrong-confident knew what isn’t given and neglected what is; we know by keeping to the revealed — commandments kept, brethren loved, the Spirit witnessing, self examined — confident in Whom, watchful about when.',
+};
+
+// =============================================================================
+// THE RELATIONSHIP CIRCUIT — Darrell's question, same sitting: "How does our
+// relationship with others impact our relationship with Yahweh." The Word
+// wires the horizontal and the vertical into ONE circuit: damage on the
+// human side physically interrupts the Godward side — worship waits,
+// forgiveness closes, prayer is hindered — and the horizontal is the
+// VERIFICATION instrument of the vertical claim.
+// =============================================================================
+export const RELATIONSHIP_CIRCUIT = {
+  theWiring: [
+    { ref: 'Matthew 5:24', fragment: 'first be reconciled to thy brother, and then come and offer thy gift', note: 'WORSHIP WAITS ON RECONCILIATION — Yahweh suspends His own altar traffic until the brother is made right (Matthew 5:23: the gift is left AT the altar).' },
+    { ref: 'Matthew 6:15', fragment: 'But if ye forgive not men their trespasses, neither will your Father forgive your trespasses', note: 'FORGIVENESS RECEIVED IS CONDITIONED ON FORGIVENESS GIVEN —' },
+    { ref: 'Mark 11:25', fragment: 'And when ye stand praying, forgive, if ye have ought against any', note: '— checked at the moment of prayer itself,' },
+    { ref: 'Matthew 18:35', fragment: 'So likewise shall my heavenly Father do also unto you, if ye from your hearts forgive not every one his brother their trespasses', note: 'and sealed by the unforgiving-servant parable: an unforgiving heart is a closed valve in both directions.' },
+    { ref: '1 Peter 3:7', fragment: 'that your prayers be not hindered', note: 'PRAYER IS LITERALLY HINDERED by a dishonored marriage — the most explicit plumbing verse in Scripture: the home’s state conditions the line to Heaven.' },
+  ],
+  theVerification: [
+    { ref: '1 John 4:20', fragment: 'he that loveth not his brother whom he hath seen, how can he love God whom he hath not seen?', note: 'LOVE OF THE UNSEEN GOD IS TESTED BY LOVE OF THE SEEN BROTHER — the vertical claim is falsifiable, and the brother is the test instrument ("he is a liar" is the failed reading).' },
+    { ref: '1 John 4:21', fragment: 'That he who loveth God love his brother also', note: 'The commandment binds the two loves into one obedience.' },
+    { ref: 'John 13:35', fragment: 'By this shall all men know that ye are my disciples, if ye have love one to another', note: 'The world’s evidence that we are His runs through how we treat one another — the public credential of discipleship is horizontal.' },
+  ],
+  theRouting: [
+    { ref: 'Matthew 25:40', fragment: 'Inasmuch as ye have done it unto one of the least of these my brethren, ye have done it unto me', note: 'TREATMENT OF PEOPLE IS TREATMENT OF THE KING — there is no neutral human interaction; every one routes to His account.' },
+    { ref: 'Proverbs 19:17', fragment: 'He that hath pity upon the poor lendeth unto the LORD', note: 'Kindness to the poor is booked as a loan to Yahweh Himself — with repayment promised.' },
+    { ref: 'Matthew 22:39', fragment: 'And the second is like unto it, Thou shalt love thy neighbour as thyself', note: 'The second great commandment is LIKE UNTO the first — one grain, not a lesser appendix (Matthew 22:37-38).' },
+  ],
+  oneSentence: 'The horizontal is the vertical made visible — Yahweh receives our treatment of people as treatment of Himself, verifies our love for Him by our love for them, and holds worship, forgiveness, and even prayer open or hindered according to the state of our tables, marriages, and grudges.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -395,5 +500,8 @@ export function buildSeeingStudy() {
     daily: DAILY_SEEING_PRACTICE,
     muddiedToClear: MUDDIED_TO_CLEAR,
     enduringAndAbiding: ENDURING_AND_ABIDING,
+    usingHisWays: USING_HIS_WAYS,
+    howWeKnow: HOW_WE_KNOW,
+    relationshipCircuit: RELATIONSHIP_CIRCUIT,
   };
 }
