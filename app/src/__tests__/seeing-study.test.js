@@ -125,6 +125,10 @@ function allQuotedPairs() {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   for (const v of EDUCATION_FOR_WEIGHT.theWordGrounds) pairs.push({ ref: v.ref, fragment: v.fragment });
+  const ed = EDUCATION_FOR_WEIGHT;
+  for (const list of [ed.theActualProblem, ed.thePlacementGate, ed.theLayeredPedagogy, ed.perpetuallyLowGPA, ed.theStructuralDiagnosis, ed.theGuardedGate]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
   return pairs;
 }
 
