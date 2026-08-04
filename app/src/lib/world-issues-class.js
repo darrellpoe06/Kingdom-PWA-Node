@@ -60,7 +60,7 @@ export const WORLD_ISSUES_META = {
   tagline: 'Don’t be told what to think. Learn how to think it through.',
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 6, // six published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism); the track grows as issues are added
+  weeks: 7, // seven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -1434,7 +1434,325 @@ const AI_EMPIRE_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE];
+// =============================================================================
+// ISSUE 7 — the Prison Industrial Complex (spoken lesson input, Darrell
+// 2026-08-04). THREE LAYERS, each attributed honestly: (1) a video series
+// (part 1) defining the PIC as a systemic INCENTIVE structure, not private
+// prisons or a conspiracy; (2) a Gemini AI analysis Darrell brought alongside
+// it, arguing the video underweights deliberate ARCHITECTURE (lobbying, the
+// War on Drugs, the 1994 Crime Bill); (3) the same analysis's three-point
+// TRANSFORMATION plan (repeal the 13th Amendment exception clause; economic
+// transition packages for prison-dependent towns; reallocate carceral capital
+// to root causes). The discernment move this issue adds to the track: weigh a
+// SYSTEM — and an AI's analysis of it — the same way as any creator's claim
+// (DR-0076: AI output that looks right is verified claim by claim), and let
+// the Word supply the categories it already has for every layer: persons may
+// never be commodities (Exodus 21:16; Amos 2:6), laws can be written to prey
+// (Isaiah 10:1-2), judges can judge for reward (Micah 3:11), the magistrate's
+// sword is still real (Romans 13:3-4), and Yahweh's stated justice is
+// restitution and jubilee, not profitable cages (Exodus 22:1; Leviticus
+// 25:10; Isaiah 61:1). Every figure verified by live web search 2026-08-04;
+// every verse fetched verbatim from the local KJV (DR-0076).
+// =============================================================================
+const PRISON_INDUSTRIAL_ISSUE = {
+  id: 'wi-prison-industrial-complex',
+  title: 'The Prison Industrial Complex — Incentives, Architects, and the Jubilee Question',
+  subject: { name: 'the prison industrial complex (the US carceral system and its economic incentives)', kind: 'system', isNamedRealPerson: false },
+  skill: 'Take a video’s systems-analysis of mass incarceration, an AI’s critique of that video, and a three-point transformation plan — and practice discernment at the SYSTEM level: state the documented spine plainly (the scale, the labor economics, the lobbying, the deliberate laws), keep INCENTIVE and INTENT distinct without letting either erase the other, weigh an AI’s analysis by evidence exactly as you would any creator’s, and test every proposed remedy against the justice the Word actually specifies — restitution over profitable confinement, liberty proclaimed on a schedule, the magistrate’s sword honored, and no person ever a commodity.',
+  source: {
+    creator: 'a video series on the Prison Industrial Complex (part 1), plus a Gemini AI analysis',
+    medium: 'video + AI analysis',
+    title: 'part 1 of a series defining the Prison Industrial Complex, with an AI critical analysis and transformation plan brought alongside it',
+    url: 'https://www.prisonpolicy.org/reports/pie2025.html',
+    asOf: '2026-08-04',
+    note: 'Attribution kept honest by layer: the summary claims are the VIDEO’s argument; the "this fails because" critique and the three-point transformation plan are GEMINI’s analysis, brought by Darrell as lesson input. Both are voices to weigh, not verdicts to repeat — and an AI’s analysis gets no badge-credit: it is verified claim by claim like anyone else’s (the URL points to the primary data both layers lean on).',
+  },
+
+  // ---- STAGE 1 — THE CLAIMS: the video's, then the AI's, then the plan's. ----
+  claims: [
+    {
+      id: 'c-not-private-prisons',
+      text: 'The popular picture is wrong: the Prison Industrial Complex is not mainly private prisons — private facilities are only a fraction of the issue, and dwelling on them misses the system.',
+      label: 'claim',
+      attribution: 'the video (part 1 of the PIC series)',
+      note: 'The FRACTION is documented and stated plainly: about 8% of incarcerated people are held in privately-run facilities (Prison Policy Initiative). Whether that makes private prisons "the least interesting part" is the video’s judgment call — and exactly where the Gemini critique pushes back (see c-gemini-lobbying).',
+    },
+    {
+      id: 'c-etymology',
+      text: 'The term adapts Eisenhower’s 1961 "military-industrial complex" warning — an economy built on weapons generating its own appetite for war — applied to prisons in 1998 by journalist Eric Schlosser and scholar Angela Davis, and developed by geographer Ruth Wilson Gilmore.',
+      label: 'claim',
+      attribution: 'the video (part 1 of the PIC series)',
+      note: 'DOCUMENTED on every point: Eisenhower’s farewell address (January 17, 1961) coined the phrase and the warning; Schlosser’s "The Prison-Industrial Complex" ran in The Atlantic in December 1998; Davis published "Masked Racism: Reflections on the Prison Industrial Complex" the same year and co-founded Critical Resistance (1998) with Ruth Wilson Gilmore, whose Golden Gulag (2007) built out the political-economy analysis.',
+    },
+    {
+      id: 'c-incentives',
+      text: 'The PIC operates because companies, labor unions, rural towns, and politicians become financially and politically dependent on high incarceration rates — the system resists shrinking without requiring any explicit conspiracy; nobody has to conspire.',
+      label: 'claim',
+      attribution: 'the video (part 1 of the PIC series)',
+      note: 'The dependence is documented (prison-town employment shares, guard-union politics, the $80B+ public payroll); "nobody has to conspire" is the video’s interpretive FRAME — true about how the system PERSISTS, and the precise point where the critique says it obscures how the system was BUILT (see c-gemini-architecture).',
+    },
+    {
+      id: 'c-scale',
+      text: 'The United States incarcerates nearly 2 million people, driven primarily by economic and political incentives rather than mere cruelty.',
+      label: 'claim',
+      attribution: 'the video (part 1 of the PIC series)',
+      note: 'The NUMBER is documented (Prison Policy Initiative, "Mass Incarceration: The Whole Pie"). "Driven primarily by incentives" is the causal frame — strong analysis, held as interpretation, because deliberate policy choices are also in the documented record.',
+    },
+    {
+      id: 'c-gemini-lobbying',
+      text: 'The video fails by dismissing private prisons: corporate lobbying by GEO Group and CoreCivic, and profit-driven contracting, actively engineered and accelerated the legislative push for mass incarceration.',
+      label: 'claim',
+      attribution: 'the Gemini analysis Darrell brought',
+      note: 'The LOBBYING is documented and said plainly: GEO Group and CoreCivic spent $1.38M and $1.77M respectively on federal lobbying in 2024, and GEO-linked contributions totaled $3.7M in the 2024 cycle (OpenSecrets). "Actively engineered mass incarceration" is the causal LEAP: the great sentencing build-out (1970s–1990s) largely preceded the industry’s scale, so "entrenches and profits from what policy built" is the documented shape; "engineered it" outruns the record.',
+    },
+    {
+      id: 'c-gemini-mic-parallel',
+      text: 'The video fails by leaning on the military-industrial parallel: defense contractors sell goods to the state, whereas carceral profit is extracted through ancillary services — communications, healthcare, food — around state-managed confinement.',
+      label: 'opinion',
+      attribution: 'the Gemini analysis Darrell brought',
+      note: 'A structural observation with a documented spine: the ancillary-services economy is real — prison telecom priced a 15-minute jail call at $11.35 before the FCC’s July 2024 caps (adopted under the Martha Wright-Reed Act, banning kickbacks to facilities), and the FCC postponed those rules in 2025, letting high rates continue. Whether that breaks Eisenhower’s analogy or refines it is an analytic judgment — labeled opinion.',
+    },
+    {
+      id: 'c-gemini-architecture',
+      text: 'The video fails because "nobody has to conspire" obscures intentional, coordinated political choices — the War on Drugs, mandatory minimum sentencing, and the 1994 Crime Bill — deliberately architected to expand state control over specific populations.',
+      label: 'claim',
+      attribution: 'the Gemini analysis Darrell brought',
+      note: 'The LAWS are documented deliberate acts: the 1994 Violent Crime Control and Law Enforcement Act funded prison construction and conditioned incentive grants on truth-in-sentencing (85% of sentence served), alongside the mandatory-minimum era. That policy was CHOSEN is fact; the unified MOTIVE ("architected to control specific populations") is the interpretive fork — the same events-vs-intent split this track practiced on the Flexner history in Issue 5.',
+    },
+    {
+      id: 'c-repeal-exception',
+      text: 'An actual transformation requires repealing the 13th Amendment’s exception clause, which permits involuntary servitude as punishment for crime — removing the framework that incentivizes cheap labor extraction and the commodification of incarcerated human beings.',
+      label: 'call-to-action',
+      attribution: 'the transformation plan in the Gemini analysis (echoing the Abolition Amendment movement)',
+      note: 'The CLAUSE is verbatim constitutional text and the movement is real (the Merkley–Booker–Williams Abolition Amendment; seven-plus states have removed state-level exceptions since 2018). Carried as a labeled position — and tested against the documented state results, including two rejections, in Stage 2.',
+    },
+    {
+      id: 'c-transition',
+      text: 'Real change requires severing the financial dependence of local economies and public-sector unions on prison bed counts — targeted federal and state economic transition packages replacing carceral infrastructure with new industry BEFORE downsizing prison populations.',
+      label: 'call-to-action',
+      attribution: 'the transformation plan in the Gemini analysis',
+      note: 'Rests on a documented premise (rural counties where prisons exceed 20% of employment; closures concentrated where economies can absorb them). The prescription — transition first, then downsize — is a position, and notably the most economically self-consistent piece of the plan: it takes its own incentive analysis seriously.',
+    },
+    {
+      id: 'c-reallocate',
+      text: 'An actual transformation requires systemically reallocating state and federal budgets away from carceral containment into housing, healthcare, and community economic infrastructure that addresses root causes before criminalization occurs.',
+      label: 'call-to-action',
+      attribution: 'the transformation plan in the Gemini analysis',
+      note: 'The budget FACTS underneath are documented ($80B+ direct corrections spending; $182B system-wide). The reallocation itself is a contested policy position — steelmanned in Stage 3 against the public-safety perspective, which the plan’s own framing ("under the guise of public safety") tends to wave off rather than answer.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION (all verified 2026-08-04). ----
+  verifiable: [
+    {
+      id: 'f-scale-and-share',
+      statement: 'The US incarcerates nearly 2 million people on any given day, and — contrary to the popular picture — only about 8% are held in privately-run facilities. Both the video’s scale claim and its "private prisons are a fraction" claim are DOCUMENTED.',
+      status: 'documented',
+      sources: [
+        { title: 'Mass Incarceration: The Whole Pie 2025', publisher: 'Prison Policy Initiative', url: 'https://www.prisonpolicy.org/reports/pie2025.html', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The single most load-bearing dataset under both layers — the video leans on it for scale, and the 8% figure is what makes "the PIC is not mainly private prisons" a documented correction of the popular picture, not a hot take.',
+    },
+    {
+      id: 'f-term-history',
+      statement: 'The term’s lineage is as the video gives it: Eisenhower’s farewell address (January 17, 1961) warned against "the acquisition of unwarranted influence... by the military-industrial complex"; Eric Schlosser’s "The Prison-Industrial Complex" ran in The Atlantic in December 1998; Angela Davis published "Masked Racism: Reflections on the Prison Industrial Complex" in 1998 and co-founded Critical Resistance that year with Ruth Wilson Gilmore, whose Golden Gulag (2007) developed the political-economy account.',
+      status: 'documented',
+      sources: [
+        { title: 'Dwight D. Eisenhower’s farewell address', publisher: 'Wikipedia / National Archives', url: 'https://en.wikipedia.org/wiki/Dwight_D._Eisenhower%27s_farewell_address', asOf: '2026-08-04' },
+        { title: 'Eric Schlosser, "The Prison-Industrial Complex" (The Atlantic, Dec. 1998)', publisher: 'The Atlantic / JSTOR', url: 'https://www.jstor.org/stable/community.33126674', asOf: '2026-08-04' },
+        { title: 'Critical Resistance (founded 1998 by Davis, Gilmore, Braz); Gilmore, Golden Gulag (UC Press, 2007)', publisher: 'Wikipedia / UC Press', url: 'https://en.wikipedia.org/wiki/Critical_Resistance', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. An etymology claim that checks out completely — worth pausing on, because a video that gets its history exactly right has earned real credibility for its harder claims (proportion, as practiced in Issue 6), without that credibility transferring automatically to its FRAME.',
+    },
+    {
+      id: 'f-13th-exception',
+      statement: 'The 13th Amendment (1865) reads: "Neither slavery nor involuntary servitude, except as a punishment for crime whereof the party shall have been duly convicted, shall exist within the United States." The exception clause is live constitutional text; the federal Abolition Amendment to strike it (Merkley–Booker–Williams) has been introduced repeatedly — drawing 200+ cosponsors in the 117th Congress — and has not passed.',
+      status: 'documented',
+      sources: [
+        { title: 'The Abolition Amendment (summary and text)', publisher: 'Office of Sen. Jeff Merkley', url: 'https://www.merkley.senate.gov/wp-content/uploads/imo/media/doc/abolition_amendment_summary.pdf', asOf: '2026-08-04' },
+        { title: 'Congresswoman Nikema Williams Reintroduces the Bicameral Abolition Amendment', publisher: 'Office of Rep. Nikema Williams', url: 'https://nikemawilliams.house.gov/posts/congresswoman-nikema-williams-reintroduces-the-bicameral-abolition-amendment-to-finally-end-slavery', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The transformation plan’s first point rests on real text and a real, active movement — the legal premise is sound. What the plan must still face is the state-level RECORD (next item): the clause’s removal has been put to actual voters, with mixed results that teach the lesson’s economics better than any theory.',
+    },
+    {
+      id: 'f-state-record',
+      statement: 'The state-level record on removing slavery/involuntary-servitude exception clauses: Colorado (2018), Utah and Nebraska (2020), Alabama, Oregon, Tennessee, and Vermont (2022), and Nevada (2024) approved removal — while Louisiana voters REJECTED their 2022 measure (its own sponsor urged a no vote over ambiguous drafting) and California voters REJECTED Proposition 6 in November 2024, after a fiscal analysis attached a roughly $1.5 billion prison-wage price tag.',
+      status: 'documented',
+      sources: [
+        { title: 'Voters End Slavery Loophole at the Ballot Box in 7 States', publisher: 'Ballot Initiative Strategy Center', url: 'https://ballot.org/news/voters-end-slavery-loophole-at-the-ballot-box-in-7-states/', asOf: '2026-08-04' },
+        { title: 'California Proposition 6 (2024) — results and fiscal analysis', publisher: 'CalMatters / Ballotpedia', url: 'https://calmatters.org/politics/elections/2024/11/california-election-result-proposition-6-fails/', asOf: '2026-08-04' },
+        { title: 'Louisiana Amendment 7 (2022) — rejected; sponsor opposed final language', publisher: 'Louisiana Illuminator / Ballotpedia', url: 'https://lailluminator.com/2022/11/08/louisiana-voters-reject-ban-on-slavery-involuntary-servitude-author-also-opposed-it/', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The most instructive fact in the lesson: California’s rejection turned substantially on the COST of paying incarcerated workers — the electorate balked at the price of ending unpaid labor, which CONFIRMS the incentive analysis (the economics really do hold the structure in place) while complicating the plan (a bare repeal without the transition economics fails at real ballot boxes).',
+    },
+    {
+      id: 'f-captive-labor',
+      statement: 'The prison-labor economy is documented: incarcerated workers produce over $2 billion in goods and over $9 billion in prison-maintenance services annually; average wages run 13–52 cents per hour, several states pay nothing for most prison jobs, and over 65% of incarcerated people surveyed report being required to work (ACLU / University of Chicago Global Human Rights Clinic, "Captive Labor," June 2022).',
+      status: 'documented',
+      sources: [
+        { title: 'Captive Labor: Exploitation of Incarcerated Workers', publisher: 'ACLU / U. Chicago Global Human Rights Clinic', url: 'https://www.aclu.org/publications/captive-labor-exploitation-incarcerated-workers', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. This is the documented substance under the plan’s "cheap labor extraction and commodification" language — stated plainly per DR-0100: real, measured, and not softened into "some say." It is also precisely the economics the 13th Amendment’s exception clause shelters.',
+    },
+    {
+      id: 'f-money',
+      statement: 'The public money is documented: direct corrections spending (prisons, jails, parole, probation) runs about $81 billion a year (Bureau of Justice Statistics), and the Prison Policy Initiative’s system-wide accounting — adding policing, courts, and the costs borne by families — totals roughly $182 billion a year.',
+      status: 'documented',
+      sources: [
+        { title: 'Following the Money of Mass Incarceration', publisher: 'Prison Policy Initiative', url: 'https://www.prisonpolicy.org/reports/money.html', asOf: '2026-08-04' },
+        { title: 'Mass Incarceration Costs $182 Billion Every Year', publisher: 'Equal Justice Initiative', url: 'https://eji.org/news/mass-incarceration-costs-182-billion-annually/', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The reallocation debate (c-reallocate) is a real debate about real money — both the scale of the carceral budget and the fact that roughly half of correctional spending is payroll, which is why the transition-package point and the union-dependence point are the same point.',
+    },
+    {
+      id: 'f-deliberate-laws',
+      statement: 'The deliberate-architecture claim has a documented spine: the 1994 Violent Crime Control and Law Enforcement Act — the largest crime bill in US history — funded roughly $9.7 billion for prisons and conditioned additional incentive grants on states adopting truth-in-sentencing laws (85% of sentence served), driving longer sentences and prison construction, atop the mandatory-minimum and drug-war sentencing regime built from the 1970s–1990s. These were chosen policies, enacted by named coalitions — not weather.',
+      status: 'documented',
+      sources: [
+        { title: 'Violent Crime Control and Law Enforcement Act of 1994 (H.R. 3355)', publisher: 'Congress.gov / US House History', url: 'https://www.congress.gov/bill/103rd-congress/house-bill/3355', asOf: '2026-08-04' },
+        { title: 'The 1994 Crime Bill and Beyond: How Federal Funding Shapes the Criminal Justice System', publisher: 'Brennan Center for Justice', url: 'https://www.brennancenter.org/our-work/analysis-opinion/1994-crime-bill-and-beyond-how-federal-funding-shapes-criminal-justice', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The Gemini critique’s strongest documented point: "nobody has to conspire" describes the system’s MAINTENANCE, but its CONSTRUCTION has named statutes, named sponsors, and recorded votes. What stays interpretive is the unified motive claim — see n-incentive-vs-intent.',
+    },
+    {
+      id: 'f-ancillary-economy',
+      statement: 'The ancillary-services profit economy is documented: before federal caps, a 15-minute phone call from a large jail could cost $11.35; the FCC’s July 2024 rules under the Martha Wright-Reed Act capped rates (about 6¢/minute for prisons), banned the "site commission" kickbacks providers paid facilities for contracts, and were projected to cut that call to about 90 cents — and in 2025 the FCC postponed those rules, allowing higher rates to continue.',
+      status: 'documented',
+      sources: [
+        { title: 'FCC votes to slash prison and jail calling rates and ban corporate kickbacks', publisher: 'Prison Policy Initiative', url: 'https://www.prisonpolicy.org/blog/2024/07/18/fcc-vote/', asOf: '2026-08-04' },
+        { title: 'FCC postpones its groundbreaking 2024 rules', publisher: 'Prison Policy Initiative', url: 'https://www.prisonpolicy.org/blog/2025/07/02/fcc-reversal/', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. The Gemini MIC-parallel point lands on real ground here: the profit is extracted not from the state alone but from the poorest families on the outside, paying by the minute to keep a family intact — the exact "service without wages" shape Jeremiah 22:13 names, and a documented harm stated plainly.',
+    },
+    {
+      id: 'f-prison-towns',
+      statement: 'Rural economic dependence is documented: prison-building became a rural development strategy from the late 1970s onward; in some rural counties prisons account for over 20% of total employment; research finds the promised economic benefits largely fail to materialize — and of US prison closures since 2000, nearly 80% happened in urban communities positioned to absorb the loss, not the dependent rural towns.',
+      status: 'documented',
+      sources: [
+        { title: 'Curbing Rural Prison Demand and Responsibly Closing Prisons', publisher: 'Urban Institute', url: 'https://www.urban.org/urban-wire/curbing-rural-prison-demand-and-responsibly-closing-prisons', asOf: '2026-08-04' },
+        { title: 'Prison-Based Economic Development: What the Evidence Tells Us', publisher: 'International Journal of Rural Criminology', url: 'https://ruralcriminology.org/index.php/IJRC/article/view/8679', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04. Confirms the video’s dependence claim AND the plan’s transition-first premise at once — and adds the sobering twist that prisons under-deliver even for the towns that depend on them: the dependence is real, and the bargain was bad.',
+    },
+  ],
+
+  interpretation: [
+    { id: 'n-incentive-vs-intent', statement: 'The video’s incentive frame and the AI’s architecture critique are BOTH partly right, about different phases: the system’s CONSTRUCTION has documented deliberate acts (named statutes, sponsors, votes — f-deliberate-laws), and its PERSISTENCE genuinely needs no conspiracy — payrolls, budgets, and bed-count dependence maintain what policy built (f-prison-towns, f-money). "Nobody has to conspire" is true of the engine running and false as a history of its assembly. Hold the events as fact and the unified-motive story as interpretation — the same discipline this track learned on the Flexner history.', restsOn: ['f-deliberate-laws', 'f-prison-towns', 'f-money'] },
+    { id: 'n-private-prison-weight', statement: 'On private prisons, the documented record cuts between the video and the critique: 8% is real (the video’s correction stands), lobbying millions are real (the critique’s fact stands), but "engineered mass incarceration" overruns the timeline — the sentencing build-out largely preceded the industry’s scale. The documented shape is entrenchment: an industry that profits from, lobbies to preserve, and expands with the system, without having originated it.', restsOn: ['f-scale-and-share', 'f-deliberate-laws'] },
+    { id: 'n-plan-meets-ballot', statement: 'The transformation plan has been partially field-tested and the results are instructive: eight states removed their exception clauses — and California’s 2024 rejection turned on a $1.5B wage price tag, proving the plan’s OWN thesis (economics hold the structure in place) against its own first point (a bare repeal without the transition economics loses real elections). The plan’s second point — transition packages BEFORE downsizing — is its most economically serious, precisely because it prices what the first point leaves unpriced.', restsOn: ['f-state-record', 'f-13th-exception'] },
+    { id: 'n-ai-as-voice', statement: 'The Gemini analysis performed like any credentialed voice this track has weighed: its factual spine checked out (lobbying figures, the named statutes, the ancillary economy), while its causal-intent claims ("engineered," "architected to control specific populations") are interpretation wearing fact’s clothing. An AI gets no badge-credit and no badge-penalty — the machine’s fluency, like the doctor’s credential in Issue 5, is constant across its true and overreaching claims; only verification separates them (DR-0076).', restsOn: ['f-deliberate-laws', 'f-ancillary-economy'] },
+  ],
+
+  perspectives: [
+    {
+      id: 'p-systemic',
+      label: 'The systems view (the video’s frame)',
+      heldBy: 'Gilmore, Schlosser, and the abolitionist political-economy tradition',
+      steelman: 'Heard at its strongest: chasing villains misses how the machine actually runs. Two million people are not held by a cartoon conspiracy but by a million ordinary paychecks — the guard’s union dues, the rural county’s largest employer, the legislator’s district jobs, the vendor’s contract. Eisenhower’s insight transfers exactly: an economy organized around an apparatus generates its own appetite for the apparatus. That is why decades of scandal have produced so little shrinkage — exposure changes feelings, not incentives — and why any serious change must re-plumb the money, which the transformation plan’s transition-package point takes seriously. Naming the incentive structure is not excusing anyone; it is aiming at the actual load-bearing wall.',
+    },
+    {
+      id: 'p-architecture',
+      label: 'The deliberate-architecture view (the critique’s frame)',
+      heldBy: 'the Gemini analysis, and historians of the drug war and sentencing era',
+      steelman: 'Heard at its strongest: "it’s just incentives" launders responsibility. The War on Drugs was announced; mandatory minimums were drafted and voted; the 1994 Crime Bill paid states billions to lengthen sentences — each a chosen act by named people who were warned of the consequences at the time. A frame in which "nobody has to conspire" quietly retires the categories of authorship and repentance: no one wrote the unrighteous decree, it merely emerged. Isaiah 10:1 refuses that comfort — "Woe unto them that DECREE unrighteous decrees, and that WRITE grievousness which they have prescribed" — the Word insists laws have authors. And the lobbying record shows the profiting interests did not merely respond to the system; they paid, and pay, to keep and grow it.',
+    },
+    {
+      id: 'p-order',
+      label: 'The public-order view',
+      heldBy: 'victims’ advocates, many in law enforcement and corrections, and many in the neighborhoods most exposed to violence',
+      steelman: 'Heard at its strongest: real crime has real victims — disproportionately the poor — and the sword of the magistrate is not man’s invention: "he beareth not the sword in vain: for he is the minister of God, a revenger to execute wrath upon him that doeth evil" (Romans 13:4). Some confinement is just, some people are dangerous, and a plan that reallocates "before criminalization occurs" must still answer: what happens the night of the assault, before the root causes are healed? The corrections officer is a neighbor doing dangerous work honorably inside a structure he did not design; the prison-town family is not a profiteer. This view rightly refuses any transformation that spends the vulnerable as the transition cost — and it can hold all of that while agreeing that a system profiting from bodies has left "public safety" far behind.',
+    },
+    {
+      id: 'p-word-justice',
+      label: 'The Word’s-justice view',
+      heldBy: 'believers reading the carceral question through what Yahweh actually specified',
+      steelman: 'Heard at its strongest: the Word’s justice system is startlingly concrete and matches NEITHER side’s defaults. Its penalty for theft is restitution that restores the victim and re-dignifies the thief through repayment — "he shall restore five oxen for an ox, and four sheep for a sheep" (Exodus 22:1); its labor ideal is work that heals — "let him labour... that he may have to give to him that needeth" (Ephesians 4:28); its hardest line is against making merchandise of a human being — "he that stealeth a man, and selleth him... shall surely be put to death" (Exodus 21:16) — and against courts that monetize the poor — "they sold the righteous for silver, and the poor for a pair of shoes" (Amos 2:6); and it builds RELEASE into the calendar itself — "proclaim liberty throughout all the land" (Leviticus 25:10). It also honors the magistrate’s sword (Romans 13:3-4) — so this view is not anti-justice; it is anti-commodification. By that measure, a system extracting billions from captive labor and captive families’ phone calls is not too harsh a justice system — it is not a justice system; it is a market wearing one’s robes (Micah 3:11).',
+    },
+  ],
+
+  lens: {
+    fourD: {
+      deepSource: 'The Word carries a category for every layer this issue surfaced, and it had them first. For the commodification the plan names: "he that stealeth a man, and selleth him, or if he be found in his hand, he shall surely be put to death" (Exodus 21:16) — trafficking in persons is a capital line in Yahweh’s law, and "they sold the righteous for silver, and the poor for a pair of shoes" (Amos 2:6) is His indictment of courts that turn the poor into revenue. For the architecture the critique names: "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed; To turn aside the needy from judgment, and to take away the right from the poor of my people" (Isaiah 10:1-2) — laws have authors, and Micah 3:11 names the profit motive on the bench itself: "The heads thereof judge for reward." For the incentive structure the video names: "If thou seest the oppression of the poor, and violent perverting of judgment and justice in a province, marvel not at the matter: for he that is higher than the highest regardeth" (Ecclesiastes 5:8) — Scripture is unsurprised by systemic, layered oppression and unimpressed by it. For the remedy: Yahweh’s justice restores rather than warehouses — fourfold and fivefold restitution (Exodus 22:1), labor that makes a man a giver again (Ephesians 4:28), Zacchaeus measuring repentance in restored money — "I restore him fourfold" (Luke 19:8) — and His economy schedules release: "proclaim liberty throughout all the land unto all the inhabitants thereof" (Leviticus 25:10), "to loose the bands of wickedness... and to let the oppressed go free" (Isaiah 58:6). The Son announced His own mission in exactly these terms: "he hath sent me... to proclaim liberty to the captives, and the opening of the prison to them that are bound" (Isaiah 61:1; Luke 4:18) — and He locates Himself INSIDE the cell: "I was in prison, and ye came unto me" (Matthew 25:36), "Remember them that are in bonds, as bound with them" (Hebrews 13:3). And the same Word honors the sword that restrains evil (Romans 13:3-4) and commands "That which is altogether just shalt thou follow" (Deuteronomy 16:20) — so the believer is not choosing between order and mercy; he is refusing the third thing, profit, a seat at justice’s table.',
+      scripture: 'Exodus 21:16; Amos 2:6; Isaiah 10:1-2; Micah 3:11; Ecclesiastes 5:8; Exodus 22:1; Ephesians 4:28; Luke 19:8; Leviticus 25:10; Isaiah 58:6; Isaiah 61:1; Luke 4:18; Matthew 25:36; Hebrews 13:3; Romans 13:3-4; Deuteronomy 16:20',
+    },
+    threeD: 'Practically: run the three-bin sort at SYSTEM scale. Bin 1 — DOCUMENTED, say it plainly: nearly 2 million incarcerated; 8% in private facilities; $2B goods + $9B services from workers paid cents or nothing; $81B–$182B a year in public money; $11.35 for a 15-minute call before the (now-postponed) caps; the 1994 Crime Bill’s truth-in-sentencing grants; the lobbying millions; prison-dependent counties. None of that is "one side" — it is the measured record. Bin 2 — INTERPRETATION, label it: "nobody has to conspire" (true of maintenance, not of construction), "private prisons engineered it" (overruns the timeline), "architected to control specific populations" (the motive fork). Bin 3 — POSITIONS, weigh them: repeal the exception clause, transition the towns first, reallocate the budgets — real proposals with a real field record (eight states yes; Louisiana and California no, California on the price of paying workers). Then the two standing rules, now proven on a third kind of voice: fluency is not evidence (the AI’s confident "this fails because" contained both verified facts and unproven causation), and a system is weighed like a claim — by its documented record, not its mission statement.',
+    accountability: {
+      statement: 'THE TWO COURTS, applied to a system with no single defendant — which is exactly the case the eternal court exists for. THE LAWMAKERS are accountable for what they wrote: "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — the statutes have sponsors and the votes are recorded, and where no earthly body will ever revisit them, "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). THE PROFITEERS are accountable for revenue built on captive people and their families: the cents-per-hour labor and the priced-by-the-minute phone call are "the hire of the labourers... kept back" in a new uniform — "Woe unto him that buildeth his house by unrighteousness... that useth his neighbour’s service without wages" (Jeremiah 22:13), and "Rob not the poor, because he is poor... For the LORD will plead their cause, and spoil the soul of those that spoiled them" (Proverbs 22:22-23). THE SYSTEM’S COURTS are accountable both ways at once: "He that justifieth the wicked, and he that condemneth the just, even they both are abomination to the LORD" (Proverbs 17:15) — every innocent person sitting in a cell and every predator loosed by expedience are both entered in the record man’s court failed. AND WE are accountable for our distance: the King identifies Himself with the prisoner — "I was in prison, and ye came unto me" (Matthew 25:36) — so a Body that never visits, never hires the returning citizen, and never pleads the cause has its omission weighed too (Hebrews 13:3). No reform bill, ballot measure, or news cycle closes these books; the court that misses nothing convenes after this life, and it has the timeline, the motives, and the money trail entire.',
+      scripture: 'Isaiah 10:1; Ecclesiastes 12:14; Jeremiah 22:13; Proverbs 22:22-23; Proverbs 17:15; Matthew 25:36; Hebrews 13:3',
+    },
+    benefits: [
+      'Both courts, honestly held: earthly justice is real but imperfect — some of the guilty walk free and some of the innocent suffer or sit in prison (Ecclesiastes 8:14; Joseph, Genesis 39:20; and the sinless Christ, "this man hath done nothing amiss," Luke 23:41) — while the ETERNAL court misses nothing and lands after this life (Ecclesiastes 12:14; Hebrews 9:27). Since all suffer and die regardless, the wise path is His way for the reward that outlasts it all (2 Corinthians 4:17; Hebrews 11:24-26).',
+      'System-scale discernment: the incentive-vs-intent tool — construction has authors (Isaiah 10:1), maintenance has payrolls (Ecclesiastes 5:8) — transfers to any institution you will ever weigh, from a school district to a denomination.',
+      'AI output joins the weighed voices: the machine’s fluent "this fails because" held verified facts AND unproven causation in one confident paragraph — fluency is not evidence, and verification (DR-0076) is the only separator.',
+      'The Word’s own justice recovered: restitution that restores (Exodus 22:1; Luke 19:8), labor that re-dignifies (Ephesians 4:28), release on the calendar (Leviticus 25:10) — the believer critiques the carceral market from a POSITIVE biblical design, not a borrowed ideology.',
+      'The field-test habit: proposals get checked against their real record (eight states yes; two states no, one on the price of paying workers) — a plan’s collision with a ballot box teaches more than its manifesto.',
+      'A guarded evenhandedness: the victim’s door and the cell door are both real (Romans 13:4; Matthew 25:36) — naming the system’s commodification never requires denying the magistrate’s sword, and honoring the sword never requires blessing the market around it.',
+      'A Body that shows up: "I was in prison, and ye came unto me" (Matthew 25:36) makes the incarcerated and the returning citizen the King’s own presence to serve — turning analysis into visits, hiring, and pleading the cause (Proverbs 22:22-23).',
+    ],
+    graceNote: 'This lesson condemns no soul — not the corrections officer working dangerous shifts with honor, not the prison-town family whose livelihood the county offered them, not the lawmaker of 1994 (many of whom have publicly reckoned with what the bill became), not the executive, and not the prisoner. Every one of them bears the image of God, and the verdict on each heart belongs to Him alone (Romans 14:4; James 4:12). Naming a system’s documented fruit is not condemning its people — the Word manages both in one breath, decreeing woe on the unrighteous decree while sending its Author’s Son to open the prison (Isaiah 61:1). The same mercy that visits the cell is offered at every desk in the system, and this lesson keeps the door open in both directions.',
+    stewardship: 'The believer’s response is not a hashtag; it is jubilee economics practiced at household scale. VISIT AND REMEMBER: the King is in the cell (Matthew 25:36; Hebrews 13:3) — prison ministry, letters, presence. HIRE AND RESTORE: the returning citizen needs exactly what Ephesians 4:28 prescribes — labor that makes a giver — so the second-chance hire is a doctrinal act, not charity theater. KEEP FAMILIES CONNECTED: the priced-by-the-minute phone call is a documented yoke (f-ancillary-economy); paying for a family’s connection, or advocating the caps, is loosing a band of wickedness (Isaiah 58:6). PLEAD THE CAUSE: "Rob not the poor... For the LORD will plead their cause" (Proverbs 22:22-23) — the citizen-believer weighs ballot language (Louisiana’s lesson: drafting matters) and prices the transition honestly (California’s lesson: unpriced justice loses). And BUILD the alternative this platform exists for — community economics that reach people before the system does, because the cheapest prison bed is the one root-cause work made unnecessary.',
+    anchor: {
+      ref: 'Isaiah 61:1',
+      theme: 'The Spirit-anointed mission proclaims liberty to the captives and the opening of the prison — Yahweh’s justice restores persons; it never merchandises them.',
+    },
+  },
+
+  reflection: {
+    skill: 'When handed a SYSTEM analysis — from a video, a scholar, or an AI: sort documented record from causal frame (the events happened; the unified motive is usually the interpretive part), run the incentive-vs-intent tool (construction has authors, maintenance has payrolls — both true, different phases), field-test every proposal against its real record, and weigh AI fluency exactly like human credentials: no badge-credit, verification only. Then answer from the Word’s own positive design — restitution, restoring labor, scheduled release, the honored sword — rather than importing any camp’s package deal.',
+    practice: 'Take ONE claim from this lesson — the 8% figure, the 13–52-cents wages, the $11.35 phone call, or the 1994 truth-in-sentencing grants — and find its primary source yourself (the Whole Pie report, the Captive Labor report, the FCC record, the bill text). Then write two sentences: one stating what is DOCUMENTED, and one naming the nearest INTERPRETATION that the document does not itself establish. Finish with one act of Matthew 25:36 obedience your household could take this month — a letter, a visit, a second-chance referral, a funded phone account.',
+    prompts: [
+      'The video says "nobody has to conspire"; the critique answers "the War on Drugs and the 1994 Crime Bill were deliberate." Using Isaiah 10:1 (laws have authors) and Ecclesiastes 5:8 (oppression runs on layered incentives), how are both true — and about different phases of the same system?',
+      'California voters kept prison labor unpaid substantially because ending it carried a $1.5 billion price tag. What does that confirm about the incentive analysis — and what does it teach about how a real jubilee must be priced (Leviticus 25 priced release into the whole economy in advance)?',
+      'The Gemini analysis got its lobbying figures right and overran the evidence on "engineered mass incarceration." What does it change — and not change — that this voice was an AI rather than a credentialed human (Issue 5) or a sourced journalist (Issue 6)?',
+      'Exodus 22:1 answers theft with restitution; our system answers it with a cell that costs the public tens of thousands a year and pays the victim nothing. Which parts of the biblical design could believers advocate TODAY without denying Romans 13’s sword — and which longings for it must wait for the King?',
+      'The corrections officer, the prison-town mayor, and the incarcerated father are all real neighbors in this lesson. How does the grace-note’s "no verdict on souls" change the TONE of a believer’s systemic critique without softening one documented fact (DR-0100)?',
+      '"I was in prison, and ye came unto me" (Matthew 25:36) puts the King inside the system being analyzed. What is one concrete way your household moves from analysis to presence this month — and what keeps analysis-without-presence comfortable?',
+    ],
+  },
+
+  levels: {
+    child: 'Here is a big, sad puzzle that wise people are trying to fix. In our country, a very large number of people are in prison — that means they did something against the rules, or sometimes were only accused of it, and now they live locked away from their families. Some of the puzzle is fair: rules matter, and people who hurt others need to be stopped — the Bible says leaders are supposed to protect people from harm (Romans 13). But here is the part that is NOT fair: some companies and towns MAKE MONEY when the prisons stay full — the people inside work almost for free, and their families must pay lots of money just to talk to them on the phone. God’s Word says we must never treat a person like a thing to make money from, because every person is made in His image. And do you know what Jesus said? "I was in prison, and ye came unto me" (Matthew 25:36) — Jesus says visiting and loving people in prison is like visiting HIM! In God’s plan, when someone took something, they worked to PAY IT BACK and make it right again (Exodus 22:1) — fixing things, not just locking people away forever. So the wise-heart way is: care about fairness for EVERYBODY — the person who was hurt, the person who did wrong, and their families — and remember that God sees it all and will make everything perfectly fair one day (Ecclesiastes 12:14).',
+    teen: 'Level up: this issue hands you THREE voices at once — a video, an AI’s critique of the video, and a reform plan — and your job is to grade each one against the record, not pick a team. The video’s core facts CHECK OUT: nearly 2 million people incarcerated, only ~8% in private prisons, and the term really does come from Eisenhower’s 1961 warning via Schlosser and Davis in 1998. Its FRAME — "it’s incentives, nobody has to conspire" — is half right: that is genuinely how the system KEEPS running (whole towns depend on prison jobs; the public pays $80B+ a year). But the AI’s pushback is half right too: the War on Drugs, mandatory minimums, and the 1994 Crime Bill were DELIBERATE, voted-on choices — laws have authors (Isaiah 10:1). Construction was intentional; maintenance runs on autopilot. Both true, different phases — that is the tool. Now the sharpest fact in the lesson: prisoners work for 13 to 52 CENTS an hour (some states: zero), and when California voted in 2024 on whether to end forced prison labor, voters said NO — partly because paying real wages would cost about $1.5 billion. Sit with that: the state kept unpaid labor because ending it was expensive. That is the incentive structure, caught on camera. The Word’s take is older and sharper than both sides: never merchandise a human being (Exodus 21:16; Amos 2:6), justice should RESTORE — the thief repaid fourfold and got his dignity back through the repayment (Exodus 22:1; Luke 19:8) — release was on God’s calendar (Leviticus 25:10), AND the magistrate’s sword is real because victims are real (Romans 13:4). And one more skill for your generation specifically: the AI’s analysis was fluent, confident, formatted — and still mixed verified facts with causal claims the evidence doesn’t carry. Fluency is not evidence. Verify the machine like you’d verify a stranger, because that is what it is.',
+    senior: 'For the seasoned believer, this issue completes a progression the track has been building: Issue 5 weighed a credentialed human whose claims falsified; Issue 6 a credentialed human whose claims confirmed; here, a SYSTEM — and an AI analyzing it — where the discernment must run at two altitudes at once. At the factual altitude, the record is not seriously contested and is stated plainly per DR-0100: nearly 2 million incarcerated, 8% privately held, $2B in goods and $9B in services from workers paid cents or nothing under the 13th Amendment’s standing exception clause, $81B–$182B a year in public cost, a phone-call economy that priced a family’s connection at $11.35 per quarter-hour, and a 1994 statute that paid states to lengthen sentences — sponsors named, votes recorded. At the interpretive altitude, hold the incentive-vs-intent distinction with an elder’s both-hands grip: Isaiah 10:1 insists the decrees had authors (the critique’s truth), Ecclesiastes 5:8 counsels un-marveling clarity about layered, self-sustaining oppression (the video’s truth), and neither erases the other — construction was chosen, maintenance is purchased. Note what the state record teaches about reform in a fallen economy: California’s electorate, offered the end of unpaid prison labor, declined at a $1.5B price — Leviticus 25 anticipated exactly this, which is why jubilee was not a sentiment but a PRICED institution, structured into land law and lending law fifty years in advance (Leviticus 25:15-16 sets purchase prices BY the years to release). A justice that costs nothing is a slogan; Yahweh’s justice budgeted. Guard the two ditches for the household: the reform-romantic ditch that forgets Romans 13:4 and the real victim at the real door; and the order-idolatry ditch that blesses a market in persons because it wears justice’s robes — Micah 3:11 names heads who judge for reward as corruption, not conservatism. And model the posture that outlasts every policy cycle: the King self-identifies with the prisoner (Matthew 25:36), the Body is commanded into remembrance as if co-bound (Hebrews 13:3), and the mission statement the Son read aloud in Nazareth — liberty to the captives, the opening of the prison (Isaiah 61:1; Luke 4:18) — is the Kingdom’s direction of travel. The believer’s systemic critique is therefore neither left nor right; it is OLDER than both: restitution over warehousing, persons over revenue, the sword honored, the profit motive expelled from the courtroom, and every book that man’s courts never open carried into the one court that misses nothing (Ecclesiastes 12:14).',
+  },
+
+  quiz: {
+    questions: [
+      {
+        q: 'The video claims the PIC is "not mainly private prisons." What does the documented record show?',
+        options: ['False — most prisoners are in private facilities', 'Documented — only about 8% of incarcerated people are held in privately-run facilities (Prison Policy Initiative); the correction of the popular picture is real, though private operators’ lobbying is also real and documented', 'Unknowable — no one tracks it'],
+        answer: 1,
+        explain: 'Both halves matter: the 8% figure validates the video’s correction, AND the lobbying millions validate the critique’s point that the industry works to preserve the system it profits from. Neither fact cancels the other.',
+      },
+      {
+        q: 'The video says "nobody has to conspire"; the AI critique says the system was deliberately architected. How does the incentive-vs-intent tool sort this?',
+        options: ['The video is simply right — systems have no authors', 'The critique is simply right — it was all one coordinated plan', 'Both, about different phases: CONSTRUCTION has documented deliberate acts (the drug war, mandatory minimums, the 1994 Crime Bill — named sponsors, recorded votes; Isaiah 10:1), while PERSISTENCE runs on incentives needing no conspiracy (payrolls, budgets, bed-count dependence; Ecclesiastes 5:8)'],
+        answer: 2,
+        explain: 'The lesson’s central tool. Laws have authors — the Word refuses authorless "grievousness" (Isaiah 10:1) — and mature systems sustain themselves on ordinary paychecks. Holding both is the discernment.',
+      },
+      {
+        q: 'California voters rejected Proposition 6 (2024), keeping involuntary prison labor, substantially over a ~$1.5B cost of paying wages. What does this field-test teach?',
+        options: ['That the incentive analysis is wrong', 'That it CONFIRMS the incentive analysis — economics visibly held the structure in place — and that unpriced justice loses: Yahweh’s own jubilee was a PRICED institution, structured into the economy decades in advance (Leviticus 25)', 'That voters are simply cruel'],
+        answer: 1,
+        explain: 'The sharpest fact in the lesson: the plan’s own thesis proved itself against the plan’s own first point. A real transformation budgets the transition — which is exactly what the plan’s second point (transition packages first) exists to do.',
+      },
+      {
+        q: 'The Gemini analysis stated verified lobbying figures AND the unproven claim that private prisons "engineered" mass incarceration, in one fluent paragraph. What is the standing rule?',
+        options: ['Trust it — AI is objective', 'Dismiss it — AI can’t analyze', 'Weigh it like any voice: fluency is not evidence — verify claim by claim, keep the documented facts, and label the causal overreach (the sentencing build-out largely preceded the industry’s scale)'],
+        answer: 2,
+        explain: 'The track’s badge rule extends to machines: the doctor’s credential (Issue 5), the journalist’s sourcing (Issue 6), and the AI’s fluency are all constant across their true and false claims. Only verification separates (DR-0076).',
+      },
+      {
+        q: 'What is the Word’s own positive design that the believer critiques the carceral market FROM?',
+        options: ['Whatever the reform movement currently proposes', 'Order at any price — the system is beyond question', 'Restitution that restores the victim and re-dignifies the wrongdoer (Exodus 22:1; Luke 19:8), labor that makes a giver (Ephesians 4:28), release built into the calendar (Leviticus 25:10), the magistrate’s sword honored (Romans 13:4), and no person ever merchandise (Exodus 21:16; Amos 2:6)'],
+        answer: 2,
+        explain: 'The believer imports no camp’s package. Yahweh’s justice is restitutive, restorative, scheduled for release, and absolute against commodifying persons — older and sharper than both modern defaults, with the King Himself found inside the cell (Matthew 25:36).',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
