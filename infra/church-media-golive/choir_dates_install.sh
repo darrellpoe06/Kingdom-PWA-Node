@@ -18,17 +18,23 @@ if [ -f "$STATE/choir-dates.DONE" ]; then
   exit 0
 fi
 
-# Self-sufficient dependency (first live cycle 2026-08-04, bootstrap run
-# 30904945110: "yt-dlp not available" — DSM python3 ships without it, and an
-# installer that assumes its own dependency is not an installer). Idempotent:
-# the import check passes in one process spawn on every later cycle.
-if ! python3 -c "import yt_dlp" 2>/dev/null; then
-  echo "choir-dates: installing yt-dlp (one-time, --user)"
-  python3 -m pip install --user --quiet yt-dlp || {
-    echo "choir-dates: pip install yt-dlp FAILED — cannot drain without it" >&2
+# Self-sufficient dependency (live cycles 2026-08-04: run 30904945110 proved
+# DSM python3 ships without yt_dlp; run 30905809978 proved it ships without
+# pip as well). No pip: fetch the standalone yt-dlp release — a self-contained
+# zipapp the system python3 runs directly — into state/ once, validated by
+# --version so a torn download can never be trusted. Idempotent: later cycles
+# hit the -x check (or the import, wherever a site install exists).
+YTDLP="$STATE/yt-dlp"
+if ! python3 -c "import yt_dlp" 2>/dev/null && [ ! -x "$YTDLP" ]; then
+  echo "choir-dates: fetching standalone yt-dlp (one-time)"
+  curl -fsSL -o "$YTDLP" https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    && chmod +x "$YTDLP" && "$YTDLP" --version >/dev/null 2>&1 || {
+    rm -f "$YTDLP"
+    echo "choir-dates: could not obtain a working yt-dlp (no module, no pip, download failed)" >&2
     exit 1
   }
 fi
+PATH="$STATE:$PATH"; export PATH
 
 python3 "$DIR/choir_dates_sync.py" --commit --chunk 90 --time-budget 300 \
   --done-marker "$STATE/choir-dates.DONE"
