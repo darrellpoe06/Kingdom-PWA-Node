@@ -19,9 +19,9 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
-  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt,
+  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt, hydrateShow,
 } from '../lib/tv-time.js';
-import { searchTitles, loadShow, resolvePoster, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, resolvePoster, normalizeTitleQuery, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
@@ -161,10 +161,19 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy, onHydrate = null }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
+  // Opening the Episodes tab on a show with no season list is the gesture that
+  // says "bring in the seasons" — hydrate it from the catalog (single-flight in
+  // the parent; imported shows only). The list streams in when the lookup lands.
+  useEffect(() => {
+    // The parent's needsHydration gates this — a hydrated (or catalog-added)
+    // show returns immediately, so this fires real work for imports only. The
+    // partial-seasons import case (only watched episodes present) is included.
+    if (tab === 'episodes' && onHydrate && show.kind !== 'movie') onHydrate(show);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   const prog = showProgress(state, show.id);
   const isMovie = show.kind === 'movie';
   const seen = show.status === 'watched';
@@ -406,6 +415,15 @@ export default function TVTime({ email = null }) {
     return null; // decided from list size on first render
   });
   const [focusId, setFocusId] = useState(null); // grid tile tapped → its card opens
+  // The opened card renders BELOW the whole grid — on a 100-tile wall that put
+  // it thousands of pixels under the viewport, so a tap looked completely dead
+  // (the 2026-08-04 "don't work" report). Scroll it into view when it opens.
+  const focusCardRef = useRef(null);
+  useEffect(() => {
+    if (focusId && focusCardRef.current && typeof focusCardRef.current.scrollIntoView === 'function') {
+      focusCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [focusId]);
   const activeView = viewMode || (tracked.length > 9 ? 'wall' : 'cards');
   // 'wall' (tall 2:3 posters) and 'squares' (Darrell 2026-07-05: "a view that has
   // squares" — 1:1 tiles, art cropped to fill) are both the condensed grid; they
@@ -506,6 +524,25 @@ export default function TVTime({ email = null }) {
     else if (hit) { const full = await loadShow(hit.id); persist(addShowFromCatalog(state, full || hit)); }
     else persist(addCustomShow(state, { title }));
     setBusy('');
+  };
+
+  // Hydrate a zip-imported / hand-added show with the catalog's FULL record (the
+  // missing half of the migration — its "seasons" were only the episodes already
+  // watched, so there was nothing left to check off; 2026-08-04 review, G1/G2/G3).
+  // Runs on a USER GESTURE only (tile tap / Episodes tab), single-flight per show
+  // per session, so a 100-show imported wall never bursts the free API. A failed
+  // lookup releases the flight so a later open retries.
+  const hydrating = useRef(new Set());
+  const needsHydration = (s) => !!s && s.kind !== 'movie' && !s.sourceId
+    && (String(s.id).startsWith('tvt-') || !(s.seasons && s.seasons.length));
+  const onHydrate = async (show) => {
+    if (!needsHydration(show) || hydrating.current.has(show.id)) return;
+    hydrating.current.add(show.id);
+    const hits = await searchTitles(normalizeTitleQuery(show.title));
+    const hit = (hits || []).find((h) => h.kind === 'show');
+    const full = hit ? await loadShow(hit.id) : null;
+    if (full) persist(hydrateShow(stateRef.current, show.id, full));
+    else hydrating.current.delete(show.id);
   };
 
   // Import your old list: paste titles (one per line). Each is looked up (show or
@@ -730,7 +767,7 @@ export default function TVTime({ email = null }) {
                     const pct = prog.total ? Math.round((prog.watched / prog.total) * 100) : 0;
                     const on = focusId === show.id;
                     return (
-                      <button key={show.id} type="button" onClick={() => setFocusId(on ? null : show.id)}
+                      <button key={show.id} type="button" onClick={() => { setFocusId(on ? null : show.id); if (!on) onHydrate(show); }}
                         aria-pressed={on}
                         aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
                         className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
@@ -743,11 +780,11 @@ export default function TVTime({ email = null }) {
                   })}
                 </div>
                 {focused && (
-                  <div className="mt-2">
+                  <div className="mt-2" ref={focusCardRef}>
                     <ShowCard key={focused.id} show={focused} me={me} state={state}
                       onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                       onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                      onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
+                      onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
                   </div>
                 )}
               </>
@@ -757,7 +794,7 @@ export default function TVTime({ email = null }) {
                   <ShowCard key={show.id} show={show} me={me} state={state}
                     onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                     onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
+                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
                 ))}
               </div>
             )}

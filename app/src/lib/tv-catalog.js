@@ -197,16 +197,44 @@ export async function searchTitles(query) {
 // no-match resolves to '' (the placeholder stays). Prefers an exact title match,
 // else the top result. Pure-ish: uses the injectable catalog fetcher, so tests
 // drive it with a recorded sample (no live call).
+// Normalize a stored/imported title into a searchable query. The TV Time zip's
+// titles carry disambiguation the APIs choke on — "EMPIRE (2015)" (trailing
+// year) and "LOVE IS___" (trailing underscores) both returned nothing verbatim,
+// so those tiles sat blank forever (2026-08-04 comprehensive review, G3). Pure.
+export function normalizeTitleQuery(title) {
+  return String(title || '')
+    .replace(/\(\s*(19|20)\d{2}\s*\)\s*$/, '')  // trailing "(2015)"
+    .replace(/[_\s.]+$/, '')                     // trailing underscores/dots/space runs
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const _posterCache = new Map(); // `${kind}:${lowerTitle}` -> Promise<string> (settles to url|'')
 export function resolvePoster(title, kind = 'show') {
-  const t = String(title || '').trim();
+  const t = normalizeTitleQuery(title);
   if (!t) return Promise.resolve('');
   const key = `${kind === 'movie' ? 'movie' : 'show'}:${t.toLowerCase()}`;
   if (!_posterCache.has(key)) {
     _posterCache.set(key, (async () => {
-      const results = kind === 'movie' ? await searchMovies(t) : await searchShows(t);
-      const exact = results.find((r) => String(r.title).toLowerCase() === t.toLowerCase());
-      return ((exact || results[0]) || {}).poster || '';
+      // Kind-first, then the OTHER source — a title with no TVmaze artwork can
+      // still have an iTunes poster (and vice versa). Both lanes stay keyless.
+      const primary = kind === 'movie' ? searchMovies : searchShows;
+      const secondary = kind === 'movie' ? searchShows : searchMovies;
+      let results = await primary(t);
+      if (!results.length || !results.some((r) => r.poster)) {
+        const alt = await secondary(t);
+        if (!results.length) results = alt;
+        else if (alt.length && alt[0].poster && !results.some((r) => r.poster)) results = alt;
+      }
+      const exact = results.find((r) => normalizeTitleQuery(r.title).toLowerCase() === t.toLowerCase());
+      const url = ((exact || results[0]) || {}).poster || '';
+      // A settled EMPTY is not cached: the lanes can't distinguish "no match"
+      // from "fetch failed" (both surface as []), and permanently caching a
+      // TVmaze 429 during a fast wall scroll blanked tiles for the whole
+      // session. Dropping the entry lets the NEXT scroll-into-view retry;
+      // successes stay cached single-flight as before.
+      if (!url) _posterCache.delete(key);
+      return url;
     })());
   }
   return _posterCache.get(key);
