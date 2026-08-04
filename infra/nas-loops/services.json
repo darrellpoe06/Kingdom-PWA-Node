@@ -27,6 +27,12 @@
       "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) — the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1)."
     },
     {
+      "name": "choir-dates",
+      "install": "infra/church-media-golive/choir_dates_install.sh",
+      "enabled": true,
+      "description": "Drain the undated choir_sermons backlog (2026-08-04): yt-dlp reads each video's own release/upload stamp from the NAS's residential IP (CI runners are bot-checked and the stored Data-API key is rejected), PATCHes service_date ONLY where NULL via the youtube_load.py REST helpers, ~90 videos per 15-min cycle until drained, then a DONE marker no-ops every later cycle. Budget in-script (chunk + time), lock/timeout in the runner (DR-0248). Selftest gates merge in ci.yml."
+    },
+    {
       "name": "ytzero",
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
