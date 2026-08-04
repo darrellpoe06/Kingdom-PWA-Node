@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   debtPaymentStats, estimatePayoff, deriveApr, debtPayoffInsight,
   isInterestCharge, looksLikeDebtAccount, cardPaymentSuggestions, debtNameFromPayee,
+  linkedDebtPaymentStats,
 } from '../lib/debt-payments.js';
 
 const asOf = new Date('2026-07-15T00:00:00');
@@ -129,6 +130,67 @@ describe('cardPaymentSuggestions — "you pay these; add them as debts"', () => 
   it('skips a payee already covered by an existing debt account', () => {
     const accounts = [{ name: 'Chase Credit Crd', type: 'credit' }];
     expect(cardPaymentSuggestions(txns, accounts, { nowMs })).toHaveLength(0);
+  });
+});
+
+describe('cardPaymentSuggestions — an ADDED card stays added (2026-08-04 regression)', () => {
+  // The real bank strings from the live ledger. The raw label keeps PMT/WEB
+  // noise the stored account NAME had stripped ("american express ach pmt a tel
+  // id" vs "american express ach a"), so the raw-key containment check alone
+  // never matched — the suggestion survived every add, and each re-tap piled on
+  // another duplicate $0 account (24 stray rows in the live table).
+  const nowMs = Date.parse('2026-08-04T00:00:00');
+  const amex = (id, date) => ({ id, date, accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A1440           TEL ID: 9493560001' });
+  const card = (id, date) => ({ id, date, accountId: 'a-chk', amount: -110, description: 'CARDMEMBER SERV  WEB PYMT   ***********2001 WEB ID: 5911111111' });
+  const txns = [
+    amex('x1', '2026-05-04'), amex('x2', '2026-06-04'), amex('x3', '2026-07-04'),
+    card('c1', '2026-05-10'), card('c2', '2026-06-10'), card('c3', '2026-07-10'),
+  ];
+  it('suggests both card autopays when nothing tracks them yet', () => {
+    expect(cardPaymentSuggestions(txns, [], { nowMs })).toHaveLength(2);
+  });
+  it('the add flow itself produces the covering names (debtNameFromPayee)', () => {
+    expect(debtNameFromPayee('AMERICAN EXPRESS ACH PMT    A1440           TEL ID: 9493560001')).toBe('American Express Ach A');
+    expect(debtNameFromPayee('CARDMEMBER SERV  WEB PYMT   ***********2001 WEB ID: 5911111111')).toBe('Cardmember Serv Pymt');
+  });
+  it('does NOT re-suggest a card already added under its cleaned name', () => {
+    const accounts = [
+      { id: 'a-1', name: 'American Express Ach A', type: 'credit', treatAsDebt: true },
+      { id: 'a-2', name: 'Cardmember Serv Pymt', type: 'credit', treatAsDebt: true },
+    ];
+    expect(cardPaymentSuggestions(txns, accounts, { nowMs })).toHaveLength(0);
+  });
+  it('an unrelated tracked card does not hide these suggestions (no over-blocking)', () => {
+    const accounts = [{ id: 'a-3', name: 'Chase Credit Crd', type: 'credit' }];
+    expect(cardPaymentSuggestions(txns, accounts, { nowMs })).toHaveLength(2);
+  });
+});
+
+describe('linkedDebtPaymentStats — payments recovered by cleaned payee name', () => {
+  // A debt added from a suggestion has NO ledger rows of its own; its payments
+  // live in checking. Matching by the same cleaned name the add flow used
+  // recovers the pace — the row shows "$53/mo" instead of "no payments seen".
+  const asOf = new Date('2026-08-04T00:00:00');
+  const txns = [
+    { id: 'x1', date: '2026-05-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A009' },
+    { id: 'x2', date: '2026-06-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A1440           TEL ID: 9493560001' },
+    { id: 'x3', date: '2026-07-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A234' },
+    { id: 'g1', date: '2026-06-15', accountId: 'a-chk', amount: -180.5, description: 'KROGER 0451' },
+    // the debt account's OWN rows are excluded (they are the normal path)
+    { id: 'own', date: '2026-06-20', accountId: 'a-amex', amount: -53, description: 'AMERICAN EXPRESS ACH PMT A009' },
+    // a deposit never counts as a payment
+    { id: 'dep', date: '2026-06-21', accountId: 'a-chk', amount: 53, description: 'AMERICAN EXPRESS ACH PMT REFUND' },
+  ];
+  it('finds the checking-side payments and computes the monthly pace', () => {
+    const s = linkedDebtPaymentStats(txns, 'American Express Ach A', 'a-amex', asOf);
+    expect(s.paymentCount).toBe(3);
+    expect(s.grossPaymentPerMonth).toBeCloseTo(53, 2);
+  });
+  it('matches nothing for an unrelated account name', () => {
+    expect(linkedDebtPaymentStats(txns, 'Synchrony Bank', 'a-syn', asOf).paymentCount).toBe(0);
+  });
+  it('is honest on a blank name', () => {
+    expect(linkedDebtPaymentStats(txns, '', 'a-x', asOf).paymentCount).toBe(0);
   });
 });
 

@@ -47,6 +47,11 @@ export function createAccountsCrud({ data, setData, syncEnabled, accountsSync, s
         if (updates.inLegal !== undefined)     patch.in_legal = !!updates.inLegal;
         if (updates.isPrimary !== undefined)   patch.is_primary = !!updates.isPrimary;
         if (updates.entityId !== undefined)    patch.entity_slug = updates.entityId;
+        // The debt declaration (0129): "Treat as debt" and the inline Debts-tab
+        // rate/min edits must reach the cloud row, or the next refetch undoes them.
+        if (updates.treatAsDebt !== undefined) patch.treat_as_debt = !!updates.treatAsDebt;
+        if (updates.minPayment !== undefined)  patch.min_payment = parseFloat(updates.minPayment) || 0;
+        if (updates.rate !== undefined)        patch.rate = parseFloat(updates.rate) || 0;
         if (Object.keys(patch).length) accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
       }
     }

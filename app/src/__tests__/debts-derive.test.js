@@ -106,6 +106,41 @@ describe('deriveDebts', () => {
     expect(debts[0].manual).toBe(true);      // shows the inline "+ owed" editor
     expect(debts[0].minPayment).toBe(110);   // pre-filled from the observed payment
   });
+  it('LINKED pace: a suggestion-added debt reads its payments from the checking ledger by cleaned name', () => {
+    // The 2026-08-04 fix: the added card has no rows of its own — its real
+    // payments ride in checking under the payee string. The row must show the
+    // real pace and a payoff at that pace, not "no payments seen".
+    const data = {
+      accounts: [
+        { id: 'a-chk', name: 'Chase Checking', type: 'checking', balance: 5000, entityId: 'e1' },
+        { id: 'a-amex', name: 'American Express Ach A', type: 'credit', treatAsDebt: true, balance: 530, minPayment: 53, entityId: 'e1' },
+      ],
+      transactions: [
+        { id: 'x1', date: '2026-04-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A009' },
+        { id: 'x2', date: '2026-05-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A1440           TEL ID: 9493560001' },
+        { id: 'x3', date: '2026-06-04', accountId: 'a-chk', amount: -53, description: 'AMERICAN EXPRESS ACH PMT    A234' },
+      ],
+    };
+    const d = deriveDebts(data, ASOF).find((x) => x.accountId === 'a-amex');
+    expect(d.hasPayments).toBe(true);
+    expect(d.paceSource).toBe('linked');
+    expect(d.payPace).toBeCloseTo(53, 2);
+    expect(d.estPayoffOnTrack).toBe(true);
+    expect(d.estPayoffMonths).toBe(Math.ceil(530 / 53));
+    expect(d.growing).toBe(false);
+  });
+  it('linked pace never overrides an account with its OWN ledger rows', () => {
+    const data = {
+      accounts: [{ id: 'a-cc', name: 'Visa', type: 'credit', balance: -3000, treatAsDebt: true, entityId: 'e1' }],
+      transactions: [
+        { id: 'p1', accountId: 'a-cc', date: '2026-05-01', amount: 400, description: 'PAYMENT' },
+        { id: 'p2', accountId: 'a-cc', date: '2026-06-01', amount: 400, description: 'PAYMENT' },
+      ],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.paceSource).toBe('own');
+    expect(d.hasPayments).toBe(true);
+  });
   it('a paid-off (feed-typed) credit account at $0 does NOT show — only user-declared debts survive at $0', () => {
     // Guard the fix's boundary: a plain typed credit account (not treatAsDebt) at a
     // zero balance is a paid-off card and must stay hidden, so the $0-shows rule is

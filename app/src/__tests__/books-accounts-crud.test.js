@@ -87,6 +87,15 @@ describe('updateAccount — the manual-balance interception rides the peel intac
       in_legal: true, is_primary: true, entity_slug: 'e-x',
     });
   });
+  it('the debt declaration reaches the cloud row (0129 — "Treat as debt" and inline rate/min edits stick)', () => {
+    const sync = makeSync();
+    const data = { accounts: [{ id: 'a1', balance: 0, remoteUuid: 'u' }], transactions: [] };
+    const { crud } = crudFor(data, { syncEnabled: true, accountsSync: sync });
+    crud.updateAccount('a1', { treatAsDebt: true, minPayment: 110, rate: 17.44 });
+    expect(sync.updateRow).toHaveBeenCalledWith('u', {
+      treat_as_debt: true, min_payment: 110, rate: 17.44,
+    });
+  });
 });
 
 describe('toggleAccountLegal / deleteAccount', () => {

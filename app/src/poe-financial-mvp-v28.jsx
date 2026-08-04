@@ -80,7 +80,7 @@ import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
-import { accountsSync } from './lib/accounts-sync.js';
+import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
@@ -2179,7 +2179,7 @@ export default function PoeFinancialSystem() {
       // notDemoRow: demo rows never upload. notSeedRow (2026-06-12): seed
       // scaffolding never uploads either — see SEED_IDS above.
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow), merge: accountsMerge },
         { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeTransactionsPreferCloud },
         { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteProjects },

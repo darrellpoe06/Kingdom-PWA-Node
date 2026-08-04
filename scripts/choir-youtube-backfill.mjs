@@ -33,6 +33,7 @@
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { parseServiceTitle, extractYoutubeId } from '../app/src/lib/youtube-title-parse.js';
+import { classifyServiceType } from '../app/src/lib/service-day.js';
 
 const DEFAULT_BASE = 'https://www.youtube.com/@thelovecorner';
 const TAB_NAMES = ['videos', 'streams'];
@@ -98,7 +99,65 @@ for (const line of lines) {
     title: parsed.title || rawTitle.trim(),
     speaker: parsed.speaker,
     rawTitle,
+    dateSource: parsed.serviceDate ? 'title' : null,
   });
+}
+
+// UPLOAD-DATE FALLBACK (2026-08-04, the "666 undated forever" audit). Hundreds
+// of titles carry NO date at all ("Watch God Deliver Me", "Love Hurts") — no
+// title parse can ever date them, and the panel's promise that "they join this
+// list as the corpus pipeline dates them" was TRUE OF NOTHING: the pipeline
+// re-listed the channel twice a week and dated zero existing rows. For a
+// channel that live-streams its services, the stream's actual start time IS
+// the service date — exact, from YouTube's own metadata (never approximated).
+// Fetched via the Data API (50 ids/call — the whole backlog is ~14 calls) when
+// YOUTUBE_API_KEY is present; without the key the title-dated rows still flow
+// and the gap is NAMED in the summary, not hidden (DR-0076).
+const API_KEY = process.env.YOUTUBE_API_KEY || '';
+// A service's calendar date is its LOCAL date at the church (America/New_York,
+// COLG) — a Wednesday 8pm EST stream is 01:00 UTC Thursday, and dating it
+// Thursday would file the service on the wrong night.
+const easternDate = (iso) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+};
+async function fetchUploadDates(ids) {
+  const out = new Map();
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${chunk.join(',')}&key=${API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`videos.list ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = await res.json();
+    for (const item of (body.items || [])) {
+      const started = item.liveStreamingDetails?.actualStartTime || item.snippet?.publishedAt;
+      const date = started ? easternDate(started) : null;
+      if (date) out.set(item.id, date);
+    }
+  }
+  return out;
+}
+const undatedByTitle = rows.filter((r) => !r.serviceDate);
+if (API_KEY && undatedByTitle.length) {
+  try {
+    const dates = await fetchUploadDates(undatedByTitle.map((r) => r.videoId));
+    let filled = 0;
+    for (const r of undatedByTitle) {
+      const date = dates.get(r.videoId);
+      if (!date) continue;
+      r.serviceDate = date;
+      r.dateSource = 'upload';
+      // Weekday is known now — re-classify with the same one rule the app uses.
+      r.serviceType = classifyServiceType(r.rawTitle, date) || r.serviceType;
+      filled += 1;
+    }
+    console.log(`Upload-date fallback: dated ${filled} of ${undatedByTitle.length} title-dateless videos from YouTube's own stream/publish times.`);
+  } catch (e) {
+    console.error(`WARNING: upload-date fallback failed (${e.message}). Title-dated rows still flow; the undated remainder stays NAMED undated.`);
+  }
+} else if (undatedByTitle.length) {
+  console.error(`NOTE: ${undatedByTitle.length} videos have no title date and YOUTUBE_API_KEY is not set — their upload-date fallback is skipped this run.`);
 }
 
 const withDate = rows.filter((r) => r.serviceDate);
@@ -138,13 +197,24 @@ writeFileSync('scripts/out/choir-sermons-backfill.json', JSON.stringify(rows, nu
 // service_date (the schema allows it; the app labels undated as undated,
 // DR-0124) instead of being dropped. Idempotent either way.
 const CHURCH = "(SELECT id FROM instances WHERE slug = 'colg')";
+// ON CONFLICT: DATE the existing row when it has no date yet (2026-08-04 fix).
+// The old DO NOTHING made the pipeline insert-only — it re-listed the whole
+// channel twice a week and dated ZERO already-imported rows, so the "undated"
+// backlog could never shrink. The update is guarded to rows whose service_date
+// IS NULL: a date someone set by hand (or a prior run derived) is never
+// overwritten, and dated rows are untouched entirely. Still idempotent.
 const insertRow = (r) =>
   `INSERT INTO choir_sermons (instance_id, video_id, youtube_url, service_date, service_type, title, speaker, source) ` +
   `VALUES (${CHURCH}, ${sqlEsc(r.videoId)}, ${sqlEsc(r.youtubeUrl)}, ${sqlEsc(r.serviceDate)}, ${sqlEsc(r.serviceType)}, ${sqlEsc(r.title)}, ${sqlEsc(r.speaker)}, 'youtube') ` +
-  `ON CONFLICT (instance_id, video_id) WHERE video_id IS NOT NULL DO NOTHING;`;
+  `ON CONFLICT (instance_id, video_id) WHERE video_id IS NOT NULL DO UPDATE SET ` +
+  `service_date = EXCLUDED.service_date, ` +
+  `service_type = COALESCE(choir_sermons.service_type, EXCLUDED.service_type), ` +
+  `speaker = COALESCE(choir_sermons.speaker, EXCLUDED.speaker) ` +
+  `WHERE choir_sermons.service_date IS NULL AND EXCLUDED.service_date IS NOT NULL;`;
 const sql = [
   '-- choir_sermons FULL backfill from @thelovecorner (generated; metadata only, no downloads).',
   `-- ${rows.length} videos: ${withDate.length} dated + ${undated.length} undated (undated insert with NULL service_date — labeled undated in-app, never dropped).`,
+  '-- Conflict rule: an existing UNDATED row receives this run\'s derived date (title parse or the stream\'s own start time); a dated row is never touched.',
   ...withDate.map(insertRow),
   ...undated.map(insertRow),
 ].join('\n');
@@ -160,7 +230,7 @@ const manifest = {
   total: rows.length,
   dated: withDate.length,
   undated: undated.length,
-  videos: rows.map((r) => ({ videoId: r.videoId, serviceDate: r.serviceDate, title: r.title || r.rawTitle })),
+  videos: rows.map((r) => ({ videoId: r.videoId, serviceDate: r.serviceDate, title: r.title || r.rawTitle, ...(r.dateSource ? { dateSource: r.dateSource } : {}) })),
 };
 writeFileSync('app/src/lib/corpus-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
 
