@@ -19,7 +19,8 @@ import {
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
   RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
-  WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, buildSeeingStudy,
+  WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
+  LONGSUFFERING_WITH_JOYFULNESS, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -89,6 +90,14 @@ function allQuotedPairs() {
   }
   const ii = IRON_ON_IRON_DAILY;
   for (const list of [ii.theMechanism, ii.theDailySchedule, ii.theAngle, ii.theForge]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const dk = DOOR_THE_KING_KNOCKS_ON;
+  for (const list of [dk.theConstraints, dk.theOpportunities, dk.whenAgreementIsWords]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const lj = LONGSUFFERING_WITH_JOYFULNESS;
+  for (const list of [lj.theConstraints, lj.theOpportunities]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

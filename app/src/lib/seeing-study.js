@@ -626,6 +626,75 @@ export const IRON_ON_IRON_DAILY = {
   oneSentence: 'Daily contact at the table and on the way (Deuteronomy 6:7), exhortation before the day hardens anyone (Hebrews 3:13), faithful wounds at the right angle (Proverbs 27:5-6; 12:18), ears that receive as readily as tongues give (Proverbs 15:31-32), both blades held to the Word — and every one of those conversations heard and booked by Yahweh Himself (Malachi 3:16).',
 };
 
+// =============================================================================
+// THE DOOR THE KING KNOCKS ON — Darrell's question, same sitting: a husband
+// wants his wife to do things within her control; she believes she is doing
+// what he wants while not being willing to do what he has communicated —
+// "Biblical comprehension and understanding of the situation for
+// opportunities and constraints." Two gaps comprehended separately (the
+// comprehension gap drawn out before the willingness gap is judged), the
+// constraints named honestly (a will is winnable, never extractable — the
+// King Himself knocks), and the Word's actual levers worked. No verdict on
+// either chair; both papers are graded by the Lord.
+// =============================================================================
+export const DOOR_THE_KING_KNOCKS_ON = {
+  twoGapsNotOne: 'The situation contains TWO gaps the Word treats differently: a COMPREHENSION gap (she believes she is meeting the ask — her map of it differs from his) and a WILLINGNESS gap (a communicated thing she is not willing to do). Wisdom refuses to treat the first as the second: draw out with questions what she believes the ask IS and why she believes she is meeting it ("a man of understanding will draw it out," Proverbs 20:5; both chairs know in part, 1 Corinthians 13:9). The willingness gap often shrinks when the comprehension gap closes — and where it does not, the real disagreement is finally on the table instead of two people faithfully serving two different maps.',
+  theConstraints: [
+    { ref: 'Revelation 3:20', fragment: 'Behold, I stand at the door, and knock', note: 'ANOTHER WILL IS OUTSIDE RIGHTEOUS CONTROL — BY THE KING’S OWN DESIGN: the One with all authority KNOCKS. Godly authority operates inside the same self-restraint the Godhead models; willingness can be won, never extracted.' },
+    { ref: 'Colossians 3:19', fragment: 'Husbands, love your wives, and be not bitter against them', note: 'BITTERNESS IS FORBIDDEN REGARDLESS OF OUTCOME — the command anticipates exactly this frustration and closes the bitterness exit in advance.' },
+    { ref: '1 Peter 3:7', fragment: 'giving honour unto the wife', note: 'THE PRAYER LINE RUNS THROUGH THE HONOR — "that your prayers be not hindered": the very prayers about this are conditioned on how the disagreement is carried.' },
+    { ref: 'Galatians 6:9', fragment: 'for in due season we shall reap, if we faint not', note: 'THE TIMELINE IS NOT OURS TO SET — sowing horizons, not demand deadlines.' },
+  ],
+  theOpportunities: [
+    { ref: 'Ephesians 5:25', fragment: 'love your wives, even as Christ also loved the church, and gave himself for it', note: 'THE CHRIST-SHAPED LEVER: He wins the church’s obedience by self-giving that makes following SAFE ("nourisheth and cherisheth," Ephesians 5:29). The Word’s question to the husband is not "how do I get compliance?" but "what would I give myself for here?" — that giving is the mechanism.' },
+    { ref: '1 Peter 3:1', fragment: 'they also may without the word be won by the conversation', note: 'THE WON-WITHOUT-WORDS MECHANISM: consistent observed conduct persuades where repeated asking has stopped working. If the ask has been communicated and re-communicated, the next move may not be another communication.' },
+    { ref: 'Proverbs 21:1', fragment: 'The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will', note: 'THE HEART-TURNER TAKES PETITIONS — the one Person who actually moves wills is on the line, which is why the 1 Peter 3:7 honor-condition matters most right now.' },
+    { ref: 'Matthew 7:12', fragment: 'all things whatsoever ye would that men should do to you, do ye even so to them', note: 'The golden-rule check runs on the ASK itself — and love keeps its clock: "Charity suffereth long, and is kind" (1 Corinthians 13:4).' },
+    { ref: 'Ephesians 5:33', fragment: 'so love his wife even as himself; and the wife see that she reverence her husband', note: 'EACH CHAIR HAS ITS OWN ASSIGNMENT, WITHOUT CROSS-ENFORCEMENT: his particular command is love-as-himself; reverence is HER assignment, accounted to her Lord (Romans 14:4) — each graded on their own paper, both papers graded by Him.' },
+  ],
+  oneSentence: 'Close the comprehension gap with drawn-out questions before judging the willingness gap; then work the levers the King Himself uses — self-giving love that makes following safe, consistent conduct that wins without more words, honor that keeps the prayer line open, and petitions to the only One who turns hearts — while refusing bitterness and leaving her account, like his, with the Lord who knocks instead of forcing doors.',
+  // Darrell's sharpening, same sitting: "Literally argues and will not submit
+  // to being competent to any discussion then eventually agreeing however
+  // ways never changes" — the say-yes-do-nothing pattern, which Jesus named.
+  whenAgreementIsWords: [
+    { ref: 'Matthew 21:30', fragment: 'I go, sir: and went not', note: 'JESUS NAMED THIS EXACT PATTERN — the second son’s verbal yes with unchanged ways; His verdict question ("Whether of them twain did the will of his father?" Matthew 21:31) establishes that in His accounting, the yes never happened.' },
+    { ref: 'Ezekiel 33:31', fragment: 'they hear thy words, but they will not do them: for with their mouth they shew much love', note: 'The agreement is real as an EXPERIENCE (the conversation ends pleasantly — "thou art unto them as a very lovely song," Ezekiel 33:32) and empty as a COMMITMENT.' },
+    { ref: 'Matthew 15:8', fragment: 'and honoureth me with their lips; but their heart is far from me', note: 'THE MECHANISM: agreement extracted by argument-fatigue is mouth-level; ways flow from the heart, and the heart was never in the transaction — which is exactly why the ways never change.' },
+    { ref: 'James 1:24', fragment: 'and goeth his way, and straightway forgetteth', note: 'And not always cynically: the hearer-not-doer’s glass-glance genuinely does not survive the walk away (James 1:23).' },
+    { ref: 'Proverbs 17:14', fragment: 'therefore leave off contention, before it be meddled with', note: 'STOP RE-RUNNING THE KNOWN LOOP — if discussion-then-hollow-yes is the established cycle, another round is letting out the same water. And stop harvesting verbal agreements at all: shift the metric permanently to observed ways over time (Matthew 7:20 — the fruit test, applied gently at home).' },
+    { ref: '2 Timothy 2:24', fragment: 'And the servant of the Lord must not strive; but be gentle unto all men, apt to teach, patient', note: 'THE SERVANT’S PROTOCOL FOR OPPOSITION — instruct in meekness, once and well —' },
+    { ref: '2 Timothy 2:25', fragment: 'if God peradventure will give them repentance to the acknowledging of the truth', note: '— and read the mechanism carefully: the ACKNOWLEDGING is GIVEN BY GOD, "peradventure," on His schedule. The part of the work that is not working was never assigned to the husband.' },
+    { ref: '1 Peter 2:23', fragment: 'but committed himself to him that judgeth righteously', note: 'COMMIT THE CASE UPWARD, as Jesus did with those who would not hear — the working levers are consistent conduct (1 Peter 3:1), kept honor (1 Peter 3:7), and petition to the Heart-Turner (Proverbs 21:1) — not another round.' },
+    { ref: 'Philippians 1:6', fragment: 'he which hath begun a good work in you will perform it', note: 'HOPE WITH A WARRANT: the ways that words never changed, He changes — and He finishes what He starts.' },
+  ],
+};
+
+// =============================================================================
+// LONGSUFFERING WITH JOYFULNESS — Darrell's question, same sitting: gentleness
+// sustained through frustration decaying into melancholy; "long-suffering
+// comes to mind from the words of husband and wife's... what is the
+// opportunities and constraints." The Word takes the emotional slide
+// seriously — names its mechanism, moves the supply off willpower, and
+// prescribes the Godhead's own protocol for the collapsed.
+// =============================================================================
+export const LONGSUFFERING_WITH_JOYFULNESS = {
+  theConstraints: [
+    { ref: 'Proverbs 13:12', fragment: 'Hope deferred maketh the heart sick: but when the desire cometh, it is a tree of life', note: 'THE MELANCHOLY HAS A NAMED MECHANISM — the frustration-to-melancholy slide is not weakness or failed faith; it is the stated physiology of hope held open over time.' },
+    { ref: 'Colossians 1:11', fragment: 'Strengthened with all might, according to his glorious power, unto all patience and longsuffering with joyfulness', note: 'LONGSUFFERING CANNOT BE SELF-GENERATED — it is fruit of the Spirit (Galatians 5:22), grown not manufactured; flesh-powered patience exhausts into exactly the gentleness→frustration→melancholy sequence. Longsuffering WITH JOYFULNESS exists, and it runs only on "his glorious power" — the constraint and the opportunity in one verse.' },
+    { ref: 'Hebrews 12:15', fragment: 'lest any root of bitterness springing up trouble you, and thereby many be defiled', note: 'TWO GUARDS against the slide going toxic: the sun-down deadline on each day’s anger (Ephesians 4:26) and the root-watch — bitterness in one chair defiles the whole house.' },
+    { ref: '1 Kings 19:4', fragment: 'It is enough; now, O LORD, take away my life', note: 'BURNOUT IS A REAL ENDPOINT THE WORD HAS SEEN — Elijah under the juniper. Note what Yahweh did NOT do: no rebuke, no sermon —' },
+    { ref: '1 Kings 19:7', fragment: 'Arise and eat; because the journey is too great for thee', note: '— He sent food, sleep, and a touch. The Godhead’s own first protocol for the collapsed longsufferer is PHYSICAL MERCY — rest, food, gentleness — before any word.' },
+  ],
+  theOpportunities: [
+    { ref: 'Exodus 34:6', fragment: 'The LORD God, merciful and gracious, longsuffering, and abundant in goodness and truth', note: 'YAHWEH’S OWN SELF-DESCRIPTION LEADS WITH IT — and He is "longsuffering to us-ward" (2 Peter 3:9) at this very hour: the husband longsuffering toward his wife is being longsuffered toward by his God, in the same moment. That symmetry is fuel.' },
+    { ref: 'Psalm 42:11', fragment: 'Why art thou cast down, O my soul?', note: 'THE MELANCHOLY HAS A LITURGY — the psalmist addresses his own soul and redirects it: "hope thou in God: for I shall yet praise him, who is the health of my countenance" — the countenance named as what He restores. And "The LORD is nigh unto them that are of a broken heart" (Psalm 34:18): the low seasons carry a special nearness.' },
+    { ref: '1 Peter 5:7', fragment: 'Casting all your care upon him; for he careth for you', note: 'THE BURDEN TRANSFERS — "Cast thy burden upon the LORD, and he shall sustain thee" (Psalm 55:22); the yoke exchange stands open: "Come unto me, all ye that labour and are heavy laden, and I will give you rest... my yoke is easy, and my burden is light" (Matthew 11:28-30). Longsuffering was never designed to be carried alone; the weight is re-filed daily.' },
+    { ref: '2 Corinthians 4:9', fragment: 'cast down, but not destroyed', note: 'THE STATE IS SURVIVABLE BY DESIGN — cast down is on the approved list (2 Corinthians 4:8-9); destroyed is not. And renewal is promised on WAITING, not on resolution: "they that wait upon the LORD shall renew their strength... and not faint" (Isaiah 40:31).' },
+    { ref: 'Isaiah 53:3', fragment: 'a man of sorrows, and acquainted with grief', note: 'THE HIGH PRIEST HAS WALKED THIS ROAD — "touched with the feeling of our infirmities" (Hebrews 4:15); the "God of all comfort" comforts "that we may be able to comfort" others in the same trouble (2 Corinthians 1:3-4) — even this season is being converted into ministry capital for someone else’s marriage later.' },
+  ],
+  oneSentence: 'Hope deferred really does sicken the heart — so the Word moves longsuffering off willpower onto the Spirit’s supply ("with joyfulness," Colossians 1:11), guards it with sun-down deadlines and root-watches, treats its collapses with Elijah’s food-sleep-and-gentleness protocol, transfers the weight daily to the One who cares, and stamps the whole season with His nearness — the longsuffering husband being longsuffered toward by his God, in the same breath.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -648,5 +717,7 @@ export function buildSeeingStudy() {
     competenceAim: COMPETENCE_AIM,
     walkingInDisagreement: WALKING_IN_DISAGREEMENT,
     ironOnIronDaily: IRON_ON_IRON_DAILY,
+    doorTheKingKnocksOn: DOOR_THE_KING_KNOCKS_ON,
+    longsufferingWithJoyfulness: LONGSUFFERING_WITH_JOYFULNESS,
   };
 }
