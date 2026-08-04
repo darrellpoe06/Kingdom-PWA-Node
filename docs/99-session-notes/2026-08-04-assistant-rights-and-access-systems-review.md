@@ -81,8 +81,13 @@ a claimed seven-dimension comprehensive.
   RESTRICTIVE policies AND-ed onto permissive ones — adding one can never widen
   access; forgetting one on a future table is a build failure (Check E +
   assistant-scope-guard future-scan).
-- **Tier C identity change:** this ships through the normal lane with its proof
-  (DR-0225); the `hold` label remains the Governor's brake before merge.
+- **Reviewed in production, not parked** (corrected same day by Darrell): this
+  is a Tier-B product feature — RELEASE-TIERS' Tier-C "identity" bullet means
+  the app's front-door/mission identity, not user roles. It ships active
+  through the lane on green (DR-0103/0247/0248/0254); the deterministic gates
+  + the live isolation leg ARE the review, and the stewards review the live
+  production push (DR-0104). PR #1193 proved it: merged on green, no human
+  start.
 
 ## Carried (dated)
 
