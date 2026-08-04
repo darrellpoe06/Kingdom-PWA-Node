@@ -150,6 +150,13 @@ jobs:
       - name: sovereign review-queue server selftest
         working-directory: infra/nas-review-feed
         run: python3 review_server.py --selftest
+      # Choir-dates drainer selftest (DR-0076): the pure date/classify/patch
+      # logic behind the NAS backlog dater — church-local calendar day from a
+      # stream's epoch start (an 8pm EST Wednesday must not file Thursday),
+      # never-invent-a-date, never-clobber a stored service_type. Gates merge.
+      - name: choir-dates drainer selftest
+        working-directory: infra/church-media-golive
+        run: python3 choir_dates_sync.py --selftest
       # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
       # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
       # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR
