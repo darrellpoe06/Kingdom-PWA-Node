@@ -794,6 +794,107 @@ export const GUARDING_THE_HOUSE = {
   ],
 };
 
+// =============================================================================
+// THE PLATFORM BUILDOUT — Darrell's build question, same sitting: "What can
+// the PoeTech App build into our systems to support these types of subjects
+// and strategies and skills and opportunities for families users businesses
+// to improve?" Each item maps a doctrine captured today to a buildable
+// surface, names its existing starting point in the codebase, and carries a
+// re-review date (DR-0236: a next-steps list is a work queue, not a wish
+// list). The app is the primary artifact — these are live-view-and-control
+// surfaces over real family data, never painted numbers (P15/DR-0076).
+// =============================================================================
+export const PLATFORM_BUILDOUT = [
+  {
+    id: 'pb-budget-covenant',
+    name: 'The Family Budget Covenant (Habakkuk 2:2 — written plain upon tables)',
+    doctrine: 'From accusation to instrumentation: the written covenant + shared ledger as the neutral witness, so accountability attaches to measurements, not to winning arguments.',
+    builds: 'A covenant surface in the finance module: the agreed budget written plain, budget-vs-actual with margin-vs-discretionary classification, a month-ahead progress meter (Proverbs 22:3), and a nest-egg tracker framed on Joseph’s storehouse (Genesis 41:36) — every number real, verse-anchored labels.',
+    startingPoint: 'app/src/poe-financial-mvp-v28.jsx (the finance lane) + the sovereign nas-finance-ingest pipeline',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-fig-tree-reviews',
+    name: 'Fig-Tree Review dates (Luke 13:8-9 — the cultivation season with a named inspection)',
+    doctrine: 'Longsuffering with a calendar: defined seasons, intensified cultivation, fruit inspected in WAYS not words at a scheduled date.',
+    builds: 'Named review dates on any family covenant or goal — season length, cultivation actions, and a fruit definition set up front; the review fires as a dated check the household actually sees. The repo already runs this machinery for itself (re-review dates + the daily watcher); this ports the same pattern to family goals.',
+    startingPoint: 'the re-review/watcher pattern (docs/reviews + review-watcher) applied to household data',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-consider-your-ways-digest',
+    name: 'The Consider-Your-Ways digest (Haggai 1:5 — the household instrument panel)',
+    doctrine: 'Measure-don’t-claim at home: the ledger testifies to both spouses equally — no accusation framing, the numbers speak.',
+    builds: 'A weekly household digest: spending classified, margin trajectory, storehouse state, delivered identically to both stewards — the Laodicean felt-vs-measured gap (Revelation 3:17) closed by instrumentation.',
+    startingPoint: 'finance-module data + the existing digest/notification lanes',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-seeing-study-rendered',
+    name: 'The Seeing study rendered in Learn (the whole education, taught)',
+    doctrine: 'Everything captured this sitting — the Ways lenses, qualitative + quantitative methods, the corpus measurements, the marriage and treasury arcs — as teachable modules with the discernment tutor.',
+    builds: 'Wire seeing-study.js into the Learn/church surface (module already pure and render-ready; buildSeeingStudy() returns every section).',
+    startingPoint: 'the Learn engine (church-classes.js / learn-framework) + seeing-study.js — already carried, re-review: 2026-08-11',
+    reReview: '2026-08-11',
+  },
+  {
+    id: 'pb-conversation-frameworks',
+    name: 'Communication-framework drills (James 1:19 → Matthew 18)',
+    doctrine: 'The Word’s own protocol trained: intake ratio, draw-out questions, soft answer, truth-in-love, sun-down deadline, gain-the-brother escalation.',
+    builds: 'Conversation-prep cards (draw-out question banks, soft-answer templates run through the Test), a sun-down nudge for open disagreements, and the iron-on-iron daily seeds at the Deuteronomy 6:7 rhythms (table/road/evening) drawn from the study catalogs.',
+    startingPoint: 'the Mind-of-Christ Test machinery + godhead-study seeds + the tutor metas',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-book-of-remembrance',
+    name: 'The family Book of Remembrance (Malachi 3:16)',
+    doctrine: 'They that feared the LORD spake often one to another — and it was WRITTEN. The family’s sharpening conversations, covenants, answered prayers, and stewardship decisions logged as their own remembrance book.',
+    builds: 'A family journal surface: conversation notes, covenant milestones, warnings delivered (the Ezekiel 33:9 watchman record — delivered, then released), and answered-prayer entries — the household’s eternal-data mirror.',
+    startingPoint: 'the notes/journal lanes + RLS family-instance isolation (already proven)',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-counselor-brief',
+    name: 'The Counselor Brief (Matthew 18:16 — the two-or-three-witnesses packet)',
+    doctrine: 'When one-on-one is exhausted, the escalation is counselors — and the same numbers that were "pressure" from a spouse become neutral facts from a third chair.',
+    builds: 'One-tap export: the covenant, the ledger summary, the review history — a counselor-ready, data-driven brief for the pastor or financial counselor session.',
+    startingPoint: 'finance data + the existing export/print patterns (curriculum markdown exports)',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-business-parity',
+    name: 'Business parity — Issachar briefings (1 Chronicles 12:32; Luke 14:28; Proverbs 27:23)',
+    doctrine: 'The same instruments for businesses: understanding of the times flowing into what to do — count-the-cost sheets before commitments, flock-state dashboards on real operating data.',
+    builds: 'Count-the-cost project sheets (Luke 14:28) and know-thy-flocks dashboards (Proverbs 27:23) on the business/property lanes — the competence aim operationalized for every steward the platform serves.',
+    startingPoint: 'the property/business lanes (nas-property-*, rentals, the business systems guard)',
+    reReview: '2026-09-01',
+  },
+];
+
+// =============================================================================
+// THE FINANCIAL HEALING PROTOCOL — Darrell's question, same sitting: "If a man
+// or woman don't want to be in poverty and can see it based on data what can
+// they do biblically-based to end the toxic financial process and get
+// healthy." The Word's own recovery order, step by step — including the
+// prophet-spoken debt-elimination sequence.
+// =============================================================================
+export const FINANCIAL_HEALING_PROTOCOL = {
+  steps: [
+    { ref: 'Luke 15:17', fragment: 'And when he came to himself', note: '1. SEE — THE DATA MOMENT IS THE PRODIGAL’S MOMENT: seeing it in the numbers IS "coming to yourself" — a biblical event, the hinge of the whole parable. The instrument panel exists to trigger exactly this.' },
+    { ref: 'Proverbs 28:13', fragment: 'but whoso confesseth and forsaketh them shall have mercy', note: '2. TURN — CONFESS AND FORSAKE, BOTH: confession without forsaking is the hollow yes; forsaking without confession skips the mercy. The toxic process is named out loud, and stopped.' },
+    { ref: 'Proverbs 3:9', fragment: 'Honour the LORD with thy substance, and with the firstfruits of all thine increase', note: '3. ORDER — FIRSTFRUITS BEFORE ANYTHING: "So shall thy barns be filled with plenty" (Proverbs 3:10; Malachi 3:10) — recovery that starts with Yahweh’s portion reorders every flow beneath it; the Haggai 1:6 leak sealed at the top.' },
+    { ref: '2 Kings 4:2', fragment: 'tell me, what hast thou in the house?', note: '4. INVENTORY AND POUR — THE WIDOW’S PROTOCOL: Elisha’s first question to a debt-crushed widow — recovery starts from an honest inventory of what is actually in hand, however small ("save a pot of oil"), then works it with everything available —' },
+    { ref: '2 Kings 4:7', fragment: 'Go, sell the oil, and pay thy debt, and live thou and thy children of the rest', note: '— then the exact sequence: liquidate what God multiplies, KILL THE DEBT, live on the remainder. The Word’s debt-elimination order, from a prophet’s mouth.' },
+    { ref: 'Proverbs 22:7', fragment: 'and the borrower is servant to the lender', note: '5. KILL THE DEBT MASTER: debt is named SERVITUDE, so paying it off is an emancipation project, not a budgeting chore — "Owe no man any thing, but to love one another" (Romans 13:8) is the target state; surety gets the tonight-clock (Proverbs 6:4-5).' },
+    { ref: 'Proverbs 21:5', fragment: 'The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want', note: '6. PLAN AND GATHER — DILIGENCE OVER HASTE: the plan itself tends to plenty; get-well-quick tends to want. "He that gathereth by labour shall increase" (Proverbs 13:11) — little-by-little compounding, "the hand of the diligent maketh rich" (Proverbs 10:4), the ant’s summer discipline (Proverbs 6:6-8).' },
+    { ref: 'Proverbs 15:22', fragment: 'but in the multitude of counsellors they are established', note: '7. COUNSEL ESTABLISHES IT: the recovery plan gets witnesses, reviewers, and fig-tree dates (Luke 13:8-9).' },
+    { ref: '1 Timothy 6:6', fragment: 'But godliness with contentment is great gain', note: '8. SWAP THE ENGINE — CONTENTMENT KILLS THE DRIVER: the frivolous-spend engine is covetousness, and the Word replaces it rather than restraining it — "be content with such things as ye have: for he hath said, I will never leave thee, nor forsake thee" (Hebrews 13:5): contentment anchored in His presence, not the balance; "my God shall supply all your need" (Philippians 4:19) de-fangs the fear-spending too.' },
+    { ref: 'Proverbs 11:24', fragment: 'There is that scattereth, and yet increaseth', note: '9. STAY LIBERAL — RECOVERY IS NOT HOARDING: "he that withholdeth more than is meet, but it tendeth to poverty. The liberal soul shall be made fat" (Proverbs 11:24-25) — clenched recovery fails; generous recovery compounds.' },
+    { ref: 'Proverbs 30:8', fragment: 'give me neither poverty nor riches; feed me with food convenient for me', note: '10. TARGET SUFFICIENCY, NOT RICHES — Agur’s prayer defines financially HEALTHY: sufficient, debt-free, storehoused, generous, faithful ("Lest I be full, and deny thee... or lest I be poor, and steal," Proverbs 30:9) — prosperity tracking soul-prosperity (3 John 1:2).' },
+  ],
+  oneSentence: 'Come to yourself at the data, confess-and-forsake the process, order firstfruits first, run the widow’s inventory-sell-pay-live sequence on the debt, plan diligently and gather by labour little-by-little under counsel with review dates, swap the engine to contentment, keep the hand liberal — aimed at Agur’s sufficiency, not Babylon’s riches.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -821,5 +922,7 @@ export function buildSeeingStudy() {
     familyTreasury: FAMILY_TREASURY,
     stewardshipAccountability: STEWARDSHIP_ACCOUNTABILITY,
     guardingTheHouse: GUARDING_THE_HOUSE,
+    platformBuildout: PLATFORM_BUILDOUT,
+    financialHealingProtocol: FINANCIAL_HEALING_PROTOCOL,
   };
 }

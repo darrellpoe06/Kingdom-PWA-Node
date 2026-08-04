@@ -21,7 +21,8 @@ import {
   RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
   WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
-  GUARDING_THE_HOUSE, buildSeeingStudy,
+  GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
+  buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -113,6 +114,7 @@ function allQuotedPairs() {
   for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits, gh.theTimelines]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
+  for (const v of FINANCIAL_HEALING_PROTOCOL.steps) pairs.push({ ref: v.ref, fragment: v.fragment });
   return pairs;
 }
 
@@ -179,6 +181,15 @@ describe('the study assembles for a surface', () => {
     expect(s.analysis.goal).toBeTruthy();
     expect(s.daily.kingsRegimen.ref).toBe('Deuteronomy 17:18-19');
     expect(s.muddiedToClear.perspectiveProcessing).toBeTruthy();
+  });
+
+  it('the platform buildout is a dated work queue, not a wish list (DR-0236/DR-0075)', () => {
+    expect(PLATFORM_BUILDOUT.length).toBeGreaterThanOrEqual(6);
+    for (const item of PLATFORM_BUILDOUT) {
+      expect(item.doctrine, `${item.id} names its doctrine`).toBeTruthy();
+      expect(item.startingPoint, `${item.id} names its existing starting point`).toBeTruthy();
+      expect(item.reReview, `${item.id} carries a re-review date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 
   it('every qualitative method serves at least one declared Way', () => {
