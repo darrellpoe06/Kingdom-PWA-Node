@@ -145,7 +145,7 @@ function AssistantAccessPanel() {
 
   return (
     <Panel title="1099 Assistant access" icon="users"
-      note="Check what each 1099 assistant is allowed. Their finances, forecast, portfolio, family, and the owner's oversight are locked off and can never be checked on. This is the access config; the database (row-level security) is the wall that enforces it.">
+      note="Check what each 1099 assistant is allowed. Their finances, forecast, portfolio, family, and the owner's oversight are locked off and can never be checked on. This list is your PLANNING config (kept on this device). To grant a real login assistant access, use TLC → Assistant → Team access: an invited assistant account is walled by the database (row-level security) to the office workspace and nothing else (DR-0271).">
       <div className="flex items-center gap-2 mb-4">
         <input value={name} onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}

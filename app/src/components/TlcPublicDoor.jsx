@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react';
 import { TLC_TEAM, TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
 import { TLC_DOOR_BRAND, TLC_SHARE_URL } from '../lib/tlc-door.js';
 import supabase, { onAuthChange } from '../lib/supabase.js';
+import { useInstanceRole } from '../lib/instance-role.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -129,9 +130,16 @@ export default function TlcPublicDoor() {
 
   const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) { /* ignore */ } };
 
+  // The signed-in person's REAL role, from the database (DR-0271 / DR-0220 P3)
+  // — never a hardcoded grant. An owner/admin/member of their space operates
+  // their office workspace; a granted 'assistant' operates Christina's shared
+  // one (TlcAssistant resolves that itself); RLS is the wall underneath either
+  // way, so this prop is presentation, not security (DR-0074).
+  const roleState = useInstanceRole();
+  const operatorRole = ['owner', 'admin', 'member'].includes(roleState.role || '');
   const sections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
-    { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor /> },
+    { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
   ];
 
   return (

@@ -6,17 +6,19 @@ import { grantableRoles, canEditRole, roleLabel, isInviteEmail } from '../lib/me
 
 describe('grantableRoles (mirror of set_member_role guards)', () => {
   it('an owner may set admin/member/viewer on a non-owner', () => {
-    expect(grantableRoles('owner', 'member')).toEqual(['admin', 'member', 'viewer']);
-    expect(grantableRoles('owner', 'viewer')).toEqual(['admin', 'member', 'viewer']);
-    expect(grantableRoles('owner', 'admin')).toEqual(['admin', 'member', 'viewer']);
+    expect(grantableRoles('owner', 'member')).toEqual(['admin', 'member', 'viewer', 'assistant']);
+    expect(grantableRoles('owner', 'viewer')).toEqual(['admin', 'member', 'viewer', 'assistant']);
+    expect(grantableRoles('owner', 'admin')).toEqual(['admin', 'member', 'viewer', 'assistant']);
   });
   it('an owner is NEVER editable via this control (untouchable — no lockout)', () => {
     expect(grantableRoles('owner', 'owner')).toEqual([]);
     expect(grantableRoles('admin', 'owner')).toEqual([]);
   });
-  it('an admin may only move a member between member<->viewer, never grant admin', () => {
-    expect(grantableRoles('admin', 'member')).toEqual(['member', 'viewer']);
-    expect(grantableRoles('admin', 'viewer')).toEqual(['member', 'viewer']);
+  it('an admin may move a member between member<->viewer<->assistant, never grant admin', () => {
+    // 'assistant' joined the settable set in 0130 (DR-0271) — office-workspace-
+    // only scope; still never 'admin' from an admin, never 'owner' from anyone.
+    expect(grantableRoles('admin', 'member')).toEqual(['member', 'viewer', 'assistant']);
+    expect(grantableRoles('admin', 'viewer')).toEqual(['member', 'viewer', 'assistant']);
   });
   it('an admin may NOT alter another admin (only an owner can)', () => {
     expect(grantableRoles('admin', 'admin')).toEqual([]);

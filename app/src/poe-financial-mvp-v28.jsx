@@ -150,6 +150,9 @@ import {
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
+import { useInstanceRole } from './lib/instance-role.js';
+import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
+import TierSwitcher from './components/TierSwitcher.jsx';
 import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
@@ -559,44 +562,7 @@ export const EMPTY_WORLD = {
 // PROJECT_STATUSES moved to ./components/Projects.jsx
 // PROJECT_STATUSES_ACTIVE moved to ./lib/opportunity-capacity.js (2026-07-03).
 
-// =============================================================================
-// v28+ MVP v1.5 round 5 — TIER GATING
-// Single source of truth for which subscription tier unlocks which view.
-// Tiers (ordered cheapest → most expensive):
-//   foundation < poetech-plus < family < premium < business
-// Special tiers (community / sponsor / founding) inherit at least 'foundation'
-// privileges; the inherits-as map promotes them to the tier they should match.
-// Read-only preview: Real Estate is rendered with editing disabled and a
-// single seed property when the user is on 'foundation' — gives a real feel
-// of the value before paying without unlocking the full editor.
-// =============================================================================
-const TIER_ORDER = ['foundation', 'poetech-plus', 'family', 'premium', 'business'];
-const TIER_LABEL = {
-  'foundation':   'Foundation (free)',
-  'poetech-plus': 'PoeTech+ ($39/mo)',
-  // 2026-06-02 rename per tier-review (commits d3733f5 / 4cb55b9): "Family" read as
-  // the default/for-everyone tier and bounced a single-adult beta user (Freddie) who
-  // saw $89 as the headline price. "Household" keeps the warmth while dropping the
-  // "this is the multi-person family tier" misread — it is the multi-module tier for
-  // multi-entity households, landlords, or solo pros. Internal key stays 'family' so
-  // TIER_ORDER, aliases, and all gating are untouched.
-  'family':       'Household ($89/mo)',
-  'premium':      'Premium ($149/mo)',
-  'business':     'PoeTech Business ($249/mo)',
-};
-// Special tier names mapped to their effective standard tier for gating.
-const TIER_ALIASES = {
-  'loved-ones':       'poetech-plus', // Founding Family — free PoeTech+ for life
-  'community':        'poetech-plus', // Sponsored Community tier
-  'community-partner':'business',     // Mission-aligned 501(c)(3) — full features
-};
-const effectiveTier = (t) => TIER_ALIASES[t] || t || 'foundation';
-// Comparator — true if user's effective tier meets or exceeds the required tier.
-const tierMeets = (userTier, requiredTier) => {
-  const u = TIER_ORDER.indexOf(effectiveTier(userTier));
-  const r = TIER_ORDER.indexOf(requiredTier);
-  return u >= 0 && r >= 0 && u >= r;
-};
+// TIER GATING moved to ./lib/tiers.js (2026-08-04 peel; imported above).
 // Known family sign-in emails -> their profile. Module-level so BOTH the
 // profile-mapping effect and the self-serve onboarding check read one source
 // (DRY; avoids the two drifting apart).
@@ -752,66 +718,7 @@ import {
 // =============================================================================
 // MAIN APP
 // =============================================================================
-// v28+ MVP v1.5 round 7 — TierSwitcher: controlled dropdown that closes on
-// outside click + selection, plus a 1.5s flash on the trigger when the tier
-// changes so the user sees the action took effect.
-function TierSwitcher({ userTier, setUserTier }) {
-  const [open, setOpen] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const wrapRef = useRef(null);
-  const autoCloseRef = useRef(null);
-  // Round 7 fix — auto-close after 6s of no interaction inside the dropdown.
-  // Reset the timer on any pointer move or focus inside; long enough to pick
-  // a tier, not so long that the panel sticks around forever.
-  const armAutoClose = () => {
-    clearTimeout(autoCloseRef.current);
-    autoCloseRef.current = setTimeout(() => setOpen(false), 6000);
-  };
-  useEffect(() => {
-    if (!open) { clearTimeout(autoCloseRef.current); return; }
-    armAutoClose();
-    const onClick = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('touchstart', onClick);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('touchstart', onClick);
-      clearTimeout(autoCloseRef.current);
-    };
-  }, [open]);
-  const pick = (t) => {
-    setUserTier(t);
-    setOpen(false);
-    setFlash(true);
-    setTimeout(() => setFlash(false), 1500);
-  };
-  const current = effectiveTier(userTier);
-  // Round 14 fix — compact label on narrow screens (e.g., "Premium") and full
-  // label with price on wide screens. Keeps the header from crowding the title.
-  const fullLabel = TIER_LABEL[current] || 'Foundation (free)';
-  const shortLabel = fullLabel.split(' (')[0]; // strip the "($X/mo)" suffix
-  return (
-    <div ref={wrapRef} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title={`Tier preview · ${fullLabel} · switch to see locked / unlocked views`}>
-        {flash ? '✓ Saved · ' : ''}
-        <span className="hidden lg:inline">{fullLabel}</span>
-        <span className="lg:hidden">{shortLabel}</span>
-        {' '}{open ? '▴' : '▾'}
-      </button>
-      {open && (
-        <div onMouseMove={armAutoClose} onTouchStart={armAutoClose} onFocus={armAutoClose} className="absolute right-0 mt-1 bg-white border border-[#1A1815] p-2 z-30 shadow-lg" style={{ minWidth: '220px' }}>
-          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1 px-1">Preview tier (dev) · closes in 6s</div>
-          <div className="flex flex-col gap-1">
-            {TIER_ORDER.map(t => (
-              <button key={t} type="button" onClick={() => pick(t)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-2 text-left border focus:outline focus:outline-2 focus:outline-[#B85838] ${current === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{TIER_LABEL[t]}</button>
-            ))}
-          </div>
-          <div className="text-[0.5625rem] text-[#5A5751] italic mt-2 px-1">Persisted on this device. Real billing happens through About.</div>
-        </div>
-      )}
-    </div>
-  );
-}
+// TierSwitcher moved to ./components/TierSwitcher.jsx (2026-08-04 peel).
 
 // Demo mode helper — reads ?demo=<persona> from the URL on initial load.
 // Returns null for normal app loads. Special value 'picker' (also reached
@@ -1327,6 +1234,15 @@ export default function PoeFinancialSystem() {
   // The private Study circle (Darrell + Christina + BG). Gates both the nav entry
   // (so the wider team never sees it) and the view render (defense in depth).
   const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);
+  // A granted ASSISTANT account (DR-0271): role from the DATABASE (0130), never
+  // an email list. Focused shell — Assistant + Messages + About — because RLS
+  // walls everything else; the nav agrees instead of painting empty tabs, and
+  // any other view (deep-links included) steers back to the workspace.
+  const instanceRoleState = useInstanceRole();
+  const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
+  useEffect(() => {
+    if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
+  }, [isAssistantAcct, view]);
   const PROFILES = [
     { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
     { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
@@ -4358,8 +4274,10 @@ ${THEME_CSS}
                 // holds all three TLC surfaces (Practice, Intake, Assistant) as
                 // sub-tabs; a plain premium user still reaches standalone Practice.
                 // The individual routes stay valid for deep-links either way.
-                ...((isFamilyMember || tierMeets(data.userTier, 'business'))
-                  ? [['tlc', <><UiIcon name="heart" /> TLC</>]]
+                // A granted ASSISTANT (DR-0271) gets the standalone Assistant
+                // entry instead — its whole reach.
+                ...(isAssistantAcct ? [['tlc-assistant', <><UiIcon name="heart" /> Assistant</>]]
+                  : (isFamilyMember || tierMeets(data.userTier, 'business')) ? [['tlc', <><UiIcon name="heart" /> TLC</>]]
                   : [['practice','Practice']]),
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
@@ -4451,7 +4369,8 @@ ${THEME_CSS}
                 // OPEN no-session state — a signed-in guest on the house WiFi
                 // gets no Admin (DR-0241: the network trusts devices, not sessions).
                 ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
-              ].filter(([id]) => !churchDoorOnly || id === 'church')
+              ].filter(([id]) => (!churchDoorOnly || id === 'church')
+                 && (!isAssistantAcct || ['tlc-assistant', 'messages', 'about'].includes(id)))
                .map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -5136,9 +5055,11 @@ ${THEME_CSS}
         )}
 
         {/* Assistant — TLC referral database + admin/marketing assistant workspace.
-            Family/Governor or business-tier operator; writes gated to the operator;
-            a non-permitted deep-link gets the locked card (nav + render agree). */}
-        {view === 'tlc-assistant' && ((isFamilyMember || tierMeets(data.userTier, 'business'))
+            Family/Governor, business-tier operator, OR a granted assistant
+            account (DR-0271 — the database role; their whole reach). Writes
+            gated to the operator; a non-permitted deep-link gets the locked
+            card (nav + render agree). */}
+        {view === 'tlc-assistant' && ((isFamilyMember || tierMeets(data.userTier, 'business') || isAssistantAcct)
           ? (
             <SectionBoundary name="Assistant">
               <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />

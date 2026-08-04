@@ -20,7 +20,7 @@ export const ROLE_LABELS = {
   specialist: 'Specialist',
   child: 'Child',
   successor: 'Successor',
-  assistant: 'Assistant',
+  assistant: 'Assistant (office workspace only)',
 };
 
 export function roleLabel(role) {
@@ -28,19 +28,20 @@ export function roleLabel(role) {
 }
 
 // The roles an actor MAY set for a given target — the exact mirror of the
-// set_member_role guards (0111), so the UI never offers an option the RPC will
-// reject. Returns [] when the target is not editable by this actor.
+// set_member_role guards (0111, widened by 0130 to carry 'assistant'), so the
+// UI never offers an option the RPC will reject. Returns [] when the target is
+// not editable by this actor.
 //   * an owner is never editable here (untouchable — no lockout)
 //   * only an owner may grant/alter admin
-//   * an admin may move a member between member<->viewer only
+//   * an admin may move a member between member<->viewer<->assistant
 //   * you cannot edit yourself
 export function grantableRoles(actorRole, targetRole, { isSelf = false } = {}) {
   if (isSelf) return [];
   if (targetRole === 'owner') return [];        // owners untouchable via this control
-  if (actorRole === 'owner') return ['admin', 'member', 'viewer'];
+  if (actorRole === 'owner') return ['admin', 'member', 'viewer', 'assistant'];
   if (actorRole === 'admin') {
     if (targetRole === 'admin') return [];       // only an owner touches an admin
-    return ['member', 'viewer'];                 // an admin can't grant admin
+    return ['member', 'viewer', 'assistant'];    // an admin can't grant admin
   }
   return [];                                     // not an owner/admin -> no control
 }
@@ -69,7 +70,11 @@ export function isInviteEmail(email) {
 export async function inviteToSpace(instanceType, email, role, instanceId = null) {
   const clean = String(email || '').trim().toLowerCase();
   if (!isInviteEmail(clean)) return { ok: false, reason: 'bad-email' };
-  const safeRole = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
+  // church invites keep the narrow set; the instance path may mint 'assistant'
+  // (DR-0271 — the office-workspace-only role). Never 'owner' anywhere.
+  const instanceRoles = ['admin', 'member', 'viewer', 'assistant'];
+  const churchRoles = ['admin', 'member', 'viewer'];
+  const safeRole = (instanceType === 'church' ? churchRoles : instanceRoles).includes(role) ? role : 'member';
   if (instanceType === 'church') {
     const { error } = await supabase.rpc('invite_to_church', { email_in: clean, role_in: safeRole });
     if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
@@ -77,6 +82,19 @@ export async function inviteToSpace(instanceType, email, role, instanceId = null
   }
   const r = await inviteToInstance(clean, safeRole, instanceId);
   return { ...r, kind: 'instance' };
+}
+
+// Remove a member from a space entirely — the REVOKE half of assistant rights
+// (DR-0271, RPC remove_instance_member in 0130). The RPC enforces: caller
+// owner/admin; never an owner; only an owner removes an admin; no self-removal.
+// Returns { status: 'removed'|'noop', role } or { skipped, error }.
+export async function removeInstanceMember(instanceId, targetUserId) {
+  if (!instanceId || !targetUserId) return { skipped: 'bad-args' };
+  const { data, error } = await supabase.rpc('remove_instance_member', {
+    instance_uuid: instanceId, target_user: targetUserId,
+  });
+  if (error) return { skipped: 'remove-error', error };
+  return data || { status: 'noop' };
 }
 
 // Change a member's role. Returns { status: 'changed'|'noop', role } or
