@@ -1,0 +1,66 @@
+# nas-health — READ-ONLY observation over the remote-hands channel (DR-0249,
+# DR-0108). Answers "what is the NAS actually doing right now?" — GPU state,
+# container state, service state — WITHOUT the bootstrap's services-sync, so
+# diagnosing never mutates what it observes (DR-0076 §5: characterize before
+# you change; born from 2026-08-03, "did whatever we did shut down the CUDA
+# GPUs?" — the channel could re-sync services but could not simply LOOK).
+# Same secrets + tailnet join as nas-bootstrap.yml; missing secrets => a clear
+# no-op with instructions. Dispatch-only, never a timer (three-brakes rule:
+# this is observation, but the runner still only fires on a hand or a session).
+name: nas-health
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Update the secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
+      - name: Observe (read-only — GPU, containers, services, disk, uptime)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          echo "=== uptime / load ==="
+          $SSH 'uptime'
+          echo "=== GPU (nvidia-smi) ==="
+          $SSH 'nvidia-smi 2>&1 || echo "nvidia-smi unavailable (no GPU driver on PATH or driver down)"'
+          echo "=== running containers ==="
+          $SSH 'PATH=/usr/local/bin:$PATH; docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>&1 | sort || true'
+          echo "=== exited containers (what stopped, and when) ==="
+          $SSH 'PATH=/usr/local/bin:$PATH; docker ps -a --filter status=exited --format "table {{.Names}}\t{{.Status}}" 2>&1 || true'
+          echo "=== poetech systemd units ==="
+          $SSH 'systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -iE "poetech|ollama|whisper|voice" || echo "no matching units listed"'
+          echo "=== disk (the volume the services live on) ==="
+          $SSH 'df -h /volume1 2>&1 | tail -1'
