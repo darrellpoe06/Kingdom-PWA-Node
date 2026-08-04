@@ -41,6 +41,16 @@
       "max_calls_per_day": 96,
       "timeout_seconds": 600,
       "description": "The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry)."
+    },
+    {
+      "name": "funnel-watchdog",
+      "kind": "deterministic",
+      "script": "funnel-watchdog.sh",
+      "enabled": true,
+      "schedule": "every 15 minutes",
+      "max_calls_per_day": 96,
+      "timeout_seconds": 180,
+      "description": "Sovereign-Python detect + bounded restore for the public Funnel (DR-0268; born from the 2026-08-03 double-525 outage every app->NAS transport rode down). Shim -> funnel_watchdog.py (the scribe pattern). Conforms to RECORDED-STATE rule 1: on a dark endpoint it re-asserts ONLY the sovereign recorded rows (/mcp, /nas-photos) via 'funnel --bg --set-path' (full DSM binary path, never 'serve', never the n8n root), then at most ONE synopkg restart, re-assert, re-probe. Failures exit red -> reel + ntfy. Needs its own DSM entry (paste-ready delivered)."
     }
   ]
 }

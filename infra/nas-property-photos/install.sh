@@ -47,6 +47,28 @@ else
   systemctl is-active --quiet poetech-photo-server || systemctl restart poetech-photo-server
 fi
 
+echo "== photo-server install: funnel path mount (guarded, additive, reversible) =="
+# RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
+# ACTUATOR of the /nas-photos row added by the same merge (rule 2). Same
+# guarded idiom as infra/nas-mcp/install.sh: FUNNEL (public, additive), never
+# `serve`; full DSM binary path (the CLI is not on the non-login SSH PATH —
+# diagnostic 30507928325); only when not already mounted; never touches the
+# n8n root (DR-0218 — we do not prop up what we are removing).
+TS="$(command -v tailscale 2>/dev/null || true)"
+[ -n "$TS" ] || TS="$(ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"
+if [ -n "$TS" ]; then
+  if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
+  FSTAT="$($TSC funnel status 2>/dev/null || true)"
+  printf '%s' "$FSTAT" | grep -q "/nas-photos" \
+    && echo "  /nas-photos already mounted on the funnel" \
+    || { $TSC funnel --bg --set-path /nas-photos http://127.0.0.1:8099 \
+         && echo "  mounted /nas-photos -> 127.0.0.1:8099 on the PUBLIC funnel (additive)" \
+         || echo "  mount FAILED -- by hand: sudo $TS funnel --bg --set-path /nas-photos http://127.0.0.1:8099"; }
+else
+  echo "  tailscale binary not found (checked PATH + /var/packages/Tailscale) -- mount by hand:"
+  echo "    sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /nas-photos http://127.0.0.1:8099"
+fi
+
 echo "== photo-server install: health =="
 sleep 1
 if command -v curl >/dev/null 2>&1; then

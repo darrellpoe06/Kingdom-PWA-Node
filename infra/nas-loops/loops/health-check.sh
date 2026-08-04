@@ -23,7 +23,12 @@
 # =============================================================================
 set -uo pipefail
 
-TARGETS_RAW="${HEALTH_TARGETS:-n8n=http://127.0.0.1:5678/healthz ollama=http://127.0.0.1:11434/api/version}"
+# Default targets grew 2026-08-03 (DR-0268 follow-through): the sovereign photo
+# server locally AND the Funnel hop as the NAS sees it — the 22:11/22:56 double-
+# 525 outage was invisible to every NAS-side instrument because nothing here
+# probed the funnel. photo-local vs funnel distinguishes "service down" from
+# "funnel down" in one reel line. (An .env HEALTH_TARGETS override still wins.)
+TARGETS_RAW="${HEALTH_TARGETS:-n8n=http://127.0.0.1:5678/healthz ollama=http://127.0.0.1:11434/api/version photo-local=http://127.0.0.1:8099/healthz funnel=https://poetech.tail5a2f35.ts.net/nas-photos/healthz}"
 CURL_TIMEOUT="${HEALTH_TIMEOUT:-8}"
 
 # Normalize commas to spaces so either separator works.
