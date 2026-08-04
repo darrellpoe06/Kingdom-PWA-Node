@@ -1,0 +1,131 @@
+// @vitest-environment node
+// =============================================================================
+// seeing-study gates — the two DR-0076 machine checks this study ships with:
+//   1. VERSE-VERBATIM (DR-0270 class): every quoted fragment in the study is
+//      an exact substring of the cited verse in the repo's own KJV.
+//   2. MEASURE-DON'T-CLAIM (P15/DR-0076): the pinned corpus measurements are
+//      RECOMPUTED from the real KJV files and must match exactly — a painted
+//      or drifted number goes red.
+// Proven-to-catch: mutate any fragment, ref, or pinned count and the suite
+// fails naming it.
+// =============================================================================
+import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import {
+  SEEING_STUDY_META, WAYS_OF_SEEING, QUALITATIVE_METHODS,
+  measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
+  QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
+  MUDDIED_TO_CLEAR, buildSeeingStudy,
+} from '../lib/seeing-study.js';
+
+const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
+
+// "1 Corinthians 15:55" / "Psalm 127:1" / "Deuteronomy 17:18-19" -> file + ch + verse
+function resolveRef(ref) {
+  const m = String(ref).match(/^([1-3]?\s?[A-Za-z ]+?)\s+(\d+):(\d+)/);
+  if (!m) return null;
+  let book = m[1].trim().replace(/\s+/g, '');
+  if (book === 'Psalm') book = 'Psalms';
+  return { book, ch: Number(m[2]), v: Number(m[3]) };
+}
+
+function kjvVerse(book, ch, v) {
+  const data = JSON.parse(readFileSync(join(KJV_DIR, `${book}.json`), 'utf8'));
+  return data.chapters[ch - 1][v - 1];
+}
+
+const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+// Collect every (ref, fragment) pair the study carries.
+function allQuotedPairs() {
+  const pairs = [];
+  pairs.push({ ref: SEEING_STUDY_META.anchor.ref, fragment: SEEING_STUDY_META.anchor.text });
+  for (const w of WAYS_OF_SEEING) pairs.push({ ref: w.quote.ref, fragment: w.quote.fragment });
+  for (const e of SEEING_ANALYSIS.likeTheirKing) pairs.push({ ref: e.ref, fragment: e.fragment });
+  const d = DAILY_SEEING_PRACTICE;
+  // The regimen spans a range: fragment is from v18, fragment2 from v19.
+  pairs.push({ ref: 'Deuteronomy 17:18', fragment: d.kingsRegimen.fragment });
+  pairs.push({ ref: 'Deuteronomy 17:19', fragment: d.kingsRegimen.fragment2 });
+  for (const p of d.dailyPractices) pairs.push({ ref: p.ref, fragment: p.fragment });
+  for (const s of d.scalingInHisWays) pairs.push({ ref: s.ref, fragment: s.fragment });
+  for (const c of MUDDIED_TO_CLEAR.confession) pairs.push({ ref: c.ref, fragment: c.fragment });
+  for (const c of MUDDIED_TO_CLEAR.theMuddying) pairs.push({ ref: c.ref, fragment: c.fragment });
+  for (const c of MUDDIED_TO_CLEAR.theClearing) pairs.push({ ref: c.ref, fragment: c.fragment });
+  return pairs;
+}
+
+describe('seeing-study quotes the KJV verbatim (DR-0076 / DR-0270 class)', () => {
+  it('every quoted fragment is an exact substring of its cited verse', () => {
+    const failures = [];
+    for (const { ref, fragment } of allQuotedPairs()) {
+      const loc = resolveRef(ref);
+      if (!loc) { failures.push(`${ref}: unresolvable reference`); continue; }
+      let text;
+      try {
+        text = kjvVerse(loc.book, loc.ch, loc.v);
+      } catch {
+        failures.push(`${ref}: no such book/chapter/verse in local KJV (${loc.book} ${loc.ch}:${loc.v})`);
+        continue;
+      }
+      if (typeof text !== 'string') { failures.push(`${ref}: verse missing in local KJV`); continue; }
+      if (!norm(text).includes(norm(fragment))) {
+        failures.push(`${ref}: fragment not verbatim — "${fragment}" (verse reads: "${text}")`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('the study carries a substantial quoted spine (not a stub)', () => {
+    expect(allQuotedPairs().length).toBeGreaterThanOrEqual(30);
+    expect(WAYS_OF_SEEING.length).toBeGreaterThanOrEqual(9);
+    expect(QUALITATIVE_METHODS.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe('the pinned corpus measurements are REAL (measure-don\'t-claim, machine-checked)', () => {
+  it('recomputing from the actual KJV files matches the pinned numbers exactly', () => {
+    const files = readdirSync(KJV_DIR).filter((f) => f.endsWith('.json') && f !== 'index.json');
+    const books = files.map((f) => JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')));
+    const measured = measureBibleCorpus(books, PINNED_TERM_PATTERNS);
+    expect(measured.books).toBe(PINNED_CORPUS_MEASUREMENTS.books);
+    expect(measured.chapters).toBe(PINNED_CORPUS_MEASUREMENTS.chapters);
+    expect(measured.verses).toBe(PINNED_CORPUS_MEASUREMENTS.verses);
+    expect(measured.terms).toEqual(PINNED_CORPUS_MEASUREMENTS.terms);
+  });
+
+  it('the quantitative readings cite only numbers the pinned measurement carries', () => {
+    // The load-bearing figures quoted in prose must be the measured ones.
+    const blob = QUANTITATIVE_READINGS.join(' ');
+    expect(blob).toContain('66');
+    expect(blob).toContain('1,189');
+    expect(blob).toContain('31,102');
+    expect(blob).toContain('469');
+    expect(blob).toContain('162');
+    expect(blob).toContain('1,699');
+    expect(blob).toContain('229');
+    expect(blob).toContain('27');
+  });
+});
+
+describe('the study assembles for a surface', () => {
+  it('buildSeeingStudy returns every section', () => {
+    const s = buildSeeingStudy();
+    expect(s.meta.title).toContain('Seeing Like Their King');
+    expect(s.ways.length).toBe(WAYS_OF_SEEING.length);
+    expect(s.qualitative.length).toBe(QUALITATIVE_METHODS.length);
+    expect(s.quantitative.pinned.measuredOn).toBe('2026-08-04');
+    expect(s.analysis.goal).toBeTruthy();
+    expect(s.daily.kingsRegimen.ref).toBe('Deuteronomy 17:18-19');
+    expect(s.muddiedToClear.perspectiveProcessing).toBeTruthy();
+  });
+
+  it('every qualitative method serves at least one declared Way', () => {
+    const wayIds = new Set(WAYS_OF_SEEING.map((w) => w.id));
+    for (const m of QUALITATIVE_METHODS) {
+      expect(m.serves.length).toBeGreaterThan(0);
+      m.serves.forEach((id) => expect(wayIds.has(id), `${m.id} serves unknown way ${id}`).toBe(true));
+    }
+  });
+});
