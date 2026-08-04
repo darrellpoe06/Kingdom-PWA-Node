@@ -110,7 +110,7 @@ function allQuotedPairs() {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   const gh = GUARDING_THE_HOUSE;
-  for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits]) {
+  for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits, gh.theTimelines]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;
