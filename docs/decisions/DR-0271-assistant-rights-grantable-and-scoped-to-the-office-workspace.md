@@ -5,7 +5,7 @@ date: 2026-08-04
 status: accepted
 supersedes: []
 superseded-by: null
-tier: C
+tier: B
 entities: [tlc, poetech]
 ---
 
@@ -21,6 +21,8 @@ entities: [tlc, poetech]
 4. **The client derives assistant affordances from the DATABASE role** (`my_default_instance_role()`, `lib/instance-role.js`) — never an email allowlist (advances DR-0220 P3). An assistant account gets a focused shell (Assistant + Messages + About); the TLC door's hardcoded `isGovernor` is retired for the role-derived gate. **Christina's control** is the Team access tab inside the Assistant workspace (`TlcTeamAccess.jsx`); she (both emails) is promoted to poe-family **admin** (the 0113 precedent — the control must work where she administers; Darrell stays sole owner).
 
 **Verification:** static guard + noleak tests in the required `app — lint + vitest` check; live adversarial proof is the new `assistant-scope` leg in `rls-isolation.yml` (`tests/0130-assistant-scope-smoke.sql`: assistant works the workspace, member sees the assistant's rows, books + inquiries read ZERO rows for the assistant, invite carries the role, revoke works). The 0100 books wall is untouched (its guard literals verbatim).
+
+**Correction (2026-08-04, same day, declared by Darrell — "there is not tier c... it is reviewed in production"):** this DR first shipped labeled Tier C with a "hold-before-merge" sentence. Both were wrong per the Ways: RELEASE-TIERS' Tier-C "identity" bullet means the app's front-door/mission identity, not a user-role feature — this is a **Tier-B product feature riding deterministic gates**; and review happens **in production** (DR-0104 stewards' live pass) after the lane lands work on green by itself (DR-0103/0247/0248/0254) — the gates are the review, the `hold` label exists as the Governor's brake, never as a scheduled stop. Tier front-matter corrected C→B; the merged PR (#1193) proved the posture: gates green → auto-merge → live, no human start.
 
 **Carried (dated):** reconcile the office referral working list with the `crm_leads` backbone, and bind the four `ASSISTANT_GRANTABLE` capability checkboxes (`relationships.js`) to per-capability RLS — the role-grant here is the coarse "everything in the Assistant tab **right now**" Christina asked for; per-surface checkboxes are the finer slice — `re-review: 2026-08-24`. The Relationships panel note now states honestly which half is device-local planning config.
 
