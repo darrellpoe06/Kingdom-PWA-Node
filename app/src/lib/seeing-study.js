@@ -485,6 +485,50 @@ export const RELATIONSHIP_CIRCUIT = {
   oneSentence: 'The horizontal is the vertical made visible — Yahweh receives our treatment of people as treatment of Himself, verifies our love for Him by our love for them, and holds worship, forgiveness, and even prayer open or hindered according to the state of our tables, marriages, and grudges.',
 };
 
+// =============================================================================
+// THE SWORD AND THE COUNSEL — Darrell's question, same sitting: "how does my
+// frustrations tie into Jesus said He brings a sword to family... for a
+// purpose then the devil's devices are being used to do Yahweh's Will without
+// Yahweh having done the evil just making all the evil be for the most
+// possible Good... based on past present and future... He's in all at the
+// same time quantum science and biblical scriptures." Three movements: the
+// sword in the family is the King's stated purpose (allegiance-sorting); the
+// adversary's devices run leashed inside the determinate counsel with Yahweh
+// authoring none of the evil; and He can weave all of it to maximal Good
+// because He inhabits past, present, and future at once.
+// =============================================================================
+export const SWORD_AND_COUNSEL = {
+  theSwordInTheFamily: [
+    { ref: 'Matthew 10:34', fragment: 'I came not to send peace, but a sword', note: 'The frustration of family division over the faith is not the Way failing in the house — it is the Way doing what the King said it does.' },
+    { ref: 'Matthew 10:35', fragment: 'For I am come to set a man at variance against his father, and the daughter against her mother', note: 'The variance is His verb — announced, not accidental (quoting Micah 7:6: "a man’s enemies are the men of his own house" — the fault line is ancient).' },
+    { ref: 'Matthew 10:36', fragment: 'And a man’s foes shall be they of his own household', note: 'Named plainly so the enduring one is never ambushed by it.' },
+    { ref: 'Matthew 10:37', fragment: 'He that loveth father or mother more than me is not worthy of me', note: 'THE PURPOSE: allegiance-sorting. The sword forces every household member to rank their loves — the one decision He automates for no one.' },
+    { ref: 'Luke 12:51', fragment: 'I tell you, Nay; but rather division', note: 'A peace built on unranked loves is the false peace; He declines to send it.' },
+    { ref: 'Mark 10:30', fragment: 'But he shall receive an hundredfold now in this time', note: 'The pain carries an attached promise — "with persecutions" listed INSIDE the blessing, not opposite it, "and in the world to come eternal life" (Mark 10:29-30).' },
+  ],
+  theLeashedDevices: [
+    { ref: 'James 1:13', fragment: 'for God cannot be tempted with evil, neither tempteth he any man', note: 'YAHWEH AUTHORS NO EVIL —' },
+    { ref: '1 John 1:5', fragment: 'God is light, and in him is no darkness at all', note: '— no darkness in Him at all (Habakkuk 1:13: "of purer eyes than to behold evil").' },
+    { ref: '2 Corinthians 2:11', fragment: 'we are not ignorant of his devices', note: 'The adversary’s devices are real and known —' },
+    { ref: 'Job 1:12', fragment: 'Behold, all that he hath is in thy power; only upon himself put not forth thine hand', note: '— and they run ONLY on permission, ONLY inside limits he did not set: the leash is explicit in the text.' },
+    { ref: 'Psalm 76:10', fragment: 'Surely the wrath of man shall praise thee: the remainder of wrath shalt thou restrain', note: 'Exactly the wrath that serves His purpose is permitted; the REMAINDER never happens.' },
+    { ref: 'Isaiah 10:15', fragment: 'Shall the axe boast itself against him that heweth therewith?', note: 'The evil instrument is His axe while it swings and judged for being one after — used is not endorsed.' },
+    { ref: 'Acts 2:23', fragment: 'being delivered by the determinate counsel and foreknowledge of God, ye have taken, and by wicked hands have crucified and slain', note: 'THE SUPREME PROOF IS THE CROSS: the worst evil ever committed, by genuinely wicked hands who bear their guilt, inside a counsel that "determined before to be done" (Acts 4:28), producing the most possible Good in history.' },
+    { ref: 'Romans 8:28', fragment: 'And we know that all things work together for good to them that love God', note: 'So in the frustrated house: ALL things — including the division — are woven ("even the wicked for the day of evil," Proverbs 16:4), Yahweh clean of the evil and sovereign over its use.' },
+  ],
+  theEternalNow: [
+    { ref: 'Revelation 1:8', fragment: 'I am Alpha and Omega, the beginning and the ending, saith the Lord, which is, and which was, and which is to come', note: 'WHY the maximal-good weaving works: He inhabits past, present, and future at once.' },
+    { ref: 'Exodus 3:14', fragment: 'I AM THAT I AM', note: 'The eternal present tense —' },
+    { ref: 'John 8:58', fragment: 'Before Abraham was, I am', note: '— which Jesus claimed as His own.' },
+    { ref: 'Psalm 90:4', fragment: 'For a thousand years in thy sight are but as yesterday when it is past', note: 'Time does not pass FOR Him ("one day is with the Lord as a thousand years, and a thousand years as one day," 2 Peter 3:8) —' },
+    { ref: 'Psalm 139:7', fragment: 'Whither shall I go from thy spirit? or whither shall I flee from thy presence?', note: '— and space does not localize Him ("in him we live, and move, and have our being," Acts 17:28).' },
+    { ref: 'Isaiah 55:8', fragment: 'For my thoughts are not your thoughts, neither are your ways my ways, saith the LORD', note: 'THE SEAL over the whole matter (Darrell’s closing word) —' },
+    { ref: 'Isaiah 55:9', fragment: 'so are my ways higher than your ways, and my thoughts than your thoughts', note: '— "as the heavens are higher than the earth": the counsel that weaves evil to maximal Good, the physics that stays partial, the faith that reads the unseen, the sword that sorts the house — all are downstream of Ways and Thoughts that are HIGHER, which is why the student’s frustration is never evidence against the plan, only evidence of the altitude difference.' },
+  ],
+  quantumNote: 'Where modern physics gropes at nonlocality and time-symmetry, it is feeling the edges of the 4th-dimensional frame the Word declared outright — the worlds framed by the Word (Hebrews 11:3), the invisible things clearly seen (Romans 1:20). The resonance is real and worth naming; the seniority is not negotiable: the Word is not confirmed by the lab — the lab keeps arriving late to what the Word stated first (DR-0100: the frontier is still moving; His declaration is not). And PHYSICS IS PARTIAL BY DESIGN (Darrell’s word, same sitting): its instruments read only the seen half of a creation made "visible and invisible" (Colossians 1:16), and the seen half is the lesser — "the things which are seen are temporal; but the things which are not seen are eternal" (2 Corinthians 4:18). For the unseen half the Word issues its own instrument, defined in measurement vocabulary: "Now faith is the SUBSTANCE of things hoped for, the EVIDENCE of things not seen" (Hebrews 11:1) — substance and evidence, a physicist’s words, assigned to the realm no collider reaches. Faith is not the absence of evidence; it IS the evidence class for the eternal half — which is why the same chapter credits Noah’s ark-building and Moses’ enduring "as seeing him who is invisible" to it, and why partial physics plus Hebrews 11:1 together read the WHOLE creation.',
+  oneSentence: 'The sword in the family is His stated allegiance-sorter; the adversary’s devices swing on His leash inside His determinate counsel, with the guilt on the wicked hands and none of the evil authored by Him; and He weaves it all to the most possible Good because He is scoring past, present, and future simultaneously — already seeing the hundredfold and the world to come while the house is still at variance.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -503,5 +547,6 @@ export function buildSeeingStudy() {
     usingHisWays: USING_HIS_WAYS,
     howWeKnow: HOW_WE_KNOW,
     relationshipCircuit: RELATIONSHIP_CIRCUIT,
+    swordAndCounsel: SWORD_AND_COUNSEL,
   };
 }
