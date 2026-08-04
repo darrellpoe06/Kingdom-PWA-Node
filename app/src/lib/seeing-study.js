@@ -558,6 +558,43 @@ export const COMPETENCE_AIM = {
   thePlatformRole: 'This is what the whole study has been building toward, and what this platform exists to serve: the higher Thoughts of the King (Isaiah 55:8-9) seen through His own Book and His recorded Ways, the Kingdom Operating Systems understood as systems, the real data measured and never painted (the corpus counts above; every live surface in the app), and the AI clerking under the Word — so that users and families sit down like Issachar with the times understood, cost their towers like disciples, know the state of their flocks from real numbers, study their answers like the righteous, and stand ready always — comprehensively competent in every conversation, making data-driven decisions inside His Ways. The seeing serves the deciding; the deciding serves the households; and the households serve the King.',
 };
 
+// =============================================================================
+// WALKING IN DISAGREEMENT — Darrell's question, same sitting: "How can two
+// walk together unless they agree... how do you disagree and still walk
+// together when the Bible says that... communication Frameworks and
+// comprehension Frameworks." Amos 3:3 requires agreement on the WALK — the
+// direction, the covenant, the Lord of the road — not uniformity of every
+// opinion; and the Word supplies its own communication and comprehension
+// frameworks for differing inside the walk.
+// =============================================================================
+export const WALKING_IN_DISAGREEMENT = {
+  whatAgreementMeans: [
+    { ref: 'Amos 3:3', fragment: 'Can two walk together, except they be agreed?', note: 'The agreement the walking requires is on the WALK — destination and road — not on every opinion; two travelers can dispute the scenery the whole journey.' },
+    { ref: 'Philippians 3:15', fragment: 'and if in any thing ye be otherwise minded, God shall reveal even this unto you', note: 'Paul names OTHERWISE-MINDED believers as normal —' },
+    { ref: 'Philippians 3:16', fragment: 'whereto we have already attained, let us walk by the same rule', note: '— and commands them to keep walking together by the same rule on what is settled.' },
+    { ref: 'Jude 1:3', fragment: 'earnestly contend for the faith which was once delivered unto the saints', note: 'AGREEMENT REQUIRED on the essentials —' },
+    { ref: 'Romans 14:1', fragment: 'receive ye, but not to doubtful disputations', note: '— LIBERTY REQUIRED on the doubtful things ("Let every man be fully persuaded in his own mind," Romans 14:5; "Who art thou that judgest another man’s servant?" Romans 14:4) —' },
+    { ref: 'Ephesians 4:2', fragment: 'forbearing one another in love', note: '— LOVE REQUIRED over all of it: unity is an ENDEAVOR ("Endeavouring to keep the unity of the Spirit in the bond of peace," Ephesians 4:3), not an assumption.' },
+    { ref: 'Proverbs 27:17', fragment: 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend', note: 'Disagreement inside the walk is a TOOL — friends who never differ never sharpen.' },
+    { ref: 'Acts 15:39', fragment: 'And the contention was so sharp between them, that they departed asunder', note: 'The Word shows the hard case honestly — Paul and Barnabas split sharp — and shows the repair: "Take Mark... for he is profitable to me for the ministry" (2 Timothy 4:11). Even a sharp split inside the Way bends back to profit.' },
+  ],
+  communicationFramework: [
+    { ref: 'James 1:19', fragment: 'let every man be swift to hear, slow to speak, slow to wrath', note: '1. INTAKE FIRST — the ratio is commanded.' },
+    { ref: 'Proverbs 20:5', fragment: 'Counsel in the heart of man is like deep water; but a man of understanding will draw it out', note: '2. DRAW OUT, don’t assume — comprehension is active extraction by questions, not projection (with the full hearing of Proverbs 18:13 and the steelman of Proverbs 18:17).' },
+    { ref: 'Proverbs 15:1', fragment: 'A soft answer turneth away wrath', note: '3. SOFT ANSWER — tone is load-bearing.' },
+    { ref: 'Ephesians 4:15', fragment: 'But speaking the truth in love', note: '4. TRUTH IN LOVE, edification only — every word "good to the use of edifying, that it may minister grace unto the hearers" (Ephesians 4:29).' },
+    { ref: 'Ephesians 4:26', fragment: 'let not the sun go down upon your wrath', note: '5. A DEADLINE ON ANGER — disagreements get same-day processing.' },
+    { ref: 'Matthew 18:15', fragment: 'go and tell him his fault between thee and him alone: if he shall hear thee, thou hast gained thy brother', note: '6. THE ESCALATION PATH starts alone, and the goal is GAINING the brother, not winning the point.' },
+    { ref: 'Isaiah 1:18', fragment: 'Come now, and let us reason together, saith the LORD', note: '7. THE MODEL OVER IT ALL: Yahweh Himself reasons — if He reasons with us, we can reason with each other.' },
+  ],
+  comprehensionFramework: [
+    { ref: '1 Corinthians 13:9', fragment: 'For we know in part', note: 'It starts with the glass-darkly confession FROM BOTH CHAIRS — each party holds a partial map, so neither’s map is the terrain.' },
+    { ref: 'James 3:17', fragment: 'first pure, then peaceable, gentle, and easy to be intreated', note: 'The posture: heaven’s wisdom is PERSUADABLE — correctable, without partiality — while each stays fully persuaded on the liberty items (Romans 14:5).' },
+    { ref: 'Romans 14:19', fragment: 'follow after the things which make for peace, and things wherewith one may edify another', note: 'The output target: peace made and one another edified — comprehension measured by what it builds.' },
+  ],
+  oneSentence: 'Agree on the Road and the King — that part is non-negotiable (Amos 3:3) — stay fully persuaded yet easy to be intreated on everything doubtful, run the Word’s own protocol (hear fully, draw out, answer soft, truth in love, sun-down deadline, gain-the-brother escalation), and let the disagreements sharpen the iron instead of splitting the walk.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -578,5 +615,6 @@ export function buildSeeingStudy() {
     relationshipCircuit: RELATIONSHIP_CIRCUIT,
     swordAndCounsel: SWORD_AND_COUNSEL,
     competenceAim: COMPETENCE_AIM,
+    walkingInDisagreement: WALKING_IN_DISAGREEMENT,
   };
 }

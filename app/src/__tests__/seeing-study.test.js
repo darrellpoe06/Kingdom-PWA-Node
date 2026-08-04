@@ -18,7 +18,8 @@ import {
   measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
-  RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM, buildSeeingStudy,
+  RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
+  WALKING_IN_DISAGREEMENT, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -80,6 +81,10 @@ function allQuotedPairs() {
   pairs.push({ ref: 'Hebrews 11:1', fragment: 'the substance of things hoped for, the evidence of things not seen' });
   const ca = COMPETENCE_AIM;
   for (const list of [ca.theModelMen, ca.theCommandedCompetence, ca.theStudiedAnswer]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const wd = WALKING_IN_DISAGREEMENT;
+  for (const list of [wd.whatAgreementMeans, wd.communicationFramework, wd.comprehensionFramework]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;
