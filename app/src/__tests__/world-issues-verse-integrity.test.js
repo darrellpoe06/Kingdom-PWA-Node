@@ -99,6 +99,47 @@ const PRISON_ISSUE_QUOTES = [
   { ref: 'Hebrews 13:3', book: 'Hebrews', ch: 13, v: 3, fragments: [
     'Remember them that are in bonds, as bound with them',
   ] },
+  // The Kingdom-freedom layer (Darrell 2026-08-04 follow-up word: freedom for
+  // the captives of sin and death).
+  { ref: 'John 8:34', book: 'John', ch: 8, v: 34, fragments: [
+    'Whosoever committeth sin is the servant of sin',
+  ] },
+  { ref: 'John 8:36', book: 'John', ch: 8, v: 36, fragments: [
+    'If the Son therefore shall make you free, ye shall be free indeed',
+  ] },
+  { ref: '2 Timothy 2:26', book: '2Timothy', ch: 2, v: 26, fragments: [
+    'taken captive by him at his will',
+  ] },
+  { ref: 'Hebrews 2:14', book: 'Hebrews', ch: 2, v: 14, fragments: [
+    'that through death he might destroy him that had the power of death',
+  ] },
+  { ref: 'Hebrews 2:15', book: 'Hebrews', ch: 2, v: 15, fragments: [
+    'all their lifetime subject to bondage',
+  ] },
+  { ref: 'Romans 8:2', book: 'Romans', ch: 8, v: 2, fragments: [
+    'the law of the Spirit of life in Christ Jesus hath made me free from the law of sin and death',
+  ] },
+  { ref: 'Romans 6:23', book: 'Romans', ch: 6, v: 23, fragments: [
+    'For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord',
+  ] },
+  { ref: 'Colossians 1:13', book: 'Colossians', ch: 1, v: 13, fragments: [
+    'hath delivered us from the power of darkness, and hath translated us into the kingdom of his dear Son',
+  ] },
+  { ref: '1 Corinthians 15:55', book: '1Corinthians', ch: 15, v: 55, fragments: [
+    'O death, where is thy sting? O grave, where is thy victory?',
+  ] },
+  { ref: '1 Corinthians 15:57', book: '1Corinthians', ch: 15, v: 57, fragments: [
+    'thanks be to God, which giveth us the victory through our Lord Jesus Christ',
+  ] },
+  { ref: 'Ephesians 4:8', book: 'Ephesians', ch: 4, v: 8, fragments: [
+    'led captivity captive',
+  ] },
+  { ref: 'Revelation 1:18', book: 'Revelation', ch: 1, v: 18, fragments: [
+    'the keys of hell and of death',
+  ] },
+  { ref: 'Galatians 5:1', book: 'Galatians', ch: 5, v: 1, fragments: [
+    'Stand fast therefore in the liberty wherewith Christ hath made us free',
+  ] },
 ];
 
 describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)', () => {
