@@ -20,7 +20,7 @@ import {
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
   RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
   WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
-  LONGSUFFERING_WITH_JOYFULNESS, buildSeeingStudy,
+  LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -98,6 +98,10 @@ function allQuotedPairs() {
   }
   const lj = LONGSUFFERING_WITH_JOYFULNESS;
   for (const list of [lj.theConstraints, lj.theOpportunities]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const ft = FAMILY_TREASURY;
+  for (const list of [ft.theDiagnosis, ft.theDesign]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

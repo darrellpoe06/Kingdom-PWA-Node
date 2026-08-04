@@ -695,6 +695,33 @@ export const LONGSUFFERING_WITH_JOYFULNESS = {
   oneSentence: 'Hope deferred really does sicken the heart — so the Word moves longsuffering off willpower onto the Spirit’s supply ("with joyfulness," Colossians 1:11), guards it with sun-down deadlines and root-watches, treats its collapses with Elijah’s food-sleep-and-gentleness protocol, transfers the weight daily to the One who cares, and stamps the whole season with His nearness — the longsuffering husband being longsuffered toward by his God, in the same breath.',
 };
 
+// =============================================================================
+// THE FAMILY TREASURY — Darrell's question, same sitting: "Financial procedure
+// and activities are at the heart of the marriage issues is that the highest
+// and how should we relationship between husband and wife... all family and
+// families." The diagnosis: money is the marriage's INSTRUMENT PANEL, not its
+// engine — the highest-resolution display of the heart (Matthew 6:21), which
+// is why it presents as the highest issue. And the Word's treasury design for
+// husband, wife, and every family.
+// =============================================================================
+export const FAMILY_TREASURY = {
+  theDiagnosis: [
+    { ref: 'Matthew 6:21', fragment: 'For where your treasure is, there will your heart be also', note: 'WHY MONEY PRESENTS AS THE HEART OF MARRIAGE ISSUES: the budget is a confession — every line item is a measurable readout of what each heart worships, fears, and trusts; two invisible hearts become visible numbers on one page.' },
+    { ref: '1 Timothy 6:10', fragment: 'For the love of money is the root of all evil', note: 'THE ROOT SITS ONE LAYER DEEPER — the LOVE of it, a heart posture; and the sorrows are self-inflicted: "pierced themselves through with many sorrows." Money is the display; the heart is the engine (the what-is-in-man doctrine and this question are the same question).' },
+    { ref: 'Matthew 6:24', fragment: 'Ye cannot serve God and mammon', note: 'Money is a rival applicant for the throne — if either spouse serves mammon, the marriage has three masters.' },
+  ],
+  theDesign: [
+    { ref: 'Genesis 2:24', fragment: 'and they shall be one flesh', note: '1. ONE FLESH → ONE ECONOMY — hidden accounts and my-money/your-money contradict the union at its definition. Joint financial moral agency is real, proven negatively by Ananias and Sapphira who "agreed together" about money unto death (Acts 5:9): agreement itself is not the goal; agreement UNDER THE WORD is.' },
+    { ref: 'Deuteronomy 8:18', fragment: 'for it is he that giveth thee power to get wealth', note: '2. THE SOURCE ACKNOWLEDGED DISSOLVES THE OWNERSHIP FIGHT — once both spouses confess neither is the source, mine-vs-yours becomes joint stewardship of His.' },
+    { ref: 'Malachi 3:10', fragment: 'and prove me now herewith', note: 'Firstfruits seal it — the one place Yahweh says TEST ME is the family’s money; "seek ye first the kingdom" (Matthew 6:33) is the ordering that heals money anxiety, and without it the leak is named: "wages to put it into a bag with holes" (Haggai 1:6).' },
+    { ref: 'Proverbs 31:11', fragment: 'The heart of her husband doth safely trust in her', note: '3. TRUSTED DELEGATION, NOT CONTROL — the Proverbs 31 wife executes real transactions on delegated authority ("She considereth a field, and buyeth it," Proverbs 31:16), and the trust itself is listed as the husband’s wealth ("no need of spoil"). Competence honored with authority inside agreed procedure — not micromanagement, not chaos.' },
+    { ref: '1 Timothy 5:8', fragment: 'But if any provide not for his own, and specially for those of his own house, he hath denied the faith', note: '4. PROVISION IS COVENANT DUTY — and the data practices are commanded: count the cost (Luke 14:28), know the state of the flocks (Proverbs 27:23). The family budget review IS a biblical ordinance.' },
+    { ref: 'Luke 16:11', fragment: 'If therefore ye have not been faithful in the unrighteous mammon, who will commit to your trust the true riches?', note: '5. MONEY IS THE COUPLE’S SHARED TRAINING GROUND — "faithful in that which is least is faithful also in much" (Luke 16:10): Yahweh grades the marriage’s mammon-handling as the qualifying exam for true riches.' },
+    { ref: 'Proverbs 15:17', fragment: 'Better is a dinner of herbs where love is, than a stalled ox and hatred therewith', note: '6. THE RELATIONSHIP OUTRANKS THE BALANCE SHEET, BY EXPLICIT RULE — "Better is little with the fear of the LORD than great treasure and trouble therewith" (Proverbs 15:16). A financial procedure that wins the argument and loses the dinner table has failed the Word’s own accounting.' },
+  ],
+  oneSentence: 'Money is the marriage’s instrument panel, not its engine — so the Word’s procedure is one flesh/one economy, His ownership confessed first, trusted delegation on the Proverbs 31 pattern, commanded counting and provision, faithfulness-in-least as the shared exam — with the standing rule that the herbs-dinner with love beats the stalled ox with strife every time.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -719,5 +746,6 @@ export function buildSeeingStudy() {
     ironOnIronDaily: IRON_ON_IRON_DAILY,
     doorTheKingKnocksOn: DOOR_THE_KING_KNOCKS_ON,
     longsufferingWithJoyfulness: LONGSUFFERING_WITH_JOYFULNESS,
+    familyTreasury: FAMILY_TREASURY,
   };
 }
