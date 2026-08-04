@@ -111,7 +111,7 @@ function allQuotedPairs() {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   const gh = GUARDING_THE_HOUSE;
-  for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits, gh.theTimelines, gh.theProvenUnfaithfulServant, gh.thenWhat]) {
+  for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits, gh.theTimelines, gh.halfTheIncome, gh.theProvenUnfaithfulServant, gh.thenWhat]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   for (const v of FINANCIAL_HEALING_PROTOCOL.steps) pairs.push({ ref: v.ref, fragment: v.fragment });
