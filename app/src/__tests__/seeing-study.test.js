@@ -107,7 +107,7 @@ function allQuotedPairs() {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   const sa = STEWARDSHIP_ACCOUNTABILITY;
-  for (const list of [sa.thePatternsNamed, sa.fromAccusationToInstrumentation, sa.abundanceAndTheScarcityClaim]) {
+  for (const list of [sa.thePatternsNamed, sa.fromAccusationToInstrumentation, sa.abundanceAndTheScarcityClaim, sa.theOldWineskinDecades]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   const gh = GUARDING_THE_HOUSE;
