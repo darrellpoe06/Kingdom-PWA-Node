@@ -722,6 +722,250 @@ export const FAMILY_TREASURY = {
   oneSentence: 'Money is the marriage’s instrument panel, not its engine — so the Word’s procedure is one flesh/one economy, His ownership confessed first, trusted delegation on the Proverbs 31 pattern, commanded counting and provision, faithfulness-in-least as the shared exam — with the standing rule that the herbs-dinner with love beats the stalled ox with strife every time.',
 };
 
+// =============================================================================
+// STEWARDSHIP ACCOUNTABILITY — Darrell's situational analysis, same sitting:
+// accountability gated on "the belief that they are even wrong," transparency
+// resisted, blame shifted, "doing the best I can" beside frivolous spending
+// while margin payments are called unaffordable, opportunities missed while
+// the family can — "if the husband is pressuring the wife to conform to the
+// best financially stable relationship with financial management and vice
+// versa what does that look like." Both chairs under Proverbs 21:2; the
+// decisive move is from accusation to instrumentation.
+// =============================================================================
+export const STEWARDSHIP_ACCOUNTABILITY = {
+  thePatternsNamed: [
+    { ref: 'Proverbs 21:2', fragment: 'Every way of a man is right in his own eyes: but the LORD pondereth the hearts', note: 'THE ACCOUNTABILITY GATE IS THE OLDEST GATE — and it covers EVERY chair in the house, including the presser’s ("The way of a fool is right in his own eyes: but he that hearkeneth unto counsel is wise," Proverbs 12:15).' },
+    { ref: 'Revelation 3:17', fragment: 'Because thou sayest, I am rich, and increased with goods, and have need of nothing; and knowest not', note: 'THE LAODICEAN GAP between FELT enough ("I’m doing the best I can," "I’ve done enough") and MEASURED reality is a named biblical condition — self-assessment cannot audit itself (1 John 1:8).' },
+    { ref: 'Genesis 3:12', fragment: 'The woman whom thou gavest to be with me, she gave me of the tree, and I did eat', note: 'BLAME-SHIFTING IS EDENIC — the first recorded post-fall sentence; and self-justification has an audience problem: "Ye are they which justify yourselves before men; but God knoweth your hearts" (Luke 16:15).' },
+    { ref: 'John 3:20', fragment: 'neither cometh to the light, lest his deeds should be reproved', note: 'REFUSING TRANSPARENCY IS LIGHT-AVOIDANCE — "he that doeth truth cometh to the light, that his deeds may be made manifest" (John 3:21): submission to the ledger is the ordinary posture of anyone with nothing to hide; resistance to it is itself data.' },
+    { ref: 'Proverbs 21:20', fragment: 'but a foolish man spendeth it up', note: 'THE SPENDING PATTERN IS MEASURED IN PROVERBS — "He that loveth pleasure shall be a poor man" (21:17); the prodigal arc runs spend-all → famine → want (Luke 15:13-14). Frivolous outflow against a budget "that can’t support" margin is Proverbs 21:20 in a spreadsheet.' },
+    { ref: 'Proverbs 6:8', fragment: 'Provideth her meat in the summer', note: 'PROVISION HAS A SEASON — "while the family can" IS the summer (Proverbs 6:6-8); "A prudent man foreseeth the evil" (Proverbs 22:3) makes the month-ahead cushion and the nest egg that verse operationalized, with Joseph’s storehouse the doctrine at scale (Genesis 41:36) and the horizon "an inheritance to his children’s children" (Proverbs 13:22).' },
+  ],
+  fromAccusationToInstrumentation: [
+    { ref: 'Habakkuk 2:2', fragment: 'Write the vision, and make it plain upon tables, that he may run that readeth it', note: 'THE DECISIVE MOVE: change the WITNESS. A written budget covenant and shared ledger shift every conversation from "you’re wrong" (an accusation, resisted at the belief-gate) to "the table says" (a measurement, readable by anyone). Numbers don’t accuse; they testify — and no one must lose face to a spreadsheet the way they would to a spouse.' },
+    { ref: 'Haggai 1:5', fragment: 'Consider your ways', note: 'Haggai’s own method — and the platform’s finance surfaces exist for precisely this: the family’s instrument panel, so accountability attaches to MEASUREMENTS, not to winning arguments (the household version of measure-don’t-claim).' },
+    { ref: 'Matthew 18:16', fragment: 'take with thee one or two more, that in the mouth of two or three witnesses every word may be established', note: 'THE ESCALATION when one-on-one is exhausted — the godly financial counselor or pastor is the two-or-three-witnesses step ("in the multitude of counsellors there is safety," Proverbs 11:14): the same numbers that were "pressure" from a spouse become neutral facts from a counselor.' },
+    { ref: 'Proverbs 28:13', fragment: 'He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy', note: 'CONFESSION HAS A PROMISE ARGUMENT NEVER EARNS — mercy is on the far side of the transparency being resisted.' },
+  ],
+  // Darrell's refinement, same sitting: "more than enough to still live good
+  // and pay down debt however your spouse still over spends while claiming we
+  // dont have money to save" — the abundance case has its own diagnosis:
+  // appetite, not arithmetic.
+  abundanceAndTheScarcityClaim: [
+    { ref: 'Proverbs 27:20', fragment: 'so the eyes of man are never satisfied', note: 'THE DIAGNOSIS IS APPETITE, NOT ARITHMETIC — filed beside "Hell and destruction are never full": no income level fixes an unsatisfied eye; raise the abundance and the eye scales with it.' },
+    { ref: 'Ecclesiastes 5:10', fragment: 'nor he that loveth abundance with increase', note: 'THE SCARCITY CLAIM AMID PLENTY, DIAGNOSED EXACTLY: the lover of abundance genuinely EXPERIENCES insufficiency at every level of increase — the claim can be sincerely felt and factually false at once, which is why arguing the feeling never works.' },
+    { ref: 'Isaiah 55:2', fragment: 'Wherefore do ye spend money for that which is not bread? and your labour for that which satisfieth not?', note: 'THE OVERSPEND IS MISDIRECTED HUNGER — a soul feeding itself at the wrong table; and the felt-scarcity amid sufficiency is the named Haggai condition ("Ye looked for much, and, lo, it came to little... Because of mine house that is waste, and ye run every man unto his own house," Haggai 1:9).' },
+    { ref: 'Luke 12:15', fragment: 'for a man’s life consisteth not in the abundance of the things which he possesseth', note: 'The guardrail Jesus spoke TO A MAN IN A FAMILY MONEY DISPUTE — precisely the scene.' },
+    { ref: 'Luke 16:2', fragment: 'give an account of thy stewardship', note: 'REMEDY 1 — LET THE LEDGER ARBITRATE: "we don’t have money to save" is a TESTABLE statement (Habakkuk 2:2) — and the stewardship accounting is biblically triggered by WASTE, not only poverty: abundance raises the standard, it does not waive it.' },
+    { ref: 'Proverbs 3:10', fragment: 'So shall thy barns be filled with plenty', note: 'REMEDY 2 — MAKE THE MARGIN STRUCTURALLY FIRST so the claim becomes impossible, not just wrong: firstfruits, then savings and debt-reduction automated at the top of the flow, then an AGREED LIBERTY ALLOWANCE for each steward — real freedom inside real fences (the Proverbs 31 trusted-delegation pattern with the storehouse protected). The overspend can then only draw on allocated liberty, never on the margin.' },
+    { ref: 'Isaiah 55:2', fragment: 'hearken diligently unto me, and eat ye that which is good, and let your soul delight itself in fatness', note: 'REMEDY 3 — FEED THE REAL HUNGER: Isaiah 55:2 ends in invitation, not rebuke. Budgets restrain appetite for a season; only a fed soul stops being hungry — the contentment engine-swap (1 Timothy 6:6; Hebrews 13:5), treasure relocated so the heart follows (Matthew 6:21), the table that satisfies.' },
+  ],
+  // Darrell's sharpening, same sitting: "refuse to create a ledger that has
+  // transparency... only wants to support subpar operations because they
+  // understand their ways and are not willing to learn a new way... for of 10
+  // to 20 to 30 years of marriage... opportunities and constraints."
+  theOldWineskinDecades: [
+    { ref: 'Luke 5:39', fragment: 'No man also having drunk old wine straightway desireth new: for he saith, The old is better', note: 'JESUS DIAGNOSED THIS EXACT PSYCHOLOGY — the verdict comes from the DRINKER’S mouth, not the wine’s quality: "I understand my ways" is the old-wine speech, a preference for the familiar, not the better, stated as a near-universal human law. Expect it; don’t be freshly wounded by it each time.' },
+    { ref: 'Jeremiah 13:23', fragment: 'that are accustomed to do evil', note: 'DECADES HARDEN HABIT TOWARD NATURE — "accustomed" is the operative word: 10-20-30 years of a way makes it feel like identity, not choice; and self-assessed competence guards it ("The sluggard is wiser in his own conceit than seven men that can render a reason," Proverbs 26:16 — seven reasoned ledger presentations lose to one settled self-image).' },
+    { ref: 'Zechariah 7:12', fragment: 'they made their hearts as an adamant stone, lest they should hear', note: 'REFUSAL CAN CALCIFY — a real endpoint the Word has watched. But the cure on file: "I will take away the stony heart out of your flesh, and I will give you an heart of flesh" (Ezekiel 36:26) — the stone-swap is HIS surgery, not your argument. A constraint on methods; an assignment for prayers.' },
+    { ref: 'Habakkuk 2:2', fragment: 'and make it plain upon tables, that he may run that readeth it', note: 'THE BIG OPPORTUNITY — SEPARATE THE WHAT FROM THE WAY: the goal is TRANSPARENCY, not tooling, and the Word puts plainness on the AUTHOR. "I am made all things to all men, that I might by all means save some" (1 Corinthians 9:22): deliver the same clarity in the old wineskin’s shape — envelopes, cash jars, a one-page sheet in THEIR format. Subpar-but-transparent beats optimal-but-refused; often the resistance was never to clarity but to feeling incompetent in a new system — remove the incompetence threat and the clarity can land. (The app’s simplest-possible view is a design assignment, not a compromise.)' },
+    { ref: '1 Peter 3:7', fragment: 'dwell with them according to knowledge', note: 'THE DECADES CUT BOTH WAYS — twenty years of marriage is an intelligence asset: you know what approaches, times, framings, and messengers have ever worked. Use the knowledge, not just the frustration — and keep the covenant frame sweet meanwhile: "Live joyfully with the wife whom thou lovest all the days" (Ecclesiastes 9:9) — the joy is the portion DURING the project.' },
+    { ref: 'Joel 2:25', fragment: 'And I will restore to you the years that the locust hath eaten', note: 'THE YEARS ARE RECOVERABLE — BY PROMISE: restoration of eaten years is a named divine specialty; the eleventh-hour workers "received every man a penny" (Matthew 20:9) — full wage for late starters; "They shall still bring forth fruit in old age" (Psalm 92:14); Caleb at eighty-five: "give me this mountain" (Joshua 14:12). Late change is fully honored — so it is never rational to stop asking for it.' },
+    { ref: 'Isaiah 43:19', fragment: 'Behold, I will do a new thing', note: 'HE SPECIALIZES IN NEW WAYS — "I will even make a way in the wilderness": the new-way learning you cannot produce in them is a stated line of His work. The standing engine keeps running: the simplified instrument offered, the Daniel Trial scaled to their format, conduct that wins without words (1 Peter 3:1), the Heart-Turner petitioned (Proverbs 21:1), the stone-swap prayed for by name (Ezekiel 36:26).' },
+  ],
+  theViceVersaGuards: 'The pressing chair runs the same audit (Proverbs 21:2 reads EVERY way as right in its owner’s eyes). Pressure must never curdle into bitterness (Colossians 3:19) or strife-loops (Proverbs 17:14; 2 Timothy 2:24-25); the goal is an agreed covenant, not conquest (Amos 3:3); the honor-condition on prayer holds precisely when hardest (1 Peter 3:7); and the standing rule stays senior — the herbs-dinner with love outranks the stalled ox (Proverbs 15:17): a won budget in a lost marriage is a failed audit in the eternal books. Pressing toward the best financially stable relationship is legitimate leadership (1 Timothy 5:8; Luke 14:28) — and stays legitimate only carried in the Christ-shape: self-giving first, ledger as witness, counselors as escalation, the Heart-Turner petitioned throughout (Proverbs 21:1).',
+  oneSentence: 'Move the contest out of belief-space into measurement-space — write the covenant plain on tables, let the ledger be the witness so no one must first confess to being wrong before the numbers can speak, escalate to two-or-three counselors rather than another round, seize the summer while it is summer — and let the pressing chair pass its own Proverbs 21:2 audit, keeping love senior to the balance sheet it fights for.',
+};
+
+// =============================================================================
+// GUARDING THE HOUSE — Darrell's hardest edge, same sitting: "If poverty is a
+// possibility because of bad ways that refuse to be governed... what does the
+// spouses do say." The Word names the trajectory plainly, supplies a
+// commended case study (Abigail), assigns the watchman's word, and draws the
+// honest limits.
+// =============================================================================
+export const GUARDING_THE_HOUSE = {
+  theTrajectoryNamed: [
+    { ref: 'Proverbs 6:11', fragment: 'So shall thy poverty come as one that travelleth, and thy want as an armed man', note: 'THE WORD DOES NOT SOFTEN IT — poverty from ungoverned ways arrives like an armed robber, on a schedule; "the drunkard and the glutton shall come to poverty" (Proverbs 23:21). Saying it plainly at the kitchen table is not cruelty — under-claiming a real oncoming harm is its own falsehood.' },
+  ],
+  theAbigailDoctrine: [
+    { ref: '1 Samuel 25:17', fragment: 'for he is such a son of Belial, that a man cannot speak to him', note: 'THE WORD’S CASE STUDY: a competent spouse married to ways that refused governing — the accountability gate, verbatim, three thousand years ago, with "evil determined against all his household."' },
+    { ref: '1 Samuel 25:18', fragment: 'Then Abigail made haste', note: 'SHE ACTED — real assets, within her own stewardship, WITHOUT waiting for Nabal’s agreement, to save the very house he endangered —' },
+    { ref: '1 Samuel 25:33', fragment: 'blessed be thy advice, and blessed be thou', note: '— and the Word’s verdict on her is BLESSING. The doctrine: protective action inside one’s God-given stewardship is faithfulness to the house, not rebellion against the spouse.' },
+  ],
+  whatTheSpouseDoes: [
+    { ref: 'Proverbs 31:27', fragment: 'She looketh well to the ways of her household', note: 'GUARD YOUR OWN LANE RELENTLESSLY — your diligence is your assignment regardless of theirs (Joseph stored during plenty regardless of Egypt’s habits, Genesis 41:36).' },
+    { ref: 'Malachi 3:10', fragment: 'Bring ye all the tithes into the storehouse', note: 'BUILD PROTECTION STRUCTURALLY, NOT CONVERSATIONALLY — firstfruits and storehouse ordered FIRST (the ant’s summer gathering, Proverbs 6:8) so margin exists before discretionary flow can consume it: protection that requires winning no argument. Securing essentials and the children’s bread counts AS provision (1 Timothy 5:8) — Abigail-shaped, transparent, never deceitful.' },
+    { ref: 'Psalm 112:5', fragment: 'he will guide his affairs with discretion', note: 'GUIDE WITH A FIXED HEART — "He shall not be afraid of evil tidings: his heart is fixed, trusting in the LORD" (Psalm 112:7): calm governance, because fear-driven management is just the other ditch.' },
+  ],
+  whatTheSpouseSays: [
+    { ref: 'Ezekiel 33:9', fragment: 'if thou warn the wicked of his way to turn from it; if he do not turn from his way, he shall die in his iniquity; but thou hast delivered thy soul', note: 'THE WATCHMAN’S WORD, DELIVERED ONCE AND WELL — written plain (Habakkuk 2:2), in meekness (2 Timothy 2:24-25), escalated to counselors (Matthew 18:16) — and the outcome NOT owned: you are graded on the faithfulness of the warning, never on whether it was heeded. That distinction is the melancholy’s cure.' },
+  ],
+  theHonestLimits: [
+    { ref: 'Proverbs 27:22', fragment: 'Though thou shouldest bray a fool in a mortar', note: 'SOME FOLLY DOES NOT POUND OUT — the Word itself says arguments have a floor ("yet will not his foolishness depart from him").' },
+    { ref: '1 Corinthians 7:16', fragment: 'For what knowest thou, O wife, whether thou shalt save thy husband?', note: 'THE OUTCOME STAYS GENUINELY OPEN, in both directions — held with the Heart-Turner (Proverbs 21:1) and the Philippians 1:6 warranty: hope is real, the timeline is not yours, and the house is guarded meanwhile.' },
+  ],
+  oneSentence: 'Name the armed-man trajectory plainly once (watchman duty), then govern what is yours to govern — storehouse first, essentials secured, affairs guided with a fixed heart, Abigail-swift where the house is exposed — deliver the warning without owning the outcome, keep the counselors and the Heart-Turner engaged, and let your faithfulness, not their response, be what you are graded on.',
+  // Darrell's follow-through, same sitting: "Timelines for different actions
+  // based on outcomes or burn down with the financial ways of your spouse?"
+  // The answer: neither burn down nor walk out — a staged third way with real
+  // clocks, and Jesus Himself models the review-date.
+  theTimelines: [
+    { ref: 'Ecclesiastes 3:7', fragment: 'a time to keep silence, and a time to speak', note: 'STAGES ARE BIBLICAL — set by how directly the house is exposed, not one-size (Ecclesiastes 3:1).' },
+    { ref: 'Nehemiah 4:9', fragment: 'we made our prayer unto our God, and set a watch against them day and night', note: 'STAGE 0 — NOW AND ALWAYS: prayer AND the watch simultaneously; storehouse-first structure, written covenant, ledger witness — these never wait on cooperation and never expire.' },
+    { ref: 'Proverbs 6:4', fragment: 'Give not sleep to thine eyes, nor slumber to thine eyelids', note: 'STAGE 1 — SAME-DAY, WHERE EXPOSURE IS DIRECT: anything that lets the armed man reach the whole house (joint credit exposure, surety, drainable reserves) gets the tonight-clock — "Deliver thyself as a roe from the hand of the hunter" (Proverbs 6:5). Capping structural exposure is Abigail-speed work, transparent, inside your own stewardship.' },
+    { ref: 'Luke 13:8', fragment: 'let it alone this year also, till I shall dig about it, and dung it', note: 'STAGE 2 — THE CULTIVATION SEASON WITH A NAMED REVIEW DATE: the fig-tree protocol (Luke 13:7-9) is the re-review doctrine in Jesus’ own mouth — a DEFINED period (not open-ended), INTENSIFIED cultivation during it (counselors, covenant meetings, the written plan — digging and dunging, not more of the same), and a SCHEDULED fruit inspection. Longsuffering with a calendar is biblical; without one it is drift.' },
+    { ref: 'Luke 13:9', fragment: 'And if it bear fruit, well: and if not', note: 'STAGE 3 — AT THE REVIEW DATE, JUDGED BY FRUIT IN WAYS NOT WORDS (the Matthew 21:30 rule: agreements do not count; changed ways count): if fruit, celebrate measurably and set the next season; if none, escalate the PROTECTION LEVEL, not the temperature — deeper structural separation inside the covenant, the watchman’s word renewed once, the case re-committed upward (1 Peter 2:23). Each stage on a Habakkuk clock: "the vision is yet for an appointed time" (Habakkuk 2:3) — appointed, not indefinite.' },
+    { ref: 'Proverbs 22:3', fragment: 'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished', note: 'THE "BURN DOWN" QUESTION ANSWERED PLAINLY: not commanded to co-sign ruin — riding a foreseen trajectory into impact is the SIMPLE man’s path — and not released from the covenant by bad stewardship either: Abigail’s whole glory is that she did BOTH, stayed in covenant AND refused to let the house burn. The third way: covenant held, house guarded, timelines named, fruit inspected.' },
+  ],
+};
+
+// =============================================================================
+// THE PLATFORM BUILDOUT — Darrell's build question, same sitting: "What can
+// the PoeTech App build into our systems to support these types of subjects
+// and strategies and skills and opportunities for families users businesses
+// to improve?" Each item maps a doctrine captured today to a buildable
+// surface, names its existing starting point in the codebase, and carries a
+// re-review date (DR-0236: a next-steps list is a work queue, not a wish
+// list). The app is the primary artifact — these are live-view-and-control
+// surfaces over real family data, never painted numbers (P15/DR-0076).
+// =============================================================================
+export const PLATFORM_BUILDOUT = [
+  {
+    id: 'pb-budget-covenant',
+    name: 'The Family Budget Covenant (Habakkuk 2:2 — written plain upon tables)',
+    doctrine: 'From accusation to instrumentation: the written covenant + shared ledger as the neutral witness, so accountability attaches to measurements, not to winning arguments.',
+    builds: 'A covenant surface in the finance module: the agreed budget written plain, budget-vs-actual with margin-vs-discretionary classification, a month-ahead progress meter (Proverbs 22:3), and a nest-egg tracker framed on Joseph’s storehouse (Genesis 41:36) — every number real, verse-anchored labels.',
+    startingPoint: 'app/src/poe-financial-mvp-v28.jsx (the finance lane) + the sovereign nas-finance-ingest pipeline',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-fig-tree-reviews',
+    name: 'Fig-Tree Review dates (Luke 13:8-9 — the cultivation season with a named inspection)',
+    doctrine: 'Longsuffering with a calendar: defined seasons, intensified cultivation, fruit inspected in WAYS not words at a scheduled date.',
+    builds: 'Named review dates on any family covenant or goal — season length, cultivation actions, and a fruit definition set up front; the review fires as a dated check the household actually sees. The repo already runs this machinery for itself (re-review dates + the daily watcher); this ports the same pattern to family goals.',
+    startingPoint: 'the re-review/watcher pattern (docs/reviews + review-watcher) applied to household data',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-consider-your-ways-digest',
+    name: 'The Consider-Your-Ways digest (Haggai 1:5 — the household instrument panel)',
+    doctrine: 'Measure-don’t-claim at home: the ledger testifies to both spouses equally — no accusation framing, the numbers speak.',
+    builds: 'A weekly household digest: spending classified, margin trajectory, storehouse state, delivered identically to both stewards — the Laodicean felt-vs-measured gap (Revelation 3:17) closed by instrumentation.',
+    startingPoint: 'finance-module data + the existing digest/notification lanes',
+    reReview: '2026-08-18',
+  },
+  {
+    id: 'pb-seeing-study-rendered',
+    name: 'The Seeing study rendered in Learn (the whole education, taught)',
+    doctrine: 'Everything captured this sitting — the Ways lenses, qualitative + quantitative methods, the corpus measurements, the marriage and treasury arcs — as teachable modules with the discernment tutor.',
+    builds: 'Wire seeing-study.js into the Learn/church surface (module already pure and render-ready; buildSeeingStudy() returns every section).',
+    startingPoint: 'the Learn engine (church-classes.js / learn-framework) + seeing-study.js — already carried, re-review: 2026-08-11',
+    reReview: '2026-08-11',
+  },
+  {
+    id: 'pb-conversation-frameworks',
+    name: 'Communication-framework drills (James 1:19 → Matthew 18)',
+    doctrine: 'The Word’s own protocol trained: intake ratio, draw-out questions, soft answer, truth-in-love, sun-down deadline, gain-the-brother escalation.',
+    builds: 'Conversation-prep cards (draw-out question banks, soft-answer templates run through the Test), a sun-down nudge for open disagreements, and the iron-on-iron daily seeds at the Deuteronomy 6:7 rhythms (table/road/evening) drawn from the study catalogs.',
+    startingPoint: 'the Mind-of-Christ Test machinery + godhead-study seeds + the tutor metas',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-book-of-remembrance',
+    name: 'The family Book of Remembrance (Malachi 3:16)',
+    doctrine: 'They that feared the LORD spake often one to another — and it was WRITTEN. The family’s sharpening conversations, covenants, answered prayers, and stewardship decisions logged as their own remembrance book.',
+    builds: 'A family journal surface: conversation notes, covenant milestones, warnings delivered (the Ezekiel 33:9 watchman record — delivered, then released), and answered-prayer entries — the household’s eternal-data mirror.',
+    startingPoint: 'the notes/journal lanes + RLS family-instance isolation (already proven)',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-counselor-brief',
+    name: 'The Counselor Brief (Matthew 18:16 — the two-or-three-witnesses packet)',
+    doctrine: 'When one-on-one is exhausted, the escalation is counselors — and the same numbers that were "pressure" from a spouse become neutral facts from a third chair.',
+    builds: 'One-tap export: the covenant, the ledger summary, the review history — a counselor-ready, data-driven brief for the pastor or financial counselor session.',
+    startingPoint: 'finance data + the existing export/print patterns (curriculum markdown exports)',
+    reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-business-parity',
+    name: 'Business parity — Issachar briefings (1 Chronicles 12:32; Luke 14:28; Proverbs 27:23)',
+    doctrine: 'The same instruments for businesses: understanding of the times flowing into what to do — count-the-cost sheets before commitments, flock-state dashboards on real operating data.',
+    builds: 'Count-the-cost project sheets (Luke 14:28) and know-thy-flocks dashboards (Proverbs 27:23) on the business/property lanes — the competence aim operationalized for every steward the platform serves.',
+    startingPoint: 'the property/business lanes (nas-property-*, rentals, the business systems guard)',
+    reReview: '2026-09-01',
+  },
+];
+
+// =============================================================================
+// THE FINANCIAL HEALING PROTOCOL — Darrell's question, same sitting: "If a man
+// or woman don't want to be in poverty and can see it based on data what can
+// they do biblically-based to end the toxic financial process and get
+// healthy." The Word's own recovery order, step by step — including the
+// prophet-spoken debt-elimination sequence.
+// =============================================================================
+export const FINANCIAL_HEALING_PROTOCOL = {
+  steps: [
+    { ref: 'Luke 15:17', fragment: 'And when he came to himself', note: '1. SEE — THE DATA MOMENT IS THE PRODIGAL’S MOMENT: seeing it in the numbers IS "coming to yourself" — a biblical event, the hinge of the whole parable. The instrument panel exists to trigger exactly this.' },
+    { ref: 'Proverbs 28:13', fragment: 'but whoso confesseth and forsaketh them shall have mercy', note: '2. TURN — CONFESS AND FORSAKE, BOTH: confession without forsaking is the hollow yes; forsaking without confession skips the mercy. The toxic process is named out loud, and stopped.' },
+    { ref: 'Proverbs 3:9', fragment: 'Honour the LORD with thy substance, and with the firstfruits of all thine increase', note: '3. ORDER — FIRSTFRUITS BEFORE ANYTHING: "So shall thy barns be filled with plenty" (Proverbs 3:10; Malachi 3:10) — recovery that starts with Yahweh’s portion reorders every flow beneath it; the Haggai 1:6 leak sealed at the top.' },
+    { ref: '2 Kings 4:2', fragment: 'tell me, what hast thou in the house?', note: '4. INVENTORY AND POUR — THE WIDOW’S PROTOCOL: Elisha’s first question to a debt-crushed widow — recovery starts from an honest inventory of what is actually in hand, however small ("save a pot of oil"), then works it with everything available —' },
+    { ref: '2 Kings 4:7', fragment: 'Go, sell the oil, and pay thy debt, and live thou and thy children of the rest', note: '— then the exact sequence: liquidate what God multiplies, KILL THE DEBT, live on the remainder. The Word’s debt-elimination order, from a prophet’s mouth.' },
+    { ref: 'Proverbs 22:7', fragment: 'and the borrower is servant to the lender', note: '5. KILL THE DEBT MASTER: debt is named SERVITUDE, so paying it off is an emancipation project, not a budgeting chore — "Owe no man any thing, but to love one another" (Romans 13:8) is the target state; surety gets the tonight-clock (Proverbs 6:4-5).' },
+    { ref: 'Proverbs 21:5', fragment: 'The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want', note: '6. PLAN AND GATHER — DILIGENCE OVER HASTE: the plan itself tends to plenty; get-well-quick tends to want. "He that gathereth by labour shall increase" (Proverbs 13:11) — little-by-little compounding, "the hand of the diligent maketh rich" (Proverbs 10:4), the ant’s summer discipline (Proverbs 6:6-8).' },
+    { ref: 'Proverbs 15:22', fragment: 'but in the multitude of counsellors they are established', note: '7. COUNSEL ESTABLISHES IT: the recovery plan gets witnesses, reviewers, and fig-tree dates (Luke 13:8-9).' },
+    { ref: '1 Timothy 6:6', fragment: 'But godliness with contentment is great gain', note: '8. SWAP THE ENGINE — CONTENTMENT KILLS THE DRIVER: the frivolous-spend engine is covetousness, and the Word replaces it rather than restraining it — "be content with such things as ye have: for he hath said, I will never leave thee, nor forsake thee" (Hebrews 13:5): contentment anchored in His presence, not the balance; "my God shall supply all your need" (Philippians 4:19) de-fangs the fear-spending too.' },
+    { ref: 'Proverbs 11:24', fragment: 'There is that scattereth, and yet increaseth', note: '9. STAY LIBERAL — RECOVERY IS NOT HOARDING: "he that withholdeth more than is meet, but it tendeth to poverty. The liberal soul shall be made fat" (Proverbs 11:24-25) — clenched recovery fails; generous recovery compounds.' },
+    { ref: 'Proverbs 30:8', fragment: 'give me neither poverty nor riches; feed me with food convenient for me', note: '10. TARGET SUFFICIENCY, NOT RICHES — Agur’s prayer defines financially HEALTHY: sufficient, debt-free, storehoused, generous, faithful ("Lest I be full, and deny thee... or lest I be poor, and steal," Proverbs 30:9) — prosperity tracking soul-prosperity (3 John 1:2).' },
+  ],
+  oneSentence: 'Come to yourself at the data, confess-and-forsake the process, order firstfruits first, run the widow’s inventory-sell-pay-live sequence on the debt, plan diligently and gather by labour little-by-little under counsel with review dates, swap the engine to contentment, keep the hand liberal — aimed at Agur’s sufficiency, not Babylon’s riches.',
+};
+
+// =============================================================================
+// GENEROSITY IN THE HOUSE — Darrell's question, same sitting: "How does
+// generosity and giving fit into the family financial ways." The keystone,
+// not the leftover: first in the flow by position, running on the
+// scatter-and-increase law, curing the very appetite diagnosed above, scaled
+// honestly in every season, and taught as the children's happiness doctrine.
+// =============================================================================
+export const GENEROSITY_IN_THE_HOUSE = {
+  theKeystone: [
+    { ref: 'Proverbs 3:9', fragment: 'Honour the LORD with thy substance, and with the firstfruits of all thine increase', note: 'GIVING IS FIRST IN THE FLOW, BY POSITION — its position is its meaning: the family’s standing confession that Yahweh owns the whole stream (Deuteronomy 8:18; Malachi 3:10’s prove-Me storehouse), and the seal on the Haggai 1:9 self-first leak. A family economy with giving at the top runs on different physics than one with giving at the bottom.' },
+  ],
+  theParadoxicalLaw: [
+    { ref: 'Luke 6:38', fragment: 'Give, and it shall be given unto you; good measure, pressed down, and shaken together, and running over', note: 'THE LAW THE SPREADSHEET CANNOT SEE — with Proverbs 11:24’s scattereth-yet-increaseth and withholding that "tendeth to poverty".' },
+    { ref: '2 Corinthians 9:6', fragment: 'he which soweth bountifully shall reap also bountifully', note: 'The sowing law stated as law —' },
+    { ref: 'Proverbs 28:27', fragment: 'He that giveth unto the poor shall not lack', note: '— with the no-lack warranty on the poor-directed gift,' },
+    { ref: '2 Corinthians 9:8', fragment: 'always having all sufficiency in all things, may abound to every good work', note: 'and the supply loop explicit: sufficiency is supplied FOR the abounding. The giving line is not an expense; it is the one budget line with a stated yield curve backed by His own word.' },
+  ],
+  theAppetiteCure: [
+    { ref: 'Proverbs 22:9', fragment: 'He that hath a bountiful eye shall be blessed', note: 'THE NEVER-SATISFIED EYE (Proverbs 27:20) HAS A NAMED OPPOSITE — same organ, retrained: overspending feeds the eye and leaves it hungrier; giving CONVERTS it from consumer to conduit, and the heart follows the treasure out the door toward the Kingdom (Matthew 6:21, now working FOR you). Giving belongs IN the healing protocol, not after it — the therapy, not the graduation prize.' },
+    { ref: '2 Corinthians 9:7', fragment: 'not grudgingly, or of necessity: for God loveth a cheerful giver', note: 'The heart mechanics commanded — "thine heart shall not be grieved when thou givest" (Deuteronomy 15:10): grudging giving misses the point AND the blessing attached to the cheerful kind.' },
+  ],
+  scaledHonestly: [
+    { ref: '2 Corinthians 8:12', fragment: 'it is accepted according to that a man hath, and not according to that he hath not', note: 'GIVING IS SCALED, NEVER SWITCHED OFF — the indebted or recovering family runs the widow’s-oil debt protocol WITH firstfruits intact and proportional generosity alive; the liberal hand never closes (Proverbs 11:25), because closing it "tendeth to poverty," the very thing being fought.' },
+    { ref: 'Mark 12:44', fragment: 'but she of her want did cast in all that she had', note: 'The widow’s mites establish that giving was never gated on abundance — and Jesus ranked her gift FIRST.' },
+  ],
+  theChildrensCurriculum: [
+    { ref: 'Acts 20:35', fragment: 'It is more blessed to give than to receive', note: 'THE SON’S OWN HAPPINESS FORMULA — taught at the Deuteronomy 6:7 rhythms as the family’s JOY, not its tax.' },
+    { ref: '1 Timothy 6:19', fragment: 'Laying up in store for themselves a good foundation against the time to come', note: 'Every gift routes to the King’s account ("lendeth unto the LORD," Proverbs 19:17; "ye have done it unto me," Matthew 25:40), is entered in the eternal record (Malachi 3:16), and lays up the family’s good foundation — worship, appetite-therapy, hedge, formation, and eternal deposit in one act.' },
+  ],
+  oneSentence: 'Giving sits first in the family’s flow as the confession of Whose the stream is, runs on the scatter-and-increase law the spreadsheet cannot see, retrains the never-satisfied eye into the bountiful one, scales to what the family hath without ever switching off, and teaches the children the Son’s own blessedness — every gift booked to the King’s account in the record that outlasts the ledger.',
+  // Darrell's sharpening, same sitting: "generous and giving however will not
+  // save or commit to good financial management in deed and actions that turn
+  // into data inside the next month's budget... where we can actually see the
+  // change... not theories." The partial-virtue case, and the Word's own
+  // measurable-trial template.
+  generousButUngoverned: [
+    { ref: 'Matthew 23:23', fragment: 'these ought ye to have done, and not to leave the other undone', note: 'THE RULE: ONE DONE VIRTUE NEVER OFFSETS AN UNDONE ONE — Jesus said it about people faithful in GIVING (tithing to the herb garden) while omitting weightier duties. He does not discount the tithing; He refuses the OFFSET. The generosity is real fruit, honored out loud and never weaponized — AND it cannot be tendered as payment for unmanaged flows (provision precedes, 1 Timothy 5:8).' },
+    { ref: '1 Corinthians 4:2', fragment: 'it is required in stewards, that a man be found faithful', note: 'FOUND — a verification word: faithfulness is something an audit discovers, not something a reputation asserts.' },
+    { ref: 'Matthew 25:19', fragment: 'the lord of those servants cometh, and reckoneth with them', note: 'THE MEASURABLE STANDARD IS THE WORD’S OWN — the talents parable ends in a DATA REVIEW, and the commendation is numeric fruit: "faithful over a few things" (Matthew 25:21). Heaven’s own performance review reads the ledger.' },
+    { ref: 'Proverbs 24:32', fragment: 'Then I saw, and considered it well: I looked upon it, and received instruction', note: 'THE ESTATE TESTIFIES VISIBLY — the slothful man’s field, grown over with thorns (Proverbs 24:30-31), is inspectable data about the management regardless of what the owner says about himself.' },
+    { ref: 'Daniel 1:12', fragment: 'Prove thy servants, I beseech thee, ten days', note: 'THE DANIEL TRIAL — the Word’s own template for "see the change, not theories": a short defined trial, specific behaviors, a hard deadline, an observable endpoint, and the deal-with-us-by-what-you-SEE clause ("Then let our countenances be looked upon... and as thou seest, deal with thy servants," Daniel 1:13) — and the data decided it ("at the end of ten days their countenances appeared fairer," Daniel 1:15).' },
+    { ref: 'Matthew 25:21', fragment: 'thou hast been faithful over a few things, I will make thee ruler over many things', note: 'APPLIED TO NEXT MONTH’S BUDGET: one month, two or three defined behaviors (automated margin untouched, spending inside the agreed liberty allowance, the giving line intact — honoring the real virtue), the actuals reviewed together at a named date (Luke 13:9), judged ways-not-words (Matthew 21:30). Data shows the change → commend it in the talents’ language and EXTEND trust (measured faithfulness biblically earns enlarged authority); data does not → the trial itself produced honest testimony (Proverbs 24:32), the protections hold, the Heart-Turner is petitioned — either way the theory war is over: the month speaks.' },
+  ],
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -747,5 +991,10 @@ export function buildSeeingStudy() {
     doorTheKingKnocksOn: DOOR_THE_KING_KNOCKS_ON,
     longsufferingWithJoyfulness: LONGSUFFERING_WITH_JOYFULNESS,
     familyTreasury: FAMILY_TREASURY,
+    stewardshipAccountability: STEWARDSHIP_ACCOUNTABILITY,
+    guardingTheHouse: GUARDING_THE_HOUSE,
+    platformBuildout: PLATFORM_BUILDOUT,
+    financialHealingProtocol: FINANCIAL_HEALING_PROTOCOL,
+    generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
   };
 }
