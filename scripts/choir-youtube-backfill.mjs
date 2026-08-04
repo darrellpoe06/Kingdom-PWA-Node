@@ -143,26 +143,59 @@ async function fetchUploadDates(ids) {
   }
   return out;
 }
-const undatedByTitle = rows.filter((r) => !r.serviceDate);
-if (API_KEY && undatedByTitle.length) {
-  try {
-    const dates = await fetchUploadDates(undatedByTitle.map((r) => r.videoId));
-    let filled = 0;
-    for (const r of undatedByTitle) {
-      const date = dates.get(r.videoId);
-      if (!date) continue;
-      r.serviceDate = date;
-      r.dateSource = 'upload';
-      // Weekday is known now — re-classify with the same one rule the app uses.
-      r.serviceType = classifyServiceType(r.rawTitle, date) || r.serviceType;
-      filled += 1;
-    }
-    console.log(`Upload-date fallback: dated ${filled} of ${undatedByTitle.length} title-dateless videos from YouTube's own stream/publish times.`);
-  } catch (e) {
-    console.error(`WARNING: upload-date fallback failed (${e.message}). Title-dated rows still flow; the undated remainder stays NAMED undated.`);
+// KEYLESS fallback — yt-dlp reads each watch page's own release/upload stamp
+// (a stream's release_timestamp IS the service start). No API, no key, no
+// human step (DR-0108: a "needs the key fixed first" wait is a challengeable
+// premise — the tool already in this lane can source the same truth). One
+// invocation, page-per-video, so a big backlog takes minutes, not quota.
+// --ignore-errors: a private/members-only item skips loudly, never kills the
+// sweep — so the spawn is accepted even on a non-zero exit if it printed rows.
+function fetchUploadDatesYtdlp(ids) {
+  const args = ['--skip-download', '--no-warnings', '--ignore-errors',
+    '--print', '%(id)s\t%(release_timestamp,upload_date)s',
+    ...ids.map((id) => `https://www.youtube.com/watch?v=${id}`)];
+  let stdout = '';
+  for (const cmd of [['yt-dlp', args], ['python', ['-m', 'yt_dlp', ...args]]]) {
+    const r = spawnSync(cmd[0], cmd[1], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    stdout = r.stdout || '';
+    if (r.status === 0 || stdout.trim()) break;
   }
-} else if (undatedByTitle.length) {
-  console.error(`NOTE: ${undatedByTitle.length} videos have no title date and YOUTUBE_API_KEY is not set — their upload-date fallback is skipped this run.`);
+  const out = new Map();
+  for (const line of stdout.split('\n')) {
+    const [id, stamp] = line.trim().split('\t');
+    if (!id || !stamp || stamp === 'NA') continue;
+    // release_timestamp = epoch seconds; upload_date = YYYYMMDD (date-only).
+    const date = /^\d{8}$/.test(stamp)
+      ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`
+      : easternDate(Number(stamp) * 1000);
+    if (date) out.set(id, date);
+  }
+  return out;
+}
+
+const undatedByTitle = rows.filter((r) => !r.serviceDate);
+if (undatedByTitle.length) {
+  let dates = new Map();
+  if (API_KEY) {
+    try {
+      dates = await fetchUploadDates(undatedByTitle.map((r) => r.videoId));
+    } catch (e) {
+      console.error(`WARNING: API upload-date fallback failed (${e.message}). Falling back to yt-dlp page metadata (keyless).`);
+    }
+  }
+  if (!dates.size) dates = fetchUploadDatesYtdlp(undatedByTitle.map((r) => r.videoId));
+  let filled = 0;
+  for (const r of undatedByTitle) {
+    const date = dates.get(r.videoId);
+    if (!date) continue;
+    r.serviceDate = date;
+    r.dateSource = 'upload';
+    // Weekday is known now — re-classify with the same one rule the app uses.
+    r.serviceType = classifyServiceType(r.rawTitle, date) || r.serviceType;
+    filled += 1;
+  }
+  if (filled) console.log(`Upload-date fallback: dated ${filled} of ${undatedByTitle.length} title-dateless videos from YouTube's own stream/publish times.`);
+  else console.error(`WARNING: upload-date fallback dated 0 of ${undatedByTitle.length} — the remainder stays NAMED undated (never painted).`);
 }
 
 const withDate = rows.filter((r) => r.serviceDate);
