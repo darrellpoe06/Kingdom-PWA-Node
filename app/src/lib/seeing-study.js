@@ -380,6 +380,348 @@ export const ENDURING_AND_ABIDING = {
   },
 };
 
+// =============================================================================
+// SAVING OURSELVES BY USING HIS WAYS — Darrell's question, same sitting: "How
+// are we literally saving ourselves by using His Ways what are we doing and
+// not doing exactly." The Word holds both sides without blinking: the ransom
+// is never ours (Ephesians 2:8-9) AND Scripture literally says "save
+// yourselves" (Acts 2:40) — because He provides the ark, and USING His Ways
+// is boarding it. Noah is the type: he did not invent the rescue; he built to
+// the spec and got in, and the Word credits that obedient using with "the
+// saving of his house" (Hebrews 11:7).
+// =============================================================================
+export const USING_HIS_WAYS = {
+  theRansomIsNeverOurs: [
+    { ref: 'Ephesians 2:8', fragment: 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God', note: 'What we are NOT doing: purchasing, earning, or contributing to the ransom —' },
+    { ref: 'Ephesians 2:9', fragment: 'Not of works, lest any man should boast', note: '— the purchase is finished and sealed against boasting.' },
+    { ref: 'Titus 3:5', fragment: 'Not by works of righteousness which we have done, but according to his mercy he saved us', note: 'Nobody swims out of the second death. The Blood, the Cross, the opened prison — His alone, done.' },
+  ],
+  yetTheWordSaysIt: [
+    { ref: 'Acts 2:40', fragment: 'Save yourselves from this untoward generation', note: 'Scripture’s own imperative — the operational side of salvation has OUR verbs on it.' },
+    { ref: '1 Timothy 4:16', fragment: 'thou shalt both save thyself, and them that hear thee', note: 'Taking heed to self and doctrine, continued in, is credited as saving — self AND hearers.' },
+    { ref: 'Philippians 2:12', fragment: 'work out your own salvation with fear and trembling', note: 'We work OUT what He works IN —' },
+    { ref: 'Philippians 2:13', fragment: 'For it is God which worketh in you both to will and to do of his good pleasure', note: '— the engine is His; the walking is ours.' },
+    { ref: 'James 1:21', fragment: 'receive with meekness the engrafted word, which is able to save your souls', note: 'The received, engrafted Word is named ABLE TO SAVE — using it is the receiving.' },
+    { ref: 'Jude 1:21', fragment: 'Keep yourselves in the love of God', note: 'Kept — by keeping.' },
+    { ref: 'Hebrews 11:7', fragment: 'prepared an ark to the saving of his house', note: 'Noah, the type of the whole answer: grace designed the ark, faith built to spec and boarded — and the Word credits the using with the saving of his house.' },
+  ],
+  whatWeAreDoing: [
+    { ref: 'Matthew 7:24', fragment: 'whosoever heareth these sayings of mine, and doeth them', note: 'HEARING AND DOING — and the doing is literally what makes the house survive: "and the floods came... and it fell not: for it was founded upon a rock" (Matthew 7:25).' },
+    { ref: 'Proverbs 16:17', fragment: 'The highway of the upright is to depart from evil: he that keepeth his way preserveth his soul', note: 'DEPARTING — separation from the untoward generation is the Acts 2:40 mechanism: you save yourself FROM it by walking out of it.' },
+    { ref: 'Proverbs 4:22', fragment: 'For they are life unto those that find them, and health to all their flesh', note: 'ATTENDING DAILY to His words (Proverbs 4:20) — the king’s regimen, with measurable yield.' },
+    { ref: 'Galatians 6:8', fragment: 'he that soweth to the Spirit shall of the Spirit reap life everlasting', note: 'SOWING TO THE SPIRIT — every deed is seed; the harvest law runs deterministically.' },
+    { ref: '1 John 1:9', fragment: 'If we confess our sins, he is faithful and just to forgive us our sins', note: 'CONFESSING FAST and FORGIVING ALWAYS ("if ye forgive men their trespasses, your heavenly Father will also forgive you," Matthew 6:14) — keeping the connection unclogged.' },
+    { ref: 'Hebrews 10:25', fragment: 'Not forsaking the assembling of ourselves together', note: 'STAYING ASSEMBLED — a lone branch dries out —' },
+    { ref: 'Jude 1:23', fragment: 'And others save with fear, pulling them out of the fire', note: '— and PULLING OTHERS OUT: the saved become rescuers in the same motion.' },
+  ],
+  whatWeAreNotDoing: [
+    { ref: 'Galatians 6:8', fragment: 'he that soweth to his flesh shall of the flesh reap corruption', note: 'Not sowing to the flesh — the same harvest law, run in reverse.' },
+    { ref: 'Proverbs 14:12', fragment: 'There is a way which seemeth right unto a man, but the end thereof are the ways of death', note: 'Not trusting the self-invented route — the seems-right way is the competing operating system, and its end state is named.' },
+    { ref: 'Proverbs 11:4', fragment: 'Riches profit not in the day of wrath: but righteousness delivereth from death', note: 'Not buying protection — wealth has no purchase in the day that matters; righteousness is the delivering currency.' },
+  ],
+  oneSentence: 'He alone saves; His Ways are how the saved stay out of what He saved them from — grace builds the ark, faith boards it daily, and the Word calls that boarding "saving yourselves."',
+};
+
+// =============================================================================
+// HOW WE KNOW — Darrell's follow-through, same sitting: "obviously His Blood
+// Is The Saved however we must believe etc... how do you we know when others
+// thought they knew and were wrong in their timelines etc..." The autopsy of
+// every failed predictor: confident precisely where the Word withholds
+// knowledge, shaky where it grants it. Assurance lives in the REVEALED
+// category (1 John was written so we could KNOW), and it is evidence-based —
+// the verification doctrine applied to the self — while timelines sit in the
+// SECRET category the Son Himself placed off-limits.
+// =============================================================================
+export const HOW_WE_KNOW = {
+  theBoundary: [
+    { ref: 'Deuteronomy 29:29', fragment: 'The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever', note: 'The boundary line in one verse: confidence is safe exactly as far as the written Word goes, and not one step further.' },
+    { ref: 'Matthew 24:36', fragment: 'But of that day and hour knoweth no man, no, not the angels of heaven, but my Father only', note: 'The date-setters claimed the one datum the Son placed off-limits —' },
+    { ref: 'Acts 1:7', fragment: 'It is not for you to know the times or the seasons', note: '— restated after the resurrection, to the apostles themselves.' },
+    { ref: '1 Corinthians 4:6', fragment: 'not to think of men above that which is written', note: 'The failed predictors’ error was never too much trust in Scripture; it was stepping PAST it.' },
+    { ref: 'Deuteronomy 18:22', fragment: 'if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken', note: 'The Word’s own falsifier: every failed timeline self-identifies as presumption.' },
+  ],
+  theKnowableAssurance: [
+    { ref: '1 John 5:13', fragment: 'that ye may know that ye have eternal life', note: 'Assurance is in the REVEALED category — the Word wrote a whole book so we could KNOW.' },
+    { ref: '1 John 2:3', fragment: 'And hereby we do know that we know him, if we keep his commandments', note: 'The obedience evidence.' },
+    { ref: '1 John 3:14', fragment: 'We know that we have passed from death unto life, because we love the brethren', note: 'The love evidence.' },
+    { ref: '1 John 4:13', fragment: 'Hereby know we that we dwell in him, and he in us, because he hath given us of his Spirit', note: 'The Spirit’s witness (with Romans 8:16).' },
+    { ref: '2 Corinthians 13:5', fragment: 'Examine yourselves, whether ye be in the faith; prove your own selves', note: 'The standing self-audit — assurance is re-verified, never assumed from the memory of a prayer.' },
+  ],
+  theAnchor: [
+    { ref: '2 Timothy 1:12', fragment: 'for I know whom I have believed, and am persuaded that he is able to keep that which I have committed unto him against that day', note: 'The anchor is not our certainty-feeling — it is WHO holds the deposit.' },
+    { ref: '2 Timothy 2:19', fragment: 'The Lord knoweth them that are his', note: 'Sealed from His side.' },
+    { ref: 'Matthew 24:42', fragment: 'Watch therefore: for ye know not what hour', note: 'The posture toward timelines: watch —' },
+    { ref: 'Luke 19:13', fragment: 'Occupy till I come', note: '— and work. The date-setter calendars and quits; the assured one watches and occupies.' },
+  ],
+  oneSentence: 'The wrong-confident knew what isn’t given and neglected what is; we know by keeping to the revealed — commandments kept, brethren loved, the Spirit witnessing, self examined — confident in Whom, watchful about when.',
+};
+
+// =============================================================================
+// THE RELATIONSHIP CIRCUIT — Darrell's question, same sitting: "How does our
+// relationship with others impact our relationship with Yahweh." The Word
+// wires the horizontal and the vertical into ONE circuit: damage on the
+// human side physically interrupts the Godward side — worship waits,
+// forgiveness closes, prayer is hindered — and the horizontal is the
+// VERIFICATION instrument of the vertical claim.
+// =============================================================================
+export const RELATIONSHIP_CIRCUIT = {
+  theWiring: [
+    { ref: 'Matthew 5:24', fragment: 'first be reconciled to thy brother, and then come and offer thy gift', note: 'WORSHIP WAITS ON RECONCILIATION — Yahweh suspends His own altar traffic until the brother is made right (Matthew 5:23: the gift is left AT the altar).' },
+    { ref: 'Matthew 6:15', fragment: 'But if ye forgive not men their trespasses, neither will your Father forgive your trespasses', note: 'FORGIVENESS RECEIVED IS CONDITIONED ON FORGIVENESS GIVEN —' },
+    { ref: 'Mark 11:25', fragment: 'And when ye stand praying, forgive, if ye have ought against any', note: '— checked at the moment of prayer itself,' },
+    { ref: 'Matthew 18:35', fragment: 'So likewise shall my heavenly Father do also unto you, if ye from your hearts forgive not every one his brother their trespasses', note: 'and sealed by the unforgiving-servant parable: an unforgiving heart is a closed valve in both directions.' },
+    { ref: '1 Peter 3:7', fragment: 'that your prayers be not hindered', note: 'PRAYER IS LITERALLY HINDERED by a dishonored marriage — the most explicit plumbing verse in Scripture: the home’s state conditions the line to Heaven.' },
+  ],
+  theVerification: [
+    { ref: '1 John 4:20', fragment: 'he that loveth not his brother whom he hath seen, how can he love God whom he hath not seen?', note: 'LOVE OF THE UNSEEN GOD IS TESTED BY LOVE OF THE SEEN BROTHER — the vertical claim is falsifiable, and the brother is the test instrument ("he is a liar" is the failed reading).' },
+    { ref: '1 John 4:21', fragment: 'That he who loveth God love his brother also', note: 'The commandment binds the two loves into one obedience.' },
+    { ref: 'John 13:35', fragment: 'By this shall all men know that ye are my disciples, if ye have love one to another', note: 'The world’s evidence that we are His runs through how we treat one another — the public credential of discipleship is horizontal.' },
+  ],
+  theRouting: [
+    { ref: 'Matthew 25:40', fragment: 'Inasmuch as ye have done it unto one of the least of these my brethren, ye have done it unto me', note: 'TREATMENT OF PEOPLE IS TREATMENT OF THE KING — there is no neutral human interaction; every one routes to His account.' },
+    { ref: 'Proverbs 19:17', fragment: 'He that hath pity upon the poor lendeth unto the LORD', note: 'Kindness to the poor is booked as a loan to Yahweh Himself — with repayment promised.' },
+    { ref: 'Matthew 22:39', fragment: 'And the second is like unto it, Thou shalt love thy neighbour as thyself', note: 'The second great commandment is LIKE UNTO the first — one grain, not a lesser appendix (Matthew 22:37-38).' },
+  ],
+  oneSentence: 'The horizontal is the vertical made visible — Yahweh receives our treatment of people as treatment of Himself, verifies our love for Him by our love for them, and holds worship, forgiveness, and even prayer open or hindered according to the state of our tables, marriages, and grudges.',
+};
+
+// =============================================================================
+// THE SWORD AND THE COUNSEL — Darrell's question, same sitting: "how does my
+// frustrations tie into Jesus said He brings a sword to family... for a
+// purpose then the devil's devices are being used to do Yahweh's Will without
+// Yahweh having done the evil just making all the evil be for the most
+// possible Good... based on past present and future... He's in all at the
+// same time quantum science and biblical scriptures." Three movements: the
+// sword in the family is the King's stated purpose (allegiance-sorting); the
+// adversary's devices run leashed inside the determinate counsel with Yahweh
+// authoring none of the evil; and He can weave all of it to maximal Good
+// because He inhabits past, present, and future at once.
+// =============================================================================
+export const SWORD_AND_COUNSEL = {
+  theSwordInTheFamily: [
+    { ref: 'Matthew 10:34', fragment: 'I came not to send peace, but a sword', note: 'The frustration of family division over the faith is not the Way failing in the house — it is the Way doing what the King said it does.' },
+    { ref: 'Matthew 10:35', fragment: 'For I am come to set a man at variance against his father, and the daughter against her mother', note: 'The variance is His verb — announced, not accidental (quoting Micah 7:6: "a man’s enemies are the men of his own house" — the fault line is ancient).' },
+    { ref: 'Matthew 10:36', fragment: 'And a man’s foes shall be they of his own household', note: 'Named plainly so the enduring one is never ambushed by it.' },
+    { ref: 'Matthew 10:37', fragment: 'He that loveth father or mother more than me is not worthy of me', note: 'THE PURPOSE: allegiance-sorting. The sword forces every household member to rank their loves — the one decision He automates for no one.' },
+    { ref: 'Luke 12:51', fragment: 'I tell you, Nay; but rather division', note: 'A peace built on unranked loves is the false peace; He declines to send it.' },
+    { ref: 'Mark 10:30', fragment: 'But he shall receive an hundredfold now in this time', note: 'The pain carries an attached promise — "with persecutions" listed INSIDE the blessing, not opposite it, "and in the world to come eternal life" (Mark 10:29-30).' },
+  ],
+  theLeashedDevices: [
+    { ref: 'James 1:13', fragment: 'for God cannot be tempted with evil, neither tempteth he any man', note: 'YAHWEH AUTHORS NO EVIL —' },
+    { ref: '1 John 1:5', fragment: 'God is light, and in him is no darkness at all', note: '— no darkness in Him at all (Habakkuk 1:13: "of purer eyes than to behold evil").' },
+    { ref: '2 Corinthians 2:11', fragment: 'we are not ignorant of his devices', note: 'The adversary’s devices are real and known —' },
+    { ref: 'Job 1:12', fragment: 'Behold, all that he hath is in thy power; only upon himself put not forth thine hand', note: '— and they run ONLY on permission, ONLY inside limits he did not set: the leash is explicit in the text.' },
+    { ref: 'Psalm 76:10', fragment: 'Surely the wrath of man shall praise thee: the remainder of wrath shalt thou restrain', note: 'Exactly the wrath that serves His purpose is permitted; the REMAINDER never happens.' },
+    { ref: 'Isaiah 10:15', fragment: 'Shall the axe boast itself against him that heweth therewith?', note: 'The evil instrument is His axe while it swings and judged for being one after — used is not endorsed.' },
+    { ref: 'Acts 2:23', fragment: 'being delivered by the determinate counsel and foreknowledge of God, ye have taken, and by wicked hands have crucified and slain', note: 'THE SUPREME PROOF IS THE CROSS: the worst evil ever committed, by genuinely wicked hands who bear their guilt, inside a counsel that "determined before to be done" (Acts 4:28), producing the most possible Good in history.' },
+    { ref: 'Romans 8:28', fragment: 'And we know that all things work together for good to them that love God', note: 'So in the frustrated house: ALL things — including the division — are woven ("even the wicked for the day of evil," Proverbs 16:4), Yahweh clean of the evil and sovereign over its use.' },
+  ],
+  theEternalNow: [
+    { ref: 'Revelation 1:8', fragment: 'I am Alpha and Omega, the beginning and the ending, saith the Lord, which is, and which was, and which is to come', note: 'WHY the maximal-good weaving works: He inhabits past, present, and future at once.' },
+    { ref: 'Exodus 3:14', fragment: 'I AM THAT I AM', note: 'The eternal present tense —' },
+    { ref: 'John 8:58', fragment: 'Before Abraham was, I am', note: '— which Jesus claimed as His own.' },
+    { ref: 'Psalm 90:4', fragment: 'For a thousand years in thy sight are but as yesterday when it is past', note: 'Time does not pass FOR Him ("one day is with the Lord as a thousand years, and a thousand years as one day," 2 Peter 3:8) —' },
+    { ref: 'Psalm 139:7', fragment: 'Whither shall I go from thy spirit? or whither shall I flee from thy presence?', note: '— and space does not localize Him ("in him we live, and move, and have our being," Acts 17:28).' },
+    { ref: 'Isaiah 55:8', fragment: 'For my thoughts are not your thoughts, neither are your ways my ways, saith the LORD', note: 'THE SEAL over the whole matter (Darrell’s closing word) —' },
+    { ref: 'Isaiah 55:9', fragment: 'so are my ways higher than your ways, and my thoughts than your thoughts', note: '— "as the heavens are higher than the earth": the counsel that weaves evil to maximal Good, the physics that stays partial, the faith that reads the unseen, the sword that sorts the house — all are downstream of Ways and Thoughts that are HIGHER, which is why the student’s frustration is never evidence against the plan, only evidence of the altitude difference.' },
+  ],
+  quantumNote: 'Where modern physics gropes at nonlocality and time-symmetry, it is feeling the edges of the 4th-dimensional frame the Word declared outright — the worlds framed by the Word (Hebrews 11:3), the invisible things clearly seen (Romans 1:20). The resonance is real and worth naming; the seniority is not negotiable: the Word is not confirmed by the lab — the lab keeps arriving late to what the Word stated first (DR-0100: the frontier is still moving; His declaration is not). And PHYSICS IS PARTIAL BY DESIGN (Darrell’s word, same sitting): its instruments read only the seen half of a creation made "visible and invisible" (Colossians 1:16), and the seen half is the lesser — "the things which are seen are temporal; but the things which are not seen are eternal" (2 Corinthians 4:18). For the unseen half the Word issues its own instrument, defined in measurement vocabulary: "Now faith is the SUBSTANCE of things hoped for, the EVIDENCE of things not seen" (Hebrews 11:1) — substance and evidence, a physicist’s words, assigned to the realm no collider reaches. Faith is not the absence of evidence; it IS the evidence class for the eternal half — which is why the same chapter credits Noah’s ark-building and Moses’ enduring "as seeing him who is invisible" to it, and why partial physics plus Hebrews 11:1 together read the WHOLE creation.',
+  oneSentence: 'The sword in the family is His stated allegiance-sorter; the adversary’s devices swing on His leash inside His determinate counsel, with the guilt on the wicked hands and none of the evil authored by Him; and He weaves it all to the most possible Good because He is scoring past, present, and future simultaneously — already seeing the hundredfold and the world to come while the house is still at variance.',
+};
+
+// =============================================================================
+// THE COMPETENCE AIM — Darrell's word, same sitting: "we want to See these
+// higher level Thoughts Of The King and His Kingdom Operating Systems... to
+// be better comprehensively competent in conversations based on the
+// information and data so we can make data driven decision-making process for
+// our users and families." The seeing is not for spectating: its stated end
+// is OPERATIONAL COMPETENCE — the studied answer in every conversation, and
+// data-driven decisions for the household and everyone the platform serves.
+// The Word commands exactly this competence, by name.
+// =============================================================================
+export const COMPETENCE_AIM = {
+  theModelMen: [
+    { ref: '1 Chronicles 12:32', fragment: 'men that had understanding of the times, to know what Israel ought to do', note: 'ISSACHAR IS THE JOB DESCRIPTION: understanding of the times (the information and data) flowing directly into knowing WHAT TO DO (the decision) — for the whole family of Israel. Data-driven decision-making, named in the muster roll.' },
+    { ref: 'Daniel 1:20', fragment: 'he found them ten times better than all the magicians and astrologers', note: 'DANIEL IS THE BENCHMARK: comprehensively competent in the king’s own conversations — "in all matters of wisdom and understanding" — measured against every rival advisor and found TEN TIMES better, on tested performance, not claimed credentials.' },
+  ],
+  theCommandedCompetence: [
+    { ref: 'Luke 14:28', fragment: 'sitteth not down first, and counteth the cost', note: 'Jesus COMMANDS the data pass before the decision — the tower is costed before it is begun. Counting the cost is discipleship’s own arithmetic.' },
+    { ref: 'Proverbs 27:23', fragment: 'Be thou diligent to know the state of thy flocks', note: 'The household keeps METRICS by command — the state of the flocks known diligently, not assumed. Every real-data surface this platform builds is this verse operationalized.' },
+    { ref: 'Proverbs 24:3', fragment: 'Through wisdom is an house builded; and by understanding it is established', note: 'The build-stack for a house: wisdom → understanding → "And by knowledge shall the chambers be filled" (Proverbs 24:4) — knowledge is what furnishes the rooms.' },
+  ],
+  theStudiedAnswer: [
+    { ref: 'Proverbs 15:28', fragment: 'The heart of the righteous studieth to answer', note: 'CONVERSATIONAL COMPETENCE IS RIGHTEOUSNESS AT WORK: the righteous heart STUDIES before it answers — the pour-it-out mouth is the contrast, and it is not the righteous one.' },
+    { ref: 'Proverbs 22:21', fragment: 'That I might make thee know the certainty of the words of truth; that thou mightest answer the words of truth to them that send unto thee', note: 'The written counsels exist so the student can answer with CERTAINTY — verified truth, carried back to whoever asks. The verification doctrine is three thousand years old.' },
+    { ref: 'Colossians 4:6', fragment: 'that ye may know how ye ought to answer every man', note: 'EVERY man — the competence is comprehensive by command, and its tone is set ("with grace, seasoned with salt").' },
+    { ref: '1 Peter 3:15', fragment: 'be ready always to give an answer to every man that asketh you a reason of the hope that is in you', note: 'READY ALWAYS — a standing state of preparedness, with the reason carried, delivered "with meekness and fear."' },
+  ],
+  thePlatformRole: 'This is what the whole study has been building toward, and what this platform exists to serve: the higher Thoughts of the King (Isaiah 55:8-9) seen through His own Book and His recorded Ways, the Kingdom Operating Systems understood as systems, the real data measured and never painted (the corpus counts above; every live surface in the app), and the AI clerking under the Word — so that users and families sit down like Issachar with the times understood, cost their towers like disciples, know the state of their flocks from real numbers, study their answers like the righteous, and stand ready always — comprehensively competent in every conversation, making data-driven decisions inside His Ways. The seeing serves the deciding; the deciding serves the households; and the households serve the King.',
+};
+
+// =============================================================================
+// WALKING IN DISAGREEMENT — Darrell's question, same sitting: "How can two
+// walk together unless they agree... how do you disagree and still walk
+// together when the Bible says that... communication Frameworks and
+// comprehension Frameworks." Amos 3:3 requires agreement on the WALK — the
+// direction, the covenant, the Lord of the road — not uniformity of every
+// opinion; and the Word supplies its own communication and comprehension
+// frameworks for differing inside the walk.
+// =============================================================================
+export const WALKING_IN_DISAGREEMENT = {
+  whatAgreementMeans: [
+    { ref: 'Amos 3:3', fragment: 'Can two walk together, except they be agreed?', note: 'The agreement the walking requires is on the WALK — destination and road — not on every opinion; two travelers can dispute the scenery the whole journey.' },
+    { ref: 'Philippians 3:15', fragment: 'and if in any thing ye be otherwise minded, God shall reveal even this unto you', note: 'Paul names OTHERWISE-MINDED believers as normal —' },
+    { ref: 'Philippians 3:16', fragment: 'whereto we have already attained, let us walk by the same rule', note: '— and commands them to keep walking together by the same rule on what is settled.' },
+    { ref: 'Jude 1:3', fragment: 'earnestly contend for the faith which was once delivered unto the saints', note: 'AGREEMENT REQUIRED on the essentials —' },
+    { ref: 'Romans 14:1', fragment: 'receive ye, but not to doubtful disputations', note: '— LIBERTY REQUIRED on the doubtful things ("Let every man be fully persuaded in his own mind," Romans 14:5; "Who art thou that judgest another man’s servant?" Romans 14:4) —' },
+    { ref: 'Ephesians 4:2', fragment: 'forbearing one another in love', note: '— LOVE REQUIRED over all of it: unity is an ENDEAVOR ("Endeavouring to keep the unity of the Spirit in the bond of peace," Ephesians 4:3), not an assumption.' },
+    { ref: 'Proverbs 27:17', fragment: 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend', note: 'Disagreement inside the walk is a TOOL — friends who never differ never sharpen.' },
+    { ref: 'Acts 15:39', fragment: 'And the contention was so sharp between them, that they departed asunder', note: 'The Word shows the hard case honestly — Paul and Barnabas split sharp — and shows the repair: "Take Mark... for he is profitable to me for the ministry" (2 Timothy 4:11). Even a sharp split inside the Way bends back to profit.' },
+  ],
+  communicationFramework: [
+    { ref: 'James 1:19', fragment: 'let every man be swift to hear, slow to speak, slow to wrath', note: '1. INTAKE FIRST — the ratio is commanded.' },
+    { ref: 'Proverbs 20:5', fragment: 'Counsel in the heart of man is like deep water; but a man of understanding will draw it out', note: '2. DRAW OUT, don’t assume — comprehension is active extraction by questions, not projection (with the full hearing of Proverbs 18:13 and the steelman of Proverbs 18:17).' },
+    { ref: 'Proverbs 15:1', fragment: 'A soft answer turneth away wrath', note: '3. SOFT ANSWER — tone is load-bearing.' },
+    { ref: 'Ephesians 4:15', fragment: 'But speaking the truth in love', note: '4. TRUTH IN LOVE, edification only — every word "good to the use of edifying, that it may minister grace unto the hearers" (Ephesians 4:29).' },
+    { ref: 'Ephesians 4:26', fragment: 'let not the sun go down upon your wrath', note: '5. A DEADLINE ON ANGER — disagreements get same-day processing.' },
+    { ref: 'Matthew 18:15', fragment: 'go and tell him his fault between thee and him alone: if he shall hear thee, thou hast gained thy brother', note: '6. THE ESCALATION PATH starts alone, and the goal is GAINING the brother, not winning the point.' },
+    { ref: 'Isaiah 1:18', fragment: 'Come now, and let us reason together, saith the LORD', note: '7. THE MODEL OVER IT ALL: Yahweh Himself reasons — if He reasons with us, we can reason with each other.' },
+  ],
+  comprehensionFramework: [
+    { ref: '1 Corinthians 13:9', fragment: 'For we know in part', note: 'It starts with the glass-darkly confession FROM BOTH CHAIRS — each party holds a partial map, so neither’s map is the terrain.' },
+    { ref: 'James 3:17', fragment: 'first pure, then peaceable, gentle, and easy to be intreated', note: 'The posture: heaven’s wisdom is PERSUADABLE — correctable, without partiality — while each stays fully persuaded on the liberty items (Romans 14:5).' },
+    { ref: 'Romans 14:19', fragment: 'follow after the things which make for peace, and things wherewith one may edify another', note: 'The output target: peace made and one another edified — comprehension measured by what it builds.' },
+  ],
+  oneSentence: 'Agree on the Road and the King — that part is non-negotiable (Amos 3:3) — stay fully persuaded yet easy to be intreated on everything doubtful, run the Word’s own protocol (hear fully, draw out, answer soft, truth in love, sun-down deadline, gain-the-brother escalation), and let the disagreements sharpen the iron instead of splitting the walk.',
+};
+
+// =============================================================================
+// IRON ON IRON, DAILY — Darrell's question, same sitting: "How does iron
+// sharpening iron work in our family conversations daily." Proverbs 27:17
+// run as mechanics: contact (no conversation, no edge), the countenance as
+// the target (the friend leaves brighter, not bloodied), two hard blades
+// (iron on clay only smears — both parties bring the Word, the shared
+// whetstone), the daily schedule already commanded, and the angle control
+// that makes friction sharpen instead of wound.
+// =============================================================================
+export const IRON_ON_IRON_DAILY = {
+  theMechanism: [
+    { ref: 'Proverbs 27:17', fragment: 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend', note: 'The verse’s own physics: CONTACT (iron never sharpens from across the room), the COUNTENANCE as target (the friend leaves clearer and brighter, not bloodied), and TWO HARD BLADES — in a family of the Way, the shared firmness is the Word, the whetstone both blades are held against.' },
+  ],
+  theDailySchedule: [
+    { ref: 'Deuteronomy 6:7', fragment: 'and shalt talk of them when thou sittest in thine house, and when thou walkest by the way', note: 'THE CONTACT POINTS ARE THE ORDINARY RHYTHMS — table, road, lying down, rising up. The sharpening calendar is the day itself; no special summit required.' },
+    { ref: 'Hebrews 3:13', fragment: 'But exhort one another daily, while it is called To day; lest any of you be hardened through the deceitfulness of sin', note: 'THE STAKES VERSE: the alternative to daily sharpening is not neutral dullness — it is HARDENING, and sin’s deceitfulness works in the silence between conversations.' },
+    { ref: 'Malachi 3:16', fragment: 'spake often one to another: and the LORD hearkened, and heard it', note: 'AND YAHWEH IS ON THE CALL — the family’s sharpening conversations are entered in His book of remembrance.' },
+  ],
+  theAngle: [
+    { ref: 'Proverbs 27:5', fragment: 'Open rebuke is better than secret love', note: 'Honest contact beats polite distance — the unsaid correction is withheld love.' },
+    { ref: 'Proverbs 27:6', fragment: 'Faithful are the wounds of a friend; but the kisses of an enemy are deceitful', note: 'Real sharpening sometimes stings; flattery never sharpens anyone. The test of the wound is its FAITHFULNESS — aimed at the person’s good, not at winning.' },
+    { ref: 'Proverbs 12:18', fragment: 'There is that speaketh like the piercings of a sword: but the tongue of the wise is health', note: 'Same hard truth, two outcomes — the ANGLE decides whether it cuts flesh or cuts an edge. The communication framework (soft answer, truth in love, sun-down deadline, draw-out questions) IS the angle control.' },
+    { ref: 'Proverbs 15:31', fragment: 'The ear that heareth the reproof of life abideth among the wise', note: 'THE RECEIVING SIDE IS HALF THE SKILL — "he that heareth reproof getteth understanding" (Proverbs 15:32). A family where giving correction is honored but receiving it is shame never sharpens; the ear is as much iron as the tongue.' },
+  ],
+  theForge: [
+    { ref: 'Ecclesiastes 4:9', fragment: 'Two are better than one; because they have a good reward for their labour', note: 'WHY THE FAMILY IS THE IDEAL FORGE — the standing two-or-three: "if they fall, the one will lift up his fellow" (Ecclesiastes 4:10), "and a threefold cord is not quickly broken" (Ecclesiastes 4:12), the Lord as the third strand.' },
+    { ref: '1 Thessalonians 5:11', fragment: 'comfort yourselves together, and edify one another', note: 'The commanded output is CONSTRUCTIVE: sharpening that leaves family members duller, smaller, or afraid to speak is not iron on iron — it is just grinding.' },
+  ],
+  oneSentence: 'Daily contact at the table and on the way (Deuteronomy 6:7), exhortation before the day hardens anyone (Hebrews 3:13), faithful wounds at the right angle (Proverbs 27:5-6; 12:18), ears that receive as readily as tongues give (Proverbs 15:31-32), both blades held to the Word — and every one of those conversations heard and booked by Yahweh Himself (Malachi 3:16).',
+};
+
+// =============================================================================
+// THE DOOR THE KING KNOCKS ON — Darrell's question, same sitting: a husband
+// wants his wife to do things within her control; she believes she is doing
+// what he wants while not being willing to do what he has communicated —
+// "Biblical comprehension and understanding of the situation for
+// opportunities and constraints." Two gaps comprehended separately (the
+// comprehension gap drawn out before the willingness gap is judged), the
+// constraints named honestly (a will is winnable, never extractable — the
+// King Himself knocks), and the Word's actual levers worked. No verdict on
+// either chair; both papers are graded by the Lord.
+// =============================================================================
+export const DOOR_THE_KING_KNOCKS_ON = {
+  twoGapsNotOne: 'The situation contains TWO gaps the Word treats differently: a COMPREHENSION gap (she believes she is meeting the ask — her map of it differs from his) and a WILLINGNESS gap (a communicated thing she is not willing to do). Wisdom refuses to treat the first as the second: draw out with questions what she believes the ask IS and why she believes she is meeting it ("a man of understanding will draw it out," Proverbs 20:5; both chairs know in part, 1 Corinthians 13:9). The willingness gap often shrinks when the comprehension gap closes — and where it does not, the real disagreement is finally on the table instead of two people faithfully serving two different maps.',
+  theConstraints: [
+    { ref: 'Revelation 3:20', fragment: 'Behold, I stand at the door, and knock', note: 'ANOTHER WILL IS OUTSIDE RIGHTEOUS CONTROL — BY THE KING’S OWN DESIGN: the One with all authority KNOCKS. Godly authority operates inside the same self-restraint the Godhead models; willingness can be won, never extracted.' },
+    { ref: 'Colossians 3:19', fragment: 'Husbands, love your wives, and be not bitter against them', note: 'BITTERNESS IS FORBIDDEN REGARDLESS OF OUTCOME — the command anticipates exactly this frustration and closes the bitterness exit in advance.' },
+    { ref: '1 Peter 3:7', fragment: 'giving honour unto the wife', note: 'THE PRAYER LINE RUNS THROUGH THE HONOR — "that your prayers be not hindered": the very prayers about this are conditioned on how the disagreement is carried.' },
+    { ref: 'Galatians 6:9', fragment: 'for in due season we shall reap, if we faint not', note: 'THE TIMELINE IS NOT OURS TO SET — sowing horizons, not demand deadlines.' },
+  ],
+  theOpportunities: [
+    { ref: 'Ephesians 5:25', fragment: 'love your wives, even as Christ also loved the church, and gave himself for it', note: 'THE CHRIST-SHAPED LEVER: He wins the church’s obedience by self-giving that makes following SAFE ("nourisheth and cherisheth," Ephesians 5:29). The Word’s question to the husband is not "how do I get compliance?" but "what would I give myself for here?" — that giving is the mechanism.' },
+    { ref: '1 Peter 3:1', fragment: 'they also may without the word be won by the conversation', note: 'THE WON-WITHOUT-WORDS MECHANISM: consistent observed conduct persuades where repeated asking has stopped working. If the ask has been communicated and re-communicated, the next move may not be another communication.' },
+    { ref: 'Proverbs 21:1', fragment: 'The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will', note: 'THE HEART-TURNER TAKES PETITIONS — the one Person who actually moves wills is on the line, which is why the 1 Peter 3:7 honor-condition matters most right now.' },
+    { ref: 'Matthew 7:12', fragment: 'all things whatsoever ye would that men should do to you, do ye even so to them', note: 'The golden-rule check runs on the ASK itself — and love keeps its clock: "Charity suffereth long, and is kind" (1 Corinthians 13:4).' },
+    { ref: 'Ephesians 5:33', fragment: 'so love his wife even as himself; and the wife see that she reverence her husband', note: 'EACH CHAIR HAS ITS OWN ASSIGNMENT, WITHOUT CROSS-ENFORCEMENT: his particular command is love-as-himself; reverence is HER assignment, accounted to her Lord (Romans 14:4) — each graded on their own paper, both papers graded by Him.' },
+  ],
+  oneSentence: 'Close the comprehension gap with drawn-out questions before judging the willingness gap; then work the levers the King Himself uses — self-giving love that makes following safe, consistent conduct that wins without more words, honor that keeps the prayer line open, and petitions to the only One who turns hearts — while refusing bitterness and leaving her account, like his, with the Lord who knocks instead of forcing doors.',
+  // Darrell's sharpening, same sitting: "Literally argues and will not submit
+  // to being competent to any discussion then eventually agreeing however
+  // ways never changes" — the say-yes-do-nothing pattern, which Jesus named.
+  whenAgreementIsWords: [
+    { ref: 'Matthew 21:30', fragment: 'I go, sir: and went not', note: 'JESUS NAMED THIS EXACT PATTERN — the second son’s verbal yes with unchanged ways; His verdict question ("Whether of them twain did the will of his father?" Matthew 21:31) establishes that in His accounting, the yes never happened.' },
+    { ref: 'Ezekiel 33:31', fragment: 'they hear thy words, but they will not do them: for with their mouth they shew much love', note: 'The agreement is real as an EXPERIENCE (the conversation ends pleasantly — "thou art unto them as a very lovely song," Ezekiel 33:32) and empty as a COMMITMENT.' },
+    { ref: 'Matthew 15:8', fragment: 'and honoureth me with their lips; but their heart is far from me', note: 'THE MECHANISM: agreement extracted by argument-fatigue is mouth-level; ways flow from the heart, and the heart was never in the transaction — which is exactly why the ways never change.' },
+    { ref: 'James 1:24', fragment: 'and goeth his way, and straightway forgetteth', note: 'And not always cynically: the hearer-not-doer’s glass-glance genuinely does not survive the walk away (James 1:23).' },
+    { ref: 'Proverbs 17:14', fragment: 'therefore leave off contention, before it be meddled with', note: 'STOP RE-RUNNING THE KNOWN LOOP — if discussion-then-hollow-yes is the established cycle, another round is letting out the same water. And stop harvesting verbal agreements at all: shift the metric permanently to observed ways over time (Matthew 7:20 — the fruit test, applied gently at home).' },
+    { ref: '2 Timothy 2:24', fragment: 'And the servant of the Lord must not strive; but be gentle unto all men, apt to teach, patient', note: 'THE SERVANT’S PROTOCOL FOR OPPOSITION — instruct in meekness, once and well —' },
+    { ref: '2 Timothy 2:25', fragment: 'if God peradventure will give them repentance to the acknowledging of the truth', note: '— and read the mechanism carefully: the ACKNOWLEDGING is GIVEN BY GOD, "peradventure," on His schedule. The part of the work that is not working was never assigned to the husband.' },
+    { ref: '1 Peter 2:23', fragment: 'but committed himself to him that judgeth righteously', note: 'COMMIT THE CASE UPWARD, as Jesus did with those who would not hear — the working levers are consistent conduct (1 Peter 3:1), kept honor (1 Peter 3:7), and petition to the Heart-Turner (Proverbs 21:1) — not another round.' },
+    { ref: 'Philippians 1:6', fragment: 'he which hath begun a good work in you will perform it', note: 'HOPE WITH A WARRANT: the ways that words never changed, He changes — and He finishes what He starts.' },
+  ],
+};
+
+// =============================================================================
+// LONGSUFFERING WITH JOYFULNESS — Darrell's question, same sitting: gentleness
+// sustained through frustration decaying into melancholy; "long-suffering
+// comes to mind from the words of husband and wife's... what is the
+// opportunities and constraints." The Word takes the emotional slide
+// seriously — names its mechanism, moves the supply off willpower, and
+// prescribes the Godhead's own protocol for the collapsed.
+// =============================================================================
+export const LONGSUFFERING_WITH_JOYFULNESS = {
+  theConstraints: [
+    { ref: 'Proverbs 13:12', fragment: 'Hope deferred maketh the heart sick: but when the desire cometh, it is a tree of life', note: 'THE MELANCHOLY HAS A NAMED MECHANISM — the frustration-to-melancholy slide is not weakness or failed faith; it is the stated physiology of hope held open over time.' },
+    { ref: 'Colossians 1:11', fragment: 'Strengthened with all might, according to his glorious power, unto all patience and longsuffering with joyfulness', note: 'LONGSUFFERING CANNOT BE SELF-GENERATED — it is fruit of the Spirit (Galatians 5:22), grown not manufactured; flesh-powered patience exhausts into exactly the gentleness→frustration→melancholy sequence. Longsuffering WITH JOYFULNESS exists, and it runs only on "his glorious power" — the constraint and the opportunity in one verse.' },
+    { ref: 'Hebrews 12:15', fragment: 'lest any root of bitterness springing up trouble you, and thereby many be defiled', note: 'TWO GUARDS against the slide going toxic: the sun-down deadline on each day’s anger (Ephesians 4:26) and the root-watch — bitterness in one chair defiles the whole house.' },
+    { ref: '1 Kings 19:4', fragment: 'It is enough; now, O LORD, take away my life', note: 'BURNOUT IS A REAL ENDPOINT THE WORD HAS SEEN — Elijah under the juniper. Note what Yahweh did NOT do: no rebuke, no sermon —' },
+    { ref: '1 Kings 19:7', fragment: 'Arise and eat; because the journey is too great for thee', note: '— He sent food, sleep, and a touch. The Godhead’s own first protocol for the collapsed longsufferer is PHYSICAL MERCY — rest, food, gentleness — before any word.' },
+  ],
+  theOpportunities: [
+    { ref: 'Exodus 34:6', fragment: 'The LORD God, merciful and gracious, longsuffering, and abundant in goodness and truth', note: 'YAHWEH’S OWN SELF-DESCRIPTION LEADS WITH IT — and He is "longsuffering to us-ward" (2 Peter 3:9) at this very hour: the husband longsuffering toward his wife is being longsuffered toward by his God, in the same moment. That symmetry is fuel.' },
+    { ref: 'Psalm 42:11', fragment: 'Why art thou cast down, O my soul?', note: 'THE MELANCHOLY HAS A LITURGY — the psalmist addresses his own soul and redirects it: "hope thou in God: for I shall yet praise him, who is the health of my countenance" — the countenance named as what He restores. And "The LORD is nigh unto them that are of a broken heart" (Psalm 34:18): the low seasons carry a special nearness.' },
+    { ref: '1 Peter 5:7', fragment: 'Casting all your care upon him; for he careth for you', note: 'THE BURDEN TRANSFERS — "Cast thy burden upon the LORD, and he shall sustain thee" (Psalm 55:22); the yoke exchange stands open: "Come unto me, all ye that labour and are heavy laden, and I will give you rest... my yoke is easy, and my burden is light" (Matthew 11:28-30). Longsuffering was never designed to be carried alone; the weight is re-filed daily.' },
+    { ref: '2 Corinthians 4:9', fragment: 'cast down, but not destroyed', note: 'THE STATE IS SURVIVABLE BY DESIGN — cast down is on the approved list (2 Corinthians 4:8-9); destroyed is not. And renewal is promised on WAITING, not on resolution: "they that wait upon the LORD shall renew their strength... and not faint" (Isaiah 40:31).' },
+    { ref: 'Isaiah 53:3', fragment: 'a man of sorrows, and acquainted with grief', note: 'THE HIGH PRIEST HAS WALKED THIS ROAD — "touched with the feeling of our infirmities" (Hebrews 4:15); the "God of all comfort" comforts "that we may be able to comfort" others in the same trouble (2 Corinthians 1:3-4) — even this season is being converted into ministry capital for someone else’s marriage later.' },
+  ],
+  oneSentence: 'Hope deferred really does sicken the heart — so the Word moves longsuffering off willpower onto the Spirit’s supply ("with joyfulness," Colossians 1:11), guards it with sun-down deadlines and root-watches, treats its collapses with Elijah’s food-sleep-and-gentleness protocol, transfers the weight daily to the One who cares, and stamps the whole season with His nearness — the longsuffering husband being longsuffered toward by his God, in the same breath.',
+};
+
+// =============================================================================
+// THE FAMILY TREASURY — Darrell's question, same sitting: "Financial procedure
+// and activities are at the heart of the marriage issues is that the highest
+// and how should we relationship between husband and wife... all family and
+// families." The diagnosis: money is the marriage's INSTRUMENT PANEL, not its
+// engine — the highest-resolution display of the heart (Matthew 6:21), which
+// is why it presents as the highest issue. And the Word's treasury design for
+// husband, wife, and every family.
+// =============================================================================
+export const FAMILY_TREASURY = {
+  theDiagnosis: [
+    { ref: 'Matthew 6:21', fragment: 'For where your treasure is, there will your heart be also', note: 'WHY MONEY PRESENTS AS THE HEART OF MARRIAGE ISSUES: the budget is a confession — every line item is a measurable readout of what each heart worships, fears, and trusts; two invisible hearts become visible numbers on one page.' },
+    { ref: '1 Timothy 6:10', fragment: 'For the love of money is the root of all evil', note: 'THE ROOT SITS ONE LAYER DEEPER — the LOVE of it, a heart posture; and the sorrows are self-inflicted: "pierced themselves through with many sorrows." Money is the display; the heart is the engine (the what-is-in-man doctrine and this question are the same question).' },
+    { ref: 'Matthew 6:24', fragment: 'Ye cannot serve God and mammon', note: 'Money is a rival applicant for the throne — if either spouse serves mammon, the marriage has three masters.' },
+  ],
+  theDesign: [
+    { ref: 'Genesis 2:24', fragment: 'and they shall be one flesh', note: '1. ONE FLESH → ONE ECONOMY — hidden accounts and my-money/your-money contradict the union at its definition. Joint financial moral agency is real, proven negatively by Ananias and Sapphira who "agreed together" about money unto death (Acts 5:9): agreement itself is not the goal; agreement UNDER THE WORD is.' },
+    { ref: 'Deuteronomy 8:18', fragment: 'for it is he that giveth thee power to get wealth', note: '2. THE SOURCE ACKNOWLEDGED DISSOLVES THE OWNERSHIP FIGHT — once both spouses confess neither is the source, mine-vs-yours becomes joint stewardship of His.' },
+    { ref: 'Malachi 3:10', fragment: 'and prove me now herewith', note: 'Firstfruits seal it — the one place Yahweh says TEST ME is the family’s money; "seek ye first the kingdom" (Matthew 6:33) is the ordering that heals money anxiety, and without it the leak is named: "wages to put it into a bag with holes" (Haggai 1:6).' },
+    { ref: 'Proverbs 31:11', fragment: 'The heart of her husband doth safely trust in her', note: '3. TRUSTED DELEGATION, NOT CONTROL — the Proverbs 31 wife executes real transactions on delegated authority ("She considereth a field, and buyeth it," Proverbs 31:16), and the trust itself is listed as the husband’s wealth ("no need of spoil"). Competence honored with authority inside agreed procedure — not micromanagement, not chaos.' },
+    { ref: '1 Timothy 5:8', fragment: 'But if any provide not for his own, and specially for those of his own house, he hath denied the faith', note: '4. PROVISION IS COVENANT DUTY — and the data practices are commanded: count the cost (Luke 14:28), know the state of the flocks (Proverbs 27:23). The family budget review IS a biblical ordinance.' },
+    { ref: 'Luke 16:11', fragment: 'If therefore ye have not been faithful in the unrighteous mammon, who will commit to your trust the true riches?', note: '5. MONEY IS THE COUPLE’S SHARED TRAINING GROUND — "faithful in that which is least is faithful also in much" (Luke 16:10): Yahweh grades the marriage’s mammon-handling as the qualifying exam for true riches.' },
+    { ref: 'Proverbs 15:17', fragment: 'Better is a dinner of herbs where love is, than a stalled ox and hatred therewith', note: '6. THE RELATIONSHIP OUTRANKS THE BALANCE SHEET, BY EXPLICIT RULE — "Better is little with the fear of the LORD than great treasure and trouble therewith" (Proverbs 15:16). A financial procedure that wins the argument and loses the dinner table has failed the Word’s own accounting.' },
+  ],
+  oneSentence: 'Money is the marriage’s instrument panel, not its engine — so the Word’s procedure is one flesh/one economy, His ownership confessed first, trusted delegation on the Proverbs 31 pattern, commanded counting and provision, faithfulness-in-least as the shared exam — with the standing rule that the herbs-dinner with love beats the stalled ox with strife every time.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -395,5 +737,15 @@ export function buildSeeingStudy() {
     daily: DAILY_SEEING_PRACTICE,
     muddiedToClear: MUDDIED_TO_CLEAR,
     enduringAndAbiding: ENDURING_AND_ABIDING,
+    usingHisWays: USING_HIS_WAYS,
+    howWeKnow: HOW_WE_KNOW,
+    relationshipCircuit: RELATIONSHIP_CIRCUIT,
+    swordAndCounsel: SWORD_AND_COUNSEL,
+    competenceAim: COMPETENCE_AIM,
+    walkingInDisagreement: WALKING_IN_DISAGREEMENT,
+    ironOnIronDaily: IRON_ON_IRON_DAILY,
+    doorTheKingKnocksOn: DOOR_THE_KING_KNOCKS_ON,
+    longsufferingWithJoyfulness: LONGSUFFERING_WITH_JOYFULNESS,
+    familyTreasury: FAMILY_TREASURY,
   };
 }

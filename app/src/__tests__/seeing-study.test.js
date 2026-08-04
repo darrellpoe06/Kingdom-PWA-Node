@@ -17,7 +17,10 @@ import {
   SEEING_STUDY_META, WAYS_OF_SEEING, QUALITATIVE_METHODS,
   measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
-  MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, buildSeeingStudy,
+  MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
+  RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
+  WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
+  LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -57,6 +60,50 @@ function allQuotedPairs() {
   for (const v of e.howTheGodheadSeesTheEndurer.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
   for (const v of e.abidingPhysiology.wordClaims) pairs.push({ ref: v.ref, fragment: v.fragment });
   for (const v of e.notCondemnedButSaved.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
+  const u = USING_HIS_WAYS;
+  for (const list of [u.theRansomIsNeverOurs, u.yetTheWordSaysIt, u.whatWeAreDoing, u.whatWeAreNotDoing]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const k = HOW_WE_KNOW;
+  for (const list of [k.theBoundary, k.theKnowableAssurance, k.theAnchor]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const rc = RELATIONSHIP_CIRCUIT;
+  for (const list of [rc.theWiring, rc.theVerification, rc.theRouting]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const sc = SWORD_AND_COUNSEL;
+  for (const list of [sc.theSwordInTheFamily, sc.theLeashedDevices, sc.theEternalNow]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  // The quantumNote's inline quotes (partial physics; faith as instrument).
+  pairs.push({ ref: 'Colossians 1:16', fragment: 'visible and invisible' });
+  pairs.push({ ref: '2 Corinthians 4:18', fragment: 'the things which are seen are temporal; but the things which are not seen are eternal' });
+  pairs.push({ ref: 'Hebrews 11:1', fragment: 'the substance of things hoped for, the evidence of things not seen' });
+  const ca = COMPETENCE_AIM;
+  for (const list of [ca.theModelMen, ca.theCommandedCompetence, ca.theStudiedAnswer]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const wd = WALKING_IN_DISAGREEMENT;
+  for (const list of [wd.whatAgreementMeans, wd.communicationFramework, wd.comprehensionFramework]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const ii = IRON_ON_IRON_DAILY;
+  for (const list of [ii.theMechanism, ii.theDailySchedule, ii.theAngle, ii.theForge]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const dk = DOOR_THE_KING_KNOCKS_ON;
+  for (const list of [dk.theConstraints, dk.theOpportunities, dk.whenAgreementIsWords]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const lj = LONGSUFFERING_WITH_JOYFULNESS;
+  for (const list of [lj.theConstraints, lj.theOpportunities]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const ft = FAMILY_TREASURY;
+  for (const list of [ft.theDiagnosis, ft.theDesign]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
   return pairs;
 }
 
