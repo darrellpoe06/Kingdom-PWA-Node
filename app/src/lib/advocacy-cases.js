@@ -121,7 +121,7 @@ export const POLICY_SHELF = [
     layer: 'district',
     cite: 'Unit 4 board policy manual + minutes (BoardDocs)',
     name: 'Champaign Unit 4 — where the district’s own documented procedures live',
-    gives: 'Unit 4’s board policies, meeting agendas, and minutes are published on its public BoardDocs portal; the district’s accelerated placement procedures (early entrance, single-subject and whole-grade acceleration, the assessment battery) are documented on its own site; a Board Policy Committee maintains the manual.',
+    gives: 'Unit 4’s board policies, meeting agendas, and minutes are published on its public BoardDocs portal; the district’s accelerated placement procedures (early entrance, single-subject and whole-grade acceleration, the assessment battery) are documented on its own site; a Board Policy Committee maintains the manual. Leadership, verified 2026-08-04: Dr. Geovanny Ponce became superintendent July 1, 2026, succeeding Dr. Shelia Boozer, whose contract was ended by the board elected in 2025 amid publicly reported transparency and communication concerns — commitments made under prior leadership are inherited items the current administration can simply answer.',
     useIt: 'Before writing, pull the district’s OWN policy language and quote it back — “your published policy states…” is the strongest their-words evidence there is. These portals block automated tools; open them directly in a browser and save the policy as a dated document entry on the case.',
     sources: [
       { label: 'BoardDocs public portal (policies · agendas · minutes)', url: 'https://go.boarddocs.com/il/champil/Board.nsf/public' },
