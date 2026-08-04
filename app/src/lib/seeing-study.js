@@ -1049,6 +1049,32 @@ export const WHOLE_PERSON_WHOLE_HOUSE = {
   oneSentence: 'Spirit, soul, and body are one preserved unit — so the lessons carry the science honestly (neuroplasticity under Romans 12:2, thought-capture under 2 Corinthians 10:5, the gratitude-prayer protocol under Philippians 4:6-7, rest as engineered biology under Mark 2:27), the household climate is treated as pediatric care (Proverbs 14:26), and every practice runs on the supplied peace of John 14:27 — the whole person healed in the whole house.',
 };
 
+// =============================================================================
+// EDUCATION FOR WEIGHT — a lesson captured 2026-08-04. ATTRIBUTION KEPT
+// HONEST (the study's own rule for AI voices): the statement below was
+// GEMINI-DRAFTED text Darrell brought from another channel and adopted as
+// lesson input — "Education should do more than produce good grades; it
+// should prepare young people for the responsibilities they will carry into
+// adulthood, family life, work, and community... children who can think
+// clearly, endure challenge, make disciplined choices, and understand that
+// effort matters more than appearances. When schools steer students toward
+// easier paths simply to protect GPA, they may protect a number, but they
+// risk weakening the deeper purpose of education." The AI's philosophy is
+// weighed like any voice and stands here only where the Word grounds it —
+// and the Word grounds every clause.
+// =============================================================================
+export const EDUCATION_FOR_WEIGHT = {
+  declared: 'The goal is not children who can pass classes but children who can think clearly, endure challenge, make disciplined choices, and understand that effort matters more than appearances — ready to carry adulthood, family, work, and community with honesty and competence. Protecting a GPA by steering students off hard paths protects a number and weakens a person: the purpose, not the proxy, is what education must protect.',
+  theWordGrounds: [
+    { ref: 'Lamentations 3:27', fragment: 'It is good for a man that he bear the yoke in his youth', note: 'THE THESIS VERSE — weight carried YOUNG is declared GOOD: the yoke in youth is the training for the load of adulthood, which is exactly what GPA-protective steering removes.' },
+    { ref: 'Hebrews 12:11', fragment: 'nevertheless afterward it yieldeth the peaceable fruit of righteousness unto them which are exercised thereby', note: 'CHALLENGE IS THE EXERCISE MECHANISM — "no chastening for the present seemeth to be joyous, but grievous": the unpleasantness of the hard path is not a defect to route around; it is the training effect itself, and only "them which are exercised thereby" collect the fruit.' },
+    { ref: 'James 1:3', fragment: 'the trying of your faith worketh patience', note: 'TESTING PRODUCES COMPLETENESS — "let patience have her perfect work, that ye may be perfect and entire, wanting nothing" (James 1:4): the student steered around every trial arrives credentialed and WANTING — an unblemished record and an untested character.' },
+    { ref: 'Galatians 6:4', fragment: 'But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another', note: 'EFFORT OVER APPEARANCES, stated as law — the rejoicing comes from PROVEN OWN WORK, not comparative optics; and the Lord’s measure was never the surface (1 Samuel 16:7: man looketh on the outward appearance).' },
+    { ref: 'Luke 2:52', fragment: 'And Jesus increased in wisdom and stature, and in favour with God and man', note: 'THE MODEL STUDENT IS THE SON — increase on all four axes (wisdom, stature, favour with God, favour with man): the whole-person growth this education aims at, with the workman’s standard over it ("Study to shew thyself approved," 2 Timothy 2:15) and the found-faithfulness audit at the end (Proverbs 20:6; 1 Corinthians 4:2).' },
+  ],
+  oneSentence: 'Education exists to produce formed adults, not protected numbers — the yoke borne in youth is declared good, the exercise of challenge is the mechanism, proven own work outranks appearances, and the model is the Son increasing in wisdom, stature, and favour — so the standard for every path choice is the student’s growth, never the transcript’s optics.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -1080,5 +1106,6 @@ export function buildSeeingStudy() {
     financialHealingProtocol: FINANCIAL_HEALING_PROTOCOL,
     generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
     wholePersonWholeHouse: WHOLE_PERSON_WHOLE_HOUSE,
+    educationForWeight: EDUCATION_FOR_WEIGHT,
   };
 }

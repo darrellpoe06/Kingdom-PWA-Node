@@ -22,7 +22,8 @@ import {
   WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
   GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
-  GENEROSITY_IN_THE_HOUSE, WHOLE_PERSON_WHOLE_HOUSE, buildSeeingStudy,
+  GENEROSITY_IN_THE_HOUSE, WHOLE_PERSON_WHOLE_HOUSE, EDUCATION_FOR_WEIGHT,
+  buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -123,6 +124,7 @@ function allQuotedPairs() {
   for (const list of [wp.theDesign, wp.theScienceCompetency, wp.theFamilyCascade]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
+  for (const v of EDUCATION_FOR_WEIGHT.theWordGrounds) pairs.push({ ref: v.ref, fragment: v.fragment });
   return pairs;
 }
 
