@@ -19,7 +19,7 @@ import {
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
   RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
-  WALKING_IN_DISAGREEMENT, buildSeeingStudy,
+  WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -85,6 +85,10 @@ function allQuotedPairs() {
   }
   const wd = WALKING_IN_DISAGREEMENT;
   for (const list of [wd.whatAgreementMeans, wd.communicationFramework, wd.comprehensionFramework]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const ii = IRON_ON_IRON_DAILY;
+  for (const list of [ii.theMechanism, ii.theDailySchedule, ii.theAngle, ii.theForge]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

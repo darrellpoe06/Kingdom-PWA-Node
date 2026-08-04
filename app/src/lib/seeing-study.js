@@ -595,6 +595,37 @@ export const WALKING_IN_DISAGREEMENT = {
   oneSentence: 'Agree on the Road and the King — that part is non-negotiable (Amos 3:3) — stay fully persuaded yet easy to be intreated on everything doubtful, run the Word’s own protocol (hear fully, draw out, answer soft, truth in love, sun-down deadline, gain-the-brother escalation), and let the disagreements sharpen the iron instead of splitting the walk.',
 };
 
+// =============================================================================
+// IRON ON IRON, DAILY — Darrell's question, same sitting: "How does iron
+// sharpening iron work in our family conversations daily." Proverbs 27:17
+// run as mechanics: contact (no conversation, no edge), the countenance as
+// the target (the friend leaves brighter, not bloodied), two hard blades
+// (iron on clay only smears — both parties bring the Word, the shared
+// whetstone), the daily schedule already commanded, and the angle control
+// that makes friction sharpen instead of wound.
+// =============================================================================
+export const IRON_ON_IRON_DAILY = {
+  theMechanism: [
+    { ref: 'Proverbs 27:17', fragment: 'Iron sharpeneth iron; so a man sharpeneth the countenance of his friend', note: 'The verse’s own physics: CONTACT (iron never sharpens from across the room), the COUNTENANCE as target (the friend leaves clearer and brighter, not bloodied), and TWO HARD BLADES — in a family of the Way, the shared firmness is the Word, the whetstone both blades are held against.' },
+  ],
+  theDailySchedule: [
+    { ref: 'Deuteronomy 6:7', fragment: 'and shalt talk of them when thou sittest in thine house, and when thou walkest by the way', note: 'THE CONTACT POINTS ARE THE ORDINARY RHYTHMS — table, road, lying down, rising up. The sharpening calendar is the day itself; no special summit required.' },
+    { ref: 'Hebrews 3:13', fragment: 'But exhort one another daily, while it is called To day; lest any of you be hardened through the deceitfulness of sin', note: 'THE STAKES VERSE: the alternative to daily sharpening is not neutral dullness — it is HARDENING, and sin’s deceitfulness works in the silence between conversations.' },
+    { ref: 'Malachi 3:16', fragment: 'spake often one to another: and the LORD hearkened, and heard it', note: 'AND YAHWEH IS ON THE CALL — the family’s sharpening conversations are entered in His book of remembrance.' },
+  ],
+  theAngle: [
+    { ref: 'Proverbs 27:5', fragment: 'Open rebuke is better than secret love', note: 'Honest contact beats polite distance — the unsaid correction is withheld love.' },
+    { ref: 'Proverbs 27:6', fragment: 'Faithful are the wounds of a friend; but the kisses of an enemy are deceitful', note: 'Real sharpening sometimes stings; flattery never sharpens anyone. The test of the wound is its FAITHFULNESS — aimed at the person’s good, not at winning.' },
+    { ref: 'Proverbs 12:18', fragment: 'There is that speaketh like the piercings of a sword: but the tongue of the wise is health', note: 'Same hard truth, two outcomes — the ANGLE decides whether it cuts flesh or cuts an edge. The communication framework (soft answer, truth in love, sun-down deadline, draw-out questions) IS the angle control.' },
+    { ref: 'Proverbs 15:31', fragment: 'The ear that heareth the reproof of life abideth among the wise', note: 'THE RECEIVING SIDE IS HALF THE SKILL — "he that heareth reproof getteth understanding" (Proverbs 15:32). A family where giving correction is honored but receiving it is shame never sharpens; the ear is as much iron as the tongue.' },
+  ],
+  theForge: [
+    { ref: 'Ecclesiastes 4:9', fragment: 'Two are better than one; because they have a good reward for their labour', note: 'WHY THE FAMILY IS THE IDEAL FORGE — the standing two-or-three: "if they fall, the one will lift up his fellow" (Ecclesiastes 4:10), "and a threefold cord is not quickly broken" (Ecclesiastes 4:12), the Lord as the third strand.' },
+    { ref: '1 Thessalonians 5:11', fragment: 'comfort yourselves together, and edify one another', note: 'The commanded output is CONSTRUCTIVE: sharpening that leaves family members duller, smaller, or afraid to speak is not iron on iron — it is just grinding.' },
+  ],
+  oneSentence: 'Daily contact at the table and on the way (Deuteronomy 6:7), exhortation before the day hardens anyone (Hebrews 3:13), faithful wounds at the right angle (Proverbs 27:5-6; 12:18), ears that receive as readily as tongues give (Proverbs 15:31-32), both blades held to the Word — and every one of those conversations heard and booked by Yahweh Himself (Malachi 3:16).',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -616,5 +647,6 @@ export function buildSeeingStudy() {
     swordAndCounsel: SWORD_AND_COUNSEL,
     competenceAim: COMPETENCE_AIM,
     walkingInDisagreement: WALKING_IN_DISAGREEMENT,
+    ironOnIronDaily: IRON_ON_IRON_DAILY,
   };
 }
