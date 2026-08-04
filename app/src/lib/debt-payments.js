@@ -221,9 +221,52 @@ export function cardPaymentSuggestions(transactions, accounts = [], opts = {}) {
   for (const g of detectRecurring(transactions || [], { direction: 'out', nowMs })) {
     if (categorize(g.label, { learned }).category !== 'debt-payment') continue;
     const pk = payeeKey(g.label);
-    if (!pk || isCovered(pk) || seen.has(pk)) continue;
+    // The RAW label keeps noise words the account NAME had stripped by
+    // debtNameFromPayee ("american express ach PMT a tel id" vs the stored
+    // "American Express Ach A"), so neither key contains the other and the raw
+    // check alone MISSES the card forever — the suggestion never cleared after
+    // an add, and every re-tap piled on another duplicate $0 account (the
+    // 2026-08-04 Debts bug: 24 stray rows in the live table). Also compare the
+    // CLEANED-name key — for a card added by this very flow it matches exactly.
+    const nk = payeeKey(debtNameFromPayee(g.label));
+    if (!pk || isCovered(pk) || (nk && isCovered(nk)) || seen.has(pk)) continue;
     seen.add(pk);
     out.push({ label: g.label, payeeKey: pk, monthlyPayment: g.amount, cadence: g.cadence, cadenceLabel: g.cadenceLabel, count: g.count });
   }
   return out;
+}
+
+// linkedDebtPaymentStats — the payment pace for a debt account that has NO
+// ledger rows of its own (the "Add as debt"-from-a-suggestion case): its real
+// payments live in the CHECKING ledger as recurring outflows to the payee. The
+// account was NAMED debtNameFromPayee(label) by that flow, so cleaning each
+// candidate description the same way and comparing payee keys recovers exactly
+// the rows that built the suggestion ("AMERICAN EXPRESS ACH PMT A1440 TEL ID:…"
+// -> "American Express Ach A"). Without this the row said "no payments seen"
+// forever while the family paid it every month — a false negative (DR-0100).
+//
+// From the checking side only PAYMENTS are visible (outflows; the card's new
+// charges are not in this ledger), so this reports the payment pace alone —
+// gross, never presented as net paydown. Pure; asOf injected.
+export function linkedDebtPaymentStats(transactions, accountName, ownAccountId, asOf, windowMonths = 6) {
+  const nowMs = asOf instanceof Date ? asOf.getTime() : Number(asOf) || Date.now();
+  const sinceMs = nowMs - windowMonths * 30 * DAY_MS;
+  const nameKey = payeeKey(accountName || '');
+  if (!nameKey) return { paymentCount: 0, grossPaymentPerMonth: 0, months: 0 };
+  let gross = 0, paymentCount = 0;
+  const months_ = new Set();
+  for (const t of (transactions || [])) {
+    if (!t || t.accountId === ownAccountId) continue;
+    const a = typeof t.amount === 'number' ? t.amount : Number(t.amount);
+    if (!(a < 0)) continue; // a payment out of checking is negative
+    const ms = txMs(t);
+    if (ms == null || ms < sinceMs || ms > nowMs) continue;
+    const tk = payeeKey(debtNameFromPayee(t.description || t.name || ''));
+    if (!tk || (tk !== nameKey && !tk.includes(nameKey) && !nameKey.includes(tk))) continue;
+    gross += -a;
+    paymentCount += 1;
+    months_.add(monthKey(ms));
+  }
+  const months = Math.max(1, months_.size);
+  return { paymentCount, grossPaymentPerMonth: round2(gross / months), months };
 }

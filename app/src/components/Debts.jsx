@@ -91,6 +91,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   // charges keep pace with payments the balance isn't going down — say so plainly
   // (never a rosy date). Falls back to the rate-based snowball, then to honest '?'.
   const payoffCell = (d) => {
+    // A decades-out truth stays truthful but must READ truthfully: "Nov '90"
+    // (2090, at $13/mo net on a $9.8k line) reads as 1990. Ten-plus years out,
+    // say the distance in years — the "barely moving" message is the point.
+    if (d.estPayoffOnTrack && d.estPayoffMonths > 120) return { text: `~${Math.round(d.estPayoffMonths / 12)} yrs away`, sub: 'at your pace', warn: true };
     if (d.estPayoffOnTrack && d.estPayoffMonths) return { text: monthLabel(currentDate, d.estPayoffMonths), sub: 'at your pace' };
     if (d.growing) return { text: 'not going down', sub: 'charges match payments', warn: true };
     const cleared = debtSnowball.activeDebts.find(p => p.id === d.id);

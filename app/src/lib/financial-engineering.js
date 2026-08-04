@@ -27,7 +27,7 @@
 // poe-financial-mvp-v28.jsx (which would drag React into the projection math).
 // =============================================================================
 
-import { deriveApr, debtPayoffInsight, looksLikeDebtAccount } from './debt-payments.js';
+import { deriveApr, debtPayoffInsight, looksLikeDebtAccount, linkedDebtPaymentStats, estimatePayoff } from './debt-payments.js';
 
 const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -244,7 +244,33 @@ export function deriveDebts(data, asOf = new Date()) {
     const rateSource = derived.apr != null ? 'derived' : (storedRate > 0 ? 'manual' : 'none');
     // Expected payoff from their REAL payments (not a fabricated minimum): the pace
     // they actually pay, the net paydown, and the truthful reach-zero date.
-    const insight = debtPayoffInsight(txns, a.id, owed, asOf);
+    let insight = debtPayoffInsight(txns, a.id, owed, asOf);
+    // A debt DECLARED from a recurring-payment suggestion has no ledger rows of
+    // its own — its payments ride in checking under the payee name. Recover that
+    // pace by cleaned-name match so the row shows the real "$110/mo" instead of
+    // "no payments seen" (the 2026-08-04 Debts bug). Checking-side data shows
+    // payments only (a card's new charges never hit this ledger), so the pace is
+    // the payment pace, and the payoff is dated at that pace.
+    let paceSource = 'own';
+    if (manualDebt && !insight.hasPayments) {
+      const linked = linkedDebtPaymentStats(txns, a.name, a.id, asOf);
+      if (linked.paymentCount > 0) {
+        const payoff = estimatePayoff(owed, linked.grossPaymentPerMonth, asOf);
+        insight = {
+          ...insight,
+          grossPaymentPerMonth: linked.grossPaymentPerMonth,
+          netPaydownPerMonth: linked.grossPaymentPerMonth,
+          paymentCount: linked.paymentCount,
+          payoffMonths: payoff.months,
+          payoffDate: payoff.date,
+          onTrack: payoff.onTrack,
+          clear: payoff.clear,
+          growing: false,
+          hasPayments: true,
+        };
+        paceSource = 'linked';
+      }
+    }
     const minPayment = Number(a.minPayment) || 0;
     out.push({
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
@@ -255,9 +281,10 @@ export function deriveDebts(data, asOf = new Date()) {
       manual: manualDebt,
       leaveAlone: false, needsTerms: !(rate > 0 && minPayment > 0),
       // Payment-derived payoff — independent of the rate-based snowball engine.
+      // paceSource 'linked' = pace recovered from checking-side payee payments.
       payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
       estPayoffMonths: insight.payoffMonths, estPayoffOnTrack: insight.onTrack,
-      growing: insight.growing, hasPayments: insight.hasPayments,
+      growing: insight.growing, hasPayments: insight.hasPayments, paceSource,
     });
   }
   for (const r of (data?.inflows?.rentals || [])) {

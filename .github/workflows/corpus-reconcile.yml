@@ -61,6 +61,11 @@ jobs:
         run: pip install yt-dlp
 
       - name: Generate the full corpus (manifest + SQL)
+        env:
+          # Exact stream-start/publish times for titles that carry no date —
+          # the same key the app build already holds. Without it the run still
+          # works; the title-dateless remainder just stays named undated.
+          YOUTUBE_API_KEY: ${{ secrets.VITE_YOUTUBE_API_KEY }}
         run: |
           node scripts/choir-youtube-backfill.mjs
           echo "--- coverage summary ---"

@@ -28,10 +28,18 @@ export function decodeHtmlEntities(text) {
 
 export function parseServiceTitle(rawTitle) {
   const title = decodeHtmlEntities(String(rawTitle || ''));
-  // Dash or slash separators anywhere (e.g. '6 -10 - 2026', '3/5/2025', '1- 7 -26').
-  let dm = title.match(/(\d{1,2})\s*[-/]\s*(\d{1,2})\s*[-/]\s*(\d{2,4})/);
+  // Dash, slash, or DOT separators anywhere (e.g. '6 -10 - 2026', '3/5/2025',
+  // '1- 7 -26', 'Bible Study 11.8.2023', '10.25.23 Pastor James Harding').
+  // The dot form is real on the channel — 128 of the 675 undated titles carried
+  // one and the old [-/] class rejected every single one (2026-08-04 audit).
+  let dm = title.match(/(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*(\d{2,4})/);
   // Fallback: space-separated date at the START of the title ('3 26 25 Bishop...').
   if (!dm) dm = title.match(/^\s*(\d{1,2})\s+(\d{1,2})\s+(\d{2,4})\b/);
+  // Last fallback: a space-separated triple ANYWHERE ('Wednesday Bible Study
+  // 11 29 23 I'm On The Lord Side'). Mid-title digits are riskier (scripture
+  // references are numbers too), so the year is constrained to the channel's
+  // real era — 2-digit 10–39 or 4-digit 20xx — and month/day still validate.
+  if (!dm) dm = title.match(/\b(\d{1,2})\s+(\d{1,2})\s+(20\d{2}|[123]\d)\b/);
   let serviceDate = null;
   if (dm) {
     const mo = Number(dm[1]);

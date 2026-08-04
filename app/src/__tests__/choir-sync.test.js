@@ -353,6 +353,19 @@ describe('parseServiceTitle (the YouTube importer core — real channel titles)'
     expect(parseServiceTitle('Choir rehearsal clip').serviceDate).toBeNull();
     expect(parseServiceTitle('Black History Month 2025 at The Love Corner').serviceDate).toBeNull();
   });
+  it('parses DOT-separated dates (128 of the undated backlog carried these — 2026-08-04 audit)', () => {
+    expect(parseServiceTitle('Bible Study 11.8.2023').serviceDate).toBe('2023-11-08');
+    expect(parseServiceTitle('Bible Study 10.25.23 Senior Assistant Pastor James Harding').serviceDate).toBe('2023-10-25');
+  });
+  it('parses a MID-TITLE space-separated date', () => {
+    expect(parseServiceTitle("Wednesday Bible Study 11 29 23 I'm On The Lord Side").serviceDate).toBe('2023-11-29');
+  });
+  it('the mid-title fallback does not invent dates from stray numbers', () => {
+    expect(parseServiceTitle('Dr. Bobby Smith Presentation').serviceDate).toBeNull();
+    expect(parseServiceTitle('Watch God Deliver Me').serviceDate).toBeNull();
+    // one or two numbers is never a date
+    expect(parseServiceTitle('Psalm 118 24 The Day The Lord Has Made').serviceDate).toBeNull();
+  });
 });
 
 describe('selectNewSermonImports (idempotent channel import)', () => {
