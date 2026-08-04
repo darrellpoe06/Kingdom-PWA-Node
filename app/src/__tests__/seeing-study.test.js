@@ -23,7 +23,8 @@ import {
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
   GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
   GENEROSITY_IN_THE_HOUSE, WHOLE_PERSON_WHOLE_HOUSE, EDUCATION_FOR_WEIGHT,
-  THE_TWO_GATES, buildSeeingStudy,
+  THE_TWO_GATES, FATHERS_AND_THE_SYSTEM, CHILDREN_OF_BROKEN_HOMES,
+  buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -131,6 +132,11 @@ function allQuotedPairs() {
   }
   const tg = THE_TWO_GATES;
   for (const list of [tg.sameMechanismOppositeDirections, tg.thePipelineReading, tg.theSharedAntidote]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  for (const v of FATHERS_AND_THE_SYSTEM.theWordRefusesBothLies) pairs.push({ ref: v.ref, fragment: v.fragment });
+  const cb = CHILDREN_OF_BROKEN_HOMES;
+  for (const list of [cb.theIdentityFirst, cb.theFiveMechanisms, cb.theFourthDimensionalDesign]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

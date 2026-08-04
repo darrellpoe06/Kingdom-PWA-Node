@@ -1165,6 +1165,55 @@ export const THE_TWO_GATES = {
   ],
 };
 
+// =============================================================================
+// FATHERS AND THE SYSTEM — Darrell's data challenge, same sitting: "if most
+// African Americans are from fatherless homes... I'm not sure that's true
+// anymore... research and explain the situations that this system perpetually
+// keeps and their impacts." Verified by live search 2026-08-04; every claim
+// tiered per DR-0100.
+// =============================================================================
+export const FATHERS_AND_THE_SYSTEM = {
+  theDataTiered: 'TIER 1, THE HOUSEHOLD STATISTIC (verified 2026-08-04): ~63-66% of Black children live in single-parent households; ~38% with married parents + ~4% cohabiting (~42% two-parent) — vs ~73% married-parent for white children (Census-based, 2024-2025 figures; no clear rising trend found — stated honestly). TIER 1, THE INVOLVEMENT DATA THAT BREAKS THE CARICATURE: CDC national fatherhood data found Black fathers the MOST involved dads in America in daily hands-on care — 70% of resident Black fathers in daily physical care (vs 60% white, 45% Hispanic), and NONRESIDENT Black fathers matching or exceeding every other group (nearly half playing several times weekly; 41-42% providing meals and physical care). THE PRECISION THAT MATTERS: out-of-household is common; out-of-life is the overclaim — repeating "fatherless" without that distinction bears false witness against millions of present fathers ("Thou shalt not raise a false report," Exodus 23:1).',
+  theRemovalMachinery: 'TIER 1, THE SYSTEM’S DOCUMENTED ENGINES: by age 17, 24% of Black children experience parental incarceration vs 4% of white children — a six-fold disparity (Sentencing Project): the far gate is a father-removal machine, and you cannot remove that many fathers through the prison gate and then attribute the household structure to culture. The policy architecture predates and compounds it: the historical AFDC man-in-the-house rules conditioned survival benefits on the father’s ABSENCE (deliberate construction — "that write grievousness which they have prescribed," Isaiah 10:1), and child-support arrears enforcement (license suspensions, jailing for debt) documented as pushing low-income fathers underground rather than into the home. THE GENERATIONAL LOOP the system perpetually keeps: father incarcerated → income and stability down → school outcomes down → near-gate steering vulnerability up → far-gate risk up — the two gates feeding each other ACROSS GENERATIONS.',
+  theWordRefusesBothLies: [
+    { ref: 'Exodus 23:1', fragment: 'Thou shalt not raise a false report', note: 'The caricature that erases involved Black fathers is FALSE WITNESS — and the denial of the documented structural removals is the other under-claiming lie (DR-0100 cuts both ways). Name the decrees that scattered the families (Isaiah 10:1-2); honor the fathers the data shows present.' },
+    { ref: 'Psalm 68:5', fragment: 'A father of the fatherless, and a judge of the widows, is God in his holy habitation', note: 'THE FATHER’S OWN ANSWER —' },
+    { ref: 'Psalm 68:6', fragment: 'God setteth the solitary in families: he bringeth out those which are bound with chains', note: '— and the verse answers BOTH GATES IN ONE BREATH: family-setting and prisoner-release together. With Malachi 4:6’s turned hearts, this is the church-as-family mission the platform serves: family-infrastructure for exactly the households this system engineered against.' },
+  ],
+};
+
+// =============================================================================
+// CHILDREN OF BROKEN HOMES — Darrell's practical question, same sitting:
+// "Helping kids successfully navigate their own situations how can we do that
+// with broken homes?" The Word runs a complete program, with named case
+// studies — the broken-home heroes as curriculum.
+// =============================================================================
+export const CHILDREN_OF_BROKEN_HOMES = {
+  theIdentityFirst: [
+    { ref: 'Psalm 27:10', fragment: 'When my father and my mother forsake me, then the LORD will take me up', note: 'THE CHILD’S OWN VERSE, first person, for the worst case — and Yahweh SELF-ASSIGNS the vacancy (Psalm 68:5-6): the child from the broken home is not an exception to the design but a named category with a named Father.' },
+    { ref: 'Ezekiel 18:20', fragment: 'The son shall not bear the iniquity of the father', note: 'SEVER GENERATIONAL FATALISM OUT LOUD — the child must hear, in plain words, that a father’s absence, addiction, or incarceration is not their inheritance, identity, or sentence. The Word cuts that chain in one verse; teach it early and often.' },
+  ],
+  theFiveMechanisms: [
+    { ref: '2 Timothy 1:5', fragment: 'which dwelt first in thy grandmother Lois, and thy mother Eunice', note: '1. THE MOTHER-AND-GRANDMOTHER LINE IS A COMPLETE TRANSMISSION SYSTEM — Timothy, the Bible’s own split-home case study, became Paul’s greatest son on the faith of one grandmother and one mother. A broken home with one faithful woman in it is not a broken transmission line.' },
+    { ref: '1 Corinthians 4:15', fragment: 'yet have ye not many fathers', note: '2. THE CHURCH SUPPLIES THE FATHERS — Paul names the shortage and models deliberate spiritual fathering. Operationally: every fatherless kid gets a NAMED, consistent, godly man — not a program, a person. Mordecai is the pattern: he "took for his own daughter" the orphan Hadassah (Esther 2:7) — kinship-grade commitment raised a queen.' },
+    { ref: '2 Samuel 9:11', fragment: 'he shall eat at my table, as one of the king’s sons', note: '3. THE KING’S TABLE ERASES THE ORIGIN STORY — Mephibosheth: orphaned, disabled, hiding in Lo-debar, seated as a son. Belonging conferred, not earned: seat these kids at real tables on real rhythms (the Deuteronomy 6:7 moments extended to kids who don’t have them at home).' },
+    { ref: 'Ecclesiastes 4:12', fragment: 'and a threefold cord is not quickly broken', note: '4. THE PEER COHORT CARRIES WHAT ONE CHILD CANNOT — Daniel, removed from family entirely, thrived inside a three-friend cohort with shared convictions and a shared regimen (Daniel 1). Build the cohort deliberately: kids from broken homes navigating TOGETHER, with the daily practices scaled to their age.' },
+    { ref: 'Genesis 39:2', fragment: 'And the LORD was with Joseph, and he was a prosperous man', note: '5. THE PRESENCE OUTPERFORMS THE CIRCUMSTANCES — Joseph prospered IN the house of his slavery. The trajectory rides the Presence, not the household structure — and the involvement data means many of these kids have a present father OUTSIDE the household to honor and connect with: facilitate it, never write it off (Malachi 4:6 runs both directions, and many of those hearts are already turned).' },
+  ],
+  thePractical: 'The household-of-households runs it: the broken-home heroes taught as curriculum (Timothy, Esther, Joseph, Daniel, Mephibosheth — precedent AND outcomes); the whole-person supports (the Psalm 42 soul-liturgy so kids can name feelings; sleep, rhythm, Elijah-gentleness); the two-talent dignity scale and the education advocacy already built; the named mentor and the cohort connected; the nonresident father engaged wherever reachable. PoeTech’s deepest use case: family-of-families infrastructure — mentorship, tables, curriculum, rhythms — for the exact households the two-gates system engineered against.',
+  // Darrell's design directive, same sitting: "also using all the
+  // 4th-dimensional King Understanding for the Ways practical design
+  // solutions" — every practical mechanism above derived from the King's own
+  // altitude, not borrowed social-work frames.
+  theFourthDimensionalDesign: [
+    { ref: 'Revelation 1:8', fragment: 'which is, and which was, and which is to come', note: 'DESIGN FOR DESTINY, NOT DEFICIT — the King sees the child’s whole timeline at once (Isaiah 46:10): He already sees the Timothy, the Esther, the Joseph at the record’s end. Practical: curriculum and surfaces frame every child by destiny axes (Luke 2:52’s wisdom-stature-favour growth tracking), never by deficit labels — the platform’s language design carries the 4D reading of the child.' },
+    { ref: 'Malachi 3:16', fragment: 'and a book of remembrance was written before him', note: 'DESIGN FOR THE ETERNAL RECORD — every mentor hour, every table seat, every conversation is eternally booked ("I was in prison, and ye came unto me" logic extends to the fatherless visit). Practical: the family Book of Remembrance surface logs the sowing with Galatians 6:9 due-season horizons and fig-tree review dates on mentorship — sowing made visible so no mentor faints before the season.' },
+    { ref: 'Ecclesiastes 12:14', fragment: 'For God shall bring every work into judgment, with every secret thing', note: 'DESIGN WITH THE TWO COURTS — the child’s earthly verdicts (the school gate’s steering, a family court’s ruling, a father’s absence) are NOT the court of record. Practical: teach kids the two-courts doctrine early — it removes the shame-verdicts earthly systems stamp on them, and installs the dignity floor (the two-talent "Well done" graded per capacity, forever).' },
+    { ref: 'Genesis 50:20', fragment: 'ye thought evil against me; but God meant it unto good', note: 'DESIGN THE JOSEPH REFRAME — the broken home itself gets the 4D reading: not denial of the evil (Joseph names it — "ye thought evil against me") but the maximal-good weaving read over it (Romans 8:28; the leashed-devices doctrine). Practical: testimony curriculum where kids learn to tell their own story Joseph-style — the evil named, the meant-unto-good traced, the saving-of-much-people destiny claimed.' },
+    { ref: 'Hebrews 1:3', fragment: 'upholding all things by the word of his power', note: 'DESIGN ON THE KINGDOM OPERATING SYSTEM — the child is plugged into the sovereign-mesh network no outage touches ("by him all things consist," Colossians 1:17). Practical: the daily regimen as the boot sequence (the king’s own-copy reading, Deuteronomy 17:19, scaled to kids), and the Word MEMORIZED as offline-first resilience — the same architecture this platform runs on (the PWA’s offline-first design IS the discipleship metaphor: the Word carried within, no dependency on external uptime, so the child’s connection survives every household outage). And the design spec over all of it is Psalm 68:6 verbatim: He setteth the solitary IN FAMILIES — not in programs — and bringeth out the bound: belonging architecture and gate-opening, in one verse.' },
+  ],
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -1198,5 +1247,7 @@ export function buildSeeingStudy() {
     wholePersonWholeHouse: WHOLE_PERSON_WHOLE_HOUSE,
     educationForWeight: EDUCATION_FOR_WEIGHT,
     theTwoGates: THE_TWO_GATES,
+    fathersAndTheSystem: FATHERS_AND_THE_SYSTEM,
+    childrenOfBrokenHomes: CHILDREN_OF_BROKEN_HOMES,
   };
 }
