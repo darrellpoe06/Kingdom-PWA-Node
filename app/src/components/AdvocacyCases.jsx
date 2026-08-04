@@ -17,6 +17,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import UiIcon from './UiIcon.jsx';
 import {
   ADVOCACY_VERSES, EVIDENCE_TIERS, ENTRY_TYPES, CASE_STATUSES, ESCALATION_LADDER,
+  POLICY_SHELF, POLICY_LAYERS,
   newCase, newEntry, casesOf, entriesOf, caseStats, ladderIndex, buildContextPack,
   loadAdvocacy, saveAdvocacy,
 } from '../lib/advocacy-cases.js';
@@ -107,6 +108,8 @@ export default function AdvocacyCases() {
         ))}
       </div>
 
+      {!current && <PolicyShelf />}
+
       {!current && (
         <>
           <div className="flex items-center justify-between mb-3">
@@ -177,6 +180,78 @@ export default function AdvocacyCases() {
           onCopyPack={copyPack}
           copied={copied}
         />
+      )}
+    </div>
+  );
+}
+
+// The pre-sourced shelf: documented procedures ready to cite BEFORE the ask —
+// the law that binds the institution, its own published procedures, and the
+// history already on the public record. Each entry is dated; anything not
+// verified to the letter carries its verify note visibly (DR-0076/DR-0100).
+function PolicyShelf() {
+  const [open, setOpen] = useState(false);
+  const [openLayer, setOpenLayer] = useState('law');
+  const items = POLICY_SHELF.filter((p) => p.layer === openLayer);
+  return (
+    <div className="bg-white border border-[#E4E0D8] p-3 mb-4">
+      <button
+        type="button"
+        className="w-full text-left flex items-center justify-between focus:outline focus:outline-2 focus:outline-[#B85838]"
+        onClick={() => setOpen((s) => !s)}
+        aria-expanded={open}
+      >
+        <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+          Documented procedures — the pre-sourced shelf ({POLICY_SHELF.length})
+        </span>
+        <UiIcon name={open ? 'chevronUp' : 'chevronDown'} />
+      </button>
+      {open && (
+        <div className="mt-3">
+          <p className="text-xs text-[#5A5751] mb-2">
+            Know what is already documented before you ask: the law that binds the
+            institution, its own published procedures, and the history on the public
+            record. Quote these; save what you pull as dated document entries on your case.
+          </p>
+          <div className="flex gap-2 mb-3">
+            {POLICY_LAYERS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                className={`${BTN} ${openLayer === l.id ? 'border-[#B85838] text-[#B85838]' : 'border-[#D8D4CC] text-[#5A5751]'}`}
+                onClick={() => setOpenLayer(l.id)}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {items.map((p) => (
+              <div key={p.id} className="border border-[#E4E0D8] p-3">
+                <div className="text-sm font-semibold">{p.name}</div>
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{p.cite} · as of {p.asOf}</div>
+                <p className="text-sm mt-2"><strong>What it gives you:</strong> {p.gives}</p>
+                <p className="text-sm mt-1"><strong>How to use it:</strong> {p.useIt}</p>
+                {p.verify ? (
+                  <p className="text-xs mt-1 text-[#B85838]"><strong>Verify first:</strong> {p.verify}</p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                  {p.sources.map((s) => (
+                    <a
+                      key={s.url}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs underline text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    >
+                      {s.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

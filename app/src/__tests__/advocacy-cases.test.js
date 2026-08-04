@@ -17,6 +17,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ADVOCACY_VERSES, EVIDENCE_TIERS, ENTRY_TYPES, CASE_STATUSES, ESCALATION_LADDER,
+  POLICY_SHELF, POLICY_LAYERS,
   newCase, newEntry, casesOf, entriesOf, caseStats, ladderIndex, buildContextPack,
 } from '../lib/advocacy-cases.js';
 
@@ -89,6 +90,44 @@ describe('model integrity', () => {
     expect(stats.last).toBe('2026-02-01');
     expect(casesOf(records)).toHaveLength(1);
     expect(ladderIndex('bogus')).toBe(0);
+  });
+});
+
+describe('the pre-sourced policy shelf is sourced, dated, and layered (DR-0076/DR-0100)', () => {
+  it('every entry carries cite, gives, useIt, at least one source URL, and an asOf date', () => {
+    expect(POLICY_SHELF.length).toBeGreaterThanOrEqual(5);
+    const layerIds = POLICY_LAYERS.map((l) => l.id);
+    for (const p of POLICY_SHELF) {
+      expect(layerIds, `${p.id} layer`).toContain(p.layer);
+      for (const field of ['cite', 'name', 'gives', 'useIt']) {
+        expect(p[field] && p[field].length > 10, `${p.id} missing ${field}`).toBe(true);
+      }
+      expect(/^\d{4}-\d{2}-\d{2}$/.test(p.asOf), `${p.id} asOf not dated`).toBe(true);
+      expect(Array.isArray(p.sources) && p.sources.length >= 1, `${p.id} unsourced`).toBe(true);
+      for (const s of p.sources) {
+        expect(s.url && s.url.startsWith('https://'), `${p.id} source url`).toBe(true);
+        expect(s.label && s.label.length > 3, `${p.id} source label`).toBe(true);
+      }
+    }
+    const ids = POLICY_SHELF.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+  it('all three layers are populated — law, district, history', () => {
+    for (const l of POLICY_LAYERS) {
+      expect(POLICY_SHELF.some((p) => p.layer === l.id), `layer ${l.id} empty`).toBe(true);
+    }
+  });
+  it('the load-bearing statute names automatic enrollment and the parents-in-the-process requirement', () => {
+    const apa = POLICY_SHELF.find((p) => p.id === 'ps-accelerated-placement-act');
+    expect(apa.cite).toBe('105 ILCS 5/14A-32');
+    expect(apa.gives).toContain('AUTOMATIC ENROLLMENT');
+    expect(apa.gives).toContain('next most rigorous level');
+    expect(apa.gives.toLowerCase()).toContain('parents or guardians');
+  });
+  it('an unverified specific carries a verify note instead of an asserted claim', () => {
+    const issra = POLICY_SHELF.find((p) => p.id === 'ps-issra');
+    expect(issra.verify && issra.verify.length > 10).toBe(true);
+    expect(issra.gives).not.toMatch(/\b\d+\s*(school|business)\s*days\b.*inspect/i);
   });
 });
 

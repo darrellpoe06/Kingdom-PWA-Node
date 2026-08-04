@@ -55,6 +55,104 @@ export const ADVOCACY_VERSES = [
   },
 ];
 
+// --- The pre-sourced shelf: documented procedures to cite (Darrell 2026-08-04:
+// --- "presource the unit 4 policies and historical decisions for supporting
+// --- communications that allow us to have clarification on documented
+// --- procedures"). Three layers, each honestly labeled and dated (DR-0100):
+// ---   law      — statutes that bind the district regardless of local pages
+// ---   district — where the district's OWN policies and minutes live
+// ---   history  — documented decisions already on the public record
+// --- Every entry names its sources; anything not verified to the letter here
+// --- carries a `verify` note instead of an asserted specific (DR-0076).
+export const POLICY_SHELF = [
+  {
+    id: 'ps-accelerated-placement-act',
+    layer: 'law',
+    cite: '105 ILCS 5/14A-32',
+    name: 'Illinois Accelerated Placement Act — school district responsibilities',
+    gives: 'Every Illinois district MUST have an accelerated placement policy that (1) is open to all children who demonstrate high ability — not only those labeled gifted; (2) uses a fair and equitable decision-making process that involves multiple persons AND includes the student’s parents or guardians; (3) has procedures for notifying parents of a decision affecting their child’s participation; (4) uses an assessment process with multiple valid, reliable indicators. And by no later than the 2023–24 school year, the policy must allow AUTOMATIC ENROLLMENT into the next most rigorous level of advanced coursework for a student who meets or exceeds State standards in English language arts, math, or science on a State assessment.',
+    useIt: 'When a placement or advanced-course decision is made about your child without you, or without stated criteria, cite this: the decision process is required by state law to include the parents and to be communicated. If your child meets/exceeds on a state assessment, automatic enrollment in the next most rigorous course is the statutory default — ask in writing which provision of the district’s accelerated placement policy was applied. ISBE also collects accelerated-placement participation data disaggregated by demographic group — citable without any records request.',
+    sources: [
+      { label: 'ISBE — Accelerated Placement Act FAQ (PDF)', url: 'https://www.isbe.net/Documents/Accelerated-Placement-Act-FAQ.pdf' },
+      { label: 'Statute text (FindLaw)', url: 'https://codes.findlaw.com/il/chapter-105-schools/il-st-sect-105-5-14a-32/' },
+      { label: 'Article 14A (Justia)', url: 'https://law.justia.com/codes/illinois/chapter-105/act-105-ilcs-5/article-14a/' },
+    ],
+    asOf: '2026-08-04',
+  },
+  {
+    id: 'ps-issra',
+    layer: 'law',
+    cite: '105 ILCS 10 (ISSRA)',
+    name: 'Illinois School Student Records Act — your child’s records without FOIA',
+    gives: 'A parent (or the parent’s designated representative) has the right to inspect and copy ALL of their child’s permanent and temporary school records. This is a direct parental right — it does not go through FOIA. Parents may also challenge the accuracy of records, with an appeal path to the Regional Superintendent on a defined clock.',
+    useIt: 'Request your own child’s records (placement decisions, assessments, counselor notes that are student records) as an ISSRA request, in writing, addressed to the school — faster and broader for YOUR child than FOIA. Keep FOIA for records about the SYSTEM (rosters, seat counts, policies, aggregate data).',
+    sources: [
+      { label: 'ISSRA full text (Justia)', url: 'https://law.justia.com/codes/illinois/chapter-105/act-105-ilcs-10/' },
+    ],
+    asOf: '2026-08-04',
+    verify: 'The exact day-count for initial access is set by ISBE rule (23 Ill. Adm. Code 375) — confirm the current number before quoting a deadline in a letter.',
+  },
+  {
+    id: 'ps-foia',
+    layer: 'law',
+    cite: '5 ILCS 140 (FOIA)',
+    name: 'Illinois Freedom of Information Act — the system’s records',
+    gives: 'School districts are public bodies. Rosters, seat counts, enrollment criteria, policies, and communications about decisions are public records reachable by written request; denials must cite exemptions and are reviewable by the Attorney General’s Public Access Counselor.',
+    useIt: 'This fills the their-data tier: when the record shows a claim like “no open seats,” the seat counts and rosters that test the claim are FOIA-reachable. Name the records precisely and date-bound the request.',
+    sources: [
+      { label: 'Statute (ILGA)', url: 'https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=85' },
+    ],
+    asOf: '2026-08-04',
+  },
+  {
+    id: 'ps-oma',
+    layer: 'law',
+    cite: '5 ILCS 120 (Open Meetings Act)',
+    name: 'Open Meetings Act — the board’s decisions are public, and so is your voice',
+    gives: 'Board meetings, agendas, and minutes are public; the Act requires public bodies to provide an opportunity for public comment. Historical board decisions live in the published minutes.',
+    useIt: 'Minutes are the documented-decision archive — quote them as the board’s own words. Public comment is the on-the-record rung of the escalation ladder.',
+    sources: [
+      { label: 'Statute (ILGA)', url: 'https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=84' },
+    ],
+    asOf: '2026-08-04',
+  },
+  {
+    id: 'ps-unit4-policies',
+    layer: 'district',
+    cite: 'Unit 4 board policy manual + minutes (BoardDocs)',
+    name: 'Champaign Unit 4 — where the district’s own documented procedures live',
+    gives: 'Unit 4’s board policies, meeting agendas, and minutes are published on its public BoardDocs portal; the district’s accelerated placement procedures (early entrance, single-subject and whole-grade acceleration, the assessment battery) are documented on its own site; a Board Policy Committee maintains the manual.',
+    useIt: 'Before writing, pull the district’s OWN policy language and quote it back — “your published policy states…” is the strongest their-words evidence there is. These portals block automated tools; open them directly in a browser and save the policy as a dated document entry on the case.',
+    sources: [
+      { label: 'BoardDocs public portal (policies · agendas · minutes)', url: 'https://go.boarddocs.com/il/champil/Board.nsf/public' },
+      { label: 'Unit 4 — Accelerated Placement page', url: 'https://www.champaignschools.org/page/accelerated-placement' },
+      { label: 'Unit 4 — FOIA / Public Records page', url: 'https://www.champaignschools.org/page/foia-public-records' },
+      { label: 'Unit 4 — Board Policy Committee', url: 'https://www.champaignschools.org/resources/committees/board_policy_committee' },
+    ],
+    asOf: '2026-08-04',
+  },
+  {
+    id: 'ps-unit4-consent-decree',
+    layer: 'history',
+    cite: 'Johnson v. Board of Education (C.D. Ill.); consent decree 2002–2009',
+    name: 'Unit 4’s documented equity history — the consent decree covered gifted access',
+    gives: 'On the public record: a 1996 federal civil-rights complaint over unequal services for African-American students led to the Second Revised Consent Decree (signed January 29, 2002), which required Unit 4 to eliminate racial inequality in — among other areas — gifted and talented programs; the decree ended November 4, 2009; in 2019 the local ACLU and NAACP publicly documented that racial disparities had widened since. Court records and the district’s own monitoring reports are archived.',
+    useIt: 'This is context, not accusation: when raising access-to-advanced-coursework concerns, the district’s OWN documented history shows this exact class of disparity was serious enough for federal oversight — which is why written criteria, seat data, and demographic participation data are reasonable, historically grounded asks.',
+    sources: [
+      { label: 'Johnson v. Board of Ed. records, 1991–2009 (U. of I. archives)', url: 'https://archon.library.illinois.edu/ihlc/index.php?p=collections/controlcard&id=972' },
+      { label: 'Johnson v. Board of Ed., 188 F. Supp. 2d 944 (C.D. Ill. 2002)', url: 'https://law.justia.com/cases/federal/district-courts/FSupp2/188/944/2577035/' },
+      { label: 'Illinois Public Media, 2019 — ACLU/NAACP on post-decree equity', url: 'https://will.illinois.edu/news/story/champaign-aclu-naacp-call-out-lack-of-progress-on-racial-equity-in-unit-4-schools' },
+    ],
+    asOf: '2026-08-04',
+  },
+];
+
+export const POLICY_LAYERS = [
+  { id: 'law', label: 'The law that binds them' },
+  { id: 'district', label: 'Their own published procedures' },
+  { id: 'history', label: 'Documented history' },
+];
+
 // --- The three evidence tiers -------------------------------------------------
 export const EVIDENCE_TIERS = [
   {
