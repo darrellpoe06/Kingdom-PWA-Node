@@ -136,7 +136,7 @@ function allQuotedPairs() {
   }
   for (const v of FATHERS_AND_THE_SYSTEM.theWordRefusesBothLies) pairs.push({ ref: v.ref, fragment: v.fragment });
   const cb = CHILDREN_OF_BROKEN_HOMES;
-  for (const list of [cb.theIdentityFirst, cb.theFiveMechanisms, cb.theFourthDimensionalDesign]) {
+  for (const list of [cb.theIdentityFirst, cb.theFiveMechanisms, cb.theFourthDimensionalDesign, cb.whenParentsOpposeTheChild]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;
