@@ -10,8 +10,18 @@ set -e
 
 REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
 DIR="$REPO/infra/church-media-golive"
-STATE="$DIR/state"
+# State lives OUTSIDE the repo tree (proven run 30938520538: the bootstrap's
+# auto-stash swept the in-repo state/ — wrapper, attempts, marker — on every
+# mirror freshen, so each bootstrap amnesia'd the drainer; DR-0272/REV-0230).
+# /volume1/PoeTech/state is the fleet's standing state ground (cron log lives
+# there too). One-time migrate: adopt any surviving in-repo state, then leave
+# the old dir behind for the stash to keep.
+STATE="${POETECH_STATE:-/volume1/PoeTech/state}/church-media"
+OLD_STATE="$DIR/state"
 mkdir -p "$STATE"
+for f in choir-dates.DONE choir-dates.attempts.json yt-dlp; do
+  [ -e "$OLD_STATE/$f" ] && [ ! -e "$STATE/$f" ] && cp -p "$OLD_STATE/$f" "$STATE/$f" || true
+done
 
 if [ -f "$STATE/choir-dates.DONE" ]; then
   echo "choir-dates: backlog drained (marker present); no-op"

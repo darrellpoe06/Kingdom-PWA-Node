@@ -122,16 +122,68 @@ def fetch_dates(video_ids, time_budget_s):
     args = ["--skip-download", "--no-warnings", "--ignore-errors",
             "--print", "%(id)s\t%(release_timestamp,upload_date)s"]
     args += [f"https://www.youtube.com/watch?v={v}" for v in video_ids]
+    last_err = ""
     for cmd in (["yt-dlp"], [sys.executable, "-m", "yt_dlp"]):
         try:
             r = subprocess.run(cmd + args, capture_output=True, text=True, timeout=time_budget_s)
         except FileNotFoundError:
+            last_err = f"{cmd[0]}: not found"
             continue
         except subprocess.TimeoutExpired as e:
             return parse_print_lines(e.stdout or "")
         if r.stdout.strip() or r.returncode == 0:
             return parse_print_lines(r.stdout)
-    raise RuntimeError("yt-dlp not available (pip install yt-dlp)")
+        # A binary that runs but yields nothing is a DIFFERENT failure than a
+        # missing binary — surface its own words (run 30938520538 burned a
+        # diagnosis on a swallowed docker error; DR-0076 §8 provenance).
+        last_err = (r.stderr or "").strip()[-500:] or f"{cmd[0]}: rc={r.returncode}, no output"
+    raise RuntimeError(f"yt-dlp unavailable or failing — last error: {last_err}")
+
+
+# --- attempt tracking (honest terminal state; DR-0076 + DR-0272) --------------
+# A row whose video page yields nothing after EXHAUST_AFTER separate real
+# attempts (distinct runs, NAS residential IP) is treated as evidence-exhausted:
+# never dated by invention, never retried forever. The DONE marker documents
+# exactly which ids remain undateable and why, so the fleet returns to truthful
+# green while the rows themselves stay honestly NULL awaiting human knowledge
+# (the dated re-review carries that path — DR-0272).
+
+EXHAUST_AFTER = 3
+
+
+def load_attempts(text):
+    """attempts-file text -> {video_id: int}; anything unreadable -> {}."""
+    try:
+        d = json.loads(text or "{}")
+        return {k: int(v) for k, v in d.items()} if isinstance(d, dict) else {}
+    except (ValueError, TypeError):
+        return {}
+
+
+def bump_attempts(attempts, failed_ids):
+    """Pure: return a new dict with each failed id's count incremented."""
+    out = dict(attempts or {})
+    for v in failed_ids:
+        out[v] = out.get(v, 0) + 1
+    return out
+
+
+def split_exhausted(rows, attempts, limit=EXHAUST_AFTER):
+    """Partition chunk rows into (tryable, exhausted) by recorded attempts."""
+    tryable, exhausted = [], []
+    for r in rows:
+        (exhausted if (attempts or {}).get(r.get("video_id"), 0) >= limit else tryable).append(r)
+    return tryable, exhausted
+
+
+def done_marker_text(now_iso, exhausted_rows):
+    """The DONE marker documents what remains — unknown never reads as dated."""
+    lines = [now_iso]
+    if exhausted_rows:
+        lines.append(f"undateable after {EXHAUST_AFTER} real attempts (no page evidence; rows stay NULL):")
+        for r in exhausted_rows:
+            lines.append(f"  {r.get('video_id')}  {r.get('id')}")
+    return "\n".join(lines) + "\n"
 
 
 def emit(ok, processed, note):
@@ -162,6 +214,20 @@ def selftest():
     checks.append(("print-line parse keeps only dateable rows",
                    parse_print_lines("a1\t20231108\nb2\tNA\nnoise\nc3\t1702515600")
                    == {"a1": "2023-11-08", "c3": "2023-12-13"}))
+    checks.append(("attempts load survives garbage and coerces counts",
+                   load_attempts('{"a": 2, "b": "1"}') == {"a": 2, "b": 1}
+                   and load_attempts("not json") == {} and load_attempts(None) == {}))
+    checks.append(("attempt bump increments only the failed ids, purely",
+                   bump_attempts({"a": 2}, ["a", "b"]) == {"a": 3, "b": 1}
+                   and bump_attempts({}, []) == {}))
+    _rows = [{"id": "r1", "video_id": "a"}, {"id": "r2", "video_id": "b"}]
+    checks.append(("exhausted rows are split out at the limit, never retried",
+                   split_exhausted(_rows, {"a": EXHAUST_AFTER}) == ([_rows[1]], [_rows[0]])
+                   and split_exhausted(_rows, {"a": EXHAUST_AFTER - 1}) == (_rows, [])))
+    _marker = done_marker_text("2026-08-04T00:00:00+00:00", [_rows[0]])
+    checks.append(("done marker documents the undateable remainder, never a date",
+                   "a  r1" in _marker and "undateable" in _marker
+                   and done_marker_text("t", []) == "t\n"))
     ok = all(passed for _, passed in checks)
     for name, passed in checks:
         print(("PASS" if passed else "FAIL"), "-", name)
@@ -176,6 +242,7 @@ def main():
     ap.add_argument("--time-budget", type=int, default=300)
     ap.add_argument("--commit", action="store_true")
     ap.add_argument("--done-marker", default=None)
+    ap.add_argument("--attempts-file", default=None)
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -205,10 +272,29 @@ def main():
         emit(True, 0, "drained")
         return 0
 
+    att_path = Path(a.attempts_file) if a.attempts_file else (
+        Path(a.done_marker).parent / "choir-dates.attempts.json" if a.done_marker else None)
+    attempts = load_attempts(att_path.read_text()) if att_path and att_path.exists() else {}
+    tryable, exhausted = split_exhausted(rows, attempts)
+
+    if not tryable:
+        # Every remaining undated row is evidence-exhausted: the drain is as
+        # complete as machine evidence allows. Document the remainder in the
+        # marker (never invent a date) and return the fleet to truthful green.
+        print(f"choir-dates: backlog drained to evidence limits — {len(exhausted)} row(s) undateable "
+              f"after {EXHAUST_AFTER} attempts each ({', '.join(r.get('video_id') or '?' for r in exhausted)}); "
+              "rows stay NULL awaiting human knowledge (DR-0272 re-review).")
+        if a.done_marker and a.commit:
+            Path(a.done_marker).parent.mkdir(parents=True, exist_ok=True)
+            Path(a.done_marker).write_text(
+                done_marker_text(datetime.now(timezone.utc).isoformat(), exhausted))
+        emit(True, 0, f"drained to evidence limits; {len(exhausted)} undateable")
+        return 0
+
     t0 = time.monotonic()
-    dates = fetch_dates([r["video_id"] for r in rows], a.time_budget)
+    dates = fetch_dates([r["video_id"] for r in tryable], a.time_budget)
     dated = 0
-    for r in rows:
+    for r in tryable:
         d = dates.get(r["video_id"])
         if not d:
             continue
@@ -219,13 +305,21 @@ def main():
                  body=patch_for(r, d))
         dated += 1
     took = round(time.monotonic() - t0, 1)
+    failed = [r["video_id"] for r in tryable if r["video_id"] not in dates]
+    if failed and att_path and a.commit:
+        att_path.parent.mkdir(parents=True, exist_ok=True)
+        att_path.write_text(json.dumps(bump_attempts(attempts, failed)))
     mode = "committed" if a.commit else "DRY-RUN (no writes; pass --commit)"
-    print(f"choir-dates: {mode} {dated} of {len(rows)} chunk rows in {took}s; backlog continues next cycle.")
-    emit(dated > 0, dated, f"{mode}; chunk {len(rows)}; {took}s")
+    print(f"choir-dates: {mode} {dated} of {len(tryable)} chunk rows in {took}s"
+          + (f" ({len(exhausted)} exhausted rows skipped)" if exhausted else "")
+          + "; backlog continues next cycle.")
+    emit(dated > 0, dated, f"{mode}; chunk {len(tryable)}; {took}s")
     if dated == 0:
-        # A whole chunk yielding nothing means the page read is blocked or the
-        # remainder is genuinely undateable — either way, say so RED (DR-0076).
-        print(f"choir-dates: dated 0 of {len(rows)} — page metadata unavailable; NOT marking done.", file=sys.stderr)
+        # A whole tryable chunk yielding nothing means the page read is blocked
+        # or the remainder is on its way to exhausted — say so RED (DR-0076);
+        # the attempts file above is what converts a permanent nothing into the
+        # documented terminal state instead of a forever-red loop.
+        print(f"choir-dates: dated 0 of {len(tryable)} — page metadata unavailable; NOT marking done.", file=sys.stderr)
         return 1
     return 0
 
