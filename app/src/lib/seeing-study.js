@@ -943,6 +943,14 @@ export const PLATFORM_BUILDOUT = [
     reReview: '2026-09-01',
   },
   {
+    id: 'pb-advocacy-outcomes',
+    name: 'Advocacy & Outcomes — getting successful results from schools and organizations (Habakkuk 2:2; Matthew 18:16; Amos 5:12)',
+    doctrine: 'Directed by Darrell 2026-08-04: the process of getting successful outcomes from schools and organizations is a PoeTech opportunity for users. The family proved it end-to-end (the 2024 case; this sitting produced the FOIA request, board comment, and evidentiary architecture in minutes): light-paper-data-escalation with truth AND grace. OPPORTUNITIES — the written-record discipline (threads documented, the light forced, John 3:20-21); a template library (public-records requests, board comments, escalation letters); the Matthew 18 escalation tracker with dates; the evidentiary sorter (witness-testimony vs records kept honest); an institutional found-faithfulness ledger (commitments logged, outcomes measured at fig-tree review dates); the AI clerking under the Word (drafting from the user’s facts in the user’s voice); the differentiator no other tool has — structural asks with no condemnation, the Test on every draft, advocacy that wins without curdling; Christiana’s case as the included proof and curriculum. CONSTRAINTS — NOT LEGAL ADVICE (bright line: process support never representation, counsel pointed to where stakes warrant); maximal privacy (children’s records and institutional disputes — RLS instance isolation, sovereign no-vendor posture); DR-0100 enforced in drafts (never let a user overclaim; witness vs records distinction structural); jurisdiction variance (public-records templates state-marked, never one-size); the tone guard (the platform must never become a rage amplifier — the grace-note is structural, not optional).',
+    builds: 'The Advocacy Case Manager: case files with documented threads, state-aware request templates, the dated escalation tracker, the evidentiary sorter, the institutional outcomes ledger, and Word-postured draft assistance.',
+    startingPoint: 'this sitting’s deliverables as the seed templates (the FOIA request + board comment shapes) + the guarded-gate playbook + RLS family-instance isolation + the Mind-of-Christ Test machinery',
+    reReview: '2026-09-01',
+  },
+  {
     id: 'pb-business-parity',
     name: 'Business parity — Issachar briefings (1 Chronicles 12:32; Luke 14:28; Proverbs 27:23)',
     doctrine: 'The same instruments for businesses: understanding of the times flowing into what to do — count-the-cost sheets before commitments, flock-state dashboards on real operating data.',
@@ -1051,17 +1059,19 @@ export const WHOLE_PERSON_WHOLE_HOUSE = {
 
 // =============================================================================
 // EDUCATION FOR WEIGHT — a lesson captured 2026-08-04. ATTRIBUTION KEPT
-// HONEST (the study's own rule for AI voices): the statement below was
-// GEMINI-DRAFTED text Darrell brought from another channel and adopted as
-// lesson input — "Education should do more than produce good grades; it
-// should prepare young people for the responsibilities they will carry into
-// adulthood, family life, work, and community... children who can think
-// clearly, endure challenge, make disciplined choices, and understand that
-// effort matters more than appearances. When schools steer students toward
-// easier paths simply to protect GPA, they may protect a number, but they
-// risk weakening the deeper purpose of education." The AI's philosophy is
-// weighed like any voice and stands here only where the Word grounds it —
-// and the Word grounds every clause.
+// HONEST (corrected by Darrell same sitting: "not gemini provenance my
+// conversation with that llm"): the statement below came from DARRELL'S OWN
+// CONVERSATION with an LLM (Gemini) — his convictions and direction, with the
+// model as the drafting clerk (the AI-under-the-Word doctrine: instrument,
+// never the Voice) — brought here as HIS lesson input: "Education should do
+// more than produce good grades; it should prepare young people for the
+// responsibilities they will carry into adulthood, family life, work, and
+// community... children who can think clearly, endure challenge, make
+// disciplined choices, and understand that effort matters more than
+// appearances. When schools steer students toward easier paths simply to
+// protect GPA, they may protect a number, but they risk weakening the deeper
+// purpose of education." His teaching, machine-assisted in the drafting — and
+// the Word grounds every clause.
 // =============================================================================
 export const EDUCATION_FOR_WEIGHT = {
   declared: 'The goal is not children who can pass classes but children who can think clearly, endure challenge, make disciplined choices, and understand that effort matters more than appearances — ready to carry adulthood, family, work, and community with honesty and competence. Protecting a GPA by steering students off hard paths protects a number and weakens a person: the purpose, not the proxy, is what education must protect.',
@@ -1135,6 +1145,86 @@ export const EDUCATION_FOR_WEIGHT = {
   },
 };
 
+// =============================================================================
+// THE TWO GATES — Darrell's capstone question, same sitting: "How does a
+// Christiana education experience and the prison industry work together to
+// clarify the situation even more thoroughly?" The sitting's two ends joined:
+// not two subjects but two gates of ONE pipeline, each making the other
+// fully legible.
+// =============================================================================
+export const THE_TWO_GATES = {
+  sameMechanismOppositeDirections: [
+    { ref: 'Amos 5:12', fragment: 'they turn aside the poor in the gate from their right', note: 'ONE VERSE COVERS BOTH GATES because the Word named the MECHANISM, not the industry: the prison system’s gates pull certain populations IN (beds funding towns, labor producing billions, calls billed by the minute — bodies as inventory); the tech-education gate keeps the same populations OUT (steered away from classes sitting on open seats, out of the 3%). One gate turns people INTO inventory; the other turns them ASIDE FROM opportunity. Both run the sitting’s incentive analysis: deliberate construction, self-sustaining maintenance, no conspiracy required, no deterministic review ever installed.' },
+    { ref: 'Ezekiel 34:4', fragment: 'neither have ye brought again that which was driven away', note: 'BOTH ENDS INDICTED IN ONE VERSE: "The diseased have ye not strengthened" — the failing student left in AP for years — "neither have ye brought again that which was driven away" — the steered-out student never recruited back to the open seats. Same shepherds, feeding the same metrics, at both gates.' },
+  ],
+  thePipelineReading: [
+    { ref: 'Isaiah 61:1', fragment: 'and the opening of the prison to them that are bound', note: 'WHY AN ELECTIVE CARRIES ETERNAL STAKES: the child steered off the high-agency track at fourteen is statistically routed toward the system that monetizes the outcome at twenty-four — the cooking-class default and the prison bed are one economics at two life stages (the near gate under-develops the talent; the far gate extracts from the body). The corpus measurement (captivity-language 229, liberty 27) is the Word spending its ink on the prison so liberty lands with weight — and the joined lesson shows WHERE LIBERTY IS CHEAPEST: the opening of the prison begins in ninth-grade course selection. Liberty at enrollment costs a written email; liberty at the far gate costs constitutional amendments and $1.5B ballot fights. Same jubilee — radically different price by gate.' },
+  ],
+  theSharedAntidote: [
+    { ref: 'Matthew 25:15', fragment: 'to every man according to his several ability', note: 'THE ANTIDOTE IS THE SAME PLAYBOOK, PROVEN AT BOTH SCALES: the prison lesson explains what the education gate FEEDS (the stakes); Christiana’s case proves the transformation method WORKS in miniature, on the record — light, paper, data, escalation, and sovereign supply opened in days what verbal asking never opened. The far system buries other people’s talents at industrial scale; the near-gate fight refuses the burial early, while it costs an email instead of an amendment. And the Joseph doctrine binds it (Genesis 39:5): one girl in the JavaScript room becomes the 3%’s testimony, one family’s documented fight becomes every family’s curriculum, one intercepted child is the pipeline’s loss and the Kingdom’s gain — open the classroom gate now, and the prison gate loses its supply.' },
+  ],
+};
+
+// =============================================================================
+// FATHERS AND THE SYSTEM — Darrell's data challenge, same sitting: "if most
+// African Americans are from fatherless homes... I'm not sure that's true
+// anymore... research and explain the situations that this system perpetually
+// keeps and their impacts." Verified by live search 2026-08-04; every claim
+// tiered per DR-0100.
+// =============================================================================
+export const FATHERS_AND_THE_SYSTEM = {
+  theDataTiered: 'TIER 1, THE HOUSEHOLD STATISTIC (verified 2026-08-04): ~63-66% of Black children live in single-parent households; ~38% with married parents + ~4% cohabiting (~42% two-parent) — vs ~73% married-parent for white children (Census-based, 2024-2025 figures; no clear rising trend found — stated honestly). TIER 1, THE INVOLVEMENT DATA THAT BREAKS THE CARICATURE: CDC national fatherhood data found Black fathers the MOST involved dads in America in daily hands-on care — 70% of resident Black fathers in daily physical care (vs 60% white, 45% Hispanic), and NONRESIDENT Black fathers matching or exceeding every other group (nearly half playing several times weekly; 41-42% providing meals and physical care). THE PRECISION THAT MATTERS: out-of-household is common; out-of-life is the overclaim — repeating "fatherless" without that distinction bears false witness against millions of present fathers ("Thou shalt not raise a false report," Exodus 23:1).',
+  theRemovalMachinery: 'TIER 1, THE SYSTEM’S DOCUMENTED ENGINES: by age 17, 24% of Black children experience parental incarceration vs 4% of white children — a six-fold disparity (Sentencing Project): the far gate is a father-removal machine, and you cannot remove that many fathers through the prison gate and then attribute the household structure to culture. The policy architecture predates and compounds it: the historical AFDC man-in-the-house rules conditioned survival benefits on the father’s ABSENCE (deliberate construction — "that write grievousness which they have prescribed," Isaiah 10:1), and child-support arrears enforcement (license suspensions, jailing for debt) documented as pushing low-income fathers underground rather than into the home. THE GENERATIONAL LOOP the system perpetually keeps: father incarcerated → income and stability down → school outcomes down → near-gate steering vulnerability up → far-gate risk up — the two gates feeding each other ACROSS GENERATIONS.',
+  theWordRefusesBothLies: [
+    { ref: 'Exodus 23:1', fragment: 'Thou shalt not raise a false report', note: 'The caricature that erases involved Black fathers is FALSE WITNESS — and the denial of the documented structural removals is the other under-claiming lie (DR-0100 cuts both ways). Name the decrees that scattered the families (Isaiah 10:1-2); honor the fathers the data shows present.' },
+    { ref: 'Psalm 68:5', fragment: 'A father of the fatherless, and a judge of the widows, is God in his holy habitation', note: 'THE FATHER’S OWN ANSWER —' },
+    { ref: 'Psalm 68:6', fragment: 'God setteth the solitary in families: he bringeth out those which are bound with chains', note: '— and the verse answers BOTH GATES IN ONE BREATH: family-setting and prisoner-release together. With Malachi 4:6’s turned hearts, this is the church-as-family mission the platform serves: family-infrastructure for exactly the households this system engineered against.' },
+  ],
+};
+
+// =============================================================================
+// CHILDREN OF BROKEN HOMES — Darrell's practical question, same sitting:
+// "Helping kids successfully navigate their own situations how can we do that
+// with broken homes?" The Word runs a complete program, with named case
+// studies — the broken-home heroes as curriculum.
+// =============================================================================
+export const CHILDREN_OF_BROKEN_HOMES = {
+  theIdentityFirst: [
+    { ref: 'Psalm 27:10', fragment: 'When my father and my mother forsake me, then the LORD will take me up', note: 'THE CHILD’S OWN VERSE, first person, for the worst case — and Yahweh SELF-ASSIGNS the vacancy (Psalm 68:5-6): the child from the broken home is not an exception to the design but a named category with a named Father.' },
+    { ref: 'Ezekiel 18:20', fragment: 'The son shall not bear the iniquity of the father', note: 'SEVER GENERATIONAL FATALISM OUT LOUD — the child must hear, in plain words, that a father’s absence, addiction, or incarceration is not their inheritance, identity, or sentence. The Word cuts that chain in one verse; teach it early and often.' },
+  ],
+  theFiveMechanisms: [
+    { ref: '2 Timothy 1:5', fragment: 'which dwelt first in thy grandmother Lois, and thy mother Eunice', note: '1. THE MOTHER-AND-GRANDMOTHER LINE IS A COMPLETE TRANSMISSION SYSTEM — Timothy, the Bible’s own split-home case study, became Paul’s greatest son on the faith of one grandmother and one mother. A broken home with one faithful woman in it is not a broken transmission line.' },
+    { ref: '1 Corinthians 4:15', fragment: 'yet have ye not many fathers', note: '2. THE CHURCH SUPPLIES THE FATHERS — Paul names the shortage and models deliberate spiritual fathering. Operationally: every fatherless kid gets a NAMED, consistent, godly man — not a program, a person. Mordecai is the pattern: he "took for his own daughter" the orphan Hadassah (Esther 2:7) — kinship-grade commitment raised a queen.' },
+    { ref: '2 Samuel 9:11', fragment: 'he shall eat at my table, as one of the king’s sons', note: '3. THE KING’S TABLE ERASES THE ORIGIN STORY — Mephibosheth: orphaned, disabled, hiding in Lo-debar, seated as a son. Belonging conferred, not earned: seat these kids at real tables on real rhythms (the Deuteronomy 6:7 moments extended to kids who don’t have them at home).' },
+    { ref: 'Ecclesiastes 4:12', fragment: 'and a threefold cord is not quickly broken', note: '4. THE PEER COHORT CARRIES WHAT ONE CHILD CANNOT — Daniel, removed from family entirely, thrived inside a three-friend cohort with shared convictions and a shared regimen (Daniel 1). Build the cohort deliberately: kids from broken homes navigating TOGETHER, with the daily practices scaled to their age.' },
+    { ref: 'Genesis 39:2', fragment: 'And the LORD was with Joseph, and he was a prosperous man', note: '5. THE PRESENCE OUTPERFORMS THE CIRCUMSTANCES — Joseph prospered IN the house of his slavery. The trajectory rides the Presence, not the household structure — and the involvement data means many of these kids have a present father OUTSIDE the household to honor and connect with: facilitate it, never write it off (Malachi 4:6 runs both directions, and many of those hearts are already turned).' },
+  ],
+  thePractical: 'The household-of-households runs it: the broken-home heroes taught as curriculum (Timothy, Esther, Joseph, Daniel, Mephibosheth — precedent AND outcomes); the whole-person supports (the Psalm 42 soul-liturgy so kids can name feelings; sleep, rhythm, Elijah-gentleness); the two-talent dignity scale and the education advocacy already built; the named mentor and the cohort connected; the nonresident father engaged wherever reachable. PoeTech’s deepest use case: family-of-families infrastructure — mentorship, tables, curriculum, rhythms — for the exact households the two-gates system engineered against.',
+  // Darrell's design directive, same sitting: "also using all the
+  // 4th-dimensional King Understanding for the Ways practical design
+  // solutions" — every practical mechanism above derived from the King's own
+  // altitude, not borrowed social-work frames.
+  theFourthDimensionalDesign: [
+    { ref: 'Revelation 1:8', fragment: 'which is, and which was, and which is to come', note: 'DESIGN FOR DESTINY, NOT DEFICIT — the King sees the child’s whole timeline at once (Isaiah 46:10): He already sees the Timothy, the Esther, the Joseph at the record’s end. Practical: curriculum and surfaces frame every child by destiny axes (Luke 2:52’s wisdom-stature-favour growth tracking), never by deficit labels — the platform’s language design carries the 4D reading of the child.' },
+    { ref: 'Malachi 3:16', fragment: 'and a book of remembrance was written before him', note: 'DESIGN FOR THE ETERNAL RECORD — every mentor hour, every table seat, every conversation is eternally booked ("I was in prison, and ye came unto me" logic extends to the fatherless visit). Practical: the family Book of Remembrance surface logs the sowing with Galatians 6:9 due-season horizons and fig-tree review dates on mentorship — sowing made visible so no mentor faints before the season.' },
+    { ref: 'Ecclesiastes 12:14', fragment: 'For God shall bring every work into judgment, with every secret thing', note: 'DESIGN WITH THE TWO COURTS — the child’s earthly verdicts (the school gate’s steering, a family court’s ruling, a father’s absence) are NOT the court of record. Practical: teach kids the two-courts doctrine early — it removes the shame-verdicts earthly systems stamp on them, and installs the dignity floor (the two-talent "Well done" graded per capacity, forever).' },
+    { ref: 'Genesis 50:20', fragment: 'ye thought evil against me; but God meant it unto good', note: 'DESIGN THE JOSEPH REFRAME — the broken home itself gets the 4D reading: not denial of the evil (Joseph names it — "ye thought evil against me") but the maximal-good weaving read over it (Romans 8:28; the leashed-devices doctrine). Practical: testimony curriculum where kids learn to tell their own story Joseph-style — the evil named, the meant-unto-good traced, the saving-of-much-people destiny claimed.' },
+    { ref: 'Hebrews 1:3', fragment: 'upholding all things by the word of his power', note: 'DESIGN ON THE KINGDOM OPERATING SYSTEM — the child is plugged into the sovereign-mesh network no outage touches ("by him all things consist," Colossians 1:17). Practical: the daily regimen as the boot sequence (the king’s own-copy reading, Deuteronomy 17:19, scaled to kids), and the Word MEMORIZED as offline-first resilience — the same architecture this platform runs on (the PWA’s offline-first design IS the discipleship metaphor: the Word carried within, no dependency on external uptime, so the child’s connection survives every household outage). And the design spec over all of it is Psalm 68:6 verbatim: He setteth the solitary IN FAMILIES — not in programs — and bringeth out the bound: belonging architecture and gate-opening, in one verse.' },
+  ],
+  // Darrell's hardest case, same sitting: "Father and mother against the
+  // child's best interests with or without knowing." The Word holds both
+  // modes, arms the child with a named navigator, and turns the community
+  // mechanisms protective.
+  whenParentsOpposeTheChild: [
+    { ref: 'Luke 23:34', fragment: 'for they know not what they do', note: 'WITHOUT KNOWING — the Word’s full category for sincere harm: the seemeth-right way (Proverbs 14:12) applies to parenting decisions, which is why every parent’s standing audit is Psalm 139:23-24 run over their parenting, and Proverbs 21:2’s every-way-right-in-his-own-eyes includes the parental eyes.' },
+    { ref: '1 Samuel 3:13', fragment: 'because his sons made themselves vile, and he restrained them not', note: 'WITH KNOWING — INCLUDING BY OMISSION: Eli judged not for what he did but for what he DECLINED to do while knowing. A parent who sees the harm and does not act sits in Eli’s seat.' },
+    { ref: 'Matthew 18:10', fragment: 'That in heaven their angels do always behold the face of my Father', note: 'THE CHILD’S HEAVENLY STANDING IS NOT NEGOTIABLE TO ANY PARENT — standing representation before the throne that outranks every earthly authority over them, parents included; and where harm crosses into danger, the millstone doctrine (Matthew 18:6) makes protection the community’s DUTY, not its option — Abigail’s mandate applied to a child.' },
+    { ref: '1 Samuel 19:2', fragment: 'Saul my father seeketh to kill thee: now therefore, I pray thee, take heed to thyself', note: 'THE CHILD’S NAMED NAVIGATOR — JONATHAN: a father actively working against what was right, and a son who did all three at once — stayed a faithful honoring son to the end (he died at Saul’s side), REFUSED to join the harm, and told the truth about it plainly without hatred. Honor without complicity: the child’s whole assignment in one figure.' },
+    { ref: 'Ephesians 6:1', fragment: 'Children, obey your parents in the Lord: for this is right', note: 'THE JURISDICTION CLAUSE — "in the Lord" is a boundary, not a flourish; and the ceiling above every human authority: "We ought to obey God rather than men" (Acts 5:29). A child never owes obedience INTO harm; they always owe honor — different debts, and teaching children to distinguish them is the skill. The mechanisms turn protective: the mentor as the Jonathan-adjacent truth-teller; the king’s table as the second household reality that lets a child recognize dysfunction as dysfunction; the cohort against navigating alone; the two-courts teaching removing the parents’ distorted verdicts from the child’s identity (Ezekiel 18:20 cutting BOTH directions — the child bears neither the father’s iniquity nor the father’s opinion of them); and Hezekiah-after-Ahaz, Josiah-after-Amon proving the pattern: one generation, under God, can be the break in the chain.' },
+  ],
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -1167,5 +1257,8 @@ export function buildSeeingStudy() {
     generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
     wholePersonWholeHouse: WHOLE_PERSON_WHOLE_HOUSE,
     educationForWeight: EDUCATION_FOR_WEIGHT,
+    theTwoGates: THE_TWO_GATES,
+    fathersAndTheSystem: FATHERS_AND_THE_SYSTEM,
+    childrenOfBrokenHomes: CHILDREN_OF_BROKEN_HOMES,
   };
 }

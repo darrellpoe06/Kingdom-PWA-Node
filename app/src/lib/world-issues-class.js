@@ -1465,7 +1465,7 @@ const PRISON_INDUSTRIAL_ISSUE = {
     title: 'part 1 of a series defining the Prison Industrial Complex, with an AI critical analysis and transformation plan brought alongside it',
     url: 'https://www.prisonpolicy.org/reports/pie2025.html',
     asOf: '2026-08-04',
-    note: 'Attribution kept honest by layer: the summary claims are the VIDEO’s argument; the "this fails because" critique and the three-point transformation plan are GEMINI’s analysis, brought by Darrell as lesson input. Both are voices to weigh, not verdicts to repeat — and an AI’s analysis gets no badge-credit: it is verified claim by claim like anyone else’s (the URL points to the primary data both layers lean on).',
+    note: 'Attribution kept honest by layer (corrected by Darrell 2026-08-04: the analysis came from HIS conversation with the LLM, not the model’s autonomous voice): the summary claims are the VIDEO’s argument; the "this fails because" critique and the three-point transformation plan came from Darrell’s own conversation with Gemini — his direction and convictions, the model as drafting clerk. Every layer is still weighed, never repeated as a verdict — and machine-assisted analysis gets no badge-credit: it is verified claim by claim like anyone else’s (the URL points to the primary data the layers lean on).',
   },
 
   // ---- STAGE 1 — THE CLAIMS: the video's, then the AI's, then the plan's. ----
