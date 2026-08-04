@@ -23,7 +23,7 @@ import {
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
   GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
   GENEROSITY_IN_THE_HOUSE, WHOLE_PERSON_WHOLE_HOUSE, EDUCATION_FOR_WEIGHT,
-  buildSeeingStudy,
+  THE_TWO_GATES, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -127,6 +127,10 @@ function allQuotedPairs() {
   for (const v of EDUCATION_FOR_WEIGHT.theWordGrounds) pairs.push({ ref: v.ref, fragment: v.fragment });
   const ed = EDUCATION_FOR_WEIGHT;
   for (const list of [ed.theActualProblem, ed.thePlacementGate, ed.theLayeredPedagogy, ed.perpetuallyLowGPA, ed.theStructuralDiagnosis, ed.theGuardedGate]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const tg = THE_TWO_GATES;
+  for (const list of [tg.sameMechanismOppositeDirections, tg.thePipelineReading, tg.theSharedAntidote]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

@@ -1137,6 +1137,26 @@ export const EDUCATION_FOR_WEIGHT = {
   },
 };
 
+// =============================================================================
+// THE TWO GATES — Darrell's capstone question, same sitting: "How does a
+// Christiana education experience and the prison industry work together to
+// clarify the situation even more thoroughly?" The sitting's two ends joined:
+// not two subjects but two gates of ONE pipeline, each making the other
+// fully legible.
+// =============================================================================
+export const THE_TWO_GATES = {
+  sameMechanismOppositeDirections: [
+    { ref: 'Amos 5:12', fragment: 'they turn aside the poor in the gate from their right', note: 'ONE VERSE COVERS BOTH GATES because the Word named the MECHANISM, not the industry: the prison system’s gates pull certain populations IN (beds funding towns, labor producing billions, calls billed by the minute — bodies as inventory); the tech-education gate keeps the same populations OUT (steered away from classes sitting on open seats, out of the 3%). One gate turns people INTO inventory; the other turns them ASIDE FROM opportunity. Both run the sitting’s incentive analysis: deliberate construction, self-sustaining maintenance, no conspiracy required, no deterministic review ever installed.' },
+    { ref: 'Ezekiel 34:4', fragment: 'neither have ye brought again that which was driven away', note: 'BOTH ENDS INDICTED IN ONE VERSE: "The diseased have ye not strengthened" — the failing student left in AP for years — "neither have ye brought again that which was driven away" — the steered-out student never recruited back to the open seats. Same shepherds, feeding the same metrics, at both gates.' },
+  ],
+  thePipelineReading: [
+    { ref: 'Isaiah 61:1', fragment: 'and the opening of the prison to them that are bound', note: 'WHY AN ELECTIVE CARRIES ETERNAL STAKES: the child steered off the high-agency track at fourteen is statistically routed toward the system that monetizes the outcome at twenty-four — the cooking-class default and the prison bed are one economics at two life stages (the near gate under-develops the talent; the far gate extracts from the body). The corpus measurement (captivity-language 229, liberty 27) is the Word spending its ink on the prison so liberty lands with weight — and the joined lesson shows WHERE LIBERTY IS CHEAPEST: the opening of the prison begins in ninth-grade course selection. Liberty at enrollment costs a written email; liberty at the far gate costs constitutional amendments and $1.5B ballot fights. Same jubilee — radically different price by gate.' },
+  ],
+  theSharedAntidote: [
+    { ref: 'Matthew 25:15', fragment: 'to every man according to his several ability', note: 'THE ANTIDOTE IS THE SAME PLAYBOOK, PROVEN AT BOTH SCALES: the prison lesson explains what the education gate FEEDS (the stakes); Christiana’s case proves the transformation method WORKS in miniature, on the record — light, paper, data, escalation, and sovereign supply opened in days what verbal asking never opened. The far system buries other people’s talents at industrial scale; the near-gate fight refuses the burial early, while it costs an email instead of an amendment. And the Joseph doctrine binds it (Genesis 39:5): one girl in the JavaScript room becomes the 3%’s testimony, one family’s documented fight becomes every family’s curriculum, one intercepted child is the pipeline’s loss and the Kingdom’s gain — open the classroom gate now, and the prison gate loses its supply.' },
+  ],
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -1169,5 +1189,6 @@ export function buildSeeingStudy() {
     generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
     wholePersonWholeHouse: WHOLE_PERSON_WHOLE_HOUSE,
     educationForWeight: EDUCATION_FOR_WEIGHT,
+    theTwoGates: THE_TWO_GATES,
   };
 }
