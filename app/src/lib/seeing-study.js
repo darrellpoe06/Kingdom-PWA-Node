@@ -943,6 +943,14 @@ export const PLATFORM_BUILDOUT = [
     reReview: '2026-09-01',
   },
   {
+    id: 'pb-advocacy-outcomes',
+    name: 'Advocacy & Outcomes — getting successful results from schools and organizations (Habakkuk 2:2; Matthew 18:16; Amos 5:12)',
+    doctrine: 'Directed by Darrell 2026-08-04: the process of getting successful outcomes from schools and organizations is a PoeTech opportunity for users. The family proved it end-to-end (the 2024 case; this sitting produced the FOIA request, board comment, and evidentiary architecture in minutes): light-paper-data-escalation with truth AND grace. OPPORTUNITIES — the written-record discipline (threads documented, the light forced, John 3:20-21); a template library (public-records requests, board comments, escalation letters); the Matthew 18 escalation tracker with dates; the evidentiary sorter (witness-testimony vs records kept honest); an institutional found-faithfulness ledger (commitments logged, outcomes measured at fig-tree review dates); the AI clerking under the Word (drafting from the user’s facts in the user’s voice); the differentiator no other tool has — structural asks with no condemnation, the Test on every draft, advocacy that wins without curdling; Christiana’s case as the included proof and curriculum. CONSTRAINTS — NOT LEGAL ADVICE (bright line: process support never representation, counsel pointed to where stakes warrant); maximal privacy (children’s records and institutional disputes — RLS instance isolation, sovereign no-vendor posture); DR-0100 enforced in drafts (never let a user overclaim; witness vs records distinction structural); jurisdiction variance (public-records templates state-marked, never one-size); the tone guard (the platform must never become a rage amplifier — the grace-note is structural, not optional).',
+    builds: 'The Advocacy Case Manager: case files with documented threads, state-aware request templates, the dated escalation tracker, the evidentiary sorter, the institutional outcomes ledger, and Word-postured draft assistance.',
+    startingPoint: 'this sitting’s deliverables as the seed templates (the FOIA request + board comment shapes) + the guarded-gate playbook + RLS family-instance isolation + the Mind-of-Christ Test machinery',
+    reReview: '2026-09-01',
+  },
+  {
     id: 'pb-business-parity',
     name: 'Business parity — Issachar briefings (1 Chronicles 12:32; Luke 14:28; Proverbs 27:23)',
     doctrine: 'The same instruments for businesses: understanding of the times flowing into what to do — count-the-cost sheets before commitments, flock-state dashboards on real operating data.',
