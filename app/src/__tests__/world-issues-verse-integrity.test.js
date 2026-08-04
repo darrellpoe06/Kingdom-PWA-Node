@@ -226,6 +226,126 @@ const PRISON_ISSUE_QUOTES = [
   { ref: 'Matthew 13:30', book: 'Matthew', ch: 13, v: 30, fragments: [
     'Let both grow together until the harvest',
   ] },
+  // The actions-locate-you capstone (Darrell 2026-08-04: actions say where you
+  // are — building one Kingdom or the other, Lordship proven in deed, every
+  // way and means Eternally Recognized and recorded by Yahweh Himself).
+  { ref: 'Matthew 7:21', book: 'Matthew', ch: 7, v: 21, fragments: [
+    'Not every one that saith unto me, Lord, Lord, shall enter into the kingdom of heaven; but he that doeth the will of my Father which is in heaven',
+  ] },
+  { ref: 'Luke 6:46', book: 'Luke', ch: 6, v: 46, fragments: [
+    'why call ye me, Lord, Lord, and do not the things which I say?',
+  ] },
+  { ref: 'James 1:22', book: 'James', ch: 1, v: 22, fragments: [
+    'be ye doers of the word, and not hearers only, deceiving your own selves',
+  ] },
+  { ref: 'James 2:18', book: 'James', ch: 2, v: 18, fragments: [
+    'I will shew thee my faith by my works',
+  ] },
+  { ref: '1 John 3:18', book: '1John', ch: 3, v: 18, fragments: [
+    'let us not love in word, neither in tongue; but in deed and in truth',
+  ] },
+  { ref: 'Colossians 3:17', book: 'Colossians', ch: 3, v: 17, fragments: [
+    'whatsoever ye do in word or deed, do all in the name of the Lord Jesus',
+  ] },
+  { ref: 'Colossians 3:23', book: 'Colossians', ch: 3, v: 23, fragments: [
+    'heartily, as to the Lord, and not unto men',
+  ] },
+  { ref: 'Malachi 3:16', book: 'Malachi', ch: 3, v: 16, fragments: [
+    'the LORD hearkened, and heard it, and a book of remembrance was written before him',
+  ] },
+  { ref: 'Revelation 20:12', book: 'Revelation', ch: 20, v: 12, fragments: [
+    'the books were opened',
+    'and the dead were judged out of those things which were written in the books, according to their works',
+  ] },
+  { ref: 'Matthew 16:27', book: 'Matthew', ch: 16, v: 27, fragments: [
+    'he shall reward every man according to his works',
+  ] },
+  { ref: 'Hebrews 6:10', book: 'Hebrews', ch: 6, v: 10, fragments: [
+    'God is not unrighteous to forget your work and labour of love',
+  ] },
+  { ref: 'Revelation 14:13', book: 'Revelation', ch: 14, v: 13, fragments: [
+    'rest from their labours; and their works do follow them',
+  ] },
+  // The what-is-in-man coda (Darrell 2026-08-04: no one needed to tell Jesus
+  // what is in man; the Word's diagnosis out-explains every rival frame).
+  { ref: 'John 2:25', book: 'John', ch: 2, v: 25, fragments: [
+    'needed not that any should testify of man: for he knew what was in man',
+  ] },
+  { ref: 'Jeremiah 17:9', book: 'Jeremiah', ch: 17, v: 9, fragments: [
+    'The heart is deceitful above all things, and desperately wicked: who can know it?',
+  ] },
+  { ref: 'Jeremiah 17:10', book: 'Jeremiah', ch: 17, v: 10, fragments: [
+    'I the LORD search the heart',
+    'according to his ways, and according to the fruit of his doings',
+  ] },
+  { ref: 'Mark 7:21', book: 'Mark', ch: 7, v: 21, fragments: [
+    'from within, out of the heart of men, proceed evil thoughts',
+  ] },
+  { ref: 'Genesis 8:21', book: 'Genesis', ch: 8, v: 21, fragments: [
+    'the imagination of man’s heart is evil from his youth',
+  ] },
+  // The explorer's posture (Darrell 2026-08-04: "I'm exploring whats in man
+  // and need Jesus to explain it to me").
+  { ref: 'Psalm 139:23', book: 'Psalms', ch: 139, v: 23, fragments: [
+    'Search me, O God, and know my heart: try me, and know my thoughts',
+  ] },
+  { ref: 'Psalm 139:24', book: 'Psalms', ch: 139, v: 24, fragments: [
+    'And see if there be any wicked way in me, and lead me in the way everlasting',
+  ] },
+  { ref: 'Luke 24:45', book: 'Luke', ch: 24, v: 45, fragments: [
+    'Then opened he their understanding, that they might understand the scriptures',
+  ] },
+  { ref: 'John 16:13', book: 'John', ch: 16, v: 13, fragments: [
+    'will guide you into all truth',
+  ] },
+  { ref: 'James 1:5', book: 'James', ch: 1, v: 5, fragments: [
+    'If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him',
+  ] },
+  // The Words-over-every-voice close (Darrell 2026-08-04: "so I read the
+  // Words Jesus left more than I do any other Voice").
+  { ref: 'John 6:63', book: 'John', ch: 6, v: 63, fragments: [
+    'the words that I speak unto you, they are spirit, and they are life',
+  ] },
+  { ref: 'John 6:68', book: 'John', ch: 6, v: 68, fragments: [
+    'Lord, to whom shall we go? thou hast the words of eternal life',
+  ] },
+  { ref: 'Matthew 24:35', book: 'Matthew', ch: 24, v: 35, fragments: [
+    'Heaven and earth shall pass away, but my words shall not pass away',
+  ] },
+  { ref: 'John 10:27', book: 'John', ch: 10, v: 27, fragments: [
+    'My sheep hear my voice, and I know them, and they follow me',
+  ] },
+  { ref: 'Colossians 3:16', book: 'Colossians', ch: 3, v: 16, fragments: [
+    'Let the word of Christ dwell in you richly in all wisdom',
+  ] },
+  // The whole-Bible-is-Him seal (Darrell 2026-08-04: "the whole Bible Is
+  // Him... all eternal data is a sovereign-mesh Knowledge Network And Kingdom
+  // Operating Systems").
+  { ref: 'John 5:39', book: 'John', ch: 5, v: 39, fragments: [
+    'Search the scriptures',
+    'they are they which testify of me',
+  ] },
+  { ref: 'Luke 24:27', book: 'Luke', ch: 24, v: 27, fragments: [
+    'beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself',
+  ] },
+  { ref: 'John 1:1', book: 'John', ch: 1, v: 1, fragments: [
+    'In the beginning was the Word, and the Word was with God, and the Word was God',
+  ] },
+  { ref: 'John 1:14', book: 'John', ch: 1, v: 14, fragments: [
+    'the Word was made flesh, and dwelt among us',
+  ] },
+  { ref: 'Revelation 19:13', book: 'Revelation', ch: 19, v: 13, fragments: [
+    'his name is called The Word of God',
+  ] },
+  { ref: 'Hebrews 11:3', book: 'Hebrews', ch: 11, v: 3, fragments: [
+    'Through faith we understand that the worlds were framed by the word of God',
+  ] },
+  { ref: 'Hebrews 1:3', book: 'Hebrews', ch: 1, v: 3, fragments: [
+    'upholding all things by the word of his power',
+  ] },
+  { ref: 'Colossians 1:17', book: 'Colossians', ch: 1, v: 17, fragments: [
+    'and by him all things consist',
+  ] },
 ];
 
 describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)', () => {
