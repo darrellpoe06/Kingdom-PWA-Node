@@ -21,6 +21,12 @@
       "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one."
     },
     {
+      "name": "funnel",
+      "install": "infra/nas-loops/loops/funnel-watchdog.sh",
+      "enabled": true,
+      "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) — the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1)."
+    },
+    {
       "name": "ytzero",
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
