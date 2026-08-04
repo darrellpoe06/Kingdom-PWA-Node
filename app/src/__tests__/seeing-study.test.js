@@ -18,7 +18,7 @@ import {
   measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
-  RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, buildSeeingStudy,
+  RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -78,6 +78,10 @@ function allQuotedPairs() {
   pairs.push({ ref: 'Colossians 1:16', fragment: 'visible and invisible' });
   pairs.push({ ref: '2 Corinthians 4:18', fragment: 'the things which are seen are temporal; but the things which are not seen are eternal' });
   pairs.push({ ref: 'Hebrews 11:1', fragment: 'the substance of things hoped for, the evidence of things not seen' });
+  const ca = COMPETENCE_AIM;
+  for (const list of [ca.theModelMen, ca.theCommandedCompetence, ca.theStudiedAnswer]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
   return pairs;
 }
 

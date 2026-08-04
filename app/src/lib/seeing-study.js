@@ -529,6 +529,35 @@ export const SWORD_AND_COUNSEL = {
   oneSentence: 'The sword in the family is His stated allegiance-sorter; the adversary’s devices swing on His leash inside His determinate counsel, with the guilt on the wicked hands and none of the evil authored by Him; and He weaves it all to the most possible Good because He is scoring past, present, and future simultaneously — already seeing the hundredfold and the world to come while the house is still at variance.',
 };
 
+// =============================================================================
+// THE COMPETENCE AIM — Darrell's word, same sitting: "we want to See these
+// higher level Thoughts Of The King and His Kingdom Operating Systems... to
+// be better comprehensively competent in conversations based on the
+// information and data so we can make data driven decision-making process for
+// our users and families." The seeing is not for spectating: its stated end
+// is OPERATIONAL COMPETENCE — the studied answer in every conversation, and
+// data-driven decisions for the household and everyone the platform serves.
+// The Word commands exactly this competence, by name.
+// =============================================================================
+export const COMPETENCE_AIM = {
+  theModelMen: [
+    { ref: '1 Chronicles 12:32', fragment: 'men that had understanding of the times, to know what Israel ought to do', note: 'ISSACHAR IS THE JOB DESCRIPTION: understanding of the times (the information and data) flowing directly into knowing WHAT TO DO (the decision) — for the whole family of Israel. Data-driven decision-making, named in the muster roll.' },
+    { ref: 'Daniel 1:20', fragment: 'he found them ten times better than all the magicians and astrologers', note: 'DANIEL IS THE BENCHMARK: comprehensively competent in the king’s own conversations — "in all matters of wisdom and understanding" — measured against every rival advisor and found TEN TIMES better, on tested performance, not claimed credentials.' },
+  ],
+  theCommandedCompetence: [
+    { ref: 'Luke 14:28', fragment: 'sitteth not down first, and counteth the cost', note: 'Jesus COMMANDS the data pass before the decision — the tower is costed before it is begun. Counting the cost is discipleship’s own arithmetic.' },
+    { ref: 'Proverbs 27:23', fragment: 'Be thou diligent to know the state of thy flocks', note: 'The household keeps METRICS by command — the state of the flocks known diligently, not assumed. Every real-data surface this platform builds is this verse operationalized.' },
+    { ref: 'Proverbs 24:3', fragment: 'Through wisdom is an house builded; and by understanding it is established', note: 'The build-stack for a house: wisdom → understanding → "And by knowledge shall the chambers be filled" (Proverbs 24:4) — knowledge is what furnishes the rooms.' },
+  ],
+  theStudiedAnswer: [
+    { ref: 'Proverbs 15:28', fragment: 'The heart of the righteous studieth to answer', note: 'CONVERSATIONAL COMPETENCE IS RIGHTEOUSNESS AT WORK: the righteous heart STUDIES before it answers — the pour-it-out mouth is the contrast, and it is not the righteous one.' },
+    { ref: 'Proverbs 22:21', fragment: 'That I might make thee know the certainty of the words of truth; that thou mightest answer the words of truth to them that send unto thee', note: 'The written counsels exist so the student can answer with CERTAINTY — verified truth, carried back to whoever asks. The verification doctrine is three thousand years old.' },
+    { ref: 'Colossians 4:6', fragment: 'that ye may know how ye ought to answer every man', note: 'EVERY man — the competence is comprehensive by command, and its tone is set ("with grace, seasoned with salt").' },
+    { ref: '1 Peter 3:15', fragment: 'be ready always to give an answer to every man that asketh you a reason of the hope that is in you', note: 'READY ALWAYS — a standing state of preparedness, with the reason carried, delivered "with meekness and fear."' },
+  ],
+  thePlatformRole: 'This is what the whole study has been building toward, and what this platform exists to serve: the higher Thoughts of the King (Isaiah 55:8-9) seen through His own Book and His recorded Ways, the Kingdom Operating Systems understood as systems, the real data measured and never painted (the corpus counts above; every live surface in the app), and the AI clerking under the Word — so that users and families sit down like Issachar with the times understood, cost their towers like disciples, know the state of their flocks from real numbers, study their answers like the righteous, and stand ready always — comprehensively competent in every conversation, making data-driven decisions inside His Ways. The seeing serves the deciding; the deciding serves the households; and the households serve the King.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -548,5 +577,6 @@ export function buildSeeingStudy() {
     howWeKnow: HOW_WE_KNOW,
     relationshipCircuit: RELATIONSHIP_CIRCUIT,
     swordAndCounsel: SWORD_AND_COUNSEL,
+    competenceAim: COMPETENCE_AIM,
   };
 }
