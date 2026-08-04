@@ -140,6 +140,92 @@ const PRISON_ISSUE_QUOTES = [
   { ref: 'Galatians 5:1', book: 'Galatians', ch: 5, v: 1, fragments: [
     'Stand fast therefore in the liberty wherewith Christ hath made us free',
   ] },
+  // The Kingdoms-war layer (Darrell 2026-08-04: the 3D operational friction is
+  // the surface of the war of Kingdoms — Light vs darkness, over humans and
+  // souls, Eternal Peace vs Death; the deficit is Knowledge; and the war is
+  // engineered macro and micro on both sides of the spectrum).
+  { ref: 'Ephesians 6:12', book: 'Ephesians', ch: 6, v: 12, fragments: [
+    'For we wrestle not against flesh and blood, but against principalities, against powers, against the rulers of the darkness of this world, against spiritual wickedness in high places',
+  ] },
+  { ref: 'John 1:5', book: 'John', ch: 1, v: 5, fragments: [
+    'the light shineth in darkness; and the darkness comprehended it not',
+  ] },
+  { ref: '2 Corinthians 4:4', book: '2Corinthians', ch: 4, v: 4, fragments: [
+    'the god of this world hath blinded the minds of them which believe not',
+    'the god of this world hath blinded the minds',
+  ] },
+  { ref: '2 Corinthians 4:6', book: '2Corinthians', ch: 4, v: 6, fragments: [
+    'God, who commanded the light to shine out of darkness, hath shined in our hearts, to give the light of the knowledge of the glory of God in the face of Jesus Christ',
+    'in our hearts',
+  ] },
+  { ref: '1 Peter 2:9', book: '1Peter', ch: 2, v: 9, fragments: [
+    'out of darkness into his marvellous light',
+  ] },
+  { ref: 'Acts 26:18', book: 'Acts', ch: 26, v: 18, fragments: [
+    'from darkness to light',
+  ] },
+  { ref: 'Romans 8:6', book: 'Romans', ch: 8, v: 6, fragments: [
+    'to be carnally minded is death; but to be spiritually minded is life and peace',
+  ] },
+  { ref: 'Isaiah 9:7', book: 'Isaiah', ch: 9, v: 7, fragments: [
+    'Of the increase of his government and peace there shall be no end',
+  ] },
+  { ref: 'Hosea 4:6', book: 'Hosea', ch: 4, v: 6, fragments: [
+    'My people are destroyed for lack of knowledge',
+  ] },
+  { ref: 'John 17:3', book: 'John', ch: 17, v: 3, fragments: [
+    'And this is life eternal, that they might know thee the only true God, and Jesus Christ, whom thou hast sent',
+    'this is life eternal, that they might know thee',
+  ] },
+  { ref: '2 Corinthians 10:4', book: '2Corinthians', ch: 10, v: 4, fragments: [
+    'the weapons of our warfare are not carnal, but mighty through God to the pulling down of strong holds',
+  ] },
+  { ref: '2 Corinthians 10:5', book: '2Corinthians', ch: 10, v: 5, fragments: [
+    'bringing into captivity every thought to the obedience of Christ',
+    'bringing into captivity every thought',
+  ] },
+  { ref: 'Deuteronomy 30:19', book: 'Deuteronomy', ch: 30, v: 19, fragments: [
+    'choose life, that both thou and thy seed may live',
+  ] },
+  { ref: 'Joshua 24:15', book: 'Joshua', ch: 24, v: 15, fragments: [
+    'as for me and my house, we will serve the LORD',
+  ] },
+  { ref: 'Psalm 127:1', book: 'Psalms', ch: 127, v: 1, fragments: [
+    'Except the LORD build the house, they labour in vain that build it',
+  ] },
+  { ref: 'Romans 12:2', book: 'Romans', ch: 12, v: 2, fragments: [
+    'be ye transformed by the renewing of your mind',
+  ] },
+  { ref: 'Deuteronomy 6:7', book: 'Deuteronomy', ch: 6, v: 7, fragments: [
+    'thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house',
+  ] },
+  // The sovereignty-and-fruits layer (Darrell 2026-08-04: Yahweh's Will is
+  // ultimately done; the tree of good-and-evil still fruits in our systems;
+  // the familiar evil fruit wars against the faithfulness of the Good Fruit).
+  { ref: 'Isaiah 46:10', book: 'Isaiah', ch: 46, v: 10, fragments: [
+    'My counsel shall stand, and I will do all my pleasure',
+  ] },
+  { ref: 'Matthew 6:10', book: 'Matthew', ch: 6, v: 10, fragments: [
+    'Thy kingdom come. Thy will be done in earth, as it is in heaven',
+  ] },
+  { ref: 'Genesis 50:20', book: 'Genesis', ch: 50, v: 20, fragments: [
+    'ye thought evil against me; but God meant it unto good',
+  ] },
+  { ref: 'Genesis 2:9', book: 'Genesis', ch: 2, v: 9, fragments: [
+    'the tree of knowledge of good and evil',
+  ] },
+  { ref: 'Matthew 7:17', book: 'Matthew', ch: 7, v: 17, fragments: [
+    'Even so every good tree bringeth forth good fruit; but a corrupt tree bringeth forth evil fruit',
+  ] },
+  { ref: 'Matthew 7:20', book: 'Matthew', ch: 7, v: 20, fragments: [
+    'Wherefore by their fruits ye shall know them',
+  ] },
+  { ref: 'Galatians 5:22', book: 'Galatians', ch: 5, v: 22, fragments: [
+    'the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith',
+  ] },
+  { ref: 'Matthew 13:30', book: 'Matthew', ch: 13, v: 30, fragments: [
+    'Let both grow together until the harvest',
+  ] },
 ];
 
 describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)', () => {
