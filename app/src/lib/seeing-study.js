@@ -320,6 +320,66 @@ export const MUDDIED_TO_CLEAR = {
   perspectiveProcessing: 'The assignment — "help all of us humans clearly See, using perspective-processing and other ways": perspective-processing is this platform’s existing machinery consecrated to that end — every side steelmanned before weighing (Proverbs 18:17), claims labeled and attributed, documented fact separated from interpretation, many perspectives processed honestly the way one human alone cannot — with AI doing the tireless clerk-work of gathering and juxtaposing the perspectives while His pure Word (Psalm 12:6) remains the settling Voice above them all. The machinery never replaces the Healer: it removes the mud WE added (additions, traditions, peddling), reports half-sight honestly, and brings every eye back to the One who alone restores sight to CLEARLY (Mark 8:25).',
 };
 
+// =============================================================================
+// THE ENDURING AND THE ABIDING — Darrell's question, same sitting: "Who does
+// The GodHead See us who endured as or are currently enduring and what is the
+// neurological and physical and nuance of the abiding in and not abiding in
+// The Way Of The Lord? Jesus's did not condemn the world however what do
+// have to do to be saved from what exactly." Answered from the Word only;
+// the body-science tier is handled per DR-0100 (established grain stated
+// plainly; granular neurotheology flagged as an active field, not settled).
+// =============================================================================
+export const ENDURING_AND_ABIDING = {
+  howTheGodheadSeesTheEndurer: {
+    summary: 'Not victims, not survivors — the Godhead’s titles for the endurer: of whom the world was not worthy; rich while still pressed; a son under the Father’s training; an heir being proven; an overcomer with a seat and a crown already assigned.',
+    verses: [
+      { ref: 'Hebrews 11:38', fragment: 'Of whom the world was not worthy', note: 'Yahweh’s verdict on His endurers: the WORLD failed THEM.' },
+      { ref: 'Revelation 2:9', fragment: 'I know thy works, and tribulation, and poverty, (but thou art rich)', note: 'The currently-enduring are seen in real time — and named RICH while the pressing is still happening.' },
+      { ref: 'Hebrews 12:7', fragment: 'If ye endure chastening, God dealeth with you as with sons', note: 'Endurance is read as sonship under a Father’s training, never abandonment.' },
+      { ref: 'Romans 8:17', fragment: 'joint-heirs with Christ; if so be that we suffer with him', note: 'The endurer is an heir being proven —' },
+      { ref: '1 Peter 1:7', fragment: 'much more precious than of gold that perisheth', note: '— and the tried faith itself is the treasure.' },
+      { ref: 'Revelation 2:10', fragment: 'be thou faithful unto death, and I will give thee a crown of life', note: 'The crown is already assigned,' },
+      { ref: 'Revelation 3:21', fragment: 'To him that overcometh will I grant to sit with me in my throne', note: 'the seat is already named,' },
+      { ref: 'Revelation 21:7', fragment: 'He that overcometh shall inherit all things', note: 'and the inheritance is total: "and he shall be my son."' },
+      { ref: 'James 1:12', fragment: 'Blessed is the man that endureth temptation', note: 'Blessed NOW, crowned THEN —' },
+      { ref: 'Matthew 24:13', fragment: 'he that shall endure unto the end, the same shall be saved', note: '— and endurance-to-the-end is the saved shape of a life.' },
+    ],
+  },
+  abidingPhysiology: {
+    summary: 'The Word’s claim is organic, not metaphorical: abiding is branch-in-vine CONNECTION and its fruit; not-abiding is withering. And the Word stated the body-side millennia before instruments could measure it — the merry heart as medicine, the broken spirit drying bones, unconfessed sin aging the frame — while practiced sin desensitizes ("past feeling" is literal habituation) and the stayed mind is kept in measurable peace.',
+    wordClaims: [
+      { ref: 'John 15:4', fragment: 'As the branch cannot bear fruit of itself, except it abide in the vine', note: 'Connection is the biology of fruit.' },
+      { ref: 'John 15:6', fragment: 'If a man abide not in me, he is cast forth as a branch, and is withered', note: 'Disconnection is desiccation — the not-abiding state has a physiology.' },
+      { ref: 'Proverbs 17:22', fragment: 'A merry heart doeth good like a medicine: but a broken spirit drieth the bones', note: 'Tier-1 plain (DR-0100): the inner state medicates or desiccates the body.' },
+      { ref: 'Proverbs 14:30', fragment: 'A sound heart is the life of the flesh: but envy the rottenness of the bones', note: 'Envy is named a skeletal disease.' },
+      { ref: 'Psalm 32:3', fragment: 'my bones waxed old through my roaring all the day long', note: 'Unconfessed sin carries a measured physical toll — stated ~3,000 years before psychosomatics.' },
+      { ref: 'Ephesians 4:19', fragment: 'Who being past feeling have given themselves over', note: '"Past feeling" is literal desensitization — response down-regulated by practice until conscience stops firing (with "the understanding darkened," Ephesians 4:18; Romans 1:21).' },
+      { ref: 'Isaiah 26:3', fragment: 'Thou wilt keep him in perfect peace, whose mind is stayed on thee', note: 'The stayed mind runs a kept-peace loop —' },
+      { ref: 'Philippians 4:7', fragment: 'the peace of God, which passeth all understanding, shall keep your hearts and minds', note: '— garrisoned hearts AND minds, the Word’s own two-organ claim.' },
+      { ref: 'Proverbs 3:8', fragment: 'It shall be health to thy navel, and marrow to thy bones', note: 'Abiding’s promised somatic yield.' },
+    ],
+    scienceTier: 'What is textbook is stated plainly (DR-0100 tier 1): the brain physically rewires along its repeated thoughts (experience-dependent neuroplasticity — the Word’s "renewing of your mind," Romans 12:2, names a real transformation); chronic fear and hostility run the stress system hot with real cardiovascular and immune cost (Hebrews 2:15’s lifelong bondage to the fear of death has a physiology); habituation to practiced wrong genuinely blunts response ("past feeling"). Where neurotheology gets granular — specific imaging claims about prayer states — the field is active, not settled: flagged narrowly (tier 2), never smeared over the Word’s own claims, which stand on their own record.',
+    nuance: 'The nuance of abiding: it is CONTINUOUS CONNECTION, not episodic performance — a branch is not in the vine at devotions and out of it at work. The daily regimen (Deuteronomy 17:19; the DAILY_SEEING_PRACTICE above) is how a branch stays in; the fruit is grown, not manufactured ("for without me ye can do nothing," John 15:5).',
+  },
+  notCondemnedButSaved: {
+    summary: 'Jesus did not come to condemn the world — because the condemnation already stood; He came to save out of it. Saved FROM: our sins themselves, sin’s wage of death and the second death, the wrath to come, the power of darkness, and this present evil world. The HOW is the jailer’s answer: repent, believe on the Lord Jesus Christ, confess Him — and the transfer is immediate: passed from death unto life.',
+    verses: [
+      { ref: 'John 3:17', fragment: 'For God sent not his Son into the world to condemn the world; but that the world through him might be saved', note: 'The mission stated by the Son Himself —' },
+      { ref: 'John 3:18', fragment: 'he that believeth not is condemned already', note: '— He adds no condemnation because the condemnation already stood; He came to save OUT of it (and "this is the condemnation, that light is come into the world, and men loved darkness rather than light," John 3:19).' },
+      { ref: 'Matthew 1:21', fragment: 'thou shalt call his name JESUS: for he shall save his people from their sins', note: 'Saved from: our sins themselves — His very name is the mission.' },
+      { ref: 'Romans 6:23', fragment: 'For the wages of sin is death; but the gift of God is eternal life through Jesus Christ our Lord', note: 'Saved from: sin’s wage — death, and the second death (Revelation 21:8).' },
+      { ref: '1 Thessalonians 1:10', fragment: 'even Jesus, which delivered us from the wrath to come', note: 'Saved from: the wrath to come (Romans 5:9).' },
+      { ref: 'Colossians 1:13', fragment: 'Who hath delivered us from the power of darkness', note: 'Saved from: the dark Kingdom’s power — translated into the Son’s.' },
+      { ref: 'Galatians 1:4', fragment: 'that he might deliver us from this present evil world', note: 'Saved from: this present evil world’s current.' },
+      { ref: 'Acts 16:31', fragment: 'Believe on the Lord Jesus Christ, and thou shalt be saved, and thy house', note: 'The HOW, answered to the jailer’s exact question — with the house in the promise.' },
+      { ref: 'Mark 1:15', fragment: 'repent ye, and believe the gospel', note: 'Repent and believe (baptized into it, Acts 2:38),' },
+      { ref: 'Romans 10:9', fragment: 'That if thou shalt confess with thy mouth the Lord Jesus, and shalt believe in thine heart that God hath raised him from the dead, thou shalt be saved', note: 'confessed with the mouth, believed in the heart,' },
+      { ref: 'John 6:29', fragment: 'This is the work of God, that ye believe on him whom he hath sent', note: 'compressed by Jesus to one sentence,' },
+      { ref: 'John 5:24', fragment: 'shall not come into condemnation; but is passed from death unto life', note: 'and the transfer is immediate and total. Then the believing one abides, the abiding one endures, and the enduring one is crowned.' },
+    ],
+  },
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -334,5 +394,6 @@ export function buildSeeingStudy() {
     analysis: SEEING_ANALYSIS,
     daily: DAILY_SEEING_PRACTICE,
     muddiedToClear: MUDDIED_TO_CLEAR,
+    enduringAndAbiding: ENDURING_AND_ABIDING,
   };
 }

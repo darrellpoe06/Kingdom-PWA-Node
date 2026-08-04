@@ -17,7 +17,7 @@ import {
   SEEING_STUDY_META, WAYS_OF_SEEING, QUALITATIVE_METHODS,
   measureBibleCorpus, PINNED_TERM_PATTERNS, PINNED_CORPUS_MEASUREMENTS,
   QUANTITATIVE_READINGS, SEEING_ANALYSIS, DAILY_SEEING_PRACTICE,
-  MUDDIED_TO_CLEAR, buildSeeingStudy,
+  MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -53,6 +53,10 @@ function allQuotedPairs() {
   for (const c of MUDDIED_TO_CLEAR.confession) pairs.push({ ref: c.ref, fragment: c.fragment });
   for (const c of MUDDIED_TO_CLEAR.theMuddying) pairs.push({ ref: c.ref, fragment: c.fragment });
   for (const c of MUDDIED_TO_CLEAR.theClearing) pairs.push({ ref: c.ref, fragment: c.fragment });
+  const e = ENDURING_AND_ABIDING;
+  for (const v of e.howTheGodheadSeesTheEndurer.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
+  for (const v of e.abidingPhysiology.wordClaims) pairs.push({ ref: v.ref, fragment: v.fragment });
+  for (const v of e.notCondemnedButSaved.verses) pairs.push({ ref: v.ref, fragment: v.fragment });
   return pairs;
 }
 
