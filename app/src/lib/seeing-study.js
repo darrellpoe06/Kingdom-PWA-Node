@@ -666,6 +666,7 @@ export const DOOR_THE_KING_KNOCKS_ON = {
     { ref: '2 Timothy 2:25', fragment: 'if God peradventure will give them repentance to the acknowledging of the truth', note: '— and read the mechanism carefully: the ACKNOWLEDGING is GIVEN BY GOD, "peradventure," on His schedule. The part of the work that is not working was never assigned to the husband.' },
     { ref: '1 Peter 2:23', fragment: 'but committed himself to him that judgeth righteously', note: 'COMMIT THE CASE UPWARD, as Jesus did with those who would not hear — the working levers are consistent conduct (1 Peter 3:1), kept honor (1 Peter 3:7), and petition to the Heart-Turner (Proverbs 21:1) — not another round.' },
     { ref: 'Philippians 1:6', fragment: 'he which hath begun a good work in you will perform it', note: 'HOPE WITH A WARRANT: the ways that words never changed, He changes — and He finishes what He starts.' },
+    { ref: 'Proverbs 20:6', fragment: 'Most men will proclaim every one his own goodness: but a faithful man who can find?', note: 'THE SEAL ON THE RECURRENCE (Darrell: "they will verbally say they will do better though... actions nevertheless are unchanged"): PROCLAIMED goodness is common as air; FOUND faithfulness (1 Corinthians 4:2’s audit word) is the rare thing — the Word states the ratio in advance so the steward stops being surprised by it, stops accepting the proclaimed currency, and prices everything in found-faithfulness data.' },
   ],
 };
 
@@ -818,6 +819,17 @@ export const GUARDING_THE_HOUSE = {
     { ref: 'Luke 13:9', fragment: 'And if it bear fruit, well: and if not', note: 'STAGE 3 — AT THE REVIEW DATE, JUDGED BY FRUIT IN WAYS NOT WORDS (the Matthew 21:30 rule: agreements do not count; changed ways count): if fruit, celebrate measurably and set the next season; if none, escalate the PROTECTION LEVEL, not the temperature — deeper structural separation inside the covenant, the watchman’s word renewed once, the case re-committed upward (1 Peter 2:23). Each stage on a Habakkuk clock: "the vision is yet for an appointed time" (Habakkuk 2:3) — appointed, not indefinite.' },
     { ref: 'Proverbs 22:3', fragment: 'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished', note: 'THE "BURN DOWN" QUESTION ANSWERED PLAINLY: not commanded to co-sign ruin — riding a foreseen trajectory into impact is the SIMPLE man’s path — and not released from the covenant by bad stewardship either: Abigail’s whole glory is that she did BOTH, stayed in covenant AND refused to let the house burn. The third way: covenant held, house guarded, timelines named, fruit inspected.' },
   ],
+  // Darrell's endgame question, same sitting: "What happens when you dont get
+  // transparency from the spouses... refuse to abide in financial freedom...
+  // then what." The Word's terminal answer — neither despair nor exit.
+  thenWhat: [
+    { ref: 'Matthew 18:17', fragment: 'let him be unto thee as an heathen man and a publican', note: 'THE ESCALATION PATH HAS A STATED END — AND IT IS A POSTURE CHANGE, NOT AN EXIT: read the ending by how Jesus treated heathens and publicans — loved them, ate at their tables, won some (Matthew the publican wrote this Gospel). A CATEGORY change for that domain: stop operating on the covenant-partnership assumption, start operating on the mission-field assumption — stop re-litigating weekly what is settledly refused, plan around the fact, keep every protection standing, keep loving them the way Jesus loved the not-yet-won.' },
+    { ref: 'Romans 12:18', fragment: 'If it be possible, as much as lieth in you, live peaceably with all men', note: 'YOUR RESPONSIBILITY HAS A BOUNDARY THE WORD ITSELF DRAWS — peace requires two; you are accountable only for your half ("as the Lord hath called every one, so let him walk," 1 Corinthians 7:17). The watchman spoke, the counselors were engaged, the ledger was offered in every wineskin, the trial was proposed: what lieth in you has been DONE, and the Word closes the account there.' },
+    { ref: 'Micah 7:7', fragment: 'Therefore I will look unto the LORD; I will wait for the God of my salvation: my God will hear me', note: 'THE MICAH PIVOT — WRITTEN FOR EXACTLY THIS HOUSE: the verse follows "a man’s enemies are the men of his own house" (Micah 7:6) IMMEDIATELY. "Therefore" — the canonical response to broken trust inside the house is a redirected gaze, not a surrendered hope: the waiting stays active (conduct, prayer, the Heart-Turner, Joel 2:25 never closed) but the EXPECTATION transfers from the spouse to the God who hears.' },
+    { ref: 'Colossians 3:24', fragment: 'Knowing that of the Lord ye shall receive the reward of the inheritance', note: 'YOUR STEWARDSHIP IS GRADED SOLO — where partnership was refused, faithful management is graded and rewarded by Him, in full ("do it heartily, as to the Lord," Colossians 3:23).' },
+    { ref: 'Matthew 6:20', fragment: 'where thieves do not break through nor steal', note: 'THE UNDRAINABLE ACCOUNT — one treasury no spouse’s ways can overspend, and everything done faithfully in the long trial is already deposited (Malachi 3:16; Hebrews 6:10).' },
+    { ref: 'Habakkuk 3:17', fragment: 'Although the fig tree shall not blossom', note: 'THE ALTHOUGH-YET ANTHEM — every economic hope in the verse fails, "Yet I will rejoice in the LORD, I will joy in the God of my salvation" (Habakkuk 3:18): joy decoupled from outcome by rehearsed decision — the final freedom the refusing spouse cannot touch, alongside the supplied peace (John 14:27) and the solo-graded inheritance.' },
+  ],
 };
 
 // =============================================================================
@@ -886,6 +898,14 @@ export const PLATFORM_BUILDOUT = [
     builds: 'One-tap export: the covenant, the ledger summary, the review history — a counselor-ready, data-driven brief for the pastor or financial counselor session.',
     startingPoint: 'finance data + the existing export/print patterns (curriculum markdown exports)',
     reReview: '2026-08-25',
+  },
+  {
+    id: 'pb-whole-person-support',
+    name: 'Whole-person support systems (1 Thessalonians 5:23 — spirit, soul, and body)',
+    doctrine: 'The psychological effects of household strain run the whole tripartite circuit, and the Word’s therapy stack is practicable: thought-capture (2 Corinthians 10:5 / Philippians 4:8), the Psalm 1 meditation rhythm, the Philippians 4:6 prayer-with-thanksgiving protocol, rest/sabbath rhythms (Mark 2:27; Psalm 127:2), and Elijah’s acute-care checklist — with every science claim tier-labeled per DR-0100.',
+    builds: 'Test drills and thought-capture practice, daily meditation rhythm support, the anxiety protocol as a guided practice, rest-rhythm nudges, and the acute-care (food-sleep-gentleness) checklist for the collapsed — riding the Mind-of-Christ machinery.',
+    startingPoint: 'the Mind-of-Christ Test machinery + the daily regimen surfaces + godhead-study seeds',
+    reReview: '2026-09-01',
   },
   {
     id: 'pb-business-parity',
@@ -966,6 +986,34 @@ export const GENEROSITY_IN_THE_HOUSE = {
   ],
 };
 
+// =============================================================================
+// WHOLE PERSON, WHOLE HOUSE — Darrell's question, same sitting: "how to help
+// the psychological effects on the body brain or soul body and spirit... how
+// this impacts the families... neuroplasticity and other science based
+// competency inside the lessons and our Ways... systems supporting users."
+// The Word's tripartite anthropology, the family cascade, and the science
+// held at DR-0100 honesty (textbook grain stated plainly; granular
+// neurotheology flagged as active).
+// =============================================================================
+export const WHOLE_PERSON_WHOLE_HOUSE = {
+  theDesign: [
+    { ref: '1 Thessalonians 5:23', fragment: 'your whole spirit and soul and body be preserved blameless', note: 'THE ANTHROPOLOGY IS TRIPARTITE AND THE PRESERVATION PRAYER IS SINGULAR — one prayer, three parts, no part optional. Chronic marital/financial strain is never "just emotional": the soul’s load runs down into the body (Psalm 32:3-4; Proverbs 17:22) and up into the spirit — and healing works the same circuit in reverse. Textbook chronic-stress physiology is the instrument-level readout of "a broken spirit drieth the bones" (tier 1, stated plainly).' },
+  ],
+  theScienceCompetency: [
+    { ref: 'Romans 12:2', fragment: 'be ye transformed by the renewing of your mind', note: 'NEUROPLASTICITY IS THE MECHANISM UNDER ROMANS 12:2 — "transformed" is a physical-change word, and experience-dependent plasticity is textbook: the brain rewires along whatever it repeatedly runs. The daily regimen is neurologically load-bearing.' },
+    { ref: 'Psalm 1:2', fragment: 'and in his law doth he meditate day and night', note: 'THE MEDITATION-TO-METABOLISM PIPELINE, stated as biology: "And he shall be like a tree planted by the rivers of water... his leaf also shall not wither" (Psalm 1:3).' },
+    { ref: '2 Corinthians 10:5', fragment: 'bringing into captivity every thought to the obedience of Christ', note: 'THOUGHT-CAPTURE PREDATES ITS MODERN COUSINS — with the Philippians 4:8 filter ("whatsoever things are true... think on these things"): a complete notice-test-capture-redirect discipline (the Mind of Christ machinery), and deliberate thought-selection is exactly what retrains rumination loops.' },
+    { ref: 'Philippians 4:6', fragment: 'but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God', note: 'THE ANXIETY PROTOCOL HAS A MEASURABLE SHAPE — input: prayer with gratitude; output: the garrisoned heart and mind (Philippians 4:7). Gratitude and meditative-prayer practices measurably lowering stress arousal is among the better-replicated findings (tier 1, with care); granular neurotheology stays flagged active (tier 2).' },
+    { ref: 'Nehemiah 8:10', fragment: 'for the joy of the LORD is your strength', note: 'JOY, REST, AND SABBATH ARE PHYSIOLOGY, NOT DECORATION — "so he giveth his beloved sleep" (Psalm 127:2, with sorrow-bread schedules named VAIN); "The sabbath was made for man" (Mark 2:27) — rest engineered FOR human biology; Jesus prescribed it clinically: "Come ye yourselves apart... and rest a while" (Mark 6:31); Elijah’s food-sleep-gentleness protocol is the acute-care version.' },
+  ],
+  theFamilyCascade: [
+    { ref: 'Ephesians 6:4', fragment: 'provoke not your children to wrath: but bring them up in the nurture and admonition of the Lord', note: 'CHILDREN’S STRESS SYSTEMS CALIBRATE TO THE HOUSEHOLD’S CLIMATE (textbook developmental grain) — the atmosphere is a parenting instrument, and the training is mostly absorbed, not lectured ("Train up a child in the way he should go," Proverbs 22:6).' },
+    { ref: 'Proverbs 14:26', fragment: 'and his children shall have a place of refuge', note: 'THE STUNNING ONE: the parent’s own posture before Yahweh IS the children’s shelter — a parent who runs the peace protocol, keeps the sun-down deadline, and guards their own soul is doing pediatric care.' },
+    { ref: 'John 14:27', fragment: 'Peace I leave with you, my peace I give unto you', note: 'THE KING’S OWN PEACE IS TRANSFERABLE PROPERTY — "not as the world giveth": the household’s regulation runs on a supplied peace, not a self-generated one.' },
+  ],
+  oneSentence: 'Spirit, soul, and body are one preserved unit — so the lessons carry the science honestly (neuroplasticity under Romans 12:2, thought-capture under 2 Corinthians 10:5, the gratitude-prayer protocol under Philippians 4:6-7, rest as engineered biology under Mark 2:27), the household climate is treated as pediatric care (Proverbs 14:26), and every practice runs on the supplied peace of John 14:27 — the whole person healed in the whole house.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -996,5 +1044,6 @@ export function buildSeeingStudy() {
     platformBuildout: PLATFORM_BUILDOUT,
     financialHealingProtocol: FINANCIAL_HEALING_PROTOCOL,
     generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
+    wholePersonWholeHouse: WHOLE_PERSON_WHOLE_HOUSE,
   };
 }
