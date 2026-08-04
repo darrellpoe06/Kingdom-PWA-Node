@@ -28,7 +28,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
-import { accessState } from './lib/access-gate.js';
+import { accessState, isPublicHost } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -146,7 +146,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages,
+  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -901,22 +901,6 @@ export const stripSeedScaffolding = (d) => {
 // not localhost / Tailscale-internal) must NEVER unlock Imported PII surfaces
 // regardless of localStorage state. Family accesses real data via Tailscale.
 // Returns true on any "public" host; default is SAFE (treat unknown as public).
-function isPublicHost() {
-  try {
-    if (typeof window === 'undefined') return true;
-    const host = window.location.hostname || '';
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return false;
-    if (host.startsWith('100.')) return false; // Tailscale CGNAT (100.64.0.0/10)
-    if (host.endsWith('.ts.net')) return false; // Tailscale magic DNS
-    if (host.endsWith('.local')) return false; // mDNS LAN
-    if (/^192\.168\./.test(host)) return false; // RFC1918 LAN
-    if (/^10\./.test(host)) return false; // RFC1918 LAN
-    return true; // poetech.us, *.vercel.app, anything else = PUBLIC
-  } catch (e) {
-    return true; // Fail closed.
-  }
-}
-
 // Initial view from the URL query. Supports deep-links like ?view=admin — the
 // footer "Admin" link's shareable target (Darrell opens https://poetech.us/?view=admin
 // on his phone to find the NAS dispatch-status URL). Unknown/absent param falls
@@ -932,7 +916,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4315,6 +4299,10 @@ ${THEME_CSS}
                 // 2026-07-04). Open to everyone; a PWA-native home for the circle
                 // when their old app shut down. Local-first, private to the device.
                 ['tvtime', <><UiIcon name="monitor" /> TV Time</>],
+                // Advocacy — the Case File: dated documentation of a student's
+                // (or anyone's) situations with an institution, so the family
+                // asks for help with the data already in hand (2026-08-04).
+                ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4873,6 +4861,15 @@ ${THEME_CSS}
         {view === 'tvtime' && (
           <SectionBoundary name="TV Time">
             <TVTime email={authSession?.user?.email || null} />
+          </SectionBoundary>
+        )}
+        {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
+            students and families document situations as they happen so the data
+            supporting their perspective is in hand when they ask for help.
+            Local-first; family-instance sync via advocacy_records (0132). */}
+        {view === 'advocacy' && (
+          <SectionBoundary name="Advocacy">
+            <AdvocacyCases />
           </SectionBoundary>
         )}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal

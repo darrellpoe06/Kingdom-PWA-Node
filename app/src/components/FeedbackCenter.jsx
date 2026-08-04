@@ -120,6 +120,7 @@ export const FEEDBACK_AREAS = [
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
     ['tvtime', 'TV Time · the friend-group show tracker + discussion (track · talk · laugh together · watch it through The Way)'],
+    ['advocacy', 'Advocacy · the Case File (dated documentation of situations with institutions · evidence tiers · escalation ladder · context pack)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "Darrell's Study · reflections / processing / cultural research (device-local)"],
