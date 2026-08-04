@@ -52,15 +52,29 @@ jobs:
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          # Run #1 (30869376840) taught two Synology facts: nvidia-smi is not
+          # on the non-login PATH (probe the @appstore package paths), and the
+          # docker socket denies dpoe's plain shell (fall back to sudo -n when
+          # the narrow grant covers it, else PROCESS-level observation via ps,
+          # which needs no socket at all). Every command remains read-only.
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
           echo "=== uptime / load ==="
-          $SSH 'uptime'
-          echo "=== GPU (nvidia-smi) ==="
-          $SSH 'nvidia-smi 2>&1 || echo "nvidia-smi unavailable (no GPU driver on PATH or driver down)"'
-          echo "=== running containers ==="
-          $SSH 'PATH=/usr/local/bin:$PATH; docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" 2>&1 | sort || true'
-          echo "=== exited containers (what stopped, and when) ==="
-          $SSH 'PATH=/usr/local/bin:$PATH; docker ps -a --filter status=exited --format "table {{.Names}}\t{{.Status}}" 2>&1 || true'
+          uptime
+          echo "=== GPU driver (proc — no PATH or root needed) ==="
+          cat /proc/driver/nvidia/version 2>/dev/null || echo "no /proc/driver/nvidia — NVIDIA kernel driver not loaded"
+          ls /proc/driver/nvidia/gpus 2>/dev/null && echo "^ GPUs enumerated by the driver" || true
+          echo "=== GPU (nvidia-smi, probed paths) ==="
+          NSMI=$(command -v nvidia-smi 2>/dev/null || ls /usr/local/bin/nvidia-smi /volume1/@appstore/NVIDIARuntimeLibrary/nvidia/bin/nvidia-smi /volume1/@appstore/*/bin/nvidia-smi 2>/dev/null | head -1)
+          if [ -n "$NSMI" ]; then "$NSMI" 2>&1 || $SUDO "$NSMI" 2>&1 || true; else echo "nvidia-smi binary not found on known Synology paths"; fi
+          echo "=== containers (docker, when the grant allows) ==="
+          $SUDO docker ps --format "table {{.Names}}\t{{.Status}}" 2>&1 || docker ps --format "table {{.Names}}\t{{.Status}}" 2>&1 || true
+          $SUDO docker ps -a --filter status=exited --format "table {{.Names}}\t{{.Status}}" 2>&1 || true
+          echo "=== GPU/AI service PROCESSES (no socket needed) ==="
+          ps aux 2>/dev/null | grep -iE "ollama|whisper|xtts|voice-studio|llama" | grep -v grep || echo "no ollama/whisper/xtts/voice-studio/llama processes running"
           echo "=== poetech systemd units ==="
-          $SSH 'systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -iE "poetech|ollama|whisper|voice" || echo "no matching units listed"'
+          systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -iE "poetech|ollama|whisper|voice" || echo "no matching units listed"
           echo "=== disk (the volume the services live on) ==="
-          $SSH 'df -h /volume1 2>&1 | tail -1'
+          df -h /volume1 2>&1 | tail -1
+          EOS
