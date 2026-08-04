@@ -1051,17 +1051,19 @@ export const WHOLE_PERSON_WHOLE_HOUSE = {
 
 // =============================================================================
 // EDUCATION FOR WEIGHT — a lesson captured 2026-08-04. ATTRIBUTION KEPT
-// HONEST (the study's own rule for AI voices): the statement below was
-// GEMINI-DRAFTED text Darrell brought from another channel and adopted as
-// lesson input — "Education should do more than produce good grades; it
-// should prepare young people for the responsibilities they will carry into
-// adulthood, family life, work, and community... children who can think
-// clearly, endure challenge, make disciplined choices, and understand that
-// effort matters more than appearances. When schools steer students toward
-// easier paths simply to protect GPA, they may protect a number, but they
-// risk weakening the deeper purpose of education." The AI's philosophy is
-// weighed like any voice and stands here only where the Word grounds it —
-// and the Word grounds every clause.
+// HONEST (corrected by Darrell same sitting: "not gemini provenance my
+// conversation with that llm"): the statement below came from DARRELL'S OWN
+// CONVERSATION with an LLM (Gemini) — his convictions and direction, with the
+// model as the drafting clerk (the AI-under-the-Word doctrine: instrument,
+// never the Voice) — brought here as HIS lesson input: "Education should do
+// more than produce good grades; it should prepare young people for the
+// responsibilities they will carry into adulthood, family life, work, and
+// community... children who can think clearly, endure challenge, make
+// disciplined choices, and understand that effort matters more than
+// appearances. When schools steer students toward easier paths simply to
+// protect GPA, they may protect a number, but they risk weakening the deeper
+// purpose of education." His teaching, machine-assisted in the drafting — and
+// the Word grounds every clause.
 // =============================================================================
 export const EDUCATION_FOR_WEIGHT = {
   declared: 'The goal is not children who can pass classes but children who can think clearly, endure challenge, make disciplined choices, and understand that effort matters more than appearances — ready to carry adulthood, family, work, and community with honesty and competence. Protecting a GPA by steering students off hard paths protects a number and weakens a person: the purpose, not the proxy, is what education must protect.',
