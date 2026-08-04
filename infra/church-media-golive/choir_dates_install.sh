@@ -24,22 +24,23 @@ fi
 # zipapp the system python3 runs directly — into state/ once, validated by
 # --version so a torn download can never be trusted. Idempotent: later cycles
 # hit the -x check (or the import, wherever a site install exists).
-# Download with python3's own urllib (proven present) — run 30909087355
-# showed the curl path failing in silence; python raises a traceback that
-# NAMES the failure (DNS, TLS, blocked CDN host) instead of a mute exit.
+# The NAS python is 3.8 and current yt-dlp needs >=3.10 (run 30910212723's
+# traceback), so yt-dlp runs inside a python:3.12-slim container instead —
+# docker is proven live on this NAS (ollama/ytzero run; this loop runs as
+# root). The wrapper below lands on PATH as `yt-dlp`, so choir_dates_sync.py's
+# existing lookup finds it unchanged. Fresh extractor every cycle (pip at
+# container start, ~20s of the 300s budget); the image itself caches locally.
 YTDLP="$STATE/yt-dlp"
 if ! python3 -c "import yt_dlp" 2>/dev/null && [ ! -x "$YTDLP" ]; then
-  echo "choir-dates: fetching standalone yt-dlp (one-time, via python3 urllib)"
-  python3 - "$YTDLP" <<'PYEOF'
-import sys, urllib.request
-url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
-urllib.request.urlretrieve(url, sys.argv[1])
-print("downloaded", url)
-PYEOF
+  echo "choir-dates: writing docker-backed yt-dlp wrapper (one-time)"
+  cat > "$YTDLP" <<'WRAPEOF'
+#!/bin/sh
+exec docker run --rm python:3.12-slim sh -c 'pip install --quiet yt-dlp >/dev/null 2>&1 && exec yt-dlp "$@"' ytdlp "$@"
+WRAPEOF
   chmod +x "$YTDLP"
   "$YTDLP" --version || {
     rm -f "$YTDLP"
-    echo "choir-dates: downloaded yt-dlp failed its --version check (output above)" >&2
+    echo "choir-dates: docker-backed yt-dlp failed its --version check (output above)" >&2
     exit 1
   }
 fi
