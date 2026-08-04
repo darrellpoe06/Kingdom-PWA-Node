@@ -24,13 +24,22 @@ fi
 # zipapp the system python3 runs directly — into state/ once, validated by
 # --version so a torn download can never be trusted. Idempotent: later cycles
 # hit the -x check (or the import, wherever a site install exists).
+# Download with python3's own urllib (proven present) — run 30909087355
+# showed the curl path failing in silence; python raises a traceback that
+# NAMES the failure (DNS, TLS, blocked CDN host) instead of a mute exit.
 YTDLP="$STATE/yt-dlp"
 if ! python3 -c "import yt_dlp" 2>/dev/null && [ ! -x "$YTDLP" ]; then
-  echo "choir-dates: fetching standalone yt-dlp (one-time)"
-  curl -fsSL -o "$YTDLP" https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-    && chmod +x "$YTDLP" && "$YTDLP" --version >/dev/null 2>&1 || {
+  echo "choir-dates: fetching standalone yt-dlp (one-time, via python3 urllib)"
+  python3 - "$YTDLP" <<'PYEOF'
+import sys, urllib.request
+url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+urllib.request.urlretrieve(url, sys.argv[1])
+print("downloaded", url)
+PYEOF
+  chmod +x "$YTDLP"
+  "$YTDLP" --version || {
     rm -f "$YTDLP"
-    echo "choir-dates: could not obtain a working yt-dlp (no module, no pip, download failed)" >&2
+    echo "choir-dates: downloaded yt-dlp failed its --version check (output above)" >&2
     exit 1
   }
 fi
