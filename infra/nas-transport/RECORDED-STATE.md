@@ -20,6 +20,7 @@ transport without reading this file, keeping every row true, and using `funnel`
 |---|---|---|---|
 | `/` | `http://127.0.0.1:5678` (n8n) | the LAST FEW un-migrated wires (thought, practice-growth, mark-noise, the dispatch-status reel); everything family-facing — photos, money — is ALREADY sovereign | **LEGACY, being removed to ZERO (DR-0218). No code in this repo restores or heals this row; it shrinks as each wire is cut over, then the row is deleted.** |
 | `/mcp` | `http://127.0.0.1:8795` (poetech-mcp.service) | the sovereign MCP server (DR-0244), read-only v1 | installed by services-sync run of 2026-07-30 (`services-sync: all services synced`, exit=0) |
+| `/nas-photos` | `http://127.0.0.1:8099` (poetech-photo-server.service) | the sovereign property/family/album photo server (DR-0268) — the same-origin Pages Function `/nas-photos/*` proxies here | intended state added 2026-08-03 (DR-0268 merge); actuated idempotently by `infra/nas-property-photos/install.sh` via services-sync; watched by the funnel-watchdog loop + site-health's outside-in probe. NOTE (honest history): the app cut photo reads over to this route 2026-07-01, but the mount was never recorded here and site-health's first-ever probe of the hop (2026-08-03 22:11/22:56) found the endpoint dark — this row + its actuator + its witnesses are the close. |
 
 ## Rules bound to this file
 
