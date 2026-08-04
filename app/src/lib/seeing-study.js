@@ -908,6 +908,51 @@ export const FINANCIAL_HEALING_PROTOCOL = {
   oneSentence: 'Come to yourself at the data, confess-and-forsake the process, order firstfruits first, run the widow’s inventory-sell-pay-live sequence on the debt, plan diligently and gather by labour little-by-little under counsel with review dates, swap the engine to contentment, keep the hand liberal — aimed at Agur’s sufficiency, not Babylon’s riches.',
 };
 
+// =============================================================================
+// GENEROSITY IN THE HOUSE — Darrell's question, same sitting: "How does
+// generosity and giving fit into the family financial ways." The keystone,
+// not the leftover: first in the flow by position, running on the
+// scatter-and-increase law, curing the very appetite diagnosed above, scaled
+// honestly in every season, and taught as the children's happiness doctrine.
+// =============================================================================
+export const GENEROSITY_IN_THE_HOUSE = {
+  theKeystone: [
+    { ref: 'Proverbs 3:9', fragment: 'Honour the LORD with thy substance, and with the firstfruits of all thine increase', note: 'GIVING IS FIRST IN THE FLOW, BY POSITION — its position is its meaning: the family’s standing confession that Yahweh owns the whole stream (Deuteronomy 8:18; Malachi 3:10’s prove-Me storehouse), and the seal on the Haggai 1:9 self-first leak. A family economy with giving at the top runs on different physics than one with giving at the bottom.' },
+  ],
+  theParadoxicalLaw: [
+    { ref: 'Luke 6:38', fragment: 'Give, and it shall be given unto you; good measure, pressed down, and shaken together, and running over', note: 'THE LAW THE SPREADSHEET CANNOT SEE — with Proverbs 11:24’s scattereth-yet-increaseth and withholding that "tendeth to poverty".' },
+    { ref: '2 Corinthians 9:6', fragment: 'he which soweth bountifully shall reap also bountifully', note: 'The sowing law stated as law —' },
+    { ref: 'Proverbs 28:27', fragment: 'He that giveth unto the poor shall not lack', note: '— with the no-lack warranty on the poor-directed gift,' },
+    { ref: '2 Corinthians 9:8', fragment: 'always having all sufficiency in all things, may abound to every good work', note: 'and the supply loop explicit: sufficiency is supplied FOR the abounding. The giving line is not an expense; it is the one budget line with a stated yield curve backed by His own word.' },
+  ],
+  theAppetiteCure: [
+    { ref: 'Proverbs 22:9', fragment: 'He that hath a bountiful eye shall be blessed', note: 'THE NEVER-SATISFIED EYE (Proverbs 27:20) HAS A NAMED OPPOSITE — same organ, retrained: overspending feeds the eye and leaves it hungrier; giving CONVERTS it from consumer to conduit, and the heart follows the treasure out the door toward the Kingdom (Matthew 6:21, now working FOR you). Giving belongs IN the healing protocol, not after it — the therapy, not the graduation prize.' },
+    { ref: '2 Corinthians 9:7', fragment: 'not grudgingly, or of necessity: for God loveth a cheerful giver', note: 'The heart mechanics commanded — "thine heart shall not be grieved when thou givest" (Deuteronomy 15:10): grudging giving misses the point AND the blessing attached to the cheerful kind.' },
+  ],
+  scaledHonestly: [
+    { ref: '2 Corinthians 8:12', fragment: 'it is accepted according to that a man hath, and not according to that he hath not', note: 'GIVING IS SCALED, NEVER SWITCHED OFF — the indebted or recovering family runs the widow’s-oil debt protocol WITH firstfruits intact and proportional generosity alive; the liberal hand never closes (Proverbs 11:25), because closing it "tendeth to poverty," the very thing being fought.' },
+    { ref: 'Mark 12:44', fragment: 'but she of her want did cast in all that she had', note: 'The widow’s mites establish that giving was never gated on abundance — and Jesus ranked her gift FIRST.' },
+  ],
+  theChildrensCurriculum: [
+    { ref: 'Acts 20:35', fragment: 'It is more blessed to give than to receive', note: 'THE SON’S OWN HAPPINESS FORMULA — taught at the Deuteronomy 6:7 rhythms as the family’s JOY, not its tax.' },
+    { ref: '1 Timothy 6:19', fragment: 'Laying up in store for themselves a good foundation against the time to come', note: 'Every gift routes to the King’s account ("lendeth unto the LORD," Proverbs 19:17; "ye have done it unto me," Matthew 25:40), is entered in the eternal record (Malachi 3:16), and lays up the family’s good foundation — worship, appetite-therapy, hedge, formation, and eternal deposit in one act.' },
+  ],
+  oneSentence: 'Giving sits first in the family’s flow as the confession of Whose the stream is, runs on the scatter-and-increase law the spreadsheet cannot see, retrains the never-satisfied eye into the bountiful one, scales to what the family hath without ever switching off, and teaches the children the Son’s own blessedness — every gift booked to the King’s account in the record that outlasts the ledger.',
+  // Darrell's sharpening, same sitting: "generous and giving however will not
+  // save or commit to good financial management in deed and actions that turn
+  // into data inside the next month's budget... where we can actually see the
+  // change... not theories." The partial-virtue case, and the Word's own
+  // measurable-trial template.
+  generousButUngoverned: [
+    { ref: 'Matthew 23:23', fragment: 'these ought ye to have done, and not to leave the other undone', note: 'THE RULE: ONE DONE VIRTUE NEVER OFFSETS AN UNDONE ONE — Jesus said it about people faithful in GIVING (tithing to the herb garden) while omitting weightier duties. He does not discount the tithing; He refuses the OFFSET. The generosity is real fruit, honored out loud and never weaponized — AND it cannot be tendered as payment for unmanaged flows (provision precedes, 1 Timothy 5:8).' },
+    { ref: '1 Corinthians 4:2', fragment: 'it is required in stewards, that a man be found faithful', note: 'FOUND — a verification word: faithfulness is something an audit discovers, not something a reputation asserts.' },
+    { ref: 'Matthew 25:19', fragment: 'the lord of those servants cometh, and reckoneth with them', note: 'THE MEASURABLE STANDARD IS THE WORD’S OWN — the talents parable ends in a DATA REVIEW, and the commendation is numeric fruit: "faithful over a few things" (Matthew 25:21). Heaven’s own performance review reads the ledger.' },
+    { ref: 'Proverbs 24:32', fragment: 'Then I saw, and considered it well: I looked upon it, and received instruction', note: 'THE ESTATE TESTIFIES VISIBLY — the slothful man’s field, grown over with thorns (Proverbs 24:30-31), is inspectable data about the management regardless of what the owner says about himself.' },
+    { ref: 'Daniel 1:12', fragment: 'Prove thy servants, I beseech thee, ten days', note: 'THE DANIEL TRIAL — the Word’s own template for "see the change, not theories": a short defined trial, specific behaviors, a hard deadline, an observable endpoint, and the deal-with-us-by-what-you-SEE clause ("Then let our countenances be looked upon... and as thou seest, deal with thy servants," Daniel 1:13) — and the data decided it ("at the end of ten days their countenances appeared fairer," Daniel 1:15).' },
+    { ref: 'Matthew 25:21', fragment: 'thou hast been faithful over a few things, I will make thee ruler over many things', note: 'APPLIED TO NEXT MONTH’S BUDGET: one month, two or three defined behaviors (automated margin untouched, spending inside the agreed liberty allowance, the giving line intact — honoring the real virtue), the actuals reviewed together at a named date (Luke 13:9), judged ways-not-words (Matthew 21:30). Data shows the change → commend it in the talents’ language and EXTEND trust (measured faithfulness biblically earns enlarged authority); data does not → the trial itself produced honest testimony (Proverbs 24:32), the protections hold, the Heart-Turner is petitioned — either way the theory war is over: the month speaks.' },
+  ],
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -937,5 +982,6 @@ export function buildSeeingStudy() {
     guardingTheHouse: GUARDING_THE_HOUSE,
     platformBuildout: PLATFORM_BUILDOUT,
     financialHealingProtocol: FINANCIAL_HEALING_PROTOCOL,
+    generosityInTheHouse: GENEROSITY_IN_THE_HOUSE,
   };
 }

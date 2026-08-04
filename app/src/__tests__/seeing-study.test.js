@@ -22,7 +22,7 @@ import {
   WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
   LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
   GUARDING_THE_HOUSE, PLATFORM_BUILDOUT, FINANCIAL_HEALING_PROTOCOL,
-  buildSeeingStudy,
+  GENEROSITY_IN_THE_HOUSE, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -115,6 +115,10 @@ function allQuotedPairs() {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   for (const v of FINANCIAL_HEALING_PROTOCOL.steps) pairs.push({ ref: v.ref, fragment: v.fragment });
+  const gen = GENEROSITY_IN_THE_HOUSE;
+  for (const list of [gen.theKeystone, gen.theParadoxicalLaw, gen.theAppetiteCure, gen.scaledHonestly, gen.theChildrensCurriculum, gen.generousButUngoverned]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
   return pairs;
 }
 
