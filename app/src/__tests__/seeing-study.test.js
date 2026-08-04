@@ -20,7 +20,8 @@ import {
   MUDDIED_TO_CLEAR, ENDURING_AND_ABIDING, USING_HIS_WAYS, HOW_WE_KNOW,
   RELATIONSHIP_CIRCUIT, SWORD_AND_COUNSEL, COMPETENCE_AIM,
   WALKING_IN_DISAGREEMENT, IRON_ON_IRON_DAILY, DOOR_THE_KING_KNOCKS_ON,
-  LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, buildSeeingStudy,
+  LONGSUFFERING_WITH_JOYFULNESS, FAMILY_TREASURY, STEWARDSHIP_ACCOUNTABILITY,
+  GUARDING_THE_HOUSE, buildSeeingStudy,
 } from '../lib/seeing-study.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
@@ -102,6 +103,14 @@ function allQuotedPairs() {
   }
   const ft = FAMILY_TREASURY;
   for (const list of [ft.theDiagnosis, ft.theDesign]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const sa = STEWARDSHIP_ACCOUNTABILITY;
+  for (const list of [sa.thePatternsNamed, sa.fromAccusationToInstrumentation]) {
+    for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
+  }
+  const gh = GUARDING_THE_HOUSE;
+  for (const list of [gh.theTrajectoryNamed, gh.theAbigailDoctrine, gh.whatTheSpouseDoes, gh.whatTheSpouseSays, gh.theHonestLimits]) {
     for (const v of list) pairs.push({ ref: v.ref, fragment: v.fragment });
   }
   return pairs;

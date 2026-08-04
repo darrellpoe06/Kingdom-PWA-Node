@@ -722,6 +722,66 @@ export const FAMILY_TREASURY = {
   oneSentence: 'Money is the marriage’s instrument panel, not its engine — so the Word’s procedure is one flesh/one economy, His ownership confessed first, trusted delegation on the Proverbs 31 pattern, commanded counting and provision, faithfulness-in-least as the shared exam — with the standing rule that the herbs-dinner with love beats the stalled ox with strife every time.',
 };
 
+// =============================================================================
+// STEWARDSHIP ACCOUNTABILITY — Darrell's situational analysis, same sitting:
+// accountability gated on "the belief that they are even wrong," transparency
+// resisted, blame shifted, "doing the best I can" beside frivolous spending
+// while margin payments are called unaffordable, opportunities missed while
+// the family can — "if the husband is pressuring the wife to conform to the
+// best financially stable relationship with financial management and vice
+// versa what does that look like." Both chairs under Proverbs 21:2; the
+// decisive move is from accusation to instrumentation.
+// =============================================================================
+export const STEWARDSHIP_ACCOUNTABILITY = {
+  thePatternsNamed: [
+    { ref: 'Proverbs 21:2', fragment: 'Every way of a man is right in his own eyes: but the LORD pondereth the hearts', note: 'THE ACCOUNTABILITY GATE IS THE OLDEST GATE — and it covers EVERY chair in the house, including the presser’s ("The way of a fool is right in his own eyes: but he that hearkeneth unto counsel is wise," Proverbs 12:15).' },
+    { ref: 'Revelation 3:17', fragment: 'Because thou sayest, I am rich, and increased with goods, and have need of nothing; and knowest not', note: 'THE LAODICEAN GAP between FELT enough ("I’m doing the best I can," "I’ve done enough") and MEASURED reality is a named biblical condition — self-assessment cannot audit itself (1 John 1:8).' },
+    { ref: 'Genesis 3:12', fragment: 'The woman whom thou gavest to be with me, she gave me of the tree, and I did eat', note: 'BLAME-SHIFTING IS EDENIC — the first recorded post-fall sentence; and self-justification has an audience problem: "Ye are they which justify yourselves before men; but God knoweth your hearts" (Luke 16:15).' },
+    { ref: 'John 3:20', fragment: 'neither cometh to the light, lest his deeds should be reproved', note: 'REFUSING TRANSPARENCY IS LIGHT-AVOIDANCE — "he that doeth truth cometh to the light, that his deeds may be made manifest" (John 3:21): submission to the ledger is the ordinary posture of anyone with nothing to hide; resistance to it is itself data.' },
+    { ref: 'Proverbs 21:20', fragment: 'but a foolish man spendeth it up', note: 'THE SPENDING PATTERN IS MEASURED IN PROVERBS — "He that loveth pleasure shall be a poor man" (21:17); the prodigal arc runs spend-all → famine → want (Luke 15:13-14). Frivolous outflow against a budget "that can’t support" margin is Proverbs 21:20 in a spreadsheet.' },
+    { ref: 'Proverbs 6:8', fragment: 'Provideth her meat in the summer', note: 'PROVISION HAS A SEASON — "while the family can" IS the summer (Proverbs 6:6-8); "A prudent man foreseeth the evil" (Proverbs 22:3) makes the month-ahead cushion and the nest egg that verse operationalized, with Joseph’s storehouse the doctrine at scale (Genesis 41:36) and the horizon "an inheritance to his children’s children" (Proverbs 13:22).' },
+  ],
+  fromAccusationToInstrumentation: [
+    { ref: 'Habakkuk 2:2', fragment: 'Write the vision, and make it plain upon tables, that he may run that readeth it', note: 'THE DECISIVE MOVE: change the WITNESS. A written budget covenant and shared ledger shift every conversation from "you’re wrong" (an accusation, resisted at the belief-gate) to "the table says" (a measurement, readable by anyone). Numbers don’t accuse; they testify — and no one must lose face to a spreadsheet the way they would to a spouse.' },
+    { ref: 'Haggai 1:5', fragment: 'Consider your ways', note: 'Haggai’s own method — and the platform’s finance surfaces exist for precisely this: the family’s instrument panel, so accountability attaches to MEASUREMENTS, not to winning arguments (the household version of measure-don’t-claim).' },
+    { ref: 'Matthew 18:16', fragment: 'take with thee one or two more, that in the mouth of two or three witnesses every word may be established', note: 'THE ESCALATION when one-on-one is exhausted — the godly financial counselor or pastor is the two-or-three-witnesses step ("in the multitude of counsellors there is safety," Proverbs 11:14): the same numbers that were "pressure" from a spouse become neutral facts from a counselor.' },
+    { ref: 'Proverbs 28:13', fragment: 'He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy', note: 'CONFESSION HAS A PROMISE ARGUMENT NEVER EARNS — mercy is on the far side of the transparency being resisted.' },
+  ],
+  theViceVersaGuards: 'The pressing chair runs the same audit (Proverbs 21:2 reads EVERY way as right in its owner’s eyes). Pressure must never curdle into bitterness (Colossians 3:19) or strife-loops (Proverbs 17:14; 2 Timothy 2:24-25); the goal is an agreed covenant, not conquest (Amos 3:3); the honor-condition on prayer holds precisely when hardest (1 Peter 3:7); and the standing rule stays senior — the herbs-dinner with love outranks the stalled ox (Proverbs 15:17): a won budget in a lost marriage is a failed audit in the eternal books. Pressing toward the best financially stable relationship is legitimate leadership (1 Timothy 5:8; Luke 14:28) — and stays legitimate only carried in the Christ-shape: self-giving first, ledger as witness, counselors as escalation, the Heart-Turner petitioned throughout (Proverbs 21:1).',
+  oneSentence: 'Move the contest out of belief-space into measurement-space — write the covenant plain on tables, let the ledger be the witness so no one must first confess to being wrong before the numbers can speak, escalate to two-or-three counselors rather than another round, seize the summer while it is summer — and let the pressing chair pass its own Proverbs 21:2 audit, keeping love senior to the balance sheet it fights for.',
+};
+
+// =============================================================================
+// GUARDING THE HOUSE — Darrell's hardest edge, same sitting: "If poverty is a
+// possibility because of bad ways that refuse to be governed... what does the
+// spouses do say." The Word names the trajectory plainly, supplies a
+// commended case study (Abigail), assigns the watchman's word, and draws the
+// honest limits.
+// =============================================================================
+export const GUARDING_THE_HOUSE = {
+  theTrajectoryNamed: [
+    { ref: 'Proverbs 6:11', fragment: 'So shall thy poverty come as one that travelleth, and thy want as an armed man', note: 'THE WORD DOES NOT SOFTEN IT — poverty from ungoverned ways arrives like an armed robber, on a schedule; "the drunkard and the glutton shall come to poverty" (Proverbs 23:21). Saying it plainly at the kitchen table is not cruelty — under-claiming a real oncoming harm is its own falsehood.' },
+  ],
+  theAbigailDoctrine: [
+    { ref: '1 Samuel 25:17', fragment: 'for he is such a son of Belial, that a man cannot speak to him', note: 'THE WORD’S CASE STUDY: a competent spouse married to ways that refused governing — the accountability gate, verbatim, three thousand years ago, with "evil determined against all his household."' },
+    { ref: '1 Samuel 25:18', fragment: 'Then Abigail made haste', note: 'SHE ACTED — real assets, within her own stewardship, WITHOUT waiting for Nabal’s agreement, to save the very house he endangered —' },
+    { ref: '1 Samuel 25:33', fragment: 'blessed be thy advice, and blessed be thou', note: '— and the Word’s verdict on her is BLESSING. The doctrine: protective action inside one’s God-given stewardship is faithfulness to the house, not rebellion against the spouse.' },
+  ],
+  whatTheSpouseDoes: [
+    { ref: 'Proverbs 31:27', fragment: 'She looketh well to the ways of her household', note: 'GUARD YOUR OWN LANE RELENTLESSLY — your diligence is your assignment regardless of theirs (Joseph stored during plenty regardless of Egypt’s habits, Genesis 41:36).' },
+    { ref: 'Malachi 3:10', fragment: 'Bring ye all the tithes into the storehouse', note: 'BUILD PROTECTION STRUCTURALLY, NOT CONVERSATIONALLY — firstfruits and storehouse ordered FIRST (the ant’s summer gathering, Proverbs 6:8) so margin exists before discretionary flow can consume it: protection that requires winning no argument. Securing essentials and the children’s bread counts AS provision (1 Timothy 5:8) — Abigail-shaped, transparent, never deceitful.' },
+    { ref: 'Psalm 112:5', fragment: 'he will guide his affairs with discretion', note: 'GUIDE WITH A FIXED HEART — "He shall not be afraid of evil tidings: his heart is fixed, trusting in the LORD" (Psalm 112:7): calm governance, because fear-driven management is just the other ditch.' },
+  ],
+  whatTheSpouseSays: [
+    { ref: 'Ezekiel 33:9', fragment: 'if thou warn the wicked of his way to turn from it; if he do not turn from his way, he shall die in his iniquity; but thou hast delivered thy soul', note: 'THE WATCHMAN’S WORD, DELIVERED ONCE AND WELL — written plain (Habakkuk 2:2), in meekness (2 Timothy 2:24-25), escalated to counselors (Matthew 18:16) — and the outcome NOT owned: you are graded on the faithfulness of the warning, never on whether it was heeded. That distinction is the melancholy’s cure.' },
+  ],
+  theHonestLimits: [
+    { ref: 'Proverbs 27:22', fragment: 'Though thou shouldest bray a fool in a mortar', note: 'SOME FOLLY DOES NOT POUND OUT — the Word itself says arguments have a floor ("yet will not his foolishness depart from him").' },
+    { ref: '1 Corinthians 7:16', fragment: 'For what knowest thou, O wife, whether thou shalt save thy husband?', note: 'THE OUTCOME STAYS GENUINELY OPEN, in both directions — held with the Heart-Turner (Proverbs 21:1) and the Philippians 1:6 warranty: hope is real, the timeline is not yours, and the house is guarded meanwhile.' },
+  ],
+  oneSentence: 'Name the armed-man trajectory plainly once (watchman duty), then govern what is yours to govern — storehouse first, essentials secured, affairs guided with a fixed heart, Abigail-swift where the house is exposed — deliver the warning without owning the outcome, keep the counselors and the Heart-Turner engaged, and let your faithfulness, not their response, be what you are graded on.',
+};
+
 // Convenience: everything a surface needs to render the study in one call.
 export function buildSeeingStudy() {
   return {
@@ -747,5 +807,7 @@ export function buildSeeingStudy() {
     doorTheKingKnocksOn: DOOR_THE_KING_KNOCKS_ON,
     longsufferingWithJoyfulness: LONGSUFFERING_WITH_JOYFULNESS,
     familyTreasury: FAMILY_TREASURY,
+    stewardshipAccountability: STEWARDSHIP_ACCOUNTABILITY,
+    guardingTheHouse: GUARDING_THE_HOUSE,
   };
 }
