@@ -18,5 +18,17 @@ if [ -f "$STATE/choir-dates.DONE" ]; then
   exit 0
 fi
 
+# Self-sufficient dependency (first live cycle 2026-08-04, bootstrap run
+# 30904945110: "yt-dlp not available" — DSM python3 ships without it, and an
+# installer that assumes its own dependency is not an installer). Idempotent:
+# the import check passes in one process spawn on every later cycle.
+if ! python3 -c "import yt_dlp" 2>/dev/null; then
+  echo "choir-dates: installing yt-dlp (one-time, --user)"
+  python3 -m pip install --user --quiet yt-dlp || {
+    echo "choir-dates: pip install yt-dlp FAILED — cannot drain without it" >&2
+    exit 1
+  }
+fi
+
 python3 "$DIR/choir_dates_sync.py" --commit --chunk 90 --time-budget 300 \
   --done-marker "$STATE/choir-dates.DONE"

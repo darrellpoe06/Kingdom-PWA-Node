@@ -11,6 +11,16 @@ set -e
 REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
 MANIFEST="$REPO/infra/nas-loops/services.json"
 
+# FRESHEN THE MIRROR FIRST (2026-08-04, measured: the checkout sat a night
+# stale at 254809ba while six merges — including a new manifest service —
+# waited; every 15-min cycle faithfully synced YESTERDAY. "Merge to main ->
+# mirror pulls -> this loop installs" is only true if THIS loop does the pull.
+# Fail-soft: offline/diverged keeps the current checkout and says so — the
+# cycle still runs what it has (an old-but-real manifest beats a dead run).
+if ! git -C "$REPO" pull --ff-only 2>&1; then
+  echo "services-sync: mirror pull failed (offline or diverged) — running with the existing checkout" >&2
+fi
+
 if [ ! -f "$MANIFEST" ]; then
   echo "services-sync: no manifest at $MANIFEST" >&2
   exit 1
