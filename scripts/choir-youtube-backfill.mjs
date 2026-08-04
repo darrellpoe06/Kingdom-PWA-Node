@@ -113,7 +113,10 @@ for (const line of lines) {
 // Fetched via the Data API (50 ids/call — the whole backlog is ~14 calls) when
 // YOUTUBE_API_KEY is present; without the key the title-dated rows still flow
 // and the gap is NAMED in the summary, not hidden (DR-0076).
-const API_KEY = process.env.YOUTUBE_API_KEY || '';
+// TRIM the secret — this repo's stored secrets carry trailing whitespace (the
+// SUPABASE_DB_URL apply step strips it the same way; run 30869311632 proved a
+// raw key in the query string reads as "API key not valid" 400).
+const API_KEY = (process.env.YOUTUBE_API_KEY || '').trim();
 // A service's calendar date is its LOCAL date at the church (America/New_York,
 // COLG) — a Wednesday 8pm EST stream is 01:00 UTC Thursday, and dating it
 // Thursday would file the service on the wrong night.
@@ -126,8 +129,10 @@ async function fetchUploadDates(ids) {
   const out = new Map();
   for (let i = 0; i < ids.length; i += 50) {
     const chunk = ids.slice(i, i + 50);
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${chunk.join(',')}&key=${API_KEY}`;
-    const res = await fetch(url);
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${chunk.join(',')}&key=${encodeURIComponent(API_KEY)}`;
+    // Referer: the key is the app's website key (VITE_), which may be
+    // referrer-restricted to the site — identify as the site we are.
+    const res = await fetch(url, { headers: { Referer: 'https://poetech.us/' } });
     if (!res.ok) throw new Error(`videos.list ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const body = await res.json();
     for (const item of (body.items || [])) {
