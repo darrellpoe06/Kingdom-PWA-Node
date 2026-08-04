@@ -85,6 +85,18 @@ jobs:
           - feature: books-role-wall
             migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql"
             smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
+          # Added 2026-08-04 (DR-0271, Christina's assistant-rights request):
+          # the ASSISTANT becomes grantable (invite/role/remove RPCs) and is
+          # scoped by a RESTRICTIVE deny-overlay to the shared office_records
+          # workspace + the six participation tables — "everything in the
+          # Assistant tab", nothing on the other tabs. The smoke proves both
+          # directions live: the assistant works the workspace, a member sees
+          # the assistant's rows, and the books + membership-gated family data
+          # (inquiries) read as ZERO rows for the assistant. Static shape proof
+          # runs every merge in scripts/assistant-scope-guard.mjs.
+          - feature: assistant-scope
+            migrations: "0130-assistant-provisioning-and-office-workspace.sql"
+            smokes: "0130-assistant-scope-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
       - uses: actions/checkout@v4

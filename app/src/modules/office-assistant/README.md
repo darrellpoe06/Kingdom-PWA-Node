@@ -34,11 +34,15 @@ this module, so TLC keeps working unchanged.
 
 ## Honest status (DR-0076)
 
-Shipped + verified: the **engine layer** — `model.js` / `config.js` / `store.js`,
-TLC riding it (its 16 existing tests unchanged + green), and a **second office
-proven** to run the same engine isolated (`office-assistant-model.test.js`).
+Shipped + verified: the **engine layer** (`model.js` / `config.js` / `store.js`),
+the **config-driven UI** (`OfficeAssistant.jsx` — TLC mounts it via the thin
+`components/TlcAssistant.jsx`), a **second office proven** on the same engine
+(`office-assistant-model.test.js`), and the **cloud sync** (`cloud.js`, DR-0271):
+the workspace rides the shared `office_records` table (migration 0130) so every
+member/assistant of the instance sees the SAME records live — seeds never upload,
+signed-out stays device-local, realtime merges in (`office-cloud.test.js`).
 
-The **config-driven UI** (`OfficeAssistant.jsx`, generalized from the current
-`components/TlcAssistant.jsx`) is the next increment — until it lands, TLC renders
-through its existing component and a brand-new office has the engine but not yet a
-mounted screen.
+Access: a granted `assistant` role account works the workspace and is RLS-walled
+off everything else (the 0130 scope overlay; `scripts/assistant-scope-guard.mjs`
++ the live `assistant-scope` isolation leg prove it). The owner grants/revokes
+from the Team access tab (`components/TlcTeamAccess.jsx`).

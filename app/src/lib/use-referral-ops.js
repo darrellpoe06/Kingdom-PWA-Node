@@ -9,10 +9,16 @@
 // =============================================================================
 import { createOfficeModel } from '../modules/office-assistant/model.js';
 import { createOfficeStore } from '../modules/office-assistant/store.js';
+import { createOfficeCloud, attachOfficeCloud } from '../modules/office-assistant/cloud.js';
 import { TLC_CONFIG } from '../modules/office-assistant/configs/tlc.js';
 
 const model = createOfficeModel(TLC_CONFIG);
 const store = createOfficeStore(TLC_CONFIG, model);
+
+// Cross-device sync (DR-0271): the TLC workspace rides office_records so
+// Christina AND her granted assistant see the SAME records on every device.
+// Fail-soft: signed out, the store stays device-local exactly as before.
+attachOfficeCloud(store, createOfficeCloud(TLC_CONFIG));
 
 // The singleton TLC store instance, for OfficeAssistant to render against (one
 // instance — the CRUD exports below drive the SAME store the UI subscribes to).
