@@ -20,9 +20,24 @@
 // absolute px and do not inherit the root scale. The fix is to author those as
 // rem at the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical
 // at Normal, but now scaling with the control. Converted across the named reading
-// surfaces (The Word, Engagement, the Center/ops boards, Choir); flex-wrap layouts
-// absorb the 1.5x at Largest, so nothing shatters. New reading text uses rem, never
-// fixed px. (Deep-chrome px in the financial monolith stays a tracked follow-up.)
+// surfaces (The Word, Engagement, the Center/ops boards, Choir). New reading text
+// uses rem, never fixed px. (Deep-chrome px in the financial monolith stays a
+// tracked follow-up.)
+//
+// LAYOUT AT THE BIG STEPS (corrected 2026-08-05, DR-0276): the old claim
+// "flex-wrap layouts absorb the 1.5x at Largest, so nothing shatters" was
+// written when Largest WAS 1.5x — it did not survive the 2x/2.75x steps below
+// (clipped card grids; a door header that hid its own size controls and
+// trapped the reader in big text). Three standing rules now carry the layout:
+//   1. Multi-column card grids take `.ts-grid-collapse` (index.css) — ONE
+//      readable column at Largest/Big Print.
+//   2. A sticky header takes `.ts-safe-sticky` — capped to the viewport,
+//      scrolls within itself, so its controls stay reachable.
+//   3. Text-size CONTROLS are chrome (a `.ts-chrome-region`, or fixed-px
+//      labels like TextSizeControl) — the control never compounds with its
+//      own setting, so big text is ALWAYS reversible.
+// Measured, not assumed: scripts/chrome-layout-probe.mjs runs a Big Print
+// pass in CI (no overflow + escape hatch on screen, selftest-proven).
 //
 // Persistence is PER DEVICE in localStorage (process-don't-store default), kept
 // separate from the cloud-synced theme so a member sets it ONCE on their own

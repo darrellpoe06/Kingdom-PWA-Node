@@ -42,6 +42,40 @@
 }
 
 /* ===========================================================================
+   Big-text layout safety — the page must HOLD at 2x and 2.75x (Darrell 2026-08-05)
+   ===========================================================================
+   DR-0145 doubled Largest to 2x and DR-0147 added Big Print 44 (2.75x). The old
+   claim "flex-wrap layouts absorb the 1.5x, nothing shatters" died there: at 2x+
+   a two-column card grid's min-content (photo + longest name + a nowrap VIEW →
+   chip) exceeds its track, the grid blows past the viewport, and neighboring
+   cards paint over the spilled text (the 2026-08-05 TLC screenshots). Worse, a
+   door header that scales its own size controls balloons past the viewport and
+   the reader is TRAPPED in big text — the escape hatch is off-screen.
+
+   Two utilities, both exact no-ops at Normal:
+
+   .ts-grid-collapse — a multi-column card grid drops to ONE column at the sizes
+   that break it (2x Largest, 2.75x Big Print). One big readable column IS the
+   large-print layout; two clipped ones are not.
+
+   .ts-safe-sticky — a sticky header region may never exceed the viewport: at
+   big sizes it caps to the dynamic viewport height and scrolls WITHIN itself,
+   so the controls it holds (including the text-size escape hatch) are always
+   reachable. Measured by scripts/chrome-layout-probe.mjs (--sweep textscale
+   pass, selftest-proven). */
+html[data-text-size='largest'] .ts-grid-collapse,
+html[data-text-size='bigprint'] .ts-grid-collapse {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+html[data-text-size='larger'] .ts-safe-sticky,
+html[data-text-size='largest'] .ts-safe-sticky,
+html[data-text-size='bigprint'] .ts-safe-sticky {
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+/* ===========================================================================
    Tab strips scroll horizontally — never overflow the page (Darrell 2026-06-18)
    ===========================================================================
    A sub-tab row with more tabs than fit must scroll WITHIN itself, not push the

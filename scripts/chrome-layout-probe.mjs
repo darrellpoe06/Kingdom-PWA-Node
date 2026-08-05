@@ -19,6 +19,15 @@
 //   3. NOTHING OVERLAPS THE NAME — no header button/link/select rect
 //      intersects the h1 rect (the LOG OUT-over-the-wordmark screenshot).
 //
+// TEXT-SCALE pass (rides --sweep; added 2026-08-05 after the Big Print TLC
+// screenshots — clipped cards, and a reader TRAPPED in big text because the
+// door header outgrew the viewport and hid its own size controls): the same
+// surfaces plus the TLC and Moore doors are loaded at Big Print 44 (2.75x,
+// the top step) at phone/tablet widths and must hold two invariants:
+//   4. NO PAGE OVERFLOW at Big Print — the layout holds, nothing clips.
+//   5. THE ESCAPE HATCH IS REACHABLE — at least one text-size control is
+//      fully on screen at load, so big text is always reversible.
+//
 // Proven-to-catch (DR-0076 §3, anti-theater): --selftest-break injects a CSS
 // override that forces the brand column to 10px (the pre-fix collapse) and
 // REQUIRES the invariants to FAIL — a probe that cannot fail is a painted
@@ -83,6 +92,7 @@ try { browser = await chromium.launch(launchOpts); }
 catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
 
 let failures = 0;
+let tsFailuresBefore = 0;
 const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
 
 try {
@@ -133,14 +143,78 @@ try {
     if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
     if (!failures) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
   }
+  // ---------------------------------------------------------------------------
+  // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
+  // Rides --sweep (real assertions) and --selftest-break (proves it can fail),
+  // so ci.yml needs no new step. localStorage is seeded before boot exactly the
+  // way a returning reader's device is; initTextSize applies it pre-paint.
+  // ---------------------------------------------------------------------------
+  const TS_VIEWS = SWEEP
+    ? [
+        { name: 'church', path: '/?view=church' },
+        { name: 'library', path: '/?view=library' },
+        { name: 'tlc-door', path: '/?tlc=1' },
+        { name: 'moore-door', path: '/?moore=1' },
+      ]
+    : SELFTEST
+      ? [{ name: 'tlc-door', path: '/?tlc=1' }]
+      : [];
+  const TS_WIDTHS = SELFTEST ? [360] : [360, 768];
+  tsFailuresBefore = failures;
+  for (const v of TS_VIEWS) for (const width of TS_WIDTHS) {
+    const page = await browser.newPage({ viewport: { width, height: 740 } });
+    await page.addInitScript(() => {
+      try { localStorage.setItem('poe-text-size', 'bigprint'); } catch { /* private mode */ }
+    });
+    await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('button', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      // The trap, reproduced deliberately: the comfort controls are shoved a
+      // full 3 viewports down (the ballooned-header failure) and the body is
+      // forced wider than the phone (the card-grid blowout). Both new
+      // invariants MUST trip or the pass is theater.
+      await page.addStyleTag({ content: '[aria-label="Comfort controls"] { margin-top: 300vh !important } body::after { content: ""; display: block; width: 3000px; height: 2px }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const hatch = [...document.querySelectorAll('button')]
+        .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''));
+      const reachable = hatch.some((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
+      });
+      return {
+        size: doc.getAttribute('data-text-size'),
+        scrollWidth: doc.scrollWidth,
+        clientWidth: doc.clientWidth,
+        hatchCount: hatch.length,
+        reachable,
+      };
+    });
+    await page.close();
+    if (m.size !== 'bigprint') { fail(`textscale ${v.name}@${width}px: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
+    const before = failures;
+    if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${v.name}@${width}px: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
+    if (!m.hatchCount) fail(`textscale ${v.name}@${width}px: no text-size control rendered — no way out of big text`);
+    else if (!m.reachable) fail(`textscale ${v.name}@${width}px: text-size controls exist but none is on screen — reader trapped in big text`);
+    if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
+  }
 } finally {
   await browser.close();
   server.close();
 }
 
 if (SELFTEST) {
-  if (failures > 0) { console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped as required)`); process.exit(0); }
-  console.error('SELFTEST-BREAK FAILED — the deliberate collapse tripped nothing; the probe is theater');
+  // BOTH passes must prove they can fail: the chrome pass's collapse AND the
+  // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
+  const tsTripped = failures - tsFailuresBefore;
+  if (failures > 0 && tsFailuresBefore > 0 && tsTripped >= 2) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${tsFailuresBefore} chrome, ${tsTripped} textscale)`);
+    process.exit(0);
+  }
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${tsFailuresBefore}, textscale: ${failures - tsFailuresBefore}); the probe is theater`);
   process.exit(1);
 }
 process.exit(failures > 0 ? 1 : 0);

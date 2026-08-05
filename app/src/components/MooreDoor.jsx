@@ -353,14 +353,14 @@ function PracticeTab() {
       </p>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Meet the therapists</h3>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="ts-grid-collapse mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {TLC_TEAM.map((t) => (
             <a key={t.name} href={t.url} target="_blank" rel="noopener noreferrer"
               className="flex items-start gap-3 rounded-xl border border-[#E8E2D8] bg-white p-3">
               <img src={t.photo} alt={t.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{t.name}</span>
+                  <span className="text-sm font-semibold text-[#1A1815] min-w-0 break-words" style={SERIF}>{t.name}</span>
                   <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#B85838]">View →</span>
                 </div>
                 <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.role}</div>
@@ -568,7 +568,11 @@ export default function MooreDoor({ business = null }) {
         <header className="pt-6 text-center">
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{BIZ.brand.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{BIZ.brand.tagline}</p>
-          <div className="mt-2 flex items-center justify-center gap-2" role="group" aria-label="Comfort controls">
+          {/* ts-chrome-region + flex-wrap (2026-08-05): un-capped, the theme
+              dots alone outgrew a phone at Big Print and the no-wrap row pushed
+              every size button past the clipped edge — trapping the reader in
+              big text. Chrome never compounds with its own setting. */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 ts-chrome-region" role="group" aria-label="Comfort controls">
             {/* Entrance-review 2026-07-07: the dot stays small, the HITBOX does
                 not — 36px buttons around 20px swatches, for the hands this
                 platform serves (COMMUNITY-FIRST). */}
@@ -584,7 +588,7 @@ export default function MooreDoor({ business = null }) {
             <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
             {sizeSteps.map((s) => (
               <button key={s.key} type="button" aria-label={`Text size ${s.label}`}
-                className={`min-h-[36px] min-w-[32px] rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                className={`min-h-[2.25rem] min-w-[2rem] rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
                 onClick={() => setSizeKey(s.key)}>A</button>
             ))}
           </div>

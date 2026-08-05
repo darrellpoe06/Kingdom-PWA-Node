@@ -35,7 +35,9 @@ function ClientDoor() {
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Clinical Team</div>
         <h2 className="text-2xl mb-4" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Match a Preferred Provider</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* ts-grid-collapse: one readable column at Largest/Big Print — two
+            clipped columns is not large print (index.css, 2026-08-05). */}
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-3">
           {TLC_TEAM.map((t) => (
             <a
               key={t.name}
@@ -54,7 +56,7 @@ function ClientDoor() {
               />
               <div className="min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <h3 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h3>
+                  <h3 className="text-sm min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h3>
                   <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] whitespace-nowrap">View →</span>
                 </div>
                 <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{t.role}</div>
@@ -69,11 +71,11 @@ function ClientDoor() {
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Therapy Services</div>
         <h2 className="text-2xl mb-4" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>All Options · Direct Online Intake</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {TLC_SERVICES.map((s) => (
             <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">
-                <h3 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h3>
+                <h3 className="text-sm min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h3>
                 <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
               </div>
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
@@ -143,14 +145,18 @@ export default function TlcPublicDoor() {
   ];
 
   return (
-    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen bg-[#FAF8F4] text-[#1A1815]">
+    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
       {/* Header — the TLC brand + the staff login menu. No PoeTech chrome.
           Sticky + auto-hide (the standard PoeTech collapsing bar): it slides up
           off-screen as you read down, and slides back the instant you scroll up.
           When the login form is open we keep it pinned so it can't vanish mid-type. */}
+      {/* ts-safe-sticky: at big text sizes the header caps to the viewport and
+          scrolls within itself, so the size controls (the escape hatch back to
+          Normal) are ALWAYS reachable — a reader can never be trapped in big
+          text (2026-08-05 incident; measured by chrome-layout-probe). */}
       <header
-        className={`sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !(showLogin && !signedIn) ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !(showLogin && !signedIn) ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-start justify-between gap-3">
@@ -162,12 +168,15 @@ export default function TlcPublicDoor() {
               <div className="ts-chrome-region">
                 <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">{TLC_DOOR_BRAND.name}</div>
                 <h1 className="text-3xl sm:text-4xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.tagline}</h1>
+                {/* The blurb is door chrome too (2026-08-05): un-capped it alone
+                    filled a phone screen at Big Print and pushed the size
+                    controls out of reach. The CONTENT below scales fully. */}
+                <p className="text-sm sm:text-base text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_DOOR_BRAND.blurb}</p>
               </div>
-              <p className="text-sm sm:text-base text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_DOOR_BRAND.blurb}</p>
             </div>
             {/* Staff log in / out — lets TLC staff sign in from the door itself,
                 before or without installing (Darrell's ask). */}
-            <div className="shrink-0">
+            <div className="shrink-0 ts-chrome-region">
               {signedIn ? (
                 <button type="button" onClick={signOut} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Log out
@@ -182,7 +191,10 @@ export default function TlcPublicDoor() {
 
           {/* Comfort controls — theme + text size, the platform staples. Same
               shared libs (theme-css / text-size) the whole PoeTech app uses. */}
-          <div className="mt-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Comfort controls">
+          {/* ts-chrome-region: the comfort controls are CHROME — they must not
+              compound with their own setting (the TextSizeControl rule). rem
+              min-sizes so the cap grows, never shrinks, the touch targets. */}
+          <div className="mt-4 flex flex-wrap items-center gap-1.5 ts-chrome-region" role="group" aria-label="Comfort controls">
             {THEMES.map((t) => (
               <button
                 key={t.key}
@@ -207,7 +219,7 @@ export default function TlcPublicDoor() {
                 type="button"
                 aria-label={`Text size ${s.name}`}
                 aria-pressed={sizeKey === s.key}
-                className={`min-h-[36px] min-w-[36px] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                className={`min-h-[2.25rem] min-w-[2.25rem] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
                 onClick={() => setSizeKey(s.key)}
               >
                 {s.label}
@@ -215,7 +227,7 @@ export default function TlcPublicDoor() {
             ))}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2.5">
+          <div className="mt-4 flex flex-wrap gap-2.5 ts-chrome-region">
             <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
               Book an appointment
             </a>
