@@ -45,8 +45,12 @@ import {
 import { SETTING_CLASS } from './GuardianChildPanel.jsx';
 
 function Badge({ children, cls }) {
+  // shrink-0: a badge never squeezes below its label; the ROW wraps instead
+  // (its container carries flex-wrap), so at phone width + large text the
+  // badge drops under its label rather than overflowing into the next column
+  // (Darrell 2026-08-05 Relationships screenshot: "Allowed" over "Scripture").
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 border text-xs font-semibold rounded-sm ${cls.text} ${cls.border}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 px-2 py-0.5 border text-xs font-semibold rounded-sm ${cls.text} ${cls.border}`}>
       {children}
     </span>
   );
@@ -86,7 +90,14 @@ function MatrixPanel() {
     render: () => (
       <>
         <p className="text-sm mb-4 text-[#5A5751]">{rel.blurb}</p>
-        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${rel.roles.length}, minmax(0, 1fr))` }}>
+        {/* Role columns sit side-by-side only where they FIT. The old inline
+            gridTemplateColumns forced N columns at every width — at phone
+            width (with content-scaled text, Pattern 2b) each column was too
+            narrow for its rows, and the Allowed/Ask-first badges overflowed
+            into the neighboring column (Darrell 2026-08-05 screenshot).
+            Phones stack one role per row; sm+ goes two-up; the 4-role family
+            grid needs lg for all four abreast. */}
+        <div className={`grid gap-4 grid-cols-1 ${rel.roles.length >= 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2'}`}>
           {rel.roles.map((role) => {
             const roleRows = rows.filter((r) => r.relationship === rel.type && r.role === role);
             return (
@@ -98,7 +109,7 @@ function MatrixPanel() {
                   {roleRows.map((r) => {
                     const cls = SETTING_CLASS[r.setting];
                     return (
-                      <li key={r.capability} className="px-3 py-2 flex items-center justify-between gap-2">
+                      <li key={r.capability} className="px-3 py-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                         <span className="text-sm text-[#1A1815]">
                           {r.label}
                           {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
@@ -246,7 +257,7 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
               const cls = t.status === 'active' ? SETTING_CLASS[SETTING.ALLOW] : SETTING_CLASS[SETTING.DENY];
               return (
                 <li key={t.id}>
-                  <button onClick={() => onSelect(t)} className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 ${selected?.id === t.id ? 'bg-[#F4F2EE]' : ''}`}>
+                  <button onClick={() => onSelect(t)} className={`w-full text-left px-3 py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 ${selected?.id === t.id ? 'bg-[#F4F2EE]' : ''}`}>
                     <span className="text-sm font-semibold text-[#1A1815]">
                       {t.property_label || 'Property'}{t.unit_label ? ` · ${t.unit_label}` : ''}
                       <span className="ml-2 text-xs font-normal text-[#5A5751]">{t.tenant_name || 'tenant'}</span>
