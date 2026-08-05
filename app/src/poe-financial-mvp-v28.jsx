@@ -118,6 +118,7 @@ import { submitInterest as submitAppInterest } from './lib/interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
 import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
+import { motionBehavior } from './lib/gentle-motion.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 // Overview dashboard — statically imported (NOT registry/lazy): overview is the
 // landing view, so it belongs in the main chunk (no loading flash on first paint).
@@ -3537,7 +3538,7 @@ export default function PoeFinancialSystem() {
           view switch so tab changes never stop the stream. Self-gates to real
           service windows; publishes --lwb-h (read by this root's padding-top and
           the sticky header's `top`, below, so the nav pins under it). */}
-      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} />
+      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4160,7 +4161,7 @@ ${THEME_CSS}
                   </button>
                 );
               })()}
-              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
+              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
               {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
@@ -4921,7 +4922,7 @@ ${THEME_CSS}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
-              onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+              onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             /></SectionBoundary>
           : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
@@ -4958,7 +4959,7 @@ ${THEME_CSS}
             isGovernor={isFamilyMember}
             persona={personaOf(authSession?.user?.email)}
             email={authSession?.user?.email || null}
-            onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+            onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
             projects={data.projects || []}
             discussions={data.discussions || []}
             currentUserId={authSession?.user?.id || null}

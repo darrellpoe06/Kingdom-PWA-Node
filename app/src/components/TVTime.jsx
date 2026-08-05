@@ -27,6 +27,7 @@ import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '..
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
+import { gentleReveal } from '../lib/gentle-motion.js';
 import { TV_SHARING_ENABLED } from '../lib/tv-circle-sync.js';
 import TVCircle from './TVCircle.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -415,14 +416,17 @@ export default function TVTime({ email = null }) {
     return null; // decided from list size on first render
   });
   const [focusId, setFocusId] = useState(null); // grid tile tapped → its card opens
-  // The opened card renders BELOW the whole grid — on a 100-tile wall that put
-  // it thousands of pixels under the viewport, so a tap looked completely dead
-  // (the 2026-08-04 "don't work" report). Scroll it into view when it opens.
+  // The opened card renders IN PLACE — a full-width grid row directly under the
+  // tapped tile (DR-0274, grounding DR-0131: "open in place and not move fast
+  // from that location because humans can get dizzy"). The 2026-08-04 fix for
+  // "the tap looked dead" rendered the card below the WHOLE wall and flew the
+  // screen thousands of pixels to it — the exact movement the Way forbids
+  // (Darrell's 2026-08-05 dizziness report). Now the card lands beside the
+  // finger; gentleReveal nudges only if its top edge starts below the fold
+  // (at most about a tile of travel), honoring prefers-reduced-motion.
   const focusCardRef = useRef(null);
   useEffect(() => {
-    if (focusId && focusCardRef.current && typeof focusCardRef.current.scrollIntoView === 'function') {
-      focusCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (focusId && focusCardRef.current) gentleReveal(focusCardRef.current);
   }, [focusId]);
   const activeView = viewMode || (tracked.length > 9 ? 'wall' : 'cards');
   // 'wall' (tall 2:3 posters) and 'squares' (Darrell 2026-07-05: "a view that has
@@ -749,44 +753,48 @@ export default function TVTime({ email = null }) {
       {STATUSES.map((st) => {
         const list = genreFilter ? buckets[st.key].filter((s) => genreMatches(s.genre, genreFilter)) : buckets[st.key];
         if (!list.length) return null;
-        const focused = wallMode ? list.find((s) => s.id === focusId) : null;
         return (
           <section key={st.key} className="mb-4" aria-labelledby={`sec-${st.key}`}>
             <h3 id={`sec-${st.key}`} className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">{st.label} <span className="text-[#B85838]">· {st.hint}</span></h3>
             {wallMode ? (
               <>
                 {/* Condensed wall: a dense poster grid for quick choosing. Tap a
-                    tile → its full card opens right below the grid. Progress rides
-                    under each tile so "where am I" reads at a glance. Posters
-                    lazy-resolve (imports included) as tiles scroll into view.
-                    Columns come from the Size slider: auto-fill at the chosen
-                    min-tile-width (rem), so smaller = more per row, bigger = fewer. */}
+                    tile → its full card opens IN PLACE, a full-width grid row
+                    directly under that tile (DR-0274/DR-0131: the screen never
+                    flies to content; the content comes to the finger). Progress
+                    rides under each tile so "where am I" reads at a glance.
+                    Posters lazy-resolve (imports included) as tiles scroll into
+                    view. Columns come from the Size slider: auto-fill at the
+                    chosen min-tile-width (rem), so smaller = more per row,
+                    bigger = fewer. */}
                 <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${wallSize}rem, 1fr))` }}>
                   {list.map((show) => {
                     const prog = showProgress(state, show.id);
                     const pct = prog.total ? Math.round((prog.watched / prog.total) * 100) : 0;
                     const on = focusId === show.id;
                     return (
-                      <button key={show.id} type="button" onClick={() => { setFocusId(on ? null : show.id); if (!on) onHydrate(show); }}
-                        aria-pressed={on}
-                        aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
-                        className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
-                        <Poster url={show.poster} title={show.title} kind={show.kind} resolve className={`w-full ${tileAspect}`} />
-                        <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
-                          <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
-                        </span>
-                      </button>
+                      <React.Fragment key={show.id}>
+                        <button type="button" onClick={() => { setFocusId(on ? null : show.id); if (!on) onHydrate(show); }}
+                          aria-pressed={on}
+                          aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
+                          className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
+                          <Poster url={show.poster} title={show.title} kind={show.kind} resolve className={`w-full ${tileAspect}`} />
+                          <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
+                            <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
+                          </span>
+                        </button>
+                        {on && (
+                          <div className="my-1" style={{ gridColumn: '1 / -1' }} ref={focusCardRef}>
+                            <ShowCard show={show} me={me} state={state}
+                              onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
+                              onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
+                              onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
+                          </div>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </div>
-                {focused && (
-                  <div className="mt-2" ref={focusCardRef}>
-                    <ShowCard key={focused.id} show={focused} me={me} state={state}
-                      onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
-                      onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                      onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
-                  </div>
-                )}
               </>
             ) : (
               <div className="space-y-2">

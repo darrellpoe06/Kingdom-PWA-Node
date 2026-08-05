@@ -23,6 +23,7 @@ import TenantRoster from './TenantRoster.jsx';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { loadPortfolioPaid } from '../lib/rent-portfolio-paid.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -1162,7 +1163,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // the row being edited (drop-down style) — see renderPropertyRow's
   // {editingPropId === r.id && renderPropertyForm()} block below. Only "Add new"
   // uses the top form.
-  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); setAddUnitLabels([]); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} };
+  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); setAddUnitLabels([]); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} };
   const startEditProp = (r) => {
     setPropForm({
       name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
@@ -1961,7 +1962,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <button type="button" onClick={submitProp} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                         <button type="button" onClick={cancelPropForm} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
-                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
+                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
                       </div>
                     </div>
                   )}

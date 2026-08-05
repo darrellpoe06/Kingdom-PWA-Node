@@ -45,6 +45,7 @@ import { findImportDuplicates } from '../lib/dedupe-imports.js';
 import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, findExactDuplicates } from '../lib/learned-dedupe.js';
 import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -234,7 +235,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     try {
       requestAnimationFrame(() => {
         if (kpiPanelRef.current && typeof kpiPanelRef.current.scrollIntoView === 'function') {
-          kpiPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          kpiPanelRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
         }
       });
     } catch { /* scroll is a nicety; never let it break the view action */ }

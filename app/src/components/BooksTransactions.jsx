@@ -41,6 +41,7 @@ async function commitBatch(rows, commitImportedRows, addTransaction) {
   return `Imported ${(rows || []).length} transaction(s).`;
 }
 import LedgerProof from './LedgerProof.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -448,7 +449,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setForm(prefill);
     setEditingId(null);
     setShowForm(true);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {}
   };
 
   const matchesEntity = (t) => {

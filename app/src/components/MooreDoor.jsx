@@ -41,6 +41,7 @@ import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
 import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -286,7 +287,7 @@ function MooreTab() {
       <div>
         <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Her work</h2>
         <div className="mt-2">
-          <Gallery onInspired={(p) => { setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* no-op */ } }} />
+          <Gallery onInspired={(p) => { setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ } }} />
         </div>
       </div>
       <div>
@@ -332,7 +333,7 @@ function MooreTab() {
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
-        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* no-op */ } }} /></div>
+        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ } }} /></div>
       </div>
     </div>
   );

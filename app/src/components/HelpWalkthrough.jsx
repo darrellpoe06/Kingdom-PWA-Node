@@ -19,6 +19,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { RoadmapOverview } from './HelpButton.jsx';
 import { isChurchDoorContext } from '../lib/church-own-door.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // Bumping this key re-offers the tour after a major experience change.
 const SEEN_KEY = 'poetech.help.tour.v1';
@@ -75,7 +76,7 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
     if (to.view && setView) setView(to.view);
     if (to.churchView && setChurchView) setChurchView(to.churchView);
     if (to.booksView && setBooksView) setBooksView(to.booksView);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* ignore */ }
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* ignore */ }
     setOpenTour(false);
   }
 

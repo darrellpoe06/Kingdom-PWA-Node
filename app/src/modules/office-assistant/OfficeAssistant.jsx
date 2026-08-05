@@ -17,6 +17,7 @@ import SectionTabs from '../../components/SectionTabs.jsx';
 import { createOfficeModel, isSeedId, ORG_CSV_COLUMNS } from './model.js';
 import { toCsv, parseCsv } from '../../lib/csv.js';
 import { downloadText } from '../../lib/report-export.js';
+import { motionBehavior } from '../../lib/gentle-motion.js';
 
 const num = (n) => (Number(n) || 0).toLocaleString();
 const pct = (n) => `${Math.round(Number(n) || 0)}%`;
@@ -408,7 +409,7 @@ function AddOrgForm({ config, model, store, prefill = null }) {
     setF({ ...blank, ...vals });
     setFromSample(true);
     setError('');
-    if (formRef.current && formRef.current.scrollIntoView) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (formRef.current && formRef.current.scrollIntoView) formRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill && prefill._nonce]);
 
