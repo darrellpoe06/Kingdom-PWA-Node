@@ -32,6 +32,13 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
         // own setting and overflow at Largest. The page behind the control is what
         // previews the real effect; this control just stays a usable control.
         const labelPx = (isPanel ? [15, 17, 19, 21, 24] : [12, 13, 14, 15, 16])[i] || 15;
+        // Header variant rides inside a `.ts-chrome-region` (the header controls
+        // row, DR-0276) whose zoom would shrink a raw px label to ~6px at Big
+        // Print. Dividing by --ts-chrome-scale cancels the zoom exactly — the
+        // label renders at labelPx on screen at every step. Outside any capped
+        // region the same formula grows the label gently with the chrome
+        // multiplier (bounded ~1.9x at Big Print), never the full content scale.
+        const labelSize = isPanel ? `${labelPx}px` : `calc(${labelPx}px / var(--ts-chrome-scale, 1))`;
         return (
           <button
             key={s.key}
@@ -48,7 +55,7 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
                 ? 'bg-[#1A1815] text-white border-2 border-[#1A1815]'
                 : 'bg-white text-[#1A1815] border-2 border-[#E8E4DC] hover:border-[#1A1815]',
             ].join(' ')}
-            style={{ fontSize: `${labelPx}px` }}
+            style={{ fontSize: labelSize }}
           >
             {s.label}
           </button>

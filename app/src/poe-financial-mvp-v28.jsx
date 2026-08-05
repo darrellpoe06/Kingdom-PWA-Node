@@ -3554,7 +3554,7 @@ html{scroll-padding-bottom:280px}
 ${THEME_CSS}
       `}</style>
 
-      <div className="bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
+      <div className="ts-chrome-region bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
         Projections, not promises · Verify with licensed professionals
       </div>
 
@@ -4112,7 +4112,7 @@ ${THEME_CSS}
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
 
-      <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }}>
+      <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }}>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
@@ -4144,7 +4144,7 @@ ${THEME_CSS}
               </h1>
               <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}

@@ -381,7 +381,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
           public TLC door (Darrell: the team is the first thing we see). */}
       <section>
         <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2">
           {TLC_TEAM.map(c => (
             <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
               <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
@@ -401,7 +401,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       {/* Therapy Options · all link to Acuity booking */}
       <section>
         <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {TLC_SERVICES.map(s => (
             <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
               <div className="flex items-baseline justify-between gap-2 mb-1">

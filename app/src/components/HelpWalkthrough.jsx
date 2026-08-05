@@ -86,7 +86,7 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
         <div
           role="region"
           aria-label="Welcome — take a quick tour"
-          className="fixed inset-x-0 bottom-0 z-[110] flex justify-center px-3 pb-3 print:hidden pointer-events-none"
+          className="ts-chrome-region fixed inset-x-0 bottom-0 z-[110] flex justify-center px-3 pb-3 print:hidden pointer-events-none"
         >
           <div className="pointer-events-auto w-full max-w-md bg-white border border-[#1A1815] shadow-2xl p-4">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">New here?</div>
