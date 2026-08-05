@@ -26,6 +26,10 @@ Three standing layout rules, each an exact no-op at Normal:
 
 **The gate (dimension 4, measured not assumed):** `scripts/chrome-layout-probe.mjs` gains a text-scale pass riding `--sweep` — church, library, the TLC door, and the Moore door load at Big Print 44 (localStorage-seeded pre-boot, the returning reader's real path) at 360/768px and must show (a) no horizontal overflow and (b) a text-size control fully on screen. `--selftest-break` now must trip BOTH passes (the chrome collapse AND the trap + blowout) or the probe exits as theater. No ci.yml change — the pass rides the existing steps.
 
+## The gate's first catch — the MAIN APP was trapped too (same session)
+
+The Big Print pass's first CI run (PR #1208) caught what no source-level review had: the main shell itself failed the escape-hatch invariant on church and library at both widths. Measured with the local instrument (stub `VITE_SUPABASE_*` env so the app boots): the LiveWorshipBar ballooned to a 502px fixed overlay, the disclaimer strip to 239px, the header to 1,249px — the text-size buttons (whose rem padding scaled to 88px boxes despite their fixed-px labels) sat 1,147px below the fold. Closed in the same PR: the LiveWorshipBar, the disclaimer strip, the HelpWalkthrough sheet, and the header controls row are chrome (`.ts-chrome-region`); the main header rides `.ts-safe-sticky`; `TextSizeControl`'s header-variant labels divide by `--ts-chrome-scale` so the cap cancels exactly (labels render at their designed px inside any capped region, and grow only with the bounded chrome multiplier outside one). Re-measured: the hatch sits at y≈199 (church@360) and y≈113 (library@768) — on screen; all 8 text-scale scenarios green locally.
+
 ## Consequences
 
 - A future surface that ships a multi-column grid or sticky header without these classes fails the probe the first time the sweep meets it — memory is not the carrier, the instrument is.

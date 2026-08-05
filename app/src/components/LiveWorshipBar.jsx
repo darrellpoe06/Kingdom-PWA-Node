@@ -137,7 +137,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       ref={barRef}
       role="region"
       aria-label={`Live worship — ${name}`}
-      className="fixed top-0 left-0 right-0 z-40 bg-[#1A1815] text-white shadow-lg print:hidden"
+      className="ts-chrome-region fixed top-0 left-0 right-0 z-40 bg-[#1A1815] text-white shadow-lg print:hidden"
     >
       {/* Control strip — always visible; carries the honest LIVE label + actions. */}
       <div className="flex items-center gap-2 px-3 sm:px-4 py-2">
