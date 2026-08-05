@@ -10,22 +10,13 @@
     "trackedDebtPages": 13,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 83
+    "debtViolations": 81
   },
   "pages": [
     {
       "page": "components/Presenter.jsx",
       "status": "TRACKED-DEBT",
       "violations": 45,
-      "regressions": 0,
-      "kinds": [
-        "inline-dark-text"
-      ]
-    },
-    {
-      "page": "components/HarvestLedger.jsx",
-      "status": "TRACKED-DEBT",
-      "violations": 8,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
@@ -42,6 +33,15 @@
     },
     {
       "page": "components/ClientGrowth.jsx",
+      "status": "TRACKED-DEBT",
+      "violations": 6,
+      "regressions": 0,
+      "kinds": [
+        "inline-dark-text"
+      ]
+    },
+    {
+      "page": "components/HarvestLedger.jsx",
       "status": "TRACKED-DEBT",
       "violations": 6,
       "regressions": 0,

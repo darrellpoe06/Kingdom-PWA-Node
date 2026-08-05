@@ -51,6 +51,16 @@
       "max_calls_per_day": 96,
       "timeout_seconds": 180,
       "description": "Sovereign-Python detect + bounded restore for the public Funnel (DR-0268; born from the 2026-08-03 double-525 outage every app->NAS transport rode down). Shim -> funnel_watchdog.py (the scribe pattern). Conforms to RECORDED-STATE rule 1: on a dark endpoint it re-asserts ONLY the sovereign recorded rows (/mcp, /nas-photos) via 'funnel --bg --set-path' (full DSM binary path, never 'serve', never the n8n root), then at most ONE synopkg restart, re-assert, re-probe. Failures exit red -> reel + ntfy. Needs its own DSM entry (paste-ready delivered)."
+    },
+    {
+      "name": "transcript-backfill",
+      "kind": "deterministic",
+      "script": "transcript-backfill.sh",
+      "enabled": true,
+      "schedule": "every 6 hours",
+      "max_calls_per_day": 4,
+      "timeout_seconds": 1500,
+      "description": "Trickle the YouTube auto-caption loader (infra/nas-sme-pipeline/load-transcripts.py) from the NAS's residential IP -- the CI path is IP-blocked (run #5, 2026-07-11). 8 videos per fire with 20-60s randomized sleeps (under the ~50-burst block of 2026-07-03), 4 fires/day = ~32/day: clears the 2026-08-05 gap (81/858 transcribed) in ~3-4 weeks, then keeps pace with the channel's ~2-3 uploads/week. Brakes stack: runner timeout/cap/lock PLUS the loader's own --max budget, single-flight lock, and auto-pause after 3 all-blocked runs (resume-transcripts ops job clears it from the app). The Harvest Ledger transcript count is the live witness. ACTIVATION TODAY rides the services-sync clock via the transcript-trickle manifest entry (zero new DSM entries); this dedicated loop entry is the optional DSM-clock upgrade -- the loader's single-flight lock keeps the two paths from ever overlapping."
     }
   ]
 }

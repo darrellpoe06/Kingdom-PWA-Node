@@ -358,6 +358,33 @@ export function harvestLedgerSummary(videos) {
   };
 }
 
+// The pinned banner's honest three states (surface-says-truth, DR-0239 review
+// 2026-08-05: the old two-state banner read success-green "every ingested
+// recording has been mined" over a 0/858-fully-harvested, avg-26% corpus).
+// 'lost' = orphans exist (the broken promise, red). 'mining' = no video lost
+// but harvests are still owed (the true in-progress state, amber — never a
+// victory lap). 'done' = every video fully harvested (the only green).
+export function ledgerBanner(summary) {
+  const s = summary || {};
+  const videos = s.videos || 0;
+  const orphans = s.orphans || 0;
+  const full = s.fullyHarvested || 0;
+  if (orphans > 0) {
+    return {
+      state: 'lost',
+      text: `⚠ ${orphans} recording${orphans === 1 ? '' : 's'} not yet mined — content is being lost.`,
+    };
+  }
+  if (videos > 0 && full === videos) {
+    return { state: 'done', text: '✓ No video lost — every ingested recording fully mined.' };
+  }
+  const owed = videos - full;
+  return {
+    state: 'mining',
+    text: `◐ No video lost — every recording has begun mining · ${owed} still owe${owed === 1 ? 's' : ''} harvests.`,
+  };
+}
+
 // =============================================================================
 // buildLedger — the honest bridge from the REAL corpus to the coverage ledger.
 // =============================================================================
