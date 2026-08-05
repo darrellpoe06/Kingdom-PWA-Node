@@ -129,6 +129,27 @@ describe('shell wiring — every narrowing + suppression point is present', () =
     expect(shell.includes(fragment), `missing wiring: ${fragment}`).toBe(true);
   });
 
+  it('the reviewer strip rides EVERY shell return path — the app shell AND the TLC door takeover (Exit is never hidable, DR-0104)', () => {
+    // The ?tlc=1 door returns early, ~500 lines before the app shell's banner
+    // mount. Without its own mount, a steward who navigates to /tlc/ while the
+    // lens is on loses the only way back (caught 2026-08-05, REV-0239). Two
+    // sites, both pinned by count.
+    const count = shell.split('{reviewerMode && <ReviewerModeBanner />}').length - 1;
+    expect(count, 'banner must mount in the app shell AND the TLC door early return').toBeGreaterThanOrEqual(2);
+  });
+
+  it('dev affordances are steward/demo-only — a real signed-in user never sees a tier bypass or a seed reset (REV-0239)', () => {
+    // The tier wall is real money ($39/$89/$149/$249): the preview switcher,
+    // the UpgradePrompt "Dev preview — switch tier" row, and the footer
+    // "Reset to seed data" are steward/demo controls, never a user's.
+    expect(shell.includes('{!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher')).toBe(true);
+    expect(shell.includes('{!churchDoorOnly && <TierSwitcher'), 'ungated TierSwitcher must stay gone').toBe(false);
+    const gatedPrompts = shell.split('setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null}').length - 1;
+    expect(gatedPrompts, 'all three UpgradePrompt sites pass setUserTier only to stewards/demo').toBeGreaterThanOrEqual(3);
+    expect(/UpgradePrompt[^\n]*setUserTier=\{setUserTier\}/.test(shell), 'no UpgradePrompt may receive the raw setter').toBe(false);
+    expect(shell.includes('{(isFamilyMember || isAnyDemoMode) && (')).toBe(true);
+  });
+
   it('the Admin entry (tab + console gate) is closed to a reviewer AND to a signed-in guest on the home host, both sites', () => {
     // DR-0241: on a private host the open (no-session) state keeps the entry,
     // but a signed-in non-steward — an invited guest on the house WiFi — never

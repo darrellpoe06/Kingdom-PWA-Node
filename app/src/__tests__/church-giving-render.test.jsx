@@ -45,7 +45,7 @@ describe('ChurchGiveFloater — the floater', () => {
   });
 
   // THE WORD GETS PRIORITY (Darrell 2026-07-27): the pill must conform to the
-  // standing floater Way (Darrell 2026-07-14 idle-reveal + REV-0174 compact-
+  // standing floater Way (Darrell 2026-07-14 idle-reveal + REV-0235 compact-
   // when-idle) — at rest it settles to a dim icon-only circle so it stops
   // covering the lesson text; motion re-reveals it as the gentle reminder.
   it('settles out of the Word\'s way when idle (compact icon-only), and re-reveals on scroll', () => {

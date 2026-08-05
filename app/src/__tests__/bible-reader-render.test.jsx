@@ -150,7 +150,7 @@ describe('BibleReader — the whole KJV, read in-app', () => {
     expect(text).toContain('For God so loved the world');
   });
 
-  it('theme-marker chips: ink-only styles (Jdg/Sin) sit on a parchment plate — readable on any theme (REV-0174)', async () => {
+  it('theme-marker chips: ink-only styles (Jdg/Sin) sit on a parchment plate — readable on any theme (REV-0235)', async () => {
     // Root cause of the 2026-07-23 dark-theme screenshot: Judgment's Box style
     // is near-black READER ink (#1A1815) with no background — rendered raw, the
     // chip was invisible on the dark surface. The plate makes the marker read

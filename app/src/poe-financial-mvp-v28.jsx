@@ -3501,6 +3501,8 @@ export default function PoeFinancialSystem() {
     return (
       <div className="min-h-screen overflow-x-clip" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
         <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+        {/* Reviewer strip rides the door too — with app chrome gone this Exit is the only way back (DR-0104; REV-0239). Users: flag off, door byte-identical. */}
+        {reviewerMode && <ReviewerModeBanner />}
         <SectionBoundary name="TLC">
           <TlcPublicDoor />
         </SectionBoundary>
@@ -4145,8 +4147,8 @@ ${THEME_CSS}
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
-              {/* Tier switcher (PoeTech family-OS control) — hidden on the Love Corner door. */}
-              {!churchDoorOnly && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
+              {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
+              {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
               {/* 2026-06-14 — the profile switcher is the family device-sharing
                   control; it is hidden for a self-serve ('self') user, who has
                   only their own identity. Clicking it would setProfile(null)
@@ -4925,11 +4927,11 @@ ${THEME_CSS}
               onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             /></SectionBoundary>
-          : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
           ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} />
-          : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
         {view === 'opportunities' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.opportunities)
           ? <Opportunities
@@ -4951,7 +4953,7 @@ ${THEME_CSS}
               tierMeets={tierMeets}
               TIER_LABEL={TIER_LABEL}
             />
-          : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} authCreatedAt={authSession?.user?.created_at || null} familyFullAccess={!reviewerMode && !!personaOf(authSession?.user?.email)} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'center' && (
@@ -5116,11 +5118,11 @@ ${THEME_CSS}
           />
         )}
 
-        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). */}
+        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is steward/demo-only: never offer to overwrite a user's books with seed (REV-0239). */}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          <button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
+          {(isFamilyMember || isAnyDemoMode) && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>
         )}
         {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
@@ -5144,7 +5146,7 @@ ${THEME_CSS}
           onClick={() => setFeedbackOpen(true)}
           aria-label="Open feedback"
           title="Tell us what's working / not working / missing"
-          // ts-chrome-region = no balloon; idle-reveal (2d). COMPACT WHEN IDLE (REV-0174): un-revealed = 48px circle so it stops occluding tappable content beneath; expands on reveal/hover/focus.
+          // ts-chrome-region = no balloon; idle-reveal (2d). COMPACT WHEN IDLE (REV-0235): un-revealed = 48px circle so it stops occluding tappable content beneath; expands on reveal/hover/focus.
           className={`ts-chrome-region fixed bottom-4 left-4 z-30 inline-flex items-center justify-center bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-2'}`}
           style={{ borderRadius: '999px' }}
         >
