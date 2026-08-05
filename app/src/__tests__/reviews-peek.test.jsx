@@ -38,9 +38,37 @@ const clickText = (text) => {
   act(() => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 };
 
-describe('recentReviews — newest first, capped', () => {
-  it('reverses (append-only file is oldest-first) and caps to the limit', () => {
+describe('recentReviews — newest first by Date, capped', () => {
+  it('sorts by date descending and caps to the limit', () => {
     expect(recentReviews(sample, 2).map((r) => r.id)).toEqual(['REV-0003', 'REV-0002']);
+  });
+  it('does NOT trust file position: a prepended newest-first run atop an older body still sorts by date (the 2026-08-05 stale-strip catch, REV-0239)', () => {
+    // The real registry's shape: a newest-first block first, older records after.
+    const mixed = {
+      ok: true,
+      count: 4,
+      items: [
+        { id: 'REV-0230', title: 'Newest (prepended)', date: '2026-08-01' },
+        { id: 'REV-0219', title: 'Newer (prepended)', date: '2026-07-31' },
+        { id: 'REV-0001', title: 'Oldest (body)', date: '2026-06-16' },
+        { id: 'REV-0217', title: 'Body tail', date: '2026-07-30' },
+      ],
+    };
+    // Position-order ("tail is newest") would have returned REV-0217/REV-0001
+    // first; date-order surfaces the true newest.
+    expect(recentReviews(mixed, 3).map((r) => r.id)).toEqual(['REV-0230', 'REV-0219', 'REV-0217']);
+  });
+  it('breaks a same-date tie on the higher REV id and sorts unparseable dates last', () => {
+    const tied = {
+      ok: true,
+      count: 3,
+      items: [
+        { id: 'REV-0010', title: 'A', date: '2026-07-01' },
+        { id: 'REV-0012', title: 'B', date: '2026-07-01' },
+        { id: 'REV-0011', title: 'no date', date: '' },
+      ],
+    };
+    expect(recentReviews(tied, 3).map((r) => r.id)).toEqual(['REV-0012', 'REV-0010', 'REV-0011']);
   });
   it('is safe on empty / missing data', () => {
     expect(recentReviews(null)).toEqual([]);

@@ -306,7 +306,7 @@ export function ChurchGivePanel({ church, onClose }) {
 // pill sat on top of the lesson text). This floater now conforms to the standing
 // floater Way — Darrell 2026-07-14 ("move out the way after a certain amount of
 // time and come up when the users move the screen as gentle reminders") +
-// REV-0174 compact-when-idle, the exact behavior the Feedback pill already has:
+// REV-0235 compact-when-idle, the exact behavior the Feedback pill already has:
 // at rest it settles to a dim 48px icon-only circle so it stops occluding the
 // Word beneath; any scroll/touch re-reveals the full labeled pill as the gentle
 // "you know where to give" reminder. Same idle hook, same motion, same tap

@@ -57,7 +57,7 @@ derived from that record is fiction.
 - Every `re-review:` line written from today names its carrier and its
   derivation; the watcher's daily report is the enforcement surface for
   dates already on file (the 168-item backlog drains through it, oldest
-  first, per REV-0175's discipline).
+  first, per REV-0236's discipline (renumbered from a double-minted REV-0175, 2026-08-05)).
 - DR-0239's standard (dimension 6) is amended to carry this two-state law.
 - **re-review: 2026-08-25** (carried by the review-watcher, derived from the
   DR-0239 first-month window it already shares): are any items in an

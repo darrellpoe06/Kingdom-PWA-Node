@@ -40,11 +40,24 @@ export function loadReviewRecords() {
   }
 }
 
-// Newest-first, capped -- REVIEWS.md is append-only oldest-first, so the tail is
-// the newest. Pure so a test can pin it.
+// Newest-first by each record's own Date field, capped. File POSITION is not
+// trusted: the registry historically carries a prepended newest-first run atop
+// the older oldest-first body (both conventions are real), so position-order
+// ("tail is newest") silently hid the newest records from this strip -- the
+// exact surface DR-0104 built to keep the written review one tap away (caught
+// 2026-08-05, REV-0239). Ties fall back to the higher REV id; an unparseable
+// date sorts last. Pure so a test can pin it.
 export function recentReviews(data, limit = 8) {
   const items = (data && Array.isArray(data.items)) ? data.items : [];
-  return items.slice(-limit).reverse();
+  const when = (r) => {
+    const ms = Date.parse(r && r.date ? r.date : '');
+    return Number.isNaN(ms) ? -Infinity : ms;
+  };
+  const idNum = (r) => {
+    const m = /^REV-(\d+)/.exec((r && r.id) || '');
+    return m ? parseInt(m[1], 10) : -1;
+  };
+  return items.slice().sort((a, b) => (when(b) - when(a)) || (idNum(b) - idNum(a))).slice(0, limit);
 }
 
 export default function ReviewsPeek({ reviews = null, limit = 8, defaultOpen = false }) {

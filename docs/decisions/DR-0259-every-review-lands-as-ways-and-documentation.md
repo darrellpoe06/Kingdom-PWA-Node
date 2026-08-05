@@ -16,7 +16,7 @@ Darrell, 2026-07-31, mid-review of the install-collision incident:
 
 > "Ways and documentation required every time claude reviews etc... add"
 
-This generalizes the correction he had to make the day before (REV-0176 —
+This generalizes the correction he had to make the day before (REV-0237, renumbered 2026-08-05 from a double-minted REV-0176 —
 "60 min? Ways and documentation..."): the pattern he keeps having to re-ask
 for is that a review's output must LAND in the repo's memory, not evaporate
 in chat.
