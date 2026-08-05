@@ -375,26 +375,10 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
     },
     {
       id: 'services',
-      label: 'Services & team',
+      label: 'Team & services',
       render: () => (<div className="space-y-5">
-      {/* Therapy Options · all link to Acuity booking */}
-      <section>
-        <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {TLC_SERVICES.map(s => (
-            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
-              <div className="flex items-baseline justify-between gap-2 mb-1">
-                <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
-                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
-              </div>
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
-              <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Clinical team · roster with portal links */}
+      {/* Clinical team FIRST · roster with portal links — same order as the
+          public TLC door (Darrell: the team is the first thing we see). */}
       <section>
         <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -410,6 +394,23 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
                 <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{c.specialty}</p>
               </div>
             </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Therapy Options · all link to Acuity booking */}
+      <section>
+        <SectionTitle eyebrow="Therapy Services">All Options · Direct Online Intake</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {TLC_SERVICES.map(s => (
+            <div key={s.name} className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors">
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <h4 className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.name}</h4>
+                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap">Book →</a>
+              </div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{s.desc}</div>
+              <p className="text-xs leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{s.for}</p>
+            </div>
           ))}
         </div>
         <div className="mt-3 p-3 bg-white border border-[#E8E4DC]">
