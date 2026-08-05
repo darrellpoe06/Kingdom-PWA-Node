@@ -195,4 +195,22 @@ describe('the shipped registry.json is valid and ships inert', () => {
     expect(hc).not.toBeNull();
     expect(hc.kind).toBe('deterministic');
   });
+
+  // Gate-the-class (DR-0239 review 2026-08-05): the transcript loader sat
+  // parked on a manual app button for a month (81/858 transcribed) while the
+  // deterministic fleet ran without it — the waiting-by-default miss. This pin
+  // keeps the harvest's transcript source ON the armed fleet with real brakes;
+  // its loop script must exist and stay bounded (trickle pace, not a burst the
+  // YouTube block punishes).
+  it('includes the transcript-backfill loop, enabled, braked, and trickle-paced', () => {
+    const reg = JSON.parse(readFileSync(regPath, 'utf8'));
+    const tb = findLoop(reg, 'transcript-backfill');
+    expect(tb).not.toBeNull();
+    expect(tb.kind).toBe('deterministic');
+    expect(tb.enabled).toBe(true);
+    expect(tb.max_calls_per_day).toBeGreaterThan(0);
+    expect(tb.max_calls_per_day).toBeLessThanOrEqual(8);
+    expect(tb.timeout_seconds).toBeGreaterThan(0);
+    expect(existsSync(join(repoRoot, 'infra/nas-loops/loops', tb.script))).toBe(true);
+  });
 });

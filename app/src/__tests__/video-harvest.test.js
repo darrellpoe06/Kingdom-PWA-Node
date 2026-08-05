@@ -9,7 +9,7 @@ import {
   HARVEST_TYPES, HARVEST_KEYS, harvestType, STATUS,
   normalizeHarvest, harvestMapFor, videoCoverage,
   deriveSignals, mergeHarvests, flagVideo, sortForProcessing,
-  harvestLedgerSummary, buildLedger,
+  harvestLedgerSummary, buildLedger, ledgerBanner,
 } from '../lib/video-harvest.js';
 
 describe('harvest-type registry', () => {
@@ -221,5 +221,32 @@ describe('buildLedger — the honest corpus bridge', () => {
   it('STATUS enum is the contract the writer uses', () => {
     expect(STATUS).toMatchObject({ NONE: 'none', PARTIAL: 'partial', COMPLETE: 'complete', NA: 'na' });
     expect(harvestMapFor(null).transcript.status).toBe('none');
+  });
+});
+
+// Surface-says-truth pin (DR-0239 review 2026-08-05): the pinned banner may
+// only read green when the corpus is ACTUALLY fully mined. The prior two-state
+// banner showed success-green "every ingested recording has been mined" over a
+// 0/858-fully-harvested, avg-26% corpus — teaching the steward the work was
+// done while the transcript pipeline sat stalled for a month.
+describe('ledgerBanner — three honest states, green only when truly done', () => {
+  it('orphans present -> lost (red), with the count', () => {
+    const b = ledgerBanner({ videos: 10, orphans: 3, fullyHarvested: 0 });
+    expect(b.state).toBe('lost');
+    expect(b.text).toContain('3 recordings not yet mined');
+  });
+  it('no orphans but harvests still owed -> mining (amber), NEVER a done claim', () => {
+    const b = ledgerBanner({ videos: 858, orphans: 0, fullyHarvested: 0 });
+    expect(b.state).toBe('mining');
+    expect(b.text).toContain('858 still owe');
+    expect(b.text).not.toMatch(/has been mined|fully mined/);
+  });
+  it('every video fully harvested -> done (the only green)', () => {
+    const b = ledgerBanner({ videos: 5, orphans: 0, fullyHarvested: 5 });
+    expect(b.state).toBe('done');
+    expect(b.text).toContain('fully mined');
+  });
+  it('empty corpus never claims done', () => {
+    expect(ledgerBanner({ videos: 0, orphans: 0, fullyHarvested: 0 }).state).toBe('mining');
   });
 });

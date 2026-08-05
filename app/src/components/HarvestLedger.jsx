@@ -30,7 +30,7 @@ import SectionTabs from './SectionTabs.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
-import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS } from '../lib/video-harvest.js';
+import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS, ledgerBanner } from '../lib/video-harvest.js';
 import { aboutFor } from '../lib/surface-help.js';
 
 // LIGHT inline self-explanation — declared centrally in surface-help.js so the
@@ -268,11 +268,15 @@ function OpsAdminCard() {
   );
 }
 
+// Value color rides CLASS tokens (never inline) because the card background is
+// the class token bg-white, which theme-css remaps per theme (midnight ->
+// #141414). An inline color on a remapped background is exactly the bug the
+// 2026-08-05 review photographed: near-black "858" on a near-black card.
 function Stat({ label, value, tone }) {
-  const color = tone === 'bad' ? '#991B1B' : tone === 'good' ? '#166534' : '#1A1815';
+  const toneClass = tone === 'bad' ? 'text-[#991B1B]' : tone === 'good' ? 'text-[#166534]' : 'text-[#1A1815]';
   return (
     <div className="bg-white border border-[#E8E4DC] p-3 text-center">
-      <div className="text-2xl font-semibold" style={{ color, fontFamily: '"Fraunces", serif' }}>{value}</div>
+      <div className={`text-2xl font-semibold ${toneClass}`} style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
     </div>
   );
@@ -321,7 +325,7 @@ export default function HarvestLedger() {
     return <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The harvest ledger is for the choir / church team. Ask a steward to add you.</div>;
   }
 
-  const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {} };
+  const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {}, transcribedVideos: 0 };
 
   // Corpus wholeness (DR-0135): is what the app HOLDS everything the channel
   // HAS? The 125-of-335 gap hid for weeks because nothing compared them.
@@ -341,13 +345,12 @@ export default function HarvestLedger() {
           {busy && <div className="text-[0.6875rem] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
 
           {/* Corpus wholeness strip (DR-0135) — the channel-vs-app comparison
-              the 125-of-335 gap never had. Amber until whole; never silent. */}
+              the 125-of-335 gap never had. Amber until whole; never silent.
+              CLASS tokens throughout: the old inline #FAF8F4 background stayed
+              cream under midnight while the class text tokens remapped light —
+              the washed-out box the 2026-08-05 review photographed. */}
           <div
-            className="border p-3 mb-3"
-            style={{
-              borderColor: wholeness.manifestReady && wholeness.missing.length === 0 ? '#5A6E3D' : '#B85838',
-              backgroundColor: '#FAF8F4',
-            }}
+            className={`border p-3 mb-3 bg-[#FAF8F4] ${wholeness.manifestReady && wholeness.missing.length === 0 ? 'border-[#5A6E3D]' : 'border-[#B85838]'}`}
             role="status"
           >
             <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Corpus wholeness — channel vs app</p>
@@ -442,21 +445,43 @@ export default function HarvestLedger() {
         <>
           {/* PINNED above the strip — the no-video-lost banner + the KPI strip
               stay visible whichever section is open (Darrell 2026-07-07: "no
-              more down scrolling to see a surface with KPIs"). */}
-          <div className="mb-3 p-3 border" style={{ borderColor: l.noVideoLost ? '#166534' : '#991B1B', background: l.noVideoLost ? '#F0FAF1' : '#FCEDEC' }}>
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="text-sm font-semibold" style={{ color: l.noVideoLost ? '#166534' : '#991B1B', fontFamily: '"Fraunces", serif' }}>
-                {l.noVideoLost ? '✓ No video lost — every ingested recording has been mined.' : `⚠ ${l.orphans} recording${l.orphans === 1 ? '' : 's'} not yet mined — content is being lost.`}
-              </span>
-              <span className="text-[0.6875rem] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
-            </div>
-          </div>
+              more down scrolling to see a surface with KPIs"). Three honest
+              states via ledgerBanner (surface-says-truth): green is reserved
+              for a corpus that is actually FULLY mined — an in-progress corpus
+              reads amber, never a victory lap. Inline bg + inline text stay
+              PAIRED (the light card reads AA in every theme); the sub-line is
+              inline too so it never remaps light onto the light band. */}
+          {(() => {
+            const banner = ledgerBanner(l);
+            const tone = banner.state === 'lost'
+              ? { border: '#991B1B', bg: '#FCEDEC', color: '#991B1B' }
+              : banner.state === 'done'
+                ? { border: '#166534', bg: '#F0FAF1', color: '#166534' }
+                : { border: '#B8893B', bg: '#FBF6EC', color: '#92400E' };
+            return (
+              <div className="mb-3 p-3 border" style={{ borderColor: tone.border, background: tone.bg }}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-sm font-semibold" style={{ color: tone.color, fontFamily: '"Fraunces", serif' }}>
+                    {banner.text}
+                  </span>
+                  <span className="text-[0.6875rem]" style={{ color: tone.color }}>
+                    {l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}% · {l.transcribedVideos ?? 0}/{l.videos} transcribed
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
             <Stat label="Videos ingested" value={l.videos} />
             <Stat label="Fully mined" value={l.fullyHarvested} tone="good" />
             <Stat label="Partly mined" value={l.partiallyHarvested} />
             <Stat label="Not yet mined" value={l.orphans} tone={l.orphans ? 'bad' : 'good'} />
+            {/* The stall signal the wiring promised the surface would show
+                (harvest-ledger.js transcribedVideos) — until 2026-08-05 it was
+                fetched and never rendered, so a month-long pipeline stall was
+                invisible in-app. */}
+            <Stat label="Transcribed" value={l.transcribedVideos ?? 0} tone={l.videos > 0 && l.transcribedVideos === l.videos ? 'good' : undefined} />
           </div>
 
           <SectionTabs sections={sections} ariaLabel="Harvest ledger sections" idBase="harvest" defaultId="recordings" />
