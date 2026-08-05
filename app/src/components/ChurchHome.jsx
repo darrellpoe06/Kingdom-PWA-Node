@@ -28,6 +28,7 @@ import EmojiText from './EmojiText.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
@@ -80,7 +81,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const openFollowAlong = useCallback(() => {
     setFollowAlong(true);
     setFloating(true); // pop the video to a small DRAGGABLE mini-player so the Word reads clean below (no big orange box)
-    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
+    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
   }, []);
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');

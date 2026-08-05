@@ -33,6 +33,7 @@
 //   - emptyState     : JSX to render when items is empty
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 export function Queue({
   title,
@@ -100,7 +101,7 @@ export function Queue({
     if (typeof window !== 'undefined') {
       requestAnimationFrame(() => {
         const el = document.getElementById(`queue-focus-${title?.replace(/\s+/g, '-').toLowerCase() || 'pane'}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (el) el.scrollIntoView({ behavior: motionBehavior(), block: 'nearest' });
       });
     }
   };

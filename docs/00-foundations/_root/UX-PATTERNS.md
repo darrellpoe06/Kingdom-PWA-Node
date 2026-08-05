@@ -171,6 +171,20 @@ Floating action buttons (the **Feedback** launcher, the **read-aloud** button, a
 
 Regression-guarded in `__tests__/use-idle-reveal.test.jsx` (visible → hides after the idle window → re-reveals on scroll).
 
+## Pattern 2e: The Still Screen — content opens in place; the screen never flies (PoeTech Standard)
+
+**Binding standard, declared by Darrell 2026-07-09 (DR-0131) and re-asserted 2026-08-05 on the TV Time wall (DR-0274):** *"this needs to open in place and not move fast from that location because humans can get dizzy."* Fast programmatic screen movement is a vestibular-accessibility failure, not a polish preference — it pairs with this document's accessibility bar ("Reduced motion mode respected (no auto-animation)").
+
+The three sanctioned forms of screen movement, in order of preference:
+
+1. **In-place open (the default).** Content a tap summons renders **at the tap** — an expanding row, a full-width grid row directly under the tapped tile (the TV Time wall card), an inline panel — never far away with a compensating scroll flight. If a surface "needs" a scroll to show what just opened, the placement is the bug; fix the placement, not the flight. (`gentleReveal` in `lib/gentle-motion.js` may then nudge the view by at most the small overshoot when the opened content's top edge starts below the fold — usually it moves nothing.)
+2. **User-invited travel.** When the user explicitly asks to *go* somewhere (a "back to top" control, a "full editor ↗" jump, read-aloud follow), the trip is sanctioned — but it animates only for users whose OS has not requested reduced motion: `behavior: motionBehavior()` (never a hardcoded `'smooth'`).
+3. **The instant cut for view navigation.** Entering a different view (a lesson space, a new tab) repositions **instantly** (`behavior: 'auto'`) — an instant cut reads as a page change, not as movement; there is no flight to get dizzy on. ChurchLearn's lesson open/close is the reference implementation.
+
+**Mechanism (reuse, do not reinvent):** `lib/gentle-motion.js` — `prefersReducedMotion()`, `motionBehavior()`, `gentleReveal(el)`. **Machinery, not memory:** the source-scan guard `__tests__/still-screen-motion.test.js` fails the build if any surface hardcodes `behavior: 'smooth'` outside the helper (proven-to-catch against the 16-file pre-sweep tree); the wall's in-place open + held-still screen is pinned in `__tests__/tv-time-wall.test.jsx`.
+
+**The one-line test for any new surface:** *"When this opens, does the content come to the finger — or does the screen fly to the content?"* If the screen flies, it is the DR-0274 class.
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:

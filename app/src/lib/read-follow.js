@@ -22,6 +22,7 @@
 // the highlight is a silent no-op and the auto-scroll still follows — the
 // place-keeping floor works everywhere speech works.
 import { segmentText } from './tts.js';
+import { motionBehavior } from './gentle-motion.js';
 
 const SKIP_SELECTOR = '.tts-controls, [aria-hidden="true"], script, style, noscript, .print\\:hidden, .install-prompt, .update-confirm';
 
@@ -207,6 +208,6 @@ export function followRange(range) {
     const el = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
       : range.startContainer.parentElement);
-    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
   } catch (_) { /* scrolling is best-effort */ }
 }

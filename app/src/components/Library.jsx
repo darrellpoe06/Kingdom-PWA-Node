@@ -38,6 +38,7 @@ import { subscribeSermons } from '../lib/choir-sync.js';
 import { loadLibrary } from '../lib/eternal-algorithms.js';
 import { useReadingResume, anchorProps } from '../lib/reading-position.js';
 import Bookstore from './Bookstore.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // THEMED CLASSES, NEVER INLINE HEX (2026-07-30, from a live midnight-theme
 // screenshot: every title/button on this surface painted #1A1815 ink via
@@ -292,7 +293,7 @@ export default function Library({ email, isFamilyMember = false, sermons = [], s
       if (link.churchView === 'home' && typeof setChurchHomeSection === 'function') setChurchHomeSection(link.churchSection || null);
     }
     if (typeof setView === 'function') setView(link.view);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* noop */ }
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* noop */ }
   }, [setView, setChurchView, setChurchHomeSection]);
 
   // Open a purchased/entitled store book in the in-app reader — assembled from

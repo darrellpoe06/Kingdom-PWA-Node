@@ -1,8 +1,11 @@
 // =============================================================================
 // TVTime WALL — the surface Darrell actually looks at, previously untested
 // (2026-08-04 comprehensive review, G4/G5). Pins the two journey breaks:
-//   · tapping a poster tile OPENS its card AND scrolls it into view (the card
-//     rendered below a 100-tile grid with no scroll — the tap looked dead);
+//   · tapping a poster tile OPENS its card IN PLACE — a full-width grid row
+//     directly under the tapped tile, with NO screen flight (DR-0274/DR-0131:
+//     the 2026-08-04 fix scrolled the card in from below the whole wall — the
+//     fast movement Darrell's 2026-08-05 dizziness report named; the card now
+//     comes to the finger instead of the screen flying to the card);
 //   · tapping an IMPORTED tile hydrates it from the catalog, so its progress
 //     stops reading a fake 100% and the full episode list arrives.
 // Mounts the real component with >9 shows (the wall auto-engages) and an
@@ -53,9 +56,12 @@ let container, root;
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* noop */ }
   __resetPosterCache();
-  // jsdom has no scrollIntoView; the component guards on its existence — give it
-  // one so the "tap scrolls the opened card into view" claim is ASSERTED.
+  // The still-screen claims (DR-0274) are ASSERTED: no scrollIntoView flight,
+  // and no scrollBy when the in-place card is already on screen (jsdom rects
+  // are zeros — the card's top edge is well above the fold, so gentleReveal
+  // must hold the screen still).
   Element.prototype.scrollIntoView = vi.fn();
+  window.scrollBy = vi.fn();
   seedImportedList();
 });
 afterEach(() => {
@@ -83,14 +89,24 @@ describe('the poster wall (auto-engaged at >9 shows)', () => {
     // pre-hydration: 1 of 1 — the fake-complete state G1 names
     expect(tiles.some((t) => /1 of 1 watched/.test(t.getAttribute('aria-label')))).toBe(true);
   });
-  it('TAP: opens the show card, scrolls it into view, and hydration replaces the fake 100%', async () => {
+  it('TAP: opens the show card IN PLACE right after the tile — no screen flight — and hydration replaces the fake 100%', async () => {
     await mount();
     const empire = wallTiles().find((t) => t.getAttribute('aria-label').startsWith('EMPIRE'));
     expect(empire).toBeTruthy();
     await act(async () => { empire.click(); });
-    // the card opened (its status control renders) and was scrolled to
+    // the card opened (its status control renders)…
     expect(container.textContent).toContain('Episodes');
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    // …IN PLACE: the card is the tile's immediate next sibling inside the same
+    // grid, spanning the full row (DR-0274 — content comes to the finger)
+    const card = empire.nextElementSibling;
+    expect(card).toBeTruthy();
+    expect(card.style.gridColumn).toBe('1 / -1');
+    expect(card.textContent).toContain('Episodes');
+    expect(card.parentElement).toBe(empire.parentElement);
+    // …and the screen HELD STILL: no flight to a far-away card, no nudge when
+    // the card's top edge is already on screen (DR-0131: "humans can get dizzy")
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollBy).not.toHaveBeenCalled();
     // hydration lands: search + full-show fetch resolve, state persists
     await tick(); await tick(); await tick();
     const after = wallTiles().find((t) => t.getAttribute('aria-label').startsWith('EMPIRE'));

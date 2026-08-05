@@ -20,6 +20,7 @@
 // announcement so the landing is heard, not just seen.
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { prefersReducedMotion } from '../../lib/gentle-motion.js';
 
 const INK = '#12100E';
 const CREAM = '#FAF8F4';
@@ -77,16 +78,6 @@ const WEDGES = Array.from({ length: WEDGE_COUNT }, (_, i) => {
     rotate: center,
   };
 });
-
-function prefersReducedMotion() {
-  try {
-    return typeof window !== 'undefined'
-      && typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch {
-    return false;
-  }
-}
 
 // ---- the wheel ----------------------------------------------------------------
 // props:
