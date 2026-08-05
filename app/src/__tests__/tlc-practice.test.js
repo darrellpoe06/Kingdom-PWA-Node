@@ -5,6 +5,9 @@
 // and that nothing clinical rides in this record — public marketing facts only.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
 import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
 
 describe('the TLC clinical-team record', () => {
@@ -33,5 +36,18 @@ describe('the TLC clinical-team record', () => {
     for (const t of TLC_TEAM) {
       expect(Object.keys(t).sort()).toEqual(allowed.sort());
     }
+  });
+
+  it('the operator Practice tab renders the team BEFORE services (same order as the public door)', () => {
+    // Darrell: "The TLC tab should be arranged in the same order as this
+    // showing the Team first" — the door already pins team-first
+    // (tlc-public-door-render.test.jsx); this pins the operator tab too.
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, '../components/Practice.jsx'), 'utf8');
+    const team = src.indexOf('TLC_TEAM.map');
+    const services = src.indexOf('TLC_SERVICES.map');
+    expect(team).toBeGreaterThan(-1);
+    expect(services).toBeGreaterThan(-1);
+    expect(team, 'clinical team must render before the services list').toBeLessThan(services);
   });
 });
