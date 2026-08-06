@@ -216,6 +216,20 @@ jobs:
       - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
         run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
+      # Read-highlight probe (DR-0264/DR-0265 follow-along; the 2026-08-06 miss):
+      # the follow-along highlight is PAINTED, not merely called. jsdom has no
+      # CSS Custom Highlight API, so read-follow.test.js could only exercise the
+      # unsupported branch — and a missing `win` default made every highlight a
+      # silent no-op on real hardware while all pins stayed green. This asserts
+      # the pixels change in a real Chromium using the exact call shape
+      # TTSControl makes. Selftest FIRST (re-introduces the defect and requires
+      # the paint checks to fail — anti-theater, DR-0076 §3), then the real pass.
+      - name: Read-highlight probe — selftest (must be able to fail)
+        run: node scripts/read-highlight-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Read-highlight probe — the follow-along highlight actually paints
+        run: node scripts/read-highlight-probe.mjs
+        working-directory: ${{ github.workspace }}
 
   workflows:
     name: n8n workflows — wf36 gatekeeper harness

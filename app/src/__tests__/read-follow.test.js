@@ -7,11 +7,12 @@
 // sentence N and the DOM range N are THE SAME SENTENCE by construction,
 // because buildFollowMap normalizes with the same collapse and segments with
 // segmentText itself.
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   buildFollowMap, segmentRange, wordRange, supportsHighlight,
-  highlightSegment, clearReadingHighlights, followRange,
+  highlightSegment, highlightWord, clearReadingHighlights, followRange,
   segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
+  SEGMENT_HIGHLIGHT, WORD_HIGHLIGHT,
 } from '../lib/read-follow.js';
 import { segmentText, createBrowserTTS } from '../lib/tts.js';
 
@@ -119,6 +120,53 @@ describe('highlight + follow are unbreakable where the platform lacks the APIs',
     expect(supportsHighlight()).toBe(false);
     expect(highlightSegment(null)).toBe(false);
     expect(() => clearReadingHighlights()).not.toThrow();
+  });
+
+  // PROVEN-TO-CATCH (DR-0076 §3). The test above passes for the WRONG reason on a
+  // device with the API: it only ever exercised the unsupported branch, so the
+  // highlight never painted on any real browser and no gate said so — the words
+  // read aloud but nothing lit up (reported 2026-08-06). These pins stand the
+  // real platform up in jsdom and assert the call shape the app actually makes:
+  // highlightSegment(range) with NO explicit window. Reverting the `win` default
+  // in setNamed turns both of these red.
+  describe('on a browser that HAS the API, the app call shape actually paints', () => {
+    class FakeHighlight { constructor(r) { this.range = r; } }
+    let store;
+    beforeEach(() => {
+      store = new Map();
+      window.Highlight = FakeHighlight;
+      window.CSS = { ...(window.CSS || {}), highlights: store };
+    });
+    afterEach(() => { delete window.Highlight; delete window.CSS; });
+
+    it('highlightSegment(range) registers the sentence highlight — no window argument', () => {
+      const root = pageRoot();
+      const follow = buildFollowMap(root);
+      expect(highlightSegment(segmentRange(follow, 0))).toBe(true);
+      expect(store.get(SEGMENT_HIGHLIGHT)).toBeInstanceOf(FakeHighlight);
+      root.remove();
+    });
+
+    it('highlightWord(range) paints the word, and highlightWord(null) clears it', () => {
+      const root = pageRoot();
+      const follow = buildFollowMap(root);
+      const at = follow.segments[0].text.indexOf('Perfect');
+      expect(highlightWord(wordRange(follow, 0, at))).toBe(true);
+      expect(store.has(WORD_HIGHLIGHT)).toBe(true);
+      expect(highlightWord(null)).toBe(true);   // the per-sentence clear TTSControl makes
+      expect(store.has(WORD_HIGHLIGHT)).toBe(false);
+      root.remove();
+    });
+
+    it('clearReadingHighlights() removes both roles when reading stops', () => {
+      const root = pageRoot();
+      const follow = buildFollowMap(root);
+      highlightSegment(segmentRange(follow, 0));
+      highlightWord(wordRange(follow, 0, 0));
+      clearReadingHighlights();
+      expect(store.size).toBe(0);
+      root.remove();
+    });
   });
 
   it('followRange centers the range\'s element via scrollIntoView', () => {

@@ -6,7 +6,7 @@ date: 2026-08-03
 tier: A
 declared_by: Darrell ("fix the voices issues constraints")
 supersedes: the three carried items in DR-0264's constraints section (two closed, one narrowed)
-builds_on: [DR-0264 (follow-along + secure space), DR-0144 (start where I tap), the 2026-07-30 read-target, DR-0076, DR-0100]
+builds_on: [DR-0264 (follow-along + secure space), DR-0147 (start where I tap), the 2026-07-30 read-target, DR-0076, DR-0100]
 principles: [COMMUNITY-FIRST, VERIFICATION-DOCTRINE, NOTHING-WAITS (DR-0236)]
 ---
 

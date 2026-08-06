@@ -159,13 +159,17 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const segIdx = follow && caret ? segmentIndexAtDomPoint(follow, caret.node, caret.offset) : -1;
       if (follow && segIdx >= 0) {
         followRef.current = pageFollowState(follow, segIdx);
+        // Same law as Read-this-page: a tap-started read follows and highlights,
+        // so the card must collapse to the pill or it covers the very words it
+        // just lit up (reported 2026-08-06 — the panel sat over the read text).
+        setMinimized(true);
         read(follow.text.slice(follow.segments[segIdx].start));
         return;
       }
       const hit = readFromPoint(main, e.clientX, e.clientY);
       const text = (hit && hit.text) || readablePageText();
       followRef.current = null; // unresolvable tap reads unmapped — no stale highlight
-      if (text) read(text);
+      if (text) { setMinimized(true); read(text); }
     };
     const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
     document.addEventListener('click', onTap, true);
