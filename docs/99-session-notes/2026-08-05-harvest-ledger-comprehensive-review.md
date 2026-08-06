@@ -93,8 +93,12 @@ The legibility-guard gate already existed and proved itself mid-session.
 ## Opportunities (beyond this session's closes)
 
 1. **Watch the trickle land** — transcribed count should move within ~a day of merge;
-   the Harvest Ledger's new stat is the witness. If it doesn't move, the reel + ntfy
-   red is the alarm (exit-3 all-blocked runs).
+   the Harvest Ledger's new stat is the in-app witness. ~~If it doesn't move, the reel
+   + ntfy red is the alarm (exit-3 all-blocked runs).~~ **CORRECTED 2026-08-06 — this
+   was FALSE.** The reel's ntfy requires the loop to *run*, and the announce relay is a
+   Funnel URL on the NAS itself, so a NAS that is off emits nothing; the stall guard
+   script reads a gitignored path nothing writes. There was no alarm. The real witness
+   is `harvest-health.yml`, built 2026-08-06 — outside the NAS, on a GitHub runner.
 2. **LLM deepening pass** — the transcript-derived harvests light as 'partial'
    (heuristic extractors). Once transcripts drain, a bounded AI pass over the same
    corpus (cap-resume gate, Tier C) could complete lessons/discernment/testimony/trivia.
@@ -111,8 +115,13 @@ The legibility-guard gate already existed and proved itself mid-session.
   a constraint-shaped design, not a preference.
 - **Caption availability**: some videos genuinely have none (4 confirmed no-caption
   verdicts so far); Whisper-on-NAS remains the fallback for those.
-- **The 480s per-installer timeout** inside services-sync bounds each trickle fire —
-  the 4-video sip fits with wide margin.
+- ~~**The 480s per-installer timeout** inside services-sync bounds each trickle fire —
+  the 4-video sip fits with wide margin.~~ **CORRECTED 2026-08-06 — wrong ceiling.**
+  `run.mjs` kills the WHOLE services-sync tree at the registry's `timeout_seconds`, so
+  the cycle-wide bound — not the per-installer one — is what actually governs, and the
+  rider was registered LAST behind docker pulls and the choir-dates drain. It could
+  have been SIGKILLed before ever running, silently, with the cycle green. Now
+  registered first and pinned.
 - **The sandbox has no NAS route** (P18) — activation rides committed records
   (registry/manifest) + the NAS's own clock, which is exactly the DR-0247 design.
 
