@@ -38,7 +38,7 @@
 // =============================================================================
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,7 +65,14 @@ try {
     'export const useState=()=>[],useMemo=()=>{},useEffect=()=>{},useRef=()=>({}),useCallback=()=>{};\n'
     + 'export default {useState,useMemo,useEffect,useRef,useCallback};\n');
   const bundlePath = join(work, 'rf.mjs');
-  execFileSync('npx', ['esbuild', 'src/lib/read-follow.js', '--bundle', '--format=esm',
+  // The local binary, never `npx` — a bare npx on a runner may try to FETCH
+  // esbuild, turning a gate into a network dependency.
+  const esbuildBin = join(APP, 'node_modules/.bin/esbuild');
+  if (!existsSync(esbuildBin)) {
+    console.error(`FAIL  esbuild not found at ${esbuildBin} — run npm ci in app/ first.`);
+    process.exit(1);
+  }
+  execFileSync(esbuildBin, ['src/lib/read-follow.js', '--bundle', '--format=esm',
     `--outfile=${bundlePath}`, `--alias:react=${join(work, 'react-stub.js')}`],
   { cwd: APP, stdio: ['ignore', 'ignore', 'inherit'] });
 
@@ -83,10 +90,14 @@ try {
   }
   bundle += '\nwindow.RF={buildFollowMap,segmentRange,wordRange,highlightSegment,highlightWord,clearReadingHighlights,supportsHighlight};window.__rfReady=1;';
 
-  const browser = await chromium.launch({
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
-    channel: process.env.PLAYWRIGHT_CHROMIUM_PATH ? undefined : 'chrome',
-  }).catch(() => chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }));
+  // Same launch strategy as chrome-layout-probe.mjs / sw-nav-check.mjs: the
+  // runner's installed Chrome, or an explicit path, or the sandbox's Chromium.
+  const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
+    ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH, headless: true }
+    : { channel: 'chrome', headless: true };
+  let browser;
+  try { browser = await chromium.launch(launchOpts); }
+  catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
   const page = await browser.newPage({ viewport: { width: 420, height: 320 } });
   await page.setContent(
     `<style>${rules}\nbody{background:#fff;font:20px/1.6 Georgia,serif;margin:0;padding:16px;}</style>`
