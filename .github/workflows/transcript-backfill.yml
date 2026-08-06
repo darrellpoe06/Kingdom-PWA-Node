@@ -20,14 +20,23 @@
 # writes nothing; the reliable no-proxy path is load-transcripts.py on the
 # NAS, whose residential IP YouTube does not block.
 #
-# THREE BRAKES (CLAUDE.md autonomous-automation rule):
+# BRAKES (CLAUDE.md autonomous-automation rule):
 #   (1) Budget  -- --max 50 per run (inputs.max overrides).
 #   (2) Lock    -- concurrency group below (cancel-in-progress: false);
 #                  a queued run waits; it does NOT stack.
-#   (3) Kill    -- ships INACTIVE (workflow_dispatch ONLY). To enable the
-#                  hourly polling schedule for today's new uploads, uncomment
-#                  the `schedule:` block below and merge. Disable by
-#                  re-commenting and merging, or via GitHub Actions > Disable.
+#
+# STATUS (corrected 2026-08-06, DR-0277): this workflow is dispatch-only NOT as
+# a "kill-switch" -- DR-0248 removed that framing from the deterministic class,
+# and DR-0254 ended ship-inactive-by-default -- but because THIS PATH DOES NOT
+# WORK: YouTube hard-blocks GitHub runner IPs, so every scheduled fire would be
+# a guaranteed red (proven, run #5 2026-07-11: all 50 attempts RequestBlocked).
+# The LIVE path is the transcript-trickle rider on the NAS's residential IP
+# (infra/nas-sme-pipeline/transcript_trickle_install.sh, armed by record).
+# Arming the schedule below is pointless until residential proxy secrets exist;
+# with them it becomes a real second lane, and then the ADDITIVE daily volume
+# against the measured ~180/day IpBlocked ceiling must be budgeted in the same
+# change (DR-0277 s5). The witness that this lane is stalled at all is
+# harvest-health.yml, which runs outside the NAS.
 #
 # One-time setup: SUPABASE_DB_URL must be set as a repository secret
 #   (Settings > Secrets > Actions). This is the same secret used by db-migrate.

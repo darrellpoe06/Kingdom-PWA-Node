@@ -3,6 +3,12 @@
   "_comment": "The self-deploy manifest (DR-0236): repo-declared NAS services the services-sync loop installs/repairs on the NAS's own clock. Each entry is an IDEMPOTENT installer script (safe to run every cycle; every step no-ops when already done). Adding a service here + merging to main IS its deploy -- the nas mirror pulls, services-sync runs the installer, the service starts. 'enabled' is the committed greenlight. Installers never edit configs they cannot verify (DR-0076).",
   "services": [
     {
+      "name": "transcript-trickle",
+      "install": "infra/nas-sme-pipeline/transcript_trickle_install.sh",
+      "enabled": true,
+      "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
+    },
+    {
       "name": "mcp",
       "install": "infra/nas-mcp/install.sh",
       "enabled": true,
@@ -37,12 +43,6 @@
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
       "description": "YT Zero (ghcr.io/pelski/ytzero pinned 0.25.3) -- sovereign chosen-channels-only YouTube inbox on host port 3701. Public RSS -> own SQLite at /volume1/docker/ytzero; no Google account, no API key, no recommendation feed; optional yt-dlp downloads; LAN/Tailscale only. Runbook: infra/nas-ytzero/README.md."
-    },
-    {
-      "name": "transcript-trickle",
-      "install": "infra/nas-sme-pipeline/transcript_trickle_install.sh",
-      "enabled": true,
-      "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button since 2026-07-06 while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32/day, gentle sips under the 2026-07-03 burst block), draining ~770 gaps in ~3-4 weeks then keeping pace with the channel forever. Loader carries --max budget + single-flight lock + auto-pause after 3 all-blocked runs (paused = quiet no-op here; the app's resume-transcripts job clears it). The Harvest Ledger's transcribed count is the live witness."
     }
   ]
 }

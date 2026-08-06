@@ -202,12 +202,21 @@ describe('the shipped registry.json is valid and ships inert', () => {
   // keeps the harvest's transcript source ON the armed fleet with real brakes;
   // its loop script must exist and stay bounded (trickle pace, not a burst the
   // YouTube block punishes).
-  it('includes the transcript-backfill loop, enabled, braked, and trickle-paced', () => {
+  // CORRECTED 2026-08-06 by the ways review. This test originally asserted
+  // `enabled: true` — but the loop has no DSM/cron entry, so enabled read GREEN
+  // while nothing fired it (DR-0076 §3: a check that means nothing). The LIVE
+  // path is the transcript-trickle services.json rider on the already-armed
+  // services-sync clock; this entry is the documented DSM upgrade, held off by
+  // record because arming it would ADD ~64 videos/day on top of the rider's ~32
+  // and push the pair past the measured ~180/day IpBlocked ceiling.
+  it('keeps the transcript-backfill loop braked and honest about not being clocked', () => {
     const reg = JSON.parse(readFileSync(regPath, 'utf8'));
     const tb = findLoop(reg, 'transcript-backfill');
     expect(tb).not.toBeNull();
     expect(tb.kind).toBe('deterministic');
-    expect(tb.enabled).toBe(true);
+    expect(tb.enabled).toBe(false);
+    expect(tb.disabled_why).toBeTruthy();
+    expect(tb.re_review).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(tb.max_calls_per_day).toBeGreaterThan(0);
     expect(tb.max_calls_per_day).toBeLessThanOrEqual(8);
     expect(tb.timeout_seconds).toBeGreaterThan(0);
