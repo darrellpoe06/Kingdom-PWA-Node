@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "_comment": "The braked deterministic NAS loop registry. Each entry is a routine job the DSM Task Scheduler fires headless on the always-on NAS, behind the three brakes (run.mjs). 'enabled' is the committed greenlight (no default-true). 'kind:deterministic' loops run with NO LLM and keep going whether or not Claude/Dispatch is online; 'kind:ai' loops are delegated to the cap-resume/wake gate (a strict superset of brakes) and are NOT run by this dispatcher. Adding a loop here does NOT arm it: the runner ships inert until state/LOOPS_ARMED, and each loop also needs its own DSM Task Scheduler entry (registered by hand). schedule is documentation for the DSM entry; DSM owns the clock.",
+  "_comment": "The braked deterministic NAS loop registry. Each entry is a routine job fired headless on the always-on NAS behind the three brakes (run.mjs). 'enabled' is the committed greenlight (no default-true) AND means CLOCKED: a loop may ship enabled only when something actually fires it -- an enabled-but-unclocked loop reads GREEN while nothing runs, a check that means nothing (DR-0076 s3 / DR-0277). A loop held off carries disabled_why + re_review. ARMING (corrected 2026-08-06 -- this comment previously said 'adding a loop here does NOT arm it' and 'registered by hand', both overtaken): the fleet is ARMED BY RECORD via the committed ARMED-BY-RECORD file (DR-0247), and a clock is registered either through the DSM Task Scheduler UI or root crontab over SSH -- both equal ways (DR-0272). A lane whose safe pace is slower than any clock available may instead ride the already-armed services-sync manifest as a stamp-gated rider (DR-0277); such a lane needs no entry here. 'kind:deterministic' loops run with NO LLM and keep going whether or not Claude/Dispatch is online; 'kind:ai' loops are delegated to the cap-resume/wake gate and are NOT run by this dispatcher. schedule is documentation for the clock entry; the clock owns the cadence. NOTE: run.mjs kills the WHOLE loop tree at timeout_seconds, so for multi-installer loops the cycle-wide ceiling -- not any per-child timeout -- is what actually bounds every child.",
   "loops": [
     {
       "name": "health-check",
@@ -40,7 +40,7 @@
       "schedule": "every 15 minutes",
       "max_calls_per_day": 96,
       "timeout_seconds": 600,
-      "description": "The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry)."
+      "description": "The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry). Cycle-wide timeout bounds ALL installers together (run.mjs kills the tree), so cheap stamp-gated riders are registered first in services.json and cannot be starved by a slow sibling -- the 2026-08-06 ways-review finding."
     },
     {
       "name": "funnel-watchdog",
@@ -56,11 +56,13 @@
       "name": "transcript-backfill",
       "kind": "deterministic",
       "script": "transcript-backfill.sh",
-      "enabled": true,
+      "enabled": false,
       "schedule": "every 6 hours",
       "max_calls_per_day": 4,
       "timeout_seconds": 1500,
-      "description": "Trickle the YouTube auto-caption loader (infra/nas-sme-pipeline/load-transcripts.py) from the NAS's residential IP -- the CI path is IP-blocked (run #5, 2026-07-11). 8 videos per fire with 20-60s randomized sleeps (under the ~50-burst block of 2026-07-03), 4 fires/day = ~32/day: clears the 2026-08-05 gap (81/858 transcribed) in ~3-4 weeks, then keeps pace with the channel's ~2-3 uploads/week. Brakes stack: runner timeout/cap/lock PLUS the loader's own --max budget, single-flight lock, and auto-pause after 3 all-blocked runs (resume-transcripts ops job clears it from the app). The Harvest Ledger transcript count is the live witness. ACTIVATION TODAY rides the services-sync clock via the transcript-trickle manifest entry (zero new DSM entries); this dedicated loop entry is the optional DSM-clock upgrade -- the loader's single-flight lock keeps the two paths from ever overlapping."
+      "description": "The optional dedicated-DSM-clock path to the YouTube caption loader (infra/nas-sme-pipeline/load-transcripts.py). Disabled by record: the services.json trickle rider is the live path. See disabled_why for the additive-rate constraint that governs ever arming this.",
+      "disabled_why": "Redundant SECOND path to the same loader, and unclocked. The LIVE path is the transcript-trickle services.json rider on the already-armed services-sync clock (DR-0247). This registry entry has no DSM/cron entry, so enabled:true read GREEN while nothing fired it -- a check that means nothing (DR-0076 s3), found by the 2026-08-06 ways review. Worse, if it were ever clocked at --max 8 every 6h it would ADD ~64 videos/day (~128-192 HTTP calls) on top of the rider's ~32, putting the pair at or over the measured ~180/day IpBlocked ceiling. Kept as the documented DSM-clock upgrade for the day the rider's measured pace proves too slow; the loader's single-flight lock prevents overlap but NOT additive volume, so arming this REQUIRES lowering the rider's budget in the same change.",
+      "re_review": "2026-09-06"
     }
   ]
 }

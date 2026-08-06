@@ -1,0 +1,155 @@
+# Harvest health — proves the transcript pipeline is ADVANCING, from outside the NAS.
+#
+# WHY THIS EXISTS (2026-08-06 ways review; executes DR-0135's lapsed 2026-07-31
+# "data-plane probe mirroring site-health: transcripts current"). On 2026-08-05 a
+# comprehensive review found the transcript pipeline had been dead for a MONTH —
+# 81 of 858 videos transcribed, last row written 2026-07-06 — and nothing rang.
+# The review of the review found out why, and it is structural:
+#   * scripts/harvest-stall-guard.mjs is real, correct, and WIRED TO NOTHING: it
+#     reads scripts/out/harvest-progress.jsonl, a gitignored path no live code
+#     writes, so it always takes its "no snapshot log yet" branch and exits 0.
+#   * The NAS loop fleet's own alarm (ntfy on loop_fail, run.mjs) requires the
+#     loop to RUN — a powered-down or de-tailnetted NAS emits no failure at all.
+#     The watchdog dies with the host.
+#   * The bell itself rides the failure domain: the ops-announce relay is a
+#     Funnel URL ON the NAS. NAS down => alarm channel down, by construction.
+#   * site-health.yml deliberately keeps NAS hops as warnings on a GREEN run
+#     ("a family box can legitimately be off"), so nothing escalated.
+# Net: the only witness to a month-long data-plane stall was a human opening the
+# app. This workflow is the missing instrument, and it lives OUTSIDE the NAS on a
+# GitHub runner precisely so it still rings when the NAS is the thing that broke.
+#
+# WHAT IT MEASURES (against prod Postgres, the same session-pooler URL the
+# migration lane uses — an OUTCOME measure, not a mechanism check, so it catches
+# the stall whatever the cause: NAS off, YouTube block, bad secrets, dead cron):
+#   1. COVERAGE  — transcripts carrying real text vs. videos owing one.
+#   2. FRESHNESS — hours since the newest transcript row landed.
+#   3. STALL     — gaps still owed AND nothing written in STALL_HOURS.
+#
+# WHAT IT DOES WITH A STALL: opens (or comments on) the single rolling
+# "harvest-health" incident issue, labeled `incident` — the queryable record that
+# answers "how long has it been stuck?" with a number instead of a memory.
+# Recovery posts the close. The run itself goes RED so it is visible in the
+# Actions list (DR-0076: a green check must mean something).
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — ONE read-only SQL query + at most one issue write per fire. No
+#      compute is spawned, nothing is written to the product database, and the
+#      job is hard-capped at 5 minutes.
+#   2. LOCK   — concurrency group `harvest-health`, single-instance, never
+#      cancel-in-progress; a queued fire waits rather than stacking.
+#   3. KILL   — set repo variable HARVEST_HEALTH_ENABLED='false' (or disable in
+#      the Actions UI). Unset => runs. Same posture as site-health.yml, which is
+#      the settled precedent for a bounded, idempotent, non-spawning prober
+#      (DR-0110 class): it ships ACTIVE, because a witness that waits to be
+#      armed is exactly the failure this instrument exists to end (DR-0247).
+#
+# CADENCE: every 6h. The measured signal moves on a ~3h trickle cycle, so a
+# 6-hourly read cannot miss a real stall while a stall is, by definition, days
+# long (DR-0103 §3: match the watch to the change rate, never a reflexive poll).
+
+name: harvest-health
+
+on:
+  schedule:
+    - cron: '17 */6 * * *' # every 6 hours, off the top of the hour
+  workflow_dispatch: {}
+
+concurrency:
+  group: harvest-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling stall record
+
+jobs:
+  probe:
+    if: ${{ vars.HARVEST_HEALTH_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      # Hours of silence that count as a stall while gaps remain. The trickle
+      # fires ~8x/day, so 48h is ~16 missed fires — far past noise, far short of
+      # the month this instrument was born from.
+      STALL_HOURS: '48'
+    steps:
+      - name: Measure coverage + freshness (read-only)
+        id: probe
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -uo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::warning::SUPABASE_DB_URL not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
+            echo "unknown=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # ONE query, read-only, no writes anywhere. Whitespace-stripped like the
+          # migrate lane (a trailing newline in the secret made psql ask for a
+          # database literally named "postgres\n" — DR-0145 lineage).
+          CLEAN_URL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
+          row=$(psql "$CLEAN_URL" -At -F '|' -c "
+            SELECT
+              (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0),
+              (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL),
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
+                        FROM video_transcripts), -1);
+          ") || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
+
+          done_n=$(echo "$row" | cut -d'|' -f1)
+          total=$(echo "$row"  | cut -d'|' -f2)
+          age_h=$(echo "$row"  | cut -d'|' -f3)
+          gaps=$(( total - done_n ))
+
+          echo "transcribed=$done_n / $total  ·  gaps=$gaps  ·  newest row ${age_h}h old"
+          {
+            echo "done_n=$done_n"; echo "total=$total"; echo "gaps=$gaps"; echo "age_h=$age_h"
+          } >> "$GITHUB_OUTPUT"
+
+          stalled=""
+          if [ "$gaps" -gt 0 ] && { [ "$age_h" -lt 0 ] || [ "$age_h" -ge "$STALL_HOURS" ]; }; then
+            stalled="transcribed ${done_n}/${total}, ${gaps} still owed, and NOTHING has landed in ${age_h}h (threshold ${STALL_HOURS}h)"
+          fi
+          echo "stalled=$stalled" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Harvest health"
+            echo ""
+            echo "- Transcribed: **${done_n} / ${total}** (${gaps} still owed)"
+            echo "- Newest transcript row: **${age_h}h** old"
+            echo ""
+            if [ -n "$stalled" ]; then echo "**STALLED** — $stalled"; else echo "**ADVANCING.**"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record the stall (rolling issue, labeled `incident`)
+        if: ${{ steps.probe.outputs.stalled != '' }}
+        env:
+          STALLED: ${{ steps.probe.outputs.stalled }}
+        run: |
+          set -uo pipefail
+          title="harvest-health: the transcript pipeline has stopped advancing"
+          body="$(date -u +%FT%TZ) — **STALLED**: ${STALLED}. The trickle rides services-sync on the NAS; the usual causes are the NAS being off the tailnet, a YouTube IP block (the loader backs off 24h and resumes itself), or missing NAS secrets. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title harvest-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$body"
+          else
+            gh label create incident --repo "$REPO" --color B60205 --description "Live outage / stall record" 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
+          fi
+          exit 1 # a stalled pipeline is a failing run — visible without opening the app
+
+      - name: Close a recovered stall
+        if: ${{ steps.probe.outputs.stalled == '' && steps.probe.outputs.unknown != 'true' }}
+        env:
+          DONE_N: ${{ steps.probe.outputs.done_n }}
+          TOTAL: ${{ steps.probe.outputs.total }}
+        run: |
+          set -uo pipefail
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title harvest-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$(date -u +%FT%TZ) — RECOVERED: advancing again at ${DONE_N}/${TOTAL} transcribed."
+            gh issue close "$open_issue" --repo "$REPO" || true
+          fi

@@ -31,12 +31,16 @@ PLATFORM = "youtube"
 #                     videos while gaps remain, so a scheduler surfaces the stall
 #                     instead of it hanging silently.
 #
-# THREE BRAKES (CLAUDE.md autonomous-automation rule): (1) --max budget; (2) a
-# single-instance lock file (a second run SKIPS); (3) a kill-switch: after 3
-# consecutive all-blocked runs the loader writes out/.transcripts-paused and
-# refuses to run until a human deletes it -- a scheduled task can never grind
-# against a blocked IP unattended. Ships MANUAL/inactive -- arm the DSM
-# schedule only with someone watching. No autostart in this file.
+# BRAKES (CLAUDE.md autonomous-automation rule, as amended by DR-0248 for the
+# deterministic class): (1) --max budget; (2) a single-instance lock file (a
+# second run SKIPS); plus (3) a TIME-DECAYED BACKOFF -- after 3 consecutive
+# all-blocked runs the loader pauses, then resumes ITSELF after
+# PAUSE_DECAY_SECONDS, so a scheduled task never grinds against a blocked IP AND
+# never stops forever waiting on a hand. This is deliberately not a kill-switch:
+# DR-0248 removed the manual override from this class, and the 2026-08-05 ways
+# review proved the old human-cleared pause had no reachable clear path at all.
+# ARMED BY RECORD (DR-0247): the trickle rides the services-sync clock via
+# transcript_trickle_install.sh; merging its manifest entry IS its start.
 #
 # TRICKLE MODE (Darrell 2026-07-03, after YouTube IP-blocked the NAS at ~50
 # fetches in one burst): a small daily budget at randomized times, sized to
@@ -185,6 +189,29 @@ def rest(url, key, method, path, body=None, extra_headers=None):
     return json.loads(raw) if raw.strip() else None
 
 
+# PostgREST caps an unbounded GET at its server default (1000 rows) and returns
+# the truncation SILENTLY -- no error, just a short list. The corpus passed 858
+# videos on 2026-08-03 and grows every service, so an unpaged read was days away
+# from a permanent phantom gap: a truncated existing_state makes already-loaded
+# videos look unloaded, so every run would re-fetch the same head of the list and
+# burn its whole --max budget without ever reaching the real gaps. Page until a
+# short page proves the end (DR-0076: measure, never assume the read was whole).
+# Callers MUST pass a stable total order or paging can drop/duplicate rows.
+PAGE = 500
+
+
+def rest_all(url, key, path):
+    out = []
+    offset = 0
+    while True:
+        sep = "&" if "?" in path else "?"
+        page = rest(url, key, "GET", f"{path}{sep}limit={PAGE}&offset={offset}") or []
+        out.extend(page)
+        if len(page) < PAGE:
+            return out
+        offset += PAGE
+
+
 def resolve_instance(url, key, slug):
     rows = rest(url, key, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(slug))
     if not rows:
@@ -200,8 +227,9 @@ def existing_state(url, key, instance_id):
     A row holding a transient error (RequestBlocked etc., recorded before the
     verdict/transient split) reads as neither -> it gets retried this run.
     """
-    rows = rest(url, key, "GET",
-                "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id) or []
+    rows = rest_all(url, key,
+                    "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id
+                    + "&order=video_id.asc")
     out = {}
     for r in rows:
         out[r["video_id"]] = {"has_text": (r.get("words") or 0) > 0,
@@ -222,9 +250,13 @@ def upsert_transcript(url, key, instance_id, vid, record, dry_run):
 def video_ids_from_cloud(url, key, instance_id):
     """Return [(video_id, service_date)] newest-first. service_date drives the
     caption-grace check -- a brand-new upload's missing captions are transient."""
-    rows = rest(url, key, "GET",
-                "choir_sermons?select=video_id,service_date&instance_id=eq." + instance_id
-                + "&video_id=not.is.null&order=service_date.desc") or []
+    # video_id is the tiebreaker so the total order is STABLE across pages --
+    # service_date alone ties (several services share a date, ~700 shared NULL
+    # before the 2026-08-04 drain), and an unstable sort silently drops or
+    # duplicates rows at every page boundary.
+    rows = rest_all(url, key,
+                    "choir_sermons?select=video_id,service_date&instance_id=eq." + instance_id
+                    + "&video_id=not.is.null&order=service_date.desc,video_id.asc")
     return [(r["video_id"], r.get("service_date")) for r in rows if r.get("video_id")]
 
 
@@ -293,9 +325,40 @@ def release_lock():
         pass
 
 
-# Kill-switch (brake 3): 3 consecutive all-blocked runs -> auto-pause. A
-# scheduled task must never grind against a blocked IP unattended; a human
-# deletes the flag to resume once the block has cleared.
+# BACKOFF (not a kill-switch): 3 consecutive all-blocked runs -> pause, so a
+# scheduled task never grinds against a blocked IP. The pause is TIME-DECAYED and
+# clears ITSELF after PAUSE_DECAY_SECONDS -- deliberately NOT a human-cleared
+# switch (DR-0248 removed the manual override from the deterministic class; the
+# 2026-08-05 ways review found the documented clear path, the app's
+# resume-transcripts ops job, routed through ops-runner.py, which is installed by
+# NOTHING -- so a pause would have stopped the drain permanently and silently,
+# re-creating the very stall this lane exists to end). A human CAN still delete
+# the flag early; nothing REQUIRES them to.
+PAUSE_DECAY_SECONDS = 24 * 3600
+
+
+def pause_active():
+    """True only while a recorded pause is still inside its decay window.
+
+    An expired pause is REMOVED here, so the very next fire runs -- the drain
+    resumes on its own clock with no hand and no queue.
+    """
+    if not os.path.exists(PAUSE_FLAG):
+        return False
+    try:
+        age = time.time() - os.path.getmtime(PAUSE_FLAG)
+    except OSError:
+        return False
+    if age < PAUSE_DECAY_SECONDS:
+        return True
+    try:
+        os.remove(PAUSE_FLAG)
+        log(f"Backoff expired after {int(age) // 3600}h -- resuming on this fire.")
+    except OSError:
+        return True
+    clear_blocked_runs()
+    return False
+
 
 def _consecutive_blocked():
     try:
@@ -314,8 +377,8 @@ def record_blocked_run():
     if n >= 3:
         with open(PAUSE_FLAG, "w", encoding="utf-8") as fh:
             fh.write(f"auto-paused after {n} consecutive all-blocked runs\n")
-        log(f"KILL-SWITCH: {n} consecutive all-blocked runs -> auto-paused.")
-        log(f"To resume once the block clears: rm {PAUSE_FLAG}")
+        log(f"BACKOFF: {n} consecutive all-blocked runs -> pausing for "
+            f"{PAUSE_DECAY_SECONDS // 3600}h, then resuming automatically.")
 
 
 def clear_blocked_runs():
@@ -352,10 +415,12 @@ def main():
                          "stale threshold)")
     args = ap.parse_args()
 
-    # Kill-switch gate: refuse to run while auto-paused (see record_blocked_run).
-    if os.path.exists(PAUSE_FLAG):
-        log(f"PAUSED: {PAUSE_FLAG} exists (kill-switch: repeated all-blocked runs).")
-        log(f"Once the IP block has cleared, resume with: rm {PAUSE_FLAG}")
+    # Backoff gate (see record_blocked_run). SELF-CLEARING by design: the pause
+    # decays after PAUSE_DECAY_SECONDS and the next fire proceeds on its own.
+    if pause_active():
+        left = int(PAUSE_DECAY_SECONDS - (time.time() - os.path.getmtime(PAUSE_FLAG)))
+        log(f"BACKOFF: paused after repeated all-blocked runs; auto-resumes in ~{max(left, 0) // 3600}h "
+            f"({PAUSE_FLAG}). Nothing to clear by hand.")
         sys.exit(4)
 
     try:
@@ -458,8 +523,8 @@ def main():
             f"{skipped} already resolved.")
         log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
         if fetched > 0:
-            clear_blocked_runs()  # real progress resets the kill-switch counter
-        # Only trip the IP-block kill-switch when EVERY attempt was refused -- a run
+            clear_blocked_runs()  # real progress resets the backoff counter
+        # Only trip the IP-block backoff when EVERY attempt was refused -- a run
         # that got any real answer (a fetch, a verdict, or a still-processing
         # pending) proves the IP is reaching YouTube.
         if blocked > 0 and (fetched + no_caption + pending) == 0:

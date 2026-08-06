@@ -139,3 +139,50 @@ pass was then run. What it changed:
 4. **Carried opportunities inherited, not re-invented:** REV-0008's still-open items
    keep their identities and dates — last-mile consumers (2026-08-15), LLM deepening
    partial→complete (2026-08-15), multi-platform corpus join (2026-09-01).
+
+---
+
+## 2026-08-06 — the Ways pass run FULLY, and what it found in this review itself
+
+Darrell: *"did you actually review the Ways and documentation fully... do it..."*
+The honest answer was **no** — the 08-05 pass read the harvest code and the review
+standard, but not the review registry, the decision ledger, DR-0108's own text, or
+the enforcement machinery. Five parallel readers then covered all of it. The deeper
+pass found that **the fix shipped on 08-05 had re-created the very failure class it
+set out to end**, and that the real root cause had never been touched.
+
+**The root cause of the month-long silence (not the parked button — that was the
+proximate cause):** every alarm lived *on the NAS*.
+- `scripts/harvest-stall-guard.mjs` is real and correct but **wired to nothing** —
+  it reads `scripts/out/harvest-progress.jsonl`, a gitignored path no live code
+  writes, so it always takes its "no snapshot log yet" branch and exits 0.
+- The loop reel's ntfy fires on `loop_fail` — which requires the loop to *run*. A
+  powered-down or de-tailnetted NAS emits nothing at all.
+- The announce relay is itself a Funnel URL **on the NAS**. NAS down ⇒ bell down,
+  by construction. The watchdog died with the host.
+- So my 08-05 claim that "the reel + ntfy red is the alarm" was **false**. Corrected
+  here, in REV-0241, and in the PR record.
+
+**Defects found in the 08-05 work, all fixed 08-06, each proven-to-catch by
+reverting the fix and watching the gate fail:**
+
+| Defect | Why it mattered | Fix |
+|---|---|---|
+| The loader's auto-pause was a human-cleared kill-switch whose only documented clear path routes through `ops-runner.py`, which **no enabled service installs** | Three blocked runs would have stopped the drain **permanently and silently** — the exact stall this lane exists to end; a DR-0248 violation | Time-decayed backoff that clears itself after 24h; a gate forbids any stop-path naming an uninstalled runner |
+| Every PostgREST read unpaged; PostgREST silently caps at 1000 rows | At 858 videos and growing, a truncated `existing_state` makes loaded videos look unloaded — every run re-fetches the same head and burns its whole budget, a permanent phantom gap with no error | Paged reads with a stable total order; pinned |
+| The rider was registered **last** of seven installers under one tree-wide timeout | A docker pull or the choir-dates drain could SIGKILL it before it ever ran — silently, with the cycle green | Registered **first**; pinned |
+| The duplicate `transcript-backfill` registry loop shipped `enabled: true` with no clock | Green while nothing fired it; if ever clocked it would add ~64 videos/day on top of the rider's ~32, past the measured ~180/day ceiling | `enabled:false` with recorded why + dated revisit; my own earlier test that asserted the fake-green is corrected |
+| Pace stated in the wrong unit | ~32 videos/day is ~64–96 HTTP calls — roughly **half** the ~180/day ceiling, not a fifth | Corrected everywhere stated |
+| `--start-jitter` existed, recommended by the loader's own docstring, never passed | A fixed-time daily pattern is easier to block | Passed |
+
+**The instrument that was missing, now built:** `.github/workflows/harvest-health.yml`
+— a 6-hourly, read-only probe of transcript coverage and freshness that runs **on a
+GitHub runner, outside the NAS failure domain**, measures the *outcome* (so it
+catches the stall whatever the cause), files the rolling `incident` issue, and
+**fails its own run** so the signal exists without anyone opening the app. Ships
+active. This executes DR-0135's lapsed 2026-07-31 data-plane-probe commitment — the
+instrument that, had it existed, would have announced this stall on day two.
+
+**Recorded:** REV-0242 (the ways review, with all five DR-0108 questions answered),
+REV-0241 corrected from `addressed` to `logged` with an honest title, and **DR-0277**
+— the decision the 08-05 session should have written and did not.

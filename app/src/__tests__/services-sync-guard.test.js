@@ -128,3 +128,97 @@ describe('the REAL manifest + registry hold', () => {
     expect(names).toContain('services-sync');
   });
 });
+
+// =============================================================================
+// The 2026-08-06 ways-review pins. Three findings, three gates.
+// =============================================================================
+describe('the transcript trickle rides the clock safely (2026-08-06 ways review)', () => {
+  const services = () => JSON.parse(readFileSync(join(LOOPS_DIR, 'services.json'), 'utf-8'));
+  const registry = () => JSON.parse(readFileSync(join(LOOPS_DIR, 'registry.json'), 'utf-8'));
+
+  // FINDING: services-sync gives each installer 480s, but run.mjs kills the WHOLE
+  // services-sync tree at the registry's timeout_seconds. A cheap stamp-gated
+  // rider registered LAST behind docker pulls and the choir-dates drain can be
+  // SIGKILLed before it ever runs — silently, forever, with the cycle still green.
+  it('the cheap stamp-gated rider runs FIRST so a slow sibling cannot starve it', () => {
+    const names = services().services.map((s) => s.name);
+    expect(names[0]).toBe('transcript-trickle');
+  });
+
+  // FINDING: `enabled: true` on a registry loop with no DSM/cron entry reads
+  // GREEN while nothing fires it — a check that means nothing (DR-0076 §3). The
+  // live path is the services.json rider; this entry must stay off with a why.
+  it('the duplicate unclocked loop stays disabled and says why + when to revisit', () => {
+    const loop = registry().loops.find((l) => l.name === 'transcript-backfill');
+    expect(loop).toBeTruthy();
+    expect(loop.enabled).toBe(false);
+    expect(loop.disabled_why).toMatch(/rider|unclocked|additive/i);
+    expect(loop.re_review).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  // FINDING: the loader's pause pointed at the app's resume-transcripts job,
+  // which routes through ops-runner.py — installed by NOTHING. A pause would
+  // have stopped the drain permanently and silently. Any stop-path a rider
+  // documents must be reachable, so nothing may name ops-runner as its clear
+  // path until that runner is itself in the self-deploy manifest.
+  it('no installer documents a stop-path through an uninstalled runner', () => {
+    const doc = services();
+    const opsRunnerInstalled = doc.services.some(
+      (s) => s.enabled && /ops-runner/i.test(s.install || ''),
+    );
+    for (const svc of doc.services) {
+      if (!svc.enabled) continue;
+      // Normalize comment markers + wrapping first: the acknowledgment is prose
+      // in a shell header, so it wraps across lines and a naive line-scoped
+      // regex would miss it and fire a false positive.
+      const src = readFileSync(join(ROOT, svc.install), 'utf-8')
+        .replace(/^\s*#+/gm, ' ')
+        .replace(/\s+/g, ' ');
+      const claimsOpsRunner = /resume-transcripts|ops-runner/i.test(src)
+        && !/installed by nothing|no reachable clear path|is installed by NOTHING/i.test(src);
+      expect(
+        claimsOpsRunner && !opsRunnerInstalled,
+        `${svc.name} points its stop-path at ops-runner, which no enabled service installs`,
+      ).toBe(false);
+    }
+  });
+});
+
+describe('the harvest pipeline has a witness OUTSIDE its own failure domain', () => {
+  // FINDING (the root cause of the month-long stall): the only alarms lived ON
+  // the NAS — the loop reel's ntfy needs the loop to run, and the announce relay
+  // is a Funnel URL on the same box. A NAS that is off emits nothing. The stall
+  // guard script reads a gitignored path nothing writes. So a data-plane stall
+  // could only ever be found by a human opening the app, and was — after a month.
+  const wf = () => readFileSync(join(ROOT, '.github/workflows/harvest-health.yml'), 'utf-8');
+
+  it('exists, runs on a schedule, and is not dispatch-only', () => {
+    const src = wf();
+    expect(src).toMatch(/^\s*schedule:/m);
+    expect(src).toMatch(/cron:/);
+  });
+
+  it('runs on a GitHub runner, NOT on the NAS it is watching', () => {
+    expect(wf()).toMatch(/runs-on:\s*ubuntu-latest/);
+  });
+
+  it('carries the three brakes and ships ACTIVE (a witness that waits is the bug)', () => {
+    const src = wf();
+    expect(src).toMatch(/concurrency:/);              // lock
+    expect(src).toMatch(/cancel-in-progress:\s*false/);
+    expect(src).toMatch(/timeout-minutes:/);          // budget
+    expect(src).toMatch(/HARVEST_HEALTH_ENABLED\s*!=\s*'false'/); // kill, default-on
+  });
+
+  it('never reports an unmeasurable state as healthy (DR-0076)', () => {
+    const src = wf();
+    expect(src).toMatch(/unknown=true/);
+    expect(src).toMatch(/steps\.probe\.outputs\.unknown\s*!=\s*'true'/);
+  });
+
+  it('files a durable record and fails the run when the pipeline stops advancing', () => {
+    const src = wf();
+    expect(src).toMatch(/--label incident/);
+    expect(src).toMatch(/exit 1/);
+  });
+});
