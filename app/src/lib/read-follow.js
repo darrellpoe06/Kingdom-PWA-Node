@@ -182,7 +182,14 @@ export function supportsHighlight(win = typeof window !== 'undefined' ? window :
 
 // One named highlight per role; setting replaces the previous range so the
 // "current sentence" and "current word" each exist at most once.
-function setNamed(name, range, win) {
+//
+// `win` carries the SAME default as supportsHighlight. Without it, a caller that
+// omits the argument (every call in TTSControl) passed `win === undefined` past a
+// support check that had quietly defaulted to the real window and returned true —
+// so `win.CSS` threw a TypeError into the bare catch below and every highlight
+// was a silent no-op on every device. The support probe and the paint must read
+// the same window or the check is answering about a different one.
+function setNamed(name, range, win = typeof window !== 'undefined' ? window : null) {
   if (!supportsHighlight(win)) return false;
   try {
     if (!range) { win.CSS.highlights.delete(name); return true; }

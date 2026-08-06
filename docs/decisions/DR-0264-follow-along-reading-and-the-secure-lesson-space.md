@@ -6,7 +6,7 @@ date: 2026-08-03
 tier: A
 declared_by: Darrell
 supersedes: none
-builds_on: [DR-0262 (the lesson's own space), DR-0144 (start where I tap), the 2026-07-30 read-one-full-piece target, DR-0099 (red is reserved), DR-0076 (verification)]
+builds_on: [DR-0262 (the lesson's own space), DR-0147 (start where I tap), the 2026-07-30 read-one-full-piece target, DR-0099 (red is reserved), DR-0076 (verification)]
 principles: [COMMUNITY-FIRST (readers age 6 to 60), EXCELLENCE-STANDARD, VERIFICATION-DOCTRINE]
 ---
 
