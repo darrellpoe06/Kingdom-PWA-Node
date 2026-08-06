@@ -115,3 +115,27 @@ The legibility-guard gate already existed and proved itself mid-session.
   the 4-video sip fits with wide margin.
 - **The sandbox has no NAS route** (P18) — activation rides committed records
   (registry/manifest) + the NAS's own clock, which is exactly the DR-0247 design.
+
+## Addendum (same day) — the Ways pass run fully, deltas found
+
+Darrell asked: *"did you actually review the Ways and documentation fully?"* Honest
+answer at that moment: no — the code path and standards were read; the REV registry,
+the DR index for prior harvest decisions, and DR-0108's full text were not. The full
+pass was then run. What it changed:
+
+1. **The stall had recorded, dated warnings that lapsed unwatched.** REV-0008
+   (2026-07-06) ranked "arm the NAS runner" (re-review 2026-07-13) and "arm the
+   hourly schedule" (re-review 2026-07-20); DR-0145 §4 routed the same arming as a
+   standing Tier-C decision with re-review 2026-07-17; DR-0178 had already corrected
+   the identical "Harvest lanes left inert" answer once before. This session's
+   trickle rider is the execution of those lapsed decisions — by DR-0247 machinery
+   (armed-by-record on the services-sync clock) instead of another date.
+2. **A measured constraint applied:** the NAS residential IP blocks after ~180
+   requests/day (REV-0008, LESSONS P22/P23). The trickle's ~32/day is sized well
+   under it — previously justified only by the burst incident.
+3. **Conformance gap closed:** DR-0108 requires a ways review to land as an
+   `orchestration` REV record, not only a session note — REV-0241 now records this
+   review in the registry the in-app panel reads.
+4. **Carried opportunities inherited, not re-invented:** REV-0008's still-open items
+   keep their identities and dates — last-mile consumers (2026-08-15), LLM deepening
+   partial→complete (2026-08-15), multi-platform corpus join (2026-09-01).
