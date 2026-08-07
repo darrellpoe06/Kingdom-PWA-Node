@@ -20,7 +20,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { WORLD_ISSUES } from '../lib/world-issues-class.js';
+import { WORLD_ISSUES, WORLD_ISSUES_META } from '../lib/world-issues-class.js';
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
 
@@ -347,6 +347,50 @@ const PRISON_ISSUE_QUOTES = [
     'and by him all things consist',
   ] },
 ];
+
+// The TRACK-LEVEL Word-first lead (DR-0127) — Yahweh's frame opens the
+// knowledge space before any issue's material. Quoted verbatim like every
+// other Scripture in the track.
+const WORD_FIRST_QUOTES = [
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: [
+    'Prove all things; hold fast that which is good',
+  ] },
+  { ref: 'Proverbs 18:13', book: 'Proverbs', ch: 18, v: 13, fragments: [
+    'He that answereth a matter before he heareth it, it is folly and shame unto him',
+  ] },
+];
+
+describe('the track opens with Yahweh\'s frame, quoted verbatim (DR-0127 + DR-0076)', () => {
+  it('declares a Word-first lead rather than falling through to an issue anchor', () => {
+    // Before this, wordFirstLead() derived the track's opening from the FIRST
+    // issue's anchor — so the app's most charged knowledge space opened under a
+    // Musk-lesson anchor instead of His frame for weighing a claim at all.
+    expect(WORLD_ISSUES_META.wordFirst?.ref).toBeTruthy();
+    expect(WORLD_ISSUES_META.wordFirst?.frame).toBeTruthy();
+  });
+
+  it('every word quoted in the lead is an exact substring of the cited KJV verse', () => {
+    const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const failures = [];
+    for (const q of WORD_FIRST_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: fragment not found verbatim — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+      if (!norm(WORLD_ISSUES_META.wordFirst.ref).includes(norm(q.ref))) {
+        failures.push(`${q.ref}: quoted in the lead but not cited in wordFirst.ref`);
+      }
+      for (const frag of q.fragments) {
+        if (!norm(WORLD_ISSUES_META.wordFirst.frame).includes(norm(frag))) {
+          failures.push(`${q.ref}: cited but its words do not appear in the lead — "${frag}"`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+});
 
 describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)', () => {
   const issue = WORLD_ISSUES.find((i) => i.id === 'wi-prison-industrial-complex');
