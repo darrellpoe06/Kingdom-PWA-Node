@@ -523,6 +523,126 @@ const TWO_AFTERMATHS_QUOTES = [
   { ref: 'Isaiah 55:8', book: 'Isaiah', ch: 55, v: 8, fragments: [
     'my thoughts are not your thoughts, neither are your ways my ways, saith the LORD',
   ] },
+  // The lesson checks its OWN numbers: 400 (affliction) vs 430 (sojourning).
+  { ref: 'Acts 7:6', book: 'Acts', ch: 7, v: 6, fragments: [
+    'they should bring them into bondage, and entreat them evil four hundred years',
+  ] },
+  { ref: 'Exodus 12:40', book: 'Exodus', ch: 12, v: 40, fragments: [
+    'Now the sojourning of the children of Israel, who dwelt in Egypt, was four hundred and thirty years',
+  ] },
+  { ref: 'Galatians 3:17', book: 'Galatians', ch: 3, v: 17, fragments: [
+    'the law, which was four hundred and thirty years after',
+  ] },
+  // What the Godhead expects (Darrell 2026-08-07).
+  { ref: 'Micah 6:8', book: 'Micah', ch: 6, v: 8, fragments: [
+    'He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?',
+  ] },
+  { ref: 'Deuteronomy 10:12', book: 'Deuteronomy', ch: 10, v: 12, fragments: [
+    'what doth the LORD thy God require of thee, but to fear the LORD thy God, to walk in all his ways, and to love him, and to serve the LORD thy God with all thy heart and with all thy soul',
+  ] },
+  { ref: 'Zechariah 7:9', book: 'Zechariah', ch: 7, v: 9, fragments: [
+    'Execute true judgment, and shew mercy and compassions every man to his brother',
+  ] },
+  { ref: 'Zechariah 7:10', book: 'Zechariah', ch: 7, v: 10, fragments: [
+    'And oppress not the widow, nor the fatherless, the stranger, nor the poor; and let none of you imagine evil against his brother in your heart',
+    'let none of you imagine evil against his brother in your heart',
+  ] },
+  { ref: 'Matthew 22:37', book: 'Matthew', ch: 22, v: 37, fragments: [
+    'Thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind',
+  ] },
+  { ref: 'Matthew 22:39', book: 'Matthew', ch: 22, v: 39, fragments: [
+    'And the second is like unto it, Thou shalt love thy neighbour as thyself',
+  ] },
+  { ref: 'John 14:15', book: 'John', ch: 14, v: 15, fragments: [
+    'If ye love me, keep my commandments',
+  ] },
+  { ref: 'Matthew 25:40', book: 'Matthew', ch: 25, v: 40, fragments: [
+    'Inasmuch as ye have done it unto one of the least of these my brethren, ye have done it unto me',
+  ] },
+  { ref: 'Galatians 5:22', book: 'Galatians', ch: 5, v: 22, fragments: [
+    'the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith',
+  ] },
+  { ref: 'Galatians 5:23', book: 'Galatians', ch: 5, v: 23, fragments: [
+    'Meekness, temperance',
+  ] },
+  { ref: 'Romans 8:14', book: 'Romans', ch: 8, v: 14, fragments: [
+    'as many as are led by the Spirit of God, they are the sons of God',
+  ] },
+  { ref: 'Ephesians 4:30', book: 'Ephesians', ch: 4, v: 30, fragments: [
+    'grieve not the holy Spirit of God, whereby ye are sealed unto the day of redemption',
+  ] },
+  { ref: 'Hosea 6:6', book: 'Hosea', ch: 6, v: 6, fragments: [
+    'I desired mercy, and not sacrifice; and the knowledge of God more than burnt offerings',
+  ] },
+  { ref: '1 Samuel 15:22', book: '1Samuel', ch: 15, v: 22, fragments: [
+    'to obey is better than sacrifice',
+  ] },
+  { ref: '1 John 3:18', book: '1John', ch: 3, v: 18, fragments: [
+    'let us not love in word, neither in tongue; but in deed and in truth',
+  ] },
+  { ref: 'John 4:24', book: 'John', ch: 4, v: 24, fragments: [
+    'is a Spirit: and they that worship him must worship him in spirit and in truth',
+  ] },
+  // What we expect of governments, and what we do while enduring (Darrell 2026-08-07).
+  { ref: 'Romans 13:3', book: 'Romans', ch: 13, v: 3, fragments: [
+    'rulers are not a terror to good works, but to the evil',
+  ] },
+  { ref: 'Romans 13:4', book: 'Romans', ch: 13, v: 4, fragments: [
+    'he is the minister of God to thee for good',
+    'he beareth not the sword in vain: for he is the minister of God, a revenger to execute wrath upon him that doeth evil',
+  ] },
+  { ref: 'Jeremiah 22:3', book: 'Jeremiah', ch: 22, v: 3, fragments: [
+    'Execute ye judgment and righteousness, and deliver the spoiled out of the hand of the oppressor: and do no wrong, do no violence to the stranger, the fatherless, nor the widow, neither shed innocent blood',
+  ] },
+  { ref: 'Proverbs 29:2', book: 'Proverbs', ch: 29, v: 2, fragments: [
+    'When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn',
+  ] },
+  { ref: 'Daniel 4:17', book: 'Daniel', ch: 4, v: 17, fragments: [
+    'the most High ruleth in the kingdom of men, and giveth it to whomsoever he will, and setteth up over it the basest of men',
+  ] },
+  { ref: 'Acts 5:29', book: 'Acts', ch: 5, v: 29, fragments: [
+    'We ought to obey God rather than men',
+  ] },
+  { ref: '1 Peter 2:17', book: '1Peter', ch: 2, v: 17, fragments: [
+    'Honour all men. Love the brotherhood. Fear God. Honour the king',
+  ] },
+  { ref: '1 Timothy 2:1', book: '1Timothy', ch: 2, v: 1, fragments: [
+    'supplications, prayers, intercessions, and giving of thanks, be made for all men',
+  ] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: [
+    'For kings, and for all that are in authority; that we may lead a quiet and peaceable life',
+  ] },
+  { ref: 'Jeremiah 29:5', book: 'Jeremiah', ch: 29, v: 5, fragments: [
+    'Build ye houses, and dwell in them; and plant gardens, and eat the fruit of them',
+  ] },
+  { ref: 'Jeremiah 29:6', book: 'Jeremiah', ch: 29, v: 6, fragments: [
+    'Take ye wives, and beget sons and daughters',
+    'that ye may be increased there, and not diminished',
+  ] },
+  { ref: 'Jeremiah 29:7', book: 'Jeremiah', ch: 29, v: 7, fragments: [
+    'And seek the peace of the city whither I have caused you to be carried away captives, and pray unto the LORD for it: for in the peace thereof shall ye have peace',
+  ] },
+  { ref: 'Daniel 1:8', book: 'Daniel', ch: 1, v: 8, fragments: [
+    'purposed in his heart that he would not defile himself',
+  ] },
+  { ref: 'Romans 12:19', book: 'Romans', ch: 12, v: 19, fragments: [
+    'avenge not yourselves, but rather give place unto wrath: for it is written, Vengeance is mine; I will repay, saith the Lord',
+  ] },
+  { ref: 'Romans 12:21', book: 'Romans', ch: 12, v: 21, fragments: [
+    'Be not overcome of evil, but overcome evil with good',
+  ] },
+  { ref: 'Galatians 6:9', book: 'Galatians', ch: 6, v: 9, fragments: [
+    'let us not be weary in well doing: for in due season we shall reap, if we faint not',
+  ] },
+  { ref: 'Isaiah 40:31', book: 'Isaiah', ch: 40, v: 31, fragments: [
+    'they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint',
+  ] },
+  { ref: 'Psalm 27:14', book: 'Psalms', ch: 27, v: 14, fragments: [
+    'Wait on the LORD: be of good courage, and he shall strengthen thine heart: wait, I say, on the LORD',
+  ] },
+  { ref: 'Genesis 50:20', book: 'Genesis', ch: 50, v: 20, fragments: [
+    'ye thought evil against me; but God meant it unto good, to bring to pass, as it is this day, to save much people alive',
+  ] },
   { ref: 'Genesis 12:3', book: 'Genesis', ch: 12, v: 3, fragments: [
     'I will bless them that bless thee, and curse him that curseth thee',
   ] },
