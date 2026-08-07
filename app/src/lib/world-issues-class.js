@@ -58,6 +58,16 @@ export const WORLD_ISSUES_META = {
   title: 'Thinking It Through: World Issues & Discernment',
   audience: 'the whole family and the whole Body — believers navigating a noisy, divisive world, at every age',
   tagline: 'Don’t be told what to think. Learn how to think it through.',
+  // WORD-FIRST (DR-0127) — Yahweh's knowledge opens this space, DECLARED rather
+  // than derived. Without this, wordFirstLead() fell through to the first
+  // issue's anchor, so the track that handles the most charged claims in the
+  // app opened under a Musk-lesson anchor instead of His frame for weighing a
+  // claim at all. Both texts fetched verbatim from the repo's KJV and gated in
+  // world-issues-verse-integrity.test.js.
+  wordFirst: {
+    ref: '1 Thessalonians 5:21; Proverbs 18:13',
+    frame: 'Yahweh sets the method before we touch a single claim: "Prove all things; hold fast that which is good" — testing is commanded, not optional, and what survives the test is HELD, not endlessly re-argued. And the discipline that guards the test: "He that answereth a matter before he heareth it, it is folly and shame unto him." Hear it fully, prove it honestly, hold what is good.',
+  },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
   weeks: 7, // seven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex); the track grows as issues are added
