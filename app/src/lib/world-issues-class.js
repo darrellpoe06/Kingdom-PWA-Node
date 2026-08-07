@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 7, // seven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex); the track grows as issues are added
+  weeks: 8, // eight published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex; the two aftermaths); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -1773,7 +1773,342 @@ const PRISON_INDUSTRIAL_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE];
+// =============================================================================
+// EIGHTH WORKED EXAMPLE — a spoken teaching comparing the aftermath of slavery
+// and the aftermath of the Holocaust, and what each people received after.
+// =============================================================================
+// SOURCE: a teaching Darrell brought into the app as build input (the standing
+// rule: a spoken teaching is captured faithfully FROM HIS WORDS, never replaced
+// with generic theology). Its documented core is spoken PLAINLY per DR-0100;
+// two of its own figures are corrected because the real record is HARSHER than
+// the version given; and its closing section — the claim that Jewish people
+// "control" media, finance, and government — is refused BY THE WORD, not by
+// preference, because Scripture forbids raising a false report against any
+// people (Exodus 23:1) and Yahweh's covenant word over Abraham's line still
+// stands (Genesis 12:3; Romans 11:18).
+//
+// WORD-FIRST (DR-0127 / DR-0098): the frame is not chosen for cleverness — it
+// is the sin the Word names in the teaching's own opening line. "Divers weights"
+// (Deuteronomy 25:13-16) IS one scale for one people's grief and another scale
+// for another's, and Yahweh calls it an abomination before anyone in this
+// argument had a name for it. Every other stage hangs on that.
+//
+// SCOPE DISCIPLINE (Darrell 2026-08-07: "keep in mind what we have already
+// written on the topics... after the Word"): this issue does NOT re-argue what
+// the track already carries. The 13th Amendment exception clause, the prison
+// labor economy, the 1994 crime bill, and the carceral money are Issue 7's
+// documented ground and are REFERENCED here, not re-litigated. The evenhanded
+// handling of a grievance between two peoples the mainstream failed follows the
+// pattern Issue 2 established.
+//
+// VERIFICATION (DR-0076): every fact below was verified by live web search on
+// 2026-08-07 against the cited outlets — never from memory. Where the teaching's
+// numbers did not survive that check, the lesson says so and gives the real
+// figure, which in both cases makes the point land harder.
+// =============================================================================
+const HISTORICAL_TRAUMA_ISSUE = {
+  id: 'wi-historical-trauma-two-aftermaths',
+  title: 'Two Aftermaths, One Scale — How To Think Through a Teaching That Compares Grief',
+  skill: 'Take a teaching whose grievance is TRUE and whose closing turn is FALSE, and learn to keep both judgments at once — honoring the documented wound without carrying the false report that got attached to it.',
+  subject: {
+    name: 'the aftermath of American slavery compared with the aftermath of the Holocaust',
+    kind: 'topic',
+    // Set TRUE deliberately. The field name says "person," but its effect is the
+    // strictest safeguard set — grace-note, stated accountability, two-courts in
+    // the benefits, multiple steelmanned perspectives. This teaching makes claims
+    // about real living peoples, so the strongest available gate is the right one.
+    isNamedRealPerson: true,
+  },
+  source: {
+    creator: 'a spoken teaching brought into the app by Darrell',
+    medium: 'transcribed video commentary',
+    title: 'a commentary comparing what Black Americans and Jewish people received after their respective catastrophes',
+    asOf: '2026-08-07',
+    note: 'Carried as ONE speaker’s argument — labeled and weighed — never repeated as settled truth. Its documented core is stated plainly; its unproven and false parts are named as such. That combination IS the lesson.',
+  },
+  claims: [
+    {
+      id: 'c-double-standard',
+      label: 'opinion',
+      attribution: 'the speaker',
+      text: 'Society tells Black people to "get over" slavery because it was long ago, while telling a Jewish person to get over the Holocaust is treated as unacceptable — one scale for one people’s grief, another scale for another’s.',
+      note: 'A value judgment about how a society responds — and the one claim the Word addresses most directly, before any history is checked.',
+    },
+    {
+      id: 'c-divergent-aftermath',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'After World War II the world moved to establish and support Jewish people with a state, institutions, and diplomatic backing; after emancipation, freed Black Americans were given legal freedom but no economic foundation, and faced active interference every time they built.',
+      note: 'A comparative historical claim. The second half is heavily documented; the first half compresses a far more complicated record and omits what was refused before and during the war.',
+    },
+    {
+      id: 'c-greenwood',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'Black Americans built a thriving, self-sustaining district in Tulsa — banks, theaters, hospitals, hotels — and a white mob backed by local authorities burned it down, killed hundreds, and the wealth was never restored.',
+      note: 'Documented. See the verifiable items — the real record on the insurance claims is worse than the teaching states.',
+    },
+    {
+      id: 'c-engineered-decline',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'The decline of Black neighborhoods was engineered rather than accidental — through redlining, exclusion from the home-buying tools that built white family wealth, and a drug war whose sentencing fell hardest on Black communities.',
+      note: 'The housing and sentencing pieces are documented policy. "Engineered" as a description of the policies is well supported; a further claim about deliberate introduction of a drug is a separate and different claim — see below.',
+    },
+    {
+      id: 'c-crack-introduced',
+      label: 'allegation',
+      attribution: 'the speaker',
+      text: 'The government specifically targeted Black communities with crack cocaine in order to break families from the inside.',
+      note: 'This is an ALLEGATION and is kept distinct from the documented sentencing disparity. Conflating the two is the single most common way a true grievance gets attached to an unproven claim — which is exactly the skill this lesson teaches.',
+    },
+    {
+      id: 'c-sentencing-numbers',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'For the same amount of drug, a Black man on crack got five years and a white man on powder got five months.',
+      note: 'The figures as spoken do not match the statute — and the actual law is more severe than the version given. Corrected in Stage 2.',
+    },
+    {
+      id: 'c-thirteen-articles',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'Thirteen articles of the Constitution say that when a Black man goes to prison he is no longer a free man and his labor is free — slavery by another name.',
+      note: 'A garbled citation of a real and live constitutional clause. Corrected in Stage 2; the underlying substance is Issue 7’s documented ground.',
+    },
+    {
+      id: 'c-welcomed-openly',
+      label: 'claim',
+      attribution: 'the speaker',
+      text: 'After the war the Jewish people were given a large portion of the Middle East, and the Palestinians welcomed them in with open arms before the land was turned into Israel.',
+      note: 'Not documented as stated. The real record — including the Palestinian dispossession the teaching is reaching toward — is set out in Stage 2.',
+    },
+    {
+      id: 'c-control',
+      label: 'allegation',
+      attribution: 'the speaker',
+      text: 'Jewish people hold the Federal Reserve, Hollywood, Silicon Valley, a vast portion of mainstream media, and have their entire foot inside the American government.',
+      note: 'This is the teaching’s closing turn. It is a documented antisemitic conspiracy trope with a traceable origin in a proven forgery, and the lesson refuses it on the Word’s own terms. Carried here ONLY as a labeled claim so it can be examined — never repeated as fact.',
+    },
+  ],
+  verifiable: [
+    {
+      id: 'f-greenwood',
+      statement: 'The 1921 Tulsa Race Massacre is documented: thirty-five blocks of the Greenwood District were looted and burned, roughly 190 businesses and at least 1,256 homes destroyed, and about 10,000 people left homeless. The Oklahoma Commission report (submitted February 28, 2001) put the dead between 100 and 300. Greenwood residents filed over $1.8 million in damage claims — and all but one were denied, because city leaders classified the event a "riot" and insurance policies carried riot exclusions. The one paid claim went to a white shop owner for guns taken from his store.',
+      status: 'documented',
+      sources: [
+        { title: 'Tulsa race massacre of 1921 — History, Commission, Deaths, Facts', publisher: 'Britannica', url: 'https://www.britannica.com/event/Tulsa-race-massacre-of-1921', asOf: '2026-08-07' },
+        { title: 'Denial of Insurance Claims', publisher: 'Justice For Greenwood', url: 'https://www.justiceforgreenwood.org/denial-of-insurance-claims/', asOf: '2026-08-07' },
+        { title: 'The true costs of the Tulsa race massacre, 100 years later', publisher: 'Brookings Institution', url: 'https://www.brookings.edu/articles/the-true-costs-of-the-tulsa-race-massacre-100-years-later/', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. The insurance detail is the part most people never hear, and it is the part that makes this Naboth’s vineyard rather than a natural disaster: the loss was not merely inflicted, it was then made permanent by a legal instrument. The teaching said the wealth was never restored. The record says the machinery of restoration was pointed the other way.',
+    },
+    {
+      id: 'f-forty-acres',
+      statement: 'Special Field Orders No. 15, issued January 16, 1865, set aside roughly 400,000 acres along the Atlantic coast in parcels of not more than 40 acres for about 18,000 formerly enslaved families. President Andrew Johnson revoked the order in the fall of that same year; the land was returned to former owners and the freedpeople were evicted, pushing many into sharecropping and debt.',
+      status: 'documented',
+      sources: [
+        { title: 'Sherman’s Field Order No. 15', publisher: 'New Georgia Encyclopedia', url: 'https://www.georgiaencyclopedia.org/articles/history-archaeology/shermans-field-order-no-15/', asOf: '2026-08-07' },
+        { title: 'History of Emancipation: Special Field Orders No. 15', publisher: 'Georgia Historical Society', url: 'https://www.georgiahistory.com/ghmi_marker_updated/history-of-emancipation-special-field-orders-no-15/', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. This is the documented spine under the teaching’s "freedom but no foundation." The inheritance was not merely withheld — it was granted, occupied, and then taken back within the year.',
+    },
+    {
+      id: 'f-housing',
+      statement: 'The GI Bill’s home-loan benefit was administered locally and through banks that followed federal redlining maps, so Black veterans were widely denied. In 1947, only 2 of more than 3,200 VA-guaranteed home loans across 13 Mississippi cities went to Black borrowers.',
+      status: 'documented',
+      sources: [
+        { title: 'How the GI Bill’s Promise Was Denied to a Million Black WWII Veterans', publisher: 'HISTORY', url: 'https://www.history.com/articles/gi-bill-black-wwii-veterans-benefits', asOf: '2026-08-07' },
+        { title: 'Were Black World War II Veterans Excluded from GI Bill Benefits?', publisher: 'Snopes', url: 'https://www.snopes.com/fact-check/black-world-war-ii-vets-gi-bill/', asOf: '2026-08-07' },
+        { title: 'How the GI Bill Left Out African Americans', publisher: 'Demos', url: 'https://www.demos.org/blog/how-gi-bill-left-out-african-americans', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. Two out of thirty-two hundred. The teaching called this being locked out of the biggest wealth-building tool in American history; the number is what that sentence looks like on the ground.',
+    },
+    {
+      id: 'f-sentencing',
+      statement: 'The Anti-Drug Abuse Act of 1986 set a 100-to-1 quantity disparity: five grams of crack cocaine triggered the same five-year mandatory minimum as five hundred grams of powder. The Fair Sentencing Act of 2010 raised the crack thresholds (5g to 28g for the five-year minimum; 50g to 280g for the ten-year), reducing the disparity to 18-to-1 — where it still stands. In 1986 the average federal drug sentence for Black defendants was 11% higher than for white defendants; four years later it was 49% higher.',
+      status: 'documented',
+      sources: [
+        { title: 'Cocaine: Crack and Powder Sentencing Disparities (IF11965)', publisher: 'Congressional Research Service / Congress.gov', url: 'https://www.congress.gov/crs-product/IF11965', asOf: '2026-08-07' },
+        { title: 'Crack Cocaine and the Fair Sentencing Act (fact sheet, Nov. 2023)', publisher: 'Legislative Analysis and Public Policy Association', url: 'https://legislativeanalysis.org/wp-content/uploads/2023/11/Fair-Sentencing-Act-Fact-Sheet-FINAL.pdf', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. THE CORRECTION THAT STRENGTHENS THE CASE: the teaching said "five years versus five months." The statute is worse than that. It is not two different sentences — it is the SAME five-year sentence triggered by one hundred times less of the drug associated with poorer, Blacker defendants. And the 11%-to-49% swing in four years is the measured effect. A speaker who reaches for a memorable number and misses can hand his opponent an easy dismissal of a case the real record proves.',
+    },
+    {
+      id: 'f-thirteenth',
+      statement: 'It is one amendment, not thirteen articles. The 13th Amendment (1865) reads: "Neither slavery nor involuntary servitude, except as a punishment for crime whereof the party shall have been duly convicted, shall exist within the United States." The exception clause is live constitutional text and its face is race-neutral.',
+      status: 'documented',
+      sources: [
+        { title: 'The Abolition Amendment (summary and text)', publisher: 'Office of Sen. Jeff Merkley', url: 'https://www.merkley.senate.gov/wp-content/uploads/imo/media/doc/abolition_amendment_summary.pdf', asOf: '2026-08-04' },
+      ],
+      note: 'Verified 2026-08-04 for Issue 7 and carried here unchanged — REINFORCED, not re-invented. Issue 7 (the prison industrial complex) holds the full documented ground and it is worth restating here because repetition of verified data is how a household actually retains it: incarcerated workers produce over $2 billion in goods and over $9 billion in prison-maintenance services a year at wages of 13-52 cents an hour with several states paying nothing; direct corrections spending runs about $81 billion a year and the system-wide accounting about $182 billion; the 1994 crime bill funded roughly $9.7 billion for prisons and paid states to adopt truth-in-sentencing; eight states have removed their own exception clauses while Louisiana (2022) and California (Proposition 6, 2024) rejected removal — California’s turning substantially on a $1.5 billion price tag for paying incarcerated workers. Go to Issue 7 for the sources and the full weighing. What matters for THIS lesson: the clause is real, the citation was garbled, and a garbled citation of a real thing is the easiest way to get a true point dismissed.',
+    },
+    {
+      id: 'f-doors-closed',
+      statement: 'The claim that the world moved to set Jewish people up for success omits what was refused first. At the Evian Conference (July 6-15, 1938), thirty-two nations met on the Jewish refugee crisis and, apart from the Dominican Republic, none agreed to take more refugees. In May-June 1939 the MS St. Louis carried more than 930 Jewish refugees from Hamburg; Cuba admitted 28, and the United States and Canada refused the rest. Of the 907 returned to Europe, 255 were later killed. Britain’s 1939 White Paper capped Jewish immigration to Mandatory Palestine at 75,000 over five years, with any further entry requiring Arab consent — largely closing that door during the war years.',
+      status: 'documented',
+      sources: [
+        { title: 'Voyage of the St. Louis', publisher: 'United States Holocaust Memorial Museum', url: 'https://encyclopedia.ushmm.org/content/en/article/voyage-of-the-st-louis', asOf: '2026-08-07' },
+        { title: 'The Evian Conference, July 1938', publisher: 'United States Holocaust Memorial Museum', url: 'https://encyclopedia.ushmm.org/content/en/article/the-evian-conference', asOf: '2026-08-07' },
+        { title: 'British White Paper of 1939 (full text)', publisher: 'The Avalon Project, Yale Law School', url: 'https://avalon.law.yale.edu/20th_century/brwh1939.asp', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. This is the fact that most changes the shape of the comparison, and it does NOT cancel the teaching’s grievance — it complicates the premise that one people was welcomed while another was contained. Both doors were shut; they were shut at different times, in different ways, by overlapping hands.',
+    },
+    {
+      id: 'f-partition',
+      statement: 'On November 29, 1947 the UN General Assembly adopted Resolution 181, recommending two states with Jerusalem under international administration. The Jewish Agency accepted it as a basis for statehood; Arab leaders and the Arab Higher Committee rejected it. Neighboring Arab armies entered the ensuing 1948 war. In that war roughly 700,000-750,000 Palestinians were displaced from their homes — the Nakba — with hundreds of villages depopulated.',
+      status: 'documented',
+      sources: [
+        { title: 'United Nations Resolution 181', publisher: 'Britannica', url: 'https://www.britannica.com/topic/United-Nations-Resolution-181', asOf: '2026-08-07' },
+        { title: 'UN marks 75 years since displacement of 700,000 Palestinians', publisher: 'UN News', url: 'https://news.un.org/en/story/2023/05/1136662', asOf: '2026-08-07' },
+        { title: 'About the Nakba', publisher: 'United Nations — Question of Palestine', url: 'https://www.un.org/unispal/about-the-nakba/', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. "Welcomed with open arms" is not what the record shows; the partition was formally rejected and war followed. But note carefully what the same record DOES show — a real mass dispossession of Palestinians. The teaching reached for a true thing (people lost their land and homes) and grabbed a false description of how it happened. Losing the description does not make the dispossession disappear; it means the true version has to be told accurately to be believed.',
+    },
+    {
+      id: 'f-control-trope',
+      statement: 'The claim that Jewish people control banking, media, and government is a documented conspiracy myth, not a finding. Its modern form traces to The Protocols of the Elders of Zion, first published in the Russian Empire in 1903 and presented as a discovered document proving a Jewish world plot; journalists, courts, and governments have since established it as a fabrication. The Protocols laid the groundwork for the specific later variants — that Jewish financiers run the Federal Reserve, that Jews control Wall Street and the media.',
+      status: 'documented',
+      sources: [
+        { title: 'An Antisemitic Conspiracy: The Protocols of the Elders of Zion', publisher: 'United States Holocaust Memorial Museum', url: 'https://encyclopedia.ushmm.org/content/en/article/protocols-of-the-elders-of-zion', asOf: '2026-08-07' },
+        { title: 'The myth that Jews control the world', publisher: 'World Jewish Congress', url: 'https://www.worldjewishcongress.org/en/conspiracy-myths/the-myth-that-jews-control-the-world', asOf: '2026-08-07' },
+        { title: 'Myth — Jews Have Too Much Power', publisher: 'ADL, Antisemitism Uncovered', url: 'https://antisemitism.adl.org/power/', asOf: '2026-08-07' },
+      ],
+      note: 'Verified 2026-08-07. Documented as a forgery — and the lesson does not rest the refusal on the documentation. It rests it on the Word (Stage 4), because a believer who only refuses a false report when a fact-checker is handy has not learned the commandment.',
+    },
+  ],
+  interpretation: [
+    { id: 'n-engineered', statement: 'That the housing and sentencing policies were CHOSEN — written, voted, administered — is documented. Calling the whole pattern "engineered" is a fair reading of chosen policies with foreseeable effects; extending that to a single coordinating intelligence behind every harm is an inference the record does not carry.', restsOn: ['f-housing', 'f-sentencing', 'f-forty-acres'] },
+    { id: 'n-crack-conflation', statement: 'The documented sentencing disparity and the allegation of deliberate drug introduction are two different claims with two different evidentiary standings. The first is statute; the second is not established. Presenting them as one sentence is what lets an opponent discard both.', restsOn: ['f-sentencing'] },
+    { id: 'n-comparison', statement: 'The premise that one people was elevated while another was contained is an interpretation, and the Evian/St. Louis/White Paper record cuts against its first half. The sounder reading is not "who was helped more" but "the same era’s doors were shut on both, by overlapping hands" — which is a heavier charge against the gatekeepers, not a lighter one.', restsOn: ['f-doors-closed', 'f-partition', 'f-housing'] },
+    { id: 'n-trope-attachment', statement: 'The closing "control" section does not follow from anything established earlier in the teaching. A documented grievance about American policy toward Black communities supplies no evidence whatever about who owns banks or studios. Watching a true argument hand off to an unrelated false one — and noticing the exact sentence where the handoff happens — is the transferable skill of this lesson.', restsOn: ['f-control-trope', 'f-greenwood', 'f-housing'] },
+  ],
+  perspectives: [
+    {
+      id: 'p-speaker',
+      label: 'The speaker’s view (the grievance)',
+      heldBy: 'the teaching, and many who carry this history',
+      steelman: 'At its strongest, and it is strong: the documented record backs the core. Land was granted and taken back inside a year. A built district was burned and the insurance machinery finished the theft. Two of more than three thousand loans. A hundred-to-one quantity ratio written into federal law. This is not a feeling about the past; it is a chain of decisions with dates and authors. And the demand to "get over it" is uniquely applied — no one tells a nation to stop commemorating its war dead. A people asked to forget an injury that is still compounding is being asked to consent to the compounding.',
+    },
+    {
+      id: 'p-jewish-experience',
+      label: 'The Jewish experience the comparison passes over',
+      heldBy: 'Jewish communities and Holocaust historians',
+      steelman: 'At its strongest: calling the Holocaust "finite" mistakes a start and end date for a closed wound. Six million murdered, whole communities annihilated, families ended — and the doors were shut BEFORE the killing, at Evian, at the American port the St. Louis was turned from, at the gate the 1939 White Paper closed. Survivors arrived with nothing, from societies that had just tried to erase them. Whatever institutional support came later came AFTER the world had already declined to save them, and it does not read as favoritism to those who lived it. And a comparison that ends by charging that same people with secret control is not a ranking of griefs; it is the oldest accusation, and it has a body count.',
+    },
+    {
+      id: 'p-both-wounds',
+      label: 'The refusal to rank griefs at all',
+      heldBy: 'those who hold both histories without a scale',
+      steelman: 'At its strongest: the scale itself is the error. Grief is not a fixed quantity to be allocated, and a claim on justice is not diminished by another people’s claim. The instinct to compare arises because both communities are made to compete for a limited public sympathy — which is a scarcity someone else manufactured. Two peoples arguing over which catastrophe counts is a fight neither can win and someone else profits from. Weep with those who weep; the command has no comparative clause.',
+    },
+    {
+      id: 'p-careful',
+      label: 'The keep-the-categories view',
+      heldBy: 'people committed to fair judgment',
+      steelman: 'At its strongest: a true case told with false numbers loses to opponents who only have to check one figure. "Five years versus five months" is refutable in a minute; the real hundred-to-one ratio is not. "Thirteen articles" is refutable; the 13th Amendment’s exception clause is not. Precision here is not pedantry or timidity — it is what keeps a documented grievance from being discarded along with the errors bolted onto it. And precision is exactly what makes the final section indefensible: it is the one part of the teaching with no record behind it at all.',
+    },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'Yahweh names this teaching’s opening grievance before anyone in the argument had words for it, and He names it as a sin against Himself: "Thou shalt not have in thy bag divers weights, a great and a small... But thou shalt have a perfect and just weight... For all that do such things, and all that do unrighteously, are an abomination unto the LORD thy God" (Deuteronomy 25:13-16). Two scales — one for whose grief counts, one for whose does not — is the divers weight, and Yahshua sealed it: "with what measure ye mete, it shall be measured to you again" (Matthew 7:2). Then the Word shows the mechanism itself. Naboth would not sell: "The LORD forbid it me, that I should give the inheritance of my fathers unto thee" (1 Kings 21:3) — and the taking was done with legal machinery and false witnesses (1 Kings 21:13), until Yahweh sent the question that ends every such transaction: "Hast thou killed, and also taken possession?" (1 Kings 21:19). That is a burned district and a denied insurance claim, written three thousand years ago. Micah saw the same men: "they covet fields, and take them by violence; and houses, and take them away: so they oppress a man and his house, even a man and his heritage" (Micah 2:2). Isaiah saw the paperwork: "Woe unto them that decree unrighteous decrees" (Isaiah 10:1) — redlining maps and sentencing ratios are decrees, written down, signed. Pharaoh supplies the word "engineered": "Come on, let us deal wisely with them" (Exodus 1:10) — strategy, not accident — followed by taskmasters and lives made bitter (Exodus 1:11, 1:14). And "get over it" has a name too: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" (Jeremiah 6:14). But the same Word that names the wound forbids the closing turn. "Thou shalt not raise a false report: put not thine hand with the wicked to be an unrighteous witness" (Exodus 23:1) — and among the seven things Yahweh hates are "a false witness that speaketh lies, and he that soweth discord among brethren" (Proverbs 6:19). Over Abraham’s line specifically He said "I will bless them that bless thee, and curse him that curseth thee" (Genesis 12:3), Paul warned the grafted-in branch "Boast not against the branches" (Romans 11:18), and Yahweh calls that people the apple of His eye (Zechariah 2:8). He "hath made of one blood all nations of men" (Acts 17:26) — one family, no exceptions in either direction. So the believer holds BOTH in one hand: the wound is real and the scale is crooked — AND the false report is forbidden, no matter how real the wound of the one carrying it. AND NOW THE FRAME OVER ALL OF IT, without which this lesson would overreach. Everything above that is HIS is fixed: the commands, the woes, the covenant word, the remedy. Everything here that is OURS is the work of humans trying to understand Him with the capabilities He gave us, and we are doing it in the wilderness — not home yet. Yahweh drew that exact line: "The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever, that we may do all the words of this law" (Deuteronomy 29:29). What He revealed is ours to work and to teach our children; what He kept is His, and we do not manufacture it. Paul kept the same line honestly: "For we know in part, and we prophesy in part" (1 Corinthians 13:9), "For now we see through a glass, darkly; but then face to face" (1 Corinthians 13:12). The wilderness is not an accident of our position — it is the proving ground itself: "thou shalt remember all the way which the LORD thy God led thee these forty years in the wilderness, to humble thee, and to prove thee, to know what was in thine heart" (Deuteronomy 8:2). The saints before us died holding promises they had only seen afar off, and "confessed that they were strangers and pilgrims on the earth" (Hebrews 11:13) — which is the same word Yahweh used when He explained why the land could never be permanently sold: "ye are strangers and sojourners with me" (Leviticus 25:23). So we hold the Word as certain and our reading of the history as our best faithful work, offered under "Trust in the LORD with all thine heart; and lean not unto thine own understanding" (Proverbs 3:5), asking for the wisdom He gives liberally (James 1:5), walking — "For we walk by faith, not by sight" (2 Corinthians 5:7) — and saying with Paul "Not as though I had already attained" (Philippians 3:12). His verdict on these events is settled and will be published; ours is a lamp carried through the dark until He comes or calls us home. AND HERE IS WHY THE WILDERNESS IS NOT ONLY HIS PROVING GROUND. Governments and power structures MANUFACTURE wilderness — they make the desert people are then told to survive faithfully in. Yahweh charged the shepherds of Israel with exactly this: "The diseased have ye not strengthened, neither have ye healed that which was sick, neither have ye bound up that which was broken, neither have ye brought again that which was driven away, neither have ye sought that which was lost; but with force and with cruelty have ye ruled them" (Ezekiel 34:4). Every clause is an indictment of a power that had the capacity to restore and chose not to — the unbound break, the driven-away never brought again. And the powers manufacture something subtler than the desert: the NARRATIVE that keeps people in it quietly — that others have it worse, that things could be worse, that everybody should be satisfied. That narrative IS the divers weight put to work as a management tool. It sets one people’s grief against another’s so both stay busy arguing over the scale instead of asking who has been holding it. A people made to compete for a rationed sympathy is a people not asking why the sympathy was rationed. Which is why this lesson refuses the comparison itself rather than trying to win it. And it does not end in destruction — it TRANSITIONS. We do not call this the end of days; we call it the transition to the Government of Yahweh, because what is coming is not the world running out but the government changing shoulders: "For unto us a child is born, unto us a son is given: and the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace" (Isaiah 9:6). Not a better administration — a different Ruler, and the only one who will not manufacture a wilderness to govern from. "Of the increase of his government and peace there shall be no end... to order it, and to establish it with judgment and with justice from henceforth even for ever. The zeal of the LORD of hosts will perform this" (Isaiah 9:7). Judgment and justice are written into the charter, and He performs it Himself. Where every human government has said "be satisfied," He says "I will feed my flock, and I will cause them to lie down" (Ezekiel 34:15) — the rest the powers counterfeited, given rather than demanded. Until then: "The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign for ever and ever" (Revelation 11:15) is the announced outcome, and "in the days of these kings shall the God of heaven set up a kingdom, which shall never be destroyed" (Daniel 2:44) is its certainty. AND HE IS NOT A RULER WHO ARRIVES LATER — JESUS **IS**. He answered with the Father’s own name: "Before Abraham was, I am" (John 8:58), the same name spoken at the bush, "I AM THAT I AM" (Exodus 3:14). He is "Alpha and Omega, the beginning and the ending... which is, and which was, and which is to come, the Almighty" (Revelation 1:8) — present tense first. He is "the same yesterday, and to day, and for ever" (Hebrews 13:8). He already said it plainly after the resurrection: "All power is given unto me in heaven and in earth" (Matthew 28:18) — given, past tense, held now. And the thrones this lesson has been indicting were never independent of Him: "by him were all things created... whether they be thrones, or dominions, or principalities, or powers: all things were created by him, and for him" (Colossians 1:16), "And he is before all things, and by him all things consist" (Colossians 1:17). So the transition is not a conquest of foreign territory. It is the return of borrowed authority to the One it was always made for and by. Every power that manufactured a wilderness did it on a throne He created. So we hold the record honestly, refuse the crooked scale AND the narrative that hands it to us, and live now under the Government that already IS — waiting only for it to be seen where it has always been true. AND NOW THE TIMELINES, because Yahweh does not merely promise justice — He SCHEDULES it, and His own record is the project-management standard. He gave Abram the duration before the affliction started: "thy seed shall be a stranger in a land that is not theirs, and shall serve them; and they shall afflict them four hundred years" (Genesis 15:13), with the deliverable named — "afterward shall they come out with great substance" (Genesis 15:14) — and the milestone set at "the fourth generation" (Genesis 15:16). Then He hit the date: "And it came to pass at the end of the four hundred and thirty years, even the selfsame day it came to pass, that all the hosts of the LORD went out from the land of Egypt" (Exodus 12:41). The selfsame day. Not approximately. He did the same with Babylon, published in advance — "these nations shall serve the king of Babylon seventy years" (Jeremiah 25:11) — with the return committed: "after seventy years be accomplished at Babylon I will visit you, and perform my good word toward you, in causing you to return to this place" (Jeremiah 29:10). And Daniel READ the schedule and worked it: "I Daniel understood by books the number of the years... that he would accomplish seventy years in the desolations of Jerusalem" (Daniel 9:2) — a man checking the published timeline and praying it in on time. His recurring cycles are calendared too: "At the end of every seven years thou shalt make a release" (Deuteronomy 15:1), and the fiftieth-year return of every man to his possession (Leviticus 25:10). The Son shipped on schedule: "when the fulness of the time was come, God sent forth his Son" (Galatians 4:4). And the discipline for the waiting: "For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry" (Habakkuk 2:3) — held with the honest limit, "It is not for you to know the times or the seasons, which the Father hath put in his own power" (Acts 1:7). Now weigh what that does to "get over it." Yahweh never told Israel to get over four hundred years. He dated it, He watched it, and "God heard their groaning, and God remembered his covenant" (Exodus 2:24). A God who keeps a four-hundred-year appointment does not consider a hundred-year-old wound stale. THIS IS METANOIA — the framework correction the first sermon commanded: "Repent: for the kingdom of heaven is at hand" (Matthew 4:17), *metanoia* (G3341), the mind turned, the operating framework replaced. Every move in this lesson is one correction: from ranking griefs to one just weight; from "it was long ago" to a God who keeps dated covenants; from "my wound licenses my accusation" to a false report forbidden without exception; from the end of days to the transition to His Government; from waiting for a distant rescue to standing under the One who IS. That is not opinion adjustment. It is "be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2), "bringing into captivity every thought to the obedience of Christ" (2 Corinthians 10:5) — and it is required in both directions, because "my thoughts are not your thoughts, neither are your ways my ways, saith the LORD" (Isaiah 55:8).',
+      scripture: 'Deuteronomy 25:13-16; Matthew 7:2; 1 Kings 21:3, 21:13, 21:19; Micah 2:1-2; Isaiah 10:1-2; Exodus 1:10-14; Jeremiah 6:14; Exodus 23:1; Proverbs 6:16-19; Genesis 12:3; Romans 11:18; Zechariah 2:8; Acts 17:26; Romans 12:15; Leviticus 25:10, 25:23; Numbers 27:1-7; James 5:4; Deuteronomy 29:29; 1 Corinthians 13:9, 13:12; Deuteronomy 8:2; Hebrews 11:13; Proverbs 3:5-6; James 1:5; 2 Corinthians 5:7; Philippians 3:12; Ezekiel 34:4, 34:15; Isaiah 9:6-7; Revelation 11:15; Daniel 2:44; John 8:58; Exodus 3:14; Revelation 1:8; Hebrews 13:8; Matthew 28:18; Colossians 1:16-17; Genesis 15:13-16; Exodus 12:41; Exodus 2:24; Jeremiah 25:11; Jeremiah 29:10; Daniel 9:2; Deuteronomy 15:1; Galatians 4:4; Habakkuk 2:3; Acts 1:7; Matthew 4:17; Romans 12:2; 2 Corinthians 10:5; Isaiah 55:8-9',
+    },
+    threeD: 'Practically: you can receive the documented history in full — Greenwood, the revoked land, two loans out of thirty-two hundred, one hundred to one — and still stop cold at the last paragraph, and you have not betrayed the first part by refusing the last. Those are two separate judgments and a disciplined mind makes both. Notice the exact sentence where a sourced argument stops being sourced; that is the seam. Fix your own numbers before an opponent does, because a wrong figure inside a true case is a gift to whoever wants the case dismissed. And when you meet someone whose grief has been dismissed, weep with them first — you are not obligated to grade the wound before you sit with it.',
+    accountability: {
+      statement: 'THE TWO COURTS, on both halves. On the documented wrongs: dispossession that man’s courts blessed still stands accused before the eternal one — "For God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14). A denied claim, a revoked order, a redlining map, and a ratio written into statute were all lawful in their day; lawfulness is not acquittal. Where wages and inheritance were kept back, the Word says the loss itself has a voice: "the hire of the labourers... which is of you kept back by fraud, crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth" (James 5:4). And what the Word requires of a wrongdoer is not an apology but RESTITUTION — fourfold and fivefold restoration is the standard (Exodus 22:1), and Zacchaeus is the model of repentance that pays. Yahweh’s own remedy for generational dispossession is not sentiment but a priced institution: "ye shall return every man unto his possession" (Leviticus 25:10), because "The land shall not be sold for ever: for the land is mine" (Leviticus 25:23). ON THE SECOND HALF, the same court sits: bearing a false report against a people is not a lesser sin because the one bearing it was genuinely wronged. Exodus 23:1 has no exception for the aggrieved, and Yahweh hates the sowing of discord among brethren (Proverbs 6:19). Our own accountability: never conceal a real wrong to keep a false peace (Leviticus 5:1), never justify the wicked or condemn the just — both are abomination (Proverbs 17:15) — and plead the cause of the shut-out (Proverbs 31:8-9) without taking up an accusation against anyone made in His image.',
+      scripture: 'Ecclesiastes 12:14; James 5:4; Exodus 22:1; Leviticus 25:10, 25:23; Exodus 23:1; Proverbs 6:19; Leviticus 5:1; Proverbs 17:15; Proverbs 31:8-9; Numbers 5:6-7; Luke 19:8',
+    },
+    benefits: [
+      'Both courts, honestly held: this life’s justice is real but partial — revoked orders, denied claims, and lawful ratios went unanswered in man’s court — while the ETERNAL court after this life misses nothing (Ecclesiastes 12:14; Hebrews 9:27), and what was kept back still cries out (James 5:4).',
+      'The ability to receive a true, documented grievance in full without swallowing the false report attached to its end.',
+      'A tested eye for the SEAM — the exact sentence where a sourced argument stops being sourced and starts being an accusation.',
+      'Freedom from the crooked scale in both directions: never ranking whose catastrophe counts, and never dismissing one because its teller got a number wrong.',
+      'Precision as a weapon for the wronged — knowing the real hundred-to-one ratio instead of a memorable wrong one, so the case cannot be waved away.',
+      'The Word’s own remedy for dispossession: restitution and return, not sentiment — a priced institution Yahweh built into the law.',
+      'The wilderness posture that keeps a strong lesson from overreaching: what He revealed is ours to work and teach (Deuteronomy 29:29), what He kept is His, and our own reading is held as faithful work done in part (1 Corinthians 13:9) by strangers and pilgrims not yet home (Hebrews 11:13).',
+      'Sight to see that the powers manufacture BOTH the wilderness and the "others have it worse, be satisfied" narrative that keeps people quiet in it — the crooked scale handed to you is a management tool, not an accident (Ezekiel 34:4).',
+'A transition to live toward rather than a doom to dread: what is coming is not the end of days but the transition to the Government of Yahweh — "the government shall be upon his shoulder" (Isaiah 9:6), established "with judgment and with justice" (Isaiah 9:7), performed by the zeal of Yahweh Himself.',
+      'Yahweh SCHEDULES justice — four hundred years announced to Abram and delivered "the selfsame day" (Genesis 15:13; Exodus 12:41), seventy years published and kept (Jeremiah 29:10), release every seven and return every fifty. A God who keeps a four-hundred-year appointment does not consider an old wound stale, which is the hardest possible answer to "get over it."',
+      'The lesson names its own mechanism: metanoia (G3341) — the mind turned, the framework corrected (Matthew 4:17; Romans 12:2) — so the learner walks out with a REPLACED operating framework, not merely a new opinion.',
+      'Present-tense footing: Jesus IS — "Before Abraham was, I am" (John 8:58), "All power is given unto me in heaven and in earth" (Matthew 28:18) — so the believer carrying a real grievance already lives under the Government that holds, rather than waiting for a rescue that has not started.',
+    ],
+    graceNote: 'This lesson pronounces no verdict on any person or people. It does not condemn the speaker, whose grievance is largely documented and whose wound is real; a man can be right about his injury and wrong about who to name for it, and the second does not erase the first. It does not accuse Jewish people, who are made in Yahweh’s image, carry His covenant word, and have been the target of this exact accusation through centuries that ended in ovens. It does not excuse those who wrote the decrees; it leaves their souls to Yahweh while naming their deeds plainly. Truth and grace are not in tension here — the same Word that refuses to let a wound be minimized refuses to let a lie be carried, and it is the same love doing both.',
+    stewardship: 'There is a response deeper than argument. Numbers 27 records five daughters with no inheritance who came and stood at the door and stated their cause — "Why should the name of our father be done away from among his family?" (Numbers 27:4) — and Yahweh answered: "The daughters of Zelophehad speak right" (Numbers 27:7). The statute was AMENDED and possession given. That is the Word’s picture of a dispossessed voice pressing in, being judged right, and the law changing — not merely permission to complain, but inheritance restored. So the stewardship is: tell it accurately enough to be believed, press it where it can be heard, build and hold what can be built and held, and teach the children the record with the numbers correct — because a generation that carries the true version can be answered, and a generation carrying a false one can be dismissed.',
+    anchor: {
+      ref: 'Deuteronomy 25:15',
+      theme: 'A perfect and just weight, a perfect and just measure shalt thou have. One scale — for whose grief counts, for whose wound is real, and for whose claim gets checked. The same weight in both pans, every time.',
+    },
+  },
+  reflection: {
+    skill: 'When a teaching’s grievance is true and its conclusion is false: separate the two judgments instead of choosing between them. Receive what is documented, correct what is wrong even when it is on your own side, and refuse the false report about a people no matter how genuine the pain of the one carrying it. One scale, both pans.',
+    practice: 'Take one figure from this lesson — the hundred-to-one ratio, the two-of-3,200 loans, or the denied Greenwood claims — and find the primary source yourself. Then write two sentences: one naming what the record actually documents, and one naming the exact sentence in the teaching where the sourced argument stops and the unsupported accusation begins.',
+    prompts: [
+      'Which parts of this teaching are documented, which are unproven allegations, and which are opinions about how society behaves? How could you check each one?',
+      'The speaker’s two wrong numbers both make his case WEAKER than the truth does. Why would someone reach for a memorable figure instead of the real one, and what does it cost him?',
+      'Can you state fairly, at its strongest, the Jewish experience the comparison passes over — including the doors that were shut before the war?',
+      'Yahweh forbids a false report with no exception for people who have genuinely been wronged (Exodus 23:1). Why do you think He left no exception there?',
+      'What is the difference between saying "this wound is real and still compounding" and saying "therefore that people is to blame"? Where exactly does the one become the other?',
+      'Leviticus 25 answers dispossession with return and Exodus 22 answers theft with restitution. What would it look like to want Yahweh’s remedy more than you want the argument?',
+      'Deuteronomy 29:29 splits what Yahweh revealed from what He kept. Which parts of this lesson are HIS settled Word, and which are our best human reading of a history we still see "through a glass, darkly"? Why does keeping those two apart make the lesson stronger rather than weaker?',
+      'Ezekiel 34:4 charges rulers who would not bind up the broken or bring back the driven-away. Where do you see power structures manufacturing a wilderness and then telling people to be satisfied in it because others have it worse? Who benefits when two wounded peoples argue over whose wound counts?',
+      'Isaiah 9:6 says the government will rest on His shoulder. If that is where this ends, what does it change about how you carry a real grievance right now — what does it free you from, and what does it still require of you today?',
+    ],
+  },
+  levels: {
+    child: 'God gave a rule about weighing things fairly. If a shopkeeper had one heavy stone and one light stone in his bag, he could cheat people by using the big one when he bought and the little one when he sold. God said: have ONE honest weight (Deuteronomy 25:15). That rule is about more than shopping. It means we use the same fair measure for everybody’s hurt. If your friend gets hurt, you would not say "that was a long time ago, stop crying" — and then say something totally different when someone else gets hurt. Same rule, same care, for everyone. Here is the harder part: sometimes a person who was really, truly hurt gets so angry that they start blaming a whole group of people who did not do it. Being hurt is real. But blaming people who did not do it is still wrong, and God says so plainly. You can be very sad for someone AND still say, "that part is not true." Both at once. That is what being fair means.',
+    teen: 'Here is a hard skill most people never learn: what do you do when someone is RIGHT about something real and then says something completely false at the end? Most people pick a side — either they believe the whole thing because the first part was true, or they throw out the whole thing because the last part was false. Both are lazy. Run the moves instead. (1) What is documented? A lot here is: land given to freed families in 1865 and taken back within a year; a whole business district in Tulsa burned and then the insurance claims denied — all but one; two out of more than 3,200 home loans in 13 Mississippi cities in 1947 going to Black borrowers; a 1986 law where five grams of crack got you the same five-year minimum as five hundred grams of powder. That is real, it is sourced, and nobody serious disputes it. (2) What did the speaker get wrong? Two things, and both times the TRUTH was worse than what he said. He said "five years versus five months" — the real law is the same five years for a hundred times less. He said "thirteen articles of the Constitution" — it is one amendment, the 13th. When you use a wrong number inside a true argument, you hand your opponent a way to dump the whole thing. (3) What has no evidence at all? The ending, where he says one group runs the banks, the movies, and the government. That is a very old accusation that traces back to a document proven to be a forgery, and it has gotten people killed. Notice that NOTHING earlier in his argument supports it — he just switches. Finding that switch is the whole skill. God says it straight: "Thou shalt not raise a false report" (Exodus 23:1), and He put no exception in there for people who have been genuinely wronged. So: believe the documented part, fix the numbers, refuse the ending. One honest scale.',
+    senior: 'For the seasoned believer, this lesson is judgment held in both hands at once, and Scripture equips it fully. Start where Yahweh starts: divers weights are an abomination (Deuteronomy 25:13-16), and the Son sealed the measure you use as the measure returned to you (Matthew 7:2) — so the crooked scale the teaching protests is a sin against Yahweh Himself, not merely a social discourtesy. Then read the record through Naboth: a man who would not part with the inheritance of his fathers, a taking accomplished through courtroom procedure and paid witnesses, and the prophetic question that outlives every deed of sale — "Hast thou killed, and also taken possession?" (1 Kings 21:19). Greenwood is that chapter with a fire department: not merely a mob, but 1,800,000 dollars in claims and all but one denied because the deed was reclassified as a riot. Micah saw the coveting and the taking of a man’s heritage (Micah 2:2); Isaiah saw that the instrument is paperwork — "woe unto them that decree unrighteous decrees" (Isaiah 10:1) — and a redlining map and a hundred-to-one ratio are decrees with signatures. Pharaoh supplies the strategy word: "let us deal wisely with them" (Exodus 1:10). And "get over it" is Jeremiah 6:14 exactly — the hurt healed slightly, peace declared where there is none. Now the elder’s harder work, which the young advocate often cannot yet do: the same Word that vindicates the grievance forbids its closing turn without any allowance for the sufferer. "Thou shalt not raise a false report" (Exodus 23:1) has no clause for the aggrieved; Yahweh hates a false witness and the sowing of discord among brethren (Proverbs 6:19); the covenant word over Abraham’s line stands (Genesis 12:3); the grafted branch is warned not to boast against the natural ones (Romans 11:18); and that people is called the apple of His eye (Zechariah 2:8). Note also what honest history does to the comparison’s premise — Evian in 1938 where thirty-two nations declined, the St. Louis turned from an American port in 1939 with 255 of those returned later murdered, the 1939 White Paper sealing the other door. The gates were shut on both peoples by overlapping hands, which is a heavier indictment of the gatekeepers than the comparison as given. Teach the household the discipline that outlasts every news cycle: receive documented truth plainly (DR-0100 is Proverbs 12:19 in operational dress), correct your own side’s numbers before an opponent does it for you, refuse the false report though it come wrapped in a real wound, and want Yahweh’s remedy more than the argument — restitution that pays (Exodus 22:1; Luke 19:8) and return that restores possession (Leviticus 25:10), because His justice was never a slogan; it was priced, legislated, and calendared. And leave them Zelophehad’s daughters: five women with no inheritance who stood at the door, stated their cause, and heard Yahweh answer "the daughters of Zelophehad speak right" (Numbers 27:7) — the statute amended, possession given. That is the model. Not silence, and not a false report. A true cause, accurately stated, pressed where it can be heard, until the record is changed. And close it where the elder alone can close it, because it takes years to see: the wilderness these histories describe was not weather. Powers made it, and then issued the narrative that keeps people quiet inside it — that others have it worse, that it could be worse, that everyone should be satisfied. Yahweh already tried those shepherds and gave the verdict: "with force and with cruelty have ye ruled them" (Ezekiel 34:4), after listing every restoration they declined — the broken not bound up, the driven-away never brought again. The crooked scale in this teaching is not merely a bad habit of the public; it is a tool, and a people busy arguing over whose catastrophe ranks higher is a people not asking who has been holding the scale. So teach the household to refuse the comparison rather than to win it. And give them the horizon, because a grievance without one turns to bitterness in a young heart — and name it correctly: this is not the end of days, it is the transition to the Government of Yahweh: "the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace" (Isaiah 9:6) — of the increase of that government "there shall be no end... to order it, and to establish it with judgment and with justice" (Isaiah 9:7), and "The zeal of the LORD of hosts will perform this." Not a reform. A transfer of government. Where every earthly power told this family to be satisfied, He says "I will feed my flock, and I will cause them to lie down" (Ezekiel 34:15). Until that day we hold the record straight, refuse the false report, seek restitution and return where they can be sought, and raise children who can carry a true account without carrying hatred — because the kingdoms of this world are already declared His (Revelation 11:15), and His kingdom "shall never be destroyed" (Daniel 2:44). Teach them last the thing that turns waiting into standing: Jesus IS. Not will be. "Before Abraham was, I am" (John 8:58) — the name from the bush, "I AM THAT I AM" (Exodus 3:14) — and "All power is given unto me in heaven and in earth" (Matthew 28:18), already given, held now. Even the thrones that ruled with force and cruelty were "created by him, and for him" (Colossians 1:16), and "by him all things consist" (Colossians 1:17). So the transition is a return of borrowed authority, not a battle for foreign ground; and the household that knows this carries its true account without fear, because the Government it is waiting to SEE is the Government it already lives under.',
+  },
+  quiz: [
+    {
+      q: 'The teaching says a Black man on crack got five years while a white man on powder got five months. What does the actual 1986 statute say?',
+      choices: [
+        'The teaching is right — five years versus five months',
+        'Five grams of crack triggered the SAME five-year mandatory minimum as five hundred grams of powder — a 100-to-1 quantity ratio',
+        'There was never any difference between crack and powder sentencing',
+        'The difference only began after 2010',
+      ],
+      answer: 1,
+      explain: 'The Anti-Drug Abuse Act of 1986 set a 100-to-1 quantity disparity: the same five-year minimum triggered by one hundred times less crack than powder. The Fair Sentencing Act of 2010 reduced it to 18-to-1, where it remains. The real statute is HARSHER than the version the teaching gave — which is exactly why using the accurate figure protects the argument instead of weakening it.',
+    },
+    {
+      q: 'Everything documented in the first part of the teaching is true. Does that make the closing claim about Jewish control of media and banking more likely to be true?',
+      choices: [
+        'Yes — a speaker who is right about one thing is probably right about the rest',
+        'No — the documented history of American policy supplies no evidence at all about who owns banks or studios; the argument switches from sourced claims to an unsupported accusation',
+        'Yes, because both are about power',
+        'It cannot be evaluated either way',
+      ],
+      answer: 1,
+      explain: 'This is the seam, and finding it is the skill. Nothing about revoked land orders, denied insurance claims, redlining, or sentencing law bears on the ownership of banks or media. The closing claim is a separate assertion resting on a documented forgery — The Protocols of the Elders of Zion — and it must be judged on its own evidence, which is none.',
+    },
+    {
+      q: 'Yahweh commands "Thou shalt not raise a false report" (Exodus 23:1). Does a person who has genuinely been wronged get an exception?',
+      choices: [
+        'Yes — real suffering justifies strong accusations',
+        'No — the command carries no exception for the aggrieved, and Yahweh names a false witness and one who sows discord among brethren among the things He hates (Proverbs 6:19)',
+        'Only if the accusation is mostly true',
+        'The command applies only to courtroom testimony',
+      ],
+      answer: 1,
+      explain: 'The command has no clause for the wounded. This is what lets a believer do the hard, adult thing: hold that a grievance is real and documented AND that the false report attached to it is forbidden — both judgments at once, with the same honest weight (Deuteronomy 25:15).',
+    },
+    {
+      q: 'What does the Word offer as the remedy for generational dispossession?',
+      choices: [
+        'An apology and moving on',
+        'Restitution that pays and return that restores possession — fourfold and fivefold restoration (Exodus 22:1) and jubilee return (Leviticus 25:10)',
+        'Nothing — Scripture is silent on the question',
+        'Only forgiveness, with no material component',
+      ],
+      answer: 1,
+      explain: 'Yahweh’s justice was never sentiment. It was priced and legislated: theft repaid multiple times over (Exodus 22:1; Zacchaeus in Luke 19:8), and land returned to the family at jubilee because "the land is mine" (Leviticus 25:23). Forgiveness is commanded too — but the Word never asks the wronged to call an unpaid debt paid.',
+    },
+  ],
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
