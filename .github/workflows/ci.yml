@@ -231,6 +231,21 @@ jobs:
         run: node scripts/read-highlight-probe.mjs
         working-directory: ${{ github.workspace }}
 
+      # SCRIPTURE INFERENCE (DR-0281). The verse-verbatim gates prove every quote
+      # matches the KJV; they cannot see an error living BETWEEN two correct
+      # quotes. Issue 8 shipped Genesis 15:13's 400 years and Exodus 12:41's 430
+      # as one kept schedule — both quotes verbatim, every gate green, the
+      # reasoning across them wrong. This guard enforces the registry of known
+      # cross-verse tensions: cite both sides in one claim and the passage must
+      # name what each side measures. Selftest FIRST (re-injects the exact
+      # shipped defect and requires a failure — anti-theater, DR-0076 §3).
+      - name: Scripture inference guard — selftest (must be able to fail)
+        run: node scripts/scripture-inference-guard.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Scripture inference guard — reasoning across verses holds
+        run: node scripts/scripture-inference-guard.mjs
+        working-directory: ${{ github.workspace }}
+
   workflows:
     name: n8n workflows — wf36 gatekeeper harness
     runs-on: ubuntu-latest
