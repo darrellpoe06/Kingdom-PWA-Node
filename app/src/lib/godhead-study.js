@@ -2,6 +2,24 @@
 // godhead-study — THE GODHEAD STUDY: the Bible's deterministic algorithms,
 // Torah through Revelation (Darrell 2026-07-03).
 // =============================================================================
+// >> WHERE WHAT YOU ADD HERE SHOWS UP (read before authoring — DR-0126/DR-0285)
+//    Add an entry below and it reaches users in TWO places, with no re-typing:
+//      1. Church -> Eternal Algorithms -> "The Godhead Study" (the catalog room)
+//      2. Church -> LEARN, as a derived lesson inside one of the six
+//         "Deep Processing" courses, chosen by this entry's `section:` field
+//         (torah | wisdom | prophets | gospels | epistles | revelation).
+//         Derivation lives in lib/eternal-algorithms-course.js.
+//    Verses: refs here are NEVER quoted from memory. Add the ref, then run
+//      node scripts/fetch-godhead-verses.mjs
+//    which materializes verbatim KJV into godhead-study-verses.json.
+//    A new BOOK also needs a line in BOOK_MASTERPIECES below (the gate demands it).
+//    Gates: godhead-study.test.js, authored-content-reaches-its-surface.test.js.
+//
+//    This header exists because on 2026-08-09 seven entries were authored here
+//    and the agent could not answer "where are the lessons?" — the routing was
+//    documented in a DR it had not read. Routing now travels WITH the code, so
+//    the question is answered by the file you are already editing.
+// =============================================================================
 // "Can you go through the entire Bible and find the deterministic algorithms
 // so we can have that as a Thorough Study Of The Living GodHead — Forever
 // Eternal Beings asking us to become a bloodline family... everyone gets their
@@ -77,6 +95,7 @@ export const BOOK_MASTERPIECES = {
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   '1 Timothy':     'The house-conduct letter — how to behave in the house of God; godliness with contentment is great gain, and the good fight of faith is fought, not felt.',
   '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
+  'Titus':         'The sound-doctrine letter — order set in the house, good works maintained, and the anchor under it all: the God who CANNOT lie promised eternal life before the world began.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
@@ -1536,6 +1555,16 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A reshaped default — the answer that comes out before you compose one begins to match His, because the hidden part was rewritten rather than merely supervised.',
     psyche: 'This is why the transformation feels slow and then sudden. Conscious effort is the only lever you hold, but the change registers in the layer you do not control, so nothing seems to move for a long while and then a reaction is simply different. He asks for the work not because He needs your help, but because the meditating IS the mechanism He uses to write.',
     tags: ['mind-of-christ', 'subconscious', 'hidden-part', 'meditation', 'renewed-mind', 'inputs'],
+  },
+  {
+    id: 'gh-word-is-4d-fact', section: 'epistles', name: 'The Word Is 4th-Dimensional Fact (it outranks 3rd-dimensional fact)',
+    refs: ['2 Corinthians 4:18', 'Matthew 24:35', 'Psalms 119:89', 'Isaiah 40:8', 'Numbers 23:19', 'Titus 1:2', 'Romans 3:4', '1 Corinthians 13:12', 'Hebrews 11:1'],
+    condition: 'Decide the ranking BEFORE the two ever appear to disagree, because in the moment you will rank by whichever one you can currently see. The materialist ordering treats 3rd-dimensional observation as the hard fact and revelation as the soft claim that must earn its way up. Scripture inverts it: "the things which are seen are TEMPORAL; but the things which are not seen are ETERNAL."',
+    consequence: 'His Word outranks on every test we already use to rank evidence. DURABILITY: "Heaven and earth shall pass away, but my words shall not pass away" — the entire 3rd-dimensional dataset has an expiration date that His Word does not; "the grass withereth, the flower fadeth: but the word of our God shall stand for ever." STABILITY: "For ever, O LORD, thy word is settled in heaven" — settled, past tense, not pending revision. RELIABILITY OF THE WITNESS: "God is not a man, that he should lie... hath he said, and shall he not do it?"; "God, that cannot lie"; and where the two testimonies conflict, the verdict is already published — "let God be true, but every man a liar." AND THE INSTRUMENT: the dim one is OURS, not His — "now we see through a glass, DARKLY... now I know IN PART." Faith is therefore not the absence of evidence but a class of it: "the evidence of things not seen."',
+    threeD: 'Keep the distinction clean so this never becomes an excuse for sloppiness. This does NOT mean 3rd-dimensional facts are false or that measurement is worthless — He made the thing being measured, and real data is real (a documented harm, a denied claim, a tested number). It means His Word is the FRAME the data is read inside, and the higher court when they appear to collide. So verify your 3D claims rigorously AND do not let a verified 3D reading overturn a settled 4D fact; the usual resolution is that our reading of one or the other is still partial, and the part more likely to be partial is ours. When you cannot reconcile them yet, hold the Word and keep working — that is not anti-intellectual, it is ranking the more reliable witness first.',
+    outcome: 'A mind that can hold hard data and hard doctrine at once without either collapsing — rigorous about measurement, unshaken when measurement runs ahead of understanding.',
+    psyche: 'Notice which way the humility actually runs. The frame that calls itself humble — "I only believe what I can see" — quietly makes a partial, expiring, provably fallible instrument the final arbiter of everything. Ranking His Word first is the humbler position, because it starts by admitting the glass is dark on OUR side.',
+    tags: ['the-word', '4d', 'evidence', 'truth', 'epistemology', 'frame'],
   },
 ];
 
