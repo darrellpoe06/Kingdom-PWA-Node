@@ -643,6 +643,66 @@ const TWO_AFTERMATHS_QUOTES = [
   { ref: 'Genesis 50:20', book: 'Genesis', ch: 50, v: 20, fragments: [
     'ye thought evil against me; but God meant it unto good, to bring to pass, as it is this day, to save much people alive',
   ] },
+  // Yahweh's good vs man's good, His evil vs man's evil, and the heart we
+  // cannot inspect ourselves (Darrell 2026-08-09).
+  { ref: 'Genesis 1:31', book: 'Genesis', ch: 1, v: 31, fragments: [
+    'And God saw every thing that he had made, and, behold, it was very good',
+  ] },
+  { ref: 'James 1:17', book: 'James', ch: 1, v: 17, fragments: [
+    'Every good gift and every perfect gift is from above, and cometh down from the Father of lights',
+  ] },
+  { ref: 'Mark 10:18', book: 'Mark', ch: 10, v: 18, fragments: [
+    'Why callest thou me good? there is none good but one, that is, God',
+  ] },
+  { ref: 'Proverbs 14:12', book: 'Proverbs', ch: 14, v: 12, fragments: [
+    'There is a way which seemeth right unto a man, but the end thereof are the ways of death',
+  ] },
+  { ref: 'Proverbs 16:2', book: 'Proverbs', ch: 16, v: 2, fragments: [
+    'All the ways of a man are clean in his own eyes; but the LORD weigheth the spirits',
+  ] },
+  { ref: 'Proverbs 21:2', book: 'Proverbs', ch: 21, v: 2, fragments: [
+    'Every way of a man is right in his own eyes: but the LORD pondereth the hearts',
+  ] },
+  { ref: 'Isaiah 64:6', book: 'Isaiah', ch: 64, v: 6, fragments: [
+    'all our righteousnesses are as filthy rags',
+  ] },
+  { ref: 'Romans 3:12', book: 'Romans', ch: 3, v: 12, fragments: [
+    'there is none that doeth good, no, not one',
+  ] },
+  { ref: 'Isaiah 5:20', book: 'Isaiah', ch: 5, v: 20, fragments: [
+    'Woe unto them that call evil good, and good evil; that put darkness for light, and light for darkness; that put bitter for sweet, and sweet for bitter!',
+    'Woe unto them that call evil good, and good evil',
+  ] },
+  { ref: 'Matthew 15:19', book: 'Matthew', ch: 15, v: 19, fragments: [
+    'For out of the heart proceed evil thoughts, murders, adulteries, fornications, thefts, false witness, blasphemies',
+  ] },
+  { ref: 'Jeremiah 17:9', book: 'Jeremiah', ch: 17, v: 9, fragments: [
+    'The heart is deceitful above all things, and desperately wicked: who can know it?',
+  ] },
+  { ref: 'Jeremiah 17:10', book: 'Jeremiah', ch: 17, v: 10, fragments: [
+    'I the LORD search the heart, I try the reins, even to give every man according to his ways',
+  ] },
+  { ref: 'Romans 7:18', book: 'Romans', ch: 7, v: 18, fragments: [
+    'For I know that in me (that is, in my flesh,) dwelleth no good thing',
+  ] },
+  { ref: 'Romans 7:19', book: 'Romans', ch: 7, v: 19, fragments: [
+    'For the good that I would I do not: but the evil which I would not, that I do',
+  ] },
+  { ref: 'Hebrews 4:12', book: 'Hebrews', ch: 4, v: 12, fragments: [
+    'For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart',
+  ] },
+  { ref: 'Hebrews 4:13', book: 'Hebrews', ch: 4, v: 13, fragments: [
+    'all things are naked and opened unto the eyes of him with whom we have to do',
+  ] },
+  { ref: '1 Samuel 16:7', book: '1Samuel', ch: 16, v: 7, fragments: [
+    'the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart',
+  ] },
+  { ref: 'Psalm 139:23', book: 'Psalms', ch: 139, v: 23, fragments: [
+    'Search me, O God, and know my heart: try me, and know my thoughts',
+  ] },
+  { ref: 'Psalm 139:24', book: 'Psalms', ch: 139, v: 24, fragments: [
+    'And see if there be any wicked way in me, and lead me in the way everlasting',
+  ] },
   { ref: 'Genesis 12:3', book: 'Genesis', ch: 12, v: 3, fragments: [
     'I will bless them that bless thee, and curse him that curseth thee',
   ] },
