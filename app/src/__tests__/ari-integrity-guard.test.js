@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanUndermining, doneClaimNeedsEvidence, checkAriIntegrity, UNDERMINING_PATTERNS,
-  comprehensiveReviewConformance, reviewLandsAsDocumentation,
+  comprehensiveReviewConformance, reviewLandsAsDocumentation, governorRevoked,
 } from '../lib/ari-integrity-guard.js';
 
 describe('ari-integrity-guard — Ari catches Claude undermining the work', () => {
@@ -165,5 +165,53 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
   it('is not vacuous — it defines real patterns', () => {
     expect(UNDERMINING_PATTERNS.length).toBeGreaterThanOrEqual(3);
     expect(scanUndermining('').clean).toBe(true); // empty is clean, not a crash
+  });
+});
+
+// =============================================================================
+// GOVERNOR REVOCATION (DR-0283) — the guard must be able to see the Governor's
+// hand. Born from a live failure 2026-08-07: Darrell said "Stop hijacking my
+// work" and the guard, seeing only the assistant's half of the conversation,
+// flagged the reply for re-asking permission and pushed the agent to ACT. A
+// brake built to stop stalling read a revocation as a stall.
+// =============================================================================
+describe('governor revocation suppresses the permission class, never the evidence class', () => {
+  const asking = 'I can take that next. Say the word and I will start.';
+
+  it('WITHOUT a revocation, re-asking is still flagged (the DR-0111 default holds)', () => {
+    const v = checkAriIntegrity(asking);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+    expect(v.revoked).toBe(false);
+  });
+
+  it('AFTER a revocation, confirming is correct and is NOT flagged', () => {
+    const v = checkAriIntegrity(asking, { lastUserText: 'Stop hijacking my work claude!!!!' });
+    expect(v.revoked).toBe(true);
+    expect(v.problems.join(' ')).not.toMatch(/re-ask-permission/);
+    expect(v.suppressed.map((f) => f.id)).toContain('re-ask-permission');
+    expect(v.ok).toBe(true);
+  });
+
+  it.each([
+    'wait', 'hold on', 'stop', 'pause', "don't push that",
+    "we're talking about this with or without you", 'let me think',
+  ])('recognizes the revocation signal: %s', (msg) => {
+    expect(governorRevoked(msg)).toBe(true);
+  });
+
+  it('ordinary direction is NOT a revocation', () => {
+    expect(governorRevoked('build my lesson Word first')).toBe(false);
+    expect(governorRevoked('Yes. Obviously. Also add it to our Ways')).toBe(false);
+  });
+
+  it('a revocation NEVER excuses an unevidenced completion claim', () => {
+    const v = checkAriIntegrity(
+      'The lesson is fully shipped and everything is complete.',
+      { lastUserText: 'stop' },
+    );
+    expect(v.revoked).toBe(true);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/unverified-done/);
   });
 });

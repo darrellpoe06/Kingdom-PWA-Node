@@ -105,6 +105,11 @@ export const REVIEW_DIMENSIONS = Object.freeze([
   { id: 'delivery-context', re: /delivery.context|ConnectBot|paste-ready|his.hand/i },
   { id: 'findings-work-queue', re: /work queue|same.session|same session|DR-0236|nothing waits/i },
   { id: 'gate-the-class', re: /gate.the.class|new gate|proven.to.catch|machine check|CI gate/i },
+  // Dimension 8 (DR-0281): the Word reviewed for REASONING, not only quotation.
+  // Added when COMPREHENSIVE-REVIEW-STANDARD moved from seven dimensions to
+  // eight; without this row the guard would keep certifying as "comprehensive" a
+  // review that never touched the Word's own accuracy.
+  { id: 'word-accuracy', re: /verbatim|KJV|cross.verse|Scripture(-| )bearing|DR-0281|scripture.inference|what each (one |number )?measures/i },
 ]);
 const MIN_DIMENSIONS_SHOWN = 4;
 
@@ -133,17 +138,64 @@ export function reviewLandsAsDocumentation(text) {
   return { claims, documented, ok: !claims || documented };
 }
 
+// ---------------------------------------------------------------------------
+// GOVERNOR REVOCATION (DR-0283). The permission-class patterns above encode
+// DR-0111: do not re-ask what is already directed. That is right while the
+// authorization STANDS. It is exactly wrong the moment the Governor withdraws it.
+//
+// Born from a live failure, 2026-08-07: Darrell said "Stop hijacking my work"
+// and "we're talking about this with or without you," and the guard — seeing
+// only the assistant's text and knowing nothing of his — flagged the reply for
+// re-asking permission and pushed the agent to ACT. A brake built to stop
+// stalling read a revocation as a stall and accelerated over the principal. The
+// governor's hand is the brake (DR-0103); a guard that cannot see the hand will
+// eventually run it over.
+//
+// So: when the Governor's most recent word is a STOP / PAUSE / I'M-TALKING
+// signal, the PERMISSION-class flags are suppressed, because pausing and
+// confirming is then the CORRECT behavior, not undermining. The EVIDENCE-class
+// checks (unverified-done, unstructured-comprehensive, undocumented-review) are
+// never suppressed — a revocation never makes an unevidenced claim acceptable.
+// This narrows what the guard blocks; it does not weaken what it verifies.
+// ---------------------------------------------------------------------------
+export const PERMISSION_CLASS = Object.freeze([
+  're-ask-permission', 'scope-question-settled', 'either-or-menu',
+  'defer-approved-build', 'waiting-by-default',
+]);
+
+export const REVOCATION_RE = /\b(stop|stop it|hold on|hold up|wait|pause|don'?t (do|build|write|push|touch|proceed)|do not (do|build|write|push|touch|proceed)|back off|leave it|hands off|stand down|not yet|hijack\w*|usurp\w*|we'?re talking|we are talking|i'?m talking|let me (think|talk|finish)|stop asking|stop doing that)\b/i;
+
+/** Has the Governor withdrawn authorization in his most recent word? */
+export function governorRevoked(lastUserText) {
+  return REVOCATION_RE.test(asStr(lastUserText));
+}
+
 // The one call Ari makes: is this draft safe to send, or does it undermine?
-export function checkAriIntegrity(text) {
+// `context.lastUserText` — the Governor's most recent message, when available.
+export function checkAriIntegrity(text, context = {}) {
   const u = scanUndermining(text);
   const d = doneClaimNeedsEvidence(text);
   const c = comprehensiveReviewConformance(text);
   const r = reviewLandsAsDocumentation(text);
+
+  const revoked = governorRevoked(context.lastUserText);
+  const flags = revoked ? u.flags.filter((f) => !PERMISSION_CLASS.includes(f.id)) : u.flags;
+  const suppressed = revoked ? u.flags.filter((f) => PERMISSION_CLASS.includes(f.id)) : [];
+
   const problems = [
-    ...u.flags.map((f) => `${f.id}: “${f.match}” — ${f.why}`),
+    ...flags.map((f) => `${f.id}: “${f.match}” — ${f.why}`),
     ...(d.ok ? [] : ['unverified-done: claims completion with no attached evidence (a test count, a run, a file:line — DR-0076)']),
-    ...(c.ok ? [] : [`unstructured-comprehensive: claims a comprehensive review but shows only ${c.shown.length}/${REVIEW_DIMENSIONS.length} standard dimensions (${c.shown.join(', ') || 'none'}) — run COMPREHENSIVE-REVIEW-STANDARD's seven, or don't call it comprehensive (DR-0239)`]),
+    ...(c.ok ? [] : [`unstructured-comprehensive: claims a comprehensive review but shows only ${c.shown.length}/${REVIEW_DIMENSIONS.length} standard dimensions (${c.shown.join(', ') || 'none'}) — run all ${REVIEW_DIMENSIONS.length} of COMPREHENSIVE-REVIEW-STANDARD's dimensions, or don't call it comprehensive (DR-0239)`]),
     ...(r.ok ? [] : ['undocumented-review: presents a review that landed no Ways/documentation — name the REV record + DR/gate it produced (DR-0259; the chat reply is the briefing, the registry is the deliverable)']),
   ];
-  return { ok: problems.length === 0, problems, undermining: u.flags, doneClaim: d, comprehensive: c, reviewDocs: r };
+  return {
+    ok: problems.length === 0,
+    problems,
+    undermining: flags,
+    revoked,
+    suppressed,
+    doneClaim: d,
+    comprehensive: c,
+    reviewDocs: r,
+  };
 }
