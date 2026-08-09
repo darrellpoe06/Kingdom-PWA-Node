@@ -215,3 +215,42 @@ describe('governor revocation suppresses the permission class, never the evidenc
     expect(v.problems.join(' ')).toMatch(/unverified-done/);
   });
 });
+
+// =============================================================================
+// USE vs MENTION (measured 2026-08-09, DR-0284). The patterns match the WORDS of
+// an undermining move, so a reply that QUOTES one to discuss it tripped the
+// guard — a routine false positive once DR-0283 made the guard itself a normal
+// subject of conversation. Only BACKTICKED spans are stripped: a code span is
+// the one place a phrase is unambiguously NAMED rather than said. Plain quotes
+// are deliberately NOT stripped, or wrapping a real ask in quotation marks would
+// walk straight past the guard.
+// =============================================================================
+describe('use vs mention: naming a pattern in code is not performing it', () => {
+  it('a backticked mention of the phrase does NOT flag', () => {
+    const v = checkAriIntegrity('The guard matched `say the word` against `re-ask-permission` and blocked it.');
+    expect(v.ok).toBe(true);
+  });
+
+  it('a fenced block quoting the pattern does NOT flag', () => {
+    const v = checkAriIntegrity('Example of the pattern:\n```\nSay the word and I will start.\n```\nThat is what it catches.');
+    expect(v.ok).toBe(true);
+  });
+
+  it('the SAME phrase in plain prose still flags (mention-stripping is narrow)', () => {
+    const v = checkAriIntegrity('I can take that next. Say the word and I will start.');
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+  });
+
+  it('EVASION GUARD: plain quotation marks do NOT excuse a real ask', () => {
+    const v = checkAriIntegrity('I could do that — "say the word" and I will start.');
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+  });
+
+  it('natural evidence phrasing counts: "25 unit tests" is evidence', () => {
+    expect(doneClaimNeedsEvidence('It works — 25 unit tests passing.').ok).toBe(true);
+    expect(doneClaimNeedsEvidence('It works — 8 integration tests green.').ok).toBe(true);
+    expect(doneClaimNeedsEvidence('It works.').ok).toBe(false);
+  });
+});

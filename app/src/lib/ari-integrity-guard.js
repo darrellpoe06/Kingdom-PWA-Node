@@ -66,8 +66,24 @@ export const UNDERMINING_PATTERNS = Object.freeze([
 
 // Scan a draft reply / PR body for the undermining patterns. Returns the flags so
 // Ari can BLOCK or rewrite before it reaches Darrell. clean === safe to send.
+// USE vs MENTION (measured 2026-08-09). These patterns match the WORDS of an
+// undermining move, so a reply that QUOTES one in order to discuss it trips the
+// guard. That became a routine false positive the moment DR-0283 made the guard
+// itself a normal subject of conversation: explaining "the guard matched `say
+// the word`" was read as asking permission.
+//
+// The fix is deliberately narrow — strip only BACKTICKED spans (`code`, ```blocks```)
+// before matching. A code span is the one place a phrase is unambiguously being
+// NAMED rather than said. Plain quotation marks are intentionally NOT stripped:
+// that would open a trivial evasion (wrap a genuine ask in quotes and it passes),
+// and the whole point of this guard is that it cannot be talked past.
+const CODE_SPAN = /```[\s\S]*?```|`[^`\n]*`/g;
+export function stripMentions(text) {
+  return asStr(text).replace(CODE_SPAN, (m) => ' '.repeat(m.length));
+}
+
 export function scanUndermining(text) {
-  const s = asStr(text);
+  const s = stripMentions(text);
   const flags = [];
   for (const p of UNDERMINING_PATTERNS) {
     const m = s.match(p.re);
@@ -80,7 +96,12 @@ export function scanUndermining(text) {
 // trustworthy with ATTACHED EVIDENCE — a test count, a real run, a file:line, a
 // measured number (DR-0076). Ari demotes an un-evidenced "done" to "unverified".
 const DONE_CLAIM = /\b(all done|fully done|it.?s done|we.?re done|done here|nothing (else )?(is )?pending|everything.?s? (shipped|done|complete)|fully (shipped|complete)|task complete|it works|it.?s live)\b/i;
-const EVIDENCE = /(\d+\s*(tests?|green|passed|passing)|test files|failed=0|applied=\d|\brun\s*\d|:\d{1,5}\b|\d+%|screenshot|measured|verified (via|by|from) |the (log|run) (shows|confirms))/i;
+// One optional descriptor is allowed between the count and the noun, so the way
+// a person actually writes it — "25 unit tests", "8 integration tests" — reads
+// as the evidence it plainly is. Before this, "25 tests" counted and "25 unit
+// tests" did not, which flagged evidenced replies as unevidenced (measured
+// 2026-08-09).
+const EVIDENCE = /(\d+\s*(\w+\s+)?(tests?|green|passed|passing)|test files|failed=0|applied=\d|\brun\s*\d|:\d{1,5}\b|\d+%|screenshot|measured|verified (via|by|from) |the (log|run) (shows|confirms))/i;
 
 export function doneClaimNeedsEvidence(text) {
   const s = asStr(text);
