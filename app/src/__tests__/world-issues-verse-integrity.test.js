@@ -392,6 +392,460 @@ describe('the track opens with Yahweh\'s frame, quoted verbatim (DR-0127 + DR-00
   });
 });
 
+// Issue 8 — the two-aftermaths lesson. Every fragment its own voice quotes.
+const TWO_AFTERMATHS_QUOTES = [
+  { ref: 'Deuteronomy 25:13', book: 'Deuteronomy', ch: 25, v: 13, fragments: [
+    'Thou shalt not have in thy bag divers weights, a great and a small',
+  ] },
+  { ref: 'Deuteronomy 25:15', book: 'Deuteronomy', ch: 25, v: 15, fragments: [
+    'But thou shalt have a perfect and just weight',
+    'a perfect and just measure shalt thou have',
+  ] },
+  { ref: 'Deuteronomy 25:16', book: 'Deuteronomy', ch: 25, v: 16, fragments: [
+    'For all that do such things, and all that do unrighteously, are an abomination unto the LORD thy God',
+  ] },
+  { ref: 'Matthew 7:2', book: 'Matthew', ch: 7, v: 2, fragments: [
+    'with what measure ye mete, it shall be measured to you again',
+  ] },
+  { ref: '1 Kings 21:3', book: '1Kings', ch: 21, v: 3, fragments: [
+    'The LORD forbid it me, that I should give the inheritance of my fathers unto thee',
+  ] },
+  { ref: '1 Kings 21:19', book: '1Kings', ch: 21, v: 19, fragments: [
+    'Hast thou killed, and also taken possession?',
+  ] },
+  { ref: 'Micah 2:2', book: 'Micah', ch: 2, v: 2, fragments: [
+    'they covet fields, and take them by violence; and houses, and take them away: so they oppress a man and his house, even a man and his heritage',
+  ] },
+  { ref: 'Isaiah 10:1', book: 'Isaiah', ch: 10, v: 1, fragments: [
+    'Woe unto them that decree unrighteous decrees',
+  ] },
+  { ref: 'Exodus 1:10', book: 'Exodus', ch: 1, v: 10, fragments: [
+    'Come on, let us deal wisely with them',
+  ] },
+  { ref: 'Jeremiah 6:14', book: 'Jeremiah', ch: 6, v: 14, fragments: [
+    'They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace',
+  ] },
+  { ref: 'Exodus 23:1', book: 'Exodus', ch: 23, v: 1, fragments: [
+    'Thou shalt not raise a false report: put not thine hand with the wicked to be an unrighteous witness',
+  ] },
+  { ref: 'Proverbs 6:19', book: 'Proverbs', ch: 6, v: 19, fragments: [
+    'false witness that speaketh lies, and he that soweth discord among brethren',
+  ] },
+  { ref: 'Ezekiel 34:4', book: 'Ezekiel', ch: 34, v: 4, fragments: [
+    'The diseased have ye not strengthened, neither have ye healed that which was sick, neither have ye bound up that which was broken, neither have ye brought again that which was driven away, neither have ye sought that which was lost; but with force and with cruelty have ye ruled them',
+  ] },
+  { ref: 'Ezekiel 34:15', book: 'Ezekiel', ch: 34, v: 15, fragments: [
+    'I will feed my flock, and I will cause them to lie down',
+  ] },
+  { ref: 'Isaiah 9:6', book: 'Isaiah', ch: 9, v: 6, fragments: [
+    'For unto us a child is born, unto us a son is given: and the government shall be upon his shoulder: and his name shall be called Wonderful, Counsellor, The mighty God, The everlasting Father, The Prince of Peace',
+    'the government shall be upon his shoulder',
+  ] },
+  { ref: 'Isaiah 9:7', book: 'Isaiah', ch: 9, v: 7, fragments: [
+    'to order it, and to establish it with judgment and with justice',
+    'The zeal of the LORD of hosts will perform this',
+  ] },
+  { ref: 'Revelation 11:15', book: 'Revelation', ch: 11, v: 15, fragments: [
+    'The kingdoms of this world are become the kingdoms of our Lord, and of his Christ; and he shall reign for ever and ever',
+  ] },
+  { ref: 'Daniel 2:44', book: 'Daniel', ch: 2, v: 44, fragments: [
+    'shall never be destroyed',
+  ] },
+  // Jesus IS — the present-tense reign (Darrell 2026-08-07: "Jesus IS!!!!!").
+  { ref: 'John 8:58', book: 'John', ch: 8, v: 58, fragments: [
+    'Before Abraham was, I am',
+  ] },
+  { ref: 'Exodus 3:14', book: 'Exodus', ch: 3, v: 14, fragments: [
+    'I AM THAT I AM',
+  ] },
+  { ref: 'Revelation 1:8', book: 'Revelation', ch: 1, v: 8, fragments: [
+    'which is, and which was, and which is to come, the Almighty',
+  ] },
+  { ref: 'Hebrews 13:8', book: 'Hebrews', ch: 13, v: 8, fragments: [
+    'the same yesterday, and to day, and for ever',
+  ] },
+  { ref: 'Matthew 28:18', book: 'Matthew', ch: 28, v: 18, fragments: [
+    'All power is given unto me in heaven and in earth',
+  ] },
+  { ref: 'Colossians 1:16', book: 'Colossians', ch: 1, v: 16, fragments: [
+    'whether they be thrones, or dominions, or principalities, or powers: all things were created by him, and for him',
+  ] },
+  { ref: 'Colossians 1:17', book: 'Colossians', ch: 1, v: 17, fragments: [
+    'And he is before all things, and by him all things consist',
+  ] },
+  // The biblical project-management timelines (Darrell 2026-08-07).
+  { ref: 'Genesis 15:13', book: 'Genesis', ch: 15, v: 13, fragments: [
+    'thy seed shall be a stranger in a land that is not theirs, and shall serve them; and they shall afflict them four hundred years',
+  ] },
+  { ref: 'Genesis 15:14', book: 'Genesis', ch: 15, v: 14, fragments: [
+    'afterward shall they come out with great substance',
+  ] },
+  { ref: 'Genesis 15:16', book: 'Genesis', ch: 15, v: 16, fragments: [
+    'the fourth generation',
+  ] },
+  { ref: 'Exodus 12:41', book: 'Exodus', ch: 12, v: 41, fragments: [
+    'And it came to pass at the end of the four hundred and thirty years, even the selfsame day it came to pass, that all the hosts of the LORD went out from the land of Egypt',
+  ] },
+  { ref: 'Exodus 2:24', book: 'Exodus', ch: 2, v: 24, fragments: [
+    'God heard their groaning, and God remembered his covenant',
+  ] },
+  { ref: 'Jeremiah 25:11', book: 'Jeremiah', ch: 25, v: 11, fragments: [
+    'these nations shall serve the king of Babylon seventy years',
+  ] },
+  { ref: 'Jeremiah 29:10', book: 'Jeremiah', ch: 29, v: 10, fragments: [
+    'after seventy years be accomplished at Babylon I will visit you, and perform my good word toward you, in causing you to return to this place',
+  ] },
+  { ref: 'Daniel 9:2', book: 'Daniel', ch: 9, v: 2, fragments: [
+    'that he would accomplish seventy years in the desolations of Jerusalem',
+  ] },
+  { ref: 'Deuteronomy 15:1', book: 'Deuteronomy', ch: 15, v: 1, fragments: [
+    'At the end of every seven years thou shalt make a release',
+  ] },
+  { ref: 'Galatians 4:4', book: 'Galatians', ch: 4, v: 4, fragments: [
+    'when the fulness of the time was come, God sent forth his Son',
+  ] },
+  { ref: 'Habakkuk 2:3', book: 'Habakkuk', ch: 2, v: 3, fragments: [
+    'For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry',
+  ] },
+  { ref: 'Acts 1:7', book: 'Acts', ch: 1, v: 7, fragments: [
+    'It is not for you to know the times or the seasons, which the Father hath put in his own power',
+  ] },
+  // metanoia — the framework correction (Darrell 2026-08-07).
+  { ref: 'Matthew 4:17', book: 'Matthew', ch: 4, v: 17, fragments: [
+    'Repent: for the kingdom of heaven is at hand',
+  ] },
+  { ref: 'Romans 12:2', book: 'Romans', ch: 12, v: 2, fragments: [
+    'be not conformed to this world: but be ye transformed by the renewing of your mind',
+  ] },
+  { ref: '2 Corinthians 10:5', book: '2Corinthians', ch: 10, v: 5, fragments: [
+    'bringing into captivity every thought to the obedience of Christ',
+  ] },
+  { ref: 'Isaiah 55:8', book: 'Isaiah', ch: 55, v: 8, fragments: [
+    'my thoughts are not your thoughts, neither are your ways my ways, saith the LORD',
+  ] },
+  // The lesson checks its OWN numbers: 400 (affliction) vs 430 (sojourning).
+  { ref: 'Acts 7:6', book: 'Acts', ch: 7, v: 6, fragments: [
+    'they should bring them into bondage, and entreat them evil four hundred years',
+  ] },
+  { ref: 'Exodus 12:40', book: 'Exodus', ch: 12, v: 40, fragments: [
+    'Now the sojourning of the children of Israel, who dwelt in Egypt, was four hundred and thirty years',
+  ] },
+  { ref: 'Galatians 3:17', book: 'Galatians', ch: 3, v: 17, fragments: [
+    'the law, which was four hundred and thirty years after',
+  ] },
+  // What the Godhead expects (Darrell 2026-08-07).
+  { ref: 'Micah 6:8', book: 'Micah', ch: 6, v: 8, fragments: [
+    'He hath shewed thee, O man, what is good; and what doth the LORD require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?',
+  ] },
+  { ref: 'Deuteronomy 10:12', book: 'Deuteronomy', ch: 10, v: 12, fragments: [
+    'what doth the LORD thy God require of thee, but to fear the LORD thy God, to walk in all his ways, and to love him, and to serve the LORD thy God with all thy heart and with all thy soul',
+  ] },
+  { ref: 'Zechariah 7:9', book: 'Zechariah', ch: 7, v: 9, fragments: [
+    'Execute true judgment, and shew mercy and compassions every man to his brother',
+  ] },
+  { ref: 'Zechariah 7:10', book: 'Zechariah', ch: 7, v: 10, fragments: [
+    'And oppress not the widow, nor the fatherless, the stranger, nor the poor; and let none of you imagine evil against his brother in your heart',
+    'let none of you imagine evil against his brother in your heart',
+  ] },
+  { ref: 'Matthew 22:37', book: 'Matthew', ch: 22, v: 37, fragments: [
+    'Thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind',
+  ] },
+  { ref: 'Matthew 22:39', book: 'Matthew', ch: 22, v: 39, fragments: [
+    'And the second is like unto it, Thou shalt love thy neighbour as thyself',
+  ] },
+  { ref: 'John 14:15', book: 'John', ch: 14, v: 15, fragments: [
+    'If ye love me, keep my commandments',
+  ] },
+  { ref: 'Matthew 25:40', book: 'Matthew', ch: 25, v: 40, fragments: [
+    'Inasmuch as ye have done it unto one of the least of these my brethren, ye have done it unto me',
+  ] },
+  { ref: 'Galatians 5:22', book: 'Galatians', ch: 5, v: 22, fragments: [
+    'the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith',
+  ] },
+  { ref: 'Galatians 5:23', book: 'Galatians', ch: 5, v: 23, fragments: [
+    'Meekness, temperance',
+  ] },
+  { ref: 'Romans 8:14', book: 'Romans', ch: 8, v: 14, fragments: [
+    'as many as are led by the Spirit of God, they are the sons of God',
+  ] },
+  { ref: 'Ephesians 4:30', book: 'Ephesians', ch: 4, v: 30, fragments: [
+    'grieve not the holy Spirit of God, whereby ye are sealed unto the day of redemption',
+  ] },
+  { ref: 'Hosea 6:6', book: 'Hosea', ch: 6, v: 6, fragments: [
+    'I desired mercy, and not sacrifice; and the knowledge of God more than burnt offerings',
+  ] },
+  { ref: '1 Samuel 15:22', book: '1Samuel', ch: 15, v: 22, fragments: [
+    'to obey is better than sacrifice',
+  ] },
+  { ref: '1 John 3:18', book: '1John', ch: 3, v: 18, fragments: [
+    'let us not love in word, neither in tongue; but in deed and in truth',
+  ] },
+  { ref: 'John 4:24', book: 'John', ch: 4, v: 24, fragments: [
+    'is a Spirit: and they that worship him must worship him in spirit and in truth',
+  ] },
+  // What we expect of governments, and what we do while enduring (Darrell 2026-08-07).
+  { ref: 'Romans 13:3', book: 'Romans', ch: 13, v: 3, fragments: [
+    'rulers are not a terror to good works, but to the evil',
+  ] },
+  { ref: 'Romans 13:4', book: 'Romans', ch: 13, v: 4, fragments: [
+    'he is the minister of God to thee for good',
+    'he beareth not the sword in vain: for he is the minister of God, a revenger to execute wrath upon him that doeth evil',
+  ] },
+  { ref: 'Jeremiah 22:3', book: 'Jeremiah', ch: 22, v: 3, fragments: [
+    'Execute ye judgment and righteousness, and deliver the spoiled out of the hand of the oppressor: and do no wrong, do no violence to the stranger, the fatherless, nor the widow, neither shed innocent blood',
+  ] },
+  { ref: 'Proverbs 29:2', book: 'Proverbs', ch: 29, v: 2, fragments: [
+    'When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn',
+  ] },
+  { ref: 'Daniel 4:17', book: 'Daniel', ch: 4, v: 17, fragments: [
+    'the most High ruleth in the kingdom of men, and giveth it to whomsoever he will, and setteth up over it the basest of men',
+  ] },
+  { ref: 'Acts 5:29', book: 'Acts', ch: 5, v: 29, fragments: [
+    'We ought to obey God rather than men',
+  ] },
+  { ref: '1 Peter 2:17', book: '1Peter', ch: 2, v: 17, fragments: [
+    'Honour all men. Love the brotherhood. Fear God. Honour the king',
+  ] },
+  { ref: '1 Timothy 2:1', book: '1Timothy', ch: 2, v: 1, fragments: [
+    'supplications, prayers, intercessions, and giving of thanks, be made for all men',
+  ] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: [
+    'For kings, and for all that are in authority; that we may lead a quiet and peaceable life',
+  ] },
+  { ref: 'Jeremiah 29:5', book: 'Jeremiah', ch: 29, v: 5, fragments: [
+    'Build ye houses, and dwell in them; and plant gardens, and eat the fruit of them',
+  ] },
+  { ref: 'Jeremiah 29:6', book: 'Jeremiah', ch: 29, v: 6, fragments: [
+    'Take ye wives, and beget sons and daughters',
+    'that ye may be increased there, and not diminished',
+  ] },
+  { ref: 'Jeremiah 29:7', book: 'Jeremiah', ch: 29, v: 7, fragments: [
+    'And seek the peace of the city whither I have caused you to be carried away captives, and pray unto the LORD for it: for in the peace thereof shall ye have peace',
+  ] },
+  { ref: 'Daniel 1:8', book: 'Daniel', ch: 1, v: 8, fragments: [
+    'purposed in his heart that he would not defile himself',
+  ] },
+  { ref: 'Romans 12:19', book: 'Romans', ch: 12, v: 19, fragments: [
+    'avenge not yourselves, but rather give place unto wrath: for it is written, Vengeance is mine; I will repay, saith the Lord',
+  ] },
+  { ref: 'Romans 12:21', book: 'Romans', ch: 12, v: 21, fragments: [
+    'Be not overcome of evil, but overcome evil with good',
+  ] },
+  { ref: 'Galatians 6:9', book: 'Galatians', ch: 6, v: 9, fragments: [
+    'let us not be weary in well doing: for in due season we shall reap, if we faint not',
+  ] },
+  { ref: 'Isaiah 40:31', book: 'Isaiah', ch: 40, v: 31, fragments: [
+    'they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint',
+  ] },
+  { ref: 'Psalm 27:14', book: 'Psalms', ch: 27, v: 14, fragments: [
+    'Wait on the LORD: be of good courage, and he shall strengthen thine heart: wait, I say, on the LORD',
+  ] },
+  { ref: 'Genesis 50:20', book: 'Genesis', ch: 50, v: 20, fragments: [
+    'ye thought evil against me; but God meant it unto good, to bring to pass, as it is this day, to save much people alive',
+  ] },
+  // Yahweh's good vs man's good, His evil vs man's evil, and the heart we
+  // cannot inspect ourselves (Darrell 2026-08-09).
+  { ref: 'Genesis 1:31', book: 'Genesis', ch: 1, v: 31, fragments: [
+    'And God saw every thing that he had made, and, behold, it was very good',
+  ] },
+  { ref: 'James 1:17', book: 'James', ch: 1, v: 17, fragments: [
+    'Every good gift and every perfect gift is from above, and cometh down from the Father of lights',
+  ] },
+  { ref: 'Mark 10:18', book: 'Mark', ch: 10, v: 18, fragments: [
+    'Why callest thou me good? there is none good but one, that is, God',
+  ] },
+  { ref: 'Proverbs 14:12', book: 'Proverbs', ch: 14, v: 12, fragments: [
+    'There is a way which seemeth right unto a man, but the end thereof are the ways of death',
+  ] },
+  { ref: 'Proverbs 16:2', book: 'Proverbs', ch: 16, v: 2, fragments: [
+    'All the ways of a man are clean in his own eyes; but the LORD weigheth the spirits',
+  ] },
+  { ref: 'Proverbs 21:2', book: 'Proverbs', ch: 21, v: 2, fragments: [
+    'Every way of a man is right in his own eyes: but the LORD pondereth the hearts',
+  ] },
+  { ref: 'Isaiah 64:6', book: 'Isaiah', ch: 64, v: 6, fragments: [
+    'all our righteousnesses are as filthy rags',
+  ] },
+  { ref: 'Romans 3:12', book: 'Romans', ch: 3, v: 12, fragments: [
+    'there is none that doeth good, no, not one',
+  ] },
+  { ref: 'Isaiah 5:20', book: 'Isaiah', ch: 5, v: 20, fragments: [
+    'Woe unto them that call evil good, and good evil; that put darkness for light, and light for darkness; that put bitter for sweet, and sweet for bitter!',
+    'Woe unto them that call evil good, and good evil',
+  ] },
+  { ref: 'Matthew 15:19', book: 'Matthew', ch: 15, v: 19, fragments: [
+    'For out of the heart proceed evil thoughts, murders, adulteries, fornications, thefts, false witness, blasphemies',
+  ] },
+  { ref: 'Jeremiah 17:9', book: 'Jeremiah', ch: 17, v: 9, fragments: [
+    'The heart is deceitful above all things, and desperately wicked: who can know it?',
+  ] },
+  { ref: 'Jeremiah 17:10', book: 'Jeremiah', ch: 17, v: 10, fragments: [
+    'I the LORD search the heart, I try the reins, even to give every man according to his ways',
+  ] },
+  { ref: 'Romans 7:18', book: 'Romans', ch: 7, v: 18, fragments: [
+    'For I know that in me (that is, in my flesh,) dwelleth no good thing',
+  ] },
+  { ref: 'Romans 7:19', book: 'Romans', ch: 7, v: 19, fragments: [
+    'For the good that I would I do not: but the evil which I would not, that I do',
+  ] },
+  { ref: 'Hebrews 4:12', book: 'Hebrews', ch: 4, v: 12, fragments: [
+    'For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart',
+  ] },
+  { ref: 'Hebrews 4:13', book: 'Hebrews', ch: 4, v: 13, fragments: [
+    'all things are naked and opened unto the eyes of him with whom we have to do',
+  ] },
+  { ref: '1 Samuel 16:7', book: '1Samuel', ch: 16, v: 7, fragments: [
+    'the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart',
+  ] },
+  { ref: 'Psalm 139:23', book: 'Psalms', ch: 139, v: 23, fragments: [
+    'Search me, O God, and know my heart: try me, and know my thoughts',
+  ] },
+  { ref: 'Psalm 139:24', book: 'Psalms', ch: 139, v: 24, fragments: [
+    'And see if there be any wicked way in me, and lead me in the way everlasting',
+  ] },
+  // Carnal mind vs spiritual mind, the ladder, and spiritual authority
+  // (Darrell 2026-08-09). Reinforces THE-ROOT.md's own section.
+  { ref: 'Romans 8:5', book: 'Romans', ch: 8, v: 5, fragments: [
+    'For they that are after the flesh do mind the things of the flesh; but they that are after the Spirit the things of the Spirit',
+  ] },
+  { ref: 'Romans 8:7', book: 'Romans', ch: 8, v: 7, fragments: [
+    'Because the carnal mind is enmity against God: for it is not subject to the law of God, neither indeed can be',
+  ] },
+  { ref: '1 Corinthians 2:14', book: '1Corinthians', ch: 2, v: 14, fragments: [
+    'But the natural man receiveth not the things of the Spirit of God: for they are foolishness unto him: neither can he know them, because they are spiritually discerned',
+  ] },
+  { ref: '1 Corinthians 2:15', book: '1Corinthians', ch: 2, v: 15, fragments: [
+    'But he that is spiritual judgeth all things',
+  ] },
+  { ref: '1 Corinthians 2:16', book: '1Corinthians', ch: 2, v: 16, fragments: [
+    'But we have the mind of Christ',
+  ] },
+  { ref: '1 Corinthians 2:12', book: '1Corinthians', ch: 2, v: 12, fragments: [
+    'Now we have received, not the spirit of the world, but the spirit which is of God; that we might know the things that are freely given to us of God',
+  ] },
+  { ref: 'John 16:13', book: 'John', ch: 16, v: 13, fragments: [
+    'he will guide you into all truth',
+  ] },
+  { ref: 'Proverbs 9:10', book: 'Proverbs', ch: 9, v: 10, fragments: [
+    'The fear of the LORD is the beginning of wisdom: and the knowledge of the holy is understanding',
+  ] },
+  { ref: 'Proverbs 4:7', book: 'Proverbs', ch: 4, v: 7, fragments: [
+    'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding',
+  ] },
+  { ref: 'Ephesians 1:18', book: 'Ephesians', ch: 1, v: 18, fragments: [
+    'The eyes of your understanding being enlightened',
+  ] },
+  { ref: 'Colossians 1:9', book: 'Colossians', ch: 1, v: 9, fragments: [
+    'filled with the knowledge of his will in all wisdom and spiritual understanding',
+  ] },
+  { ref: 'Hebrews 5:14', book: 'Hebrews', ch: 5, v: 14, fragments: [
+    'But strong meat belongeth to them that are of full age, even those who by reason of use have their senses exercised to discern both good and evil',
+  ] },
+  { ref: '2 Corinthians 10:3', book: '2Corinthians', ch: 10, v: 3, fragments: [
+    'For though we walk in the flesh, we do not war after the flesh',
+  ] },
+  { ref: 'Luke 10:19', book: 'Luke', ch: 10, v: 19, fragments: [
+    'Behold, I give unto you power to tread on serpents and scorpions, and over all the power of the enemy',
+  ] },
+  { ref: '2 Timothy 1:7', book: '2Timothy', ch: 1, v: 7, fragments: [
+    'God hath not given us the spirit of fear; but of power, and of love, and of a sound mind',
+  ] },
+  { ref: 'Galatians 5:16', book: 'Galatians', ch: 5, v: 16, fragments: [
+    'Walk in the Spirit, and ye shall not fulfil the lust of the flesh',
+  ] },
+  { ref: 'Galatians 5:20', book: 'Galatians', ch: 5, v: 20, fragments: [
+    'hatred, variance, emulations, wrath, strife, seditions, heresies',
+  ] },
+  { ref: 'James 3:14', book: 'James', ch: 3, v: 14, fragments: [
+    'if ye have bitter envying and strife in your hearts, glory not, and lie not against the truth',
+  ] },
+  { ref: 'James 3:15', book: 'James', ch: 3, v: 15, fragments: [
+    'This wisdom descendeth not from above, but is earthly, sensual, devilish',
+  ] },
+  { ref: 'James 3:17', book: 'James', ch: 3, v: 17, fragments: [
+    'But the wisdom that is from above is first pure, then peaceable, gentle, and easy to be intreated, full of mercy and good fruits, without partiality, and without hypocrisy',
+  ] },
+  { ref: 'Genesis 12:3', book: 'Genesis', ch: 12, v: 3, fragments: [
+    'I will bless them that bless thee, and curse him that curseth thee',
+  ] },
+  { ref: 'Romans 11:18', book: 'Romans', ch: 11, v: 18, fragments: [
+    'Boast not against the branches',
+  ] },
+  { ref: 'Acts 17:26', book: 'Acts', ch: 17, v: 26, fragments: [
+    'hath made of one blood all nations of men',
+  ] },
+  { ref: 'Leviticus 25:10', book: 'Leviticus', ch: 25, v: 10, fragments: [
+    'ye shall return every man unto his possession',
+  ] },
+  { ref: 'Leviticus 25:23', book: 'Leviticus', ch: 25, v: 23, fragments: [
+    'The land shall not be sold for ever: for the land is mine',
+    'ye are strangers and sojourners with me',
+  ] },
+  { ref: 'Numbers 27:4', book: 'Numbers', ch: 27, v: 4, fragments: [
+    'Why should the name of our father be done away from among his family',
+  ] },
+  { ref: 'Numbers 27:7', book: 'Numbers', ch: 27, v: 7, fragments: [
+    'The daughters of Zelophehad speak right',
+  ] },
+  { ref: 'James 5:4', book: 'James', ch: 5, v: 4, fragments: [
+    'which is of you kept back by fraud, crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth',
+  ] },
+  { ref: 'Deuteronomy 29:29', book: 'Deuteronomy', ch: 29, v: 29, fragments: [
+    'The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever, that we may do all the words of this law',
+  ] },
+  { ref: '1 Corinthians 13:9', book: '1Corinthians', ch: 13, v: 9, fragments: [
+    'For we know in part, and we prophesy in part',
+  ] },
+  { ref: '1 Corinthians 13:12', book: '1Corinthians', ch: 13, v: 12, fragments: [
+    'For now we see through a glass, darkly; but then face to face',
+  ] },
+  { ref: 'Deuteronomy 8:2', book: 'Deuteronomy', ch: 8, v: 2, fragments: [
+    'thou shalt remember all the way which the LORD thy God led thee these forty years in the wilderness, to humble thee, and to prove thee, to know what was in thine heart',
+  ] },
+  { ref: 'Hebrews 11:13', book: 'Hebrews', ch: 11, v: 13, fragments: [
+    'confessed that they were strangers and pilgrims on the earth',
+  ] },
+  { ref: 'Proverbs 3:5', book: 'Proverbs', ch: 3, v: 5, fragments: [
+    'Trust in the LORD with all thine heart; and lean not unto thine own understanding',
+  ] },
+  { ref: '2 Corinthians 5:7', book: '2Corinthians', ch: 5, v: 7, fragments: [
+    'For we walk by faith, not by sight',
+  ] },
+  { ref: 'Philippians 3:12', book: 'Philippians', ch: 3, v: 12, fragments: [
+    'Not as though I had already attained',
+  ] },
+];
+
+describe('the two-aftermaths issue quotes the KJV verbatim (DR-0076)', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-historical-trauma-two-aftermaths');
+
+  it('the issue is published in the track', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is an exact substring of the cited KJV verse', () => {
+    const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const failures = [];
+    for (const q of TWO_AFTERMATHS_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: fragment not found verbatim — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = JSON.stringify(issue);
+    const norm = (s) => s.replace(/[’‘]/g, "'");
+    const missing = TWO_AFTERMATHS_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !norm(blob).includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+});
+
 describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)', () => {
   const issue = WORLD_ISSUES.find((i) => i.id === 'wi-prison-industrial-complex');
 

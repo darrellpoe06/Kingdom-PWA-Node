@@ -52,6 +52,29 @@ function lastAssistantText(transcriptPath) {
   return '';
 }
 
+// Pull the last USER text out of the transcript. Without this the guard sees
+// only Claude's half of the conversation — which is how, on 2026-08-07, it
+// flagged a reply for "re-asking permission" moments after Darrell said "Stop
+// hijacking my work," and pushed the agent forward over him (DR-0283).
+function lastUserText(transcriptPath) {
+  let lines;
+  try { lines = readFileSync(transcriptPath, 'utf8').trim().split('\n'); }
+  catch { return ''; }
+  for (let i = lines.length - 1; i >= 0; i--) {
+    let ev;
+    try { ev = JSON.parse(lines[i]); } catch { continue; }
+    const msg = ev && (ev.message || ev);
+    if (!msg || msg.role !== 'user') continue;
+    const c = msg.content;
+    if (typeof c === 'string') return c;
+    if (Array.isArray(c)) {
+      const t = c.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n');
+      if (t.trim()) return t;
+    }
+  }
+  return '';
+}
+
 async function main() {
   let input;
   try { input = JSON.parse(readStdin() || '{}'); } catch { return done(); }
@@ -68,8 +91,10 @@ async function main() {
     ));
   } catch { return done(); }
 
+  const userText = lastUserText(input.transcript_path);
+
   let verdict;
-  try { verdict = checkAriIntegrity(text); } catch { return done(); }
+  try { verdict = checkAriIntegrity(text, { lastUserText: userText }); } catch { return done(); }
   if (!verdict || verdict.ok) return done();
 
   const reason = [

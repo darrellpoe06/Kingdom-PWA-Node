@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanUndermining, doneClaimNeedsEvidence, checkAriIntegrity, UNDERMINING_PATTERNS,
-  comprehensiveReviewConformance, reviewLandsAsDocumentation,
+  comprehensiveReviewConformance, reviewLandsAsDocumentation, governorRevoked,
 } from '../lib/ari-integrity-guard.js';
 
 describe('ari-integrity-guard — Ari catches Claude undermining the work', () => {
@@ -165,5 +165,92 @@ describe('ari-integrity-guard — Ari catches Claude undermining the work', () =
   it('is not vacuous — it defines real patterns', () => {
     expect(UNDERMINING_PATTERNS.length).toBeGreaterThanOrEqual(3);
     expect(scanUndermining('').clean).toBe(true); // empty is clean, not a crash
+  });
+});
+
+// =============================================================================
+// GOVERNOR REVOCATION (DR-0283) — the guard must be able to see the Governor's
+// hand. Born from a live failure 2026-08-07: Darrell said "Stop hijacking my
+// work" and the guard, seeing only the assistant's half of the conversation,
+// flagged the reply for re-asking permission and pushed the agent to ACT. A
+// brake built to stop stalling read a revocation as a stall.
+// =============================================================================
+describe('governor revocation suppresses the permission class, never the evidence class', () => {
+  const asking = 'I can take that next. Say the word and I will start.';
+
+  it('WITHOUT a revocation, re-asking is still flagged (the DR-0111 default holds)', () => {
+    const v = checkAriIntegrity(asking);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+    expect(v.revoked).toBe(false);
+  });
+
+  it('AFTER a revocation, confirming is correct and is NOT flagged', () => {
+    const v = checkAriIntegrity(asking, { lastUserText: 'Stop hijacking my work claude!!!!' });
+    expect(v.revoked).toBe(true);
+    expect(v.problems.join(' ')).not.toMatch(/re-ask-permission/);
+    expect(v.suppressed.map((f) => f.id)).toContain('re-ask-permission');
+    expect(v.ok).toBe(true);
+  });
+
+  it.each([
+    'wait', 'hold on', 'stop', 'pause', "don't push that",
+    "we're talking about this with or without you", 'let me think',
+  ])('recognizes the revocation signal: %s', (msg) => {
+    expect(governorRevoked(msg)).toBe(true);
+  });
+
+  it('ordinary direction is NOT a revocation', () => {
+    expect(governorRevoked('build my lesson Word first')).toBe(false);
+    expect(governorRevoked('Yes. Obviously. Also add it to our Ways')).toBe(false);
+  });
+
+  it('a revocation NEVER excuses an unevidenced completion claim', () => {
+    const v = checkAriIntegrity(
+      'The lesson is fully shipped and everything is complete.',
+      { lastUserText: 'stop' },
+    );
+    expect(v.revoked).toBe(true);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/unverified-done/);
+  });
+});
+
+// =============================================================================
+// USE vs MENTION (measured 2026-08-09, DR-0284). The patterns match the WORDS of
+// an undermining move, so a reply that QUOTES one to discuss it tripped the
+// guard — a routine false positive once DR-0283 made the guard itself a normal
+// subject of conversation. Only BACKTICKED spans are stripped: a code span is
+// the one place a phrase is unambiguously NAMED rather than said. Plain quotes
+// are deliberately NOT stripped, or wrapping a real ask in quotation marks would
+// walk straight past the guard.
+// =============================================================================
+describe('use vs mention: naming a pattern in code is not performing it', () => {
+  it('a backticked mention of the phrase does NOT flag', () => {
+    const v = checkAriIntegrity('The guard matched `say the word` against `re-ask-permission` and blocked it.');
+    expect(v.ok).toBe(true);
+  });
+
+  it('a fenced block quoting the pattern does NOT flag', () => {
+    const v = checkAriIntegrity('Example of the pattern:\n```\nSay the word and I will start.\n```\nThat is what it catches.');
+    expect(v.ok).toBe(true);
+  });
+
+  it('the SAME phrase in plain prose still flags (mention-stripping is narrow)', () => {
+    const v = checkAriIntegrity('I can take that next. Say the word and I will start.');
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+  });
+
+  it('EVASION GUARD: plain quotation marks do NOT excuse a real ask', () => {
+    const v = checkAriIntegrity('I could do that — "say the word" and I will start.');
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/re-ask-permission/);
+  });
+
+  it('natural evidence phrasing counts: "25 unit tests" is evidence', () => {
+    expect(doneClaimNeedsEvidence('It works — 25 unit tests passing.').ok).toBe(true);
+    expect(doneClaimNeedsEvidence('It works — 8 integration tests green.').ok).toBe(true);
+    expect(doneClaimNeedsEvidence('It works.').ok).toBe(false);
   });
 });
