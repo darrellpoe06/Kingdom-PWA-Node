@@ -703,6 +703,68 @@ const TWO_AFTERMATHS_QUOTES = [
   { ref: 'Psalm 139:24', book: 'Psalms', ch: 139, v: 24, fragments: [
     'And see if there be any wicked way in me, and lead me in the way everlasting',
   ] },
+  // Carnal mind vs spiritual mind, the ladder, and spiritual authority
+  // (Darrell 2026-08-09). Reinforces THE-ROOT.md's own section.
+  { ref: 'Romans 8:5', book: 'Romans', ch: 8, v: 5, fragments: [
+    'For they that are after the flesh do mind the things of the flesh; but they that are after the Spirit the things of the Spirit',
+  ] },
+  { ref: 'Romans 8:7', book: 'Romans', ch: 8, v: 7, fragments: [
+    'Because the carnal mind is enmity against God: for it is not subject to the law of God, neither indeed can be',
+  ] },
+  { ref: '1 Corinthians 2:14', book: '1Corinthians', ch: 2, v: 14, fragments: [
+    'But the natural man receiveth not the things of the Spirit of God: for they are foolishness unto him: neither can he know them, because they are spiritually discerned',
+  ] },
+  { ref: '1 Corinthians 2:15', book: '1Corinthians', ch: 2, v: 15, fragments: [
+    'But he that is spiritual judgeth all things',
+  ] },
+  { ref: '1 Corinthians 2:16', book: '1Corinthians', ch: 2, v: 16, fragments: [
+    'But we have the mind of Christ',
+  ] },
+  { ref: '1 Corinthians 2:12', book: '1Corinthians', ch: 2, v: 12, fragments: [
+    'Now we have received, not the spirit of the world, but the spirit which is of God; that we might know the things that are freely given to us of God',
+  ] },
+  { ref: 'John 16:13', book: 'John', ch: 16, v: 13, fragments: [
+    'he will guide you into all truth',
+  ] },
+  { ref: 'Proverbs 9:10', book: 'Proverbs', ch: 9, v: 10, fragments: [
+    'The fear of the LORD is the beginning of wisdom: and the knowledge of the holy is understanding',
+  ] },
+  { ref: 'Proverbs 4:7', book: 'Proverbs', ch: 4, v: 7, fragments: [
+    'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding',
+  ] },
+  { ref: 'Ephesians 1:18', book: 'Ephesians', ch: 1, v: 18, fragments: [
+    'The eyes of your understanding being enlightened',
+  ] },
+  { ref: 'Colossians 1:9', book: 'Colossians', ch: 1, v: 9, fragments: [
+    'filled with the knowledge of his will in all wisdom and spiritual understanding',
+  ] },
+  { ref: 'Hebrews 5:14', book: 'Hebrews', ch: 5, v: 14, fragments: [
+    'But strong meat belongeth to them that are of full age, even those who by reason of use have their senses exercised to discern both good and evil',
+  ] },
+  { ref: '2 Corinthians 10:3', book: '2Corinthians', ch: 10, v: 3, fragments: [
+    'For though we walk in the flesh, we do not war after the flesh',
+  ] },
+  { ref: 'Luke 10:19', book: 'Luke', ch: 10, v: 19, fragments: [
+    'Behold, I give unto you power to tread on serpents and scorpions, and over all the power of the enemy',
+  ] },
+  { ref: '2 Timothy 1:7', book: '2Timothy', ch: 1, v: 7, fragments: [
+    'God hath not given us the spirit of fear; but of power, and of love, and of a sound mind',
+  ] },
+  { ref: 'Galatians 5:16', book: 'Galatians', ch: 5, v: 16, fragments: [
+    'Walk in the Spirit, and ye shall not fulfil the lust of the flesh',
+  ] },
+  { ref: 'Galatians 5:20', book: 'Galatians', ch: 5, v: 20, fragments: [
+    'hatred, variance, emulations, wrath, strife, seditions, heresies',
+  ] },
+  { ref: 'James 3:14', book: 'James', ch: 3, v: 14, fragments: [
+    'if ye have bitter envying and strife in your hearts, glory not, and lie not against the truth',
+  ] },
+  { ref: 'James 3:15', book: 'James', ch: 3, v: 15, fragments: [
+    'This wisdom descendeth not from above, but is earthly, sensual, devilish',
+  ] },
+  { ref: 'James 3:17', book: 'James', ch: 3, v: 17, fragments: [
+    'But the wisdom that is from above is first pure, then peaceable, gentle, and easy to be intreated, full of mercy and good fruits, without partiality, and without hypocrisy',
+  ] },
   { ref: 'Genesis 12:3', book: 'Genesis', ch: 12, v: 3, fragments: [
     'I will bless them that bless thee, and curse him that curseth thee',
   ] },
