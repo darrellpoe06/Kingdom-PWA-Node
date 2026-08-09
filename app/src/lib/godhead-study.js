@@ -1451,6 +1451,42 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'Rule-based change fights the desire and exhausts; source-based change replaces the desire and lasts. And the fruit is SINGULAR on purpose — one life from one root, not nine separate merit badges to earn.',
     tags: ['fruit-of-the-spirit', 'no-law', 'galatians', 'led-of-the-spirit', 'character'],
   },
+  // ===========================================================================
+  // CREDIT vs WORSHIP (Darrell 2026-08-09: "differences between credit and
+  // worship... Why Yahweh Gets Both... no other god"). Three algorithms, because
+  // the teaching has three moving parts: the DISTINCTION, the CLAIM (why both
+  // belong to Him), and the LINE (what happens when either is misdirected).
+  // ===========================================================================
+  {
+    id: 'gh-credit-vs-worship', section: 'prophets', name: 'Credit vs. Worship (two different debts, one Owner)',
+    refs: ['Isaiah 42:8', 'Deuteronomy 8:17-18', '1 Corinthians 4:7', 'Acts 17:25', 'James 1:17'],
+    condition: 'Separate the two debts before you pay either. CREDIT is owed for what was DONE — the source of a result, an ability, a harvest. WORSHIP is owed for who someone IS — worth, not output. Men collapse them constantly, and the collapse runs both directions: crediting a creature for what the Creator did, and worshipping a thing that at most deserved acknowledgment.',
+    consequence: 'The Word settles ownership of both. On CREDIT: "thou say in thine heart, My power and the might of mine hand hath gotten me this wealth. But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth" — He gives the very CAPACITY that produced the result, so the credit for the result was never independently yours. Paul closes the loop: "what hast thou that thou didst not receive? now if thou didst receive it, why dost thou glory, as if thou hadst not received it?" And He needs nothing back — "he giveth to all life, and breath, and all things," "every good gift and every perfect gift is from above." On WORSHIP: "I am the LORD: that is my name: and my glory will I not give to another." Not WILL NOT SHARE — will not GIVE. It is not available.',
+    threeD: 'Run the audit on your own sentences. When you say "I built this," finish it honestly: who gave the hands, the years, the mind, the door that opened? Credit the people who genuinely worked — that is honest crediting, not idolatry — and then trace the chain up to the One who supplied what they worked with. Then check the other direction: what are you WORSHIPPING that only deserved credit? A method, a mentor, a system, a platform, a nation, a gift, your own discipline. The test is simple: what do you organize your life around, and what would you not give up? That is worship, whatever you call it.',
+    outcome: 'Honesty about the source without false humility, and a heart with only one throne in it — able to honor real work in real people while reserving worship for the One who cannot give His glory away.',
+    psyche: 'The two errors feel opposite and are the same move: putting glory on the wrong object. Self-credit and creature-worship both take what belongs to Yahweh and set it somewhere it will not hold. And note the mercy in Deuteronomy 8 — He tells you the temptation BEFORE the prosperity arrives, because the danger is not failure; it is success remembered wrongly.',
+    tags: ['credit', 'worship', 'glory', 'source', 'humility', 'idolatry'],
+  },
+  {
+    id: 'gh-yahweh-gets-both', section: 'revelation', name: 'Why Yahweh Gets Both (He made it, and He is worthy)',
+    refs: ['Revelation 4:11', 'Exodus 20:3-5', 'Deuteronomy 6:4-5', 'Isaiah 45:5', 'Matthew 4:10'],
+    condition: 'Ask what qualifies anyone to receive credit AND worship. Credit requires having actually DONE it. Worship requires BEING worthy in oneself. Almost nothing qualifies for either; nothing else in existence qualifies for both.',
+    consequence: 'Heaven states the double claim in one breath: "Thou art worthy, O Lord, to receive glory and honour and power: for thou hast created all things, and for thy pleasure they are and were created." WORTHY covers the worship; FOR THOU HAST CREATED covers the credit. He is not receiving worship because He demands it from a position of strength — He is worthy, and He also did the work. So the command follows the fact rather than inventing it: "Thou shalt have no other gods before me... for I the LORD thy God am a jealous God"; "The LORD our God is one LORD: And thou shalt love the LORD thy God with all thine heart"; "I am the LORD, and there is none else, there is no God beside me." The Son repeated it under pressure with nothing added: "Thou shalt worship the Lord thy God, and him only shalt thou serve."',
+    threeD: 'Stop treating "no other god" as an arbitrary rule you are graded on and read it as a description of reality: there IS no other that did the creating, so there is no other that could hold the worship. Love with heart, soul, and might is not one obligation among many — it is the whole self pointed at the only place it fits. And when someone asks why exclusivity is not narrow: it is not a preference He is enforcing; it is a fact He is stating. Anything else offered the position cannot occupy it.',
+    outcome: 'Worship that rests on WHO HE IS rather than on how you feel that morning, and a settled answer to "why only Him" that does not depend on winning an argument.',
+    psyche: 'Jealousy in a creature is insecurity; in the Creator it is accuracy. He guards worship the way truth guards itself — misdirected worship does not merely offend Him, it wrecks the worshipper, because a soul built to rest on the Rock will crack on anything smaller.',
+    tags: ['worship', 'worthy', 'no-other-god', 'creator', 'shema', 'exclusivity'],
+  },
+  {
+    id: 'gh-glory-refused-or-taken', section: 'gospels', name: 'Glory Refused or Taken (the line, and what happens at it)',
+    refs: ['Acts 12:23', 'Daniel 4:30', 'Daniel 4:37', 'Revelation 22:8-9', 'Acts 14:15', 'Romans 1:21', 'Romans 1:25'],
+    condition: 'Watch what a being does when glory that belongs to Yahweh is offered to it. This is the clearest character test in Scripture, and the Word gives both sides with the outcomes attached.',
+    consequence: 'THOSE WHO TOOK IT: Herod accepted the crowd\'s acclaim and "the angel of the Lord smote him, because he gave not God the glory" — the charge is not what he SAID, but what he FAILED to redirect. Nebuchadnezzar surveyed his work — "Is not this great Babylon, that I have built... by the might of my power, and for the honour of my majesty?" — and lost his mind until he could say "those that walk in pride he is able to abase." THOSE WHO REFUSED IT: an angel of enormous stature stopped John cold — "See thou do it not: for I am thy fellowservant... worship God." Paul and Barnabas, offered worship after a genuine miracle, tore their clothes: "Sirs, why do ye these things? We also are men of like passions with you." And Romans names the root of the whole failure: "when they knew God, they glorified him not as God, neither were thankful... worshipped and served the creature more than the Creator."',
+    threeD: 'The practical rule is redirection, not self-deprecation. Refusing credit you actually earned is false; refusing WORSHIP you were never owed is obedience. When praise arrives, receive the part that is honest thanks between people and hand the glory up. And when you are the one giving it, notice which one you are handing over — a hand shaken and a knee bowed are different acts, and only one of them has an exclusive Owner.',
+    outcome: 'A reflex that survives success: glory passes through you instead of sticking to you, which is the only condition under which real ability is safe to hold.',
+    psyche: 'The angel and the apostles refused worship instantly, without deliberating — the reflex was already set BEFORE the moment. Herod and Nebuchadnezzar had no such reflex, and the moment found them. This is why the audit is practiced in ordinary weeks: nobody builds it during the applause.',
+    tags: ['glory', 'pride', 'herod', 'nebuchadnezzar', 'redirect', 'idolatry', 'humility'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
