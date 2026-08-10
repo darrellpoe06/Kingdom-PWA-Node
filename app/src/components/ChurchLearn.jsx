@@ -57,6 +57,7 @@ import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-alg
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock } from '../lib/lesson-links.js';
+import { matrixFor, matrixBlockText } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
@@ -1356,6 +1357,37 @@ function CourseView({
                   <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
                 </p>
               )}
+              {/* THE LORD'S MATRIX (Darrell 2026-08-10) — the other lessons
+                  standing on the SAME Scripture, DERIVED from the citations in
+                  the lessons themselves so it can never claim a link that is not
+                  really there, and so it grows on its own as the series grows.
+                  A lesson read alone is a fragment; this is what makes the
+                  integration visible on the page the reader is already on. */}
+              {(() => {
+                const kin = matrixFor(m, schedule);
+                if (kin.length === 0) return null;
+                return (
+                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2">
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">
+                      The Lord’s Matrix — where else this Word stands
+                    </div>
+                    <ul className="space-y-1">
+                      {kin.map((k) => (
+                        <li key={k.id} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <button
+                            type="button"
+                            onClick={() => openLesson(k.id)}
+                            className="text-left underline decoration-[#B85838]/40 hover:decoration-[#B85838]"
+                          >
+                            L{k.week} {k.title}
+                          </button>
+                          <span className="text-[#5A5751]"> — same Word: {k.shared.join(', ')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
               </>)}
 
               {/* World-Issues / Discernment modules carry a structured `issue`:
@@ -1754,6 +1786,11 @@ function CourseView({
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
+            {/* The printed guide carries the same integration the screen shows —
+                a facilitator working from paper sees the web too. */}
+            {matrixFor(m, schedule).length > 0 && (
+              <p style={{ whiteSpace: 'pre-line' }}>{matrixBlockText(m, schedule)}</p>
+            )}
             {m.facilitator && (
               <div>
                 {m.facilitator.talkingPoints?.length > 0 && (

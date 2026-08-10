@@ -19,6 +19,9 @@
 import React, { useState } from 'react';
 import { TIMELINE_FRAME_ANCHORS, epochsByPhase, currentEpoch } from '../lib/biblical-timeline.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import {
+  markersForEpoch, annoMundiSpine, floodYearAM, FORKS, CHRONOLOGY_LIMITS,
+} from '../lib/scripture-chronology.js';
 
 const PHASE_LABEL = {
   before: 'Before Time',
@@ -154,6 +157,29 @@ export default function BiblicalTimeline() {
                         </div>
                       )}
 
+                      {/* THE YEARS (Darrell 2026-08-10: "Give each year and data
+                          we know from those years"). Only figures Scripture
+                          STATES, each with the verse that states it, so the
+                          reader can check every one. Running totals are computed
+                          and labeled as such — see the chronology note below. */}
+                      {markersForEpoch(e.id).length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
+                            The years the Word states here
+                          </div>
+                          <ul className="mt-1 space-y-1">
+                            {markersForEpoch(e.id).map((mk) => (
+                              <li key={mk.id} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                <span className="font-semibold">{mk.figure}</span>
+                                {' — '}{mk.label}{' '}
+                                <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({mk.ref})</span>
+                                <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5">“{mk.text}”</div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       {Array.isArray(e.possibilities) && e.possibilities.map((p, i) => <Possibilities key={i} p={p} />)}
                     </div>
                   )}
@@ -163,6 +189,48 @@ export default function BiblicalTimeline() {
           </ol>
         </section>
       ))}
+
+      {/* THE COUNTED YEARS — the running spine, computed from the stated
+          begetting ages, with the forks and the limits shown rather than hidden.
+          A reader must be able to see WHERE the arithmetic stops being safe. */}
+      <section className="mt-6 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2">
+        <h3 className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
+          The counted years — from the beginning of the counted record
+        </h3>
+        <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Scripture states the ages; the running totals below are <strong>ours</strong> — arithmetic on
+          those stated figures, not a verse. The flood lands at year <strong>{floodYearAM()}</strong> from
+          Adam by this reckoning, and the spine deliberately <strong>stops at Terah</strong>, because the
+          next step is genuinely forked.
+        </p>
+        <ol className="mt-2 space-y-0.5">
+          {annoMundiSpine().map((s) => (
+            <li key={`${s.am}-${s.event}`} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              <span className="font-semibold">{String(s.am).padStart(4, ' ')}</span>
+              {'  '}{s.event}
+              <span className="text-[#5A5751]"> · {s.ref}{s.kind === 'computed' ? ' · computed' : ''}</span>
+            </li>
+          ))}
+        </ol>
+        {FORKS.map((f) => (
+          <div key={f.id} className="mt-2">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Where it forks — {f.question}</div>
+            <ul className="list-disc pl-4 mt-1 space-y-0.5">
+              {f.sides.map((s) => (
+                <li key={s.reading} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>{s.reading}</strong> — {s.restsOn}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{f.effect}</p>
+          </div>
+        ))}
+        <ul className="mt-2 space-y-1">
+          {Object.entries(CHRONOLOGY_LIMITS).map(([k, v]) => (
+            <li key={k} className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{v}</li>
+          ))}
+        </ul>
+      </section>
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-6 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         Word-first. Every verse is KJV, fetched verbatim. Where the Word leaves a matter open,
