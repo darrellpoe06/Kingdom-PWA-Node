@@ -80,6 +80,7 @@ export const BOOK_MASTERPIECES = {
   'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
+  'Amos':          'The herdsman-prophet’s book — a working man sent to a prosperous nation to say that solemn assemblies do not cover a rigged gate: let judgment run down as waters, and the poor stop being turned aside from their right.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
   'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
   'Mark':          'The servant\'s gospel — the Son of man come not to be ministered unto but to minister; immediate and active, the Word done more than discussed.',
@@ -1565,6 +1566,32 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'A mind that can hold hard data and hard doctrine at once without either collapsing — rigorous about measurement, unshaken when measurement runs ahead of understanding.',
     psyche: 'Notice which way the humility actually runs. The frame that calls itself humble — "I only believe what I can see" — quietly makes a partial, expiring, provably fallible instrument the final arbiter of everything. Ranking His Word first is the humbler position, because it starts by admitting the glass is dark on OUR side.',
     tags: ['the-word', '4d', 'evidence', 'truth', 'epistemology', 'frame'],
+  },
+  // ===========================================================================
+  // JUSTICE YOU HAVE TO BUY (Darrell 2026-08-09: "When suing someone for justice
+  // is the only way to get it... the rich are the only ones who will"). Two
+  // algorithms: the DIAGNOSIS Scripture already names, and the DESIGN Yahweh
+  // built to make the remedy un-purchasable.
+  // ===========================================================================
+  {
+    id: 'gh-justice-rationed-at-the-gate', section: 'prophets', name: 'Turned Aside at the Gate (when justice must be bought, only the rich get it)',
+    refs: ['Amos 5:12', 'James 2:6', 'Isaiah 1:23', 'Proverbs 22:22-23', 'Exodus 23:6', 'Deuteronomy 16:19'],
+    condition: 'Watch what happens when the ONLY road to a remedy runs through a proceeding you must fund. The gate in Scripture was the courthouse — where elders heard cases — so read this as the courthouse door: "they afflict the just, they take a bribe, and they turn aside THE POOR IN THE GATE from their right."',
+    consequence: 'Yahweh files it among "your mighty sins," not among unfortunate outcomes. James states the same from the other end: "Do not rich men oppress you, and DRAW YOU BEFORE THE JUDGMENT SEATS?" — the court appears there as the wealthy man\'s instrument, not as neutral ground. And Isaiah names the subtlest form, which is not a lost verdict but an unheard case: "every one loveth gifts, and followeth after rewards: they judge not the fatherless, NEITHER DOTH THE CAUSE OF THE WIDOW COME UNTO THEM." The widow\'s case never arrives. The commands are therefore aimed at the powerful, never at the victim: "Thou shalt not wrest the judgment of thy poor in his cause"; "thou shalt not respect persons, neither take a gift: for A GIFT DOTH BLIND THE EYES OF THE WISE." And where the gate stays shut, He appoints Himself counsel: "Rob not the poor, because he is poor... FOR THE LORD WILL PLEAD THEIR CAUSE."',
+    threeD: 'Stop reading "everyone can sue" as though access were equal — filing fees, years of time, and counsel are the real gate, and a system where the remedy costs more than the injury has quietly repealed the remedy for most people. So measure a justice system by whether the poor man\'s case ARRIVES, not by whether the law is written fairly. Where you have standing, means, or a voice, spend it on the case that cannot be brought without you (Proverbs 31:8-9); where you are the one shut out, keep coming (Luke 18) and know who has taken the brief.',
+    outcome: 'Clear sight about a real injustice without cynicism about justice itself — because the same Word that names the closed gate promises the Advocate who does not bill.',
+    psyche: 'A closed gate is more corrosive than a hostile verdict. A verdict can be appealed and at least says the system saw you; a case that never arrives teaches a person that their injury does not register at all — which is exactly what breeds the fury that later gets aimed at the wrong target.',
+    tags: ['justice', 'the-gate', 'poor', 'courts', 'access', 'advocate'],
+  },
+  {
+    id: 'gh-remedy-that-arrives-on-a-calendar', section: 'torah', name: 'The Remedy Arrives on a Calendar (His justice is not adversarial or purchased)',
+    refs: ['Deuteronomy 15:1', 'Leviticus 25:10', 'Leviticus 25:25', 'Leviticus 19:9-10', 'Deuteronomy 24:17', 'Psalms 140:12', 'Psalms 12:5'],
+    condition: 'Compare the two designs before you assume ours is the only shape justice can take. Man\'s justice is ADVERSARIAL and PURCHASED: the wronged party must discover the wrong, prove standing, fund counsel, and win. Yahweh built remedies that require NONE of that.',
+    consequence: 'His arrive by schedule and by structure, with the burden on the system and the strong: "At the end of every seven years THOU SHALT MAKE A RELEASE" — the debtor files nothing; "ye shall return every man unto his possession" — Jubilee restores by the calendar, not by verdict; "if any of his kin come to redeem it, then shall he redeem that which his brother sold" — the redeemer is a FAMILY OBLIGATION, not a service you retain; "thou shalt not wholly reap the corners of thy field... thou shalt leave them for the poor and stranger" — the poor do not apply, they simply come and reap. And the protected classes are named so no one has to argue their way in: "Thou shalt not pervert the judgment of the stranger, nor of the fatherless." Where a case still cannot be brought, He takes it: "I know that the LORD will maintain the cause of the afflicted, and the right of the poor"; "for the sighing of the needy, NOW WILL I ARISE, saith the LORD."',
+    threeD: 'Build like He builds. In anything you run — a business, a household, a church, a platform — put the remedy on a schedule instead of on a complaint: the audit that runs whether or not anyone objects, the correction that triggers automatically, the margin left standing for whoever needs it. Any protection that requires the weakest party to notice, object, and press is a protection the weakest party does not have. And apply it to your own house first: forgive on the calendar rather than when confronted, restore before you are asked.',
+    outcome: 'Systems whose justice does not depend on the victim\'s strength — the pattern that makes Jubilee possible and makes "you have to sue for it" unnecessary.',
+    psyche: 'Adversarial justice quietly taxes the injured a second time: to be made whole you must relive the injury, fund the fight, and outlast the stronger party. Calendared justice removes that second tax entirely, which is why it reaches people who could never win a case — and why Yahweh legislated it rather than merely recommending mercy.',
+    tags: ['justice', 'jubilee', 'release', 'gleaning', 'redeemer', 'automatic', 'design'],
   },
 ];
 
