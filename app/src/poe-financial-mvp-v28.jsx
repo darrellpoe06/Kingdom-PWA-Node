@@ -28,7 +28,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
-import { accessState, isPublicHost } from './lib/access-gate.js';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isPublicHost } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -72,6 +72,7 @@ import TTSControl from './components/TTSControl.jsx';
 import TextSizeControl from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
+import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView } from './lib/nav-history.js';
 import { useIdleReveal } from './lib/use-idle-reveal.js';
@@ -1006,6 +1007,7 @@ export default function PoeFinancialSystem() {
   // tab: that collision made a RELOAD of the Church tab boot as the Love
   // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
+  const churchBrandRoute = useState(() => isPublicChurchRoute())[0]; // brand follows the DOOR, not the tab (DR-0290)
   // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
   // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
   // → ?tlc=1), the app presents as the focused, PUBLIC, client-facing TLC app —
@@ -3511,16 +3513,16 @@ export default function PoeFinancialSystem() {
   }
 
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
+  const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
+  const publicVisitor = !authSession && churchBrandRoute; // a stranger on a shared church link — no modal, no fight (DR-0290)
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
   // one tap away (HeaderAuthButton) for staff / a ride account; staff surfaces self-gate.
-  if (__gate !== 'app' && !churchDoorOnly) {
+  if (__gate !== 'app' && !churchDoorOnly && !isPublicChurchRoute()) {
     return (
       <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        {/* The church door wears the church, not PoeTech (DR-0174): a member
-            opening ?view=church meets "The Love Corner" + the church logo on
-            the sign-in gate. PoeTech's own front door passes no brand. */}
+        {/* The church door wears the church on the gate too (DR-0174). */}
         {__gate === 'gate' ? <PasswordAuth brand={isChurchDoorContext() ? LOVE_CORNER_BRAND : null} /> : null}
       </div>
     );
@@ -3587,7 +3589,7 @@ ${THEME_CSS}
           what's shipped and what's vision. Per Darrell 2026-05-28: the
           start position is the family financial system; this front door
           appears only on first arrival. */}
-      {!churchDoorOnly && (isPickerMode || isFirstTimeLanding) && (
+      {!churchDoorOnly && !publicVisitor && (isPickerMode || isFirstTimeLanding) && (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
@@ -4085,7 +4087,7 @@ ${THEME_CSS}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !publicVisitor && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
@@ -4132,17 +4134,14 @@ ${THEME_CSS}
                   gets the roomy lower row so it fits at every width. */}
               {/* Display title is CHROME: .ts-chrome-region caps it (font + box)
                   via zoom while body content scales fully (2026-06-17 split). */}
-              {/* The name NEVER cuts off mid-word (Darrell 2026-07-06): the full
-                  "Family Operating Systems" where the title has its own full-width
-                  row (sm–md, stacked); the clean brand "PoeTech" on the crowded
-                  lg+ row and tiniest phones — an ellipsis cut is never OK. */}
+              {/* The name NEVER cuts off mid-word (Darrell 2026-07-06). */}
               <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
                 {/* In the church view the header wears the church, not PoeTech
                     (DR-0174 — "it looks like the PoeTech App... why?"). */}
-                <span className="hidden sm:inline lg:hidden">{view === 'church' ? 'The Love Corner' : 'Family Operating Systems'}</span>
-                <span className="sm:hidden lg:inline">{view === 'church' ? 'The Love Corner' : 'PoeTech'}</span>
+                <span className="hidden sm:inline lg:hidden">{churchBrand ? 'The Love Corner' : 'Family Operating Systems'}</span>
+                <span className="sm:hidden lg:inline">{churchBrand ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
-              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{view === 'church' ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region">
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
@@ -4406,11 +4405,10 @@ ${THEME_CSS}
             </TabScroll>
           </div>
         )}
+        {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Church sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+            {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['home','Church'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
@@ -5119,6 +5117,7 @@ ${THEME_CSS}
         )}
 
         {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is steward/demo-only: never offer to overwrite a user's books with seed (REV-0239). */}
+        {!authSession && churchBrandRoute && <PublicWelcome placement="end" />}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
