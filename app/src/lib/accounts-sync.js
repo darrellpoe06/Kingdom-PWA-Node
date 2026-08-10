@@ -54,6 +54,15 @@ export function accountToRow(item, { tenantId, userId }) {
     treat_as_debt: !!item.treatAsDebt,
     min_payment:  Number(item.minPayment) || 0,
     rate:         Number(item.rate) || 0,
+    // The card's own terms (0133). NULL is meaningful here and must survive the
+    // round trip: an unknown limit is not a $0 limit, and an unknown peak is not
+    // a $0 peak — `Number(x) || 0` would turn every blank the family left into a
+    // hard zero (DR-0076, no painted number). rate_known is what keeps a genuine
+    // 0% card distinguishable from a rate nobody has entered yet.
+    credit_limit:    item.creditLimit    != null && item.creditLimit    !== '' ? Number(item.creditLimit)    : null,
+    highest_balance: item.highestBalance != null && item.highestBalance !== '' ? Number(item.highestBalance) : null,
+    rate_min:        item.rateMin        != null && item.rateMin        !== '' ? Number(item.rateMin)        : null,
+    rate_known:      !!item.rateKnown,
   };
 }
 
@@ -73,6 +82,11 @@ export function accountFromRow(row) {
     treatAsDebt: !!row.treat_as_debt,
     minPayment:  Number(row.min_payment) || 0,
     rate:        Number(row.rate) || 0,
+    // Unknown stays unknown on the way back (0133) — see accountToRow.
+    creditLimit:    row.credit_limit    != null ? Number(row.credit_limit)    : null,
+    highestBalance: row.highest_balance != null ? Number(row.highest_balance) : null,
+    rateMin:        row.rate_min        != null ? Number(row.rate_min)        : null,
+    rateKnown:      !!row.rate_known,
     updatedAt:   row.updated_at,
     createdAt:   row.created_at,
   };

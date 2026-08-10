@@ -4,6 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
+import AddDebt from './AddDebt.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -15,8 +16,17 @@ const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a
 const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(d, offset) { const x = new Date(d.getFullYear(), d.getMonth() + offset, 1); return `${MONTHS_ABBR[x.getMonth()]} '${String(x.getFullYear()).slice(2)}`; }
 function yearsAndMonths(months) { const y = Math.floor(months / 12); const m = months % 12; if (y === 0) return `${m}mo`; if (m === 0) return `${y}yr`; return `${y}yr ${m}mo`; }
+// Progress already made: how far the balance has come down from this card's
+// highest recorded balance. Only shown when the peak is genuinely above today's
+// balance — a card sitting at its peak has no progress to report, and claiming
+// otherwise would be a painted number.
+function paidFromPeak(d) {
+  if (d.highestBalance == null || !isFinite(d.highestBalance)) return null;
+  const paid = d.highestBalance - d.balance;
+  return paid > 0.5 ? paid : null;
+}
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null }) {
   // "All credit card and lines companies should be listed on [the Debts] Tab"
   // (Darrell 2026-07-20). deriveDebts can only surface an account that EXISTS as a
   // debt — but a family's other cards are often paid by autopay OUT of checking and
@@ -73,7 +83,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const saveCell = (d) => {
     const v = parseFloat(editVal);
     if (isFinite(v) && v >= 0 && d.accountId && updateAccount) {
-      if (edit.field === 'rate' && v < 100) updateAccount(d.accountId, { rate: v });
+      // A rate a person actually typed is KNOWN — including a deliberate 0 for a
+      // promo or closed card. Stamping rateKnown here is what lets that card
+      // project a payoff instead of reading "Add terms" forever (0133).
+      if (edit.field === 'rate' && v < 100) updateAccount(d.accountId, { rate: v, rateKnown: true });
       else if (edit.field === 'min') updateAccount(d.accountId, { minPayment: v });
       else if (edit.field === 'owed') updateAccount(d.accountId, { balance: v }); // manual debt: balance = owed
     }
@@ -174,6 +187,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         </p>
       </section>
 
+      {/* Add a debt by hand, or paste a whole list (Christina 2026-08-10). Every
+          other route onto this tab is a SUGGESTION the app makes; this is the
+          one that lets a person add a card the app has never seen — a closed
+          account, a gas card, a business card with no feed behind it. */}
+      {addAccount && (
+        <AddDebt entities={entities} addAccount={addAccount} addAccounts={addAccounts} existingDebts={debts} />
+      )}
+
       {/* Get EVERY card + line of credit onto this tab (Darrell 2026-07-20). The
           family's other cards are usually paid by autopay out of checking and were
           never set up as accounts — so nothing above finds them. Add them right here. */}
@@ -236,17 +257,47 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                 const canEditRate = d.rateSource !== 'derived' && d.accountId && updateAccount;
                 return (
                   <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
-                    <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
+                    <td className="p-3">
+                      <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>
+                      {d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}
+                      {d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}
+                      {/* The card's own context, shown only where a real figure
+                          exists: how much of the limit is used, and the progress
+                          already made down from its peak. Both are arithmetic on
+                          the family's own numbers — never a guess (DR-0076). */}
+                      {(d.utilization != null || paidFromPeak(d) != null) && (
+                        <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                          {d.utilization != null && (
+                            <span className={d.utilization > 100 ? 'text-[#B85838] font-medium' : ''}>
+                              {Math.round(d.utilization)}% of {fmt(d.creditLimit)} limit{d.utilization > 100 ? ' · over limit' : ''}
+                            </span>
+                          )}
+                          {d.utilization != null && paidFromPeak(d) != null && <span> · </span>}
+                          {paidFromPeak(d) != null && (
+                            <span className="text-[#5A6E3D]">{fmt(paidFromPeak(d))} paid down from {fmt(d.highestBalance)} peak</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {isEditing(d, 'rate') ? cellInput(d, `Interest rate for ${d.name}`) : (
                         <span className="inline-flex items-center gap-1 justify-end">
-                          {pct(d.rate)}
+                          {/* A confirmed 0% promo card shows "0%" as a real,
+                              complete term. A card whose rate nobody has entered
+                              yet shows a dash — it is unknown, not zero, and
+                              conflating the two is what left every 0% card stuck
+                              on "Add terms" forever. */}
+                          {d.rateKnown
+                            ? (d.rateMin != null ? `${pct(d.rateMin)}–${pct(d.rate)}` : pct(d.rate))
+                            : <span className="text-[#5A5751]">—</span>}
                           {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it, so it can't be mis-typed">data</span>}
+                          {d.rateKnown && d.rate === 0 && d.rateSource !== 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Confirmed 0% — a promotional or closed-account rate, not a missing figure">0% confirmed</span>}
+                          {d.rateMin != null && <span className="text-[0.5625rem] text-[#5A5751] uppercase tracking-wider" title="The issuer quotes a range; the payoff is figured at the higher end so the date is never rosier than you can count on">range</span>}
                           {canEditRate && (
                             <button type="button" onClick={() => startEditCell(d, 'rate', d.rate)}
                               className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
-                              title="No interest charge in the data yet — enter the rate">{d.rate > 0 ? 'edit' : '+ rate'}</button>
+                              title="No interest charge in the data yet — enter the rate">{d.rateKnown ? 'edit' : '+ rate'}</button>
                           )}
                         </span>
                       )}

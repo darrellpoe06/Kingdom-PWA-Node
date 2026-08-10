@@ -361,3 +361,52 @@ describe('projected-vs-actual tracking', () => {
     expect(v.accuracyLabel).toBe('way-off');
   });
 });
+
+// ---------------------------------------------------------------------------
+// The Credit rollup states DEBT as debt (0133) — Christina's list, 2026-08-10.
+// ---------------------------------------------------------------------------
+describe('deriveEntityRollups — a manually-declared debt never reads as an asset', () => {
+  const ENTS = [{ id: 'e1', name: 'Personal', type: 'personal' }];
+
+  it('sums an owed MAGNITUDE into the Credit rollup as money OWED', () => {
+    // Proven-to-catch: credit balances are negative by house convention, but a
+    // manually-declared debt stores the owed amount POSITIVE (it is what a
+    // person types when asked "how much do you owe?"). Summed raw, this
+    // family's $172,683 card pile displayed as a positive Credit figure — a
+    // debt that reads like money (DR-0076). It must state the truth either way.
+    const data = {
+      entities: ENTS,
+      accounts: [
+        { id: 'a-1', name: 'Chase', type: 'credit', treatAsDebt: true, balance: 13000, entityId: 'e1' },
+        { id: 'a-2', name: 'Citi', type: 'credit', treatAsDebt: true, balance: 22000, entityId: 'e1' },
+      ],
+      transactions: [],
+    };
+    const r = deriveEntityRollups(data, ENTS, new Date('2026-06-30T00:00:00Z'))[0];
+    expect(r.creditBalance).toBe(-35000);
+  });
+
+  it('leaves a feed-derived credit account (already negative) exactly as it is', () => {
+    const data = {
+      entities: ENTS,
+      accounts: [{ id: 'a-loc', name: 'Line of Credit', type: 'credit', balance: -9843, entityId: 'e1' }],
+      transactions: [],
+    };
+    const r = deriveEntityRollups(data, ENTS, new Date('2026-06-30T00:00:00Z'))[0];
+    expect(r.creditBalance).toBe(-9843);
+  });
+
+  it('keeps a declared debt out of CASH so it is never counted twice', () => {
+    const data = {
+      entities: ENTS,
+      accounts: [
+        { id: 'a-chk', name: 'Checking', type: 'checking', balance: 5000, entityId: 'e1' },
+        { id: 'a-cc', name: 'Card', type: 'checking', treatAsDebt: true, balance: 1200, entityId: 'e1' },
+      ],
+      transactions: [],
+    };
+    const r = deriveEntityRollups(data, ENTS, new Date('2026-06-30T00:00:00Z'))[0];
+    expect(r.cashBalance).toBe(5000);
+    expect(r.creditBalance).toBe(-1200);
+  });
+});
