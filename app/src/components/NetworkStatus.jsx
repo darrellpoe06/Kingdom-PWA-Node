@@ -229,7 +229,7 @@ export default function NetworkStatus() {
   // Compact pill: one dot when healthy; 3 dots + connection label when not.
   return (
     <div
-      className="fixed bottom-20 left-4 z-30 print:hidden"
+      data-read-skip className="fixed bottom-20 left-4 z-30 print:hidden"
       role="status"
       aria-label="Network status"
     >

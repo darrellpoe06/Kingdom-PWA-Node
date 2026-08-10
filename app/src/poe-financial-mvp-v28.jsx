@@ -3561,7 +3561,7 @@ ${THEME_CSS}
       <AuthBanner />
       <ClaimInviteBanner />
       {persistIssue && (
-        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[0.75rem] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[0.75rem] py-2 px-4 flex items-center justify-between gap-3 print:hidden" data-read-skip>
           <span>⚠ {persistIssue.message}</span>
           <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[0.6875rem] uppercase tracking-wide shrink-0">Dismiss</button>
         </div>
@@ -4112,7 +4112,7 @@ ${THEME_CSS}
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
 
-      <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }}>
+      <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
@@ -5120,7 +5120,7 @@ ${THEME_CSS}
 
         {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is steward/demo-only: never offer to overwrite a user's books with seed (REV-0239). */}
         {!churchDoorOnly && (
-        <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
+        <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
           {(isFamilyMember || isAnyDemoMode) && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>

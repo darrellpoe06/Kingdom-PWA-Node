@@ -41,7 +41,9 @@ const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 function StageRail({ segments, current = -1, onJump = null }) {
   if (!Array.isArray(segments) || segments.length === 0) return null;
   return (
-    <ol className="flex flex-wrap gap-1.5 mb-3" aria-label="Lesson stages">
+    // Navigation, not reading: the rail is how you MOVE through the lesson,
+    // so the voice must not recite "Open 15m Teach 15m…" before the lesson.
+    <ol className="flex flex-wrap gap-1.5 mb-3" aria-label="Lesson stages" data-read-skip>
       {segments.map((s, i) => {
         const on = i === current;
         const done = current > -1 && i < current;
@@ -83,12 +85,44 @@ function StageRail({ segments, current = -1, onJump = null }) {
 //     onComplete   — fired once when the learner reaches the final stage
 //     initialIndex — stage to open on (resume-your-place; clamped to the arc)
 //     onStageChange— (index) => void, fired on every move (persists the place)
+//     showAll      — READ-ALONG mode: render EVERY stage at once, in order, so
+//                    the whole lesson is on screen while it is read aloud. The
+//                    paced one-at-a-time view is the learner's default; this is
+//                    what the reader turns on (via the read-target's prepare)
+//                    so the words being spoken are the words being shown —
+//                    "deeper doesn't get read at all" was exactly this: four of
+//                    five stages were never in the DOM, so they were never read
+//                    and never highlighted (Darrell 2026-08-10).
 // -----------------------------------------------------------------------------
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null }) {
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false }) {
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
   if (segments.length === 0) return null;
+
+  if (showAll) {
+    return (
+      <div className="mb-2">
+        <p className="text-[0.625rem] uppercase tracking-wider text-[#B85838] mb-2" data-read-skip>
+          Reading the whole {unitNoun} — every part is shown
+        </p>
+        {segments.map((s, i) => (
+          <div key={s.kind} className="border border-[#E8E4DC] bg-white p-3 mb-2">
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
+                <span aria-hidden="true">{s.icon}</span> {s.title} <span className="text-[#5A5751] font-normal">· {s.subtitle}</span>
+              </span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO} data-read-skip>
+                {i + 1} / {segments.length}{s.minutes > 0 ? ` · ~${s.minutes} min` : ''}
+              </span>
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>{s.blurb}</p>
+            <div>{renderStage(s, i)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const clamped = Math.min(idx, segments.length - 1);
   const seg = segments[clamped];
@@ -111,7 +145,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
           <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
             <span aria-hidden="true">{seg.icon}</span> {seg.title} <span className="text-[#5A5751] font-normal">· {seg.subtitle}</span>
           </span>
-          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO}>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO} data-read-skip>
             {clamped + 1} / {segments.length}{seg.minutes > 0 ? ` · ~${seg.minutes} min` : ''}
           </span>
         </div>
@@ -119,7 +153,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
 
         <div>{renderStage(seg, clamped)}</div>
 
-        <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-[#E8E4DC]">
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-[#E8E4DC]" data-read-skip>
           <button
             type="button"
             onClick={() => goTo(clamped - 1)}

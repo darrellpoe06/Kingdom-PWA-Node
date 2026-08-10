@@ -322,7 +322,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
+    <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
       {/* Paste-to-attach (Darrell 2026-07-24): Ctrl/Cmd+V anywhere in the form
           drops a copied screenshot straight into the same compress-and-attach
           pipeline as the file picker — paste is an equal door, not a replacement. */}

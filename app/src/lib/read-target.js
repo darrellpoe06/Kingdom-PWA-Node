@@ -31,13 +31,34 @@ function notify() {
 
 /**
  * Register the primary reading for the current screen.
+ *
+ * `elementId` + `prepare` are the FOLLOW-ALONG contract (2026-08-10). Composed
+ * text alone can only be highlighted by SEARCHING for each spoken sentence in
+ * the DOM — and a lesson's spoken text is composed ("Anchor scripture — …",
+ * "Questions to think about:") and paced (only one step is rendered), so that
+ * search found almost nothing and the Learn read highlighted NOTHING while the
+ * Eternal Algorithms read (which maps the page itself) highlighted fine. The
+ * fix is structural: a surface that owns a reading also names the ELEMENT that
+ * renders it and, through `prepare`, guarantees the WHOLE piece is on screen
+ * before reading starts. The reader then maps that element — alignment by
+ * construction, the same law the page read has always used — so every spoken
+ * sentence has a range and nothing "deeper" is skipped.
+ *
  * @param {string} owner - opaque key (e.g. the lesson/module id)
- * @param {{label?:string, text:string}} target - label like "this lesson" + the FULL text
+ * @param {{label?:string, text:string, elementId?:string, prepare?:Function}} target
+ *   label like "this lesson", the FULL text (the fallback reading), the DOM id
+ *   of the element that renders it, and prepare(on) → show/restore every part.
  */
 export function setReadTarget(owner, target) {
   const text = target && typeof target.text === 'string' ? target.text.trim() : '';
   if (!owner || !text) return;
-  current = { owner: String(owner), label: (target.label || 'this').trim() || 'this', text };
+  current = {
+    owner: String(owner),
+    label: (target.label || 'this').trim() || 'this',
+    text,
+    elementId: target && typeof target.elementId === 'string' && target.elementId ? target.elementId : null,
+    prepare: target && typeof target.prepare === 'function' ? target.prepare : null,
+  };
   notify();
 }
 

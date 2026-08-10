@@ -24,7 +24,26 @@
 import { segmentText } from './tts.js';
 import { motionBehavior } from './gentle-motion.js';
 
-const SKIP_SELECTOR = '.tts-controls, [aria-hidden="true"], script, style, noscript, .print\\:hidden, .install-prompt, .update-confirm';
+// WHAT IS SKIPPED — and the bug that was hiding in this one line.
+//
+// `.print\:hidden` used to be here as a proxy for "floating chrome". It is not
+// one. `print:hidden` means "not on the printed sheet", which is exactly how
+// this app marks the whole SCREEN half of a screen-vs-print split — ChurchLearn
+// wraps its ENTIRE view in `<div className="print:hidden">`
+// (ChurchLearn.jsx:1619, :1864). So on Learn the map skipped every word on the
+// page, buildFollowMap returned null, the reader fell back to unmapped speech,
+// and the highlight had nothing to paint on — while Eternal Algorithms, which
+// has no such wrapper, highlighted perfectly. That is the whole of "the
+// highlighted Words work inside Eternal Algorithms not the Learn space"
+// (Darrell 2026-08-10), measured in reader-learn-follow.test.jsx.
+//
+// The replacement is explicit rather than inferred: `[data-read-skip]` is a
+// surface's own statement that something is chrome, not reading — a stage
+// counter, a Next button, the tutor chat, facilitator-only notes — and
+// `.ts-chrome-region` / `[role="dialog"]` are the app's existing names for
+// floating chrome. A visibility rule for PAPER never again decides what a
+// person is allowed to hear.
+const SKIP_SELECTOR = '.tts-controls, [data-read-skip], [aria-hidden="true"], script, style, noscript, .install-prompt, .update-confirm, .ts-chrome-region, [role="dialog"]';
 
 const isWs = (ch) => /\s/.test(ch);
 

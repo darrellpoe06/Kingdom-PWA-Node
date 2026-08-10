@@ -49,7 +49,7 @@ export default function ClaimInviteBanner() {
   if (!token) return null;
 
   return (
-    <div className="bg-[#B85838] text-[#FAF8F4] px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap print:hidden" aria-live="polite">
+    <div className="bg-[#B85838] text-[#FAF8F4] px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap print:hidden" aria-live="polite" data-read-skip>
       {state === 'done' ? (
         <span className="text-[0.8125rem] font-semibold">✓ {msg}</span>
       ) : state === 'invalid' ? (
