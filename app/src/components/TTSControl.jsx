@@ -24,6 +24,7 @@ import {
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
+import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
@@ -128,6 +129,17 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // whole-page reading stays as the fallback below it.
   const [target, setTarget] = useState(() => getReadTarget());
   useEffect(() => subscribeReadTarget(setTarget), []);
+  // ONE-BUTTON PLAY FROM ANY SURFACE (Darrell 2026-08-10: "speakers are
+  // supposed to be able to push play for reading whatever"). A surface asks
+  // (lib/read-request) and the reader answers with its full behavior — the
+  // registered piece start to finish, the follow-along, and the hands-free run
+  // to the next piece. No panel to find, no three taps.
+  useEffect(() => subscribeReadRequest(() => {
+    const t = getReadTarget();
+    if (t && readTargetRef.current) { readTargetRef.current(t); return; }
+    if (startRef.current) startRef.current();
+  }), []);
+  const startRef = useRef(null);
   // The target we asked to render in full (read-this-piece), so its paced view
   // can be restored when the reading ends. Declared with the other hooks —
   // above the unsupported-device early return — so hook order never varies.
@@ -327,6 +339,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   };
 
   readTargetRef.current = readTargetNow;
+  startRef.current = start;
 
   // TALK ABOUT THIS: build a grounded digest of the CURRENT surface (real
   // on-screen numbers via data-talk markers, else the surface's "?" help), have
