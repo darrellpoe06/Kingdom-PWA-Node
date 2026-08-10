@@ -575,7 +575,7 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -622,6 +622,14 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // were never read at all. prepare(true) renders every stage; the reader then
   // maps this element and speaks its exact text — alignment by construction.
   const [readAll, setReadAll] = useState(false);
+  //
+  // HANDS-FREE (Darrell 2026-08-10: "can't read the whole lesson... without a
+  // human turning the page!!! users should be able to listen to the whole
+  // thing without needing to intervene"). A 36-pattern course read ONE piece
+  // and went silent until someone tapped Next — impossible for a listener who
+  // is driving, cooking, or resting their eyes, which is exactly who this
+  // feature is for. `next` advances to the following piece and opens its
+  // guide, so the reader keeps going by itself to the end of the series.
   React.useEffect(() => {
     const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     if (text) {
@@ -630,10 +638,11 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         text,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
+        next: onAdvance || null,
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance]);
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
@@ -983,6 +992,35 @@ function CourseView({
     setRecentTick((t) => t + 1);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
+  // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
+  // the whole thing without needing to intervene"). Given a lesson, move to the
+  // NEXT one in this course and open its guide — the same real path a Next tap
+  // drives, minus the finger. Returns false at the end of the series, which is
+  // how the reader knows to stop. Memoized per id so the read target's `next`
+  // is stable across renders.
+  const advanceFromRef = React.useRef({});
+  const advanceFrom = (id) => {
+    if (!advanceFromRef.current[id]) {
+      advanceFromRef.current[id] = () => {
+        const list = scheduleRef.current || [];
+        const i = list.findIndex((m) => m.id === id);
+        const nextM = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
+        if (!nextM) return false;
+        lastFocusRef.current = nextM.id;
+        setFocusId(nextM.id);
+        setOpenTutorId(nextM.id);
+        savePlace({ lessonId: nextM.id });
+        recordUse(nextM.id);
+        setRecentTick((t) => t + 1);
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
+        return true;
+      };
+    }
+    return advanceFromRef.current[id];
+  };
+  const scheduleRef = React.useRef(schedule);
+  scheduleRef.current = schedule;
+
   // The wrapper hides its own chrome (course picker/sort) while the space is
   // open — the whole screen belongs to the one lesson (DR-0264).
   React.useEffect(() => {
@@ -1404,6 +1442,7 @@ function CourseView({
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
+                    onAdvance={advanceFrom(m.id)}
                   />
                 </div>
               )}
