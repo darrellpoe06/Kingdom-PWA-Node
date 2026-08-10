@@ -57,6 +57,9 @@ export const SCANNED = [
   'app/src/lib/economics-class.js',
   'app/src/lib/prophetic-voices.js',
   'app/src/lib/succession-class.js',
+  // The chronology module states both Egypt figures side by side, so it is the
+  // likeliest place for the 400/430 collapse to reappear (DR-0281).
+  'app/src/lib/scripture-chronology.js',
 ];
 
 // ---------------------------------------------------------------------------
