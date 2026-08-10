@@ -35,6 +35,9 @@ import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
+import { witnessCopyBlock, lessonUrl } from '../lib/lesson-links.js';
+import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
+import CopyButton from './CopyButton.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -461,6 +464,31 @@ function WitnessView() {
             <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
               Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
             </p>
+            {/* TAKE THIS SECTION WITH YOU (Darrell 2026-08-10: "copy paste
+                options for each section... links to the exact lessons"). Copy
+                carries the whole witness — every verse VERBATIM from the
+                verified corpus, the expert cited, the care note, and a link
+                back — so a forwarded section can never lose its citation or
+                its Scripture. The second control opens this same witness as
+                its Healthy Living lesson, where it can be worked at a level. */}
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
+              <CopyButton
+                label="Copy this section"
+                copiedLabel="Section copied ✓"
+                title="Copy this witness — verses verbatim, expert cited, with a link back"
+                text={() => witnessCopyBlock(src, {
+                  verseFor: witnessVerse,
+                  care: HEALTHY_LIVING_CARE_NOTE,
+                  url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                })}
+              />
+              <a
+                href={lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` })}
+                className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] inline-flex items-center border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                Open as a lesson →
+              </a>
+            </div>
             {sciOnly ? (
               <ul className="space-y-1.5">
                 {sci.points.map((pt) => (
