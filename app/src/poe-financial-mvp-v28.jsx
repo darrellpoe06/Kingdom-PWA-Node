@@ -2950,7 +2950,7 @@ export default function PoeFinancialSystem() {
   // v28+ Session A: Accounts CRUD — peeled to lib/books-accounts-crud.js (DR-0078
   // shrink; verbatim port, unit-tested there). postTx is a thunk: addTransaction
   // is defined below and only evaluated at call time.
-  const { addAccount, toggleAccountLegal, updateAccount, deleteAccount } = createAccountsCrud({
+  const { addAccount, addAccounts, toggleAccountLegal, updateAccount, deleteAccount } = createAccountsCrud({
     data, setData, accountsSync, syncWarn, currentDate,
     syncEnabled: !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode),
     postTx: (t) => addTransaction(t),
@@ -4450,7 +4450,7 @@ ${THEME_CSS}
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
-            {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} />}
+            {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} addAccounts={addAccounts} />}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the

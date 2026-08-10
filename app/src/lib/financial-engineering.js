@@ -272,14 +272,34 @@ export function deriveDebts(data, asOf = new Date()) {
       }
     }
     const minPayment = Number(a.minPayment) || 0;
+    // A rate of 0 means two completely different things, and conflating them
+    // was a real defect (0133): a genuine 0% promo card is FULLY specified,
+    // while a card nobody has entered a rate for is not. Twelve of this
+    // family's cards are 0%; without this distinction every one of them reads
+    // "Add terms" forever and the debt-free date can never be projected no
+    // matter how much they fill in. `rateKnown` is the family's own explicit
+    // "yes, this is zero percent"; a derived rate is known by definition.
+    const rateKnown = rateSource === 'derived' || rate > 0 || a.rateKnown === true;
+    // The card's own terms — unknown stays unknown (null), never 0.
+    const num = (v) => (v == null || v === '' || !isFinite(Number(v)) ? null : Number(v));
+    const creditLimit = num(a.creditLimit);
+    const highestBalance = num(a.highestBalance);
     out.push({
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
-      balance: round2(owed), rate, rateSource, minPayment, entityId: a.entityId ?? null,
+      balance: round2(owed), rate, rateSource, rateKnown, rateMin: num(a.rateMin), minPayment,
+      entityId: a.entityId ?? null,
+      creditLimit, highestBalance,
+      // Utilization is arithmetic on their own two figures — shown only when a
+      // real limit exists, never guessed from a balance alone.
+      utilization: creditLimit != null && creditLimit > 0 ? round2((owed / creditLimit) * 100) : null,
+      availableCredit: creditLimit != null ? round2(Math.max(0, creditLimit - owed)) : null,
       debtType: typedDebt ? a.type : 'credit', accountId: a.id, source: 'account',
       // manual = the user's own "treat as debt" declaration: its owed balance is
       // hand-set (editable), vs a ledger-derived balance that stays truthful.
       manual: manualDebt,
-      leaveAlone: false, needsTerms: !(rate > 0 && minPayment > 0),
+      // Terms are complete when the rate is KNOWN (a confirmed 0% counts) and a
+      // monthly payment exists — that is everything the payoff math needs.
+      leaveAlone: false, needsTerms: !(rateKnown && minPayment > 0),
       // Payment-derived payoff — independent of the rate-based snowball engine.
       // paceSource 'linked' = pace recovered from checking-side payee payments.
       payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
@@ -322,6 +342,18 @@ export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
   // double-counts as both (it leaves cash, joins credit).
   const isCash = (a) => CASH_TYPES.includes(a.type) && !a.treatAsDebt;
   const isCredit = (a) => a.type === 'credit' || a.type === 'loan' || a.treatAsDebt === true;
+  // Credit balances are NEGATIVE by house convention — money owed (see the sign
+  // convention in debt-payments.js). A manually-declared debt is the exception:
+  // its balance is stored as the owed MAGNITUDE (positive), because that is what
+  // a person types when asked "how much do you owe on this card?" (deriveDebts
+  // reads it with Math.abs for exactly that reason).
+  //
+  // Summed raw, those positive magnitudes land in the Credit rollup as though
+  // the cards were assets. On this family's list that is a $172,683 debt pile
+  // displayed as a positive number — the worst kind of wrong, a debt that reads
+  // like money (DR-0076). Normalize an owed magnitude to its owed sign here so
+  // the rollup states the truth regardless of how the row was entered.
+  const owedSigned = (a) => (a.treatAsDebt === true ? -Math.abs(a.derivedBalance) : a.derivedBalance);
   const sorted = [...entities].sort((a, b) => (a.type === b.type ? 0 : a.type === 'personal' ? -1 : 1));
   return sorted.map((entity) => {
     const entAccounts = accounts
@@ -341,7 +373,9 @@ export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
       accounts: entAccounts,
       balance: sumBal(() => true), // legacy total (all non-legal types)
       cashBalance: sumBal(isCash),
-      creditBalance: sumBal(isCredit),
+      creditBalance: round2(
+        entAccounts.filter((a) => isCredit(a) && !a.inLegal).reduce((s, a) => s + owedSigned(a), 0),
+      ),
       inflow,
       debts: entDebts,
       debtBalance,

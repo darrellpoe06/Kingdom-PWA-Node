@@ -194,3 +194,83 @@ describe('reviewStatus', () => {
     expect(reviewStatus([])).toEqual({ categorized: 0, needsReview: 0, total: 0, pctCategorized: 0 });
   });
 });
+
+// ---------------------------------------------------------------------------
+// The card's own terms (0133) — Christina's 27-card list, 2026-08-10.
+// ---------------------------------------------------------------------------
+describe('deriveDebts — a KNOWN 0% rate is complete terms', () => {
+  it('a confirmed 0% card with a payment does NOT need terms', () => {
+    // Proven-to-catch: needsTerms required `rate > 0`, so a genuine 0% promo
+    // card was indistinguishable from a card nobody had entered a rate for.
+    // TWELVE of this family's cards are 0% — every one of them read "Add terms"
+    // forever and the debt-free date could never be projected, no matter how
+    // much the family filled in.
+    const data = {
+      accounts: [{
+        id: 'a-disc', name: 'Discover it', type: 'credit', treatAsDebt: true,
+        balance: 9667.64, rate: 0, rateKnown: true, minPayment: 200, entityId: 'e1',
+      }],
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rate).toBe(0);
+    expect(d.rateKnown).toBe(true);
+    expect(d.needsTerms).toBe(false);
+  });
+
+  it('a rate NOBODY has entered still needs terms (0 is not a confirmed 0%)', () => {
+    const data = {
+      accounts: [{ id: 'a-x', name: 'Gas Card', type: 'credit', treatAsDebt: true, balance: 500, minPayment: 50, entityId: 'e1' }],
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rateKnown).toBe(false);
+    expect(d.needsTerms).toBe(true);
+  });
+
+  it('a known rate with NO monthly payment still needs terms', () => {
+    const data = {
+      accounts: [{ id: 'a-y', name: 'AvantCard', type: 'credit', treatAsDebt: true, balance: 948, rate: 35.99, rateKnown: true, entityId: 'e1' }],
+      transactions: [],
+    };
+    expect(deriveDebts(data, ASOF)[0].needsTerms).toBe(true);
+  });
+});
+
+describe('deriveDebts — limit, utilization and peak', () => {
+  it('computes utilization and available credit from a real limit', () => {
+    const data = {
+      accounts: [{
+        id: 'a-cap', name: 'Capital One Platinum', type: 'credit', treatAsDebt: true,
+        balance: 1550, creditLimit: 2000, highestBalance: 2001, rate: 28.99, rateKnown: true, entityId: 'e1',
+      }],
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.creditLimit).toBe(2000);
+    expect(d.utilization).toBeCloseTo(77.5, 1);
+    expect(d.availableCredit).toBe(450);
+    expect(d.highestBalance).toBe(2001);
+  });
+
+  it('reports utilization ABOVE 100 on an over-limit card rather than capping it', () => {
+    const data = {
+      accounts: [{ id: 'a-ov', name: 'Credit One', type: 'credit', treatAsDebt: true, balance: 566, creditLimit: 500, entityId: 'e1' }],
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.utilization).toBeCloseTo(113.2, 1);
+    expect(d.availableCredit).toBe(0); // never negative
+  });
+
+  it('leaves utilization NULL when no limit is known — never guessed from a balance', () => {
+    const data = {
+      accounts: [{ id: 'a-nl', name: 'UIECU Visa Rewards', type: 'credit', treatAsDebt: true, balance: 12766.95, entityId: 'e1' }],
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.creditLimit).toBeNull();
+    expect(d.utilization).toBeNull();
+    expect(d.highestBalance).toBeNull();
+  });
+});
