@@ -31,6 +31,29 @@ const NUMBERED_BOOKS = [
 const ORDINAL = { 1: '1st', 2: '2nd', 3: '3rd' };
 const ROMAN = { I: 1, II: 2, III: 3 };
 
+// EVERY book of the canon (Darrell 2026-08-10: "not only 2 Timothy all
+// scriptures?"), plus the abbreviations citations actually use. This is the
+// guard that keeps the chapter:verse rule from firing on things that are NOT
+// references — a video timestamp ("1:12-2:04"), a clock time, a score. A
+// reference is only a reference when a BOOK NAME sits in front of it.
+const ALL_BOOKS = [
+  'Genesis', 'Gen', 'Exodus', 'Exod', 'Ex', 'Leviticus', 'Lev', 'Numbers', 'Num',
+  'Deuteronomy', 'Deut', 'Joshua', 'Josh', 'Judges', 'Judg', 'Ruth',
+  'Samuel', 'Sam', 'Kings', 'Kgs', 'Chronicles', 'Chron', 'Chr',
+  'Ezra', 'Nehemiah', 'Neh', 'Esther', 'Esth', 'Job',
+  'Psalms', 'Psalm', 'Psa', 'Ps', 'Proverbs', 'Prov', 'Ecclesiastes', 'Eccles', 'Eccl',
+  'Song of Solomon', 'Song of Songs', 'Song', 'Isaiah', 'Isa', 'Jeremiah', 'Jer',
+  'Lamentations', 'Lam', 'Ezekiel', 'Ezek', 'Daniel', 'Dan',
+  'Hosea', 'Hos', 'Joel', 'Amos', 'Obadiah', 'Obad', 'Jonah', 'Micah', 'Mic',
+  'Nahum', 'Nah', 'Habakkuk', 'Hab', 'Zephaniah', 'Zeph', 'Haggai', 'Hag',
+  'Zechariah', 'Zech', 'Malachi', 'Mal',
+  'Matthew', 'Matt', 'Mark', 'Luke', 'John', 'Jn', 'Acts',
+  'Romans', 'Rom', 'Corinthians', 'Corinth', 'Cor', 'Galatians', 'Gal',
+  'Ephesians', 'Eph', 'Philippians', 'Phil', 'Colossians', 'Col',
+  'Thessalonians', 'Thess', 'Thes', 'Timothy', 'Tim', 'Titus', 'Philemon', 'Philem',
+  'Hebrews', 'Heb', 'James', 'Jas', 'Peter', 'Pet', 'Jude', 'Revelation', 'Rev',
+];
+
 const BOOKS = NUMBERED_BOOKS.join('|');
 // "2 Timothy", "2. Timothy", "2Timothy" — the digit forms.
 const DIGIT_RE = new RegExp(`\\b([123])\\.?\\s*(${BOOKS})\\b`, 'g');
@@ -39,9 +62,23 @@ const DIGIT_RE = new RegExp(`\\b([123])\\.?\\s*(${BOOKS})\\b`, 'g');
 // a name that is not a numbered book (the book list is the guard).
 const ROMAN_RE = new RegExp(`\\b(I{1,3})\\.?\\s+(${BOOKS})\\b`, 'g');
 
+// Longest names first so "Song of Solomon" wins over "Song", and so a full name
+// is never half-matched by its own abbreviation.
+const ANY_BOOK = [...ALL_BOOKS].sort((a, b) => b.length - a.length).join('|');
+// "<Book> 4:16", "<Book> 1:16-17", "<Book> 5:21–22" (en dash too). The book
+// name is REQUIRED — that is what makes this safe on a page full of timestamps.
+const REF_RE = new RegExp(`\\b(${ANY_BOOK})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?`, 'g');
+
 /**
  * The text as it should be SAID. Written text is unchanged; this is only ever
  * applied to the string handed to a voice.
+ *
+ * Two rules, in order:
+ *   1. a numbered book is an ORDINAL — "2 Timothy" is said "2nd Timothy";
+ *   2. a chapter:verse is SPOKEN, not punctuated — "John 3:16" becomes
+ *      "John chapter 3 verse 16", because a colon between two numbers is read
+ *      by every engine as a clock time or a ratio ("three sixteen"), which is
+ *      not how anyone in the Body says a reference out loud.
  */
 export function toSpokenForm(text) {
   if (text == null) return '';
@@ -49,7 +86,13 @@ export function toSpokenForm(text) {
   if (!s) return '';
   return s
     .replace(DIGIT_RE, (m, n, book) => `${ORDINAL[n] || n} ${book}`)
-    .replace(ROMAN_RE, (m, roman, book) => `${ORDINAL[ROMAN[roman]] || roman} ${book}`);
+    .replace(ROMAN_RE, (m, roman, book) => `${ORDINAL[ROMAN[roman]] || roman} ${book}`)
+    .replace(REF_RE, (m, book, chapter, verse, verseEnd) => {
+      // A psalm is numbered, not chaptered — "Psalm 119, verse 105" is how it
+      // is said aloud, and "Psalm chapter 119" is how nobody says it.
+      const head = /^Ps/i.test(book) ? `${book} ${chapter}` : `${book} chapter ${chapter}`;
+      return verseEnd ? `${head} verses ${verse} through ${verseEnd}` : `${head} verse ${verse}`;
+    });
 }
 
 export default toSpokenForm;

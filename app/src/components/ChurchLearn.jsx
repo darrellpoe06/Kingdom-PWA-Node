@@ -56,6 +56,8 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { parseLessonLink, lessonUrl, lessonCopyBlock } from '../lib/lesson-links.js';
+import CopyButton from './CopyButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
@@ -573,7 +575,7 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -620,6 +622,14 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // were never read at all. prepare(true) renders every stage; the reader then
   // maps this element and speaks its exact text — alignment by construction.
   const [readAll, setReadAll] = useState(false);
+  //
+  // HANDS-FREE (Darrell 2026-08-10: "can't read the whole lesson... without a
+  // human turning the page!!! users should be able to listen to the whole
+  // thing without needing to intervene"). A 36-pattern course read ONE piece
+  // and went silent until someone tapped Next — impossible for a listener who
+  // is driving, cooking, or resting their eyes, which is exactly who this
+  // feature is for. `next` advances to the following piece and opens its
+  // guide, so the reader keeps going by itself to the end of the series.
   React.useEffect(() => {
     const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     if (text) {
@@ -628,10 +638,11 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         text,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
+        next: onAdvance || null,
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance]);
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
@@ -981,6 +992,35 @@ function CourseView({
     setRecentTick((t) => t + 1);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
+  // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
+  // the whole thing without needing to intervene"). Given a lesson, move to the
+  // NEXT one in this course and open its guide — the same real path a Next tap
+  // drives, minus the finger. Returns false at the end of the series, which is
+  // how the reader knows to stop. Memoized per id so the read target's `next`
+  // is stable across renders.
+  const advanceFromRef = React.useRef({});
+  const advanceFrom = (id) => {
+    if (!advanceFromRef.current[id]) {
+      advanceFromRef.current[id] = () => {
+        const list = scheduleRef.current || [];
+        const i = list.findIndex((m) => m.id === id);
+        const nextM = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
+        if (!nextM) return false;
+        lastFocusRef.current = nextM.id;
+        setFocusId(nextM.id);
+        setOpenTutorId(nextM.id);
+        savePlace({ lessonId: nextM.id });
+        recordUse(nextM.id);
+        setRecentTick((t) => t + 1);
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
+        return true;
+      };
+    }
+    return advanceFromRef.current[id];
+  };
+  const scheduleRef = React.useRef(schedule);
+  scheduleRef.current = schedule;
+
   // The wrapper hides its own chrome (course picker/sort) while the space is
   // open — the whole screen belongs to the one lesson (DR-0264).
   React.useEffect(() => {
@@ -1325,6 +1365,23 @@ function CourseView({
 
               {/* Actions: start the week (tutor + launch), and mark done */}
               <div className="flex flex-wrap gap-2 mt-3 items-center">
+                {/* TAKE IT WITH YOU (Darrell 2026-08-10: "copy paste options for
+                    each section... links to the exact lessons"). The lesson's
+                    own text — Word-first big idea, the body at the reader's
+                    level, its anchor, and a link back to THIS lesson — and the
+                    link alone, for a text message. */}
+                <CopyButton
+                  label="Copy lesson"
+                  copiedLabel="Lesson copied ✓"
+                  title="Copy this lesson's text, with its anchor and a link back to it"
+                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                />
+                <CopyButton
+                  label="Copy link"
+                  copiedLabel="Link copied ✓"
+                  title="Copy a link that opens exactly this lesson"
+                  text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
+                />
                 <button
                   type="button"
                   onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
@@ -1385,6 +1442,7 @@ function CourseView({
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
+                    onAdvance={advanceFrom(m.id)}
                   />
                 </div>
               )}
@@ -1745,6 +1803,15 @@ export default function ChurchLearn({
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
+  // A LINK TO THE EXACT LESSON (Darrell 2026-08-10: "links to the exact
+  // lessons"). Before this the URL carried only the Learn TAB, so handing
+  // someone one lesson meant sending them to a course picker and telling them
+  // what to hunt for. `?course=…&lesson=…` is read ONCE, here, and resolved
+  // against the MOUNTED catalog below — a link to a course or lesson that no
+  // longer exists simply opens Learn normally, never a dead screen.
+  const deepLink = useState(() => parseLessonLink(
+    (typeof window !== 'undefined' && window.location && window.location.search) || '',
+  ))[0];
   const [activeKey, setActiveKey] = useState('ai');
   const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
   // Resume-your-place (Darrell 2026-07-30): the device's saved Learn place,
@@ -1825,6 +1892,26 @@ export default function ChurchLearn({
 
   const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
   const active = courses.find((c) => c.key === activeKey) || aiCourse;
+
+  // Open what the link asked for, once, and only when it really exists.
+  const linkAppliedRef = React.useRef(false);
+  // `courses` is rebuilt every render, so the resolution reads it through a ref
+  // instead of depending on it — the link is applied exactly once, on the first
+  // render where the catalog holds the target.
+  const coursesRef = React.useRef(courses);
+  coursesRef.current = courses;
+  React.useEffect(() => {
+    if (linkAppliedRef.current || !deepLink || !deepLink.courseKey) return;
+    const target = coursesRef.current.find((c) => c.key === deepLink.courseKey);
+    if (!target) { linkAppliedRef.current = true; return; } // stale link: Learn opens normally
+    linkAppliedRef.current = true;
+    setActiveKey(target.key);
+    if (deepLink.lessonId && (target.schedule || []).some((m) => m.id === deepLink.lessonId)) {
+      // The same real path a "Resume →" tap drives: the lesson's own space,
+      // guide open, scrolled to the top.
+      setResumeLessonId(deepLink.lessonId);
+    }
+  }, [deepLink]);
 
   // A lesson space is open in the active course (DR-0264): the wrapper's own
   // chrome — catalog line, course picker/sort, resume banner — leaves the

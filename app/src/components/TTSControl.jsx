@@ -24,7 +24,7 @@ import {
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
-import { revealForReading, settled } from '../lib/read-reveal.js';
+import { revealForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
@@ -132,14 +132,60 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // can be restored when the reading ends. Declared with the other hooks —
   // above the unsupported-device early return — so hook order never varies.
   const preparedRef = useRef(null);
+  // HANDS-FREE RUN (Darrell 2026-08-10: "can't read the whole lesson... without
+  // a human turning the page!!! users should be able to listen to the whole
+  // thing without needing to intervene"). While a target read is running, this
+  // holds the piece being read; when it finishes on its own the reader asks the
+  // surface for the NEXT piece, waits for it to register, and keeps reading.
+  // Stop clears it — that is the difference between "it ended" and "you ended
+  // it", and it is the only thing that ends the run.
+  const runRef = useRef(null);
+  const [runInfo, setRunInfo] = useState(null); // { label } while a run is live
+  // readTargetNow is defined below the unsupported-device early return; the run
+  // loop reaches it through this ref so the effect never depends on definition
+  // order.
+  const readTargetRef = useRef(null);
   // When the reading ends (finished or stopped), give the surface its paced
   // view back — the expansion belongs to the reading, not to the learner's
   // place. Only ever restores a target THIS control expanded.
   useEffect(() => {
-    if (isReading || !preparedRef.current) return;
-    const t = preparedRef.current;
+    if (isReading) return;
+    const prepared = preparedRef.current;
+    // A run that is still live means the piece ENDED on its own (Stop clears
+    // the run). Ask the surface for the next piece and keep reading.
+    const run = runRef.current;
+    if (run && run.next) {
+      let advanced;
+      try { advanced = !!run.next(); } catch (_) { advanced = false; }
+      if (advanced) {
+        // The next piece registers its own target; wait for it, then read it.
+        // Bounded — a surface that advances without registering ends the run
+        // quietly rather than hanging on a promise that never settles.
+        const from = run.owner;
+        (async () => {
+          for (let i = 0; i < 12; i++) {
+            await afterRender();
+            const t = getReadTarget();
+            if (t && t.owner !== from) {
+              if (prepared && prepared !== t) { try { prepared.prepare(false); } catch (_) { /* best-effort */ } }
+              preparedRef.current = null;
+              if (readTargetRef.current) readTargetRef.current(t, { continuing: true });
+              return;
+            }
+          }
+          runRef.current = null;
+          setRunInfo(null);
+        })();
+        return;
+      }
+    }
+    // No next piece (the end of the series) or no run at all: the reading is
+    // over — put the surface's paced view back.
+    runRef.current = null;
+    setRunInfo(null);
+    if (!prepared) return;
     preparedRef.current = null;
-    try { t.prepare(false); } catch (_) { /* restoring is best-effort */ }
+    try { prepared.prepare(false); } catch (_) { /* restoring is best-effort */ }
   }, [isReading]);
   // The collapsed read-aloud button is a gentle reminder: it dims + settles when
   // idle and re-reveals on scroll/touch. Declared before the early return below
@@ -239,8 +285,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // spoken has a range, word-level follow works again, and nothing deeper is
   // skipped. The composed text remains the honest fallback for a surface that
   // registers no element (or one that isn't in the DOM).
-  const readTargetNow = async (t) => {
+  const readTargetNow = async (t, { continuing = false } = {}) => {
     if (!t) return;
+    // A target read is always a RUN: it keeps going to the next piece unless
+    // the listener stops it.
+    runRef.current = t;
+    if (!continuing) setRunInfo({ label: t.label });
     let el = null;
     if (typeof document !== 'undefined') {
       el = t.elementId ? document.getElementById(t.elementId) : null;
@@ -276,6 +326,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     read(t.text);
   };
 
+  readTargetRef.current = readTargetNow;
+
   // TALK ABOUT THIS: build a grounded digest of the CURRENT surface (real
   // on-screen numbers via data-talk markers, else the surface's "?" help), have
   // Ari explain it (live NAS model when reachable, deterministic on-device
@@ -300,8 +352,16 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // and the Word. Now there is ONE thing that stops the voice: Stop. Close puts
   // the panel away; while reading, the collapsed button stays visibly in the
   // reading state so Stop is always one tap away.
+  // The ONE thing that ends a hands-free run. Every Stop control routes here so
+  // "it ended" and "you ended it" can never be confused.
+  const stopAll = () => {
+    runRef.current = null;
+    setRunInfo(null);
+    stop();
+  };
+
   const close = () => {
-    if (!isReading) stop(); // idle: also stands down an armed tap-to-start
+    if (!isReading) stopAll(); // idle: also stands down an armed tap-to-start
     setArmed(false);
     setIsOpen(false);
   };
@@ -326,11 +386,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           role="region"
           aria-label="Reading controls (minimized)"
         >
-          <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}</span>
+          <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
           <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
             {isPaused ? '▶' : '⏸'}
           </button>
-          <button type="button" onClick={() => { stop(); }} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={stopAll} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
             ⏹
           </button>
           <button type="button" onClick={() => setMinimized(false)} aria-label="Expand reading controls" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -362,7 +422,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <div className="flex items-baseline justify-between mb-[0.75em]">
             <div>
               <div className="text-[0.5625em] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
-              <div className="text-[0.625em] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
+              <div className="text-[0.625em] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : (isReading && runInfo ? `${statusLabel} — keeps going to the next one` : statusLabel)))}</div>
             </div>
             <div className="flex items-center gap-[0.375em]">
               {isReading && (
@@ -395,7 +455,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             ) : (
               <>
                 <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                <button type="button" onClick={stop} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+                <button type="button" onClick={stopAll} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
               </>
             )}
           </div>

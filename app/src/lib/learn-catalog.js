@@ -35,6 +35,7 @@ import { DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW, buildDatasystemsSchedule, d
 import { SUCCESSION_META, SUCCESSION_SESSION_FLOW, buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown, SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META } from './succession-class.js';
 import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, exportEconCurriculumMarkdown, ECON_INTEREST_TAG, ECON_HELPER_TAG, ECON_TUTOR_META } from './economics-class.js';
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
+import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
 // bespoke cohort-dated descriptor; `wiring: 'self-paced'` = the descriptor is
@@ -143,6 +144,23 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want to learn the broadcast flow — one upload, everywhere — and how to ask for what you want built. Self-paced, plain words, at the real pages.',
       cta: 'I want to learn',
       sent: '✓ Sent — Darrell will see it. One upload, and the Word goes out.',
+    },
+  },
+  {
+    // DERIVED from the 3rd-Dimension Witness room (lib/third-witness.js): one
+    // lesson per cited source, so the witness room and this series can never
+    // disagree and a source added there joins here on the next build (DR-0121).
+    key: 'healthy-living', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...HEALTHY_LIVING_META, key: 'healthy-living', category: 'The Word & The Way' }, sessionFlow: HEALTHY_LIVING_SESSION_FLOW,
+    buildScheduleRows: () => buildHealthyLivingSchedule(), progressSummary: (p) => healthyLivingProgressSummary(p),
+    exportMarkdown: () => exportHealthyLivingCurriculumMarkdown(), downloadName: 'healthy-living-the-3rd-dimension-witness.md',
+    interestTag: HEALTHY_LIVING_INTEREST_TAG, helperTag: HEALTHY_LIVING_HELPER_TAG, tutorCourseMeta: HEALTHY_LIVING_TUTOR_META,
+    interestText: (who) => `${HEALTHY_LIVING_INTEREST_TAG} ${who} wants more Healthy Living witnesses.`,
+    interestCopy: {
+      heading: 'Want another witness?',
+      blurb: 'Tell Darrell which health question you want cross-referenced with the Word — every expert cited, every verse verbatim, and the counter-witness kept in. Read at your own pace, at any age. Medical decisions stay with your physician.',
+      cta: 'I’d like more',
+      sent: '✓ Sent — Darrell will see what to cross-reference next. His Word governs; the science witnesses.',
     },
   },
   {

@@ -44,10 +44,19 @@ function notify() {
  * construction, the same law the page read has always used — so every spoken
  * sentence has a range and nothing "deeper" is skipped.
  *
+ * `next` is the HANDS-FREE contract (2026-08-10). A paged surface — 36
+ * patterns, 72 lessons — read ONE piece and then went silent until a human
+ * tapped Next, which is exactly what a listener cannot do while driving,
+ * cooking, or resting their eyes. A surface that has a next piece supplies
+ * `next()`: it advances to that piece (registering ITS target) and returns
+ * true. The reader then keeps reading, piece after piece, until the surface
+ * says there is no next — or until Stop.
+ *
  * @param {string} owner - opaque key (e.g. the lesson/module id)
- * @param {{label?:string, text:string, elementId?:string, prepare?:Function}} target
+ * @param {{label?:string, text:string, elementId?:string, prepare?:Function, next?:Function}} target
  *   label like "this lesson", the FULL text (the fallback reading), the DOM id
- *   of the element that renders it, and prepare(on) → show/restore every part.
+ *   of the element that renders it, prepare(on) → show/restore every part, and
+ *   next() → advance to the following piece (true when it advanced).
  */
 export function setReadTarget(owner, target) {
   const text = target && typeof target.text === 'string' ? target.text.trim() : '';
@@ -58,6 +67,7 @@ export function setReadTarget(owner, target) {
     text,
     elementId: target && typeof target.elementId === 'string' && target.elementId ? target.elementId : null,
     prepare: target && typeof target.prepare === 'function' ? target.prepare : null,
+    next: target && typeof target.next === 'function' ? target.next : null,
   };
   notify();
 }
