@@ -63,6 +63,9 @@ export function accountToRow(item, { tenantId, userId }) {
     highest_balance: item.highestBalance != null && item.highestBalance !== '' ? Number(item.highestBalance) : null,
     rate_min:        item.rateMin        != null && item.rateMin        !== '' ? Number(item.rateMin)        : null,
     rate_known:      !!item.rateKnown,
+    // Per-row switches the Debts editor sets (0134).
+    leave_alone:     !!item.leaveAlone,
+    rate_overridden: !!item.rateOverridden,
   };
 }
 
@@ -87,6 +90,8 @@ export function accountFromRow(row) {
     highestBalance: row.highest_balance != null ? Number(row.highest_balance) : null,
     rateMin:        row.rate_min        != null ? Number(row.rate_min)        : null,
     rateKnown:      !!row.rate_known,
+    leaveAlone:     !!row.leave_alone,
+    rateOverridden: !!row.rate_overridden,
     updatedAt:   row.updated_at,
     createdAt:   row.created_at,
   };

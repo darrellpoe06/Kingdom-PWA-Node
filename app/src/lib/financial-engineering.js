@@ -238,10 +238,19 @@ export function deriveDebts(data, asOf = new Date()) {
     // read from the data can't be undermined by a wrong manual entry (Darrell
     // 2026-07-20). Fall back to the stored (user-editable) rate ONLY when the data
     // shows no interest line. rateSource tells the UI which it is.
+    //
+    // A person may still CORRECT a derived rate (Christina 2026-08-10: "I need
+    // to be able to edit each line ... manually"). The data stays the default
+    // and stays visible — an override is explicit, marked on the row, and
+    // revertible in one tap — so the original rule holds (the data is not
+    // silently undermined) while the person is no longer locked out of their
+    // own number. `dataRate` carries what the statements say, always.
     const derived = deriveApr(txns, a.id, owed, asOf);
     const storedRate = Number(a.rate) || 0;
-    const rate = derived.apr != null ? derived.apr : storedRate;
-    const rateSource = derived.apr != null ? 'derived' : (storedRate > 0 ? 'manual' : 'none');
+    const overridden = a.rateOverridden === true;
+    const rate = overridden ? storedRate : (derived.apr != null ? derived.apr : storedRate);
+    const rateSource = overridden ? 'override'
+      : (derived.apr != null ? 'derived' : (storedRate > 0 ? 'manual' : 'none'));
     // Expected payoff from their REAL payments (not a fabricated minimum): the pace
     // they actually pay, the net paydown, and the truthful reach-zero date.
     let insight = debtPayoffInsight(txns, a.id, owed, asOf);
@@ -279,7 +288,7 @@ export function deriveDebts(data, asOf = new Date()) {
     // "Add terms" forever and the debt-free date can never be projected no
     // matter how much they fill in. `rateKnown` is the family's own explicit
     // "yes, this is zero percent"; a derived rate is known by definition.
-    const rateKnown = rateSource === 'derived' || rate > 0 || a.rateKnown === true;
+    const rateKnown = rateSource === 'derived' || rateSource === 'override' || rate > 0 || a.rateKnown === true;
     // The card's own terms — unknown stays unknown (null), never 0.
     const num = (v) => (v == null || v === '' || !isFinite(Number(v)) ? null : Number(v));
     const creditLimit = num(a.creditLimit);
@@ -287,6 +296,9 @@ export function deriveDebts(data, asOf = new Date()) {
     out.push({
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
       balance: round2(owed), rate, rateSource, rateKnown, rateMin: num(a.rateMin), minPayment,
+      // What the statements themselves say, kept alongside an override so the
+      // row can show both and offer a one-tap revert.
+      dataRate: derived.apr != null ? derived.apr : null,
       entityId: a.entityId ?? null,
       creditLimit, highestBalance,
       // Utilization is arithmetic on their own two figures — shown only when a
@@ -299,7 +311,7 @@ export function deriveDebts(data, asOf = new Date()) {
       manual: manualDebt,
       // Terms are complete when the rate is KNOWN (a confirmed 0% counts) and a
       // monthly payment exists — that is everything the payoff math needs.
-      leaveAlone: false, needsTerms: !(rateKnown && minPayment > 0),
+      leaveAlone: a.leaveAlone === true, needsTerms: !(rateKnown && minPayment > 0),
       // Payment-derived payoff — independent of the rate-based snowball engine.
       // paceSource 'linked' = pace recovered from checking-side payee payments.
       payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
@@ -316,7 +328,12 @@ export function deriveDebts(data, asOf = new Date()) {
     out.push({
       id: `debt-rental-${r.id}`, name: (r.name || r.address || 'Rental') + ' mortgage',
       balance: round2(bal), rate, minPayment, entityId: r.entityId ?? null,
-      debtType: 'mortgage', source: 'rental', leaveAlone: false,
+      // The property's own id, so a mortgage line is editable from this tab too
+      // rather than being the one row a person cannot touch here.
+      rentalId: r.id,
+      rateKnown: rate > 0, dataRate: null, rateMin: null,
+      creditLimit: null, highestBalance: null, utilization: null, availableCredit: null,
+      debtType: 'mortgage', source: 'rental', leaveAlone: r.leaveAlone === true,
       needsTerms: !(rate > 0 && minPayment > 0),
     });
   }

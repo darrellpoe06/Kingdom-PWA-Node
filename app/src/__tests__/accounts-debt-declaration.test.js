@@ -96,3 +96,42 @@ describe('dedupeDebtAccountStrays — one row per card, real accounts untouched'
     expect(dedupeDebtAccountStrays(null)).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The card terms + per-row switches (0133 / 0134) ride the SAME round trip, and
+// have the same failure mode if a mapper field is missed: the first cloud
+// refetch silently erases what the family entered.
+// ---------------------------------------------------------------------------
+describe('the card terms survive local -> row -> local', () => {
+  it('carries limit, peak, range, and both switches through the round trip', () => {
+    const local = {
+      id: 'a-card', entityId: 'e-personal', name: 'AvantCard', type: 'credit',
+      balance: 948, treatAsDebt: true, minPayment: 45, rate: 35.99, rateMin: 29.99,
+      rateKnown: true, creditLimit: 1000, highestBalance: 1021,
+      leaveAlone: true, rateOverridden: true,
+    };
+    const row = accountToRow(local, { tenantId: 't1', userId: 'u1' });
+    const back = accountFromRow({ ...row, id: 'uuid-1' });
+    expect(back).toMatchObject({
+      creditLimit: 1000, highestBalance: 1021, rateMin: 29.99, rateKnown: true,
+      leaveAlone: true, rateOverridden: true,
+    });
+  });
+
+  it('an UNKNOWN limit or peak stays null across the trip — never becomes 0', () => {
+    // Proven-to-catch: `Number(x) || 0` in either direction turns every blank
+    // the family left into a hard $0 claim (DR-0076).
+    const row = accountToRow(
+      { id: 'a-x', name: 'Gas Card', type: 'credit', treatAsDebt: true, balance: 0 },
+      { tenantId: 't1', userId: 'u1' },
+    );
+    expect(row.credit_limit).toBeNull();
+    expect(row.highest_balance).toBeNull();
+    expect(row.rate_min).toBeNull();
+    const back = accountFromRow({ ...row, id: 'uuid-2' });
+    expect(back.creditLimit).toBeNull();
+    expect(back.highestBalance).toBeNull();
+    expect(back.rateKnown).toBe(false);
+    expect(back.rateOverridden).toBe(false);
+  });
+});

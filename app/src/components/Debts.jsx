@@ -5,6 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 import AddDebt from './AddDebt.jsx';
+import EditDebtRow from './EditDebtRow.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -26,7 +27,7 @@ function paidFromPeak(d) {
   return paid > 0.5 ? paid : null;
 }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null, deleteAccount = null, updateRental = null }) {
   // "All credit card and lines companies should be listed on [the Debts] Tab"
   // (Darrell 2026-07-20). deriveDebts can only surface an account that EXISTS as a
   // debt — but a family's other cards are often paid by autopay OUT of checking and
@@ -78,6 +79,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   // Each writes to the underlying account (updateAccount); the projection recomputes.
   const [edit, setEdit] = useState(null); // { id, field } | null
   const [editVal, setEditVal] = useState('');
+  // The full-row editor (Christina 2026-08-10) — every field on the record at
+  // once, which the single-cell editors above cannot reach: name, entity,
+  // credit limit, highest balance, leave-alone, remove, and a mortgage's terms.
+  const [editRowId, setEditRowId] = useState(null);
   const isEditing = (d, field) => !!edit && edit.id === d.id && edit.field === field;
   const startEditCell = (d, field, current) => { setEdit({ id: d.id, field }); setEditVal(current != null && isFinite(current) ? String(current) : ''); };
   const saveCell = (d) => {
@@ -86,7 +91,13 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
       // A rate a person actually typed is KNOWN — including a deliberate 0 for a
       // promo or closed card. Stamping rateKnown here is what lets that card
       // project a payoff instead of reading "Add terms" forever (0133).
-      if (edit.field === 'rate' && v < 100) updateAccount(d.accountId, { rate: v, rateKnown: true });
+      if (edit.field === 'rate' && v < 100) {
+        const patch = { rate: v, rateKnown: true };
+        // Correcting a statement-derived rate is recorded as a deliberate
+        // override, so the row can say so and offer a revert (0134).
+        if (d.dataRate != null) patch.rateOverridden = Math.abs(v - d.dataRate) > 0.005;
+        updateAccount(d.accountId, patch);
+      }
       else if (edit.field === 'min') updateAccount(d.accountId, { minPayment: v });
       else if (edit.field === 'owed') updateAccount(d.accountId, { balance: v }); // manual debt: balance = owed
     }
@@ -250,11 +261,24 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         </div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Payoff</th></tr></thead>
+            <thead><tr className="border-b border-[#1A1815]"><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Account</th><th className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Rate</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Min</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Balance</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Payoff</th><th className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Edit</th></tr></thead>
             <tbody>
               {sorted.map((d) => {
                 const po = payoffCell(d);
-                const canEditRate = d.rateSource !== 'derived' && d.accountId && updateAccount;
+                // Every rate is now editable. A statement-derived rate keeps its
+                // authority by staying visible beside any override (and being
+                // revertible), not by locking the family out of the field.
+                const canEditRate = d.accountId && updateAccount;
+                const rowEditable = (d.accountId && updateAccount) || (d.source === 'rental' && updateRental);
+                if (editRowId === d.id && rowEditable) {
+                  return (
+                    <EditDebtRow
+                      key={d.id} debt={d} entities={entities} colSpan={7}
+                      onClose={() => setEditRowId(null)}
+                      updateAccount={updateAccount} deleteAccount={deleteAccount} updateRental={updateRental}
+                    />
+                  );
+                }
                 return (
                   <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
                     <td className="p-3">
@@ -291,8 +315,9 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                           {d.rateKnown
                             ? (d.rateMin != null ? `${pct(d.rateMin)}–${pct(d.rate)}` : pct(d.rate))
                             : <span className="text-[#5A5751]">—</span>}
-                          {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it, so it can't be mis-typed">data</span>}
-                          {d.rateKnown && d.rate === 0 && d.rateSource !== 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Confirmed 0% — a promotional or closed-account rate, not a missing figure">0% confirmed</span>}
+                          {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it by default">data</span>}
+                          {d.rateSource === 'override' && <span className="text-[0.5625rem] text-[#B85838] uppercase tracking-wider" title={`You set this by hand. The statements say ${d.dataRate}% — open Edit to revert to the data.`}>edited{d.dataRate != null ? ` · data ${pct(d.dataRate)}` : ''}</span>}
+                          {d.rateKnown && d.rate === 0 && d.rateSource !== 'derived' && d.rateSource !== 'override' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Confirmed 0% — a promotional or closed-account rate, not a missing figure">0% confirmed</span>}
                           {d.rateMin != null && <span className="text-[0.5625rem] text-[#5A5751] uppercase tracking-wider" title="The issuer quotes a range; the payoff is figured at the higher end so the date is never rosier than you can count on">range</span>}
                           {canEditRate && (
                             <button type="button" onClick={() => startEditCell(d, 'rate', d.rate)}
@@ -318,7 +343,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                       {isEditing(d, 'owed') ? cellInput(d, `Amount owed for ${d.name}`) : (
                         <span className="inline-flex items-center gap-1 justify-end">
                           {fmt(d.balance)}
-                          {d.manual && d.accountId && updateAccount && (
+                          {d.accountId && updateAccount && (
                             <button type="button" onClick={() => startEditCell(d, 'owed', d.balance)}
                               className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
                               title="Total amount owed on this debt — the timeline is figured from this">{d.balance > 0 ? 'edit' : '+ owed'}</button>
@@ -329,6 +354,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       <div className={po.warn ? 'text-[#B85838]' : ''}>{po.text}</div>
                       {po.sub && <div className="text-[0.5625rem] text-[#5A5751] normal-case" style={{ fontFamily: '"Fraunces", serif' }}>{po.sub}</div>}
+                    </td>
+                    <td className="p-3 text-right">
+                      {rowEditable && (
+                        <button type="button" onClick={() => setEditRowId(d.id)}
+                          className="text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          title={`Edit every field on ${d.name}`}
+                          aria-label={`Edit ${d.name}`}>✎ Edit</button>
+                      )}
                     </td>
                   </tr>
                 );

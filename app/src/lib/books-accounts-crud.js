@@ -96,6 +96,9 @@ export function createAccountsCrud({ data, setData, syncEnabled, accountsSync, s
         if (updates.highestBalance !== undefined) patch.highest_balance = numOrNull(updates.highestBalance);
         if (updates.rateMin !== undefined)        patch.rate_min = numOrNull(updates.rateMin);
         if (updates.rateKnown !== undefined)      patch.rate_known = !!updates.rateKnown;
+        // Per-row switches from the Debts editor (0134).
+        if (updates.leaveAlone !== undefined)     patch.leave_alone = !!updates.leaveAlone;
+        if (updates.rateOverridden !== undefined) patch.rate_overridden = !!updates.rateOverridden;
         if (Object.keys(patch).length) accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
       }
     }
