@@ -878,3 +878,103 @@ describe('the prison-industrial-complex issue quotes the KJV verbatim (DR-0076)'
     expect(missing).toEqual([]);
   });
 });
+
+// Every Scripture fragment the Law-of-Assumption issue quotes (authored under
+// this gate, 2026-08-10). This lesson's whole argument turns on reading the
+// SECOND HALF of Isaiah 46:10, so a drifted quotation here would not be a
+// blemish — it would dismantle the case (DR-0281: the reasoning across verses
+// is as accountable as the quotation).
+const LAW_OF_ASSUMPTION_QUOTES = [
+  { ref: 'Isaiah 46:9', book: 'Isaiah', ch: 46, v: 9, fragments: [
+    'Remember the former things of old: for I am God, and there is none else; I am God, and there is none like me',
+  ] },
+  { ref: 'Isaiah 46:10', book: 'Isaiah', ch: 46, v: 10, fragments: [
+    'Declaring the end from the beginning, and from ancient times the things that are not yet done, saying, My counsel shall stand, and I will do all my pleasure',
+    'My counsel shall stand, and I will do all my pleasure',
+  ] },
+  { ref: 'Isaiah 45:5', book: 'Isaiah', ch: 45, v: 5, fragments: [
+    'I am the LORD, and there is none else, there is no God beside me',
+  ] },
+  { ref: 'Genesis 3:5', book: 'Genesis', ch: 3, v: 5, fragments: [
+    'ye shall be as gods',
+  ] },
+  { ref: 'Romans 1:25', book: 'Romans', ch: 1, v: 25, fragments: [
+    'worshipped and served the creature more than the Creator',
+  ] },
+  { ref: 'Colossians 2:8', book: 'Colossians', ch: 2, v: 8, fragments: [
+    'Beware lest any man spoil you through philosophy and vain deceit, after the tradition of men, after the rudiments of the world, and not after Christ',
+    'Beware lest any man spoil you through philosophy and vain deceit',
+    'and not after Christ',
+  ] },
+  { ref: 'Philippians 4:6', book: 'Philippians', ch: 4, v: 6, fragments: [
+    'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God',
+    'in every thing by prayer and supplication with thanksgiving let your requests be made known unto God',
+  ] },
+  { ref: '1 John 5:14', book: '1John', ch: 5, v: 14, fragments: [
+    'if we ask any thing according to his will, he heareth us',
+  ] },
+  { ref: 'Mark 11:22', book: 'Mark', ch: 11, v: 22, fragments: [
+    'Have faith in God',
+  ] },
+  { ref: 'Mark 11:24', book: 'Mark', ch: 11, v: 24, fragments: [
+    'What things soever ye desire, when ye pray, believe that ye receive them, and ye shall have them',
+  ] },
+  { ref: 'James 4:14', book: 'James', ch: 4, v: 14, fragments: [
+    'ye know not what shall be on the morrow',
+  ] },
+  { ref: 'James 4:15', book: 'James', ch: 4, v: 15, fragments: [
+    'ye ought to say, If the Lord will, we shall live, and do this, or that',
+    'If the Lord will',
+  ] },
+  { ref: 'Proverbs 16:9', book: 'Proverbs', ch: 16, v: 9, fragments: [
+    'A man\u2019s heart deviseth his way: but the LORD directeth his steps',
+  ] },
+  { ref: 'Matthew 6:33', book: 'Matthew', ch: 6, v: 33, fragments: [
+    'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you',
+  ] },
+  { ref: 'Hebrews 11:1', book: 'Hebrews', ch: 11, v: 1, fragments: [
+    'the substance of things hoped for, the evidence of things not seen',
+  ] },
+  { ref: '2 Corinthians 10:5', book: '2Corinthians', ch: 10, v: 5, fragments: [
+    'Casting down imaginations',
+    'bringing into captivity every thought to the obedience of Christ',
+  ] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: [
+    'God shall bring every work into judgment, with every secret thing',
+  ] },
+];
+
+describe('the Law-of-Assumption issue quotes the KJV verbatim (DR-0076 / DR-0281)', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-law-of-assumption');
+
+  it('the issue is published in the track', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is an exact substring of the cited KJV verse', () => {
+    const norm = (s) => s.replace(/[\u2019\u2018]/g, "'").replace(/\s+/g, ' ');
+    const failures = [];
+    for (const q of LAW_OF_ASSUMPTION_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: fragment not found verbatim \u2014 "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = JSON.stringify(issue);
+    const norm = (s) => s.replace(/[\u2019\u2018]/g, "'");
+    const missing = LAW_OF_ASSUMPTION_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !norm(blob).includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  it('the SECOND half of Isaiah 46:10 is present \u2014 the half the teaching drops', () => {
+    const blob = JSON.stringify(issue);
+    expect(blob).toContain('My counsel shall stand, and I will do all my pleasure');
+  });
+});

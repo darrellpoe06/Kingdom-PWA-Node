@@ -2120,7 +2120,147 @@ const HISTORICAL_TRAUMA_ISSUE = {
   ],
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE];
+// =============================================================================
+// NINTH WORKED EXAMPLE — "stop praying FOR it; live FROM the end": the Law of
+// Assumption / Neville Goddard "purple timeline" teaching, handed in by Darrell
+// 2026-08-10 as a transcript, with one instruction: "Word first of course."
+//
+// This issue is the hardest KIND in the track so far, and that is why it is
+// here. It is not a claim about the world (a documentary, an industry, a
+// verdict) — it is a claim about GOD and about the self, wrapped around two
+// pieces of real science and one real verse. DR-0100's three tiers do the work:
+// the attention research and the identity research are TRUE and are said so
+// plainly; the physics claim is NOT what physics says and is named; and the
+// doctrine underneath — your imagination IS God, so stop asking Him — is what
+// the Word corrects, by name, with His own words.
+// =============================================================================
+const LAW_OF_ASSUMPTION_ISSUE = {
+  id: 'wi-law-of-assumption',
+  title: '“Stop Praying For It — Live From The End”: The Law of Assumption, Thought-Manifestation, and Who Actually Declares The End',
+  subject: {
+    name: 'The Law of Assumption / “live from the end” manifestation teaching, as popularized by Neville Goddard (1905-1972) and taught in short-form video',
+    kind: 'spiritual teaching / self-help claim',
+    isNamedRealPerson: true,
+  },
+  skill: 'Take a teaching that MIXES real science, a real verse, and a false god — the hardest mixture to sort — and separate the three by hand: keep what is documented, name what is misused, and let the Word answer the claim about God Himself. Learn to spot the move where a true thing is used as the doorway for an untrue one.',
+  source: {
+    creator: 'a short-form video teacher (unnamed), transmitting Neville Goddard’s Law of Assumption',
+    medium: 'short-form video (transcript)',
+    title: '“Part two… one of the biggest lessons from Neville Goddard that he taught me growing up”',
+    url: 'https://mynevillegoddard.com/word-studies/imagination',
+    asOf: '2026-08-10',
+    note: 'Handed in by Darrell 2026-08-10 as a transcript with the instruction “Word first of course.” We weigh the TEACHING; we condemn no teacher and no viewer who has believed it.',
+  },
+  claims: [
+    { id: 'c-never-ask', text: 'You are never looking for an answer — you look FROM the answer. Stop praying for the money, the spouse, the health; pray and act from the outcome as the version of you who already has it.', label: 'claim', attribution: 'the video / Neville Goddard’s Law of Assumption', note: 'This is the teaching’s core instruction, and it is the point where it collides head-on with what Scripture tells a believer to do with a request.' },
+    { id: 'c-ras', text: 'The brain’s reticular activating system’s “only job is to filter reality based on your most dominant belief,” so focusing on what you lack guarantees obstacles.', label: 'claim', attribution: 'the video', note: 'Half documented, half overstated — the RAS is real and does gate attention; “its only job is to filter reality by your dominant belief” is not what the research says.' },
+    { id: 'c-identity', text: 'Your actions always align with the identity you hold, so becoming specific about the future self (down to the peanut butter) programs you for the outcome.', label: 'claim', attribution: 'the video, citing identity-based motivation theory', note: 'The underlying theory is real and well-published; the “down to the peanut butter” certainty is the teacher’s embellishment.' },
+    { id: 'c-purple-timeline', text: 'Quantum physics “collapsing the wave” means a timeline already exists — the “purple timeline” — where you already have the health, wealth, love and success, and your job is to step into it.', label: 'claim', attribution: 'the video', note: 'This is not what the physics says. Named plainly below, with a source.' },
+    { id: 'c-god-declares', text: '“God declares the end from the beginning” — therefore your best life is already a finished work waiting for you to step into it.', label: 'claim', attribution: 'the video, citing Isaiah 46:10', note: 'The verse is real. The conclusion drawn from it is not what the verse says — the finished thing in that passage is HIS counsel, not our wish list. This is the whole lesson.' },
+    { id: 'c-imagination-is-god', text: 'The creative power called God is not outside you; human imagination IS God in action.', label: 'claim', attribution: 'Neville Goddard’s own teaching, which the video transmits', note: 'The teaching’s foundation, stated by its own sources. This is the claim the Word answers directly.' },
+  ],
+  verifiable: [
+    {
+      id: 'f-ras-real',
+      statement: 'The reticular activating system is REAL and it really does gate what reaches your awareness: a brain-stem network that regulates arousal and alertness and filters incoming sensory signals so the cortex is not overwhelmed. Attention genuinely is selective — that part of the video is not woo.',
+      status: 'documented',
+      sources: [
+        { title: 'Arousal — Revisiting the Reticular Activating System', publisher: 'Science (AAAS)', url: 'https://www.science.org/doi/10.1126/science.272.5259.225', asOf: '2026-08-10' },
+        { title: 'Reticular Activating System — an overview', publisher: 'ScienceDirect Topics', url: 'https://www.sciencedirect.com/topics/veterinary-science-and-veterinary-medicine/reticular-activating-system', asOf: '2026-08-10' },
+      ],
+      note: 'What is documented: arousal, alertness, sensory gating, attention. What is NOT documented: that its “only job” is to filter reality according to your dominant belief, or that attention summons outcomes.',
+    },
+    {
+      id: 'f-ibm-real',
+      statement: 'Identity-based motivation is a real, published theory (Daphna Oyserman, University of Southern California): people prefer actions that fit who they currently feel themselves to be, and interpret difficulty through that identity — and it has been tested in actual school interventions in Detroit, Chicago, Singapore and England.',
+      status: 'documented',
+      sources: [
+        { title: 'Identity-Based Motivation and the Motivational Consequences of Difficulty', publisher: 'Social and Personality Psychology Compass (Oyserman, 2024)', url: 'https://compass.onlinelibrary.wiley.com/doi/10.1111/spc3.70028', asOf: '2026-08-10' },
+      ],
+      note: 'So “act like the person you intend to become” has real support as a MOTIVATION mechanism — how a self-concept shapes behavior. That is a claim about you. It is not a claim about the universe rearranging itself.',
+    },
+    {
+      id: 'f-quantum-not-that',
+      statement: 'The “collapsing the wave / your belief selects the timeline” claim is NOT what quantum mechanics says. In physics, “observation” means a physical interaction — a measuring device, or even an air molecule — and decoherence explains the outcome; consciousness is not required, and the consciousness-causes-collapse hypothesis has been argued to be internally inconsistent in the peer-reviewed literature.',
+      status: 'documented',
+      sources: [
+        { title: 'The Dead-Alive Physicist experiment: a case-study disproving the hypothesis that consciousness causes the wave-function collapse', publisher: 'arXiv (peer-review preprint)', url: 'https://arxiv.org/pdf/2006.06368', asOf: '2026-08-10' },
+        { title: 'Quantum measurements are physical processes (comment on consciousness and the double slit)', publisher: 'arXiv', url: 'https://arxiv.org/pdf/1207.0804', asOf: '2026-08-10' },
+      ],
+      note: 'This one is not “contested” — it is a misuse of a technical word. Borrowed physics vocabulary is one of the most common ways a spiritual claim buys credibility it has not earned.',
+    },
+    {
+      id: 'f-goddard-doctrine',
+      statement: 'Neville Goddard’s system is not neutral technique with a Christian accent. Its own teachers state the foundation plainly: that human imagination IS God — “the eternal body of man is the imagination, that is, God himself” — and that the creative power other traditions place in an external God is inside you.',
+      status: 'documented',
+      sources: [
+        { title: 'Imagination in Neville Goddard’s Teachings (word study)', publisher: 'mynevillegoddard.com', url: 'https://mynevillegoddard.com/word-studies/imagination', asOf: '2026-08-10' },
+        { title: 'The Law of Assumption: Neville Goddard’s Hidden Code', publisher: 'The Universe Unveiled', url: 'https://www.theuniverseunveiled.com/law-of-assumption-neville-goddard/', asOf: '2026-08-10' },
+      ],
+      note: 'Cited from the teaching’s OWN advocates, not from critics — so no one can say it was strawmanned. This is what makes it a doctrine question and not a productivity question.',
+    },
+  ],
+  interpretation: [
+    { id: 'n-true-doorway', statement: 'The real science is the DOORWAY, not the message. Selective attention and identity-shaped behavior are true; they are used to make a much larger claim — that reality reorganizes around your assumption — which neither of them supports. Keep the doorway; refuse what is being carried through it.', restsOn: ['f-ras-real', 'f-ibm-real'] },
+    { id: 'n-verse-inverted', statement: 'Isaiah 46:10 is quoted accurately and applied backwards. Read the whole sentence: the thing declared from the beginning is “MY counsel shall stand, and I will do all my pleasure” — the finished work is YAHWEH’S purpose, in a passage whose entire point (v.9) is that He alone is God and there is none like Him. The video turns a verse about His sovereignty into a promise about our preferred outcome, which is the exact reverse of what it says.', restsOn: ['f-goddard-doctrine'] },
+    { id: 'n-two-different-things', statement: 'Acting in faith and “assuming the wish fulfilled” look alike from outside and are opposite inside. Faith rests on a PROMISE SOMEONE ELSE MADE and can therefore say “if the Lord will”; assumption rests on my own decree and cannot say it — there is no one else in the room to defer to.', restsOn: ['f-goddard-doctrine'] },
+  ],
+  perspectives: [
+    { id: 'p-teacher', label: 'The teaching’s view (steelmanned)', heldBy: 'the video’s creator and Law-of-Assumption teachers', steelman: 'At its strongest: most people are paralyzed by lack — they rehearse what they do not have, act like the person who does not have it, and get exactly that. Deciding to behave as the person you intend to become is genuinely powerful; it changes what you notice, what you attempt, and what you tolerate. Millions have found more courage in that framing than in years of anxious waiting, and it costs nothing to try.' },
+    { id: 'p-psych', label: 'The careful-science view', heldBy: 'researchers in attention and motivation', steelman: 'At its strongest: the mechanisms named are real but modest and INTERNAL. Selective attention makes you notice more opportunities; identity-congruence makes you act more consistently. Both are about the person, not the cosmos. Overclaiming them into “reality rearranges for you” is unfalsifiable, and it quietly blames the sick and the poor for not believing correctly — which the actual research never says.' },
+    { id: 'p-word', label: 'The believer’s view', heldBy: 'Scripture', steelman: 'At its strongest: Yahweh is not a force inside you to be operated; He is a Person to be asked. “I am the LORD, and there is none else, there is no God beside me” (Isaiah 45:5). He tells us to bring the request — “in every thing by prayer and supplication with thanksgiving let your requests be made known unto God” (Philippians 4:6) — and He answers according to His will, not our decree (1 John 5:14). That is not weaker than assumption; it is safer than assumption, because it means the outcome is filtered by someone wiser than me. And it gives what manifesting cannot: a Father who is with you when the answer is no, or not yet.' },
+    { id: 'p-pastoral', label: 'The pastoral-concern view', heldBy: 'many believers who have watched this teaching up close', steelman: 'At its strongest: the harm is not in the vision-boarding, it is in what happens when the outcome does not come. Under a law of assumption the only possible explanation for an unhealed body or an empty account is that YOU did not believe correctly — so grief becomes guilt, and the sufferer is left alone with a failure verdict. The Word puts a Comforter in that exact room instead.' },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST, on the very verse the video borrows. Yahweh says: “Remember the former things of old: for I am God, and there is none else; I am God, and there is none like me,” and then, in the same breath, “Declaring the end from the beginning, and from ancient times the things that are not yet done, saying, My counsel shall stand, and I will do all my pleasure” (Isaiah 46:9-10). Read it slowly: the end that is declared is HIS, the counsel that stands is HIS, the pleasure that is done is HIS. The passage is a claim of exclusive sovereignty — “I am the LORD, and there is none else, there is no God beside me” (Isaiah 45:5) — and the teaching flips it into a promise that MY preferred outcome is already finished and merely awaits my confidence. That is not a small misreading; it is the oldest one. “Ye shall be as gods” (Genesis 3:5) is the first recorded offer of divinity-by-self-assumption, and Romans names where it ends: men “worshipped and served the creature more than the Creator” (Romans 1:25). Paul warns exactly this shape: “Beware lest any man spoil you through philosophy and vain deceit, after the tradition of men, after the rudiments of the world, and not after Christ” (Colossians 2:8) — a system built of real-sounding parts that is simply not after Christ. And the instruction the video gives — stop praying for it — is the one thing the Word will not allow: “Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God” (Philippians 4:6). Asking is not lack-consciousness; asking is relationship. The confidence He offers is better than assumption because it has Him in it: “if we ask any thing according to his will, he heareth us” (1 John 5:14). Even the verse that sounds closest to the teaching — “What things soever ye desire, when ye pray, believe that ye receive them, and ye shall have them” (Mark 11:24) — opens two verses earlier with the words that decide its meaning: “Have faith in God” (Mark 11:22). Faith IN GOD, not faith in faith. And Scripture keeps the creature honest about tomorrow: “ye know not what shall be on the morrow” — therefore “ye ought to say, If the Lord will, we shall live, and do this, or that” (James 4:14-15). “A man’s heart deviseth his way: but the LORD directeth his steps” (Proverbs 16:9). The desire is not the enemy. The order is the issue: “But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you” (Matthew 6:33).',
+      scripture: 'Isaiah 46:9-10; Isaiah 45:5; Genesis 3:5; Romans 1:25; Colossians 2:8; Philippians 4:6; 1 John 5:14; Mark 11:22,24; James 4:14-15; Proverbs 16:9; Matthew 6:33; 2 Corinthians 10:5; Hebrews 11:1',
+    },
+    threeD: 'Practically, keep three things and refuse one. KEEP: (1) attention is real — what you rehearse is what you will notice, so rehearse His promises instead of your fears; (2) identity drives action — and the believer already HAS a given identity to act from, bought and named, which is sturdier than one you assume; (3) preparation is faith-shaped — Noah built before the rain, Hebrews calls faith “the substance of things hoped for, the evidence of things not seen” (Hebrews 11:1), so acting ahead of the evidence is not the error. REFUSE: the instruction to stop asking. Bring the request, name it plainly, add thanksgiving, and hand the outcome to a Father who reserves the right to answer better than you asked. And do the mental work the Word actually assigns — “Casting down imaginations… and bringing into captivity every thought to the obedience of Christ” (2 Corinthians 10:5) — which is the opposite of enthroning imagination.',
+    accountability: {
+      statement: 'ACCOUNTABILITY, both directions. Teachers carry weight for what they hand people about God — the Word treats teaching as a heavier office, and every word spoken is accounted for (Matthew 12:36) — and a system that can only explain unanswered prayer by blaming the sufferer’s belief does measurable harm to the sick and the grieving. AND the hearer is accountable too: we are told to try what we are handed, not to swallow it because it is comforting and quotes a verse. Both courts stand here as everywhere: this life weighs a teaching by its fruit, imperfectly and slowly, while the eternal court misses nothing — “For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil” (Ecclesiastes 12:14). This lesson puts no one in that court; it belongs to Yahweh alone, who alone sees the heart (Jeremiah 17:9).',
+      scripture: 'Matthew 12:36; Ecclesiastes 12:14; Colossians 2:8; Jeremiah 17:9',
+    },
+    benefits: [
+      'Both courts held honestly: in this life a teaching is weighed slowly and imperfectly by its fruit — some harm is never named here — while the eternal court misses nothing, for “God shall bring every work into judgment, with every secret thing” (Ecclesiastes 12:14). That frees you to weigh a teaching without appointing yourself anyone’s judge.',
+      'You keep the true parts — selective attention and identity-shaped action are real, and both are usable within the Word without borrowing a false god.',
+      'You are freed from the cruelest clause in manifestation teaching: that an unanswered prayer is proof you did not believe hard enough.',
+      'You get a Person instead of a mechanism — someone to ask, and someone present when the answer is no or not yet.',
+      'You gain the skill of spotting the doorway move: a true thing used to carry an untrue one in behind it.',
+      'You learn to read a borrowed verse in its own sentence — the single habit that would have caught this whole teaching in ten seconds.',
+      'You keep desire without idolatry: seek first the Kingdom, and the added things stay added things.',
+    ],
+    graceNote: 'No condemnation is being handed to anyone here — not to Neville Goddard, who is long dead and whose account belongs to Yahweh alone, not to the teacher in the video, and least of all to the believer who has been practicing this. Many who follow this teaching are hungry for hope and were never given a better frame; that hunger is honest. We weigh the teaching, not the person. If you have prayed this way, nothing is broken between you and Yahweh — “in every thing by prayer and supplication with thanksgiving let your requests be made known unto God” is an open door, today.',
+    stewardship: 'The durable move is not a vision board and not cynicism: it is asking plainly and building faithfully. Write the desire down as a REQUEST, not a decree. Add thanksgiving. Do the next real thing your hands find — the preparation faith always does — and hold the timing loosely with “if the Lord will.” Then rehearse His promises the way the teaching told you to rehearse your outcome; that is the attention mechanism, aimed where it belongs.',
+    anchor: { ref: 'Isaiah 46:9-10', theme: 'He declares the end from the beginning — and the counsel that stands is HIS. The finished work is Yahweh’s purpose, not our preferred outcome.' },
+  },
+  reflection: {
+    skill: 'When a teaching mixes real science, a real verse, and a claim about God: sort the three before you accept or reject any of it. (1) What here is documented? Keep it and say so. (2) What is borrowed vocabulary doing work it cannot do? Name it. (3) What is being said about GOD — and does the verse quoted actually say that, in its own sentence? Read one verse up and one verse down. That single habit catches most of it.',
+    practice: 'Take the video’s proof text and read Isaiah 46:9-10 out loud in full, then answer in one sentence: whose end, whose counsel, whose pleasure? Then take one desire you have been trying to “assume,” and instead write it as a request in the Philippians 4:6 shape — the ask, plainly stated, with thanksgiving — and one real next step your hands can do this week.',
+    prompts: [
+      'The video says the biggest mistake is looking FOR an answer. Philippians 4:6 says to make requests known. Which of those two describes how you have actually been praying?',
+      'Read Isaiah 46:9-10 in full. Whose end is being declared, and whose counsel stands? What changes when you read the second half of verse 10?',
+      'What in this teaching is genuinely true and worth keeping? Say it plainly — pretending nothing in it is true is its own failure of discernment.',
+      'Neville Goddard taught that human imagination IS God. If that is the foundation, can the technique be separated from it? Why or why not?',
+      'Under this teaching, what does an unanswered prayer mean about the person praying? What does Scripture put in that room instead?',
+      'Where else have you seen a true fact used as the doorway for an untrue claim — an ad, a headline, a sermon?',
+    ],
+  },
+  levels: {
+    child: 'Some videos say that if you just imagine really hard that you already have something, you can make it happen by yourself. Here is what IS true: what you think about a lot is what you start to notice, and acting like the kind of person you want to be really does help you do good things. But here is the big part they got backwards: God is not a power inside you that you turn on. He is a Person who loves you, and He wants you to ASK Him — the Bible says to tell God what you need and say thank You (Philippians 4:6). He knows the whole story from the beginning to the end, and His plan is a good one. So dream big, work hard, and ask your Father. You are not alone, and you do not have to make the world obey you.',
+    teen: 'Straight talk, because this one is everywhere on your feed. What is REAL in it: your attention system (the RAS) genuinely filters what you notice, and identity-based motivation is a real published theory — you act like whoever you think you are. Keep both. What is NOT real: the “quantum purple timeline” part. In physics, “observation” means a physical interaction — even an air molecule counts — and belief does not select a timeline; that is borrowed vocabulary doing work it cannot do. And the deepest part, the part they usually skip: Neville Goddard taught that YOUR IMAGINATION IS GOD. That is the whole foundation, and it is the oldest offer in the book — “ye shall be as gods” (Genesis 3:5). Now the verse they quote: “God declares the end from the beginning.” Read the rest of the sentence — “My counsel shall stand, and I will do all my pleasure” (Isaiah 46:10). It is HIS end and HIS counsel, in a chapter that exists to say He alone is God. They turned a verse about His authority into a promise about your wish list. And their main instruction — stop praying for it — is the exact thing Scripture tells you to do: “in every thing by prayer and supplication with thanksgiving let your requests be made known unto God” (Philippians 4:6). Asking is not weakness. Asking is relationship. So: rehearse His promises instead of your fears, act like who He already says you are, work like it matters — and bring the ask to your Father, who answers according to His will (1 John 5:14) and stays with you when the answer is not yet.',
+    senior: 'This teaching deserves careful weighing rather than a reflex, because it is built the way the most effective error is always built: true parts holding an untrue center. Grant the true parts without flinching — the reticular activating system does gate attention and arousal, and identity-based motivation is a genuinely published, field-tested theory that people act in ways congruent with the self they hold. A believer can use both, and Scripture already assigns that work: rehearse His promises, and act from the identity He has given rather than one you assume. Then name the two failures precisely. First, the borrowed physics: “collapsing the wave” does not mean belief selects a reality — observation in quantum mechanics is a physical interaction, decoherence does the explaining, and the consciousness-causes-collapse hypothesis has been argued in the literature to be inconsistent. Second, and far weightier, the doctrine: this system’s own teachers state that human imagination IS God. That is not a Christian technique with unusual vocabulary; it is the ancient inversion — “ye shall be as gods” (Genesis 3:5), the creature served “more than the Creator” (Romans 1:25) — and Paul’s warning fits it exactly: “Beware lest any man spoil you through philosophy and vain deceit… and not after Christ” (Colossians 2:8). The misused verse is the hinge. Isaiah 46:10 does say “Declaring the end from the beginning,” and then finishes the thought: “saying, My counsel shall stand, and I will do all my pleasure,” inside a passage whose stated purpose is that He alone is God (46:9; 45:5). The end that is finished is His, not ours. Which is better news than the teaching offers, not worse: our part is to ask — “in every thing by prayer and supplication with thanksgiving let your requests be made known unto God” (Philippians 4:6) — with confidence resting on His will rather than our certainty (1 John 5:14), holding tomorrow as He tells us to hold it, “If the Lord will” (James 4:15). Faith still acts ahead of sight; it is “the substance of things hoped for, the evidence of things not seen” (Hebrews 11:1). The difference is simply that faith has a Person on the other end of it — one who answers, sometimes differently and better, and who stays present when He answers no.',
+  },
+  quiz: {
+    questions: [
+      { q: 'Isaiah 46:10 says the end is declared from the beginning. Whose end and whose counsel does the verse itself name?', options: ['The believer’s preferred outcome, already finished', 'Yahweh’s own counsel — “My counsel shall stand, and I will do all my pleasure”', 'Any outcome you assume with enough feeling'], answer: 1, explain: 'Read the whole sentence: the finished work in that passage is His purpose, in a chapter whose point is that He alone is God (46:9).' },
+      { q: 'What is genuinely TRUE in the video’s science?', options: ['Belief collapses a quantum wave and selects your timeline', 'Attention is selective (the RAS is real) and identity shapes action (a published theory)', 'Nothing in it is true'], answer: 1, explain: 'Both mechanisms are real and internal — about you, not about the cosmos rearranging. Keep the true parts; refuse the overclaim.' },
+      { q: 'The teaching says to stop praying FOR what you want. What does Scripture say to do with a request?', options: ['Stop asking; assume it is done', 'Make it known — “in every thing by prayer and supplication with thanksgiving let your requests be made known unto God”', 'Never desire anything'], answer: 1, explain: 'Philippians 4:6. Asking is relationship, not lack-consciousness — and 1 John 5:14 puts the confidence in His will rather than our certainty.' },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
