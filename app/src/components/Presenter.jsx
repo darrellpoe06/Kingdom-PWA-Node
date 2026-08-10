@@ -39,6 +39,8 @@ import {
   PRIORITY, fitToBudget, makeScene,
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { requestRead } from '../lib/read-request.js';
 import AudienceSlide from './AudienceSlide.jsx';
 import {
   FOLLOW_ALONG_ENABLED, makeFollowCode, createFollowBroadcaster, followLink,
@@ -469,6 +471,37 @@ export default function Presenter({
   // presenter view holds the slide AND the notes together — no window to drag, no
   // backing out (Darrell 2026-07-16).
   const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age, reveal }) : null;
+
+  // ONE-BUTTON READ ALOUD FOR THE SPEAKER (Darrell 2026-08-10: "I should be able
+  // to also listen to the full message or lesson/s from here... speakers are
+  // supposed to be able to push play for reading whatever... especially
+  // Scriptures"). The presenter registers the CURRENT slide as the screen's
+  // reading — exactly what the room sees, age-pitched, never the presenter-only
+  // notes (the no-leak law holds: what is read aloud is what is projected) — and
+  // hands the reader a next() that advances the deck, so pressing play once
+  // reads the whole message slide by slide with no hand on the screen.
+  useEffect(() => {
+    if (!cur) return undefined;
+    const aud = cur.audience || {};
+    const spoken = [
+      aud.title || '',
+      resolveAudienceLead(aud, age) || '',
+      ...resolveAudiencePoints(aud, age),
+    ].filter(Boolean).join('. ').replace(/\.\.+/g, '.');
+    if (!spoken.trim()) return undefined;
+    const owner = `presenter-${presentableId}-${idx}`;
+    setReadTarget(owner, {
+      label: 'this part of the message',
+      text: spoken,
+      elementId: 'presenter-slide',
+      next: () => {
+        if (idx >= last) return false;
+        setIdx((i2) => Math.min(last, i2 + 1));
+        return true;
+      },
+    });
+    return () => clearReadTarget(owner);
+  }, [cur, idx, age, presentableId, last]);
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
   // The mini mirror defaults OPEN on a wide screen (side console next to a
@@ -534,7 +567,7 @@ export default function Presenter({
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Presenting — ${title}`}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
-          <AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} />
+          <div id="presenter-slide"><AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} /></div>
         </div>
         {/* Always-on speaker bar — never projected content, just the controls. */}
         <div style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
@@ -551,6 +584,9 @@ export default function Presenter({
           {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#C9D9A6', fontFamily: '"JetBrains Mono", monospace' }}>re-pitches live</span>}
           <span aria-live="polite" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>{formatClock(elapsed)}</span>
           <button type="button" onClick={() => setRunning((r) => !r)} style={chip(false)}>{running ? 'Pause' : 'Start'}</button>
+          {/* PUSH PLAY — reads this slide aloud and keeps going through the
+              message, hands-free, in the speaker's chosen voice. */}
+          <button type="button" onClick={() => requestRead({ from: 'presenter' })} style={chip(false)} title="Read this message aloud, slide by slide">▶ Read aloud</button>
           <button type="button" onClick={() => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* F11 */ } }} style={chip(false)}>Full screen</button>
           <button type="button" onClick={() => setOnScreen(false)} style={{ ...chip(false), borderColor: '#EBA77E', color: '#EBA77E' }}>Speaker view ✕</button>
         </div>
@@ -586,7 +622,12 @@ export default function Presenter({
           {/* The no-setup path: present on THIS device (tablet held up / cast to a TV) —
               no popup, no second browser, no second person. */}
           <button type="button" onClick={() => setOnScreen(true)} style={btn.base}>▶ Present on this screen</button>
-          <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>fills this screen — cast or hold it up; the age toggle stays with you.</span>
+          {/* PUSH PLAY, from the console too (Darrell 2026-08-10: "I should be
+              able to also listen to the full message or lesson/s from here").
+              One button: it reads this part in the chosen voice and keeps going
+              through the whole message — no panel to find, nothing to set up. */}
+          <button type="button" onClick={() => requestRead({ from: 'presenter-console' })} style={btn.ghost} title="Read the message aloud from here, part by part">▶ Read it aloud</button>
+          <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>fills this screen — cast or hold it up; the age toggle stays with you. Read it aloud plays the message in your chosen voice and keeps going, part by part.</span>
           <strong style={{ flexBasis: '100%', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', marginTop: 4 }}>Two screens? Class screen (projector):</strong>
           {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.ghost}>Open class screen →</button>}
           {audienceState !== 'closed' && audienceState !== 'blocked' && (
