@@ -37,6 +37,7 @@
 // environments degrade gracefully — every public function is null-safe and the
 // hook reports `supported: false` rather than throwing (unbreakable).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toSpokenForm } from './speech-text.js';
 
 const STORAGE_KEY = 'poe-tts-prefs';
 
@@ -202,11 +203,14 @@ export function saveTTSPrefs(prefs, store = (typeof localStorage !== 'undefined'
  * restarting bumps the token, so the synth's interrupt-driven onend/onerror for
  * a superseded utterance can never auto-advance or double-speak.
  */
-export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
+export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {}) {
   const p = prefs || {};
   const engine = {
     synth,
     Utterance,
+    // The document is injected so the BACKGROUND KEEP-PLAYING watchdog below is
+    // testable without a browser. Absent → the watchdog simply never arms.
+    doc: doc || (typeof document !== 'undefined' ? document : null),
     onState: typeof onState === 'function' ? onState : () => {},
     segments: [],
     idx: 0,
@@ -223,11 +227,65 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     _retried: false, // we've already kicked-and-retried a silent start this playback
     _watch: null,    // start-watchdog timer id
 
+    _bgTimer: null,   // background keep-playing ticker
+    _bgVis: null,     // the visibilitychange listener while reading
+    _bgStalls: 0,     // consecutive hidden ticks with no audio at all
+
     _clearWatch() {
       if (this._watch != null && typeof clearTimeout === 'function') {
         try { clearTimeout(this._watch); } catch (_) { /* ignore */ }
       }
       this._watch = null;
+    },
+
+    // -----------------------------------------------------------------------
+    // BACKGROUND KEEP-PLAYING (Darrell 2026-08-10: "let the reader continue
+    // after leaving the app... so I can hear the Word"). Two things stop a
+    // backgrounded read, and this answers the second of them:
+    //   1. the page being frozen for lack of an audio session — answered by
+    //      lib/background-audio.js (a silent looping element held while reading);
+    //   2. Chrome PAUSING the synth itself when the document hides — answered
+    //      here: while the document is hidden and the user has NOT paused, tick
+    //      the synth back to playing. Two consecutive silent ticks (no speaking,
+    //      nothing pending) means the utterance was dropped rather than paused,
+    //      so the CURRENT segment is re-spoken — the generation token makes that
+    //      safe, and re-speaking one sentence is the honest worst case.
+    // A user pause is never overridden: every path is gated on status ===
+    // 'playing'.
+    // -----------------------------------------------------------------------
+    _kickBackground() {
+      if (this.status !== 'playing') return;
+      if (!this.doc || this.doc.hidden !== true) { this._bgStalls = 0; return; }
+      let paused = false; let speaking = false; let pending = false;
+      try { paused = !!this.synth.paused; speaking = !!this.synth.speaking; pending = !!this.synth.pending; } catch (_) { /* ignore */ }
+      if (paused) { try { this.synth.resume(); } catch (_) { /* ignore */ } }
+      if (speaking || pending) { this._bgStalls = 0; return; }
+      this._bgStalls += 1;
+      if (this._bgStalls >= 2) { this._bgStalls = 0; this._restartCurrent(); }
+    },
+
+    _armBackground() {
+      if (this._bgTimer != null || !this.doc) return;
+      this._bgStalls = 0;
+      if (typeof this.doc.addEventListener === 'function') {
+        this._bgVis = () => this._kickBackground();
+        try { this.doc.addEventListener('visibilitychange', this._bgVis); } catch (_) { this._bgVis = null; }
+      }
+      if (typeof setInterval === 'function') {
+        this._bgTimer = setInterval(() => this._kickBackground(), 2000);
+      }
+    },
+
+    _disarmBackground() {
+      if (this._bgTimer != null && typeof clearInterval === 'function') {
+        try { clearInterval(this._bgTimer); } catch (_) { /* ignore */ }
+      }
+      this._bgTimer = null;
+      if (this._bgVis && this.doc && typeof this.doc.removeEventListener === 'function') {
+        try { this.doc.removeEventListener('visibilitychange', this._bgVis); } catch (_) { /* ignore */ }
+      }
+      this._bgVis = null;
+      this._bgStalls = 0;
     },
 
     _emit() {
@@ -247,7 +305,11 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       this._clearWatch();
       const seg = this.segments[this.idx];
       if (seg == null) { this._finish(); return; }
-      const u = new this.Utterance(seg);
+      // SPOKEN FORM, not written form: "2 Timothy" is said "2nd Timothy" (see
+      // lib/speech-text.js). The SEGMENT stays the written text — the follow
+      // map, the highlight and every offset are computed from it — and only the
+      // utterance handed to the voice carries the ordinal.
+      const u = new this.Utterance(toSpokenForm(seg));
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
@@ -333,6 +395,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
 
     _finish() {
       this._clearWatch();
+      this._disarmBackground();
       this.status = 'idle';
       this.idx = 0;
       this._dirty = false;
@@ -366,30 +429,46 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       this._dirty = false;
       this.failed = false;
       this._retried = false;
+      this._armBackground();
       this._speakSegment();
     },
 
+    // -----------------------------------------------------------------------
+    // PAUSE / CONTINUE — ours, not the platform's (Darrell 2026-08-10: "the
+    // pause and continue doesn't work"). Root cause: on Android the browser's
+    // speechSynthesis.pause() is not honored — the voice talks straight through
+    // it, and a later resume() on a synth that was never really paused does
+    // nothing. Trusting the platform here is the bug.
+    //
+    // So we hold our own place instead. Pause CANCELS (the one command every
+    // engine honors) and remembers the current SENTENCE; continue re-speaks
+    // from that sentence. The cost is honest and small: continuing restarts the
+    // sentence you were in — segments are one sentence each — and in exchange
+    // pause/continue behaves identically on every device, a rate or voice
+    // change made while paused is simply heard when you continue, and there is
+    // no way to end up in Chrome's stuck-paused state (the classic "it paused
+    // and never spoke again").
+    // -----------------------------------------------------------------------
     pause() {
       if (this.status !== 'playing') return;
       this._clearWatch();
-      try { this.synth.pause(); } catch (_) { /* ignore */ }
+      this._gen += 1; // the in-flight utterance's onend/onerror must not advance us
+      try { this.synth.cancel(); } catch (_) { /* ignore */ }
       this.status = 'paused';
+      this._dirty = false; // continuing always re-speaks, so nothing is stale
       this._emit();
     },
 
     resume() {
       if (this.status !== 'paused') return;
       this.status = 'playing';
-      if (this._dirty) {
-        // A rate/voice change landed while paused — re-speak the current segment
-        // so the new setting is heard (native resume can't change rate, and mobile
-        // resume is unreliable anyway).
-        this._dirty = false;
-        this._restartCurrent();
-      } else {
-        try { this.synth.resume(); } catch (_) { /* ignore */ }
-        this._emit();
-      }
+      this._dirty = false;
+      this._retried = false;
+      // Un-suspend first: a synth parked by the OS (backgrounding, a prior
+      // cancel) accepts speak() and stays silent until it is resumed.
+      try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+      this._armBackground();
+      this._speakSegment();
     },
 
     stop() {
@@ -441,6 +520,7 @@ export function useTextToSpeech() {
       Utterance: window.SpeechSynthesisUtterance,
       onState: setState,
       prefs,
+      doc: typeof document !== 'undefined' ? document : null,
     });
   }
 

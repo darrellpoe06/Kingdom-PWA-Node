@@ -610,9 +610,26 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // register the FULL lesson (every teach segment, not the visible step) so the
   // floating Read Aloud control reads ONE whole lesson start to finish instead
   // of the page's mixed lesson cards (Darrell 2026-07-30). Cleared on close.
+  //
+  // FOLLOW-ALONG (2026-08-10): the registration also names the ELEMENT that
+  // renders this lesson and hands the reader a `prepare` switch. Composed text
+  // alone could only be highlighted by searching for each spoken sentence in
+  // the DOM, and this lesson's spoken text is composed ("Anchor scripture — …")
+  // and PACED (one stage rendered at a time) — so the search matched almost
+  // nothing: the Learn read highlighted nothing and the four unrendered stages
+  // were never read at all. prepare(true) renders every stage; the reader then
+  // maps this element and speaks its exact text — alignment by construction.
+  const [readAll, setReadAll] = useState(false);
   React.useEffect(() => {
     const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
-    if (text) setReadTarget(module.id, { label: `this ${unitNoun}`, text });
+    if (text) {
+      setReadTarget(module.id, {
+        label: `this ${unitNoun}`,
+        text,
+        elementId: `learn-read-${module.id}`,
+        prepare: (on) => setReadAll(!!on),
+      });
+    }
     return () => clearReadTarget(module.id);
   }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun]);
 
@@ -791,8 +808,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   };
 
   return (
-    <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">
+    <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3" id={`learn-read-${module.id}`}>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2" data-read-skip>
         🧭 {ARI.name} — your guide for this {unitNoun}
       </div>
 
@@ -805,10 +822,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         unitNoun={unitNoun}
         initialIndex={savedHere ? savedHere.stage : 0}
         onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
+        showAll={readAll}
       />
 
-      {/* The chat with the local tutor */}
-      <div className="mt-3 border-t border-[#E8E4DC] pt-3">
+      {/* The chat with the local tutor — a conversation, not part of the
+          lesson's reading (data-read-skip keeps it out of the spoken text). */}
+      <div className="mt-3 border-t border-[#E8E4DC] pt-3" data-read-skip>
         {messages.length > 0 && (
           <div className="space-y-2 mb-2" aria-live="polite" ref={liveRef}>
             {messages.map((m, i) => (

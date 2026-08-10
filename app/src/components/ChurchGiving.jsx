@@ -171,7 +171,7 @@ export function ChurchGivePanel({ church, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden"
+      data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       onClick={onClose}
     >

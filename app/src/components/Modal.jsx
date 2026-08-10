@@ -99,7 +99,7 @@ export default function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[120] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden"
+      data-read-skip className="fixed inset-0 z-[120] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden"
       onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}
       onKeyDown={onKeyDown}
     >

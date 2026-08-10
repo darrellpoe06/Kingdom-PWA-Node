@@ -25,6 +25,8 @@ import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
+import { createBackgroundAudio } from './background-audio.js';
+import { toSpokenForm } from './speech-text.js';
 import { supabase } from './supabase.js';
 
 /**
@@ -37,6 +39,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
   const [cloudPlaying, setCloudPlaying] = useState(false);
+  const [cloudPaused, setCloudPaused] = useState(false);
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
   const [notice, setNotice] = useState('');
   const audioRef = useRef(null);
@@ -107,10 +110,41 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, tts.supported, tts.voices]);
 
+  // BACKGROUND PLAYBACK (Darrell 2026-08-10: "let it run in the background
+  // while I work on other apps etc... so I can hear the Word"). A backgrounded
+  // page is frozen unless it is playing media, and Web Speech is not media — so
+  // the session holds one silent looping element for exactly as long as the
+  // reader is reading, and hands the OS lock-screen controls that drive THESE
+  // controls. See lib/background-audio.js for the mechanism and its honest
+  // limits (Android/Chromium is the proven path; iOS suspends device speech).
+  const bgRef = useRef(null);
+  const ctrlRef = useRef({});
+  const bg = useCallback(() => {
+    if (!bgRef.current) bgRef.current = createBackgroundAudio();
+    return bgRef.current;
+  }, []);
+
   const stop = useCallback(() => {
     try { tts.stop(); } catch (_) {}
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
+    setCloudPaused(false);
+    if (bgRef.current) bgRef.current.stop();
+  }, [tts]);
+
+  // Pause / continue must work in BOTH voices — a cloned-voice reading is an
+  // audio clip, not an utterance, and the panel's one Pause button has to hold
+  // whichever is actually playing.
+  const pause = useCallback(() => {
+    if (audioRef.current) { try { audioRef.current.pause(); setCloudPaused(true); } catch (_) {} }
+    tts.pause();
+  }, [tts]);
+
+  const resume = useCallback(() => {
+    if (audioRef.current) {
+      try { const p = audioRef.current.play(); if (p && p.catch) p.catch(() => {}); setCloudPaused(false); } catch (_) {}
+    }
+    tts.resume();
   }, [tts]);
 
   // Stop only in-flight CLOUD audio before a fresh browser-voice read. The TTS
@@ -129,12 +163,37 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     if (tts.failed) setNotice('Audio didn’t start — press play once more, or pick the System voice.');
   }, [tts.failed]);
 
+  // Keep the OS transport and the keep-alive session in step with the reader:
+  // released the moment nothing is being read, so a finished reading does not
+  // hold an audio session (or a stale lock-screen card) open.
+  useEffect(() => {
+    const session = bgRef.current;
+    if (!session) return;
+    const reading = tts.isReading || cloudPlaying;
+    if (!reading) { session.stop(); return; }
+    session.setState(tts.isPaused ? 'paused' : 'playing');
+  }, [tts.isReading, tts.isPaused, cloudPlaying]);
+
+  useEffect(() => () => { if (bgRef.current) bgRef.current.stop(); }, []);
+
   // The one play path, honoring the global voice preference.
-  const read = useCallback(async (text) => {
+  // `title` names the reading on the phone's lock screen / media notification.
+  const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
     setNotice('');
     stopCloud();
+    // Claim the audio session INSIDE the user's tap — after an await the
+    // gesture is spent and the browser refuses to start it.
+    const session = bg();
+    session.start();
+    session.describe({ title: title || (typeof document !== 'undefined' && document.title) || 'Reading' });
+    session.onControl({
+      onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
+      onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
+      onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
+    });
+    session.setState('playing');
 
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
@@ -143,7 +202,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
         const refBlob = await loadReference(personKey);
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
-          const { url, error } = await synthesizeSpeech({ text: clean, voiceId: voice.id, personKey, referenceDataUri });
+          // The cloned voice gets the same spoken form the device voice does —
+          // "2nd Timothy", never "two Timothy" (lib/speech-text.js).
+          const { url, error } = await synthesizeSpeech({ text: toSpokenForm(clean), voiceId: voice.id, personKey, referenceDataUri });
           if (!error && url) {
             // Vendor use is never silent (DR-0138): when the bridge (not the
             // sovereign studio) carried this voice, say so — it is a recorded
@@ -210,12 +271,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, bg]);
+
+  // The OS media buttons drive the SAME controls the panel does — kept in a ref
+  // so a lock-screen tap can never call a stale closure.
+  ctrlRef.current = { pause, resume, stop };
 
   return {
     supported: tts.supported,
     isReading: tts.isReading || cloudPlaying,
-    isPaused: tts.isPaused,
+    isPaused: tts.isPaused || cloudPaused,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,
     // Follow-along (DR-0264): device-voice reads report per-sentence progress
@@ -227,6 +292,6 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     deviceRead: !cloudPlaying,
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
-    read, pause: tts.pause, resume: tts.resume, stop, setRate: tts.setRate,
+    read, pause, resume, stop, setRate: tts.setRate,
   };
 }

@@ -24,6 +24,7 @@ import {
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
+import { revealForReading, settled } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
@@ -127,6 +128,19 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // whole-page reading stays as the fallback below it.
   const [target, setTarget] = useState(() => getReadTarget());
   useEffect(() => subscribeReadTarget(setTarget), []);
+  // The target we asked to render in full (read-this-piece), so its paced view
+  // can be restored when the reading ends. Declared with the other hooks —
+  // above the unsupported-device early return — so hook order never varies.
+  const preparedRef = useRef(null);
+  // When the reading ends (finished or stopped), give the surface its paced
+  // view back — the expansion belongs to the reading, not to the learner's
+  // place. Only ever restores a target THIS control expanded.
+  useEffect(() => {
+    if (isReading || !preparedRef.current) return;
+    const t = preparedRef.current;
+    preparedRef.current = null;
+    try { t.prepare(false); } catch (_) { /* restoring is best-effort */ }
+  }, [isReading]);
   // The collapsed read-aloud button is a gentle reminder: it dims + settles when
   // idle and re-reveals on scroll/touch. Declared before the early return below
   // so the hook order is stable (rules-of-hooks). Applies to the collapsed button
@@ -182,12 +196,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
   if (!supported) return null; // graceful: device can't speak — show nothing
 
-  const start = () => {
+  const start = async () => {
+    // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
+    // all" / "dropdown information need to be understood.... too"). This app's
+    // disclosures are conditionally rendered, so a collapsed "About this" panel
+    // has no text in the document — it could not be read because it was not
+    // there. Reveal, let it paint, THEN map: what is heard is what is shown.
+    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
+    if (main) { revealForReading(main); await settled(main); }
     // Build the follow map from the LIVE page and speak its exact normalized
     // text, so the engine's sentence N and the on-screen range N are the same
     // sentence by construction. Falls back to the plain extractor when the map
     // can't be built (empty page) — reading always still works.
-    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
     const follow = main ? buildFollowMap(main) : null;
     if (follow && follow.text) {
       followRef.current = pageFollowState(follow);
@@ -200,31 +220,58 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (text) { setMinimized(true); read(text); }
   };
 
-  // READ-THIS-LESSON now FOLLOWS too (DR-0265): map the open lesson's own
-  // card and align the registered full text to it sentence-by-sentence. The
-  // spoken text can include passages not currently rendered (paced tutor
-  // steps) — those sentences simply carry no highlight while everything
-  // on-screen highlights and scrolls; word-level stays off in this mode
-  // (the alignment is per-sentence). Falls back to plain reading when the
-  // lesson element isn't in the DOM.
-  const readTargetNow = (t) => {
-    const el = (typeof document !== 'undefined' && t && t.owner)
-      ? document.getElementById(`learn-lesson-${t.owner}`) : null;
+  // READ-THIS-PIECE — now ALIGNED BY CONSTRUCTION (2026-08-10, DR-0285).
+  //
+  // What was wrong: this mode spoke the surface's COMPOSED text and tried to
+  // find each spoken sentence back in the DOM (alignSegments). On a Learn
+  // lesson almost nothing matched — the composed text carries connective
+  // sentences that are not on screen ("Anchor scripture — …", "Questions to
+  // think about:"), and the lesson renders ONE stage at a time, so four of five
+  // stages were not in the document at all. Result, exactly as reported: the
+  // Learn read highlighted NOTHING (while Eternal Algorithms, which has no
+  // registered target and therefore maps the page itself, highlighted fine),
+  // and the unrendered stages were never read.
+  //
+  // The fix is the same law the page read has always obeyed: make the DOM the
+  // source of the spoken text. `prepare(true)` asks the surface to render the
+  // WHOLE piece (every stage), collapsed disclosures inside it are opened, and
+  // then the element is mapped and its own text is spoken — so every sentence
+  // spoken has a range, word-level follow works again, and nothing deeper is
+  // skipped. The composed text remains the honest fallback for a surface that
+  // registers no element (or one that isn't in the DOM).
+  const readTargetNow = async (t) => {
+    if (!t) return;
+    let el = null;
+    if (typeof document !== 'undefined') {
+      el = t.elementId ? document.getElementById(t.elementId) : null;
+      if (!el && t.owner) el = document.getElementById(`learn-lesson-${t.owner}`);
+      if (t.prepare) {
+        try { t.prepare(true); preparedRef.current = t; } catch (_) { /* never blocks the read */ }
+        // requireChange: we just asked for more of the piece — do not accept
+        // "nothing has happened yet" as "it is done".
+        await settled(el, { requireChange: true }); // the whole piece is rendered before anything is mapped
+      }
+      if (el) { revealForReading(el); await settled(el); }
+    }
     const follow = el ? buildFollowMap(el) : null;
     if (follow && follow.text) {
-      const spoken = segmentText(t.text);
-      followRef.current = {
-        follow,
-        base: 0,
-        ranges: alignSegments(follow, spoken),
-        lens: spoken.map((s) => s.length),
-        wordable: false,
-      };
+      followRef.current = pageFollowState(follow);
       setMinimized(true);
-      read(t.text);
+      read(follow.text);
       return;
     }
-    followRef.current = null;
+    // No element to map: speak the registered text and align what we can find
+    // on screen (sentence-level, unrendered passages carry no highlight).
+    const spoken = segmentText(t.text);
+    const pageFollow = (typeof document !== 'undefined' && document.querySelector('main'))
+      ? buildFollowMap(document.querySelector('main')) : null;
+    followRef.current = pageFollow ? {
+      follow: pageFollow,
+      base: 0,
+      ranges: alignSegments(pageFollow, spoken),
+      lens: spoken.map((s) => s.length),
+      wordable: false,
+    } : null;
     setMinimized(true);
     read(t.text);
   };
@@ -246,7 +293,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (text) read(text);
   };
 
-  const close = () => { stop(); setArmed(false); setIsOpen(false); };
+  // CLOSING IS NOT SILENCING (Darrell 2026-08-10: "The reader can't be closed
+  // after opening to change speed of the reader... we need that"). Closing used
+  // to call stop(), so the only way out of the panel after adjusting the speed
+  // was to kill the reading — the listener had to choose between the controls
+  // and the Word. Now there is ONE thing that stops the voice: Stop. Close puts
+  // the panel away; while reading, the collapsed button stays visibly in the
+  // reading state so Stop is always one tap away.
+  const close = () => {
+    if (!isReading) stop(); // idle: also stands down an armed tap-to-start
+    setArmed(false);
+    setIsOpen(false);
+  };
 
   // Grouped voice options (System / Your voices / Voices & accents) — same global
   // preference the header picker and Voice tab write.
@@ -278,6 +336,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <button type="button" onClick={() => setMinimized(false)} aria-label="Expand reading controls" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             ⌃
           </button>
+          {/* Put the pill away without silencing the Word — the button it
+              collapses into keeps reading and keeps Stop one tap away. */}
+          <button type="button" onClick={close} aria-label="Hide reading controls — keeps reading" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ×
+          </button>
         </div>
       ) : isOpen ? (
         /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
@@ -301,7 +364,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <div className="text-[0.5625em] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
               <div className="text-[0.625em] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : statusLabel))}</div>
             </div>
-            <button type="button" onClick={close} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+            <div className="flex items-center gap-[0.375em]">
+              {isReading && (
+                <button type="button" onClick={() => setMinimized(true)} aria-label="Collapse to the reading pill — keeps reading" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⌄ Smaller</button>
+              )}
+              <button type="button" onClick={close} title={isReading ? 'Closes the panel — the reading keeps going' : 'Close'} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-[0.25em] mb-[0.75em]">
@@ -375,15 +443,33 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           ) : null}
 
           <p className="text-[0.5625em] text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>
-            {target ? `Read ${target.label} reads that one whole piece, start to finish — nothing else on the page mixed in. ` : ''}Read this page recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
+            {target ? `Read ${target.label} opens every part of that one piece and reads it start to finish — nothing else on the page mixed in. ` : ''}Read this page opens what is collapsed on it and recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
+          </p>
+          <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading, and the reading carries on when you leave the app — your phone’s own play/pause controls it.
           </p>
         </div>
       ) : (
         // .ts-chrome-region caps it so it does NOT grow with the text-size
         // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
         // settles it when idle, springs it back on scroll/touch.
-        <button type="button" onClick={() => setIsOpen(true)} aria-label="Open read-aloud controls" title="Read aloud" className={`ts-chrome-region bg-[#1A1815] text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${revealFab ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}>
+        // While reading it never dims and never hides: it wears the reading
+        // state (a live badge + an honest label) so a closed panel still shows
+        // the Word is playing and Stop is one tap away — including after the
+        // user has left the app and come back (background playback).
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label={isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
+          title={isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
+          className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
+        >
           🔊
+          {isReading && (
+            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-[#1A1815] text-white text-[0.5rem] leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">
+              {isPaused ? '❚❚' : '▶'}
+            </span>
+          )}
         </button>
       )}
     </div>
