@@ -38,3 +38,65 @@ export function isPublicHost() {
     return true; // Fail closed.
   }
 }
+
+// ---------------------------------------------------------------------------
+// THE PUBLIC CHURCH ROUTE — a shared lesson link must open for a stranger
+// ---------------------------------------------------------------------------
+// Darrell 2026-08-10, opening a shared lesson link on the live site: "why would
+// anyone need to login to see the lessons?" And: "This should be an advantage
+// for PoeTech App... easy for promotion to potential students users and
+// businesses."
+//
+// He was right, and the app already SAID so: the shell's own comment beside the
+// gate reads "The Love Corner church door is a PUBLIC community: signed-out
+// visitors SEE the church (no private family/financial data lives here)." But
+// the only thing that opened that door was `isChurchDoorContext()`, which
+// requires either the `?lovecorner=1` door param or an INSTALLED (standalone)
+// PWA. So the church was public exactly for people who had already installed
+// the app — and every shared link, opened in an ordinary browser tab, hit the
+// create-a-profile wall. A link you cannot hand to someone who does not have
+// the app yet is not a link; it is an invitation to a locked door, and it is
+// the single cheapest promotion the platform has.
+//
+// This predicate is the fix, kept SEPARATE from isChurchDoorContext on purpose:
+// that one decides which BRAND the door wears and which chrome hides; this one
+// decides only whether a signed-out visitor may pass. Church surfaces that hold
+// staff or member data self-gate downstream (harvest, devices, infrastructure,
+// the observation board, rosters) and are unaffected — they check the signed-in
+// account, not the front door.
+//
+// Pure and injectable so the security property stays directly testable.
+// ---------------------------------------------------------------------------
+export function isPublicChurchRoute(search = (typeof window !== 'undefined' && window.location ? window.location.search : '')) {
+  try {
+    const sp = new URLSearchParams(search || '');
+    if (sp.get('lovecorner') === '1') return true;   // the church's own door
+    const view = (sp.get('view') || '').toLowerCase().trim();
+    if (view === 'church') return true;              // any church surface, any browser
+    // The pre-history-nav church deep-links (?view=learn etc.) resolve to the
+    // church tab in parseNav, so they open publicly too — an old bookmark or a
+    // link someone already shared must not start demanding a login.
+    return ['learn', 'engagement', 'choir', 'pulpit', 'events'].includes(view);
+  } catch (e) {
+    return false; // malformed query -> the normal gate, never an accidental opening
+  }
+}
+
+/**
+ * WHOSE APP AM I IN — the brand follows the DOOR, not the tab.
+ *
+ * Darrell 2026-08-10: "whenever I'm in learn... from PoeTech App... I end up in
+ * the Love Corner App... still an issue." DR-0174 made the header wear the
+ * church on ANY `?view=church`, which is right for someone who came through the
+ * church door and wrong for a steward inside PoeTech who simply opened the
+ * Church tab — tapping a TAB must never feel like leaving for another app.
+ *
+ *   • launched through the church door (installed Love Corner app,
+ *     ?lovecorner=1) → wears the church everywhere (DR-0174, unchanged);
+ *   • a signed-out visitor on a public church link (a shared lesson)
+ *                    → wears the church, because that is what they came for;
+ *   • inside the PoeTech app → PoeTech, on every tab including Church.
+ */
+export function wearsChurchBrand({ churchDoorOnly = false, signedIn = false, route = false } = {}) {
+  return !!churchDoorOnly || (!signedIn && !!route);
+}
