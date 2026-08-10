@@ -274,3 +274,62 @@ describe('deriveDebts — limit, utilization and peak', () => {
     expect(d.highestBalance).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Per-row switches from the Debts editor (0134) — Christina 2026-08-10.
+// ---------------------------------------------------------------------------
+describe('deriveDebts — leave alone, and a revertible rate override', () => {
+  it('honours leave_alone on an account-backed debt', () => {
+    // Proven-to-catch: leaveAlone was hardcoded false for account debts, so the
+    // badge the table already renders could never appear and a deliberately
+    // parked card still counted in the totals and the snowball.
+    const data = {
+      accounts: [{ id: 'a-p', name: 'Settled card', type: 'credit', treatAsDebt: true, balance: 900, leaveAlone: true, entityId: 'e1' }],
+      transactions: [],
+    };
+    expect(deriveDebts(data, ASOF)[0].leaveAlone).toBe(true);
+  });
+
+  it('an override replaces the derived rate but never hides it', () => {
+    // The statements still speak: dataRate carries the derived figure alongside
+    // the override so the row can show both and offer a one-tap revert.
+    const data = {
+      accounts: [{ id: 'a-loc', name: 'LOC', type: 'credit', balance: -10000, rate: 24.99, rateKnown: true, rateOverridden: true, entityId: 'e1' }],
+      transactions: [
+        { id: 't1', date: '2026-04-15', accountId: 'a-loc', amount: -145, description: 'INTEREST CHARGE' },
+        { id: 't2', date: '2026-05-15', accountId: 'a-loc', amount: -145, description: 'INTEREST CHARGE' },
+      ],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rate).toBe(24.99);
+    expect(d.rateSource).toBe('override');
+    expect(d.dataRate).toBeGreaterThan(0);      // what the statements imply, still computed
+    expect(d.dataRate).not.toBe(24.99);
+  });
+
+  it('without the override flag the derived rate still wins', () => {
+    const data = {
+      accounts: [{ id: 'a-loc', name: 'LOC', type: 'credit', balance: -10000, rate: 24.99, entityId: 'e1' }],
+      transactions: [
+        { id: 't1', date: '2026-04-15', accountId: 'a-loc', amount: -145, description: 'INTEREST CHARGE' },
+        { id: 't2', date: '2026-05-15', accountId: 'a-loc', amount: -145, description: 'INTEREST CHARGE' },
+      ],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.rateSource).toBe('derived');
+    expect(d.rate).not.toBe(24.99);
+    expect(d.rate).toBe(d.dataRate);
+  });
+
+  it('a rental mortgage carries its property id so the row can be edited', () => {
+    const data = {
+      accounts: [],
+      inflows: { rentals: [{ id: 'r1', name: 'Maple St', entityId: 'e1', mortgage: { balance: 148000, rate: 6.25, monthlyPI: 1120 } }] },
+      transactions: [],
+    };
+    const d = deriveDebts(data, ASOF)[0];
+    expect(d.source).toBe('rental');
+    expect(d.rentalId).toBe('r1');
+    expect(d.needsTerms).toBe(false);
+  });
+});
