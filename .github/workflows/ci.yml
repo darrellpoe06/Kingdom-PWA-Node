@@ -164,6 +164,22 @@ jobs:
       - name: sovereign ways-brain parser selftest
         working-directory: infra/nas-ways
         run: python3 ways_ingest.py --selftest
+      # Sovereign mail archive selftest (DR-0238): the Takeout mbox -> owned
+      # index. Proven-to-catch: fails if dedupe, per-year/label stats, or
+      # attachment extraction regress. Was never gated until the DR-0238
+      # re-review (2026-08-11) wired it in.
+      - name: sovereign mail archive selftest
+        working-directory: infra/nas-mail-archive
+        run: python3 mail_archive.py --selftest
+      # Sovereign photos archive selftest (DR-0238 re-review / DR-0291): the
+      # Takeout -> owned archive for the service that actually holds the ~200 GB.
+      # Proven-to-catch on BOTH halves: the re-dating/pairing/dedupe logic, and
+      # the --verify DELETION GATE itself (a flipped byte and a removed file must
+      # each flip GO -> NO-GO). Photos are irreplaceable; the gate that says
+      # "safe to delete" is not allowed to be theater.
+      - name: sovereign photos archive selftest
+        working-directory: infra/nas-photos-archive
+        run: python3 photos_archive.py --selftest
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
