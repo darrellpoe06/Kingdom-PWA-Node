@@ -268,3 +268,37 @@ describe('transcript-trickle can actually run on the box', () => {
     expect(src).toMatch(/exit 1/);
   });
 });
+
+// ===========================================================================
+// choir-dates: the yt-dlp wrapper repairs itself (measured 2026-08-11)
+// ===========================================================================
+// With the transcript rider's dependency fixed, services-sync failed one
+// installer later — choir_dates_sync.py raising "yt-dlp not available" while
+// the wrapper file was sitting right there, executable. Two faults met: the
+// --version check only ran when the wrapper was CREATED, so an existing-but-
+// broken wrapper was never re-tested; and the wrapper called `docker run` bare
+// on a box where nas-health had already established the socket denies dpoe's
+// plain shell without `sudo -n`. Present, executable, and unable to reach
+// docker at all — failing silently one layer below the python that shells out.
+describe('choir-dates yt-dlp wrapper is verified every cycle', () => {
+  const installer = () => readFileSync(
+    join(ROOT, 'infra/church-media-golive/choir_dates_install.sh'), 'utf8');
+
+  it('health-checks the wrapper on EVERY run, not only at creation', () => {
+    const src = installer();
+    expect(src).toMatch(/ytdlp_ok\(\)/);
+    // PROVEN-TO-CATCH: the old guard short-circuited on mere existence.
+    expect(src).not.toMatch(/if ! python3 -c "import yt_dlp" 2>\/dev\/null && \[ ! -x "\$YTDLP" \]; then/);
+    expect(src).toMatch(/! ytdlp_ok/);
+  });
+
+  it('reaches docker through sudo -n when the plain socket is denied', () => {
+    expect(installer()).toMatch(/sudo -n docker/);
+  });
+
+  it('still fails LOUD when the wrapper cannot be made to work', () => {
+    const src = installer();
+    expect(src).toMatch(/failed its --version check/);
+    expect(src).toMatch(/exit 1/);
+  });
+});

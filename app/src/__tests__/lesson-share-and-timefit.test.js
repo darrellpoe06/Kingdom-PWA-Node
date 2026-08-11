@@ -21,7 +21,7 @@
 // capability existed and the learner could not reach it, and "the most minimal
 // time" did not exist for anyone.
 import { describe, it, expect, vi } from 'vitest';
-import { canShare, lessonSharePayload, shareLink } from '../lib/lesson-links.js';
+import { canShare, lessonSharePayload, courseSharePayload, shareLink, lessonUrl, parseLessonLink } from '../lib/lesson-links.js';
 import { getTimeFit, recordTimeFit, TIME_FIT_MIN, TIME_FIT_MAX } from '../lib/learn-resume.js';
 
 // A minimal localStorage double — the same shape learn-resume already injects.
@@ -135,5 +135,37 @@ describe('the presets answer the Ways (DR-0215)', () => {
     expect(Math.min(...REFLOW_PRESETS)).toBe(TIME_FIT_MIN);
     expect(Math.max(...REFLOW_PRESETS)).toBeGreaterThanOrEqual(90); // still a full sitting
     expect([...REFLOW_PRESETS].sort((a, b) => a - b)).toEqual(REFLOW_PRESETS);
+  });
+});
+
+describe('the whole course can be shared, not only one sitting', () => {
+  it('carries the course title, its blurb, and the course link', () => {
+    const p = courseSharePayload(
+      { title: 'Healthy Living', blurb: 'The body is His temple.' },
+      { url: 'https://poetech.us/c', lessonCount: 12, unitPlural: 'lessons' },
+    );
+    expect(p.title).toBe('Healthy Living');
+    expect(p.text).toContain('The body is His temple.');
+    expect(p.text).toContain('12 lessons, free to read');
+    expect(p.url).toBe('https://poetech.us/c');
+  });
+
+  it('the count is COUNTED — an empty course boasts nothing rather than "0 lessons"', () => {
+    const p = courseSharePayload({ title: 'New' }, { url: 'u', lessonCount: 0 });
+    expect(p.text).not.toMatch(/0 lessons/);
+    expect(p.text).toContain('Free to read');
+  });
+
+  it('the course link carries the course and NO lesson — it opens the series', () => {
+    const url = lessonUrl({ courseKey: 'healthy-living', origin: 'https://poetech.us', path: '/poetech-app/' });
+    expect(url).toContain('course=healthy-living');
+    expect(url).not.toContain('lesson=');
+    expect(parseLessonLink(new URL(url).search)).toMatchObject({ courseKey: 'healthy-living' });
+  });
+
+  it('a missing course still shares something sayable, never "undefined"', () => {
+    const p = courseSharePayload(null, {});
+    expect(p.title).toBeTruthy();
+    expect(p.text).not.toMatch(/undefined/);
   });
 });

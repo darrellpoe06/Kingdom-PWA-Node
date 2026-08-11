@@ -178,6 +178,28 @@ export function lessonSharePayload(module, { url = '', courseTitle = '' } = {}) 
 }
 
 /**
+ * What gets handed to the share sheet for a WHOLE COURSE.
+ *
+ * Darrell 2026-08-10: "I want to also share the whole course... etc."
+ *
+ * Sharing one lesson hands someone a single sitting; sharing the course hands
+ * them the series and lets them start wherever they like. The lesson COUNT
+ * rides along because it is the honest measure of what is on offer -- and it is
+ * counted by the caller from the live schedule, never typed here (DR-0121). A
+ * course with no countable lessons simply says nothing about size rather than
+ * printing a zero.
+ */
+export function courseSharePayload(meta, { url = '', lessonCount = 0, unitPlural = 'lessons' } = {}) {
+  const m = meta || {};
+  const title = String(m.title || 'A course worth reading').trim();
+  const blurb = String(m.blurb || m.subtitle || m.summary || '').trim();
+  const n = Number(lessonCount) || 0;
+  const size = n > 0 ? `${n} ${unitPlural}, free to read` : 'Free to read';
+  const text = [blurb, `${size} \u2014 The Love Corner`].filter(Boolean).join('\n');
+  return { title, text, url: String(url || '') };
+}
+
+/**
  * Offer the share sheet, falling back to the clipboard where there is none
  * (desktop Firefox, most non-secure contexts, older webviews).
  *

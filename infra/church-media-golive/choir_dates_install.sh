@@ -31,18 +31,45 @@ fi
 # existing lookup finds it unchanged. Fresh extractor every cycle (pip at
 # container start, ~20s of the 300s budget); the image itself caches locally.
 YTDLP="$STATE/yt-dlp"
-if ! python3 -c "import yt_dlp" 2>/dev/null && [ ! -x "$YTDLP" ]; then
-  echo "choir-dates: writing docker-backed yt-dlp wrapper (one-time)"
+
+# THE WRAPPER IS VERIFIED EVERY CYCLE, NOT ONLY WHEN IT IS CREATED.
+#
+# Measured 2026-08-11: services-sync died here with choir_dates_sync.py raising
+# "yt-dlp not available (pip install yt-dlp)" -- while the wrapper file existed.
+# Two faults met:
+#
+#   1. The guard was `[ ! -x "$YTDLP" ]`, so an EXISTING wrapper skipped the
+#      whole block INCLUDING its --version check. A wrapper that worked the day
+#      it was written and stopped working later was never re-tested; it simply
+#      failed forever, one layer down, inside the python that shells out to it.
+#   2. The wrapper called `docker run` bare. nas-health already established that
+#      the docker socket denies dpoe's plain shell and needs `sudo -n` on this
+#      box (run 30869376840). So the wrapper could be present, executable, and
+#      unable to reach docker at all.
+#
+# Together those produce the exact observed shape: fetch_dates tries `yt-dlp`,
+# the wrapper runs, docker is refused, stdout is empty and the status non-zero,
+# so the lookup falls through to `python -m yt_dlp` (absent on DSM's 3.8) and
+# raises. The health of the tool is now checked on EVERY cycle and the wrapper
+# is rewritten when the check fails -- self-repairing rather than silently dead.
+ytdlp_ok() { [ -x "$YTDLP" ] && "$YTDLP" --version >/dev/null 2>&1; }
+
+if ! python3 -c "import yt_dlp" 2>/dev/null && ! ytdlp_ok; then
+  echo "choir-dates: (re)writing docker-backed yt-dlp wrapper"
+  # sudo -n first when the narrow grant covers it, plain docker otherwise. The
+  # wrapper picks per invocation so it survives a change in the grant either way.
   cat > "$YTDLP" <<'WRAPEOF'
 #!/bin/sh
-exec docker run --rm python:3.12-slim sh -c 'pip install --quiet yt-dlp >/dev/null 2>&1 && exec yt-dlp "$@"' ytdlp "$@"
+DOCKER="docker"
+if ! docker ps >/dev/null 2>&1 && sudo -n docker ps >/dev/null 2>&1; then DOCKER="sudo -n docker"; fi
+exec $DOCKER run --rm python:3.12-slim sh -c 'pip install --quiet yt-dlp >/dev/null 2>&1 && exec yt-dlp "$@"' ytdlp "$@"
 WRAPEOF
   chmod +x "$YTDLP"
-  "$YTDLP" --version || {
+  if ! ytdlp_ok; then
     rm -f "$YTDLP"
     echo "choir-dates: docker-backed yt-dlp failed its --version check (output above)" >&2
     exit 1
-  }
+  fi
 fi
 PATH="$STATE:$PATH"; export PATH
 
