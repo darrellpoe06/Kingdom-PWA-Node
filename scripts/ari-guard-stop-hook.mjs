@@ -20,7 +20,7 @@
 // import, no assistant text) exits 0 without blocking. A broken guard must
 // never gag Claude. Respects `stop_hook_active` so it can never loop.
 // =============================================================================
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -92,6 +92,26 @@ async function main() {
   } catch { return done(); }
 
   const userText = lastUserText(input.transcript_path);
+
+  // CITED-BUT-UNREAD (DR-0291): a citation is a claim that you consulted the
+  // source. The transcript records every file this session opened, so the claim
+  // is checkable — check it. Fail-open like everything else here.
+  try {
+    const { checkCitedButUnread, readEvidenceFromTranscript, citedButUnreadReason } =
+      await import(join(HERE, '..', 'app', 'src', 'lib', 'cited-but-unread.js'));
+    const lines = readFileSync(input.transcript_path, 'utf8').trim().split('\n');
+    const { paths, shell } = readEvidenceFromTranscript(lines);
+    let knownDocs = [];
+    try {
+      const root = join(HERE, '..', 'docs', '00-foundations', '_root');
+      knownDocs = readdirSync(root).filter((f) => f.endsWith('.md'));
+    } catch { knownDocs = []; }
+    const cite = checkCitedButUnread({ claimText: text, readPaths: paths, shellText: shell, knownDocs });
+    if (cite && !cite.ok) {
+      process.stdout.write(JSON.stringify({ decision: 'block', reason: citedButUnreadReason(cite.unread) }));
+      return done();
+    }
+  } catch { /* fail-open: a broken guard must never gag Claude */ }
 
   let verdict;
   try { verdict = checkAriIntegrity(text, { lastUserText: userText }); } catch { return done(); }

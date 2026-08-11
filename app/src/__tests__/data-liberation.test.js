@@ -14,7 +14,7 @@
 // integrity check alone passes it and the user deletes the originals. Integrity
 // is not completeness.
 // =============================================================================
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   VENDORS, STAGE, STAGE_ORDER, stageIndex, getVendor, vendorsByGroup,
   canDelete, nextStep, summarize,
@@ -236,5 +236,132 @@ describe('stage ordering', () => {
 
   it('treats an unknown stage as the beginning, not the end', () => {
     expect(stageIndex('garbage')).toBe(0);
+  });
+});
+
+// =============================================================================
+// Persistence, attestation and cross-device merge (Darrell 2026-08-11: "persist
+// the progress locally and also sync across my devices").
+//
+// The merge rule is a SAFETY property, not a convenience one. Two devices, one
+// vendor: the stage moves forward (a stale phone must not drag a laptop back to
+// step 1), but the two confirmations merge STRICTER — if either side says a
+// check was not done, it was not done. Sync must never manufacture a
+// confirmation nobody made, because that confirmation is the only thing between
+// a person and deleting originals against an incomplete copy.
+// =============================================================================
+import {
+  loadProgress, saveProgress, attest, attestedBy, exportProgress,
+} from '../lib/data-liberation.js';
+import { mergeRemoteLiberation } from '../lib/data-liberation-sync.js';
+
+describe('device-local persistence — a flow measured in days must survive a closed tab', () => {
+  beforeEach(() => { try { localStorage.clear(); } catch { /* jsdom-less */ } });
+
+  it('round-trips progress through storage', () => {
+    saveProgress({ 'google-photos': { stage: STAGE.READY, bytesVerified: true } });
+    const back = loadProgress();
+    expect(back['google-photos'].stage).toBe(STAGE.READY);
+    expect(back['google-photos'].bytesVerified).toBe(true);
+  });
+
+  it('returns an empty object rather than throwing on corrupt storage', () => {
+    try { localStorage.setItem('poetech-data-liberation-v1', '{not json'); } catch { /* ignore */ }
+    expect(loadProgress()).toEqual({});
+  });
+
+  it('refuses to persist a non-object without throwing', () => {
+    expect(() => saveProgress(['nope'])).not.toThrow();
+    expect(loadProgress()).toEqual({});
+  });
+});
+
+describe('attestation — a confirmation records WHO, because sync carries it to other devices', () => {
+  it('stamps who and when on a tick', () => {
+    const out = attest({ stage: STAGE.LANDED }, 'bytesVerified', true, { name: 'Darrell', at: '2026-08-11T18:00:00Z' });
+    expect(out.bytesVerified).toBe(true);
+    expect(out.bytesVerifiedBy).toBe('Darrell');
+    expect(out.bytesVerifiedAt).toBe('2026-08-11T18:00:00Z');
+    expect(attestedBy(out, 'bytesVerified')).toMatch(/Checked by Darrell/);
+  });
+
+  it('CLEARS the attribution when unticked — a stale name on a fresh claim is worse than none', () => {
+    const on = attest({}, 'bytesVerified', true, { name: 'Darrell' });
+    const off = attest(on, 'bytesVerified', false);
+    expect(off.bytesVerified).toBe(false);
+    expect(off.bytesVerifiedBy).toBeUndefined();
+    expect(off.bytesVerifiedAt).toBeUndefined();
+    expect(attestedBy(off, 'bytesVerified')).toBe('');
+  });
+
+  it('names someone even when the caller supplies nobody, rather than claiming anonymously', () => {
+    const out = attest({}, 'completenessConfirmed', true, null);
+    expect(out.completenessConfirmedBy).toBeTruthy();
+  });
+});
+
+describe('cross-device merge', () => {
+  const idx = stageIndex;
+
+  it('keeps the FURTHEST stage — a stale device cannot drag progress backwards', () => {
+    const merged = mergeRemoteLiberation(
+      [{ id: 'google-photos', stage: STAGE.READY }],
+      [{ id: 'google-photos', stage: STAGE.NOT_STARTED }],
+      idx,
+    );
+    expect(merged.find((m) => m.id === 'google-photos').stage).toBe(STAGE.READY);
+  });
+
+  it('merges attestations STRICTER — one device saying "not checked" wins', () => {
+    const merged = mergeRemoteLiberation(
+      [{ id: 'google-photos', stage: STAGE.VERIFIED, bytesVerified: true, completenessConfirmed: true }],
+      [{ id: 'google-photos', stage: STAGE.VERIFIED, bytesVerified: true, completenessConfirmed: false }],
+      idx,
+    );
+    const row = merged.find((m) => m.id === 'google-photos');
+    expect(row.completenessConfirmed).toBe(false);
+    // And therefore the gate still refuses.
+    expect(canDelete(row).allowed).toBe(false);
+  });
+
+  it('never manufactures a confirmation when the further-along row lacks it', () => {
+    const merged = mergeRemoteLiberation(
+      [{ id: 'ring', stage: STAGE.LANDED, bytesVerified: true, completenessConfirmed: true }],
+      [{ id: 'ring', stage: STAGE.VERIFIED, bytesVerified: false, completenessConfirmed: false }],
+      idx,
+    );
+    const row = merged.find((m) => m.id === 'ring');
+    expect(row.stage).toBe(STAGE.VERIFIED);      // furthest stage kept
+    expect(row.bytesVerified).toBe(false);       // stricter attestation kept
+    expect(canDelete(row).allowed).toBe(false);
+  });
+
+  it('keeps vendors that exist on only one device', () => {
+    const merged = mergeRemoteLiberation(
+      [{ id: 'google-photos', stage: STAGE.READY }],
+      [{ id: 'ring', stage: STAGE.LANDED }],
+      idx,
+    );
+    expect(merged.map((m) => m.id).sort()).toEqual(['google-photos', 'ring']);
+  });
+});
+
+describe('exportable always (DATA-AS-EMPOWERMENT commitment 3)', () => {
+  it('exports only services actually started, in a plain readable shape', () => {
+    const out = exportProgress({
+      'google-photos': { stage: STAGE.READY, bytesVerified: true },
+      'ring': { stage: STAGE.NOT_STARTED },
+    });
+    expect(out.format).toBe('poetech-data-liberation-v1');
+    expect(out.services.length).toBe(1);
+    expect(out.services[0].service).toBe('Google Photos');
+    expect(out.services[0].checkedFilesOpen).toBe(true);
+  });
+
+  it("survives junk input rather than throwing on the way out the door", () => {
+    for (const bad of [null, undefined, 'x', []]) {
+      expect(() => exportProgress(bad)).not.toThrow();
+      expect(exportProgress(bad).services).toEqual([]);
+    }
   });
 });

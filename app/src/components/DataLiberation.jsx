@@ -31,11 +31,13 @@
 // until both are ticked. lib/data-liberation.js `canDelete()` is the authority;
 // this file never decides on its own.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   VENDORS, STAGE, STAGE_ORDER, TOTAL_STEPS,
   getVendor, plainStage, canDelete, nextStep, stageIndex,
+  loadProgress, saveProgress, attest, attestedBy, exportProgress,
 } from '../lib/data-liberation.js';
+import { dataLiberationSync, mergeRemoteLiberation } from '../lib/data-liberation-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 
@@ -143,6 +145,11 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
         />
         <span style={{ ...serif, color: INK, fontSize: '18px' }}>
           I opened some of the files and they work.
+          {attestedBy(progress, 'bytesVerified') && (
+            <span className="block" style={{ fontSize: '16px' }}>
+              {attestedBy(progress, 'bytesVerified')}
+            </span>
+          )}
         </span>
       </label>
 
@@ -158,6 +165,11 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
           I compared how many there are. I looked at{' '}
           <strong>{vendor.completenessCheck.where}</strong> and the number of my
           own files is about the same.
+          {attestedBy(progress, 'completenessConfirmed') && (
+            <span className="block" style={{ fontSize: '16px' }}>
+              {attestedBy(progress, 'completenessConfirmed')}
+            </span>
+          )}
         </span>
       </label>
 
@@ -399,9 +411,50 @@ function EverythingView({ vendor }) {
   );
 }
 
+/** Exportable always (DATA-AS-EMPOWERMENT commitment 3). We teach people to
+ *  demand their data back from Google; holding this record hostage would make
+ *  the whole surface a hypocrite. Plain JSON, one tap, no permission needed. */
+function TakeItWithYou({ progressById }) {
+  const [done, setDone] = useState(false);
+  const anything = Object.values(progressById || {})
+    .some((p) => p && p.stage && p.stage !== STAGE.NOT_STARTED);
+  if (!anything) return null;
+
+  const download = () => {
+    const payload = { ...exportProgress(progressById), exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'my-data-progress.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    setDone(true);
+  };
+
+  return (
+    <div className="mt-7 pt-5" style={{ borderTop: `1px solid ${RULE}` }}>
+      <p className="mb-3 leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px', maxWidth: '34rem' }}>
+        This list is yours too. You can take a copy of it with you at any time,
+        the same way you are taking your photos back from them.
+      </p>
+      <button
+        type="button"
+        onClick={download}
+        className="px-5 border-2"
+        style={{ ...serif, color: INK, borderColor: INK, background: '#FFFFFF', minHeight: '48px', fontSize: '17px', fontWeight: 600 }}
+      >
+        {done ? 'Saved to your device' : 'Save my progress to my device'}
+      </button>
+    </div>
+  );
+}
+
 export default function DataLiberation() {
   const [picked, setPicked] = useState(null);
-  const [progressById, setProgressById] = useState({});
+  // Local-first: the surface is fully usable signed out and offline. The cloud
+  // is a courier, never a requirement (table-sync contract).
+  const [progressById, setProgressById] = useState(() => loadProgress());
   // Default is the guided path, because that serves the most people and an
   // expert loses nothing by one tap. The reverse is not true.
   const [everything, setEverything] = useState(false);
@@ -409,11 +462,36 @@ export default function DataLiberation() {
   const vendor = picked ? getVendor(picked) : null;
   const progress = (picked && progressById[picked]) || { stage: STAGE.NOT_STARTED };
 
-  const setStage = (stage) =>
-    setProgressById((prev) => ({ ...prev, [picked]: { ...progress, stage } }));
+  // Every change is written to this device immediately — a flow that spans days
+  // must survive closing the tab.
+  useEffect(() => { saveProgress(progressById); }, [progressById]);
 
+  // ...and forwarded to the person's other devices. Rows are user-scoped by RLS
+  // (schema v2.17), so this never crosses to another family member.
+  useEffect(() => {
+    const unsub = dataLiberationSync.subscribe((items) => {
+      setProgressById((prev) => {
+        const local = Object.entries(prev).map(([id, p]) => ({ id, ...p }));
+        const merged = mergeRemoteLiberation(local, items, stageIndex);
+        const next = {};
+        for (const m of merged) { const { id, ...rest } = m; next[id] = rest; }
+        return next;
+      });
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
+
+  const persist = (patch) => {
+    const updated = { ...progress, ...patch };
+    setProgressById((prev) => ({ ...prev, [picked]: updated }));
+    dataLiberationSync.upload({ id: picked, ...updated });
+  };
+
+  const setStage = (stage) => persist({ stage });
+
+  // An attestation records WHO and WHEN, not just a boolean — see attest().
   const setConfirm = (key, value) =>
-    setProgressById((prev) => ({ ...prev, [picked]: { ...progress, [key]: value } }));
+    persist(attest(progress, key, value, { at: new Date().toISOString() }));
 
   return (
     <section className="bg-white border-2 p-5 sm:p-6" style={{ borderColor: INK }}>
@@ -422,7 +500,10 @@ export default function DataLiberation() {
       </div>
 
       {!vendor ? (
-        <ChooseService onPick={setPicked} progressById={progressById} />
+        <>
+          <ChooseService onPick={setPicked} progressById={progressById} />
+          <TakeItWithYou progressById={progressById} />
+        </>
       ) : (
         <>
           <ServiceSteps

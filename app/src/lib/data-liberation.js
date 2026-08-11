@@ -426,6 +426,110 @@ export const nextStep = (vendorId, progress) => {
   }
 };
 
+// --- Device-local persistence (local-first; sync is the courier) -------------
+// A vendor takes DAYS to build an export. A flow measured in days cannot live
+// in React state — closing the tab would silently reset someone to step 1 and
+// they would re-request an export they already had waiting.
+
+function safeStorage() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage;
+  } catch { return null; }
+}
+
+const KEY = 'poetech-data-liberation-v1';
+
+export function loadProgress() {
+  const ls = safeStorage();
+  if (!ls) return {};
+  try {
+    const raw = ls.getItem(KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch { return {}; }
+}
+
+export function saveProgress(progressById) {
+  const ls = safeStorage();
+  if (!ls) return { skipped: 'no-storage' };
+  try {
+    const safe = progressById && typeof progressById === 'object' && !Array.isArray(progressById)
+      ? progressById : {};
+    ls.setItem(KEY, JSON.stringify(safe));
+    return { saved: true };
+  } catch (e) { return { skipped: 'write-error', error: e }; }
+}
+
+/**
+ * ATTESTATION, NOT JUST A FLAG — the thing syncing makes necessary.
+ *
+ * On one device the two ticks are self-evidently yours. The moment progress
+ * syncs across a household they stop being yours: a parent ticks "I checked the
+ * count" on a laptop, and a teenager opens the phone to a screen that simply
+ * says deleting is safe. They would be deleting on someone else's word without
+ * knowing it, and the safety check would have quietly become a rubber stamp
+ * carried between devices.
+ *
+ * So a confirmation records WHO and WHEN, and the surface says so. Sync then
+ * preserves the value (nobody redoes work already done) without ever hiding
+ * whose judgment it rests on. Unticking clears the attribution — a stale name
+ * against a fresh claim would be worse than none.
+ */
+export const attest = (progress, key, value, who) => {
+  const base = progress && typeof progress === 'object' ? progress : {};
+  if (value !== true) {
+    const cleared = { ...base, [key]: false };
+    delete cleared[`${key}By`];
+    delete cleared[`${key}At`];
+    return cleared;
+  }
+  return {
+    ...base,
+    [key]: true,
+    [`${key}By`]: (who && who.name) || 'someone on this account',
+    [`${key}At`]: (who && who.at) || null,
+  };
+};
+
+/** Who vouched for a confirmation, in plain words. Empty when nobody has. */
+export const attestedBy = (progress, key) => {
+  const p = progress && typeof progress === 'object' ? progress : {};
+  if (p[key] !== true) return '';
+  const who = p[`${key}By`];
+  return who ? `Checked by ${who}` : '';
+};
+
+/**
+ * EXPORTABLE ALWAYS (DATA-AS-EMPOWERMENT commitment 3: "Every data record is
+ * exportable in standard formats. The family can leave the platform at any time
+ * and take their data with them.")
+ *
+ * A feature whose entire purpose is helping people escape vendor lock-in would
+ * be self-refuting if PoeTech held this record hostage. So the same right we
+ * are teaching users to exercise against Google applies to us: plain JSON, one
+ * tap, no account required to read it. If we ever stop earning this surface,
+ * the user leaves with everything it knew.
+ */
+export const exportProgress = (progressById) => {
+  const map = progressById && typeof progressById === 'object' && !Array.isArray(progressById)
+    ? progressById : {};
+  return {
+    exportedAt: null,          // stamped by the caller; this module stays pure
+    format: 'poetech-data-liberation-v1',
+    services: VENDORS
+      .filter((v) => map[v.id] && map[v.id].stage && map[v.id].stage !== STAGE.NOT_STARTED)
+      .map((v) => ({
+        service: v.name,
+        vendorId: v.id,
+        stage: map[v.id].stage,
+        checkedFilesOpen: map[v.id].bytesVerified === true,
+        checkedCountMatches: map[v.id].completenessConfirmed === true,
+        checkedBy: map[v.id].bytesVerifiedBy || map[v.id].completenessConfirmedBy || null,
+      })),
+  };
+};
+
 /** Overall progress across whatever the user has started. Counts only real state. */
 export const summarize = (progressById) => {
   const map = progressById && typeof progressById === 'object' ? progressById : {};
