@@ -35,9 +35,10 @@ import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
-import { witnessCopyBlock, lessonUrl } from '../lib/lesson-links.js';
+import { witnessCopyBlock, lessonUrl, lessonSharePayload } from '../lib/lesson-links.js';
 import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
 import CopyButton from './CopyButton.jsx';
+import ShareButton from './ShareButton.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -472,6 +473,17 @@ function WitnessView() {
                 its Scripture. The second control opens this same witness as
                 its Healthy Living lesson, where it can be worked at a level. */}
             <div className="flex flex-wrap gap-2 mb-2 items-center">
+              <ShareButton
+                label="Share"
+                title="Share this section using your usual apps"
+                payload={() => lessonSharePayload(
+                  { title: src.topic || src.source.work, bigIdea: src.summary || '' },
+                  {
+                    url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                    courseTitle: HEALTHY_LIVING_META.title || '',
+                  },
+                )}
+              />
               <CopyButton
                 label="Copy this section"
                 copiedLabel="Section copied ✓"

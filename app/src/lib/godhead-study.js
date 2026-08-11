@@ -1487,6 +1487,86 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'The angel and the apostles refused worship instantly, without deliberating — the reflex was already set BEFORE the moment. Herod and Nebuchadnezzar had no such reflex, and the moment found them. This is why the audit is practiced in ordinary weeks: nobody builds it during the applause.',
     tags: ['glory', 'pride', 'herod', 'nebuchadnezzar', 'redirect', 'idolatry', 'humility'],
   },
+
+  // ── THE NAMES HE GAVE, AND THE COUNTERFEIT ─────────────────────────────────
+  // Darrell 2026-08-10, bringing a teaching on the divine names into the app:
+  // the progression El Elyon -> El Shaddai -> Yahweh -> Yeshua, and the claim
+  // that the fallen ones counterfeited each revelation.
+  //
+  // These cards teach ONLY what the Word itself says and shows (DR-0098): the
+  // names, the verses that give them, and what each one asks of a person. The
+  // extra-biblical parts of that teaching -- the Sumerian "An", the Chinese
+  // Shangdi glyph, and reading "Shaddai" as "mountain" so that ziggurats are a
+  // deliberate counterfeit -- are NOT asserted here, because they are not
+  // established the way the verses are (DR-0100 tier 2: genuinely open, flagged
+  // narrowly). What Scripture DOES say plainly is that Babel was an engineered
+  // ascent built to make a name (Genesis 11:4) -- so the counterfeit motive is
+  // taught from the text, not from an etymology that is still argued.
+  {
+    id: 'gh-el-elyon-possessor', section: 'torah', name: 'El Elyon — the Most High, Possessor of heaven and earth',
+    refs: ['Genesis 14:18-22'],
+    condition: 'Melchizedek blesses Abram by "the most high God, possessor of heaven and earth" — and Abram answers by lifting his hand to "the LORD, the most high God," naming them as ONE.',
+    consequence: 'The title is not a rival deity Abram is borrowing; he binds the Most High to the covenant LORD in the same breath, before Israel exists.',
+    threeD: 'Possessor of heaven and earth is a deed, not a compliment. If He owns both, there is no neutral ground to stand on and nothing you hold that is outside His title.',
+    outcome: 'You stop negotiating over what is His and start stewarding what was never yours.',
+    tags: ['names', 'el-elyon', 'melchizedek', 'ownership', 'covenant'],
+  },
+  {
+    id: 'gh-el-shaddai-almighty', section: 'torah', name: 'El Shaddai — God Almighty, before the covenant name',
+    refs: ['Genesis 17:1', 'Exodus 6:3'],
+    condition: 'He appeared to Abraham, Isaac and Jacob as God Almighty, and says plainly that by His name JEHOVAH He was NOT known to them.',
+    consequence: 'The revelation is progressive on purpose — He gives as much of Himself as the covenant stage requires, and He says so out loud.',
+    threeD: 'He is not hiding; He is pacing. What you have not been shown yet is not absence, it is sequence — and the command that comes with the name is the same either way: walk before Me, and be thou perfect.',
+    outcome: 'You stop demanding the next revelation as proof and walk in the one already given.',
+    psyche: 'A person told the whole plan at once cannot obey it; a person given the next step can. Progressive disclosure is how trust is actually built, and He uses it deliberately.',
+    tags: ['names', 'el-shaddai', 'almighty', 'progressive-revelation', 'abraham'],
+  },
+  {
+    id: 'gh-i-am-that-i-am', section: 'torah', name: 'I AM THAT I AM — the Name that answers to nothing',
+    refs: ['Exodus 3:14'],
+    condition: 'Moses asks who to say sent him; the answer is not a description but existence itself — I AM THAT I AM.',
+    consequence: 'Every other name in the ancient world located a god inside creation — a storm, a mountain, a city. This Name refuses the category: He is not a being among beings.',
+    threeD: 'You cannot leverage Him with a title, a place, or a ritual, because He is not derived from anything. That is exactly why He can be trusted — nothing He depends on can be taken from Him.',
+    outcome: 'Your security stops resting on what He is like and starts resting on the fact that He simply IS.',
+    tags: ['names', 'yahweh', 'i-am', 'moses', 'burning-bush'],
+  },
+  {
+    id: 'gh-babel-make-us-a-name', section: 'torah', name: 'Let us make us a name — the counterfeit ascent',
+    refs: ['Genesis 11:4'],
+    condition: 'They build a city and a tower "whose top may reach unto heaven" with the stated motive: let us make us a NAME.',
+    consequence: 'The Word names the counterfeit by its motive, not its architecture — heaven reached by construction, and a name taken rather than received.',
+    threeD: 'Every counterfeit of Yahweh runs this exact algorithm: climb up by your own works, and self-issue the name. He gives a name (Abram to Abraham); Babel takes one.',
+    outcome: 'You can tell the true from the counterfeit by asking one question — was this name GIVEN, or was it built?',
+    psyche: 'Self-made identity has to be defended forever because it was never conferred; a given name needs no defending, which is why it produces rest instead of striving.',
+    tags: ['names', 'babel', 'counterfeit', 'pride', 'identity'],
+  },
+  {
+    id: 'gh-nations-divided-portion', section: 'torah', name: 'The Most High divided the nations — and kept a portion',
+    refs: ['Deuteronomy 32:8-9'],
+    condition: 'The Most High divided the nations their inheritance and set their bounds — and in the same breath: the LORD\'s portion is His people.',
+    consequence: 'The nations are apportioned; Israel is not apportioned to anyone else. He keeps that one for Himself.',
+    threeD: 'Being His portion is not a status you earn into — it is a claim He makes and keeps. The bounds of every other allotment are set by Him too, so nothing is loose.',
+    outcome: 'You live as an owned people rather than an unclaimed one, which changes who you answer to.',
+    tags: ['names', 'el-elyon', 'nations', 'inheritance', 'portion'],
+  },
+  {
+    id: 'gh-before-abraham-i-am', section: 'gospels', name: 'Before Abraham was, I am — the Name on Jesus\' own lips',
+    refs: ['John 8:58'],
+    condition: 'Jesus does not say "before Abraham was, I WAS." He takes the present-tense Name given at the bush and applies it to Himself.',
+    consequence: 'The room understood exactly what was claimed — which is why the next verse has them reaching for stones.',
+    threeD: 'This is the hinge of the whole progression: the One who gave the Name to Moses is standing in front of them wearing it. The names were never separate Gods; they were the same One, revealing more.',
+    outcome: 'You cannot hold Jesus as a good teacher — He closed that option Himself with one sentence.',
+    tags: ['names', 'yahweh', 'jesus', 'i-am', 'deity-of-christ'],
+  },
+  {
+    id: 'gh-name-that-saves', section: 'gospels', name: 'Call His name JESUS — for He shall save',
+    refs: ['Matthew 1:21'],
+    condition: 'The name is assigned before birth, with the reason attached: He shall save His people from their sins.',
+    consequence: 'The name is not a label placed on the work — it IS the work, stated in advance and then performed.',
+    threeD: 'The whole arc of the names lands here: the Most High who owns heaven and earth, the Almighty who paced His own revealing, the I AM who answers to nothing — arrives with a name that means salvation and then does it.',
+    outcome: 'The Name you call on is the Name that saves; there is nothing further to find.',
+    tags: ['names', 'jesus', 'yeshua', 'salvation', 'incarnation'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.

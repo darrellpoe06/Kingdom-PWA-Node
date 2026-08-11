@@ -21,7 +21,7 @@
 // and the brand follows the door a person came through rather than the tab they
 // tapped.
 import { describe, it, expect } from 'vitest';
-import { isPublicChurchRoute } from '../lib/access-gate.js';
+import { isPublicChurchRoute, isChurchLinkVisit } from '../lib/access-gate.js';
 import { isChurchDoorContext } from '../lib/church-own-door.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -104,20 +104,53 @@ describe('a shared link opens instantly — no modal stands in the way', () => {
   const shell = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
 
-  it('the shell derives the public visitor (signed-out, on a church link)', () => {
-    expect(shell).toMatch(/const publicVisitor = !authSession && churchBrandRoute;/);
+  it('the shell derives a church-LINK visit from the door, not the session', () => {
+    // PROVEN-TO-CATCH (Darrell 2026-08-10, on the deployed build: "the link
+    // triggers for me to login... I'm already logged in... why ask"). The first
+    // cut keyed the suppression to `publicVisitor`, which is `!authSession &&
+    // churchBrandRoute` \u2014 so being SIGNED IN switched the modals back on and a
+    // member tapping a lesson link met the profile wall. The condition must not
+    // depend on the session at all.
+    expect(shell).toMatch(/const churchLinkVisit = isChurchLinkVisit\(\{ route: churchBrandRoute, view \}\)/);
+    expect(shell).not.toMatch(/const churchLinkVisit = [^\n]*authSession/);
   });
 
-  it('the scenario / first-time picker never opens for them', () => {
+  it('the scenario / first-time picker never opens on a lesson link', () => {
     const line = shell.split('\n').find((l) => l.includes('isPickerMode || isFirstTimeLanding'));
     expect(line, 'the picker condition must exist').toBeTruthy();
-    expect(line).toContain('!publicVisitor');
+    expect(line).toContain('!churchLinkVisit');
   });
 
-  it('the "Who\u2019s using this device?" profile modal never opens for them', () => {
+  it('the "Who\u2019s using this device?" profile modal never opens on a lesson link', () => {
     const line = shell.split('\n').find((l) => l.includes("aria-labelledby=\"profile-picker-h\"") || l.includes('!currentProfile && !isAnyDemoMode'));
     expect(line, 'the profile-modal condition must exist').toBeTruthy();
-    expect(line).toContain('!publicVisitor');
+    expect(line).toContain('!churchLinkVisit');
+  });
+
+  // The shell's rule as a predicate, so the behaviour is asserted and not only
+  // the source text: a lesson link is quiet for EVERYONE, and a private tab in
+  // the same session gets its profile choice back.
+  const churchLinkVisit = ({ search = '', view = 'overview' }) => isChurchLinkVisit({ route: isPublicChurchRoute(search), view });
+
+  it('THE REPORT: signed IN, tapping the lesson link — no modal', () => {
+    expect(churchLinkVisit({ search: '?view=church&sub=learn&course=world-issues&lesson=wi-law-of-assumption', view: 'church' })).toBe(true);
+  });
+
+  it('signed OUT on the same link — still no modal (DR-0290 kept)', () => {
+    expect(churchLinkVisit({ search: '?view=church&sub=learn&lesson=wi-law-of-assumption', view: 'church' })).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: the old signed-out-only rule let the modal back in for a member', () => {
+    const oldRule = ({ signedIn, search }) => !signedIn && isPublicChurchRoute(search);
+    const link = '?view=church&sub=learn&lesson=wi-law-of-assumption';
+    expect(oldRule({ signedIn: true, search: link })).toBe(false);            // what shipped — modal returned
+    expect(churchLinkVisit({ search: link, view: 'church' })).toBe(true);     // what is right
+  });
+
+  it('navigating on to a private tab in the same visit restores the profile choice', () => {
+    const link = '?view=church&sub=learn&lesson=wi-law-of-assumption';
+    expect(churchLinkVisit({ search: link, view: 'books' })).toBe(false);
+    expect(churchLinkVisit({ search: link, view: 'admin' })).toBe(false);
   });
 
   it('and both still guard everyone else exactly as before', () => {

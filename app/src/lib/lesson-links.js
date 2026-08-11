@@ -142,3 +142,66 @@ export async function copyText(text, nav = (typeof navigator !== 'undefined' ? n
   if (!s || !nav || !nav.clipboard || typeof nav.clipboard.writeText !== 'function') return false;
   try { await nav.clipboard.writeText(s); return true; } catch (_) { return false; }
 }
+
+// =============================================================================
+// SHARE — hand the lesson straight to whatever they already use
+// =============================================================================
+// Darrell 2026-08-10: "can we just share right from the lessons? not have to
+// copy a link... users can but not necessary... share and it will open whatever
+// they usually do."
+//
+// Copy-a-link is a THREE-step ask on a phone: tap copy, leave the app, find the
+// thread, paste. The device already knows how this person shares — Messages,
+// WhatsApp, mail, the church group — so the app should hand the link to the
+// operating system and let it offer them. The copy control stays for anyone who
+// wants the raw link, exactly as Darrell said; it stops being the only way.
+
+/** Does this device offer a real share sheet? */
+export function canShare(nav = (typeof navigator !== 'undefined' ? navigator : null)) {
+  return !!(nav && typeof nav.share === 'function');
+}
+
+/**
+ * What gets handed to the share sheet for one lesson. Title and text are short
+ * on purpose: most targets show the URL as a card, and a long body gets
+ * truncated mid-sentence by the receiving app — which, on a Scripture-carrying
+ * platform, is exactly the drift this codebase refuses (a half-quoted verse is
+ * worse than none). The full text still travels by "Copy lesson".
+ */
+export function lessonSharePayload(module, { url = '', courseTitle = '' } = {}) {
+  const m = module || {};
+  const title = String(m.title || courseTitle || 'A lesson worth reading').trim();
+  const idea = String(m.bigIdea || '').trim();
+  const from = String(courseTitle || '').trim();
+  const text = [idea, from && `— ${from}, The Love Corner`].filter(Boolean).join('\n');
+  return { title, text: text || title, url: String(url || '') };
+}
+
+/**
+ * Offer the share sheet, falling back to the clipboard where there is none
+ * (desktop Firefox, most non-secure contexts, older webviews).
+ *
+ * Returns WHAT ACTUALLY HAPPENED so the button can say it truthfully (DR-0076):
+ *   'shared'    — handed to the OS sheet
+ *   'dismissed' — the sheet opened and the person backed out; NOT a failure,
+ *                 so the caller must not flash an error at them
+ *   'copied'    — no sheet on this device, the link went to the clipboard
+ *   'failed'    — neither path worked; the caller must say so plainly
+ */
+export async function shareLink(payload, nav = (typeof navigator !== 'undefined' ? navigator : null)) {
+  const p = payload || {};
+  const url = String(p.url || '');
+  if (canShare(nav)) {
+    try {
+      await nav.share({ title: p.title || '', text: p.text || '', url });
+      return 'shared';
+    } catch (err) {
+      // A cancelled sheet throws AbortError. Treating that as an error is the
+      // classic bug: the user deliberately backed out and gets shouted at.
+      if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) return 'dismissed';
+      // Anything else (a target that refuses the payload, a webview that lies
+      // about having share) falls through to the clipboard rather than dead-end.
+    }
+  }
+  return (await copyText(url || p.text || '', nav)) ? 'copied' : 'failed';
+}

@@ -56,13 +56,14 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
-import { parseLessonLink, lessonUrl, lessonCopyBlock } from '../lib/lesson-links.js';
+import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
+import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
-import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
+import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
 import BiblicalTimeline from './BiblicalTimeline.jsx';
 // Timeline context now comes from lesson-timeline-context (curated placements
@@ -80,7 +81,7 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
-import { getPlace, recordPlace, clearPlace } from '../lib/learn-resume.js';
+import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 
 const fmtDate = formatClassDate;
@@ -595,7 +596,19 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // learner's age/depth. The audience walks it ONE stage at a time (clear where you
   // are / what's next); each stage's body is rendered by renderStage below, reusing
   // the existing real-wired pieces (paced lesson, media, launch, quiz).
-  const arc = buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel });
+  // HOW MUCH TIME DO YOU HAVE (Darrell 2026-08-10: "capable of being scaled down
+  // to the most minimal times and full lesson for those that have time all in
+  // the Ways"). DR-0215 decided the curriculum adjusts to the allotted time by
+  // PACING, never cutting — and reflowArcMinutes could always do it — but the
+  // only control lived in the Governor's facilitator panel, so a learner could
+  // not reach it. Their choice is remembered on their own device; unset means
+  // the course's authored session length, exactly as before.
+  const [timeFit, setTimeFit] = useState(() => getTimeFit());
+  const chooseTime = (n) => { setTimeFit(n); recordTimeFit(n); };
+  const arc = buildLessonArc(module, {
+    ageBand, levelOverride, sessionFlow, handsOnLabel,
+    ...(timeFit ? { targetMinutes: timeFit } : {}),
+  });
 
   // Resume-your-place (Darrell 2026-07-30: "too easy to lose your place"):
   // if THIS lesson is the device's saved place, reopen at the saved arc stage
@@ -831,6 +844,19 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
       {/* The lesson-flow STANDARD — one clean, paced stage at a time. Opens on
           the saved stage when this lesson is the device's place; every move is
           persisted so the place is never lost (resume-your-place). */}
+      {/* HOW MUCH TIME DO YOU HAVE — the learner's own control (DR-0215 said the
+          curriculum adjusts to the allotted time; until now only the Governor's
+          facilitator panel could actually do it). Nothing is cut at any length:
+          the same authored arc is PACED, and anything longer than the slot flows
+          across sittings. */}
+      <TimeFit
+        value={timeFit}
+        onChange={chooseTime}
+        label={`How much time do you have? (${arc.totalMinutes} min)`}
+        groupLabel="Fit this lesson to the time you have"
+        note={timeFit ? 'Nothing is cut — the lesson is paced to your time, and a longer one carries on next sitting.' : null}
+      />
+
       <LessonFlowAudience
         arc={arc}
         renderStage={renderStage}
@@ -1437,6 +1463,19 @@ function CourseView({
                     own text — Word-first big idea, the body at the reader's
                     level, its anchor, and a link back to THIS lesson — and the
                     link alone, for a text message. */}
+                {/* SHARE FIRST (Darrell 2026-08-10: "can we just share right
+                    from the lessons? not have to copy a link... users can but
+                    not necessary... share and it will open whatever they
+                    usually do"). One tap into their own share sheet; the copy
+                    controls stay for anyone who wants the raw text or link. */}
+                <ShareButton
+                  label="Share"
+                  title="Share this lesson using your usual apps"
+                  payload={() => lessonSharePayload(m, {
+                    url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
+                    courseTitle: course.meta.title || '',
+                  })}
+                />
                 <CopyButton
                   label="Copy lesson"
                   copiedLabel="Lesson copied ✓"

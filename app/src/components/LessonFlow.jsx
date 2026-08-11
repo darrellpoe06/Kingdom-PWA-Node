@@ -179,9 +179,82 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   );
 }
 
-// Common reflow presets the facilitator can pick (minutes). The current total is
-// always shown even if it isn't one of these.
-const REFLOW_PRESETS = [20, 30, 45, 60, 75, 90];
+// Common reflow presets (minutes). The current total is always shown even if it
+// isn't one of these.
+//
+// Darrell 2026-08-10: "each lesson should be about 25 minutes or combine similar
+// lessons as our Ways and documentation state and demand... do they?" and
+// "capable of being scaled down to the most minimal times and full lesson for
+// those that have time all in the Ways."
+//
+// Two corrections live in this list. The old set was [20, 30, 45, 60, 75, 90]:
+//   • 25 — the DR-0215 DESIGN UNIT ("these lessons will be about 25 minutes at
+//     the Love Corner") — was not offered at all; the list stepped 20 → 30 right
+//     over the one number the Ways actually name.
+//   • The floor was 20 minutes, so "the most minimal time" did not exist. A
+//     person with five minutes before work had nothing to pick.
+// Nothing is CUT at any of these lengths — reflowArcMinutes paces the same
+// authored arc, and anything longer than the chosen slot flows across sessions
+// (DR-0215 §2, content-preserving by design).
+export const REFLOW_PRESETS = [5, 10, 15, 25, 45, 60, 90];
+
+// -----------------------------------------------------------------------------
+// TimeFit — "how much time do you have?"
+// -----------------------------------------------------------------------------
+// One control, used by BOTH audiences. It was previously inline inside the
+// facilitator's run-of-show, which is how the learner ended up unable to reach
+// the one mechanism DR-0215 built for them. Sharing it means a preset added
+// here is offered to everyone at once, and neither view can silently drift to a
+// different set of options.
+//
+// `value` may be null, which shows nothing as pressed and means "use the
+// course's own session length" — the honest representation of not having chosen
+// rather than a default masquerading as a choice.
+export function TimeFit({
+  value,
+  onChange,
+  label = 'How much time do you have?',
+  groupLabel = 'Fit the lesson to the time you have',
+  note = null,
+}) {
+  const set = (n) => { if (typeof onChange === 'function') onChange(n); };
+  return (
+    <div className="mb-3" data-read-skip>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{label}</div>
+      <div role="group" aria-label={groupLabel} className="flex flex-wrap gap-1.5 items-center">
+        {REFLOW_PRESETS.map((p) => {
+          const on = p === value;
+          return (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={on}
+              onClick={() => set(p)}
+              className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
+            >
+              {p}m
+            </button>
+          );
+        })}
+        <span className="inline-flex items-center gap-1 ml-1">
+          <button
+            type="button"
+            onClick={() => set(Math.max(5, (Number(value) || 25) - 5))}
+            aria-label="Five minutes shorter"
+            className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >−</button>
+          <button
+            type="button"
+            onClick={() => set(Math.min(240, (Number(value) || 25) + 5))}
+            aria-label="Five minutes longer"
+            className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >+</button>
+        </span>
+      </div>
+      {note && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF}>{note}</p>}
+    </div>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // LessonRunOfShow — the facilitator's smooth, timed run-of-show for one module.
@@ -233,40 +306,15 @@ export function LessonRunOfShow({
         </div>
       )}
 
-      {/* Time-adaptive reflow — re-time the whole plan to any length (#309). */}
-      <div className="mb-3">
-        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Fit the time you have</div>
-        <div role="group" aria-label="Reflow the session length" className="flex flex-wrap gap-1.5 items-center">
-          {REFLOW_PRESETS.map((p) => {
-            const on = p === target;
-            return (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setTarget(p)}
-                className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
-              >
-                {p}m
-              </button>
-            );
-          })}
-          <span className="inline-flex items-center gap-1 ml-1">
-            <button
-              type="button"
-              onClick={() => setTarget((t) => Math.max(5, t - 5))}
-              aria-label="Five minutes shorter"
-              className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >−</button>
-            <button
-              type="button"
-              onClick={() => setTarget((t) => Math.min(240, t + 5))}
-              aria-label="Five minutes longer"
-              className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >+</button>
-          </span>
-        </div>
-      </div>
+      {/* Time-adaptive reflow — re-time the whole plan to any length (#309).
+          The SAME control the learner now gets (TimeFit), so a facilitator and
+          the person on their sofa are choosing from one set of options. */}
+      <TimeFit
+        value={target}
+        onChange={setTarget}
+        label="Fit the time you have"
+        groupLabel="Reflow the session length"
+      />
 
       <StageRail segments={segments} />
 

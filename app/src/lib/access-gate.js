@@ -100,3 +100,28 @@ export function isPublicChurchRoute(search = (typeof window !== 'undefined' && w
 export function wearsChurchBrand({ churchDoorOnly = false, signedIn = false, route = false } = {}) {
   return !!churchDoorOnly || (!signedIn && !!route);
 }
+
+/**
+ * Is this person here BECAUSE they followed a church link — right now?
+ *
+ * Darrell 2026-08-10, on the deployed build: "the link triggers for me to
+ * login... I'm already logged in... why ask... also... the link is supposed to
+ * be easy and a lesson."
+ *
+ * DR-0290 opened the gate but suppressed the two full-screen modals — the
+ * scenario picker and "Who's using this device?" — using `publicVisitor`, which
+ * is `!authSession && churchBrandRoute`. That made being SIGNED IN switch the
+ * modals back on: a member with a session but no chosen profile on that device
+ * tapped a lesson link and met the profile wall, which reads as a login prompt
+ * and is one in every way that matters to the person holding the phone.
+ *
+ * The session was never the right question. What matters is the DOOR: someone
+ * who followed a lesson link came for the lesson, so they get the lesson.
+ *
+ * `view` scopes it to the present moment rather than the whole visit — arriving
+ * by a church link and later opening a private tab restores the profile choice,
+ * because that choice genuinely governs whose private data is on screen.
+ */
+export function isChurchLinkVisit({ route = false, view = '' } = {}) {
+  return !!route && view === 'church';
+}
