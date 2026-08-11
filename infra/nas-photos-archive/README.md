@@ -89,8 +89,26 @@ only thing selected**, skipping the "Deselect all, scroll, find Photos" dance:
 
     https://takeout.google.com/settings/takeout/custom/photos
 
-(Best-known deep link; it could not be confirmed from the cloud session because
-the host is blocked there. If it does not preselect, use the long way below.)
+**VERIFIED 2026-08-11** by Darrell's screenshot from the laptop: the page opened
+reading *"Select data to include — 1 of 1 selected."* (It was shipped labeled
+"best-known, unverified" because the host returns 403 to CONNECT from the cloud
+session; his screenshot is the verification that closed it — DR-0076 §1, a claim
+becomes fact when evidence arrives, not before.)
+
+The sibling link for Mail, same behavior:
+
+    https://takeout.google.com/settings/takeout/custom/gmail
+
+**Settings that matter, confirmed on the real page:** Transfer to =
+*Send download link via email*; Frequency = *Export once*; File type = *.zip*;
+File size = *50 GB*. Then **Create export**, and the page shows
+*"Google is creating a copy of data from Google Photos ... hours or days."*
+
+**Order Photos and Mail as SEPARATE exports** (the "Create another export"
+button on the progress card). Two reasons: Mail is ~10-15 GB and finishes far
+sooner than the ~200 GB Photos haul, so it can be archived and Gmail emptied
+while Photos is still building; and a failed part in a combined export costs
+both. `run-archive.sh` handles either or both, whichever landed.
 
 1. Open https://takeout.google.com signed in as darrellpoe06@gmail.com.
 2. "Deselect all," then check **Google Photos** only (mail is a separate,
