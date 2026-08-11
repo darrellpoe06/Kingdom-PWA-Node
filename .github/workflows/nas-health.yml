@@ -84,6 +84,12 @@ jobs:
           python3 -m pip --version 2>&1 | head -1 || echo "python3 -m pip: NOT AVAILABLE"
           python3 -c 'import youtube_transcript_api; print("youtube_transcript_api: importable")' 2>&1 | tail -1
           python3 -c 'import yt_dlp; print("yt_dlp: importable")' 2>&1 | tail -1
+          echo "=== the SAME import, as ROOT (which is who services-sync runs it as) ==="
+          # The whole hypothesis in one line. dpoe can import it; the loop runs
+          # as root via sudo -n. If these two disagree, the per-user site-packages
+          # are the fault and nothing about YouTube or the network matters yet.
+          ${SUDO} python3 -c 'import youtube_transcript_api; print("as root: importable")' 2>&1 | tail -1
+          ls -d /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/.vendor 2>&1 | tail -1
           echo "=== docker reachability, unprivileged vs sudo -n ==="
           docker ps >/dev/null 2>&1 && echo "docker: OK unprivileged" || echo "docker: DENIED unprivileged"
           sudo -n docker ps >/dev/null 2>&1 && echo "docker: OK via sudo -n" || echo "docker: not available via sudo -n"
