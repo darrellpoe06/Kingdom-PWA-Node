@@ -1567,6 +1567,97 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'The Name you call on is the Name that saves; there is nothing further to find.',
     tags: ['names', 'jesus', 'yeshua', 'salvation', 'incarnation'],
   },
+
+  // -- FREEDOM IS A PERSON, NOT A PROCEDURE ----------------------------------
+  // Darrell 2026-08-11, bringing in a conversation with Anthony Serino (a former
+  // New Age hypnotist who turned to Jesus) on deliverance: the sufficiency of
+  // Jesus over checklists and ritual, the believer as a conduit of delegated
+  // power rather than its source, and relationship over ritual as what KEEPS a
+  // person free.
+  //
+  // Captured the way this repo captures every teaching: the CARDS below teach
+  // only what the Word itself states, each anchored to a verse fetched verbatim.
+  // The parts that are his TESTIMONY -- that his hypnosis and manifestation work
+  // opened doors to oppression, that pride and money were burned away -- are his
+  // account of his own life, which is exactly what a testimony is, and they are
+  // not restated here as a general mechanism the Word asserts (DR-0076). What
+  // the Word does say about that territory is already taught, and this set
+  // deliberately sits beside the Law of Assumption lesson in World Issues, which
+  // walks the same ground from the other end.
+  {
+    id: 'gh-all-power-is-his', section: 'gospels', name: 'All power is given unto Me — so what you carry is delegated',
+    refs: ['Matthew 28:18', 'Luke 10:19'],
+    condition: 'Jesus states the whole holding first -- ALL power in heaven and in earth is given unto Him -- and only then hands out authority to tread on serpents and over all the power of the enemy.',
+    consequence: 'Authority in a believer is issued, never generated. It is His power under His name, and it is enough.',
+    threeD: 'A police officer does not write the law he enforces; his whole authority is that someone above him did. Anyone straining to build up enough power has misread the arrangement -- there is nothing to build, only something to stand in.',
+    outcome: 'You stop trying to be strong enough and start acting on the authority already given.',
+    psyche: 'Striving for power you already hold produces anxiety in the very moment that calls for calm. Settled delegated authority is why an officer can speak quietly and still be obeyed.',
+    tags: ['deliverance', 'authority', 'power', 'sufficiency-of-jesus'],
+  },
+  {
+    id: 'gh-triumph-already-public', section: 'epistles', name: 'He made a shew of them openly — you enforce a verdict, not fight for one',
+    refs: ['Colossians 2:15'],
+    condition: 'Having SPOILED principalities and powers, He made a shew of them openly, triumphing over them in it -- past tense, finished, and public.',
+    consequence: 'The contest was settled at the cross. What remains is enforcement of a verdict already handed down.',
+    threeD: 'This is why studying the enemy is not the path to freedom. You do not research a defeated party to defeat it again; you announce the judgment that already stands.',
+    outcome: 'Your attention moves off the darkness and onto the One who already stripped it.',
+    tags: ['deliverance', 'the-cross', 'victory', 'authority'],
+  },
+  {
+    id: 'gh-will-worship-frees-no-one', section: 'epistles', name: 'A shew of wisdom — why rules cannot deliver anybody',
+    refs: ['Colossians 2:23'],
+    condition: 'Ordinances and self-imposed severity have indeed a SHEW of wisdom in will worship, and humility, and neglecting of the body.',
+    consequence: 'And the verse states the yield plainly: not in any honour to the satisfying of the flesh. It looks like power and produces none.',
+    threeD: 'Every deliverance checklist, every ladder of conditions to satisfy first, is measured right here by the Word itself. A method that looks rigorous and changes nothing is the exact thing Colossians names.',
+    outcome: 'You stop grading yourself against a procedure and come to the Person who actually frees.',
+    psyche: 'Rule-keeping feels productive because it is measurable, which is precisely why it survives long after it stops working. The Word cuts it off at the yield, not the appearance.',
+    tags: ['deliverance', 'legalism', 'ritual', 'grace'],
+  },
+  {
+    id: 'gh-jesus-i-know-who-are-ye', section: 'epistles', name: 'Jesus I know, and Paul I know; but who are ye?',
+    refs: ['Acts 19:15-16'],
+    condition: 'The sons of Sceva use the right NAME with no relationship behind it -- and the spirit answers by naming exactly who it recognises, and who it does not.',
+    consequence: 'They are overcome and flee wounded. The formula was correct; the standing was absent.',
+    threeD: 'Scripture puts its own guard on borrowed authority, and it is not a rule -- it is a question. The name is not an incantation that works on presentation; it works for those the name knows.',
+    outcome: 'You seek to be KNOWN rather than to be equipped, because that is what the encounter actually tested.',
+    tags: ['deliverance', 'authority', 'relationship', 'sceva', 'warning'],
+  },
+  {
+    id: 'gh-presence-is-the-liberty', section: 'epistles', name: 'Where the Spirit of the Lord is, there is liberty',
+    refs: ['2 Corinthians 3:17'],
+    condition: 'The Lord is that Spirit -- and where His Spirit is, liberty is, as a property of the place rather than a reward for the visit.',
+    consequence: 'Freedom is not a state you achieve and then guard; it is what is true wherever He is.',
+    threeD: 'This is why staying free is a matter of staying near rather than of vigilance. You are not defending ground you took; you are remaining where liberty simply is.',
+    outcome: 'Your practice becomes communion instead of patrol.',
+    tags: ['deliverance', 'presence', 'liberty', 'holy-spirit'],
+  },
+  {
+    id: 'gh-submit-then-resist', section: 'epistles', name: 'Submit, THEN resist — the order is the instruction',
+    refs: ['James 4:7-8'],
+    condition: 'Submit yourselves therefore to God. Resist the devil, and he will flee from you -- and immediately: draw nigh to God, and He will draw nigh to you.',
+    consequence: 'Resistance is the middle term, framed on both sides by nearness to Yahweh. Taken alone it is a man shouting at an enemy with nothing behind him.',
+    threeD: 'Most failed resisting is correctly-ordered words in the wrong sequence. Submission is not the warm-up before the real work; it is what makes the resisting mean anything.',
+    outcome: 'You quit leading with confrontation and lead with surrender, which is what actually makes him flee.',
+    tags: ['deliverance', 'submission', 'resist', 'order'],
+  },
+  {
+    id: 'gh-without-me-nothing', section: 'gospels', name: 'Without Me ye can do nothing — the conduit is not the source',
+    refs: ['John 15:5'],
+    condition: 'He is the vine, we are the branches; the one who ABIDES bears much fruit, and apart from Him -- nothing.',
+    consequence: 'A branch produces nothing it did not receive. Fruit is evidence of connection, never of the branch.',
+    threeD: 'Abiding is the whole ministry. A branch that detaches to go be fruitful somewhere else has misunderstood what made it fruitful in the first place.',
+    outcome: 'You measure your life by connection rather than by output, and the output follows.',
+    tags: ['deliverance', 'abiding', 'conduit', 'fruit'],
+  },
+  {
+    id: 'gh-not-bondage-again', section: 'epistles', name: 'Not the spirit of bondage AGAIN to fear',
+    refs: ['Romans 8:15', 'Galatians 5:1'],
+    condition: 'You did not receive the spirit of bondage again to fear, but the Spirit of adoption, whereby we cry, Abba, Father -- so stand fast in that liberty, and be not entangled again with the yoke of bondage.',
+    consequence: 'Both verses use the same word: AGAIN. The danger named is not falling short of freedom but returning to a yoke already broken.',
+    threeD: 'Fear-driven religion re-enters through the back door as carefulness. The test is the cry: a son says Abba; a slave checks whether he is still allowed in.',
+    outcome: 'You hold your freedom as a son rather than rent it as a servant.',
+    tags: ['deliverance', 'adoption', 'liberty', 'fear', 'sonship'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
