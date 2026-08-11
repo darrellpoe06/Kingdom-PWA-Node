@@ -222,3 +222,49 @@ describe('the harvest pipeline has a witness OUTSIDE its own failure domain', ()
     expect(src).toMatch(/exit 1/);
   });
 });
+
+// ===========================================================================
+// THE RIDER INSTALLS WHAT IT NEEDS (measured 2026-08-11)
+// ===========================================================================
+// The transcript corpus sat at 81/860 from 2026-07-06 to 2026-08-11 — 35 days
+// with ZERO rows written, not even error rows. That absence was the diagnosis:
+// a YouTube IP block writes failure rows, so total silence meant the loader
+// never reached YouTube. It never did. Every services-sync cycle ended with
+// load-transcripts.py's own ImportError hint — "ERROR: pip install
+// youtube-transcript-api" — and exit 2, because nothing in the installer or the
+// manifest had ever installed that module on the NAS python3.
+//
+// The rider was armed, clocked, and faithfully running into an import error for
+// over a month. These pin the fix so the dependency cannot silently vanish
+// again, and so nobody "simplifies" the failure into a quiet skip — a silent
+// skip is precisely how a month passed unnoticed.
+describe('transcript-trickle can actually run on the box', () => {
+  const installer = () => readFileSync(
+    join(ROOT, 'infra/nas-sme-pipeline/transcript_trickle_install.sh'), 'utf8');
+
+  it('ensures youtube-transcript-api before invoking the loader', () => {
+    const src = installer();
+    expect(src).toMatch(/import youtube_transcript_api/);
+    expect(src).toMatch(/pip install[^\n]*youtube-transcript-api/);
+    // The check must come BEFORE the loader call, or it guards nothing.
+    // Anchor on the INVOCATION, not the word — the file name also appears in
+    // the header prose, and matching that would pass no matter where the guard sat.
+    const invocation = src.indexOf('python3 "$REPO/infra/nas-sme-pipeline/load-transcripts.py"');
+    expect(invocation, 'the loader invocation must exist').toBeGreaterThan(-1);
+    expect(src.indexOf("import youtube_transcript_api")).toBeLessThan(invocation);
+  });
+
+  it('is idempotent — it only installs when the import is actually missing', () => {
+    expect(installer()).toMatch(/if ! python3 -c 'import youtube_transcript_api'/);
+  });
+
+  it('handles a PEP 668 externally-managed python rather than dying on it', () => {
+    expect(installer()).toMatch(/--break-system-packages/);
+  });
+
+  it('PROVEN-TO-CATCH: a host that still cannot import it FAILS LOUD, never skips quietly', () => {
+    const src = installer();
+    expect(src).toMatch(/FAILED to install youtube-transcript-api/);
+    expect(src).toMatch(/exit 1/);
+  });
+});

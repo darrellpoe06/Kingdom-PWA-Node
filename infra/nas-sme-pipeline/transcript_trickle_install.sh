@@ -57,6 +57,44 @@ if [ $((now - last)) -lt "$GAP" ]; then
   exit 0
 fi
 
+# THE DEPENDENCY THE WHOLE LANE RESTED ON AND NOTHING EVER INSTALLED.
+#
+# Measured 2026-08-11: the transcript corpus had not moved since 2026-07-06 --
+# 81 of 860, 35 days, with ZERO rows written in that window, not even error rows.
+# That "not even error rows" is the tell: a YouTube IP block writes failures, so
+# silence meant the loader was not reaching YouTube at all. It wasn't. Every
+# services-sync cycle ended:
+#
+#   services-sync: installing ytzero ...
+#   ERROR: pip install youtube-transcript-api
+#   services-sync: FAILED: transcript-trickle
+#
+# That line is not pip failing -- it is load-transcripts.py's own hint text on
+# ImportError, printed just before it exits 2. The module was simply never
+# installed on the NAS python3, and no installer here or in the manifest ever
+# installed it. The rider was armed, clocked, and running on schedule into an
+# import error, every cycle, for over a month.
+#
+# So the installer installs what it needs. Idempotent by construction: the
+# import check short-circuits on every later cycle, so this costs one python
+# start-up once the package is present. DSM's python may be PEP 668
+# externally-managed, hence the --break-system-packages retry; --user keeps it
+# out of the system tree either way.
+if ! python3 -c 'import youtube_transcript_api' >/dev/null 2>&1; then
+  echo "transcript-trickle: youtube-transcript-api missing - installing once"
+  python3 -m pip install --user --quiet youtube-transcript-api >/dev/null 2>&1 \
+    || python3 -m pip install --user --quiet --break-system-packages youtube-transcript-api >/dev/null 2>&1 \
+    || true
+  if ! python3 -c 'import youtube_transcript_api' >/dev/null 2>&1; then
+    # Stay LOUD (exit 1). A silent skip here is exactly how this went unnoticed
+    # for a month; harvest-health measures the outcome, and this run must be red
+    # so the cause is visible in the cycle log rather than inferred from a gap.
+    echo "transcript-trickle: FAILED to install youtube-transcript-api on this host"
+    exit 1
+  fi
+  echo "transcript-trickle: youtube-transcript-api installed"
+fi
+
 # Stamp BEFORE running, deliberately: a run that dies for any reason still burns
 # its slot, so a broken config backs off to ~8 attempts/day instead of hammering
 # YouTube every 15 minutes. The loudness comes from the exit code, not retries.
