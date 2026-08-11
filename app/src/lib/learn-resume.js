@@ -94,3 +94,56 @@ export function clearPlace(opts = {}) {
   const storage = opts.storage || defaultStorage();
   try { if (storage) storage.removeItem(KEY); } catch { /* ignore */ }
 }
+
+// =============================================================================
+// TIME-FIT — how much time this person actually has
+// =============================================================================
+// Darrell 2026-08-10: "capable of being scaled down to the most minimal times
+// and full lesson for those that have time all in the Ways!!!"
+//
+// DR-0215 already decided the curriculum ADJUSTS to the allotted time by PACING
+// rather than cutting, and `reflowArcMinutes` has always been able to reflow the
+// arc to any target. The gap was reach, not capability: the control sat inside
+// the facilitator's run-of-show behind `isGovernor && showFacilitator`, so the
+// learner with five minutes before work — the person the rule is FOR — could
+// never touch it.
+//
+// This is the learner's own choice, remembered on their device with the same
+// bright line as the place record above: an integer number of minutes, nothing
+// else. No PII, never sent anywhere, fail-soft in every direction.
+const TIME_KEY = 'poe-learn-timefit';
+
+// The bounds the arc engine can honestly honour. 5 minutes is the shortest slot
+// that can still carry all five arc stages as real (if brief) moments; 240 is
+// reflowArcMinutes' own practical ceiling. Anything outside reads as "unset",
+// which means the course's own session length — the behaviour before this
+// existed, so an absent or corrupt value can never change a lesson.
+export const TIME_FIT_MIN = 5;
+export const TIME_FIT_MAX = 240;
+
+/** The saved minutes for this device, or null when unset/unusable. */
+export function getTimeFit(opts = {}) {
+  const storage = opts.storage || defaultStorage();
+  try {
+    const raw = storage && storage.getItem(TIME_KEY);
+    if (raw == null || raw === '') return null;
+    const n = Math.round(Number(raw));
+    if (!Number.isFinite(n) || n < TIME_FIT_MIN || n > TIME_FIT_MAX) return null;
+    return n;
+  } catch { return null; }
+}
+
+/**
+ * Remember how much time they have. Passing null / an out-of-range value CLEARS
+ * it, which returns the lesson to the course's authored session length rather
+ * than pinning it to a clamped number the person never chose.
+ */
+export function recordTimeFit(minutes, opts = {}) {
+  const storage = opts.storage || defaultStorage();
+  if (!storage) return;
+  const n = Math.round(Number(minutes));
+  try {
+    if (!Number.isFinite(n) || n < TIME_FIT_MIN || n > TIME_FIT_MAX) storage.removeItem(TIME_KEY);
+    else storage.setItem(TIME_KEY, String(n));
+  } catch { /* quota / private mode — ignore */ }
+}

@@ -28,7 +28,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PasswordAuth from './components/PasswordAuth.jsx';
-import { accessState, isPublicChurchRoute, wearsChurchBrand, isPublicHost } from './lib/access-gate.js';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -3514,7 +3514,7 @@ export default function PoeFinancialSystem() {
 
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
-  const publicVisitor = !authSession && churchBrandRoute; // a stranger on a shared church link — no modal, no fight (DR-0290)
+  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // no modal on a lesson link, for ANYONE
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
@@ -3589,7 +3589,7 @@ ${THEME_CSS}
           what's shipped and what's vision. Per Darrell 2026-05-28: the
           start position is the family financial system; this front door
           appears only on first arrival. */}
-      {!churchDoorOnly && !publicVisitor && (isPickerMode || isFirstTimeLanding) && (
+      {!churchDoorOnly && !churchLinkVisit && (isPickerMode || isFirstTimeLanding) && (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
@@ -4087,7 +4087,7 @@ ${THEME_CSS}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !publicVisitor && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
