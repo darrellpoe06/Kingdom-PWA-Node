@@ -149,6 +149,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases,
+  DataLiberation,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -918,7 +919,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4305,6 +4306,9 @@ ${THEME_CSS}
                 // (or anyone's) situations with an institution, so the family
                 // asks for help with the data already in hand (2026-08-04).
                 ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
+                // Your Data — bring your own photos/mail/files home from a
+                // vendor's cloud, guided one step at a time (DR-0291).
+                ['databack', <><UiIcon name="landmark" /> Your Data</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4871,6 +4875,14 @@ ${THEME_CSS}
         {view === 'advocacy' && (
           <SectionBoundary name="Advocacy">
             <AdvocacyCases />
+          </SectionBoundary>
+        )}
+        {/* Your Data — the guided vendor exit. Plain-language, one step at a
+            time for every age, with an all-at-once view for experts. The
+            delete gate is identical in both (DR-0291). */}
+        {view === 'databack' && (
+          <SectionBoundary name="Your Data">
+            <DataLiberation />
           </SectionBoundary>
         )}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal

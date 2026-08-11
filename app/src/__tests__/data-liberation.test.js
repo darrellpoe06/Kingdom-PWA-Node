@@ -122,9 +122,13 @@ describe('every vendor carries what the user needs to act and to check', () => {
     const photos = getVendor('google-photos');
     expect(photos.expiryDays).toBe(7);
     expect(photos.verified.at).toBe('2026-08-11');
-    // The date defect is the reason a plain unzip is worthless — it must be stated.
-    expect(photos.gotcha).toMatch(/EXPORT date/);
-    expect(photos.gotcha).toMatch(/sidecar/i);
+    // The date defect is the reason a plain unzip is worthless, so it must be
+    // stated — but in words a first-timer can read. The technical wording moved
+    // to gotchaTechnical (expert view only) when Darrell set the audience:
+    // "kids elderly and all ages... even experts".
+    expect(photos.gotcha).toMatch(/taken today instead of the day you took it/i);
+    expect(photos.gotchaTechnical).toMatch(/sidecar/i);
+    expect(photos.gotchaTechnical).toMatch(/photoTakenTime/);
     // Over-quota users must not be sent down the Drive delivery path.
     expect(photos.warnings.join(' ')).toMatch(/Add to Drive/);
   });
@@ -133,6 +137,15 @@ describe('every vendor carries what the user needs to act and to check', () => {
     const ring = getVendor('ring');
     expect(ring.expiryDays).toBe(30);
     expect(ring.verified.how).toMatch(/30 days/);
+  });
+
+  it('keeps JARGON out of every user-facing gotcha (elderly, kids, all ages)', () => {
+    const jargon = [/\bsidecar\b/i, /\bmbox\b/i, /\bsha256\b/i, /\bmtime\b/i, /\bJSONL\b/i, /\bphotoTakenTime\b/];
+    for (const v of VENDORS) {
+      for (const j of jargon) {
+        expect(v.gotcha, `${v.name} gotcha must stay plain (${j})`).not.toMatch(j);
+      }
+    }
   });
 
   it('covers the vendors Darrell named plus the rest of the common set', () => {
