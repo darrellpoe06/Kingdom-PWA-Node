@@ -1658,6 +1658,56 @@ export const GODHEAD_ALGORITHMS = [
     outcome: 'You hold your freedom as a son rather than rent it as a servant.',
     tags: ['deliverance', 'adoption', 'liberty', 'fear', 'sonship'],
   },
+
+  // -- THE BORROWED CROWN AND THE INSCRIPTION THAT ASKED FOR ETERNITY --------
+  // Darrell 2026-08-11 brought in the Met's "Color the Temple" projection on the
+  // Temple of Dendur -- the carvings lit back to their original reds, yellows,
+  // blues and greens. Two verified facts in that story are the Word's own
+  // subject matter, so they are taught here rather than admired and dropped.
+  //
+  // FACT ONE: the lit scene shows the Roman emperor Augustus dressed and posed
+  // as an Egyptian pharaoh, offering to Egyptian deities. Rome held Egypt; its
+  // rulers wore the imagery of a religion they did not hold in order to be seen
+  // as legitimate. That is the Sceva pattern (gh-jesus-i-know-who-are-ye) and
+  // the Babel pattern (gh-babel-make-us-a-name) cut into a wall.
+  //
+  // FACT TWO: the last dated hieroglyphic inscription is the Graffito of
+  // Esmet-Akhom, 24 August AD 394, on Hadrian's gate at Philae -- in which the
+  // priest asks that it endure "for all time and eternity." Within about a
+  // generation there was likely no one alive who could read it.
+  //
+  // The colours themselves are the smaller lesson and an honest one: what we
+  // picture as austere bare stone was vivid. Our image of antiquity is a
+  // DECAYED image, not the thing itself -- worth remembering before treating
+  // any faded thing as though its faded state were its true state.
+  {
+    id: 'gh-borrowed-crown', section: 'torah', name: 'The borrowed crown — wearing the imagery to be counted legitimate',
+    refs: ['Exodus 12:12'],
+    condition: 'Yahweh announces judgment not merely on Pharaoh but "against all the gods of Egypt" -- naming the whole system a ruler dressed himself in to be obeyed.',
+    consequence: 'The costume never conferred what it depicted. When judgment came it fell on the gods themselves, and the imagery protected no one wearing it.',
+    threeD: 'A foreign emperor can be carved on a temple wall in a pharaoh\'s crown, offering to gods he does not serve, and the wall will say he is legitimate for two thousand years. Stone records the claim; it does not verify it.',
+    outcome: 'You test standing by relationship rather than by presentation -- of rulers, of teachers, and of yourself.',
+    psyche: 'Borrowed legitimacy is cheap to display and expensive to hold, which is why it is always over-displayed. The louder the insignia, the more worth asking who conferred it.',
+    tags: ['egypt', 'counterfeit', 'legitimacy', 'idolatry', 'authority'],
+  },
+  {
+    id: 'gh-inscription-that-asked-eternity', section: 'prophets', name: 'It asked for eternity — and His Word outlived it',
+    refs: ['Isaiah 40:8', 'Matthew 24:35'],
+    condition: 'The grass withereth, the flower fadeth -- but the word of our God shall stand for ever; and the Son says heaven and earth shall pass away, but His words shall not.',
+    consequence: 'Two claims to permanence can be laid side by side and simply watched. One of them is still being read.',
+    threeD: 'The final hieroglyph ever dated was a priest asking that his inscription last for all time and eternity, and within a generation nobody could read the script it was written in. The Word he did not have is quoted this morning by people who have never seen his gate.',
+    outcome: 'You anchor what you want to endure to the only thing that has.',
+    tags: ['egypt', 'the-word', 'permanence', 'philae', 'eternity'],
+  },
+  {
+    id: 'gh-they-that-make-them', section: 'wisdom', name: 'They that make them are like unto them',
+    refs: ['Psalms 115:4', 'Psalms 115:8'],
+    condition: 'Their idols are the work of men\'s hands -- and the verdict lands on the makers: they that make them are like unto them, and so is every one that trusteth in them.',
+    consequence: 'Worship is formative in both directions. What is trusted shapes the truster into its own likeness, including its lifelessness.',
+    threeD: 'This is why the question is never only whether a thing is false. It is what that thing is making of the person holding it -- which is the same test the platform runs on every system it teaches.',
+    outcome: 'You choose what to trust by what it is turning you INTO, not only by whether it works.',
+    tags: ['idolatry', 'formation', 'trust', 'egypt'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.

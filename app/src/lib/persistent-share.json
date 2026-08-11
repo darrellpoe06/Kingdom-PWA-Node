@@ -1,5 +1,5 @@
 {
-  "totalLines": 450262,
+  "totalLines": 450317,
   "totalFiles": 3106,
   "persistentPct": 13.52,
   "persistentLines": 60889,
@@ -18,6 +18,6 @@
     "frozenBudget": 5324,
     "surfaces": 48
   },
-  "previousPct": 13.54,
-  "generatedAt": "2026-08-11T02:39:57Z"
+  "previousPct": 13.52,
+  "generatedAt": "2026-08-11T02:47:05Z"
 }
