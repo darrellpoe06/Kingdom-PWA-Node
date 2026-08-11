@@ -56,7 +56,7 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
-import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload } from '../lib/lesson-links.js';
+import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -2068,6 +2068,27 @@ export default function ChurchLearn({
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
+
+        {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
+            whole course"). Per-lesson Share hands someone one sitting; this
+            hands them the series and lets them begin where they like. It sits
+            here, above the Governor-only toolbar, deliberately: the course-level
+            control belongs to whoever is READING the course, and burying it
+            behind isGovernor is the exact mistake the time control made. The
+            lesson count is counted from the live schedule, never typed. */}
+        {!lessonFocus && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            <ShareButton
+              label="Share this course"
+              title="Share the whole course using your usual apps"
+              payload={() => courseSharePayload(active.meta, {
+                url: lessonUrl({ courseKey: active.key }),
+                lessonCount: (active.schedule && active.schedule.length) || 0,
+                unitPlural: `${unitLabels(active.meta).noun}s`,
+              })}
+            />
+          </div>
+        )}
 
         {/* Derived catalog line — counted LIVE from the mounted courses (never a
             hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
