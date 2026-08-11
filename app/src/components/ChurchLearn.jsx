@@ -57,7 +57,7 @@ import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-alg
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock } from '../lib/lesson-links.js';
-import { matrixFor, matrixBlockText } from '../lib/scripture-matrix.js';
+import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
@@ -65,7 +65,10 @@ import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
 import BiblicalTimeline from './BiblicalTimeline.jsx';
-import { epochsForLesson, getEpoch } from '../lib/biblical-timeline.js';
+// Timeline context now comes from lesson-timeline-context (curated placements
+// still win; the rest derive from the Scripture each lesson cites), which
+// replaced the direct epochsForLesson/getEpoch lookups this file used to do.
+import { timelineContextFor, timelineContextText } from '../lib/lesson-timeline-context.js';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
@@ -1323,13 +1326,24 @@ function CourseView({
                   "a lesson ... that connects the others ... on their respective
                   timelines"). Only Living Lessons are anchored on the spine, so this
                   is inert for other courses. */}
+              {/* WHERE THIS SITS IN TIME (Darrell 2026-08-11: "easy context...
+                  in all lessons... that need the timelines"). Was curated-only
+                  and had rotted to 29/74 lessons; timelineContextFor() resolves
+                  the Scripture a lesson already cites to its epoch(s), so every
+                  lesson carries its era AND the years Scripture states there.
+                  Curated placements still win and are kept first. */}
               {(() => {
-                const eras = epochsForLesson(m.id).map((eid) => (getEpoch(eid) || {}).era).filter(Boolean);
-                return eras.length ? (
+                const ctx = timelineContextFor(m, { limit: 2 });
+                if (ctx.length === 0) return null;
+                const years = ctx.flatMap((c) => c.years).slice(0, 2);
+                return (
                   <div className="mt-1 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">
-                    <span className="font-semibold">On the timeline:</span> {eras.join(' · ')}
+                    <span className="font-semibold">On the timeline:</span> {ctx.map((c) => c.era).join(' · ')}
+                    {years.length > 0 && (
+                      <span className="text-[#5A5751] normal-case"> · {years.map((y) => `${y.figure} (${y.ref})`).join(' · ')}</span>
+                    )}
                   </div>
-                ) : null;
+                );
               })()}
               {/* The card's scannable preview (big idea, benefits, hands-on,
                   anchor) shows only while the guide is CLOSED. The open guide's
@@ -1385,6 +1399,27 @@ function CourseView({
                         </li>
                       ))}
                     </ul>
+                    {/* The invitation — a reader who opens exactly ONE lesson is
+                        handed the strongest next one, with the shared Word named
+                        as the reason. Derived, so it can never invite someone to
+                        a connection that is not real. */}
+                    {(() => {
+                      const next = readNextInvitation(m, schedule);
+                      if (!next) return null;
+                      return (
+                        <p className="text-xs text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <span className="font-semibold">Read this next: </span>
+                          <button
+                            type="button"
+                            onClick={() => openLesson(next.id)}
+                            className="text-left underline decoration-[#B85838]/50 hover:decoration-[#B85838]"
+                          >
+                            L{next.week} {next.title}
+                          </button>
+                          <span className="text-[#5A5751]"> — {next.why}</span>
+                        </p>
+                      );
+                    })()}
                   </div>
                 );
               })()}
@@ -1786,8 +1821,12 @@ function CourseView({
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
-            {/* The printed guide carries the same integration the screen shows —
-                a facilitator working from paper sees the web too. */}
+            {/* The printed guide carries the same integrations the screen shows —
+                a facilitator working from paper sees the cross-lesson web AND
+                where the lesson sits in time, with the years. */}
+            {timelineContextText(m) && (
+              <p style={{ whiteSpace: 'pre-line' }}>{timelineContextText(m)}</p>
+            )}
             {matrixFor(m, schedule).length > 0 && (
               <p style={{ whiteSpace: 'pre-line' }}>{matrixBlockText(m, schedule)}</p>
             )}
