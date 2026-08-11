@@ -121,6 +121,7 @@ export const FEEDBACK_AREAS = [
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
     ['tvtime', 'TV Time · the friend-group show tracker + discussion (track · talk · laugh together · watch it through The Way)'],
     ['advocacy', 'Advocacy · the Case File (dated documentation of situations with institutions · evidence tiers · escalation ladder · context pack)'],
+    ['databack', 'Your Data · bringing your photos, mail and files home from a company\u2019s cloud (guided steps \u00b7 the safety check before deleting \u00b7 progress across your devices)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "Darrell's Study · reflections / processing / cultural research (device-local)"],

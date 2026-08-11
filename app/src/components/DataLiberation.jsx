@@ -50,7 +50,7 @@ const RULE = '#E8E4DC';
 // Every button clears 44px and reads as a button without relying on color.
 const bigButton = {
   minHeight: '52px',
-  fontSize: '18px',
+  fontSize: '1.125rem',
   fontWeight: 600,
 };
 
@@ -60,7 +60,7 @@ function BackLink({ onClick, children }) {
       type="button"
       onClick={onClick}
       className="underline mb-5 px-2 py-3 -ml-2 text-left"
-      style={{ ...serif, color: INK, fontSize: '17px', minHeight: '44px' }}
+      className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
     >
       {children}
     </button>
@@ -71,19 +71,19 @@ function BackLink({ onClick, children }) {
 function ChooseService({ onPick, progressById }) {
   return (
     <div>
-      <h2 className="text-3xl sm:text-4xl mb-3 leading-tight" style={{ ...serif, fontWeight: 500, color: INK }}>
+      <h2 className="ts-chrome-region text-3xl sm:text-4xl mb-3 leading-tight text-[#1A1815]" style={{ ...serif, fontWeight: 500 }}>
         Bring your things home
       </h2>
-      <p className="mb-2 leading-relaxed" style={{ ...serif, color: INK, fontSize: '19px', maxWidth: '34rem' }}>
+      <p className="mb-2 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.1875rem', maxWidth: '34rem' }}>
         Your photos, your mail and your files belong to you. This helps you get
         your own copy of them, one step at a time.
       </p>
-      <p className="mb-7 leading-relaxed" style={{ ...serif, color: INK, fontSize: '19px', maxWidth: '34rem' }}>
+      <p className="mb-7 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.1875rem', maxWidth: '34rem' }}>
         Take as long as you like. Nothing is deleted anywhere until you have your
         copy and we have checked that everything arrived.
       </p>
 
-      <div className="text-lg mb-4" style={{ ...serif, color: INK, fontWeight: 600 }}>
+      <div className="text-lg mb-4 text-[#1A1815]" style={{ ...serif,  fontWeight: 600 }}>
         Where are your things now?
       </div>
 
@@ -101,15 +101,15 @@ function ChooseService({ onPick, progressById }) {
               style={{ borderColor: started ? ACCENT : RULE, minHeight: '96px', background: '#FFFFFF' }}
             >
               <div className="flex items-baseline gap-3">
-                <span aria-hidden="true" style={{ fontSize: '26px' }}>{v.icon}</span>
-                <span style={{ ...serif, color: INK, fontSize: '21px', fontWeight: 600 }}>{v.name}</span>
+                <span aria-hidden="true" style={{ fontSize: '1.625rem' }}>{v.icon}</span>
+                <span className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.3125rem', fontWeight: 600 }}>{v.name}</span>
               </div>
-              <div className="mt-1 leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px' }}>
+              <div className="mt-1 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
                 {v.holds}
               </div>
               {/* State is always in WORDS, never only a border colour. */}
               {started && (
-                <div className="mt-2" style={{ ...serif, color: ACCENT, fontSize: '16px', fontWeight: 600 }}>
+                <div className="mt-2 text-[#B85838]" style={{ ...serif,  fontSize: '1rem', fontWeight: 600 }}>
                   {done ? 'Finished' : `Started — step ${plainStage(p.stage).step} of ${TOTAL_STEPS}`}
                 </div>
               )}
@@ -126,10 +126,10 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
   const gate = canDelete(progress);
   return (
     <div className="border-2 p-4 mt-5" style={{ borderColor: ACCENT }}>
-      <div className="mb-3" style={{ ...serif, color: INK, fontSize: '20px', fontWeight: 600 }}>
+      <div className="mb-3 text-[#1A1815]" style={{ ...serif,  fontSize: '1.25rem', fontWeight: 600 }}>
         Before anything is deleted
       </div>
-      <p className="mb-4 leading-relaxed" style={{ ...serif, color: INK, fontSize: '18px' }}>
+      <p className="mb-4 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
         Sometimes a company sends your copy with things missing, and it still
         looks perfectly fine when you open it. So we check two things. Please
         tick each one only when you have actually looked.
@@ -143,10 +143,10 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
           className="mt-1"
           style={{ width: '26px', height: '26px' }}
         />
-        <span style={{ ...serif, color: INK, fontSize: '18px' }}>
+        <span className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
           I opened some of the files and they work.
           {attestedBy(progress, 'bytesVerified') && (
-            <span className="block" style={{ fontSize: '16px' }}>
+            <span className="block" style={{ fontSize: '1rem' }}>
               {attestedBy(progress, 'bytesVerified')}
             </span>
           )}
@@ -161,12 +161,12 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
           className="mt-1"
           style={{ width: '26px', height: '26px' }}
         />
-        <span style={{ ...serif, color: INK, fontSize: '18px' }}>
+        <span className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
           I compared how many there are. I looked at{' '}
           <strong>{vendor.completenessCheck.where}</strong> and the number of my
           own files is about the same.
           {attestedBy(progress, 'completenessConfirmed') && (
-            <span className="block" style={{ fontSize: '16px' }}>
+            <span className="block" style={{ fontSize: '1rem' }}>
               {attestedBy(progress, 'completenessConfirmed')}
             </span>
           )}
@@ -175,10 +175,10 @@ function SafetyCheck({ vendor, progress, onConfirm }) {
 
       {!gate.allowed && (
         <div className="border-l-4 pl-3 py-2" style={{ borderColor: ACCENT }}>
-          <div style={{ ...serif, color: INK, fontSize: '17px', fontWeight: 600 }}>
+          <div className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', fontWeight: 600 }}>
             Not safe to delete yet.
           </div>
-          <div style={{ ...serif, color: INK, fontSize: '17px' }}>
+          <div className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
             {vendor.completenessCheck.note}
           </div>
         </div>
@@ -213,38 +213,38 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
       <BackLink onClick={onBack}>← Choose something else</BackLink>
 
       <div className="flex items-baseline gap-3 mb-1">
-        <span aria-hidden="true" style={{ fontSize: '30px' }}>{vendor.icon}</span>
-        <h2 className="text-3xl leading-tight" style={{ ...serif, fontWeight: 500, color: INK }}>
+        <span aria-hidden="true" style={{ fontSize: '1.875rem' }}>{vendor.icon}</span>
+        <h2 className="ts-chrome-region text-3xl leading-tight text-[#1A1815]" style={{ ...serif, fontWeight: 500 }}>
           {vendor.name}
         </h2>
       </div>
 
       {/* Progress in words and numbers, never a bare bar. */}
-      <div className="mb-5" style={{ ...serif, color: INK, fontSize: '17px' }}>
+      <div className="mb-5 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
         Step {plain.step} of {TOTAL_STEPS} — {plain.title}
       </div>
 
       <div className="border-2 p-4" style={{ borderColor: RULE, background: '#FFFFFF' }}>
-        <p className="mb-4 leading-relaxed" style={{ ...serif, color: INK, fontSize: '20px' }}>
+        <p className="mb-4 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.25rem' }}>
           {plain.you}
         </p>
 
-        <div className="mb-2" style={{ ...serif, color: INK, fontSize: '19px', fontWeight: 600 }}>
+        <div className="mb-2 text-[#1A1815]" style={{ ...serif,  fontSize: '1.1875rem', fontWeight: 600 }}>
           What to do now
         </div>
-        <p className="mb-4 leading-relaxed" style={{ ...serif, color: INK, fontSize: '18px' }}>
+        <p className="mb-4 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
           {step.detail}
         </p>
 
         {/* The settings only matter on the very first step. */}
         {progress.stage === STAGE.NOT_STARTED && (
           <div className="border-l-4 pl-3 py-2 mb-4" style={{ borderColor: RULE }}>
-            <div className="mb-1" style={{ ...serif, color: INK, fontSize: '17px', fontWeight: 600 }}>
+            <div className="mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', fontWeight: 600 }}>
               On their page, choose these:
             </div>
             <ul>
               {vendor.settings.map((s, i) => (
-                <li key={i} className="leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px' }}>
+                <li key={i} className="leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
                   • {s}
                 </li>
               ))}
@@ -267,12 +267,12 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
         {/* Things that quietly cost people their data. Plain, not scary. */}
         {progress.stage === STAGE.NOT_STARTED && vendor.warnings.length > 0 && (
           <div className="mt-2">
-            <div className="mb-1" style={{ ...serif, color: INK, fontSize: '17px', fontWeight: 600 }}>
+            <div className="mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', fontWeight: 600 }}>
               Worth knowing
             </div>
             <ul>
               {vendor.warnings.map((w, i) => (
-                <li key={i} className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '17px' }}>
+                <li key={i} className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
                   • {w}
                 </li>
               ))}
@@ -293,7 +293,7 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
                 checked, otherwise the final screen inherits a claim nobody
                 made. Applies to expert and beginner identically. */}
             {blocked ? (
-              <p className="leading-relaxed" style={{ ...serif, color: INK, fontSize: '18px' }}>
+              <p className="leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
                 Tick both boxes above when you have checked, and the next step
                 will appear here.
               </p>
@@ -302,7 +302,7 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
                 type="button"
                 onClick={advance}
                 className="w-full sm:w-auto px-6 border-2"
-                style={{ ...serif, ...bigButton, background: '#FFFFFF', color: INK, borderColor: INK, paddingTop: '12px', paddingBottom: '12px' }}
+                className="text-[#1A1815]" style={{ ...serif, ...bigButton, background: '#FFFFFF',  borderColor: INK, paddingTop: '12px', paddingBottom: '12px' }}
               >
                 {progress.stage === STAGE.VERIFIED && gate.allowed
                   ? 'I have freed up the space'
@@ -313,7 +313,7 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
         )}
 
         {isLast && (
-          <p className="leading-relaxed mt-3" style={{ ...serif, color: INK, fontSize: '18px' }}>
+          <p className="leading-relaxed mt-3 text-[#1A1815]" style={{ ...serif,  fontSize: '1.125rem' }}>
             Keep your copy somewhere safe, and if you can, keep a second copy.
             One copy on one device is not really a backup.
           </p>
@@ -323,17 +323,17 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
       {/* The thing about this service people get caught by. Always visible, so
           it is read before the mistake rather than after. */}
       <div className="border-l-4 pl-3 py-2 mt-5" style={{ borderColor: ACCENT }}>
-        <div className="mb-1" style={{ ...serif, color: INK, fontSize: '17px', fontWeight: 600 }}>
+        <div className="mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', fontWeight: 600 }}>
           One thing to watch with {vendor.name}
         </div>
-        <p className="leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px' }}>
+        <p className="leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
           {vendor.gotcha}
         </p>
       </div>
 
       {/* Honest about where our information came from (DR-0076). */}
       {vendor.confirmOnPage && (
-        <p className="mt-4 leading-relaxed" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <p className="mt-4 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           Note: {vendor.name} changes their pages from time to time. If what you
           see does not match these steps, follow what is on their screen.
         </p>
@@ -355,7 +355,7 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
 function EverythingView({ vendor }) {
   return (
     <div className="border-2 p-4 mt-5" style={{ borderColor: RULE }}>
-      <div className="mb-3" style={{ ...serif, color: INK, fontSize: '19px', fontWeight: 600 }}>
+      <div className="mb-3 text-[#1A1815]" style={{ ...serif,  fontSize: '1.1875rem', fontWeight: 600 }}>
         All steps at once
       </div>
       <ol className="mb-4">
@@ -363,46 +363,46 @@ function EverythingView({ vendor }) {
           const p = plainStage(s);
           const step = nextStep(vendor.id, { stage: s });
           return (
-            <li key={s} className="mb-3 leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px' }}>
+            <li key={s} className="mb-3 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
               <strong>{p.step}. {p.title}</strong> — {step.detail}
             </li>
           );
         })}
       </ol>
 
-      <div className="mb-2" style={{ ...serif, color: INK, fontSize: '17px', fontWeight: 600 }}>
+      <div className="mb-2 text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', fontWeight: 600 }}>
         Details
       </div>
       <ul className="mb-3">
-        <li className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <li className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           • Request page: <span className="break-all">{vendor.requestUrl}</span>
         </li>
-        <li className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <li className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           • Manage / download page: <span className="break-all">{vendor.manageUrl}</span>
         </li>
-        <li className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <li className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           • Link window: {typeof vendor.expiryDays === 'number'
             ? `about ${vendor.expiryDays} days`
             : 'not published by the vendor — read it off their page'}
         </li>
-        <li className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <li className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           • Completeness: compare {vendor.completenessCheck.compare} at {vendor.completenessCheck.where} against {vendor.completenessCheck.against}
         </li>
         {vendor.ownedTool && (
-          <li className="leading-relaxed mb-1" style={{ ...serif, color: INK, fontSize: '16px' }}>
+          <li className="leading-relaxed mb-1 text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
             • Tooling in this repo: <span className="break-all">{vendor.ownedTool}</span>
           </li>
         )}
       </ul>
 
       {vendor.gotchaTechnical && (
-        <div className="mb-3 leading-relaxed" style={{ ...serif, color: INK, fontSize: '16px' }}>
+        <div className="mb-3 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
           Technically: {vendor.gotchaTechnical}
         </div>
       )}
 
       {/* Provenance, stated rather than implied (DR-0076). */}
-      <div style={{ ...serif, color: INK, fontSize: '16px' }}>
+      <div className="text-[#1A1815]" style={{ ...serif,  fontSize: '1rem' }}>
         {vendor.verified
           ? <>Verified {vendor.verified.at}: {vendor.verified.how}</>
           : <>Not independently verified by us — confirm against the vendor&apos;s own page.</>}
@@ -434,7 +434,7 @@ function TakeItWithYou({ progressById }) {
 
   return (
     <div className="mt-7 pt-5" style={{ borderTop: `1px solid ${RULE}` }}>
-      <p className="mb-3 leading-relaxed" style={{ ...serif, color: INK, fontSize: '17px', maxWidth: '34rem' }}>
+      <p className="mb-3 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', maxWidth: '34rem' }}>
         This list is yours too. You can take a copy of it with you at any time,
         the same way you are taking your photos back from them.
       </p>
@@ -442,7 +442,7 @@ function TakeItWithYou({ progressById }) {
         type="button"
         onClick={download}
         className="px-5 border-2"
-        style={{ ...serif, color: INK, borderColor: INK, background: '#FFFFFF', minHeight: '48px', fontSize: '17px', fontWeight: 600 }}
+        className="text-[#1A1815]" style={{ ...serif,  borderColor: INK, background: '#FFFFFF', minHeight: '48px', fontSize: '1.0625rem', fontWeight: 600 }}
       >
         {done ? 'Saved to your device' : 'Save my progress to my device'}
       </button>
@@ -495,7 +495,7 @@ export default function DataLiberation() {
 
   return (
     <section className="bg-white border-2 p-5 sm:p-6" style={{ borderColor: INK }}>
-      <div className="text-xs uppercase tracking-[0.25em] mb-2 font-semibold" style={{ color: ACCENT }}>
+      <div className="text-xs uppercase tracking-[0.25em] mb-2 font-semibold text-[#B85838]" style={{  }}>
         Your data, your hands
       </div>
 
@@ -521,7 +521,7 @@ export default function DataLiberation() {
             type="button"
             onClick={() => setEverything((v) => !v)}
             className="underline mt-5 px-2 py-3 -ml-2 text-left"
-            style={{ ...serif, color: INK, fontSize: '17px', minHeight: '44px' }}
+            className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
             aria-expanded={everything}
           >
             {everything ? 'Hide the full list' : 'Show me all the steps at once'}
