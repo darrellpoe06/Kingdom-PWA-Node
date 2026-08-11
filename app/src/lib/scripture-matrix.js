@@ -163,6 +163,34 @@ export const MATRIX_FRAME = 'This lesson is not a fragment. The verses under it 
 export const MATRIX_EMPTY = 'No other lesson in this series has stood on these verses yet — so this one opens the ground. That is a true statement about the series, not a missing link.';
 
 /**
+ * The "read this next" invitation — Darrell 2026-08-11: "Integration into other
+ * lessons for better understanding if only reading one lesson... at least touch
+ * something that brings users back for more."
+ *
+ * The Matrix already PROVES the connection; this states it as an invitation, so
+ * a reader who opens exactly one lesson is handed the single strongest next
+ * one and told WHY it is next — the shared Word, named. Derived from the same
+ * evidence, so it can never invite someone to a connection that is not real,
+ * and it re-aims itself as the series grows.
+ *
+ * Returns null when a lesson has no kin, so the UI shows nothing rather than a
+ * hollow "explore more" (DR-0288's honest-empty rule).
+ */
+export function readNextInvitation(module, modules = []) {
+  const [best] = matrixFor(module, modules, { limit: 1 });
+  if (!best) return null;
+  const refs = best.shared.slice(0, 3);
+  const more = best.shared.length - refs.length;
+  return {
+    id: best.id,
+    week: best.week,
+    title: best.title,
+    shared: best.shared,
+    why: `It stands on the same Word as this one — ${refs.join(', ')}${more > 0 ? ` and ${more} more` : ''}.`,
+  };
+}
+
+/**
  * A plain-text rendering of the web, for the Markdown export and the copy
  * blocks (which must carry the same material the screen carries).
  */

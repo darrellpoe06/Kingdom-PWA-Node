@@ -11,7 +11,7 @@
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import {
-  extractRefs, refsForLesson, matrixFor, buildRefIndex, matrixBlockText,
+  extractRefs, refsForLesson, matrixFor, buildRefIndex, matrixBlockText, readNextInvitation,
   MATRIX_FRAME, MATRIX_EMPTY,
 } from '../lib/scripture-matrix.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
@@ -116,5 +116,35 @@ describe('against the REAL Living Lessons corpus', () => {
       .filter((m) => matrixFor(m, LIVING_LESSONS_MODULES).length === 0)
       .map((m) => m.id);
     expect(orphans, `orphaned lessons: ${orphans.join(', ')}`).toEqual([]);
+  });
+});
+
+describe('the read-next invitation (Darrell 2026-08-11)', () => {
+  it('hands a single-lesson reader the strongest next one, with the shared Word named', () => {
+    const l73 = LIVING_LESSONS_MODULES.find((m) => m.id === 'll73-the-house-of-el-and-the-only-saviour');
+    const next = readNextInvitation(l73, LIVING_LESSONS_MODULES);
+    expect(next).toBeTruthy();
+    expect(next.id).not.toBe(l73.id);
+    expect(next.shared.length).toBeGreaterThan(0);
+    expect(next.why).toContain('same Word');
+    // The invitation must be EARNED — every named ref is really in both lessons.
+    const mine = new Set(refsForLesson(l73));
+    const theirs = new Set(refsForLesson(LIVING_LESSONS_MODULES.find((m) => m.id === next.id)));
+    for (const ref of next.shared) {
+      expect(mine.has(ref)).toBe(true);
+      expect(theirs.has(ref)).toBe(true);
+    }
+  });
+
+  it('every lesson in the live series has a next to offer', () => {
+    const none = LIVING_LESSONS_MODULES
+      .filter((m) => readNextInvitation(m, LIVING_LESSONS_MODULES) === null)
+      .map((m) => m.id);
+    expect(none, `lessons with no invitation: ${none.join(', ')}`).toEqual([]);
+  });
+
+  it('returns null rather than a hollow invitation when there is no kin', () => {
+    const lone = { id: 'lone', title: 'lone', lesson: 'only (Obadiah 1:4)' };
+    expect(readNextInvitation(lone, [lone])).toBeNull();
   });
 });

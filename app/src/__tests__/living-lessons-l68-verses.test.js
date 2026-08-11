@@ -46,6 +46,10 @@ const VERBATIM_GATED = [
   ['ll70-the-bridegrooms-answer-only-the-father-names-the-day', 69, 25, ['video teaching', 'reconstruction']],
   ['ll73-the-house-of-el-and-the-only-saviour', 72, 60, ['video teaching', 'summary']],
   ['ll74-church-hurt-the-counterfeit-comfort-and-the-blood', 73, 25, ['Karen', 'Bloodbought', 'video teaching', 'summary']],
+  ['ll75-the-greater-yeshua', 74, 25, ['BLK SHP Bible Talk', 'video teaching', 'summary', 'frame']],
+  // L76 quotes less than its neighbours by design — its subject is a silence in
+  // the Word, and the restraint IS the teaching — so its floor is set lower.
+  ['ll76-the-sky-the-speculation-and-the-test-that-works', 75, 16, ['DLM Christian Perspective', 'video teaching', 'summary', 'canon']],
 ];
 
 describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
