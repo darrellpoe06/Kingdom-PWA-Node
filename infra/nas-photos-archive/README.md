@@ -56,10 +56,42 @@ python3 photos_archive.py --out /volume1/PoeTech/photos-archive --verify
 that the verify gate **catches a flipped byte and a removed file**. A gate that
 always passes is itself a lie (DR-0076 §3).
 
+## Which surface can do which step (MEASURED 2026-08-11 — read this first)
+
+Darrell twice directed the cloud session to ssh to the NAS and to order the
+Takeout itself. Both are impossible **from that surface** and possible from
+others, so the capability is recorded per-surface instead of being re-litigated
+every session (DR-0291 §4: a stated *"you can"* is a premise too).
+
+| Step | Cloud session (claude.ai/code) | Desktop Cowork | Darrell's browser | The NAS |
+|---|---|---|---|---|
+| Order the Takeout | **NO** — `takeout.google.com:443` returns **403 to CONNECT** (egress policy), no Google session, and 2FA | no (same auth wall) | **YES — his hand** | no |
+| Measure Gmail / Drive | **YES** (connectors) | yes | yes | no |
+| Measure Google Photos | **NO** — no connector exists at all | no | yes (the UI) | no |
+| Delete from any Google service | **NO** — no delete verb in either connector | no | **YES — his hand** | no |
+| Reach the NAS (ssh / SMB) | **NO** — no `ssh`/`tailscale` binary; ports 22/5000/5001 no route | **YES** | yes (File Station) | n/a |
+| Run these tools | no | yes (over ssh) | no | **YES** |
+| Write/ship the code | **YES** | yes | no | pulls from main |
+
+**The 443 trap, recorded so nobody repeats it:** probing `192.168.1.26:443`
+from the cloud session *appears* to succeed with a real TLS 1.3 handshake. It
+is NOT the NAS — the certificate is `issuer = O = Anthropic, CN = Egress
+Gateway SDS Issuing CA`, minted seconds before the probe. The gateway answers
+every CONNECT. **Check the certificate issuer before believing a port is open.**
+
 ## The whole flow (Darrell's hand — values only he holds)
 
 **Step 1 — order the Photos export (browser, ~5 min; Google builds it over
 hours-to-days, so this is the long pole):**
+
+Fastest path — this deep link opens Takeout with **Google Photos already the
+only thing selected**, skipping the "Deselect all, scroll, find Photos" dance:
+
+    https://takeout.google.com/settings/takeout/custom/photos
+
+(Best-known deep link; it could not be confirmed from the cloud session because
+the host is blocked there. If it does not preselect, use the long way below.)
+
 1. Open https://takeout.google.com signed in as darrellpoe06@gmail.com.
 2. "Deselect all," then check **Google Photos** only (mail is a separate,
    already-tooled pass — keep the exports small enough to finish).
