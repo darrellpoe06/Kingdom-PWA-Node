@@ -75,6 +75,28 @@ jobs:
           ps aux 2>/dev/null | grep -iE "ollama|whisper|xtts|voice-studio|llama" | grep -v grep || echo "no ollama/whisper/xtts/voice-studio/llama processes running"
           echo "=== poetech systemd units ==="
           systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -iE "poetech|ollama|whisper|voice" || echo "no matching units listed"
+          echo "=== python + pip (the assumption two installers made and got wrong) ==="
+          # 2026-08-11: the transcript rider's dependency fix used `python3 -m pip
+          # install --user`, and choir_dates_install.sh line 22 already recorded
+          # that this DSM ships WITHOUT pip. Two installers assumed a package
+          # manager nobody had verified. Measure it instead of assuming it again.
+          command -v python3 && python3 -V 2>&1 || echo "no python3 on PATH"
+          python3 -m pip --version 2>&1 | head -1 || echo "python3 -m pip: NOT AVAILABLE"
+          python3 -c 'import youtube_transcript_api; print("youtube_transcript_api: importable")' 2>&1 | tail -1
+          python3 -c 'import yt_dlp; print("yt_dlp: importable")' 2>&1 | tail -1
+          echo "=== the SAME import, as ROOT (which is who services-sync runs it as) ==="
+          # The whole hypothesis in one line. dpoe can import it; the loop runs
+          # as root via sudo -n. If these two disagree, the per-user site-packages
+          # are the fault and nothing about YouTube or the network matters yet.
+          ${SUDO} python3 -c 'import youtube_transcript_api; print("as root: importable")' 2>&1 | tail -1
+          ls -d /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/.vendor 2>&1 | tail -1
+          echo "=== docker reachability, unprivileged vs sudo -n ==="
+          docker ps >/dev/null 2>&1 && echo "docker: OK unprivileged" || echo "docker: DENIED unprivileged"
+          sudo -n docker ps >/dev/null 2>&1 && echo "docker: OK via sudo -n" || echo "docker: not available via sudo -n"
+          echo "=== can a container reach YouTube at all? (the choir-dates wrapper path) ==="
+          ${SUDO} docker run --rm --network host curlimages/curl:latest -s -o /dev/null -w 'youtube HTTP %{http_code}\n' --max-time 20 https://www.youtube.com 2>&1 | tail -1
+          echo "=== the trickle stamp (read-only; running the installer would burn a slot) ==="
+          ls -la /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/out/.transcript-trickle.last 2>&1 | tail -1
           echo "=== disk (the volume the services live on) ==="
           df -h /volume1 2>&1 | tail -1
           EOS

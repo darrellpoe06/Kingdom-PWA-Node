@@ -15,6 +15,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
+import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
 
 function laneBadge(lane) {
@@ -32,6 +33,57 @@ function prKpi(p) {
 
 // The uptime verdict, from the outside-in probe's real runs (DR-0125). Deploy
 // green is NOT site-up (2026-07-08; LESSONS P26) — this is the site's own line.
+// HarvestStrip — the transcript pipeline, where a steward will actually see it.
+//
+// Darrell 2026-08-11: "fix the witness too... in app surface." The probe had
+// rung four times a day for five days into a GitHub issue while the corpus sat
+// at 81 of 860 for 35 days. DR-0135's standard is probe -> READOUT -> actuator
+// -> announce, and the readout was the missing half: a stalled data plane was
+// visible only to whoever opened the repo's issues.
+//
+// Every number here is the PROBE's own measurement, read live (DR-0121) — this
+// never computes a second, possibly-disagreeing figure. Unreadable is stated as
+// unreadable, never drawn as green (DR-0076).
+function HarvestStrip({ harvest }) {
+  if (!harvest) return null;
+  if (!harvest.ok) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751] mb-2">
+        Harvest record unreadable right now — {harvest.notice}
+      </p>
+    );
+  }
+  const { stats, latest, incident } = harvest;
+  const stalled = incident ? incident.open : (stats && stats.measured ? !stats.ok : null);
+  const kpi = stalled === null
+    ? { status: 'idle', label: 'not yet measured' }
+    : stalled
+      ? { status: 'problem', label: latest && latest.state === 'blocked' ? 'blocked — running, being refused' : 'silent — the rider is not executing' }
+      : { status: 'good', label: 'transcripts advancing' };
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">Transcript harvest — the data plane</span>
+        <KpiDot status={kpi.status} label={kpi.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {latest && latest.transcribed != null && latest.total != null
+          ? <>{latest.transcribed} of {latest.total} transcribed{latest.owed != null ? ` · ${latest.owed} still owed` : ''}.{' '}</>
+          : <>The probe has not recorded counts yet.{' '}</>}
+        {latest && latest.quietHours != null && stalled
+          ? <>Nothing has succeeded in {latest.quietHours}h.{' '}</>
+          : null}
+        {stats && stats.measured
+          ? <>{stats.checks} checks read, {stats.failing} failing{stats.streak > 1 ? ` (${stats.streak} in a row the same way)` : ''}.{' '}</>
+          : null}
+        {incident && incident.url
+          ? <a href={incident.url} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the record</a>
+          : null}
+      </p>
+    </div>
+  );
+}
+
 function UptimeStrip({ health }) {
   if (!health) return null;
   if (!health.ok) {
@@ -84,15 +136,18 @@ function UptimeStrip({ health }) {
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
   const [health, setHealth] = useState(null);
+  const [harvest, setHarvest] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh] = await Promise.all([
+    const [data, sh, hh] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
+      fetchHarvestHealth().catch(() => null),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
+    setHarvest(hh);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -141,6 +196,7 @@ export default function OpsBoard() {
 
       {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
       <UptimeStrip health={health} />
+      <HarvestStrip harvest={harvest} />
 
       {/* Data-integrity standard report — how much of the app is verified
           live-data vs painted, and the trend over time (DR-0196; Darrell

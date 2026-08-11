@@ -91,38 +91,89 @@ jobs:
           # migrate lane (a trailing newline in the secret made psql ask for a
           # database literally named "postgres\n" — DR-0145 lineage).
           CLEAN_URL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
+          # FRESHNESS IS MEASURED ON SUCCESSES, NOT ON ROWS (fixed 2026-08-11).
+          # video_transcripts stores FAILURES as rows too — 56 of its 137 rows
+          # were errors — so the old `max(created_at)` over ALL rows meant the
+          # documented most-likely cause, a YouTube IP block, would write error
+          # rows steadily, hold the age near zero, and make this probe report
+          # ADVANCING and CLOSE the incident while producing zero transcripts.
+          # That is LESSONS P22 inside the instrument built to enforce it.
+          # Attempt-age and the recent-error count are measured SEPARATELY, and
+          # only to tell the two failure shapes apart.
           row=$(psql "$CLEAN_URL" -At -F '|' -c "
             SELECT
               (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0),
               (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL),
               COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
-                        FROM video_transcripts), -1);
+                        FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1),
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
+                        FROM video_transcripts), -1),
+              (SELECT count(*) FROM video_transcripts
+                 WHERE error IS NOT NULL AND created_at > now() - ('$STALL_HOURS hours')::interval);
           ") || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
 
           done_n=$(echo "$row" | cut -d'|' -f1)
           total=$(echo "$row"  | cut -d'|' -f2)
-          age_h=$(echo "$row"  | cut -d'|' -f3)
+          age_h=$(echo "$row"  | cut -d'|' -f3)   # hours since the newest SUCCESS
+          try_h=$(echo "$row"  | cut -d'|' -f4)   # hours since the newest ATTEMPT
+          errs=$(echo "$row"   | cut -d'|' -f5)   # error rows inside the window
           gaps=$(( total - done_n ))
 
-          echo "transcribed=$done_n / $total  ·  gaps=$gaps  ·  newest row ${age_h}h old"
+          echo "transcribed=$done_n / $total  ·  gaps=$gaps  ·  newest SUCCESS ${age_h}h old  ·  newest attempt ${try_h}h  ·  ${errs} recent errors"
           {
             echo "done_n=$done_n"; echo "total=$total"; echo "gaps=$gaps"; echo "age_h=$age_h"
+            echo "try_h=$try_h"; echo "errs=$errs"
           } >> "$GITHUB_OUTPUT"
 
-          stalled=""
+          # WHICH WAY IS IT BROKEN? The two shapes have opposite next actions and
+          # are trivially separable, so the record says which instead of pasting
+          # three guesses (on 2026-08-11 all three guesses were wrong):
+          #   SILENT  — nothing written at all, not even a failure → not EXECUTING
+          #   BLOCKED — attempts still failing, successes stale   → running, refused
+          stalled=""; shape=""
           if [ "$gaps" -gt 0 ] && { [ "$age_h" -lt 0 ] || [ "$age_h" -ge "$STALL_HOURS" ]; }; then
-            stalled="transcribed ${done_n}/${total}, ${gaps} still owed, and NOTHING has landed in ${age_h}h (threshold ${STALL_HOURS}h)"
+            if [ "$errs" -gt 0 ] || { [ "$try_h" -ge 0 ] && [ "$try_h" -lt "$STALL_HOURS" ]; }; then
+              shape="BLOCKED"
+              stalled="BLOCKED: transcribed ${done_n}/${total}, ${gaps} still owed. Nothing has SUCCEEDED in ${age_h}h while attempts keep failing (${errs} error rows in the last ${STALL_HOURS}h). The rider IS running and is being refused — read the newest error rows; an IP block backs off and resumes itself."
+            else
+              shape="SILENT"
+              stalled="SILENT: transcribed ${done_n}/${total}, ${gaps} still owed. NOTHING has been written in ${age_h}h — not even a failure row — so the rider is not EXECUTING. Check the NAS services-sync cycle log for the installer that died; a dependency it never installed will not announce itself."
+            fi
           fi
           echo "stalled=$stalled" >> "$GITHUB_OUTPUT"
+          echo "shape=$shape" >> "$GITHUB_OUTPUT"
 
           {
             echo "### Harvest health"
             echo ""
             echo "- Transcribed: **${done_n} / ${total}** (${gaps} still owed)"
-            echo "- Newest transcript row: **${age_h}h** old"
+            echo "- Newest SUCCESSFUL transcript: **${age_h}h** old"
+            echo "- Newest attempt of any kind: **${try_h}h** old (${errs} error rows in ${STALL_HOURS}h)"
             echo ""
             if [ -n "$stalled" ]; then echo "**STALLED** — $stalled"; else echo "**ADVANCING.**"; fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE ACTUATOR THE STANDARD REQUIRES (DR-0135: probe -> readout -> actuator
+      # -> announce; "a detector without an actuator is a named debt"). This
+      # witness rang 4x/day for five days into an issue nobody read while the
+      # corpus sat dead. A SILENT pipeline means the rider is not executing, and
+      # the sanctioned remote-hands repair for exactly that is nas-bootstrap's
+      # idempotent mirror-pull + services-sync — which is how the 35-day stall
+      # was actually diagnosed and fixed on 2026-08-11.
+      #
+      # Brakes kept: at most ONE dispatch per fire (budget), the dispatched
+      # workflow is single-flight in its own concurrency group (lock), and it is
+      # bounded + read-mostly. It is NOT attempted for BLOCKED — re-syncing a
+      # running-but-refused rider would spend YouTube budget against a block
+      # that clears itself.
+      - name: Heal a SILENT pipeline (one services-sync, never for BLOCKED)
+        if: ${{ steps.probe.outputs.shape == 'SILENT' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "harvest-health: pipeline is SILENT — dispatching one nas-bootstrap (services-sync) heal"
+          gh workflow run nas-bootstrap.yml --repo "$REPO" --ref main \
+            || echo "::warning::heal dispatch failed — the stall record still stands"
 
       - name: Record the stall (rolling issue, labeled `incident`)
         if: ${{ steps.probe.outputs.stalled != '' }}
@@ -131,7 +182,12 @@ jobs:
         run: |
           set -uo pipefail
           title="harvest-health: the transcript pipeline has stopped advancing"
-          body="$(date -u +%FT%TZ) — **STALLED**: ${STALLED}. The trickle rides services-sync on the NAS; the usual causes are the NAS being off the tailnet, a YouTube IP block (the loader backs off 24h and resumes itself), or missing NAS secrets. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          # The shape-aware sentence IS the diagnosis now. The old body pasted a
+          # fixed list of three guesses on every fire; on 2026-08-11 all three
+          # were wrong (NAS up, YouTube not blocking, secrets fine — a python
+          # module was simply never installed), and the list had been repeated
+          # ~20 times over five days while the real cause sat in the cycle log.
+          body="$(date -u +%FT%TZ) — ${STALLED} Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title harvest-health" --json number --jq '.[0].number // ""')
           if [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"
