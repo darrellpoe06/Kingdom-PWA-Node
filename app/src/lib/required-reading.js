@@ -63,13 +63,22 @@ export const RULES = [
     id: 'scripture-content',
     match: (p) => /(lesson|scripture|verse|godhead|study|sermon)/i.test(p) && /^app\/src\/(lib|components)\//.test(p),
     read: ['SCRIPTURE-REFERENCE-STANDARD.md'],
-    why: 'Content touching the Word. Every citation is fetched verbatim and never produced from memory; the verbatim gate fails the build on a tampered quote.',
+    // CORRECTED 2026-08-11 after actually reading it. The first version of this
+    // why said the document was about fetching verses verbatim — that is
+    // CLAUDE.md and DR-0076. This document is the TRANSLATION SET and the
+    // CITATION PATTERN, which is different guidance and easy to get wrong from
+    // memory. Exactly the error an unread citation produces.
+    why: 'Content citing the Word. The standard fixes the translation hierarchy (ESV primary and the default shown to users, KJV secondary, NIV/AMP for clarification, Strong\'s for word-study) and the exact citation format: **ESV — Book Chapter:Verse:** *"text"*, ESV first, others only where they add clarity. Getting the format from memory produces citations that look right and are not.',
   },
   {
     id: 'autonomous-loop',
     match: (p) => /^infra\/nas-loops\//.test(p) || /(cron|scheduler|loop-runner)/i.test(p),
     read: ['DR-0247', 'DR-0248'],
-    why: 'Timer-driven or self-triggering automation. Budget and single-instance lock are build requirements; the amended law starts agreed work by default rather than parking it on a human.',
+    // CORRECTED 2026-08-11 after actually reading them. The first version said
+    // "budget and lock are build requirements" without DR-0248 §4's scope
+    // limit — which would have told someone building an AI-class loop to drop
+    // the kill-switch. That is a safety error, not a wording one.
+    why: 'Timer-driven or self-triggering automation. DR-0247: agreed work STARTS ITSELF through the lane (ARMED-BY-RECORD is the arm; the Governor\'s hand is a brake, never a starter; parking agreed work on a human start is a DR-0111 violation). DR-0248 removes the manual kill-switch from the DETERMINISTIC class only — budget + single-flight lock remain. CRITICAL SCOPE (DR-0248 §4): AI-class automation (vendor spend, cap-resume/wake, the Cage — the 2026-06-06 runaway class) KEEPS its full brake set including the kill-switch. Know which class you are building before you drop a brake.',
   },
 ];
 
