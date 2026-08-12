@@ -77,6 +77,26 @@ export function parseNav(search) {
 // resolves through ONE validated source. An unknown sub must fall back to the
 // default, never route to a branch that renders nothing (the "blank Books tab"
 // class this module exists to prevent).
+// The Church sub-tabs that are real routes. The sibling of VALID_BOOKS_SUBS,
+// and it should have existed at the same time: initialBooksView's own comment
+// claims it is "restoring the parity that view and churchView already had" —
+// but churchView never had it. The shell's getInitialChurchView read only
+// `?view=`, so `?view=church&sub=learn` resolved to the church HOME, and the
+// history seed then wrote a URL with no `sub` at all (DR-0293).
+export const VALID_CHURCH_SUBS = [
+  'home', 'engagement', 'choir', 'pulpit', 'learn', 'events',
+  'scripture', 'bus', 'harvest', 'conference', 'program', 'word',
+];
+
+// initialChurchView — the Church sub-tab a URL deep-links to, validated.
+// Honors BOTH forms: the alias (`?view=learn`) and the explicit pair
+// (`?view=church&sub=learn`). An unknown sub falls back to the default so no
+// deep link can route to a branch that renders nothing.
+export function initialChurchView(search) {
+  const { view, churchView } = parseNav(search);
+  return view === 'church' && VALID_CHURCH_SUBS.includes(churchView) ? churchView : DEFAULT_CHURCH;
+}
+
 export const VALID_BOOKS_SUBS = [
   'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart', 'k1099', 'calendar', 'legal',
 ];
@@ -111,7 +131,12 @@ export function navKey(loc) {
 // tab-tap rewrote the URL bare and the NEXT reload booted as full PoeTech —
 // while the reverse collision (a PoeTech reload booting as the church door off
 // bare ?view=church) is fixed in church-own-door.js. Exported for tests.
-export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz'];
+// Params the URL seed must carry through, or a deep link dies on arrival.
+// `course`/`lesson` added 2026-08-12 (DR-0293): ChurchLearn reads them ONCE on
+// mount, and the history seed ran first and stripped them, so a shared lesson
+// link opened the church home instead. Darrell, from his phone: "it takes me to
+// the Love Corner App... no lesson... just the app."
+export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'course', 'lesson'];
 
 // Compose the full URL for a location, preserving the app's base path
 // (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —
