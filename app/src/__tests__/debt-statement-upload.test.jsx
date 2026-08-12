@@ -10,7 +10,7 @@
 // on the wrong tab — so a person came to Debts to deal with a credit card,
 // found nothing to hand a statement to, and concluded the app could not read
 // statements at all.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
