@@ -80,19 +80,43 @@ fi
 # start-up once the package is present. DSM's python may be PEP 668
 # externally-managed, hence the --break-system-packages retry; --user keeps it
 # out of the system tree either way.
+# THE DEPENDENCY MUST BE VISIBLE TO WHICHEVER USER RUNS THIS (measured
+# 2026-08-11, nas-health run 31535277388).
+#
+# The first fix installed with `pip install --user` and appeared to work: as
+# dpoe the module imports fine. But services-sync runs this loop as ROOT via
+# `sudo -n`, and root does not read dpoe's per-user site-packages -- both pip
+# AND youtube_transcript_api live in /var/services/homes/dpoe/.local. So as
+# root the import failed, the pip retry ALSO failed (root cannot see pip, which
+# is itself in dpoe's .local), and the loud guard exited 1 before the stamp was
+# ever written. The untouched stamp is the proof: same mtime across two cycles.
+#
+# So the module is vendored into the REPO, which both users can read, and the
+# user site-packages are added as a fallback path rather than depended upon.
+# Whichever python has pip does the install; whoever runs it can import.
+VENDOR="$REPO/infra/nas-sme-pipeline/.vendor"
+USER_SITE="/var/services/homes/dpoe/.local/lib/python3.8/site-packages"
+PYTHONPATH="$VENDOR${PYTHONPATH:+:$PYTHONPATH}"
+[ -d "$USER_SITE" ] && PYTHONPATH="$PYTHONPATH:$USER_SITE"
+export PYTHONPATH
+
 if ! python3 -c 'import youtube_transcript_api' >/dev/null 2>&1; then
-  echo "transcript-trickle: youtube-transcript-api missing - installing once"
-  python3 -m pip install --user --quiet youtube-transcript-api >/dev/null 2>&1 \
-    || python3 -m pip install --user --quiet --break-system-packages youtube-transcript-api >/dev/null 2>&1 \
+  echo "transcript-trickle: youtube-transcript-api not importable as $(id -un) - vendoring into the repo"
+  mkdir -p "$VENDOR"
+  # python3 -m pip is absent for root on this DSM; dpoe's pip is a real binary
+  # on disk and can be driven directly, still writing to the shared vendor dir.
+  DPOE_PIP="/var/services/homes/dpoe/.local/bin/pip"
+  python3 -m pip install --target "$VENDOR" --quiet --upgrade youtube-transcript-api >/dev/null 2>&1 \
+    || { [ -x "$DPOE_PIP" ] && "$DPOE_PIP" install --target "$VENDOR" --quiet --upgrade youtube-transcript-api >/dev/null 2>&1; } \
     || true
   if ! python3 -c 'import youtube_transcript_api' >/dev/null 2>&1; then
     # Stay LOUD (exit 1). A silent skip here is exactly how this went unnoticed
     # for a month; harvest-health measures the outcome, and this run must be red
     # so the cause is visible in the cycle log rather than inferred from a gap.
-    echo "transcript-trickle: FAILED to install youtube-transcript-api on this host"
+    echo "transcript-trickle: FAILED to make youtube-transcript-api importable as $(id -un) (PYTHONPATH=$PYTHONPATH)"
     exit 1
   fi
-  echo "transcript-trickle: youtube-transcript-api installed"
+  echo "transcript-trickle: youtube-transcript-api vendored and importable"
 fi
 
 # Stamp BEFORE running, deliberately: a run that dies for any reason still burns

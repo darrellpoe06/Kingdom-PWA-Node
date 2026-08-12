@@ -264,7 +264,7 @@ describe('transcript-trickle can actually run on the box', () => {
 
   it('PROVEN-TO-CATCH: a host that still cannot import it FAILS LOUD, never skips quietly', () => {
     const src = installer();
-    expect(src).toMatch(/FAILED to install youtube-transcript-api/);
+    expect(src).toMatch(/FAILED to make youtube-transcript-api importable/);
     expect(src).toMatch(/exit 1/);
   });
 });
@@ -299,6 +299,46 @@ describe('choir-dates yt-dlp wrapper is verified every cycle', () => {
   it('still fails LOUD when the wrapper cannot be made to work', () => {
     const src = installer();
     expect(src).toMatch(/failed its --version check/);
+    expect(src).toMatch(/exit 1/);
+  });
+});
+
+// ===========================================================================
+// The transcript dependency must not depend on WHICH USER runs the loop
+// ===========================================================================
+// Measured 2026-08-11 (nas-health run 31535277388): as dpoe,
+// `import youtube_transcript_api` succeeds — the first fix really did install
+// it. But services-sync runs the loop as ROOT via `sudo -n`, and both pip and
+// the module live in /var/services/homes/dpoe/.local, a PER-USER location root
+// does not read. So as root the import failed, the pip retry failed too (root
+// cannot see pip, which is itself in dpoe's .local), and the loud guard exited
+// 1 before the stamp was written — proven by the stamp's mtime being identical
+// across two cycles. "It works when I run it" was true and useless.
+describe('transcript-trickle dependency is user-independent', () => {
+  const installer = () => readFileSync(
+    join(ROOT, 'infra/nas-sme-pipeline/transcript_trickle_install.sh'), 'utf8');
+
+  it('vendors into the REPO, which every user can read', () => {
+    const src = installer();
+    expect(src).toMatch(/VENDOR="\$REPO\/infra\/nas-sme-pipeline\/\.vendor"/);
+    expect(src).toMatch(/--target "\$VENDOR"/);
+  });
+
+  it('PROVEN-TO-CATCH: it no longer relies on --user site-packages', () => {
+    expect(installer()).not.toMatch(/pip install --user --quiet youtube-transcript-api/);
+  });
+
+  it('exports PYTHONPATH BEFORE the loader runs, or the loader cannot import it', () => {
+    const src = installer();
+    const exportAt = src.indexOf('export PYTHONPATH');
+    const loaderAt = src.indexOf('load-transcripts.py"');
+    expect(exportAt).toBeGreaterThan(-1);
+    expect(loaderAt).toBeGreaterThan(exportAt);
+  });
+
+  it('still fails LOUD, and names the user it failed as', () => {
+    const src = installer();
+    expect(src).toMatch(/FAILED to make youtube-transcript-api importable as \$\(id -un\)/);
     expect(src).toMatch(/exit 1/);
   });
 });
