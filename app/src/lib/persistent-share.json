@@ -1,5 +1,5 @@
 {
-  "totalLines": 453317,
+  "totalLines": 453343,
   "totalFiles": 3117,
   "persistentPct": 13.69,
   "persistentLines": 62068,
@@ -10,7 +10,7 @@
     "ci": 3.46
   },
   "frontendPct": 59.03,
-  "configDocsPct": 27.28,
+  "configDocsPct": 27.27,
   "baselinePct": 12.6,
   "targetPct": 20.0,
   "moduleLedger": {
@@ -18,6 +18,6 @@
     "frozenBudget": 5326,
     "surfaces": 48
   },
-  "previousPct": 13.7,
-  "generatedAt": "2026-08-12T05:04:32Z"
+  "previousPct": 13.69,
+  "generatedAt": "2026-08-12T05:23:39Z"
 }
