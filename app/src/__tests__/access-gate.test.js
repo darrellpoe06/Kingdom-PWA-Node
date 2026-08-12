@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPublicChurchRoute, accessState } from '../lib/access-gate.js';
+import { isPublicChurchRoute, accessState, isChurchLinkVisit } from '../lib/access-gate.js';
 
 const SESSION = { user: { email: 'someone@example.com' } };
 
@@ -105,7 +105,6 @@ describe('the public church route — the shared link a stranger can open', () =
 // re-arming half is the security property that makes the opening safe, and it
 // is the one that would break silently if someone later "simplified" this to
 // read the landing URL instead of the live view.
-import { isChurchLinkVisit, isPublicChurchRoute } from '../lib/access-gate.js';
 
 describe('DR-0292 — a shared lesson link opens to the lesson, for anyone', () => {
   // The exact URL from Darrell's screenshot.
