@@ -12,7 +12,15 @@ const nowMs = Date.parse('2026-07-20T00:00:00');
 
 describe('payeeKey', () => {
   it('strips dates / store numbers / punctuation to a stable key', () => {
-    expect(payeeKey('CASH APP*DARRELL POE*C OAKLAND CA 121492 07/13')).toBe('CASH APP DARRELL');
+    // FIVE tokens as of 2026-08-11, not three. At three, 'CHASE CREDIT CRD
+    // AUTOPAY' and 'CHASE CREDIT CRD EPAY' collapsed to one key and two
+    // different payments merged into a single blended pattern. Here it also
+    // keeps the RECIPIENT, which is what distinguishes one Cash App payment
+    // from another. Known tradeoff, stated rather than hidden: a trailing
+    // city can ride along, so the same payee billed from two cities would
+    // split into two patterns — the safer error, since a split shows both
+    // and a merge hides one inside a median.
+    expect(payeeKey('CASH APP*DARRELL POE*C OAKLAND CA 121492 07/13')).toBe('CASH APP DARRELL POE OAKLAND');
     expect(payeeKey('NETFLIX.COM 866-579-7172')).toBe('NETFLIX COM');
   });
 });
