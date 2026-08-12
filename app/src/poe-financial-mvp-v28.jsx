@@ -1008,6 +1008,7 @@ export default function PoeFinancialSystem() {
   // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
   const churchBrandRoute = useState(() => isPublicChurchRoute())[0]; // brand follows the DOOR, not the tab (DR-0290)
+  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // ALL three interruptions (DR-0292)
   // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
   // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
   // → ?tlc=1), the app presents as the focused, PUBLIC, client-facing TLC app —
@@ -1288,7 +1289,7 @@ export default function PoeFinancialSystem() {
   // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
   // gate IS the surface for all three (it carries the biometric button on top in
   // the ENTER cases), so the new step joins the same render condition.
-  const showPinGate = mpEnforce
+  const showPinGate = mpEnforce && !churchLinkVisit
     && (accessDecision.nextStep === NEXT_STEP.SET_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
@@ -3514,7 +3515,6 @@ export default function PoeFinancialSystem() {
 
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
-  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // no modal on a lesson link, for ANYONE
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays

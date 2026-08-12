@@ -122,6 +122,28 @@ export function wearsChurchBrand({ churchDoorOnly = false, signedIn = false, rou
  * by a church link and later opening a private tab restores the profile choice,
  * because that choice genuinely governs whose private data is on screen.
  */
+// EXTENDED 2026-08-11 (DR-0292) — it governs ALL THREE interruptions now.
+// Darrell, opening a lesson he had just shared to himself: "When I use the share
+// button and send it to myself... I can see anything... it wants me to login!!!"
+// and "Why does a user need to do anything but read and hopefully push play so
+// it can read it to them."
+//
+// DR-0290 applied this to the scenario picker and the profile chooser and
+// stopped there. A THIRD full-screen interruption existed: the PIN / biometric
+// unlock, whose condition is `!!authSession && isPublicHost() && ...` — so it
+// fired for exactly the people the earlier two now let through. Being SIGNED IN
+// was the trigger, which is why the person most likely to share a lesson (a
+// member, a steward, Darrell himself) was the most reliably blocked by it.
+//
+// The predicate was also computed BELOW the PIN gate in the shell, so it could
+// not have been consulted there even if someone had thought to. It is now
+// computed once, above all three.
+//
+// The `view` scoping is what keeps this safe: a lesson link opens the lesson,
+// and the moment that person opens a private tab the PIN gate arms again,
+// because the view is no longer the church. Landing URL is never trusted for
+// this — the app does not rewrite the URL on tab changes, so a landing-based
+// check would disable the unlock for the entire session.
 export function isChurchLinkVisit({ route = false, view = '' } = {}) {
   return !!route && view === 'church';
 }
