@@ -1041,15 +1041,41 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                   type="button"
                   onClick={openReports}
                   aria-expanded={stdReportsOpen}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-3 min-h-[48px] text-left hover:bg-white focus:outline focus:outline-2 focus:outline-[#1A1815]"
                 >
-                  <span className="text-[0.6875rem] tracking-[0.12em] text-[#1A1815] font-semibold">KPI&rsquo;s &middot; Standard reports</span>
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className="text-[0.5625rem] text-[#5A5751] truncate hidden sm:inline">{ranked.map((r) => r.label).join(' · ')}</span>
-                    <span className="text-[0.5625rem] text-[#5A5751] whitespace-nowrap">{ranked.length} report{ranked.length === 1 ? '' : 's'}</span>
-                    <span className="text-[#5A5751] text-xs" aria-hidden="true">{stdReportsOpen ? '▾' : '▸'}</span>
+                  <span className="text-[0.8125rem] tracking-[0.08em] text-[#1A1815] font-semibold">
+                    KPI&rsquo;s &middot; Standard reports
+                  </span>
+                  <span className="flex items-center gap-2 min-w-0 shrink-0">
+                    <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap">{ranked.length} report{ranked.length === 1 ? '' : 's'}</span>
+                    <span className="text-[#1A1815] text-sm" aria-hidden="true">{stdReportsOpen ? '\u25be' : '\u25b8'}</span>
                   </span>
                 </button>
+
+                {/* THE REPORT NAMES ARE ALWAYS VISIBLE, INCLUDING ON A PHONE.
+                    Darrell 2026-08-11: "make KPI's more visible for Users...
+                    Christina is having a hard time locating it... getting
+                    aclimated." Measured cause: the names rendered at 9px behind
+                    `hidden sm:inline`, so on a phone the entire section was one
+                    faint collapsed strip with nothing in it to recognise. A
+                    person cannot look for a thing whose name is not on screen.
+                    Each chip now opens its own report directly — one tap from
+                    "I can see it" to "I am reading it" — and the row stays put
+                    whether the panel is open or closed so it never disappears
+                    again at a narrow width. */}
+                <div className="px-3 pb-3 -mt-1 flex flex-wrap gap-1.5" role="group" aria-label="Open a KPI report">
+                  {ranked.map((r) => (
+                    <button
+                      key={`peek-${r.id}`}
+                      type="button"
+                      onClick={() => pickStdReport(r.id)}
+                      aria-current={stdReportsOpen && active.id === r.id ? 'true' : undefined}
+                      className={`text-[0.6875rem] tracking-wide px-3 py-2 min-h-[36px] border ${stdReportsOpen && active.id === r.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#C9C3B8] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white'}`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
                 {stdReportsOpen && (
                   <div className="px-3 pb-3 pt-1 space-y-2">
                     {/* Teach the CONCEPT for learners (Darrell 2026-07-20): explain
