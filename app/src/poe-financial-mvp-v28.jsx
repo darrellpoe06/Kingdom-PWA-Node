@@ -148,7 +148,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases,
+  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -918,7 +918,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -1008,6 +1008,7 @@ export default function PoeFinancialSystem() {
   // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
   const [churchDoorOnly] = useState(() => isChurchDoorContext());
   const churchBrandRoute = useState(() => isPublicChurchRoute())[0]; // brand follows the DOOR, not the tab (DR-0290)
+  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // ALL three interruptions (DR-0292)
   // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
   // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
   // → ?tlc=1), the app presents as the focused, PUBLIC, client-facing TLC app —
@@ -1288,7 +1289,7 @@ export default function PoeFinancialSystem() {
   // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
   // gate IS the surface for all three (it carries the biometric button on top in
   // the ENTER cases), so the new step joins the same render condition.
-  const showPinGate = mpEnforce
+  const showPinGate = mpEnforce && !churchLinkVisit
     && (accessDecision.nextStep === NEXT_STEP.SET_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
@@ -3514,7 +3515,6 @@ export default function PoeFinancialSystem() {
 
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
-  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // no modal on a lesson link, for ANYONE
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
@@ -4305,6 +4305,7 @@ ${THEME_CSS}
                 // (or anyone's) situations with an institution, so the family
                 // asks for help with the data already in hand (2026-08-04).
                 ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
+                ['databack', <><UiIcon name="landmark" /> Your Data</>],
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4873,6 +4874,7 @@ ${THEME_CSS}
             <AdvocacyCases />
           </SectionBoundary>
         )}
+        {view === 'databack' && <SectionBoundary name="Your Data"><DataLiberation /></SectionBoundary>}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal
             (cloned) voices as a subscriber feature. Own SectionBoundary so a thrown
             error degrades just this surface. Personal-voice timbre is honest:

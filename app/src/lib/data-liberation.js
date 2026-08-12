@@ -82,7 +82,8 @@ export const VENDORS = [
     ],
     // The defect that makes a naive unzip worthless. Verified in this repo's
     // own tooling (infra/nas-photos-archive) against real Takeout structure.
-    gotcha: 'Takeout stamps extracted files with the EXPORT date, not the date the photo was taken. The real date lives only in a sidecar .json next to each file. Unzip it plainly and twenty years collapse onto one day, unsorted forever.',
+    gotcha: 'When you unzip what Google sends, every photo looks like it was taken today instead of the day you took it. Twenty years of pictures end up jumbled into one day. Our tool puts the real dates back.',
+    gotchaTechnical: 'Takeout stamps extracted files with the export date; the true photoTakenTime lives only in a sidecar .json beside each file. photos_archive.py restores it to mtime and files by year.',
     expiryDays: 7,
     verified: {
       at: '2026-08-11',
@@ -114,7 +115,8 @@ export const VENDORS = [
       'Order Mail SEPARATELY from Photos — mail finishes far sooner, and one failed part will not cost you both.',
       'Download links expire. Get the parts down before the window closes.',
     ],
-    gotcha: 'Mail arrives as one enormous .mbox file. That is a vault with no door — readable by almost nothing until it is indexed.',
+    gotcha: 'Your mail arrives as one huge file that almost nothing can open. It is safe, but you cannot read it until it is unpacked. Our tool unpacks it and makes it searchable.',
+    gotchaTechnical: 'A single large .mbox; mail_archive.py indexes it to JSONL, extracts attachments by year, and gives --find search.',
     expiryDays: 7,
     verified: {
       at: '2026-08-11',
@@ -145,7 +147,7 @@ export const VENDORS = [
       'Files SHARED WITH YOU are not yours to export and do not count against your storage.',
       'Google-native docs convert on export — a Doc becomes .docx, a Sheet becomes .xlsx.',
     ],
-    gotcha: 'Drive is usually far smaller than people assume. Measure before you spend a weekend on it.',
+    gotcha: 'Your files here are probably much smaller than you think. It is worth checking the size before you set aside a whole weekend for it.',
     expiryDays: 7,
     verified: {
       at: '2026-08-11',
@@ -174,7 +176,7 @@ export const VENDORS = [
       'There is no single "export everything" button like Takeout. Selection-based download in batches is the normal path.',
       'Very large selections can fail partway — work album by album and confirm each.',
     ],
-    gotcha: 'Amazon zips a SELECTION, so what you get is exactly what you remembered to select. Nothing tells you what you missed — the burden of completeness is entirely on you.',
+    gotcha: 'Amazon only gives you what you tick. If you forget an album, nothing warns you it is missing. Go album by album and check each one off.',
     confirmOnPage: true,
     verified: null,
     completenessCheck: {
@@ -201,7 +203,7 @@ export const VENDORS = [
       'Apple can take several days to prepare a copy.',
       'Live Photos come down as a still plus a separate video file — both belong to the same moment.',
     ],
-    gotcha: 'A photo can exist only on the device and never in iCloud, or only in iCloud and not on the device. The export reflects iCloud, not your phone.',
+    gotcha: 'Some photos live only on your phone and never went to Apple. What Apple sends you is what Apple has, which may not be everything on your phone.',
     confirmOnPage: true,
     verified: null,
     completenessCheck: {
@@ -221,7 +223,8 @@ export const VENDORS = [
     manageUrl: 'https://account.microsoft.com/privacy',
     settings: ['Select folders and download — the browser zips the selection'],
     warnings: ['Files marked online-only must download before they can be copied off.'],
-    gotcha: 'Files On-Demand means a file can appear in the folder while its bytes are still in the cloud. Copying it locally may copy a placeholder rather than the file.',
+    gotcha: 'Some files look like they are on your computer but are really still online. If you copy them you can end up with empty files. Open a few to be sure they are real.',
+    gotchaTechnical: 'Files On-Demand placeholders copy as stubs; a landed folder far smaller than reported size is placeholders.',
     confirmOnPage: true,
     verified: null,
     completenessCheck: {
@@ -245,7 +248,7 @@ export const VENDORS = [
       'Choose the highest media quality',
     ],
     warnings: ['The default media quality is REDUCED — choose high quality or your photos come back degraded.'],
-    gotcha: 'Exporting at the default quality gives you compressed copies. If you then delete the originals, the compressed version is all that survives.',
+    gotcha: 'Unless you choose the highest quality, they send smaller, blurrier copies of your photos. If you then delete the originals, the blurry ones are all you have left.',
     confirmOnPage: true,
     verified: null,
     completenessCheck: {
@@ -265,7 +268,7 @@ export const VENDORS = [
     manageUrl: 'https://www.dropbox.com/account',
     settings: ['Select folders and download as a zip, or use the desktop app to sync a full local copy'],
     warnings: ['Selective Sync may mean your local folder does not contain everything the account holds.'],
-    gotcha: 'A synced local folder can look complete while Selective Sync quietly excludes whole folders.',
+    gotcha: 'The Dropbox folder on your computer may not have everything. Some folders can be left out without telling you. Check the website list against your own.',
     confirmOnPage: true,
     verified: null,
     completenessCheck: {
@@ -285,7 +288,7 @@ export const VENDORS = [
     manageUrl: 'https://account.ring.com',
     settings: ['Request your personal data from account settings'],
     warnings: ['Recordings expire on their own schedule — old events may already be gone before you ask.'],
-    gotcha: 'Ring holds recordings only for your plan\'s retention window. An export cannot return footage that has already aged out.',
+    gotcha: 'Ring only keeps recordings for a limited time. Anything older than that is already gone, and asking for a copy cannot bring it back.',
     expiryDays: 30,
     verified: {
       at: '2026-08-11',
@@ -299,6 +302,58 @@ export const VENDORS = [
     },
   },
 ];
+
+// PLAIN LANGUAGE (Darrell 2026-08-11: "user friendly... we have elderly users...
+// or will"). Every word a user reads comes from here, so the vocabulary is
+// reviewed in one place instead of scattered through JSX.
+//
+// The rule: no jargon, ever. Not "Takeout", not "archive", not "byte
+// integrity", not "export". A person who has never heard those words must be
+// able to follow this. We say "your copy", "getting it ready", "check
+// everything arrived". Where a vendor's own button says something different,
+// the UI quotes the vendor's word in the instruction — because that is the word
+// on the screen they are looking at — but never in our own voice.
+export const PLAIN_STAGE = {
+  [STAGE.NOT_STARTED]: {
+    title: 'Ask for your copy',
+    you: 'You have not asked for your copy yet.',
+    step: 1,
+  },
+  [STAGE.REQUESTED]: {
+    title: 'They are getting it ready',
+    you: 'You asked for your copy. Now they have to gather it.',
+    step: 2,
+  },
+  [STAGE.BUILDING]: {
+    title: 'They are getting it ready',
+    you: 'They are still gathering your things. This can take a few days.',
+    step: 2,
+  },
+  [STAGE.READY]: {
+    title: 'Your copy is ready — save it',
+    you: 'It is ready. Save it to your computer before the link stops working.',
+    step: 3,
+  },
+  [STAGE.LANDED]: {
+    title: 'Make sure everything arrived',
+    you: 'You have the files. Now we check that nothing is missing.',
+    step: 4,
+  },
+  [STAGE.VERIFIED]: {
+    title: 'Everything is there',
+    you: 'Your copy is complete. Now it is safe to free up space.',
+    step: 5,
+  },
+  [STAGE.DELETED]: {
+    title: 'All done',
+    you: 'You have your own copy, and the space has been freed.',
+    step: 5,
+  },
+};
+
+export const TOTAL_STEPS = 5;
+
+export const plainStage = (stage) => PLAIN_STAGE[stage] || PLAIN_STAGE[STAGE.NOT_STARTED];
 
 export const getVendor = (id) => VENDORS.find((v) => v.id === id) || null;
 
@@ -354,8 +409,8 @@ export const nextStep = (vendorId, progress) => {
           ? `The link expires in about ${vendor.expiryDays} days. Download all parts before then.`
           : 'Download all parts, then check the vendor page for the expiry window.' };
     case STAGE.LANDED:
-      return { action: 'Verify the copy is whole', url: null,
-        detail: `Two checks: bytes intact, AND ${vendor.completenessCheck.compare} matches ${vendor.completenessCheck.against}.` };
+      return { action: 'Make sure everything arrived', url: null,
+        detail: `Two things to check: open a few of the files to be sure they work, and compare ${vendor.completenessCheck.compare} with how many you received.` };
     case STAGE.VERIFIED: {
       const gate = canDelete(progress);
       return gate.allowed
@@ -369,6 +424,110 @@ export const nextStep = (vendorId, progress) => {
     default:
       return { action: 'Request your export', url: vendor.requestUrl, detail: vendor.settings.join(' · ') };
   }
+};
+
+// --- Device-local persistence (local-first; sync is the courier) -------------
+// A vendor takes DAYS to build an export. A flow measured in days cannot live
+// in React state — closing the tab would silently reset someone to step 1 and
+// they would re-request an export they already had waiting.
+
+function safeStorage() {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage;
+  } catch { return null; }
+}
+
+const KEY = 'poetech-data-liberation-v1';
+
+export function loadProgress() {
+  const ls = safeStorage();
+  if (!ls) return {};
+  try {
+    const raw = ls.getItem(KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch { return {}; }
+}
+
+export function saveProgress(progressById) {
+  const ls = safeStorage();
+  if (!ls) return { skipped: 'no-storage' };
+  try {
+    const safe = progressById && typeof progressById === 'object' && !Array.isArray(progressById)
+      ? progressById : {};
+    ls.setItem(KEY, JSON.stringify(safe));
+    return { saved: true };
+  } catch (e) { return { skipped: 'write-error', error: e }; }
+}
+
+/**
+ * ATTESTATION, NOT JUST A FLAG — the thing syncing makes necessary.
+ *
+ * On one device the two ticks are self-evidently yours. The moment progress
+ * syncs across a household they stop being yours: a parent ticks "I checked the
+ * count" on a laptop, and a teenager opens the phone to a screen that simply
+ * says deleting is safe. They would be deleting on someone else's word without
+ * knowing it, and the safety check would have quietly become a rubber stamp
+ * carried between devices.
+ *
+ * So a confirmation records WHO and WHEN, and the surface says so. Sync then
+ * preserves the value (nobody redoes work already done) without ever hiding
+ * whose judgment it rests on. Unticking clears the attribution — a stale name
+ * against a fresh claim would be worse than none.
+ */
+export const attest = (progress, key, value, who) => {
+  const base = progress && typeof progress === 'object' ? progress : {};
+  if (value !== true) {
+    const cleared = { ...base, [key]: false };
+    delete cleared[`${key}By`];
+    delete cleared[`${key}At`];
+    return cleared;
+  }
+  return {
+    ...base,
+    [key]: true,
+    [`${key}By`]: (who && who.name) || 'someone on this account',
+    [`${key}At`]: (who && who.at) || null,
+  };
+};
+
+/** Who vouched for a confirmation, in plain words. Empty when nobody has. */
+export const attestedBy = (progress, key) => {
+  const p = progress && typeof progress === 'object' ? progress : {};
+  if (p[key] !== true) return '';
+  const who = p[`${key}By`];
+  return who ? `Checked by ${who}` : '';
+};
+
+/**
+ * EXPORTABLE ALWAYS (DATA-AS-EMPOWERMENT commitment 3: "Every data record is
+ * exportable in standard formats. The family can leave the platform at any time
+ * and take their data with them.")
+ *
+ * A feature whose entire purpose is helping people escape vendor lock-in would
+ * be self-refuting if PoeTech held this record hostage. So the same right we
+ * are teaching users to exercise against Google applies to us: plain JSON, one
+ * tap, no account required to read it. If we ever stop earning this surface,
+ * the user leaves with everything it knew.
+ */
+export const exportProgress = (progressById) => {
+  const map = progressById && typeof progressById === 'object' && !Array.isArray(progressById)
+    ? progressById : {};
+  return {
+    exportedAt: null,          // stamped by the caller; this module stays pure
+    format: 'poetech-data-liberation-v1',
+    services: VENDORS
+      .filter((v) => map[v.id] && map[v.id].stage && map[v.id].stage !== STAGE.NOT_STARTED)
+      .map((v) => ({
+        service: v.name,
+        vendorId: v.id,
+        stage: map[v.id].stage,
+        checkedFilesOpen: map[v.id].bytesVerified === true,
+        checkedCountMatches: map[v.id].completenessConfirmed === true,
+        checkedBy: map[v.id].bytesVerifiedBy || map[v.id].completenessConfirmedBy || null,
+      })),
+  };
 };
 
 /** Overall progress across whatever the user has started. Counts only real state. */

@@ -18,6 +18,15 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/context-hygiene-pretool-hook.mjs\""
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/required-reading-pretool-hook.mjs\""
+          }
+        ]
       }
     ],
     "Stop": [

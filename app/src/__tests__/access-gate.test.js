@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPublicChurchRoute, accessState } from '../lib/access-gate.js';
+import { isPublicChurchRoute, accessState, isChurchLinkVisit } from '../lib/access-gate.js';
 
 const SESSION = { user: { email: 'someone@example.com' } };
 
@@ -84,5 +84,57 @@ describe('the public church route — the shared link a stranger can open', () =
     // signed-out visitor never reaches the PRIVATE app is what the false cases
     // above hold.
     expect(accessState({ isPublicHostVal: true, authChecked: true, authSession: null })).toBe('gate');
+  });
+});
+
+// =============================================================================
+// DR-0292 — the PIN gate is the THIRD interruption, and it was the one left in
+// =============================================================================
+// Darrell 2026-08-11, opening a lesson he had just shared to himself: "When I
+// use the share button and send it to myself... I can see anything... it wants
+// me to login!!!" and "Why does a user need to do anything but read and
+// hopefully push play so it can read it to them."
+//
+// DR-0290 opened the access gate and suppressed two full-screen modals. A third
+// existed — the PIN / biometric unlock — whose condition begins with
+// `!!authSession`, so it fired for precisely the people the other two now let
+// through. Being SIGNED IN was the trigger, which is why the people most likely
+// to share a lesson were the most reliably blocked.
+//
+// These tests pin BOTH halves. The opening half is the bug Darrell hit. The
+// re-arming half is the security property that makes the opening safe, and it
+// is the one that would break silently if someone later "simplified" this to
+// read the landing URL instead of the live view.
+
+describe('DR-0292 — a shared lesson link opens to the lesson, for anyone', () => {
+  // The exact URL from Darrell's screenshot.
+  const SHARED = '?view=church&sub=learn&course=kingdom-economics&lesson=econ1-soul-first';
+
+  it('the shared link is a public church route', () => {
+    expect(isPublicChurchRoute(SHARED)).toBe(true);
+  });
+
+  it('THE BUG: a SIGNED-IN member on that link is a church-link visit (no interruption)', () => {
+    // isChurchLinkVisit takes no session argument on purpose — the session was
+    // never the right question. The door is.
+    expect(isChurchLinkVisit({ route: isPublicChurchRoute(SHARED), view: 'church' })).toBe(true);
+  });
+
+  it('THE SECURITY HALF: opening a private tab re-arms every interruption', () => {
+    const route = isPublicChurchRoute(SHARED);
+    for (const view of ['overview', 'admin', 'books', 'crm', 'projects', 'markets']) {
+      expect(isChurchLinkVisit({ route, view }),
+        `view "${view}" must NOT be treated as a church-link visit`).toBe(false);
+    }
+  });
+
+  it('someone who did NOT arrive by a church link gets no exemption on the church tab', () => {
+    expect(isChurchLinkVisit({ route: false, view: 'church' })).toBe(false);
+  });
+
+  it('refuses junk without accidentally opening anything', () => {
+    expect(isChurchLinkVisit({})).toBe(false);
+    expect(isChurchLinkVisit()).toBe(false);
+    expect(isPublicChurchRoute('?view=%%%broken')).toBe(false);
   });
 });

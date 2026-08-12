@@ -1,6 +1,6 @@
 {
   "file": "app/src/poe-financial-mvp-v28.jsx",
-  "budget": 5324,
+  "budget": 5326,
   "frozen": "(stamp the date in the PR)",
-  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md."
+  "note": "Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR - --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md. RAISED 5324 -> 5326 on 2026-08-11 (DR-0291, Your Data surface): +2 is the IRREDUCIBLE mount cost for a new top-level surface - one nav entry line and one render-switch line. Every line of the feature itself (~530) lives in components/DataLiberation.jsx and lib/data-liberation*.js, which is the freeze working as intended rather than against it. The footprint was first written at +12 with explanatory comments; those comments were moved into the component, where a reader actually looks, to reach this minimum."
 }

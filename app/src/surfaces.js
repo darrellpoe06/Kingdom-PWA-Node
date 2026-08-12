@@ -66,6 +66,7 @@ export const SURFACES = [
   { id: 'messages',     label: 'Messages',         nav: 'top', view: 'messages',     sub: null,          load: () => import('./components/Messages.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
   { id: 'advocacy',     label: 'Advocacy',         nav: 'top', view: 'advocacy',     sub: null,          load: () => import('./components/AdvocacyCases.jsx') },
+  { id: 'databack',     label: 'Your Data',        nav: 'top', view: 'databack',     sub: null,          load: () => import('./components/DataLiberation.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
@@ -135,6 +136,7 @@ export const Games            = surfaceById['games'].component;
 export const Messages         = surfaceById['messages'].component;
 export const TVTime           = surfaceById['tvtime'].component;
 export const AdvocacyCases    = surfaceById['advocacy'].component;
+export const DataLiberation   = surfaceById['databack'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
