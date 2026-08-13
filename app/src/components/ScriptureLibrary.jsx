@@ -28,8 +28,10 @@ import { SectionTitle } from './shared.jsx';
 import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
-  kjvText, readOnline, searchVerses,
+  kjvText, readOnline, searchVerses, versesForTheme,
 } from '../lib/scriptures.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { scriptureReadingPlan } from '../lib/scripture-reading.js';
 import {
   DEPTH_TIERS, EXPERIENCE_LEVELS, GOVERNING_LENS, PRIVACY, ACCESSIBILITY,
   resolveDepth, resolveLevel, rankByInterest, gradeTest, encouragement,
@@ -543,6 +545,41 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
     [activeTheme, orderedThemes],
   );
   const toggleInterest = (id) => setInterests((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  // ONE PRESS OF PLAY READS THE WHOLE SECTION, THEN THE NEXT ONE.
+  //
+  // Darrell 2026-08-13: "I want users to be able to get the whole lesson from
+  // pushing play once... beginning to end", "verses plus the 'Whosoever — the…'
+  // commentary", "each version all the way to deep for each section."
+  //
+  // Until now Scripture registered NO read target, so the floating reader fell
+  // back to reading the whole page — which is how the button labels ended up in
+  // the reading. Registering the real one fixes that at the source AND buys the
+  // two things the fallback can never have: follow-along highlighting (the
+  // reader maps the named element) and hands-free continuation (`next`).
+  //
+  // The reading is composed by lib/scripture-reading.js, deliberately NOT from
+  // the DOM: the page shows one depth at a time because a reader chooses how far
+  // to go, and a listener cannot tap between tiers mid-sentence. The spoken form
+  // carries the whole ladder — Essential, Standard, Deep — which is exactly what
+  // "all the way to deep" asks for and is invisible to anything that scrapes
+  // what is currently rendered.
+  const [readIndex, setReadIndex] = useState(0);
+  // A theme list change (switching tabs, searching) restarts the reading rather
+  // than leaving an index pointing into the previous list.
+  useEffect(() => { setReadIndex(0); }, [activeTheme, query]);
+  useEffect(() => {
+    if (results) return undefined; // a search result set is not a section reading
+    const plan = scriptureReadingPlan(shownThemes, { versesFor: versesForTheme, level, index: readIndex });
+    if (!plan) return undefined;
+    setReadTarget('scripture-study', {
+      label: plan.label,
+      text: plan.text,
+      elementId: 'scripture-read-root',
+      next: plan.hasNext ? () => { setReadIndex(plan.nextIndex); return true; } : null,
+    });
+    return () => clearReadTarget('scripture-study');
+  }, [shownThemes, results, level, readIndex]);
   // The WHOLE KJV read in-app vs. the curated, depth-adaptive study (Darrell
   // 2026-07-04: a Logos-type Bible inside PoeTech, no link-out). The Word leads —
   // opening Scripture lands on the Bible itself, curated study is the second tab
@@ -686,7 +723,9 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
             ))}
           </div>
 
-          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} onOpenAlgorithms={onOpenAlgorithms} />)}
+          <div id="scripture-read-root">
+            {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} onOpenAlgorithms={onOpenAlgorithms} />)}
+          </div>
         </>
       )}
 
