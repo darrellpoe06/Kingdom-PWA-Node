@@ -24,7 +24,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initialChurchView, VALID_CHURCH_SUBS, parseNav } from '../lib/nav-history.js';
+import { initialChurchView, VALID_CHURCH_SUBS, parseNav, navKey } from '../lib/nav-history.js';
 import { lessonQuery } from '../lib/lesson-links.js';
 
 const SHELL = readFileSync(
@@ -61,6 +61,51 @@ describe('a shared lesson link boots the Learn tab', () => {
     expect(sp.get('lesson')).toBe('mit-01');
     // parseNav must not choke on the extra params it does not own.
     expect(parseNav(q)).toMatchObject({ view: 'church', churchView: 'learn' });
+  });
+});
+
+// The second half of the same failure, and the reason it needs no separate fix.
+//
+// useBrowserHistoryNav seeds one history entry on mount. It keeps the URL it was
+// given only when `navKey(parseNav(search)) === navKey(booted)`; otherwise it
+// replaces it with urlFor(), which writes view/sub plus the door params and
+// NOTHING ELSE — so `course` and `lesson` were stripped from the address bar on
+// arrival. That was not a second bug. It was this bug's shadow: the two sides of
+// that comparison were the two disagreeing readers. Now that boot resolves
+// through parseNav, they agree by construction and the URL is left alone.
+//
+// Asserted rather than argued, because "it follows from the fix" is exactly the
+// kind of claim this repo does not accept on the agent's word (DR-0076).
+describe('the seed leaves a deep-link URL alone', () => {
+  const bootedFrom = (search) => ({
+    view: 'church',
+    churchView: initialChurchView(search),
+    booksView: 'calendar',
+  });
+
+  it('the seed’s own sameUrl comparison holds for a lesson link', () => {
+    const q = lessonQuery({ courseKey: 'healthy-living', lessonId: 'hl-sleep' });
+    // This IS the expression at nav-history.js's seed effect.
+    expect(navKey(parseNav(q))).toBe(navKey(bootedFrom(q)));
+  });
+
+  it('and for a whole-course link, and every church sub', () => {
+    const course = lessonQuery({ courseKey: 'world-issues' });
+    expect(navKey(parseNav(course))).toBe(navKey(bootedFrom(course)));
+    for (const sub of VALID_CHURCH_SUBS) {
+      const s = `?view=church&sub=${sub}`;
+      expect(navKey(parseNav(s)), `seed would rewrite ?sub=${sub}`).toBe(navKey(bootedFrom(s)));
+    }
+  });
+
+  it('the disagreement that caused the strip is gone', () => {
+    // Before: booted 'home' (view-only read) vs parsed 'learn' -> mismatch ->
+    // replaceState(urlFor(...)) -> course/lesson dropped. Held here as the
+    // witness, so this test measures the fix rather than restating it.
+    const q = lessonQuery({ courseKey: 'made-in-time', lessonId: 'mit-01' });
+    const oldBooted = { view: 'church', churchView: 'home', booksView: 'calendar' };
+    expect(navKey(parseNav(q))).not.toBe(navKey(oldBooted)); // the old mismatch
+    expect(navKey(parseNav(q))).toBe(navKey(bootedFrom(q))); // the fix
   });
 });
 

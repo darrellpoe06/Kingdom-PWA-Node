@@ -53,6 +53,14 @@ compared `navKey(parseNav(search))` (church|learn) against the booted location
 and `lesson` params were stripped from the address bar on arrival. Even a reader
 who found the Learn tab by hand had lost the lesson by then.
 
+That strip is **not a second bug**. The two sides of that comparison ARE the two
+disagreeing readers. Once boot resolves through `parseNav`, they agree by
+construction, the seed preserves the URL it was handed, and the params survive —
+so `PRESERVED_PARAMS` needs no `course`/`lesson` entry, which would otherwise
+drag a consumed lesson id onto every later tab. That is asserted on the seed's
+own expression rather than argued from the fix (DR-0076: it follows from is not
+a measurement).
+
 This is the exact shape `initialBooksView` was written to fix for Books, and its
 own comment says it was "restoring the parity that view (getInitialView) and
 churchView (getInitialChurchView) already had." That sentence was wrong when it
@@ -103,8 +111,13 @@ that live in code it would rather not import.
    so a routing regression stops the mount and fails the journey no matter how
    correct `ChurchLearn` stays.
 
-5. **Proven-to-catch (DR-0076 §3), not asserted.** The old body was restored into
-   the shell and the suite was run: 2 failures. Restored the fix: 11 green. A
+5. **The seed's preservation is pinned on the seed's own comparison.**
+   `navKey(parseNav(q))` must equal `navKey(booted)` for a lesson link, a course
+   link, and every entry in `VALID_CHURCH_SUBS` — with the old `home` booting
+   held beside it as the witness that the comparison used to fail.
+
+6. **Proven-to-catch (DR-0076 §3), not asserted.** The old body was restored into
+   the shell and the suite was run: 2 failures. Restored the fix: 14 green. A
    gate that was never shown to catch the break is theatre.
 
 ## What this cost, stated plainly
@@ -126,7 +139,7 @@ front of whoever he had just sent the link to.
   agree and the URL is preserved rather than rewritten.
 - Six church sub-tabs that were never deep-linkable (`eternal-algorithms`,
   `projects`, `videowall`, `devices`, `infra-plan`, `observe`) now are.
-- 13 new pins; suite **7,690 green** (1 skipped, 670 files); lint clean; build
+- 16 new pins; suite **7,693 green** (1 skipped, 670 files); lint clean; build
   clean; monolith held at its frozen budget of 5,326 lines — the explanation
   lives in `nav-history.js`, which is where it belongs.
 
@@ -142,6 +155,12 @@ front of whoever he had just sent the link to.
   same two-lists disease one level up, found while fixing this one, and it is not
   fixed here — the top-level list is load-bearing for every tab and deserves its
   own change with its own proof. **re-review: 2026-08-20.**
-- The share-sheet and time-fit work merged before this fix was in place, which
-  means the window in which those links were live and broken is real and is not
-  being minimised.
+- **Two sessions found this bug independently.** PR #1239, on another branch,
+  carries the same `initialChurchView` delegation plus a `PRESERVED_PARAMS`
+  addition of `course`/`lesson`, cited as DR-0293 — a number `main` reassigned to
+  DR-0295 on merge (DR-0052). Whichever lands second needs a rebase and a
+  renumber. That two branches raced the same defect while neither gate caught it
+  is itself the finding: the duplicated *fix* cost less than the missing *test*.
+- The share-sheet, whole-course share and time-fit work merged before this fix
+  was in place, which means the window in which those links were live and broken
+  is real and is not being minimised.
