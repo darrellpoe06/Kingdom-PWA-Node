@@ -34,9 +34,15 @@ export const VALID_VIEWS = [
   'admin', 'center', 'crm',
 ];
 
-// Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|events
+// Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|...
 // (pre-history-nav). parseNav keeps honoring them so old bookmarks/links work.
-const CHURCH_ALIASES = ['engagement', 'choir', 'pulpit', 'learn', 'events'];
+// This list must stay a SUPERSET of every alias the shell ever honored, because
+// the shell now resolves its boot sub-tab through parseNav (initialChurchView
+// below) — a name dropped from here would silently stop being a working link.
+const CHURCH_ALIASES = [
+  'engagement', 'choir', 'pulpit', 'learn', 'events',
+  'scripture', 'bus', 'harvest', 'conference', 'program',
+];
 
 // Defaults the shell boots with; a location equal to default writes a clean URL.
 const DEFAULT_VIEW = 'overview';
@@ -91,6 +97,37 @@ export const VALID_BOOKS_SUBS = [
 export function initialBooksView(search) {
   const { view, booksView } = parseNav(search);
   return view === 'books' && VALID_BOOKS_SUBS.includes(booksView) ? booksView : DEFAULT_BOOKS;
+}
+
+// The Church sub-tabs that are real routes. Mirrors the Church sub-nav id list
+// in the shell (the staff-only ids are included on purpose: their render branches
+// exist and do their OWN staff gating, so a deep-link resolves to a real branch
+// and the gate — not to a blank screen).
+export const VALID_CHURCH_SUBS = [
+  'home', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
+  'learn', 'eternal-algorithms', 'conference', 'events', 'projects',
+  'harvest', 'videowall', 'devices', 'infra-plan', 'observe',
+];
+
+// initialChurchView — the Church sub-tab a URL deep-links to, validated.
+//
+// THE BUG THIS EXISTS TO KILL (Darrell 2026-08-13, opening a shared lesson link:
+// "doesnt even take the user to the actual lessons.... Only to the live stream
+// tab with the player open for nothing!!!"). The shell's getInitialChurchView
+// read ONLY `?view=`, never `?sub=`. Every share link this app produces is
+// `?view=church&sub=learn&course=…&lesson=…` — and because 'church' is not a
+// sub-tab NAME, that boot resolved to 'home', the Worship tab, with the live
+// player mounted over nothing. ChurchLearn's own deep-link reader was correct
+// and was simply never reached: the lesson tests mounted ChurchLearn directly,
+// so nothing in the suite ever walked the SHELL's routing decision. That is the
+// gap (LESSONS P16 — verify the surface the user actually uses), and it is why
+// this resolution now lives HERE, pure and asserted, with the shell delegating.
+//
+// Only honored when the view is church; an unknown or absent sub returns the
+// default so no deep-link can route to a dead branch.
+export function initialChurchView(search) {
+  const { view, churchView } = parseNav(search);
+  return view === 'church' && VALID_CHURCH_SUBS.includes(churchView) ? churchView : DEFAULT_CHURCH;
 }
 
 // Stable equality key — keys off the ACTIVE view's sub only, so switching tabs
