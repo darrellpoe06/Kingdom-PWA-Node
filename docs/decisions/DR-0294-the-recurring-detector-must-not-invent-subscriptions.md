@@ -1,5 +1,5 @@
 ---
-id: DR-0292
+id: DR-0294
 title: The recurring detector must not invent subscriptions — the rhythm has to exist before the filter, and a flat dollar tolerance is wrong at every scale but one
 date: 2026-08-12
 status: accepted

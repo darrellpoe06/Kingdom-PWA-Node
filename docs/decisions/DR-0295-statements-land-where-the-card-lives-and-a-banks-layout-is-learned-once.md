@@ -1,5 +1,5 @@
 ---
-id: DR-0293
+id: DR-0295
 title: Statements land where the card lives, the statement's own header is the missing data, and a bank's layout is learned once — never re-guessed, never reused when it changes
 date: 2026-08-12
 status: accepted
@@ -79,7 +79,7 @@ which two banks both call "statement (3).csv"). **The load-bearing case is
 `changed`:** a remembered format is a cached assumption, and banks alter their
 exports without telling anyone. Silently applying a stale column map would shift
 every field by one and import a year of wrong numbers with total confidence — the
-same failure class as DR-0292. A header that no longer matches is re-derived,
+same failure class as DR-0295. A header that no longer matches is re-derived,
 never reused.
 
 **8. Nothing is written until the person presses Import.** `rememberFormat` and
