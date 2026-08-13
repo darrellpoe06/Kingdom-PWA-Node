@@ -74,7 +74,7 @@ import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle, initialBooksView } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
 import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
@@ -923,14 +923,14 @@ function getInitialView() {
   } catch (e) { return 'overview'; }
 }
 
-// Engagement lives under Church. A ?view=engagement deep-link selects the
-// Engagement sub-tab; everything else defaults to the Church home sub-tab.
+// The Church sub-tab a URL deep-links to — resolved by lib/nav-history's
+// initialChurchView so boot and Back read the URL through ONE parser. Never
+// re-implement it here: reading only `?view=` is what sent every shared lesson
+// link to the Worship tab instead of the lesson (the why is in that module).
 function getInitialChurchView() {
   try {
     if (typeof window === 'undefined') return 'home';
-    const sp = new URLSearchParams(window.location.search);
-    const v = (sp.get('view') || '').toLowerCase().trim();
-    return ['engagement','choir','pulpit','learn','events','scripture','bus','harvest','conference','program'].includes(v) ? v : 'home';
+    return initialChurchView(window.location.search);
   } catch (e) { return 'home'; }
 }
 

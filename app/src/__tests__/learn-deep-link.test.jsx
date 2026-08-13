@@ -16,6 +16,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { lessonQuery } from '../lib/lesson-links.js';
+import { initialChurchView } from '../lib/nav-history.js';
 import { buildHealthyLivingSchedule, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
 import { buildSelfPacedDescriptors } from '../lib/learn-catalog.js';
 
@@ -80,6 +81,44 @@ describe('a stale link never lands on a dead screen', () => {
 
   it('a lesson that no longer exists still opens its course', () => {
     setSearch(lessonQuery({ courseKey: HEALTHY_LIVING_META.key, lessonId: 'hl-a-lesson-we-removed' }));
+    mount();
+    expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
+  });
+});
+
+// =============================================================================
+// THE WHOLE WALK — the URL, through the shell's routing, to the lesson
+// =============================================================================
+// Everything above mounts ChurchLearn directly, and that is exactly how a
+// broken link shipped green on 2026-08-13: the shell's own routing decided the
+// Learn tab never mounted (it read ?view= and ignored ?sub=), so the reader
+// landed on the Worship tab with the live player over nothing while these tests
+// all passed. The component was never the surface the user met (LESSONS P16).
+//
+// This one refuses to skip the step in between: it asks the SHELL'S resolver
+// which sub-tab the link opens, mounts Learn only if the answer is 'learn', and
+// then looks for the lesson on the screen. If the routing regresses, the mount
+// never happens and this fails — no matter how correct ChurchLearn stays.
+describe('the recipient’s whole journey, routing included', () => {
+  it('a texted lesson link routes to Learn and puts the lesson on screen', () => {
+    const lesson = buildHealthyLivingSchedule()[2];
+    const url = lessonQuery({ courseKey: HEALTHY_LIVING_META.key, lessonId: lesson.id });
+    setSearch(url);
+
+    // Step the shell takes before anything renders.
+    expect(initialChurchView(window.location.search)).toBe('learn');
+
+    // Only mount what the routing actually selected — no shortcut past it.
+    if (initialChurchView(window.location.search) === 'learn') mount();
+
+    expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
+    expect(text()).toContain(lesson.title);
+    expect(document.getElementById(`learn-lesson-${lesson.id}`)).toBeTruthy();
+  });
+
+  it('a whole-course link makes the same walk', () => {
+    setSearch(lessonQuery({ courseKey: HEALTHY_LIVING_META.key }));
+    expect(initialChurchView(window.location.search)).toBe('learn');
     mount();
     expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
   });
