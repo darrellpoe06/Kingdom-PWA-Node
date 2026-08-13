@@ -6,6 +6,7 @@ import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 import AddDebt from './AddDebt.jsx';
 import EditDebtRow from './EditDebtRow.jsx';
+import DebtStatementUpload from './DebtStatementUpload.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -27,7 +28,7 @@ function paidFromPeak(d) {
   return paid > 0.5 ? paid : null;
 }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null, deleteAccount = null, updateRental = null }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null, deleteAccount = null, updateRental = null, onImportStatement = null }) {
   // "All credit card and lines companies should be listed on [the Debts] Tab"
   // (Darrell 2026-07-20). deriveDebts can only surface an account that EXISTS as a
   // debt — but a family's other cards are often paid by autopay OUT of checking and
@@ -204,6 +205,31 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           account, a gas card, a business card with no feed behind it. */}
       {addAccount && (
         <AddDebt entities={entities} addAccount={addAccount} addAccounts={addAccounts} existingDebts={debts} />
+      )}
+
+      {/* UPLOAD A STATEMENT WHERE THE CARD LIVES (Darrell 2026-08-11: "focus on
+          the books and the import of the credit cards"). Measured before this:
+          BooksTransactions.jsx had three file inputs and this tab had ZERO, so a
+          person came to Debts to deal with a card, found no way to hand the app
+          a statement, and reasonably concluded it could not read one.
+
+          It reuses the SAME proven import path as the Transactions tab rather
+          than inventing a second one, and adds the three things a debt needs
+          that a register does not: the statement's own header facts (the payment
+          DUE DATE above all, without which on-time/late cannot be computed from
+          anything we store), a home for the rows (the account and vendor are
+          created when the card is new and REUSED when it is not — a duplicate
+          would split one card's history in two), and the bank's column layout
+          remembered by header signature so the next statement is not re-guessed. */}
+      {addAccount && (
+        <DebtStatementUpload
+          accounts={accounts}
+          transactions={transactions}
+          onImport={(rows, ctx) => {
+            if (ctx && ctx.account && addAccount) addAccount(ctx.account);
+            if (typeof onImportStatement === 'function') onImportStatement(rows, ctx);
+          }}
+        />
       )}
 
       {/* Get EVERY card + line of credit onto this tab (Darrell 2026-07-20). The
