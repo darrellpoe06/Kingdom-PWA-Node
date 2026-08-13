@@ -26,12 +26,22 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // ── pure location <-> URL helpers (no DOM; unit-testable) ───────────────────
 
-// Top-level views that are real routes. Mirrors getInitialView()'s VALID list
-// in the shell; kept here so the URL round-trip is a single source of truth.
+// Top-level views that are real routes. This MIRRORS getInitialView()'s VALID
+// list in the shell, and "mirrors" is load-bearing: when the two drifted, half
+// the app's tabs were unknown to parseNav, so the seed's sameUrl check
+// disagreed with the booted view and rewrote the URL on arrival — dropping
+// every query param that is not view/sub/PRESERVED_PARAMS. Measured 2026-08-13
+// while auditing DR-0296's own remainder: 15 of the shell's 30 views were
+// missing here (tlc, voice, scribe, library, recipes, games, tvtime, advocacy,
+// databack, messages, relationships, inventory, forecast, cohorts,
+// tlc-assistant). The drift is now GUARDED — nav-history.test.jsx derives the
+// shell's list from source and fails if these two ever disagree again.
 export const VALID_VIEWS = [
-  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice',
-  'opportunities', 'about', 'church', 'markets', 'notes', 'create',
-  'admin', 'center', 'crm',
+  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice', 'tlc',
+  'opportunities', 'about', 'church', 'markets', 'notes', 'create', 'voice',
+  'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
+  'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
+  'forecast', 'cohorts', 'tlc-assistant',
 ];
 
 // Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|...
@@ -148,7 +158,22 @@ export function navKey(loc) {
 // tab-tap rewrote the URL bare and the NEXT reload booted as full PoeTech —
 // while the reverse collision (a PoeTech reload booting as the church door off
 // bare ?view=church) is fixed in church-own-door.js. Exported for tests.
-export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz'];
+//
+// `demo` joined them 2026-08-13, and it is the most consequential of the set.
+// The shell re-derives the persona from the URL on EVERY render
+// (`const demoPersona = getDemoPersona()`, not a useState initializer), and
+// `isAnyDemoMode` is the single flag the save effect opens with — "Demo +
+// picker + reviewer never write to localStorage (or push snapshots)." So
+// dropping `demo` from the URL did not merely change the address bar: the next
+// render lost the persona, the suppression lifted, and the sample household's
+// fabricated balances were free to be written into the user's real storage and
+// pushed as a snapshot. One tab tap was enough. Proven in a live render harness
+// before the fix (src/__tests__/demo-param-survives-nav.test.jsx).
+//
+// `join` is deliberately NOT here: it is a one-time claim token, read once into
+// state by ClaimInviteBanner, and keeping it in the URL would leave an invite
+// token sitting in every screenshot and shared link.
+export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'demo'];
 
 // Compose the full URL for a location, preserving the app's base path
 // (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —
