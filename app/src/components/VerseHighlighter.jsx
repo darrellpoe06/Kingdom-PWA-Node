@@ -31,10 +31,23 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
       {/* A clean, quiet swatch dot — a hollow ring when unmarked, filled with the
           highlight color when set (Darrell 2026-07-04: the boxed "MARK" was
           clunky). No text; the label rides the aria-label + tooltip. */}
+      {/* aria-haspopup="menu" is NOT decoration — it is load-bearing (Darrell
+          2026-08-13: "the color tab pops up on its own after a while"). Before
+          reading, lib/read-reveal.js opens collapsed disclosures by CLICKING
+          every `[aria-expanded="false"]` inside the reading root, and its own
+          header says it must NEVER touch "menus/dialogs ([aria-haspopup])".
+          This button opens a role="menu" but never declared it, so the reveal
+          pass matched it as a disclosure and popped a colour palette open on
+          every verse on the page. The guard was right; the attribute was
+          missing. It is also simply correct ARIA for a button that opens a
+          menu, which is why it belongs here rather than as a special case in
+          the reader. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-haspopup="menu"
+        data-read-no-expand=""
         aria-label={marked ? `Highlight for ${refLabel}: ${current.label}. Change or clear.` : `Highlight ${refLabel}`}
         title={marked ? `${current.label} — tap to change` : 'Highlight'}
         className="inline-flex items-center justify-center w-6 h-6 rounded-full focus:outline focus:outline-2 focus:outline-[#B85838] hover:bg-[#FAF8F4]"

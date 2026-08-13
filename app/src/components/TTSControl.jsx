@@ -32,13 +32,47 @@ import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
 
-// Pull the visible page text: clone <main>, strip floating/hidden chrome.
+// CONTROLS ARE NOT CONTENT — the reader must not read the buttons.
+//
+// Darrell 2026-08-13, listening on the Scripture tab: "The reader reads the
+// Highlight Up Arrow... etc... I want the content."
+//
+// This is the page-read FALLBACK, used on any surface that has not registered a
+// read target (lib/read-target.js). Scripture is one of those surfaces, so its
+// reading was the whole of <main>.innerText — and innerText includes every
+// control label. A listener heard "↑ HIDE OTHER TRANSLATIONS · ESV · NIV · NKJV
+// · AMP · CLEAR HIGHLIGHT · GIVE · FEEDBACK · × HIDE" threaded through the Word.
+// On a platform whose point is hearing Scripture, that is the reading itself
+// being corrupted by furniture.
+//
+// So the fallback now strips the interactive layer: navigation, menus, tab
+// strips, dialogs, form controls, and buttons. A surface that genuinely renders
+// reading material inside a control can opt that node back in with
+// `data-read-keep`, and anything can opt out with `data-read-skip` — but the
+// DEFAULT is that chrome is silent, because the default was the bug.
+//
+// This is a fallback, not the destination: the real fix for a surface is to
+// register its own reading, which also gets follow-along highlighting and
+// hands-free continuation. Stripping here is what makes the fallback honest in
+// the meantime.
+const CHROME_SELECTOR = [
+  '.tts-controls', '.feedback-modal', '[aria-hidden="true"]', '[data-read-skip]',
+  'nav', 'button', 'select', 'input', 'textarea',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]', '[role="dialog"]',
+  '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
+].join(', ');
+
 function readablePageText() {
   if (typeof document === 'undefined') return '';
   const main = document.querySelector('main') || document.body;
   if (!main) return '';
   const clone = main.cloneNode(true);
-  clone.querySelectorAll('.tts-controls, .feedback-modal, [aria-hidden="true"]').forEach((el) => el.remove());
+  clone.querySelectorAll(CHROME_SELECTOR).forEach((el) => {
+    // An explicit opt-in wins, so a surface that really does render its reading
+    // inside a control is not silently truncated by this rule.
+    try { if (el.matches && el.matches('[data-read-keep]')) return; } catch (_) { /* fall through to remove */ }
+    el.remove();
+  });
   return (clone.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 32000);
 }
 

@@ -38,6 +38,44 @@
 
 const NO_EXPAND = '.tts-controls, [data-read-no-expand], [aria-haspopup], [role="tab"], [role="dialog"]';
 
+// A POPUP IS NOT A DISCLOSURE, even when its author forgot to say so.
+//
+// Darrell 2026-08-13: "the color tab pops up on its own after a while." The
+// reveal pass below clicked VerseHighlighter's swatch — `aria-expanded="false"`,
+// no `aria-haspopup` — and opened a colour palette on every verse on screen.
+// The NO_EXPAND list above already intended to exclude menus; the component
+// simply never carried the attribute the list looks for.
+//
+// Fixing only the component would leave the rule where it was: a guard that
+// works if every future author remembers one attribute. So the structural half
+// is here — if a button OWNS a popup (it points at one via aria-controls, or a
+// menu/listbox/dialog sits right beside it as its sibling), it is a menu button
+// and is never auto-clicked, attribute or not. Clicking a disclosure reveals
+// more of the reading; clicking a menu button pops UI over it. Only the first
+// is this module's business.
+const POPUP_ROLES = '[role="menu"], [role="listbox"], [role="dialog"], [role="grid"], [role="tree"]';
+
+function ownsPopup(el) {
+  try {
+    const doc = el.ownerDocument;
+    const controls = el.getAttribute && el.getAttribute('aria-controls');
+    if (controls && doc) {
+      for (const id of controls.split(/\s+/).filter(Boolean)) {
+        const t = doc.getElementById(id);
+        if (t && t.matches && t.matches(POPUP_ROLES)) return true;
+      }
+    }
+    // The unlabelled-but-obvious case: the popup renders as the button's own
+    // next sibling (the pattern VerseHighlighter uses).
+    const sib = el.nextElementSibling;
+    if (sib && sib.matches && sib.matches(POPUP_ROLES)) return true;
+    // …or is the only popup inside the button's immediate wrapper.
+    const parent = el.parentElement;
+    if (parent && parent.querySelector && parent.querySelector(POPUP_ROLES)) return true;
+  } catch (_) { /* a hostile node is never a reason to start clicking */ }
+  return false;
+}
+
 /**
  * Open every collapsed disclosure inside `root`.
  * @param {Element} root the reading container (a <main>, or one piece's element)
@@ -65,7 +103,7 @@ export function revealForReading(root, { max = 40 } = {}) {
   try {
     for (const b of root.querySelectorAll('[aria-expanded="false"]')) {
       if (budget <= 0) break;
-      if (blocked(b)) continue;
+      if (blocked(b) || ownsPopup(b)) continue;
       try { b.click(); opened.buttons += 1; budget -= 1; } catch (_) { /* ignore */ }
     }
   } catch (_) { /* ignore */ }
