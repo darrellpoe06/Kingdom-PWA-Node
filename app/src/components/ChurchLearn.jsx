@@ -440,11 +440,49 @@ function SopLibrary({ sequences, pipeline }) {
 // at once. The text is never invented or summarized — only chunked. Reaching the
 // last segment fires onSegmentComplete once (real engagement signal).
 // -----------------------------------------------------------------------------
-function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null }) {
+// Exported for the read-along test: the paced core is the thing that was
+// truncating a hands-free listen, and the honest way to pin it is to render THIS
+// component with a real multi-step plan. Reaching it through the full ChurchLearn
+// tree meant the assertion depended on which course/session view happened to
+// mount, which is how the first draft of that test passed while proving nothing.
+export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+
+  // READ-ALONG READS THE WHOLE CORE, NOT STEP ONE OF IT.
+  //
+  // Darrell 2026-08-13, watching the reader run on Session 8: "only part 1 of
+  // the core is taught or read by the reader… I want to hear the whole lesson
+  // and course from one play action."
+  //
+  // The pacing exists for a READER, who chooses when to turn the page. A
+  // LISTENER cannot, and the reveal that already exists for read-along stopped
+  // one level short: `showAll` opened every ARC STAGE (Open, Teach, Engage,
+  // Apply, Send-off), but the Teach stage's own paced steps live in here, and
+  // this component rendered `segments[cur]` — exactly one — regardless. So a
+  // hands-free listener heard the first chunk of the core and then the next
+  // stage, with the rest of the teaching never entering the DOM to be read.
+  //
+  // In read-along the whole core renders in order, with its step markers kept
+  // so the listener still hears where they are. Outside read-along the stepper
+  // is untouched — the reader's pacing is not the listener's problem and vice
+  // versa.
+  if (showAll && totalSegments > 1) {
+    return (
+      <div className="mb-2 border border-[#E8E4DC] bg-white p-2 space-y-2">
+        {segments.map((s, i) => (
+          <div key={i}>
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+              Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
+            </span>
+            <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{s}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
   // Report a move so the host can persist the learner's place (resume-your-place).
   const moveTo = (i) => {
     const n = Math.max(0, Math.min(totalSegments - 1, i));
@@ -712,6 +750,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
               initialIndex={savedHere ? savedHere.step : 0}
               onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
+              showAll={readAll}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
