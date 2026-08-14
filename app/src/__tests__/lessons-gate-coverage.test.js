@@ -20,4 +20,50 @@ describe('lessons-gate-coverage — every lesson names its gate or its why-no-ga
   it('is a real, non-empty grandfather baseline (shrink-only, like the monolith ratchet)', () => {
     expect(UNCITED_BASELINE.size).toBeGreaterThan(0);
   });
+
+  // THE METER MUST NOT PAINT ITS OWN NUMBER (DR-0303, 2026-08-14).
+  //
+  // Writing P40 — which cites two test files and ends "pairs with P31, P26,
+  // P15" — silently "healed" P15, P26 and P31, none of which had gained a
+  // citation. The line filter credited every principle NAMED on a line with the
+  // gate belonging to the principle that OWNED it. Correcting it moved the
+  // honest figure from 22/40 (55%) to 12/40 (30%): roughly ten principles had
+  // been counted as cited on a neighbour's evidence.
+  //
+  // This is P38's own failure recurring inside P38's own instrument — its first
+  // version read "19% coverage" off the terse index summaries and had to be
+  // rebuilt against the real artifact. A meter that flatters itself is worse
+  // than no meter, because it is trusted.
+  describe('a cross-reference is not a citation', () => {
+    it('does not credit a principle named in ANOTHER principle\'s declaration line', () => {
+      const doc = [
+        '- **P50 — an uncited lesson.** It names no machine check whatsoever.',
+        '- **P51 — a gated lesson.** Gate: fifty-one-guard.mjs, proven-to-catch in fifty-one.test.js. Pairs with P50.',
+      ].join('\n');
+      const gaps = findUnguardedPrinciples(doc);
+      expect(gaps.some((g) => g.id === 'P50'), 'P50 borrowed P51\'s gate').toBe(true);
+      expect(gaps.some((g) => g.id === 'P51')).toBe(false);
+    });
+
+    it('does not credit a principle listed on a **Cross-refs:** see-also line', () => {
+      const doc = [
+        '- **P52 — an uncited lesson.** It names no machine check whatsoever.',
+        '**Cross-refs:** DR-0303, P52, `something-real.test.js`, a-real-guard.mjs.',
+      ].join('\n');
+      expect(findUnguardedPrinciples(doc).some((g) => g.id === 'P52')).toBe(true);
+    });
+
+    it('still credits a real incident-body line that NAMES the principle and its gate', () => {
+      // The legitimate case the line filter exists for must keep working. Note
+      // the line has to mention the id — the filter is per-line, so a Fix line
+      // that never says "P53" was never evidence for P53 in the first place.
+      // (My first draft of this case asserted otherwise and failed, which is
+      // the check doing its job on the test rather than the code.)
+      const doc = [
+        '- **P53 — a lesson.** The narrative, with no citation on this line.',
+        '**Fix:** P53 is guarded by fifty-three-guard.mjs, proven-to-catch in fifty-three.test.js.',
+      ].join('\n');
+      expect(findUnguardedPrinciples(doc).some((g) => g.id === 'P53')).toBe(false);
+    });
+  });
 });

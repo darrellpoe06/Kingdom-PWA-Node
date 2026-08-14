@@ -16,11 +16,57 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
-  serializeNav, parseNav, navKey, initialBooksView, VALID_BOOKS_SUBS,
+  serializeNav, parseNav, navKey, initialBooksView, VALID_BOOKS_SUBS, VALID_VIEWS,
   useBrowserHistoryNav, useHistoryToggle, useHistoryValue,
   initialChurchView, VALID_CHURCH_SUBS, PRESERVED_PARAMS,
 } from '../lib/nav-history.js';
+
+// ── the two-lists guard (DR-0296's remainder, closed) ───────────────────────
+// VALID_VIEWS says it "mirrors getInitialView()'s VALID list in the shell." It
+// did not: 15 of the shell's 30 views were missing from it, so parseNav dropped
+// half the app's tabs to `overview`, the seed's sameUrl check disagreed with the
+// booted view, and the URL was rewritten on arrival — taking every query param
+// that is not view/sub/PRESERVED_PARAMS with it.
+//
+// A comment claiming two lists match is not a mechanism. This derives the
+// shell's list from source and fails on any future drift, in either direction.
+describe('VALID_VIEWS really does mirror the shell', () => {
+  const shell = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+  const shellViews = (() => {
+    const m = shell.match(/const VALID = \[([^\]]*)\]/);
+    return m ? m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean) : [];
+  })();
+
+  it('found the shell’s list to compare against', () => {
+    expect(shellViews.length).toBeGreaterThan(20);
+    expect(shellViews).toContain('overview');
+  });
+
+  it('every view the shell routes is known to parseNav', () => {
+    const missing = shellViews.filter((v) => !VALID_VIEWS.includes(v));
+    expect(missing, `parseNav would drop these to overview: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('and parseNav claims no view the shell cannot render', () => {
+    const extra = VALID_VIEWS.filter((v) => !shellViews.includes(v));
+    expect(extra, `parseNav routes these nowhere: ${extra.join(', ')}`).toEqual([]);
+  });
+
+  it('so the seed leaves a plain ?view= URL alone for EVERY tab', () => {
+    // This is the seed's own sameUrl expression. Before the fix it failed for
+    // half the tabs, which is what caused the arrival-time param strip.
+    for (const v of shellViews) {
+      if (v === 'church' || v === 'books') continue; // sub-carrying; covered above
+      const s = `?view=${v}`;
+      expect(navKey(parseNav(s)), `seed would rewrite ?view=${v}`).toBe(navKey({ view: v }));
+    }
+  });
+});
 
 // ── Books deep-link resolver (the "blank Books tab" regression guard) ────────
 // Proven-to-catch (DR-0076): the shell used to boot booksView hard-coded to

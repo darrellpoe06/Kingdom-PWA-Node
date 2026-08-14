@@ -1,0 +1,105 @@
+# Live link probe — a REAL BROWSER opens a shared lesson link on poetech.us and
+# shows what the recipient sees.
+#
+# WHY THIS EXISTS (2026-08-13, DR-0296/DR-0297 lineage). Darrell opened a link
+# the app itself produced and landed on the live-stream tab with no lesson:
+# "Sucks... doesnt even take the user to the actual lessons.... Is this tested
+# before?" It was not — 7,678 tests mounted the Learn component DIRECTLY and
+# nothing ever walked the shell's routing decision (LESSONS P16). DR-0296 fixed
+# the routing and pinned it in unit tests. This is the outside-in half.
+#
+# It is deliberately NOT a second site-health. site-health.yml answers "is the
+# site up, intact and serving main's tip" with plain HTTP. It cannot answer "does
+# the link land on the lesson," because that question is only decided after
+# React boots, routes, and renders — which needs a browser. This runs one.
+#
+# It also closes a capability gap that is easy to forget: the cloud agent session
+# has NO network route to poetech.us (measured 2026-08-13 — curl gets a 403
+# CONNECT from the egress proxy, WebFetch returns EGRESS_BLOCKED). A GitHub
+# runner does. So when anyone asks "show me it working on the live site," the
+# honest answer is this workflow's artifact, not a claim. That is DR-0278 —
+# visual proof is not the human's job — applied to the live product.
+#
+# WHAT IT PROVES, per case, from the rendered DOM (never from the URL):
+#   • which Church sub-tab is ACTUALLY selected;
+#   • the course heading that rendered;
+#   • whether the deep-linked LESSON's own card is mounted;
+#   • whether a YouTube player is mounted — the live-stream tab's signature,
+#     which must be absent on a lesson link and PRESENT on a bare ?view=church
+#     (that second half is what keeps this from passing on a blank page).
+# Screenshots for every case upload as an artifact, pass or fail.
+#
+# THE THREE BRAKES (CLAUDE.md):
+#   1. BUDGET — one runner, hard 10-minute timeout, a fixed handful of page
+#      loads. No compute is spawned, nothing is written to the repo or the site.
+#   2. LOCK   — concurrency group `live-link-probe`, single-instance.
+#   3. KILL   — set repo variable LIVE_LINK_PROBE_ENABLED='false' (or disable in
+#      the Actions UI). Unset => runs. Read-only prober, deploy-freshness class.
+#
+# READ-ONLY BY CONSTRUCTION: `permissions: contents: read` only. It cannot open
+# an issue, dispatch a deploy, or push. A failure here is a RED RUN, and the
+# screenshot in the artifact is the evidence.
+
+name: Live link probe (a browser opens a shared lesson link)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base URL to probe'
+        required: false
+        default: 'https://poetech.us/poetech-app/'
+  schedule:
+    - cron: '17 13 * * *' # once a day; the unit tests are the fast guard
+
+concurrency:
+  group: live-link-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: ${{ vars.LIVE_LINK_PROBE_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Installed OUTSIDE the checkout so nothing in the repo tree is touched
+      # (an `npm init` at the root would clobber real files).
+      - name: Install Playwright (chromium only)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.47.2
+          npx playwright install --with-deps chromium
+
+      # Run the script from beside its node_modules: Node resolves bare ESM
+      # imports by walking up from the SCRIPT's directory, so NODE_PATH would
+      # not help and running it in-place would fail to find playwright.
+      - name: Open the shared links in a real browser
+        id: probe
+        env:
+          BASE: ${{ github.event.inputs.base || 'https://poetech.us/poetech-app/' }}
+          OUT_DIR: ${{ github.workspace }}/shots
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          cp "$GITHUB_WORKSPACE/scripts/live-link-probe.mjs" "$RUNNER_TEMP/pw/probe.mjs"
+          node "$RUNNER_TEMP/pw/probe.mjs"
+
+      - name: Upload what the recipient saw
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-link-screenshots
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 30

@@ -43,7 +43,32 @@ import { motionBehavior } from './gentle-motion.js';
 // `.ts-chrome-region` / `[role="dialog"]` are the app's existing names for
 // floating chrome. A visibility rule for PAPER never again decides what a
 // person is allowed to hear.
-const SKIP_SELECTOR = '.tts-controls, [data-read-skip], [aria-hidden="true"], script, style, noscript, .install-prompt, .update-confirm, .ts-chrome-region, [role="dialog"]';
+// CONTROLS ARE NOT CONTENT — and THIS is the list that decides it.
+//
+// Darrell 2026-08-14, on Eternal Algorithms: "this page just reads without a
+// reader highlighting the words." Tracing that exposed a miss in the DR-0299
+// fix: that change taught `readablePageText()` to strip nav/buttons/menus, but
+// `readablePageText` is only the FALLBACK. The primary page path speaks
+// `buildFollowMap(main).text` — alignment by construction — and the map was
+// built with THIS selector, which excluded the reader's own panel and dialogs
+// but not a single button, nav, or tab strip.
+//
+// So on every page-read surface (everything except the three that register
+// their own reading) the listener still heard the furniture, and every button
+// label also became a mapped RANGE — highlights landing on chrome instead of
+// the Word.
+//
+// The two lists must agree, because the same words are spoken and highlighted.
+// They are kept in step by a test that derives one from the other rather than
+// by a promise in a comment — the failure mode this codebase keeps repeating.
+const SKIP_SELECTOR = [
+  '.tts-controls', '.feedback-modal', '[data-read-skip]', '[aria-hidden="true"]',
+  'script', 'style', 'noscript',
+  '.install-prompt', '.update-confirm', '.ts-chrome-region',
+  'nav', 'button', 'select', 'input', 'textarea',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]', '[role="dialog"]',
+  '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
+].join(', ');
 
 const isWs = (ch) => /\s/.test(ch);
 
@@ -228,12 +253,227 @@ export function clearReadingHighlights(win = typeof window !== 'undefined' ? win
 }
 
 /** Keep the spoken words in sight: center the range's nearest element. */
+// THE SENTENCE BEING READ MUST BE VISIBLE, NOT UNDER THE HEADER.
+//
+// Darrell 2026-08-13, reading a lesson with the app's sticky chrome on screen:
+// "the words are blocked at the top of the highlighted text while reading
+// possibly because of the banner or whatever."
+//
+// Two things were wrong with `el.scrollIntoView({ block: 'center' })`:
+//
+//   1. It scrolled the ELEMENT, not the RANGE. The element is the whole
+//      paragraph; the range is the sentence actually being spoken. Centring a
+//      tall paragraph puts its opening lines above the viewport top — so on
+//      exactly the long teaching paragraphs this app is made of, the words
+//      being read were off-screen while the paragraph looked "centred".
+//   2. It knew nothing about the fixed/sticky chrome. This app stacks a session
+//      bar, the church banner and the sub-tab strip at the top, so "the top of
+//      the viewport" is not where content becomes visible.
+//
+// The inset is MEASURED from the live document rather than typed as a constant:
+// the chrome's height changes with the large-print setting, with which banners
+// are dismissed, and between the church door and the PoeTech shell. A hardcoded
+// number would be wrong for most readers on most screens.
+
+/**
+ * How far down the viewport the first genuinely visible pixel is — the combined
+ * height of whatever fixed/sticky chrome is pinned to the top.
+ *
+ * Probed at three x positions so a narrow floating control cannot be mistaken
+ * for a full-width bar, and clamped: a chrome claiming more than 45% of the
+ * screen is an overlay or a mis-measure, and honouring it would scroll the
+ * reading out of view instead of into it.
+ */
+export function stickyTopInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc || typeof doc.elementsFromPoint !== 'function') return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+    let inset = 0;
+    for (const x of [vw * 0.25, vw * 0.5, vw * 0.75]) {
+      for (const el of doc.elementsFromPoint(Math.round(x), 2) || []) {
+        if (!el || !el.getBoundingClientRect) continue;
+        let pos = '';
+        try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
+        if (pos !== 'fixed' && pos !== 'sticky') continue;
+        const r = el.getBoundingClientRect();
+        // Only bars actually pinned at the top count; a fixed footer or a
+        // floating button elsewhere must never push the reading down.
+        if (r.top <= 2 && r.bottom > inset) inset = r.bottom;
+      }
+    }
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
+/**
+ * How far to scroll so the spoken sentence sits in comfortable reading space.
+ * Pure arithmetic, so the rule is unit-testable without layout (jsdom has none).
+ *
+ * Returns the delta to scroll BY: positive scrolls down. 0 means it is already
+ * well placed — a sentence that is merely low in the viewport is not moved,
+ * because re-centring on every sentence makes the page twitch under the reader.
+ */
+/**
+ * The same measurement for the BOTTOM — because the reader's own panel is chrome.
+ *
+ * Darrell 2026-08-13, after the top fix landed: "now blocked by the reader."
+ * The reading pill ("READING… · KEEPS GOING") floats over the bottom of the
+ * screen, and so do GIVE and FEEDBACK. Clearing the banner only to park the
+ * sentence under the reader's own controls is the same defect with the page
+ * turned upside down — and it was introduced by fixing the top half, which is
+ * why it ships with it.
+ *
+ * Bottom-anchored fixed/sticky boxes only, so the header can never be counted
+ * twice, and clamped the same way.
+ */
+// Floating chrome that DECLARES itself. Anything pinned over the reading can
+// add `data-reading-chrome` and be measured without this file knowing it exists.
+// `.tts-controls` is listed because it is the reader's own panel — the single
+// most likely thing to cover the words it is reading.
+const READING_CHROME = '.tts-controls, [data-reading-chrome]';
+
+export function stickyBottomInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc) return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+
+    // The lowest point that is still readable; anything pinned below it eats
+    // into the reading band.
+    let boundary = vh;
+    const consider = (el) => {
+      if (!el || !el.getBoundingClientRect) return;
+      let pos;
+      try { pos = (win.getComputedStyle(el) || {}).position; } catch (_) { return; }
+      if (pos !== 'fixed' && pos !== 'sticky') return;
+      const r = el.getBoundingClientRect();
+      if (!r || r.height <= 0) return;
+      // Lower half only — a top banner is the other function's business, and
+      // counting it here would double-charge the reading band.
+      if (r.top < vh / 2 || r.top >= vh) return;
+      if (r.top < boundary) boundary = r.top;
+    };
+
+    // 1. Chrome that names itself. THE FIX: the reading pill is
+    //    `fixed bottom-4 right-4` — INSET from the bottom and pinned RIGHT, so
+    //    a point-probe along the bottom edge at 25/50/75% width missed it on
+    //    both axes and reported no bottom chrome at all. That is why it kept
+    //    covering the very sentence it was reading. Asking the element is not a
+    //    fallback for probing; it is the reliable half.
+    if (typeof doc.querySelectorAll === 'function') {
+      for (const el of doc.querySelectorAll(READING_CHROME) || []) consider(el);
+    }
+
+    // 2. Unknown chrome, found by probing — a grid rather than one line, so an
+    //    inset or edge-hugging bar is still seen. Cheap and bounded.
+    if (typeof doc.elementsFromPoint === 'function') {
+      for (const x of [vw * 0.15, vw * 0.5, vw * 0.85]) {
+        for (const dy of [2, 40, 90, 150]) {
+          const y = Math.round(vh - dy);
+          if (y <= vh / 2) continue;
+          for (const el of doc.elementsFromPoint(Math.round(x), y) || []) consider(el);
+        }
+      }
+    }
+
+    const inset = vh - boundary;
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
+export function readingScrollDelta({
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24,
+} = {}) {
+  const vh = Number(viewportHeight) || 0;
+  if (!vh) return 0;
+  const safeTop = Number(topInset) || 0;
+  const top = Number(rangeTop) || 0;
+  const bottom = Number(rangeBottom) || top;
+  const restTop = safeTop + margin;          // first line that is genuinely readable
+  const restBottom = vh - (Number(bottomInset) || 0) - margin;
+
+  // Hidden behind the chrome, or above the viewport entirely: bring it down to
+  // just under the chrome. This is the case Darrell hit.
+  if (top < restTop) return top - restTop;
+
+  // Below the fold: lift it so the sentence STARTS in the reading band rather
+  // than centring a tall one, which would push its opening back under the top.
+  if (bottom > restBottom) {
+    const height = Math.max(0, bottom - top);
+    const room = Math.max(0, restBottom - restTop);
+    return height >= room ? top - restTop : bottom - restBottom;
+  }
+  return 0;
+}
+
+/**
+ * The breathing room to leave around the spoken sentence, in px.
+ *
+ * Darrell 2026-08-13: "Account for different font sizes as well." This app ships
+ * five reading sizes (A through A44, lib/text-size), and a fixed 24px gap that
+ * looks generous at A is thinner than a single line at A44 — the sentence would
+ * sit jammed against the chrome for exactly the readers who most need space.
+ *
+ * So the margin is ONE LINE of whatever the reader has chosen, measured from
+ * the text being read, with the old 24px kept only as a floor for when line
+ * height cannot be resolved.
+ */
+export function readingMargin(el, win = (typeof window !== 'undefined' ? window : null)) {
+  const FLOOR = 24;
+  if (!el || !win || typeof win.getComputedStyle !== 'function') return FLOOR;
+  try {
+    const cs = win.getComputedStyle(el) || {};
+    const lh = parseFloat(cs.lineHeight);
+    if (Number.isFinite(lh) && lh > 0) return Math.max(FLOOR, Math.round(lh));
+    // `line-height: normal` does not resolve to px — approximate from font size,
+    // which is what the browser does anyway (~1.2x).
+    const fs = parseFloat(cs.fontSize);
+    if (Number.isFinite(fs) && fs > 0) return Math.max(FLOOR, Math.round(fs * 1.4));
+    return FLOOR;
+  } catch (_) {
+    return FLOOR;
+  }
+}
+
 export function followRange(range) {
   if (!range) return;
   try {
-    const el = range.startContainer && (range.startContainer.nodeType === 1
+    const win = typeof window !== 'undefined' ? window : null;
+    const doc = typeof document !== 'undefined' ? document : null;
+    if (!win) return;
+    // The RANGE's own box — the sentence — not the paragraph that contains it.
+    const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
+    const usable = rect && (rect.height > 0 || rect.width > 0);
+    if (!usable) {
+      // No layout for the range (a collapsed range, or a non-layout environment)
+      // — fall back to the old element scroll rather than doing nothing.
+      const el = range.startContainer && (range.startContainer.nodeType === 1
+        ? range.startContainer
+        : range.startContainer.parentElement);
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
+      return;
+    }
+    const textEl = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
       : range.startContainer.parentElement);
-    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
+    const delta = readingScrollDelta({
+      rangeTop: rect.top,
+      rangeBottom: rect.bottom,
+      topInset: stickyTopInset(win, doc),
+      bottomInset: stickyBottomInset(win, doc),
+      viewportHeight: win.innerHeight || 0,
+      margin: readingMargin(textEl, win),
+    });
+    if (!delta) return;
+    if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
   } catch (_) { /* scrolling is best-effort */ }
 }

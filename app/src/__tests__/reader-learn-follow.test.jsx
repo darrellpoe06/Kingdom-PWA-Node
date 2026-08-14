@@ -38,7 +38,12 @@ const readSpy = vi.fn();
 vi.mock('../lib/use-read-aloud.js', () => ({
   useReadAloud: () => ({
     supported: true, isReading: false, isPaused: false, rate: 1,
-    read: (...a) => readSpy(...a), pause: () => {}, resume: () => {}, stop: () => {}, setRate: () => {},
+    read: (...a) => readSpy(...a), pause: () => {}, resume: () => {}, stop: () => {},      // claimAudio: the synchronous audio-session claim the play handler makes
+      // inside the tap (background listening). A mock that omits it makes the
+      // handler throw before it ever reads — which is exactly how the real
+      // regression surfaced, so it is a no-op here rather than absent.
+      claimAudio: () => {},
+ setRate: () => {},
     catalog: [{ id: 'sys', label: 'System voice', group: 'Default', usable: true }],
     voiceId: 'sys', setVoiceId: () => {}, currentItem: { id: 'sys', ai: false },
   }),

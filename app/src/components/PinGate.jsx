@@ -20,6 +20,7 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { isValidPinFormat } from '../lib/pin.js';
+import { authErrorMessage } from '../lib/auth-error-message.js';
 
 export default function PinGate({
   mode = 'enter',
@@ -101,7 +102,7 @@ export default function PinGate({
     } else if (res && typeof res.attemptsRemaining === 'number') {
       setError(`That PIN didn’t match. ${res.attemptsRemaining} attempt${res.attemptsRemaining === 1 ? '' : 's'} left before a short pause.`);
     } else if (res && res.error && res.error.message) {
-      setError(res.error.message);
+      setError(authErrorMessage(res.error, 'That didn’t work. Try again.').text);
     } else {
       setError('That didn’t work. Try again.');
     }

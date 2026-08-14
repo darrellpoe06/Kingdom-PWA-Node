@@ -923,10 +923,10 @@ function getInitialView() {
   } catch (e) { return 'overview'; }
 }
 
-// The Church sub-tab a deep link selects. Delegates to nav-history's validated
-// initialChurchView so BOTH ?view=learn and ?view=church&sub=learn resolve
-// through ONE source (DR-0293 — the local copy read only ?view=, so a shared
-// lesson link landed on the church home).
+// The Church sub-tab a URL deep-links to — resolved by lib/nav-history's
+// initialChurchView so boot and Back read the URL through ONE parser. Never
+// re-implement it here: reading only `?view=` is what sent every shared lesson
+// link to the Worship tab instead of the lesson (the why is in that module).
 function getInitialChurchView() {
   try {
     if (typeof window === 'undefined') return 'home';

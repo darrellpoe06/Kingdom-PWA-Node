@@ -36,6 +36,34 @@ const NO_GATE_JUSTIFIED = /\b(no gate can|cannot be gated|un-gateable|checklist|
 // an incident-body Fix/guarded line, which is where the gate citation actually
 // lives) cites a gate or a why-no-gate. Reading only the terse index summary
 // under-counts by construction — the gate is named in the incident body.
+//
+// A CROSS-REFERENCE IS NOT A CITATION (fixed 2026-08-14, DR-0303).
+// Principles routinely end with "pairs with P31, P26, P15", and those lines
+// also name their OWN gates. The plain line filter credited every principle
+// named in such a line with the gate belonging to the principle that OWNS it —
+// so writing P40 (which cites two test files and cross-refs P15) silently
+// "healed" P15, which has gained no citation at all. That is precisely the
+// painted number P38 was extracted to prevent: this meter exists to measure
+// citation coverage honestly, and a meter that credits a neighbour's gate is
+// lying in the direction that feels good.
+//
+// So a line that DECLARES some other principle (`**Pk —`) is that principle's
+// line, and says nothing about anyone it merely mentions. Incident-body lines
+// declare no principle and still count for everyone they name, which is where
+// real Fix/guarded-by citations live.
+function declaredIdOn(line) {
+  const m = /\*\*(P\d+)\s*[—-]/.exec(line);
+  return m ? m[1] : null;
+}
+
+// A `**Cross-refs:**` line is a SEE-ALSO list, by definition. It names DRs,
+// sibling principles, and the artifacts of the incident it closes — so it will
+// almost always match GATE_CITED, and it establishes a gate for nothing. Same
+// false-heal as the neighbour-declaration case above, one line lower: this
+// record's own Cross-refs named `feedback-list-carries-no-image-bytes.test.js`
+// alongside P15, and P15 "healed" without gaining a citation.
+const CROSS_REF_LINE = /^\s*\*\*Cross-refs:\*\*/;
+
 export function findUnguardedPrinciples(text) {
   const lines = String(text || '').split('\n');
   const ids = [...new Set([...String(text || '').matchAll(/\*\*(P\d+)\s*[—-]/g)].map((m) => m[1]))];
@@ -43,7 +71,12 @@ export function findUnguardedPrinciples(text) {
   for (const id of ids) {
     const re = new RegExp(`\\b${id}\\b`);
     const mentions = lines.filter((l) => re.test(l));
-    const gated = mentions.some((l) => GATE_CITED.test(l) || NO_GATE_JUSTIFIED.test(l));
+    const own = mentions.filter((l) => {
+      if (CROSS_REF_LINE.test(l)) return false;
+      const declared = declaredIdOn(l);
+      return declared === null || declared === id;
+    });
+    const gated = own.some((l) => GATE_CITED.test(l) || NO_GATE_JUSTIFIED.test(l));
     if (!gated) {
       const idx = mentions.find((l) => new RegExp(`\\*\\*${id}\\s*[—-]`).test(l)) || mentions[0] || id;
       out.push({ id, text: idx.trim().slice(0, 140) });
@@ -63,6 +96,21 @@ export function findUnguardedPrinciples(text) {
 export const UNCITED_BASELINE = new Set([
   'P2', 'P4', 'P6', 'P8', 'P10', 'P11', 'P12', 'P13', 'P15', 'P16',
   'P17', 'P18', 'P20', 'P21', 'P24', 'P25', 'P30', 'P34', 'P35',
+  // Re-frozen 2026-08-14 (DR-0303). These nine were ALWAYS uncited; the
+  // detector could not see it, because it credited any line mentioning a
+  // principle — including another principle's declaration line and
+  // `**Cross-refs:**` see-also lists, both of which name gates belonging to
+  // someone else. Tightening it (above) dropped the honest figure from the
+  // 22/40 (55%) CI had been printing to 12/40 (30%).
+  //
+  // Expanding a shrink-only baseline needs saying plainly: this is NOT a
+  // regression and NOT permission to stop citing. It is a measurement
+  // correction — the same move P38 records when its own first version read
+  // "19% coverage" off the terse index summaries and had to be rebuilt against
+  // the real artifact. The forward discipline is unchanged and still bites: a
+  // genuinely new uncited lesson fails the build, and every entry here shrinks
+  // out the moment its own line names its check.
+  'P3', 'P5', 'P7', 'P9', 'P19', 'P23', 'P26', 'P31', 'P36',
 ]);
 
 export function coverage(text) {
