@@ -978,3 +978,106 @@ describe('the Law-of-Assumption issue quotes the KJV verbatim (DR-0076 / DR-0281
     expect(blob).toContain('My counsel shall stand, and I will do all my pleasure');
   });
 });
+
+// =============================================================================
+// ISSUE 10 — "Victorious Emotions" (identity / emotions / frequencies / angels)
+// =============================================================================
+// DR-0288 requires every fragment VERBATIM against the repo's own KJV, with a
+// proven-to-catch tamper. Without these pins the issue would ride the suite
+// green while quoting from memory — which is the exact failure the gate exists
+// for, and it was vacuous for this issue until these were added.
+const VICTORIOUS_EMOTIONS_QUOTES = [
+  { ref: '2 Corinthians 5:17', book: '2Corinthians', ch: 5, v: 17, fragments: ['he is a new creature: old things are passed away'] },
+  { ref: 'Colossians 1:27', book: 'Colossians', ch: 1, v: 27, fragments: ['Christ in you, the hope of glory'] },
+  { ref: '1 Corinthians 6:19', book: '1Corinthians', ch: 6, v: 19, fragments: ['your body is the temple of the Holy Ghost which is in you'] },
+  { ref: '1 John 3:2', book: '1John', ch: 3, v: 2, fragments: ['now are we the sons of God'] },
+  { ref: 'Romans 12:2', book: 'Romans', ch: 12, v: 2, fragments: ['be ye transformed by the renewing of your mind'] },
+  { ref: 'Proverbs 4:23', book: 'Proverbs', ch: 4, v: 23, fragments: ['Keep thy heart with all diligence; for out of it are the issues of life'] },
+  { ref: 'Luke 6:45', book: 'Luke', ch: 6, v: 45, fragments: ['for of the abundance of the heart his mouth speaketh'] },
+  { ref: 'Jeremiah 17:9', book: 'Jeremiah', ch: 17, v: 9, fragments: ['The heart is deceitful above all things, and desperately wicked'] },
+  { ref: 'Psalm 42:11', book: 'Psalms', ch: 42, v: 11, fragments: ['Why art thou cast down, O my soul?'] },
+  { ref: 'Hebrews 1:14', book: 'Hebrews', ch: 1, v: 14, fragments: ['ministering spirits, sent forth to minister'] },
+  { ref: 'Colossians 2:18', book: 'Colossians', ch: 2, v: 18, fragments: ['worshipping of angels, intruding into those things which he hath not seen'] },
+  { ref: 'Revelation 22:9', book: 'Revelation', ch: 22, v: 9, fragments: ['See thou do it not'] },
+  { ref: 'Genesis 3:5', book: 'Genesis', ch: 3, v: 5, fragments: ['ye shall be as gods, knowing good and evil'] },
+  { ref: 'Isaiah 14:14', book: 'Isaiah', ch: 14, v: 14, fragments: ['I will be like the most High'] },
+  { ref: 'John 15:5', book: 'John', ch: 15, v: 5, fragments: ['without me ye can do nothing'] },
+  { ref: 'Matthew 5:14', book: 'Matthew', ch: 5, v: 14, fragments: ['Ye are the light of the world'] },
+  { ref: 'John 8:12', book: 'John', ch: 8, v: 12, fragments: ['I am the light of the world'] },
+  { ref: 'Ephesians 6:17', book: 'Ephesians', ch: 6, v: 17, fragments: ['the sword of the Spirit, which is the word of God'] },
+  { ref: 'Philippians 4:6', book: 'Philippians', ch: 4, v: 6, fragments: ['let your requests be made known unto God'] },
+  { ref: 'Hebrews 4:16', book: 'Hebrews', ch: 4, v: 16, fragments: ['come boldly unto the throne of grace'] },
+  { ref: 'Psalm 62:8', book: 'Psalms', ch: 62, v: 8, fragments: ['pour out your heart before him'] },
+  { ref: '2 Corinthians 12:9', book: '2Corinthians', ch: 12, v: 9, fragments: ['My grace is sufficient for thee: for my strength is made perfect in weakness'] },
+  { ref: '1 Timothy 5:23', book: '1Timothy', ch: 5, v: 23, fragments: ['use a little wine for thy stomach'] },
+  { ref: '2 Timothy 4:20', book: '2Timothy', ch: 4, v: 20, fragments: ['Trophimus have I left at Miletum sick'] },
+  { ref: 'Philippians 2:27', book: 'Philippians', ch: 2, v: 27, fragments: ['was sick nigh unto death: but God had mercy on him'] },
+  { ref: '2 Corinthians 4:16', book: '2Corinthians', ch: 4, v: 16, fragments: ['though our outward man perish, yet the inward man is renewed day by day'] },
+  { ref: '2 Corinthians 5:1', book: '2Corinthians', ch: 5, v: 1, fragments: ['if our earthly house of this tabernacle were dissolved'] },
+  { ref: 'Genesis 3:19', book: 'Genesis', ch: 3, v: 19, fragments: ['dust thou art, and unto dust shalt thou return'] },
+  { ref: 'Hebrews 9:27', book: 'Hebrews', ch: 9, v: 27, fragments: ['it is appointed unto men once to die'] },
+  { ref: 'Psalm 77:11', book: 'Psalms', ch: 77, v: 11, fragments: ['I will remember the works of the LORD'] },
+  { ref: '1 Samuel 16:23', book: '1Samuel', ch: 16, v: 23, fragments: ['so Saul was refreshed, and was well'] },
+  { ref: 'Isaiah 26:3', book: 'Isaiah', ch: 26, v: 3, fragments: ['Thou wilt keep him in perfect peace, whose mind is stayed on thee'] },
+  { ref: '1 John 4:1', book: '1John', ch: 4, v: 1, fragments: ['try the spirits whether they are of God'] },
+  { ref: 'James 3:1', book: 'James', ch: 3, v: 1, fragments: ['be not many masters, knowing that we shall receive the greater condemnation'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['God shall bring every work into judgment, with every secret thing'] },
+  { ref: 'Acts 17:11', book: 'Acts', ch: 17, v: 11, fragments: ['searched the scriptures daily, whether those things were so'] },
+  { ref: 'Galatians 6:1', book: 'Galatians', ch: 6, v: 1, fragments: ['restore such an one in the spirit of meekness'] },
+];
+
+describe('Issue 10 — Victorious Emotions: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-victorious-emotions');
+
+  it('the issue is published in the track', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is an exact substring of the cited KJV verse', () => {
+    const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const failures = [];
+    for (const q of VICTORIOUS_EMOTIONS_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = JSON.stringify(issue);
+    const norm = (s) => s.replace(/[’‘]/g, "'");
+    const missing = VICTORIOUS_EMOTIONS_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !norm(blob).includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a single word altered must fail. Without this, the block
+  // above proves only that the list agrees with itself.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const real = kjvVerse('Genesis', 3, 5);
+    const tampered = 'ye shall be as angels, knowing good and evil';
+    expect(norm(real).includes(norm(tampered))).toBe(false);
+    expect(norm(real).includes(norm('ye shall be as gods, knowing good and evil'))).toBe(true);
+  });
+
+  // The pastoral load-bearing pin: Paul's own sick companions are the Word's
+  // answer to spirit-sustains-body, so they must be present, not paraphrased.
+  it('keeps the apostolic counter-witness the body claim rests on', () => {
+    const blob = JSON.stringify(issue);
+    expect(blob).toContain('Trophimus have I left at Miletum sick');
+    expect(blob).toContain('My grace is sufficient for thee');
+    expect(blob).toContain('though our outward man perish');
+    expect(blob).toContain('was sick nigh unto death');
+  });
+
+  // The grace note is a GATE requirement (DR-0288), not decoration.
+  it('carries a grace note that condemns no one', () => {
+    expect(issue.lens.graceNote).toBeTruthy();
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+  });
+});

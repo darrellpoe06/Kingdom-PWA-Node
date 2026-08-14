@@ -2260,7 +2260,180 @@ const LAW_OF_ASSUMPTION_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE];
+// =============================================================================
+// ISSUE 10 — "Victorious Emotions": identity, emotions-as-indicators, frequencies, angels
+// =============================================================================
+// Darrell handed in a video summary 2026-08-14, then a second pass focused on
+// the emotions material. Weighed on the DR-0288 pattern: three tiers (DR-0100),
+// the Word answers the claim about God (DR-0098), the reasoning across verses is
+// as accountable as the quotation (DR-0281), and a GRACE NOTE condemning no one.
+//
+// This is the SAME CLASS as issue 9, recurring with a different vocabulary: a
+// true thing used as the doorway for an untrue one. Issue 9's doorway was the
+// RAS; this one's doorway is a genuinely strong pastoral insight — that emotions
+// expose what you actually believe. The thing carried through the doorway is the
+// same in both: the creature quietly promoted toward the Creator's place.
+//
+// EVERY Scripture fragment below is VERBATIM from the repo's own KJV
+// (app/public/bible/kjv), fetched not recalled (DR-0076), and pinned in
+// world-issues-verse-integrity.test.js. "God"/"the LORD" inside a quotation are
+// reproduced exactly and NEVER overwritten with "Yahweh" (DR-0076 bright line).
+const VICTORIOUS_EMOTIONS_ISSUE = {
+  id: 'wi-victorious-emotions',
+  title: '“Emotions Reveal What You Believe”: Identity, Frequencies, Angels, and Where a True Insight Stops Being True',
+  subject: {
+    name: 'Teaching on identity as a new creation, emotions as belief-indicators, spiritual “frequencies,” and interaction with angels, as presented by Wendy Backlund in a long-form interview',
+    kind: 'spiritual teaching / Christian-living claim',
+    isNamedRealPerson: true,
+  },
+  skill: 'Sort a teaching that is MOSTLY right. This is harder than sorting one that is mostly wrong, because the true parts earn trust that the untrue parts then spend. Learn to keep a genuine pastoral insight, name an imported vocabulary doing work it cannot do, and let the Word answer the one claim that touches who God is — without throwing away the teacher or the believer who has been helped.',
+  source: {
+    creator: 'Wendy Backlund (author, Igniting Faith / Victorious Emotions), interviewed by Taylor Welch',
+    medium: 'long-form video interview (summary handed in)',
+    title: 'Interview on identity, emotions, and the unseen realm',
+    url: '',
+    asOf: '2026-08-14',
+    note: 'Handed in by Darrell 2026-08-14 as a summary, in two passes. We weigh the TEACHING. We condemn no teacher, and no believer who has prayed this way and found comfort in it.',
+  },
+  claims: [
+    { id: 'c-apathy-identity', text: 'Many believers live in apathy because they were never taught to live as resurrected beings — they see themselves as "only human" rather than as new creations.', label: 'claim', attribution: 'Wendy Backlund', note: 'The diagnosis is substantially scriptural and is the strongest thing in the teaching. Kept below.' },
+    { id: 'c-emotions-reveal', text: 'Your emotions are a direct reflection of what you truly believe about God’s nature and your identity in Him; being constantly bothered by things God is not bothered by reveals a disconnect.', label: 'claim', attribution: 'Wendy Backlund', note: 'A real pastoral insight with real Scripture behind it — and it needs one guardrail the teaching does not supply. Both handled below.' },
+    { id: 'c-fix-belief-not-behavior', text: 'We try to fix behaviour and emotions without addressing the underlying belief; change the belief and the response changes.', label: 'claim', attribution: 'Wendy Backlund', note: 'Directly parallel to Romans 12:2. Kept.' },
+    { id: 'c-godlike', text: 'Because the living God dwells within us, we are capable of "godlike" power.', label: 'claim', attribution: 'Wendy Backlund (as summarized)', note: 'This is the sentence the Word answers. The indwelling is true; the conclusion drawn from it is the oldest inversion in Scripture.' },
+    { id: 'c-frequency', text: 'Life can be understood in terms of frequencies and wavelengths; bitterness or fear shifts your spiritual frequency, and shifting focus to God’s nature changes your internal state "and, consequently, your external reality."', label: 'claim', attribution: 'Wendy Backlund', note: 'Two different claims wearing one sentence. The inner half is close to Scripture; the "consequently, your external reality" half is not, and "frequency" is not a biblical category.' },
+    { id: 'c-transactional-prayer', text: 'Many pray from neediness or as a "transaction" because they believe God is distant; emotions reveal whether you operate from separation or from oneness with Christ.', label: 'claim', attribution: 'Wendy Backlund', note: 'Half of this is a genuine and needed corrective. The other half collides with what Scripture actually invites.' },
+    { id: 'c-angels', text: 'Believers should interact with angels as messengers and part of God’s government, and should not bypass this "spiritual army" out of fear.', label: 'claim', attribution: 'Wendy Backlund', note: 'Angels are real and serve. Seeking interaction with them is the specific thing Colossians warns about by name.' },
+    { id: 'c-spirit-over-body', text: 'People let the body dictate how the spirit functions (too sick or tired to engage); by building identity as a spirit-being, the divine health of the spirit can gain preeminence and sustain the body instead of the reverse. Thoughts and expectations act "like a placebo or faith" and affect physical reality.', label: 'claim', attribution: 'Wendy Backlund', note: 'The most consequential claim in the teaching, and the one with a known casualty list. Answered below by what happened to Paul and to the people he loved.' },
+    { id: 'c-practices', text: 'Practices: quiet the natural mind; rehearse past encounters with God rather than failures; train the brain to ask your spirit questions ("Where are the angels?", "What does it feel like to be light?"), treating the mind as a student of the spirit; use worship to get the mind out of its natural habitat; choose to "become" peace or light and emanate a frequency that changes the atmosphere.', label: 'claim', attribution: 'Wendy Backlund', note: 'A mixed bag that must be sorted item by item — two of these are straight out of the Psalms, and two are the named error.' },
+    { id: 'c-become-light', text: 'God told her to stop using words when praying for others and instead learn to "become light" to chase away darkness.', label: 'claim', attribution: 'Wendy Backlund (a personal experience she recounts)', note: 'Labeled as her personal experience, not as doctrine she derives from a text — which is exactly why the Word, not our opinion, has to answer it.' },
+  ],
+  verifiable: [
+    {
+      id: 'f-new-creature',
+      statement: 'The identity claim is straightforwardly biblical. "Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new" (2 Corinthians 5:17, KJV). "Christ in you, the hope of glory" (Colossians 1:27). "What? know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own?" (1 Corinthians 6:19). "Beloved, now are we the sons of God" (1 John 3:2).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'A believer who lives as "only human" IS living below what Scripture says is true of them. That part of the teaching is not hype; it is the text.',
+    },
+    {
+      id: 'f-belief-drives-behaviour',
+      statement: 'Scripture puts the lever exactly where the teaching puts it — on the mind and the heart, not on behaviour management. "And be not conformed to this world: but be ye transformed by the renewing of your mind" (Romans 12:2, KJV). "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23). "for of the abundance of the heart his mouth speaketh" (Luke 6:45).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'Emotions as a readout of underlying belief is a fair reading of these. This is the teaching at its best.',
+    },
+    {
+      id: 'f-heart-not-infallible',
+      statement: 'The guardrail the teaching does not supply: the heart is not a reliable instrument for reading itself. "The heart is deceitful above all things, and desperately wicked: who can know it?" (Jeremiah 17:9, KJV). And Scripture models speaking TO the feeling rather than treating it as a verdict: "Why art thou cast down, O my soul? and why art thou disquieted within me? hope thou in God" (Psalm 42:11).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'This matters pastorally. "Your emotions reveal your beliefs about God" becomes cruel if a grieving or depressed or chemically-ill believer reads their feelings as a spiritual audit. Psalm 42 has the man addressing his soul, not diagnosing his doctrine.',
+    },
+    {
+      id: 'f-angels-serve',
+      statement: 'Angels are real and they serve: "Are they not all ministering spirits, sent forth to minister for them who shall be heirs of salvation?" (Hebrews 1:14, KJV). AND Scripture names the specific error of seeking them: "Let no man beguile you of your reward in a voluntary humility and worshipping of angels, intruding into those things which he hath not seen, vainly puffed up by his fleshly mind" (Colossians 2:18). When John tried it, the angel refused: "See thou do it not: for I am thy fellowservant... worship God" (Revelation 22:9).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'Both halves are the text. Angels exist and serve; seeking to interact with them is the named error, and "intruding into those things which he hath not seen" is a precise description of the practice.',
+    },
+    {
+      id: 'f-apostles-stayed-sick',
+      statement: 'The New Testament records apostolic-era believers who stayed sick, and an apostle who could not fix it. Paul asked three times and was refused: "My grace is sufficient for thee: for my strength is made perfect in weakness" (2 Corinthians 12:9, KJV). He prescribed MEDICINE, not a faith adjustment: "use a little wine for thy stomach’s sake and thine often infirmities" (1 Timothy 5:23). He left a companion behind: "Trophimus have I left at Miletum sick" (2 Timothy 4:20). And Epaphroditus "was sick nigh unto death: but God had mercy on him; and not on him only, but on me also, lest I should have sorrow upon sorrow" (Philippians 2:27) — Paul plainly says he would have grieved.',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'If a mature spirit-identity made the spirit’s health preeminent over the body, Paul is the counter-example the Word itself supplies — and he calls his own weakness the place the power rests, not the thing to be trained away.',
+    },
+    {
+      id: 'f-still-dying',
+      statement: 'Scripture states the boundary directly: "dust thou art, and unto dust shalt thou return" (Genesis 3:19, KJV); "it is appointed unto men once to die" (Hebrews 9:27); "though our outward man perish, yet the inward man is renewed day by day" (2 Corinthians 4:16); "if our earthly house of this tabernacle were dissolved, we have a building of God" (2 Corinthians 5:1).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'The Word gives the inward man ascendancy while the outward man PERISHES — the opposite direction from spirit-sustains-body. The hope is a new house, not a maintained one. This is DR-0288’s recorded frame: care of a tent, not a cure for mortality.',
+    },
+    {
+      id: 'f-placebo-real-bounded',
+      statement: 'The placebo effect is real and documented — and bounded. It reliably moves SUBJECTIVE and self-reported outcomes (pain, nausea, fatigue) and some symptom measures; it does not shrink tumours, clear infections, or reverse organic disease. "Expectation affects how you feel" is established; "expectation reorganizes your physiology" is not.',
+      status: 'documented',
+      sources: [
+        { title: 'Placebos without Deception: A Randomized Controlled Trial in Irritable Bowel Syndrome', publisher: 'PLoS ONE (Kaptchuk et al.)', url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0015591', asOf: '2026-08-14' },
+        { title: 'Placebo effects in medicine', publisher: 'New England Journal of Medicine (Kaptchuk & Miller, 2015)', url: 'https://www.nejm.org/doi/full/10.1056/NEJMp1504023', asOf: '2026-08-14' },
+      ],
+      note: 'The teaching invokes placebo as proof that expectation shapes physical reality. Placebo is exactly the wrong witness for that: its documented power is over the EXPERIENCE of symptoms, which is precisely the line the claim needs to cross and cannot.',
+    },
+    {
+      id: 'f-remembering-and-worship-are-commanded',
+      statement: 'Two of the practices are straight out of the text. Rehearsing God’s past acts: "I will remember the works of the LORD: surely I will remember thy wonders of old" (Psalm 77:11, KJV). Worship shifting an inner state: "David took an harp, and played with his hand: so Saul was refreshed, and was well" (1 Samuel 16:23). And the fixed-focus promise: "Thou wilt keep him in perfect peace, whose mind is stayed on thee" (Isaiah 26:3).',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'These need no defending and no new vocabulary. They are commanded, and they are the best material in the teaching.',
+    },
+    {
+      id: 'f-frequency-not-biblical',
+      statement: '"Frequency" and "wavelength" as descriptions of a spiritual state are not biblical categories and not physics claims either — they are New Thought vocabulary. Scripture describes the inner life in terms of heart, mind, spirit, conscience and will, and it never teaches that an internal state alters external reality.',
+      status: 'documented',
+      sources: [{ title: 'KJV, hosted in-app (public domain)', publisher: 'app/public/bible/kjv', url: '', asOf: '2026-08-14' }],
+      note: 'The inner half of the claim ("bitterness shifts something in you") is near Proverbs 4:23 and can be kept in plain words. The outer half ("and consequently your external reality") is the import, and it is the same engine as issue 9.',
+    },
+  ],
+  interpretation: [
+    { id: 'n-true-doorway-again', statement: 'Same move as issue 9, different doorway. There the doorway was the reticular activating system; here it is a genuinely good pastoral insight — that emotions expose what you actually believe. The doorway is sound. What gets carried through it is identical in both: the creature quietly promoted toward the Creator’s place. Keep the doorway; refuse the cargo.', restsOn: ['f-belief-drives-behaviour', 'f-new-creature'] },
+    { id: 'n-indwelt-not-deified', statement: 'The distinction the whole issue turns on: INDWELT is not DEIFIED. "Christ in you" (Colossians 1:27) is the glory; "ye shall be as gods" (Genesis 3:5) is the lie that lost the garden, and "I will be like the most High" (Isaiah 14:14) is the sentence that lost heaven. Any teaching that moves from His presence in you to your godlike power has crossed from the first to the second, however warmly it is said.', restsOn: ['f-new-creature'] },
+    { id: 'n-emotions-need-a-guardrail', statement: 'Emotions-as-indicator is true and incomplete. Held without Jeremiah 17:9, it hands a deceitful instrument the job of auditing your faith — and the believer most likely to run that audit is the one already exhausted. Psalm 42 shows the alternative: speak TO the soul ("hope thou in God"), do not take dictation from it.', restsOn: ['f-heart-not-infallible', 'f-belief-drives-behaviour'] },
+    { id: 'n-prayer-inverted', statement: 'The corrective is half right and lands backwards. Praying to a God you think is distant IS a real problem, and "oneness with Christ" is real — "I am the vine, ye are the branches" (John 15:5). But asking is not the symptom of separation; it is the invitation. "in every thing by prayer and supplication with thanksgiving let your requests be made known unto God" (Philippians 4:6). "Let us therefore come boldly unto the throne of grace... in time of need" (Hebrews 4:16) — need is the stated occasion, not the disqualifier. "pour out your heart before him" (Psalm 62:8). A teaching that makes a believer ashamed of asking has removed the very thing Scripture commands. This is the same conclusion issue 9 reached about "stop praying for it," arrived at from a different direction.', restsOn: ['f-belief-drives-behaviour'] },
+    { id: 'n-body-claim-has-casualties', statement: 'Spirit-sustains-body is where a mostly-right teaching becomes dangerous, and the Word supplies the refutation rather than our opinion: Paul asked three times and was told no (2 Corinthians 12:9), prescribed wine for a stomach (1 Timothy 5:23), left Trophimus sick (2 Timothy 4:20), and nearly lost Epaphroditus (Philippians 2:27). The direction Scripture actually gives is the reverse of the claim — the inward man is renewed WHILE the outward man perishes (2 Corinthians 4:16), until the tent is exchanged for a building (2 Corinthians 5:1). DR-0288 already recorded this as house doctrine: a body that does everything right and still suffers is not a body that failed to believe correctly.', restsOn: ['f-apostles-stayed-sick', 'f-still-dying'] },
+    { id: 'n-placebo-wrong-witness', statement: 'Placebo is cited as proof and is the wrong witness. Its documented reach is over the EXPERIENCE of symptoms — pain, fatigue, nausea — not over organic disease. So it establishes exactly the modest claim ("what you expect changes how you feel") and none of the large one ("your internal state impacts your physical reality"). Borrowing its credibility to cross that line is the doorway move again, now wearing a lab coat.', restsOn: ['f-placebo-real-bounded'] },
+    { id: 'n-practices-sorted', statement: 'Sort the practices rather than accepting or rejecting the set. KEEP: rehearsing God’s past works (Psalm 77:11 commands it), and worship to shift focus (1 Samuel 16:23; Isaiah 26:3) — both are text, both need no new vocabulary. REFUSE: "ask your spirit questions" — Scripture sends us to His Word and His Spirit, not to our own spirit as an oracle, and the heart that would answer is the one Jeremiah 17:9 calls deceitful; "try the spirits whether they are of God" (1 John 4:1) assumes an external standard, which is the Word. REFUSE: "Where are the angels?" — that is Colossians 2:18 almost verbatim, "intruding into those things which he hath not seen." The good half is commanded; the refused half is named.', restsOn: ['f-remembering-and-worship-are-commanded', 'f-angels-serve', 'f-heart-not-infallible'] },
+    { id: 'n-words-are-the-weapon', statement: 'On "become light instead of using words": believers ARE light — "Ye are the light of the world" (Matthew 5:14) — but derivatively. Jesus said "I am the light of the world" (John 8:12). And the weapon named in the armour is not a state of being: "the sword of the Spirit, which is the word of God" (Ephesians 6:17). A practice that retires words in favour of a technique moves away from the one offensive weapon Scripture gives, and it is offered here on the authority of a private experience rather than a text.', restsOn: ['f-new-creature'] },
+  ],
+  perspectives: [
+    { id: 'p-teacher', label: 'The teaching’s view (steelmanned)', heldBy: 'Wendy Backlund and identity-focused Christian teachers', steelman: 'At its strongest, and it is genuinely strong: the church has produced a great many believers who affirm the doctrine of the new birth and live as though nothing happened — defeated, passive, managing sin rather than walking in life. Telling those believers what Scripture actually says is true of them is not hype; it is pastoral rescue. And the observation that we attack behaviour while leaving the underlying belief untouched explains a great deal of failed Christian self-improvement. Many people have come out of real apathy through exactly this teaching, and they are not fools for it.' },
+    { id: 'p-word-first', label: 'The Word-first view', heldBy: 'this platform’s own frame', steelman: 'At its strongest: everything true in the teaching is already in the text and does not need the extra vocabulary — new creature, Christ in you, temple, renewed mind, the heart as the wellspring. Since the true part is fully supplied by Scripture, the imported parts are carrying no load the Word was not already carrying, and they bring risk the Word does not. Keep the text; drop the import; nothing is lost.' },
+    { id: 'p-pastoral-concern', label: 'The pastoral-concern view', heldBy: 'pastors and counsellors who see the aftermath', steelman: 'At its strongest: the person harmed by this is rarely the confident one. It is the widow whose grief gets read as a frequency problem, the believer on medication told their emotions reveal a doctrinal disconnect, the parent who stopped asking God for a sick child because asking felt like unbelief. A teaching should be weighed by what it does to the weakest person who receives it, and this one has a known failure mode there.' },
+    { id: 'p-charitable-reading', label: 'The charitable reading', heldBy: 'those who know her work well', steelman: 'At its strongest: a summary is not the teaching. "Godlike" may be shorthand for delegated authority, not deity; "frequency" may be metaphor, not metaphysics; "become light" is recounted as a personal experience, not issued as a rule for others. It is entirely possible the fuller work carries guardrails a summary cannot show. Weighing a summary as though it were the whole is its own error — which is why what is weighed here is the CLAIM as stated, and the claim as stated is what a listener actually receives.' },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST, on the one claim that touches who God is. Scripture states the indwelling as high as anyone could want it: "Christ in you, the hope of glory" (Colossians 1:27, KJV), "your body is the temple of the Holy Ghost which is in you" (1 Corinthians 6:19), "now are we the sons of God" (1 John 3:2). Nothing in the teaching’s identity claim needs to exceed that — and the moment it does, it lands on words Scripture has already assigned: "ye shall be as gods, knowing good and evil" (Genesis 3:5) and "I will be like the most High" (Isaiah 14:14). Those are the two occasions in the Word where a creature reaches for the Creator’s place, and both are catastrophes. The believer is a temple, not a deity; a branch, not the vine — "without me ye can do nothing" (John 15:5). That last clause is the whole answer to "godlike power," and it is Jesus’ own sentence.',
+    },
+    threeD: {
+      practical: 'Three sorting questions for any teaching that feels mostly right. (1) Is the true part already fully supplied by the text? If yes, the extra vocabulary is carrying no weight and can go. (2) Does this teaching make asking God harder or easier? Philippians 4:6 and Hebrews 4:16 make asking the invitation; a teaching that shames the request has inverted something. (3) What does it do to the weakest person who hears it — the grieving, the ill, the exhausted? A frame that reads their feelings as a spiritual audit will wound exactly the people it meant to lift.',
+    },
+    accountability: {
+      statement: 'THE TWO COURTS, applied to TEACHING — which is a different case from a documented wrong, and must not be dressed up as one. No court is weighing Wendy Backlund, and neither are we. What Scripture does say is that teaching carries added weight: "My brethren, be not many masters, knowing that we shall receive the greater condemnation" (James 3:1). Every word taught about God enters the record that holds everything — "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil" (Ecclesiastes 12:14) — and that record holds the courage and the comfort this teaching has genuinely given people just as surely as it holds where it overreached. WHAT A TEACHER OWES when a claim is shown to exceed the text: correction rather than defence, in the ordinary way any of us must. WHAT WE OWE, and this is the heavier half for a platform that weighs teachings: the Berean standard — "they received the word with all readiness of mind, and searched the scriptures daily, whether those things were so" (Acts 17:11) — readiness of mind FIRST, then the searching; not suspicion dressed as discernment. And restoration, not display: "Brethren, if a man be overtaken in a fault, ye which are spiritual, restore such an one in the spirit of meekness; considering thyself, lest thou also be tempted" (Galatians 6:1). Considering thyself is aimed at the one holding the scales. We are accountable for weighing a summary as though it were the whole work, for enjoying the finding, and for any believer discouraged by how we said it. If this issue leaves a reader more suspicious of teachers rather than more grounded in the Word, it has failed, and the failure is ours.',
+      scripture: 'James 3:1; Ecclesiastes 12:14; Acts 17:11; Galatians 6:1',
+    },
+    benefits: [
+      'Both courts, honestly held — and here they fall mostly on US, not on a teacher. Man\u2019s court never convenes over a teaching: no jury weighs a sermon, and a claim that wounds a sick believer leaves no docket entry. The ETERNAL court misses none of it (Ecclesiastes 12:14; Hebrews 9:27) \u2014 and it holds the comfort and courage this teaching has genuinely given people just as surely as where it overreached. That cuts toward humility in the weigher: teaching carries the greater condemnation (James 3:1), and so does weighing it badly.',
+      'The hardest sorting skill there is: keeping a teaching that is MOSTLY right. Rejecting obvious error is easy; separating a true insight from the import riding behind it is the work.',
+      'Protection for the weakest hearer \u2014 the grieving, the chronically ill, the believer on medication \u2014 from a frame that turns their body or their feelings into evidence against their faith.',
+      'A settled confidence about identity that needs no inflation: new creature, Christ in you, a temple, a son. As high as it goes, and already in the text.',
+      'Freedom to ASK. Philippians 4:6 and Hebrews 4:16 make need the occasion, not the disqualifier \u2014 recovering that is worth the whole lesson for anyone who quietly stopped asking.',
+      'Two practices you can keep and start today, both commanded: rehearse what He has actually done (Psalm 77:11) and worship to shift your focus (1 Samuel 16:23; Isaiah 26:3).',
+    ],
+    stewardship: 'The stewardship here is of TRUST rather than money. A believer has limited attention and one life, and a teaching that is mostly right will spend the trust its true parts earn. Steward it by keeping what the text already supplies — new creature, Christ in you, temple, renewed mind, remembering His works, worship — and by refusing to pay for the extras with credibility the Word earned. Steward it also for the weakest hearer: the sick believer, the grieving one, the one on medication. Any frame that turns their body or their feelings into evidence against their faith is a debt charged to someone who cannot afford it.',
+    graceNote: 'No condemnation is offered here — not of Wendy Backlund, not of Steve Backlund, not of anyone who has read Victorious Emotions and found real courage in it. The observation that many believers live far below what Scripture says is true of them is correct, and saying so is a service. Forty-eight years of marriage and a ministry built on encouragement are not nothing. What is weighed here is a set of CLAIMS as they were stated, not a person and not a heart — and the errors named are of the ordinary kind that any of us make when a real insight is stretched past the text that grounds it. "Judge not, that ye be not judged" governs the weigher as much as the weighed. If you have prayed the way this teaching describes, you were not being foolish; you were reaching for God, and He is not offended by the reach.',
+  },
+  reflection: {
+    skill: 'When a teaching is MOSTLY right, the true parts buy trust that the untrue parts then spend. Sort it deliberately: (1) name what is straight from the text and keep it; (2) name the borrowed vocabulary and ask what work it is doing that the text was not already doing — if none, drop it; (3) find the single claim about GOD or about YOU-in-relation-to-God, and put it beside the verses that already speak to it, whole sentences, one up and one down.',
+    practice: 'Take the sentence "we are capable of godlike power" and set it beside three verses read aloud in full: Colossians 1:27, Genesis 3:5, John 15:5. Then answer in one sentence what the difference is between INDWELT and DEIFIED. Second: think of one thing you have stopped asking God for because asking felt like unbelief — and ask Him for it today, out loud, per Philippians 4:6.',
+  },
+  levels: {
+    child: 'Some teachers say that because God lives inside people who love Him, those people become almost like little gods with special powers. Here is what IS true, and it is amazing: if you belong to Jesus, God really does live in you, the Bible calls you His child, and it even calls your body a temple — a place where God stays. That is huge and it is real! But here is the part they got mixed up: you are the house, not the One who lives in it. Jesus said, "I am the vine, ye are the branches" — a branch grows fruit because it stays connected to the tree, not because the branch is the tree. And you never have to earn the right to ask God for things. The Bible says to tell God what you need and say thank You. Asking is not being greedy or weak. Asking is what children do with a good Father, and that is exactly what you are.',
+    teen: 'This teaching gets a lot right and one big thing wrong, which makes it a great one to practise on. Right: your feelings usually show what you actually believe, not what you say you believe — and trying to fix behaviour without touching the belief underneath mostly fails. That is close to Romans 12:2. Wrong: "godlike power." God living in you is the highest thing the Bible says about you — and the Bible also gives the exact words for a creature reaching past that: "ye shall be as gods" (the garden) and "I will be like the most High" (Isaiah 14). One more thing worth catching: your feelings are evidence, not a verdict. Jeremiah says the heart is deceitful, and in Psalm 42 the writer TALKS TO his own sadness instead of obeying it. If you are grieving or depressed, that is not a report card on your faith.',
+    adult: 'Weigh this one on the strength of its best parts, because they are strong: the diagnosis of practical apathy among believers who affirm the new birth and live defeated is accurate, and the insistence that belief sits underneath emotion is Romans 12:2 and Proverbs 4:23. Keep that. Then hold three things beside it. First, INDWELT is not DEIFIED — Colossians 1:27 is as high as it goes, and past it lie Genesis 3:5 and Isaiah 14:14. Second, emotions-as-indicator needs Jeremiah 17:9 or it becomes an audit run by a deceitful instrument on the most exhausted believer in the room; Psalm 42 speaks TO the soul rather than taking dictation from it. Third, the prayer correction lands backwards: Philippians 4:6 and Hebrews 4:16 make need the stated occasion for asking, not evidence of separation. The "frequency" vocabulary adds nothing the Word was not already carrying, and it is the same engine as the Law-of-Assumption issue — a true thing used as the doorway for an untrue one.',
+  },
+  quiz: {
+    questions: [
+      { q: 'What does Scripture actually say is true of a believer’s identity?', options: ['They become a god with godlike power', 'Christ dwells in them — "Christ in you, the hope of glory" — and their body is a temple', 'Nothing changes; "only human" is the whole story'], answer: 1, explain: 'Colossians 1:27 and 1 Corinthians 6:19 put it as high as it goes: indwelt, a temple, a son. The teaching is right that many live below this. "Godlike power" is the step past it, and Genesis 3:5 and Isaiah 14:14 are where that step is already recorded.' },
+      { q: 'The teaching says emotions reveal what you believe about God. What guardrail does the Word add?', options: ['None — feelings are a reliable audit of faith', 'Jeremiah 17:9: the heart is deceitful; and Psalm 42 speaks TO the soul rather than obeying it', 'Emotions are irrelevant to belief'], answer: 1, explain: 'The insight is real — Proverbs 4:23 and Luke 6:45 put the wellspring in the heart. But without Jeremiah 17:9 it hands a deceitful instrument the job of grading your faith, which wounds the grieving and the ill first.' },
+      { q: 'Is praying "from need" a sign of believing God is distant?', options: ['Yes — mature believers stop asking and live from the answer', 'No — need is the stated occasion: come boldly "in time of need," and "in every thing by prayer and supplication... let your requests be made known unto God"', 'Prayer does not matter either way'], answer: 1, explain: 'Hebrews 4:16 names need as the occasion; Philippians 4:6 says "in every thing." A teaching that makes a believer ashamed of asking has removed what Scripture commands — the same inversion Issue 9 reached from a different direction.' },
+      { q: 'Angels: what do both halves of the text say?', options: ['Seek them out; they are an untapped army', 'They are "ministering spirits, sent forth to minister" AND Colossians 2:18 warns against "worshipping of angels, intruding into those things which he hath not seen"', 'Angels are symbolic'], answer: 1, explain: 'Hebrews 1:14 and Colossians 2:18 are both the text. And when John tried it, the angel said "See thou do it not... worship God" (Revelation 22:9).' },
+      { q: 'What is the transferable skill from this issue?', options: ['Reject any teacher who gets one thing wrong', 'When a teaching is mostly right, sort it: keep what is straight from the text, drop vocabulary carrying no load, and put the claim about God beside whole verses', 'Accept teachings that feel encouraging'], answer: 1, explain: 'The true parts buy trust that the untrue parts then spend. Sorting is the skill — and it is done without condemning the teacher or the believer who was helped.' },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
