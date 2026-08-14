@@ -21,15 +21,31 @@ echo "== ytzero install: data dir =="
 mkdir -p "$DATA"
 
 echo "== ytzero install: locate docker =="
+# FINDING THE BINARY IS NOT THE SAME AS BEING ALLOWED TO RUN IT (2026-08-14).
+# This loop used `command -v` only, which succeeds whenever the binary is on
+# PATH -- and nas-health run 31820238770 measured, on this exact box:
+#     docker: DENIED unprivileged
+#     docker: OK via sudo -n
+# So a `command -v docker` hit could still be a permission error one line later,
+# and `set -e` turns that into an exit 1 the cycle records as "ytzero failed"
+# with no reason attached. Probe for a docker that ACTUALLY RUNS, and fall back
+# to `sudo -n` exactly as nas-health and the scribe installer already do.
 DOCKER=""
 for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
-  if command -v "$CAND" >/dev/null 2>&1; then
-    DOCKER="$(command -v "$CAND")"
+  command -v "$CAND" >/dev/null 2>&1 || continue
+  RESOLVED="$(command -v "$CAND")"
+  if "$RESOLVED" ps >/dev/null 2>&1; then
+    DOCKER="$RESOLVED"
+    break
+  fi
+  if sudo -n "$RESOLVED" ps >/dev/null 2>&1; then
+    DOCKER="sudo -n $RESOLVED"
+    echo "  docker denied unprivileged; using sudo -n"
     break
   fi
 done
 if [ -z "$DOCKER" ]; then
-  echo "ytzero install: docker not found -- is Container Manager installed?" >&2
+  echo "ytzero install: no docker that this user can actually run (binary may exist but the socket is denied, and sudo -n did not help)" >&2
   exit 1
 fi
 
@@ -49,7 +65,15 @@ echo "== ytzero install: compose up (pinned image; no-op when current) =="
 # First-ever run pulls the image and can outlast the services-sync 480s
 # ceiling; that run fails LOUDLY and the next cycle resumes the pull and
 # finishes -- self-healing by design, never silent.
-$COMPOSE -f "$SRC/docker-compose.yml" -p ytzero up -d
+# Do not let `set -e` swallow the reason. Six consecutive cycle failures
+# (2026-08-04 .. 2026-08-11) recorded only the service name; the compose error
+# itself was never kept anywhere. Capture it and print it before exiting.
+if ! COMPOSE_OUT="$($COMPOSE -f "$SRC/docker-compose.yml" -p ytzero up -d 2>&1)"; then
+  echo "ytzero install: compose up FAILED -- the reason follows" >&2
+  echo "$COMPOSE_OUT" >&2
+  exit 1
+fi
+echo "$COMPOSE_OUT"
 
 echo "== ytzero install: health =="
 TRIES=0

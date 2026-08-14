@@ -42,11 +42,38 @@ for svc in doc.get("services", []):
         failed.append(svc.get("name"))
         continue
     print(f"services-sync: installing {svc.get('name')} ...")
-    r = subprocess.run(["sh", path], timeout=480)
+    # CAPTURE THE REASON, NOT JUST THE VERDICT (2026-08-14). Measured: every
+    # recorded services-sync run since 2026-08-04 failed, and the loop event
+    # log preserved only "installing ytzero ..." -- the last line of STDOUT --
+    # while the actual error went to a stderr no one kept. Six identical
+    # failures over a week and the cause was never once recorded, so diagnosing
+    # it meant guessing. A failure that does not say WHY is barely better than
+    # a silent one (DR-0076).
+    try:
+        r = subprocess.run(["sh", path], timeout=480,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = (r.stdout or b"").decode("utf-8", "replace")
+    except subprocess.TimeoutExpired as e:
+        partial = getattr(e, "output", None) or b""
+        out = partial.decode("utf-8", "replace") if isinstance(partial, bytes) else str(partial)
+        print(out, end="" if out.endswith("\n") else "\n")
+        print(f"services-sync: {svc.get('name')} TIMED OUT after 480s", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (timeout 480s)")
+        continue
+    # Always echo the installer's own output so a GOOD run stays as readable as
+    # it was before this change.
+    print(out, end="" if out.endswith("\n") else "\n")
     if r.returncode != 0:
-        failed.append(svc.get("name"))
+        tail = [ln for ln in out.strip().splitlines() if ln.strip()][-3:]
+        why = " | ".join(tail) if tail else "(no output)"
+        print(f"services-sync: {svc.get('name')} exit={r.returncode} :: {why}", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (exit {r.returncode}: {why[:180]})")
 if failed:
-    print(f"services-sync: FAILED: {', '.join(failed)}", file=sys.stderr)
+    print(f"services-sync: FAILED: {'; '.join(failed)}", file=sys.stderr)
+    # ALSO to stdout: the loop runner records the last stdout line in its event
+    # detail, which is how six failures logged the service name and never the
+    # cause. Now the cause rides the channel that is actually kept.
+    print(f"services-sync: FAILED: {'; '.join(failed)}")
     sys.exit(1)
 print("services-sync: all services synced")
 EOF

@@ -1,0 +1,92 @@
+#!/bin/sh
+# =============================================================================
+# install-clock.sh -- give the loop fleet a clock, idempotently
+# =============================================================================
+# Darrell 2026-08-14: "fix the clock and the ytzero failure."
+#
+# THE MEASUREMENT THAT PRODUCED THIS (nas-health run 31820238770):
+#     root crontab: no nas-loops entry
+#     dpoe crontab: no nas-loops entry
+#     /etc/crontab: no nas-loops entry
+#     events.jsonl last entry: 2026-08-11T21:19:36Z
+#     newest call-count file: calls-services-sync-2026-08-11.txt
+#
+# NOTHING FIRES THE FLEET. The runner header says "Fired by Synology DSM Task
+# Scheduler"; no such entry is visible anywhere on the box. The recorded run
+# times confirm it -- 01:37, 02:03, 13:15, 20:58, 21:17 is not a 15-minute
+# clock, it is occasional hand-firing, and then nothing for three days.
+#
+# The consequence is worse than a stalled drain: services-sync PULLS THE MIRROR
+# before it installs, so with no clock the checkout froze at dffb6546
+# (2026-08-11 21:14) and every merge to main since has deployed nothing to the
+# NAS. Merge = deploy has been false for three days while CI stayed green.
+#
+# WHY CRON AND NOT THE DSM UI: REVIEWS.md already recorded this correction --
+# the DSM registration was documented as UI-only-by-hand while root-crontab-
+# over-SSH worked in one paste. This installer is the channel-driven version of
+# that: no clicks, no human (DR-0108).
+#
+# WHY NOT services.json: that would be circular. services-sync is the thing
+# with no clock; it cannot install its own clock. This runs over the
+# remote-hands channel (.github/workflows/nas-clock.yml).
+#
+# IDEMPOTENT: re-running replaces its own managed block and touches no other
+# crontab line. Safe every time, forever.
+set -e
+
+REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
+RUNNER="$REPO/infra/nas-loops/run.mjs"
+LOGDIR="$REPO/infra/nas-loops/events"
+MARK_BEGIN="# >>> poetech-loops (managed by infra/nas-loops/install-clock.sh) >>>"
+MARK_END="# <<< poetech-loops <<<"
+
+[ -f "$RUNNER" ] || { echo "install-clock: no runner at $RUNNER" >&2; exit 1; }
+mkdir -p "$LOGDIR"
+
+# node is NOT on cron's PATH on DSM. Measured present at /usr/local/bin/node
+# (v20.19.5, nas-health 31820238770) -- resolve it now and write the ABSOLUTE
+# path into the entry, because a cron line that cannot find node fails silently
+# every 15 minutes forever, which is indistinguishable from having no clock.
+NODE="$(command -v node 2>/dev/null || true)"
+[ -n "$NODE" ] || for c in /usr/local/bin/node /opt/bin/node /usr/bin/node; do
+  [ -x "$c" ] && NODE="$c" && break
+done
+[ -n "$NODE" ] || { echo "install-clock: node not found; the runner cannot execute" >&2; exit 1; }
+echo "install-clock: node at $NODE ($("$NODE" -v 2>/dev/null))"
+
+CRON_USER="$(id -un)"
+CUR="$(crontab -l 2>/dev/null || true)"
+# Strip any previously managed block; leave every other line untouched.
+NEW="$(printf '%s\n' "$CUR" | awk -v b="$MARK_BEGIN" -v e="$MARK_END" '
+  $0==b {skip=1; next} $0==e {skip=0; next} !skip {print}')"
+
+BLOCK="$MARK_BEGIN
+# Every 15 minutes: the self-deploy loop (mirror pull + service installers).
+# ARMED-BY-RECORD in the repo is the arm (DR-0247); this is only the clock.
+*/15 * * * * $NODE $RUNNER --loop=services-sync >> $LOGDIR/cron-services-sync.log 2>&1
+# Hourly: the health-check loop.
+7 * * * * $NODE $RUNNER --loop=health-check >> $LOGDIR/cron-health-check.log 2>&1
+$MARK_END"
+
+printf '%s\n%s\n' "$NEW" "$BLOCK" | sed '/^$/N;/^\n$/D' | crontab -
+echo "install-clock: crontab installed for $CRON_USER"
+
+# PROVE IT, do not claim it (DR-0076). A crontab write that did not take is the
+# same silent nothing we are fixing.
+if crontab -l 2>/dev/null | grep -q "run.mjs --loop=services-sync"; then
+  echo "install-clock: VERIFIED -- the entry is present:"
+  crontab -l 2>/dev/null | grep -n "run.mjs" || true
+else
+  echo "install-clock: FAILED -- the entry is not in the crontab after writing it" >&2
+  exit 1
+fi
+
+# Synology keeps its own crond; a crontab write is not live until it reloads.
+# Best-effort and never fatal: the entry is written either way and survives a
+# reboot, so a failed reload costs one cycle, not the fix.
+if command -v synoservicectl >/dev/null 2>&1; then
+  synoservicectl --reload crond >/dev/null 2>&1 && echo "install-clock: crond reloaded (synoservicectl)" || echo "install-clock: crond reload skipped (will pick up on its own schedule/reboot)"
+elif command -v systemctl >/dev/null 2>&1; then
+  systemctl reload crond >/dev/null 2>&1 || systemctl restart crond >/dev/null 2>&1 || true
+fi
+echo "install-clock: done"
