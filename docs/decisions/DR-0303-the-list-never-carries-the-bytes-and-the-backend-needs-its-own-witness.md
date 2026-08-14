@@ -140,13 +140,32 @@ that fetches HTML can never see a locked front door that lives behind the HTML.
 
 ## Honest remainder
 
-- **The backend witness is NOT built here, and that is the largest open item.**
-  The shape is clear — extend `site-health.yml` with an unauthenticated probe of
-  the project's REST/auth endpoint that treats **402/403/5xx as a failing
-  observation** on the same rolling `incident` issue the site probe already
-  files to. It is buildable now and it is the thing that would have cut a
-  20-hour blind window to ~10 minutes. **re-review: 2026-08-15** (next session;
-  carried by the review-watcher).
+- **CLOSED, same session.** The backend witness was written rather than dated:
+  `site-health.yml` step 7 probes `auth/v1/health` with the anon key — the path
+  the app itself walks — files a 402 on the rolling `incident` issue with the
+  violation named, retries once before calling it unreachable, and never reads
+  an unmeasured backend as healthy. Proven against a local server returning
+  402 / 500 / 000 / 200 / 401.
+
+- **A NUMBER IN THIS RECORD WAS WRONG, and the correction belongs here rather
+  than quietly in a later file.** The sentence above originally read that the
+  witness "would have cut a 20-hour blind window to ~10 minutes," on the
+  strength of the cron in `site-health.yml` (`*/10 * * * *`) and its own comment
+  ("every 10 min"). **Measured instead of read, 2026-08-14:** across 28
+  scheduled runs the real gap is **mean 67 minutes, range 38–154**. GitHub
+  throttles scheduled workflows, so the cron is a request, not a guarantee.
+  The honest claim is that the witness cuts a ~20-hour blind window to **about
+  an hour, worst case ~2.5 hours** — still the difference between a family
+  finding an outage and a system finding it, but roughly 6× what was written.
+  Citing our own configuration as if it were a measurement is the exact failure
+  DR-0076 §4 names, committed inside the record that invokes it.
+  - The workflow's own "every 10 min" comment is likewise a claim the schedule
+    does not keep (surface-says-truth applied to a comment). Corrected in the
+    file to state the measured cadence.
+  - Whether ~1 hour is good enough for a total-lockout class is a real open
+    question, and a cheaper answer than fighting the scheduler probably exists
+    (the probe is one HTTP request; a sovereign NAS loop or an external monitor
+    could run it far more often). Not decided here. **re-review: 2026-08-21.**
 - **Storage was examined and cleared as today's driver, but it is the next
   ceiling.** `moore-showcase` is a PUBLIC bucket holding camera-original JPEGs —
   one is **10.6 MB**, and three files are 24 MB of its 28 MB. Nothing measured

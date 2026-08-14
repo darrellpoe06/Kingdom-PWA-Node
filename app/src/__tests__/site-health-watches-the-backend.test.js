@@ -26,6 +26,11 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WF = readFileSync(join(HERE, '../../../.github/workflows/site-health.yml'), 'utf8');
 
+/** Shell code with `#` comments removed — prose must never be measured as code. */
+function codeOnly(text) {
+  return text.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+}
+
 /** Just the backend step, so a match elsewhere in the file cannot stand in. */
 function backendStep() {
   const start = WF.indexOf('# 7. USABLE');
@@ -73,12 +78,17 @@ describe('site-health step 7 — the backend witness', () => {
   });
 
   it('does not re-introduce the 000000 concatenation bug', () => {
-    // `curl -w '%{http_code}'` already prints 000 on a connection failure; an
-    // `|| echo "000"` fallback appends a SECOND 000, and the resulting
-    // "000000" matches neither the retry test nor the `000` case arm.
-    const step = backendStep();
-    expect(step).not.toMatch(/curl[\s\S]*?\|\| echo "000"/);
-    expect(step).toMatch(/\[ -z "\$CODE" \] && CODE="000"/);
+    // `curl -w '%{http_code}'` already prints 000 on a connection failure, so
+    // an `|| echo "000"` fallback appends a SECOND 000; the resulting "000000"
+    // matches neither the retry test nor the `000` case arm.
+    //
+    // `|| CODE=""` is the form that satisfies BOTH this and `bash -e`: it
+    // keeps the assignment list at exit 0 (curl returns 7 when it cannot
+    // connect, which would otherwise kill the step) while leaving exactly one
+    // clean value for the `if` below to normalise.
+    const code = codeOnly(backendStep());
+    expect(code).not.toMatch(/\|\| echo "000"/);
+    expect(code).toMatch(/\) \|\| CODE=""/);
   });
 
   it('never reads an unmeasured backend as healthy', () => {
@@ -91,5 +101,52 @@ describe('site-health step 7 — the backend witness', () => {
   it('surfaces the backend status on the incident record', () => {
     expect(WF).toMatch(/BACKEND_CODE: \$\{\{ steps\.probe\.outputs\.backend_code \}\}/);
     expect(WF).toMatch(/backend auth: HTTP \$\{BACKEND_CODE\}/);
+  });
+});
+
+// LIVE-RUN REGRESSIONS. Both of these were found by DISPATCHING the workflow
+// against the real outage (run 31807695303), not by reading it — the probe
+// detected the 402 and then failed to file it, which is the one thing this
+// workflow exists to do.
+describe('the probe cannot abort itself', () => {
+  it('never ends a helper function on a bare `[ ... ] && assignment`', () => {
+    // This step runs under GitHub's default `bash -e`. A trailing
+    // `[ -z "$CODE" ] && CODE="000"` makes the FUNCTION return 1 when the test
+    // is false, and the caller `sb_fetch "$url"` is a plain command, so `-e`
+    // kills the step before it prints anything.
+    // CODE ONLY. The fix's own comment quotes the bad pattern to explain it,
+    // and the first version of this check matched that comment and failed —
+    // measuring prose as if it were code, for the second time today.
+    const code = codeOnly(backendStep());
+    expect(code).not.toMatch(/\[ -z "\$CODE" \] && CODE="000"/);
+    expect(code).toMatch(/if \[ -z "\$CODE" \]; then CODE="000"; fi/);
+  });
+});
+
+describe('a crash in the probe cannot silence the ledger', () => {
+  it('records an incident even when the probe step itself died', () => {
+    // Without always(), a non-zero exit in the probe skips every later step —
+    // so the outage report is the FIRST casualty of any bug in the prober.
+    expect(WF).toMatch(
+      /Record the incident[\s\S]*?if: \$\{\{ always\(\) && \(steps\.probe\.outputs\.fail_reasons != '' \|\| steps\.probe\.outcome == 'failure'\)/,
+    );
+  });
+
+  it('never CLOSES an incident on a probe that did not complete', () => {
+    // A crashed probe proves nothing; closing on it would erase a real outage
+    // from the ledger (DR-0076 — unknown never reads as healthy).
+    expect(WF).toMatch(
+      /Close a recovered incident[\s\S]*?steps\.probe\.outcome == 'success' && steps\.probe\.outputs\.fail_reasons == ''/,
+    );
+  });
+
+  it('never dispatches the stale-build heal off a crashed probe', () => {
+    expect(WF).toMatch(
+      /Heal a stale build[\s\S]*?if: \$\{\{ steps\.probe\.outcome == 'success' &&/,
+    );
+  });
+
+  it('says so plainly when there is no reason string to report', () => {
+    expect(WF).toMatch(/\$\{REASONS:-probe step crashed before reporting/);
   });
 });

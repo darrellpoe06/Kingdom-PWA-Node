@@ -48,7 +48,19 @@ name: Site health (up + fresh, outside-in)
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # every 10 min (public repo — Actions minutes free)
+    # REQUESTED every 10 min. MEASURED cadence is ~67 min (range 38–154 across
+    # 28 scheduled runs, 2026-08-14): GitHub throttles scheduled workflows, so
+    # this cron is a request, not a guarantee. The comment used to read "every
+    # 10 min" flatly, and DR-0303 then cited that comment as if it were a
+    # measurement — claiming this witness cuts a blind window to ~10 minutes
+    # when the honest figure is about an hour, worst case ~2.5 hours.
+    #
+    # Left at */10 deliberately: asking for more than we get costs nothing and
+    # takes whatever slots are free. What must not happen again is READING THIS
+    # LINE AS THE CADENCE. If a class needs a real sub-10-minute guarantee, it
+    # needs a different runner (a sovereign NAS loop or an external monitor) —
+    # tracked in DR-0303, re-review 2026-08-21.
+    - cron: '*/10 * * * *'
   workflow_dispatch: {}
 
 concurrency:
@@ -191,10 +203,29 @@ jobs:
               # failure, so the fallback concatenated into "000000" — which
               # missed both the retry test and the `000` case arm below. Caught
               # by running this step against a dead port before shipping it.
+              # TWO `bash -e` TRAPS LIVE IN THESE THREE LINES. This step runs
+              # under GitHub's default `bash -e`, and both were proven by
+              # running the block against a dead port, not by reading it:
+              #
+              #   1. `CODE=$(curl ...)` takes CURL'S exit status, and curl
+              #      returns 7 when it cannot connect — so the assignment fails
+              #      and `-e` kills the step. The original `|| echo "000"`
+              #      existed to prevent exactly this; removing it to fix the
+              #      "000000" concatenation reintroduced the abort. `|| CODE=""`
+              #      keeps the list at exit 0 AND leaves one clean value.
+              #   2. A trailing `[ -z "$CODE" ] && CODE="000"` makes the
+              #      FUNCTION return 1 whenever the test is false, and the
+              #      caller `sb_fetch "$url"` is a plain command, so `-e` kills
+              #      the step there instead. An `if` with a false condition
+              #      exits 0.
+              #
+              # Trap 2 was live on run 31807695303: the probe measured the real
+              # 402 and died before printing it, which also skipped the incident
+              # step — the witness saw the outage and could not file it.
               CODE=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' --max-time 20 \
                 -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
-                "$1" 2>/dev/null)
-              [ -z "$CODE" ] && CODE="000"
+                "$1" 2>/dev/null) || CODE=""
+              if [ -z "$CODE" ]; then CODE="000"; fi
             }
             sb_fetch "${SB_URL%/}/auth/v1/health"
             # One retry, so a single dropped connection is not an outage.
@@ -233,11 +264,23 @@ jobs:
           fi
 
       - name: Heal a stale build (one-shot deploy dispatch)
-        if: ${{ steps.probe.outputs.stale == 'true' && steps.probe.outputs.fail_reasons == '' }}
+        if: ${{ steps.probe.outcome == 'success' && steps.probe.outputs.stale == 'true' && steps.probe.outputs.fail_reasons == '' }}
         run: gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main || echo "::warning::could not dispatch deploy"
 
+      # always(): A CRASH IN THE PROBE MUST NEVER SILENCE THE LEDGER.
+      #
+      # Without this, any non-zero exit in the probe step skips every step
+      # after it — so the one job this workflow exists to do (record the
+      # outage) is the first thing lost when something goes wrong. That is
+      # exactly what happened on run 31807695303: a bug in the backend probe
+      # aborted the step, and the incident was never filed even though the
+      # backend was measurably down.
+      #
+      # The condition now fires on a real failure OR on a probe that died
+      # before it could report one — an unexplained crash is itself a failing
+      # observation, not a silent pass (DR-0076: unknown never reads healthy).
       - name: Record the incident (rolling issue, labeled `incident`)
-        if: ${{ steps.probe.outputs.fail_reasons != '' }}
+        if: ${{ always() && (steps.probe.outputs.fail_reasons != '' || steps.probe.outcome == 'failure') }}
         env:
           REASONS: ${{ steps.probe.outputs.fail_reasons }}
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
@@ -248,7 +291,7 @@ jobs:
         run: |
           set -uo pipefail
           title="site-health: poetech.us failing the outside-in probe"
-          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
           if [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"
@@ -272,8 +315,10 @@ jobs:
           fi
           exit 1 # a failing probe is a failing run — visible in the Actions list
 
+      # Only close on a probe that actually RAN and found nothing wrong. A
+      # crashed probe proves nothing and must never close an open incident.
       - name: Close a recovered incident
-        if: ${{ steps.probe.outputs.fail_reasons == '' }}
+        if: ${{ always() && steps.probe.outcome == 'success' && steps.probe.outputs.fail_reasons == '' }}
         run: |
           set -uo pipefail
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
