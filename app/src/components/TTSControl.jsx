@@ -89,7 +89,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const [talking, setTalking] = useState(false);
   const [talkSource, setTalkSource] = useState('');
   const {
-    supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
+    supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
   } = useReadAloud({ isOwner });
@@ -294,6 +294,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // disclosures are conditionally rendered, so a collapsed "About this" panel
     // has no text in the document — it could not be read because it was not
     // there. Reveal, let it paint, THEN map: what is heard is what is shown.
+    // CLAIM THE AUDIO SESSION FIRST — before ANY await (Darrell 2026-08-13:
+    // "I cant listen to a lesson in the background yet", "if the top tab is
+    // moved the reader stops"). `settled()` waits up to ten double-rAF frames,
+    // and a user gesture cannot be re-entered once awaited: claiming after it
+    // is claiming after the browser has already stopped listening.
+    claimAudio();
     const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
     if (main) { revealForReading(main); await settled(main); }
     // Build the follow map from the LIVE page and speak its exact normalized
@@ -336,6 +342,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
     runRef.current = t;
+    // Same reason as the page path: the reveal + settle below spend the tap.
+    // A CONTINUING piece is not a new gesture, but the session is already held
+    // from the first press and start() is idempotent, so this is safe either way.
+    claimAudio(t.label);
     if (!continuing) setRunInfo({ label: t.label });
     let el = null;
     if (typeof document !== 'undefined') {

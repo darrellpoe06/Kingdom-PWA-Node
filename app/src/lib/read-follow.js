@@ -293,8 +293,48 @@ export function stickyTopInset(win = (typeof window !== 'undefined' ? window : n
  * well placed — a sentence that is merely low in the viewport is not moved,
  * because re-centring on every sentence makes the page twitch under the reader.
  */
+/**
+ * The same measurement for the BOTTOM — because the reader's own panel is chrome.
+ *
+ * Darrell 2026-08-13, after the top fix landed: "now blocked by the reader."
+ * The reading pill ("READING… · KEEPS GOING") floats over the bottom of the
+ * screen, and so do GIVE and FEEDBACK. Clearing the banner only to park the
+ * sentence under the reader's own controls is the same defect with the page
+ * turned upside down — and it was introduced by fixing the top half, which is
+ * why it ships with it.
+ *
+ * Bottom-anchored fixed/sticky boxes only, so the header can never be counted
+ * twice, and clamped the same way.
+ */
+export function stickyBottomInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc || typeof doc.elementsFromPoint !== 'function') return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+    let inset = 0;
+    for (const x of [vw * 0.25, vw * 0.5, vw * 0.75]) {
+      for (const el of doc.elementsFromPoint(Math.round(x), Math.round(vh - 2)) || []) {
+        if (!el || !el.getBoundingClientRect) continue;
+        let pos = '';
+        try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
+        if (pos !== 'fixed' && pos !== 'sticky') continue;
+        const r = el.getBoundingClientRect();
+        if (r.bottom >= vh - 2) {
+          const covered = vh - r.top;
+          if (covered > inset) inset = covered;
+        }
+      }
+    }
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
 export function readingScrollDelta({
-  rangeTop = 0, rangeBottom = 0, topInset = 0, viewportHeight = 0, margin = 24,
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24,
 } = {}) {
   const vh = Number(viewportHeight) || 0;
   if (!vh) return 0;
@@ -302,7 +342,7 @@ export function readingScrollDelta({
   const top = Number(rangeTop) || 0;
   const bottom = Number(rangeBottom) || top;
   const restTop = safeTop + margin;          // first line that is genuinely readable
-  const restBottom = vh - margin;
+  const restBottom = vh - (Number(bottomInset) || 0) - margin;
 
   // Hidden behind the chrome, or above the viewport entirely: bring it down to
   // just under the chrome. This is the case Darrell hit.
@@ -372,6 +412,7 @@ export function followRange(range) {
       rangeTop: rect.top,
       rangeBottom: rect.bottom,
       topInset: stickyTopInset(win, doc),
+      bottomInset: stickyBottomInset(win, doc),
       viewportHeight: win.innerHeight || 0,
       margin: readingMargin(textEl, win),
     });
