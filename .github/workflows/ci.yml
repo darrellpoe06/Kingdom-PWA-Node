@@ -186,6 +186,15 @@ jobs:
       # carry scope and this holds it at zero. Captions are tracked debt.
       - name: table a11y guard (screen-reader navigability)
         run: node scripts/table-a11y-guard.mjs
+      # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
+      # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
+      # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,
+      # OBS encoding a service) wants the card. Measured 2026-08-14: church-gpu-node
+      # held 5m while CITING DR-0012, node1 held 15m, both on a 12 GB 4070 — and
+      # one of those boxes feeds the NovaStar -> wall. A CPU/RAM-bound Ollama is
+      # out of scope and never flagged. Proven-to-catch in gpu-preemption-guard.test.js.
+      - name: gpu preemption guard (a GPU Ollama yields VRAM in ~1s)
+        run: node scripts/gpu-preemption-guard.mjs
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
