@@ -32,6 +32,42 @@
 import supabase from './supabase.js';
 import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 
+// THE LIST NEVER CARRIES THE IMAGES.
+//
+// Post-incident 2026-08-14 (DR-0303). Every account across all three apps was
+// signed out and locked out: Supabase answered 402 `exceed_egress_quota` on
+// /auth/v1/token, /auth/v1/signup and every /rest/v1 path. The measurement
+// found the spend right here — `feedback` holds 6.2 MB of base64 image data
+// across 24 rows, and the fetch below used to be `.select('*')` with no limit,
+// running once per SIGN-IN for every signed-in user (this is wired into the
+// main app shell, not an admin surface) and AGAIN in full on every realtime
+// INSERT by anyone. Multiple megabytes per app open, per person.
+//
+// So the columns are named explicitly rather than starred. `screenshot` and
+// `screenshots` are deliberately ABSENT: the presence and the count ride along
+// as the two derived scalars migration 0135 computes in the database, and the
+// image itself is fetched one row at a time by `fetchFeedbackImages` when a
+// person actually opens that card.
+//
+// Naming the columns is also what makes this hold. A `*` would silently start
+// shipping the next large column somebody adds; an explicit list means a new
+// blob column has to be typed in here on purpose. The test that pins this
+// reads the source for `select('*')` for exactly that reason.
+const FEEDBACK_LIST_COLUMNS = [
+  'id', 'instance_id', 'user_id', 'display_name', 'device_label',
+  'app_version', 'which_tab', 'feedback_text', 'sentiment',
+  'is_confidential', 'submitted_at', 'triage_status', 'triage_notes',
+  'promoted_to_project_id',
+  // Derived in the DB (0135) — presence and count without the bytes.
+  'has_screenshot', 'screenshot_count',
+].join(', ');
+
+// A bound, so this query's cost cannot grow without limit as feedback
+// accumulates. The board reads newest-first, so the cap drops the oldest
+// items rather than the ones anyone is working. 500 is far above the 119 rows
+// that exist today — this is a ceiling, not a page size.
+const FEEDBACK_LIST_LIMIT = 500;
+
 /** Get the current Supabase session, or null. */
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -176,6 +212,37 @@ export async function uploadFeedback(item, meta = {}) {
  *
  * Returns an unsubscribe function.
  */
+/**
+ * Fetches the image bytes for ONE feedback row, on demand.
+ *
+ * This is the other half of the blob-free list. The board shows an accurate
+ * "3 screenshots" from the derived count and calls this only when a person
+ * actually opens that card — so the bytes move when someone is looking at
+ * them, which is the only time they were ever worth moving.
+ *
+ * Best-effort by design: a failure here must never break the board. The card
+ * keeps its truthful count and simply has no picture, which is a strictly
+ * better outcome than the whole list failing to load.
+ *
+ * @param id  The feedback row id.
+ * @returns   { screenshots: string[] } — empty array on any failure or miss.
+ */
+export async function fetchFeedbackImages(id) {
+  if (!id) return { screenshots: [] };
+  const { data, error } = await supabase
+    .from('feedback')
+    .select('id, screenshot, screenshots')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.warn('[feedback-sync] image fetch failed:', error);
+    return { screenshots: [] };
+  }
+  const many = Array.isArray(data.screenshots) ? data.screenshots.filter(Boolean) : [];
+  if (many.length > 0) return { screenshots: many };
+  return { screenshots: data.screenshot ? [data.screenshot] : [] };
+}
+
 export function subscribeFeedback(onRemote) {
   let channel = null;
   let cancelled = false;
@@ -191,9 +258,10 @@ export function subscribeFeedback(onRemote) {
     const fetchOthers = async () => {
       const { data, error } = await supabase
         .from('feedback')
-        .select('*')
+        .select(FEEDBACK_LIST_COLUMNS)
         .neq('user_id', myUserId)
-        .order('submitted_at', { ascending: true });
+        .order('submitted_at', { ascending: true })
+        .limit(FEEDBACK_LIST_LIMIT);
       if (error) {
         console.warn('[feedback-sync] fetch failed:', error);
         return null;
@@ -272,11 +340,25 @@ function toPrototypeShape(row) {
     screenshot: row.screenshot || null,
     // Full image set when the `screenshots` jsonb column is live; otherwise the
     // single legacy `screenshot` stands in so older rows still render.
+    //
+    // These are EMPTY for a row that came from the list fetch, which no longer
+    // carries image bytes (see FEEDBACK_LIST_COLUMNS). They fill in when the
+    // same row is re-read through `fetchFeedbackImages`, so this mapper serves
+    // both shapes without the caller having to know which one it holds.
     screenshots: Array.isArray(row.screenshots) && row.screenshots.length > 0
       ? row.screenshots
       : (row.screenshot ? [row.screenshot] : []),
-    hasScreenshot: !!(row.screenshot || (Array.isArray(row.screenshots) && row.screenshots.length > 0)),
-    screenshotCount: Array.isArray(row.screenshots) ? row.screenshots.length : (row.screenshot ? 1 : 0),
+    // Presence and count come from the DERIVED columns (migration 0135) when
+    // they are there, because those are true even when the bytes are absent.
+    // Computing them from the blob columns instead — the old behaviour, kept
+    // here as the fallback — would report "no screenshot" for every row in a
+    // blob-free list, which is a painted answer, not a missing one (DR-0076).
+    hasScreenshot: typeof row.has_screenshot === 'boolean'
+      ? row.has_screenshot
+      : !!(row.screenshot || (Array.isArray(row.screenshots) && row.screenshots.length > 0)),
+    screenshotCount: Number.isFinite(row.screenshot_count)
+      ? row.screenshot_count
+      : (Array.isArray(row.screenshots) ? row.screenshots.length : (row.screenshot ? 1 : 0)),
     // 'remote: true' lets the UI render a small badge so users can see
     // which feedback came from another device.
     remote: true,

@@ -43,7 +43,32 @@ import { motionBehavior } from './gentle-motion.js';
 // `.ts-chrome-region` / `[role="dialog"]` are the app's existing names for
 // floating chrome. A visibility rule for PAPER never again decides what a
 // person is allowed to hear.
-const SKIP_SELECTOR = '.tts-controls, [data-read-skip], [aria-hidden="true"], script, style, noscript, .install-prompt, .update-confirm, .ts-chrome-region, [role="dialog"]';
+// CONTROLS ARE NOT CONTENT — and THIS is the list that decides it.
+//
+// Darrell 2026-08-14, on Eternal Algorithms: "this page just reads without a
+// reader highlighting the words." Tracing that exposed a miss in the DR-0299
+// fix: that change taught `readablePageText()` to strip nav/buttons/menus, but
+// `readablePageText` is only the FALLBACK. The primary page path speaks
+// `buildFollowMap(main).text` — alignment by construction — and the map was
+// built with THIS selector, which excluded the reader's own panel and dialogs
+// but not a single button, nav, or tab strip.
+//
+// So on every page-read surface (everything except the three that register
+// their own reading) the listener still heard the furniture, and every button
+// label also became a mapped RANGE — highlights landing on chrome instead of
+// the Word.
+//
+// The two lists must agree, because the same words are spoken and highlighted.
+// They are kept in step by a test that derives one from the other rather than
+// by a promise in a comment — the failure mode this codebase keeps repeating.
+const SKIP_SELECTOR = [
+  '.tts-controls', '.feedback-modal', '[data-read-skip]', '[aria-hidden="true"]',
+  'script', 'style', 'noscript',
+  '.install-prompt', '.update-confirm', '.ts-chrome-region',
+  'nav', 'button', 'select', 'input', 'textarea',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]', '[role="dialog"]',
+  '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
+].join(', ');
 
 const isWs = (ch) => /\s/.test(ch);
 
