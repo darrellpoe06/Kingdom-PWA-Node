@@ -210,17 +210,64 @@ export const REFLOW_PRESETS = [5, 10, 15, 25, 45, 60, 90];
 // `value` may be null, which shows nothing as pressed and means "use the
 // course's own session length" — the honest representation of not having chosen
 // rather than a default masquerading as a choice.
+//
+// ONCE CHOSEN, IT GETS OUT OF THE WAY.
+//
+// Darrell 2026-08-14, on a phone with the reader running, looking at Pattern 18:
+// "this aspect is taking up a large part of reading area." He was right. Seven
+// presets plus the minus/plus pair plus a label plus the note is roughly a third
+// of a phone's visible content, sitting permanently above the Word — and it was
+// doing that WHILE the reader was reading, for a control whose job was finished
+// the moment he picked 45M.
+//
+// This is the DR-0290 rule applied one surface over: nothing may sit between a
+// reader and what they came for. So a CHOSEN time collapses to a single line
+// that still states the choice and is one tap from reopening. An UNCHOSEN time
+// stays open, because then the control is the thing that needs doing.
+//
+// `alwaysOpen` keeps the facilitator's run-of-show expanded — a person building
+// a session is re-timing repeatedly and should not have to reopen it each time.
 export function TimeFit({
   value,
   onChange,
   label = 'How much time do you have?',
   groupLabel = 'Fit the lesson to the time you have',
   note = null,
+  alwaysOpen = false,
 }) {
-  const set = (n) => { if (typeof onChange === 'function') onChange(n); };
+  const set = (n) => { if (typeof onChange === 'function') onChange(n); setOpen(false); };
+  const [open, setOpen] = useState(false);
+  const collapsed = !alwaysOpen && !open && Number(value) > 0;
+
+  if (collapsed) {
+    return (
+      <div className="mb-2" data-read-skip>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Paced to ${value} minutes — change the time you have`}
+          className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-2.5 py-1.5 min-h-[32px] hover:border-[#7A1F1F] hover:text-[#7A1F1F] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+        >
+          ⏱ Paced to <strong className="text-[#7A1F1F]">{value} min</strong> — nothing is cut · change
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-3" data-read-skip>
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{label}</div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{label}</div>
+        {!alwaysOpen && Number(value) > 0 && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#7A1F1F] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            × Done
+          </button>
+        )}
+      </div>
       <div role="group" aria-label={groupLabel} className="flex flex-wrap gap-1.5 items-center">
         {REFLOW_PRESETS.map((p) => {
           const on = p === value;
@@ -314,6 +361,7 @@ export function LessonRunOfShow({
         onChange={setTarget}
         label="Fit the time you have"
         groupLabel="Reflow the session length"
+        alwaysOpen
       />
 
       <StageRail segments={segments} />
