@@ -228,12 +228,154 @@ export function clearReadingHighlights(win = typeof window !== 'undefined' ? win
 }
 
 /** Keep the spoken words in sight: center the range's nearest element. */
+// THE SENTENCE BEING READ MUST BE VISIBLE, NOT UNDER THE HEADER.
+//
+// Darrell 2026-08-13, reading a lesson with the app's sticky chrome on screen:
+// "the words are blocked at the top of the highlighted text while reading
+// possibly because of the banner or whatever."
+//
+// Two things were wrong with `el.scrollIntoView({ block: 'center' })`:
+//
+//   1. It scrolled the ELEMENT, not the RANGE. The element is the whole
+//      paragraph; the range is the sentence actually being spoken. Centring a
+//      tall paragraph puts its opening lines above the viewport top — so on
+//      exactly the long teaching paragraphs this app is made of, the words
+//      being read were off-screen while the paragraph looked "centred".
+//   2. It knew nothing about the fixed/sticky chrome. This app stacks a session
+//      bar, the church banner and the sub-tab strip at the top, so "the top of
+//      the viewport" is not where content becomes visible.
+//
+// The inset is MEASURED from the live document rather than typed as a constant:
+// the chrome's height changes with the large-print setting, with which banners
+// are dismissed, and between the church door and the PoeTech shell. A hardcoded
+// number would be wrong for most readers on most screens.
+
+/**
+ * How far down the viewport the first genuinely visible pixel is — the combined
+ * height of whatever fixed/sticky chrome is pinned to the top.
+ *
+ * Probed at three x positions so a narrow floating control cannot be mistaken
+ * for a full-width bar, and clamped: a chrome claiming more than 45% of the
+ * screen is an overlay or a mis-measure, and honouring it would scroll the
+ * reading out of view instead of into it.
+ */
+export function stickyTopInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc || typeof doc.elementsFromPoint !== 'function') return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+    let inset = 0;
+    for (const x of [vw * 0.25, vw * 0.5, vw * 0.75]) {
+      for (const el of doc.elementsFromPoint(Math.round(x), 2) || []) {
+        if (!el || !el.getBoundingClientRect) continue;
+        let pos = '';
+        try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
+        if (pos !== 'fixed' && pos !== 'sticky') continue;
+        const r = el.getBoundingClientRect();
+        // Only bars actually pinned at the top count; a fixed footer or a
+        // floating button elsewhere must never push the reading down.
+        if (r.top <= 2 && r.bottom > inset) inset = r.bottom;
+      }
+    }
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
+/**
+ * How far to scroll so the spoken sentence sits in comfortable reading space.
+ * Pure arithmetic, so the rule is unit-testable without layout (jsdom has none).
+ *
+ * Returns the delta to scroll BY: positive scrolls down. 0 means it is already
+ * well placed — a sentence that is merely low in the viewport is not moved,
+ * because re-centring on every sentence makes the page twitch under the reader.
+ */
+export function readingScrollDelta({
+  rangeTop = 0, rangeBottom = 0, topInset = 0, viewportHeight = 0, margin = 24,
+} = {}) {
+  const vh = Number(viewportHeight) || 0;
+  if (!vh) return 0;
+  const safeTop = Number(topInset) || 0;
+  const top = Number(rangeTop) || 0;
+  const bottom = Number(rangeBottom) || top;
+  const restTop = safeTop + margin;          // first line that is genuinely readable
+  const restBottom = vh - margin;
+
+  // Hidden behind the chrome, or above the viewport entirely: bring it down to
+  // just under the chrome. This is the case Darrell hit.
+  if (top < restTop) return top - restTop;
+
+  // Below the fold: lift it so the sentence STARTS in the reading band rather
+  // than centring a tall one, which would push its opening back under the top.
+  if (bottom > restBottom) {
+    const height = Math.max(0, bottom - top);
+    const room = Math.max(0, restBottom - restTop);
+    return height >= room ? top - restTop : bottom - restBottom;
+  }
+  return 0;
+}
+
+/**
+ * The breathing room to leave around the spoken sentence, in px.
+ *
+ * Darrell 2026-08-13: "Account for different font sizes as well." This app ships
+ * five reading sizes (A through A44, lib/text-size), and a fixed 24px gap that
+ * looks generous at A is thinner than a single line at A44 — the sentence would
+ * sit jammed against the chrome for exactly the readers who most need space.
+ *
+ * So the margin is ONE LINE of whatever the reader has chosen, measured from
+ * the text being read, with the old 24px kept only as a floor for when line
+ * height cannot be resolved.
+ */
+export function readingMargin(el, win = (typeof window !== 'undefined' ? window : null)) {
+  const FLOOR = 24;
+  if (!el || !win || typeof win.getComputedStyle !== 'function') return FLOOR;
+  try {
+    const cs = win.getComputedStyle(el) || {};
+    const lh = parseFloat(cs.lineHeight);
+    if (Number.isFinite(lh) && lh > 0) return Math.max(FLOOR, Math.round(lh));
+    // `line-height: normal` does not resolve to px — approximate from font size,
+    // which is what the browser does anyway (~1.2x).
+    const fs = parseFloat(cs.fontSize);
+    if (Number.isFinite(fs) && fs > 0) return Math.max(FLOOR, Math.round(fs * 1.4));
+    return FLOOR;
+  } catch (_) {
+    return FLOOR;
+  }
+}
+
 export function followRange(range) {
   if (!range) return;
   try {
-    const el = range.startContainer && (range.startContainer.nodeType === 1
+    const win = typeof window !== 'undefined' ? window : null;
+    const doc = typeof document !== 'undefined' ? document : null;
+    if (!win) return;
+    // The RANGE's own box — the sentence — not the paragraph that contains it.
+    const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
+    const usable = rect && (rect.height > 0 || rect.width > 0);
+    if (!usable) {
+      // No layout for the range (a collapsed range, or a non-layout environment)
+      // — fall back to the old element scroll rather than doing nothing.
+      const el = range.startContainer && (range.startContainer.nodeType === 1
+        ? range.startContainer
+        : range.startContainer.parentElement);
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
+      return;
+    }
+    const textEl = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
       : range.startContainer.parentElement);
-    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
+    const delta = readingScrollDelta({
+      rangeTop: rect.top,
+      rangeBottom: rect.bottom,
+      topInset: stickyTopInset(win, doc),
+      viewportHeight: win.innerHeight || 0,
+      margin: readingMargin(textEl, win),
+    });
+    if (!delta) return;
+    if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
   } catch (_) { /* scrolling is best-effort */ }
 }
