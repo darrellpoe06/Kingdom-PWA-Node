@@ -137,11 +137,21 @@ try {
       };
     });
     await page.close();
+    // PER-CASE, NOT CUMULATIVE (fixed 2026-08-14, REV-0248).
+    //
+    // This line used to read `if (!failures)` — the GLOBAL running count — so
+    // the moment ANY surface failed, every later surface that passed perfectly
+    // went unprinted. A run with 1 real failure and 37 clean passes produced
+    // output indistinguishable in shape from 38 failures, with no positives to
+    // read against. That is the surface-says-truth defect class applied to a
+    // gate's own report: the number was right, the picture it painted was not,
+    // and it cost a real misreading of this probe's output before it was found.
+    const before = failures;
     if (m.noHeader) { fail(`${view}@${width}px: header h1 never rendered`); continue; }
     if (m.scrollWidth > m.clientWidth + 1) fail(`${view}@${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
     if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
     if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
-    if (!failures) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
+    if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
