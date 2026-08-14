@@ -93,26 +93,6 @@ export function parseNav(search) {
 // resolves through ONE validated source. An unknown sub must fall back to the
 // default, never route to a branch that renders nothing (the "blank Books tab"
 // class this module exists to prevent).
-// The Church sub-tabs that are real routes. The sibling of VALID_BOOKS_SUBS,
-// and it should have existed at the same time: initialBooksView's own comment
-// claims it is "restoring the parity that view and churchView already had" —
-// but churchView never had it. The shell's getInitialChurchView read only
-// `?view=`, so `?view=church&sub=learn` resolved to the church HOME, and the
-// history seed then wrote a URL with no `sub` at all (DR-0293).
-export const VALID_CHURCH_SUBS = [
-  'home', 'engagement', 'choir', 'pulpit', 'learn', 'events',
-  'scripture', 'bus', 'harvest', 'conference', 'program', 'word',
-];
-
-// initialChurchView — the Church sub-tab a URL deep-links to, validated.
-// Honors BOTH forms: the alias (`?view=learn`) and the explicit pair
-// (`?view=church&sub=learn`). An unknown sub falls back to the default so no
-// deep link can route to a branch that renders nothing.
-export function initialChurchView(search) {
-  const { view, churchView } = parseNav(search);
-  return view === 'church' && VALID_CHURCH_SUBS.includes(churchView) ? churchView : DEFAULT_CHURCH;
-}
-
 export const VALID_BOOKS_SUBS = [
   'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart', 'k1099', 'calendar', 'legal',
 ];
