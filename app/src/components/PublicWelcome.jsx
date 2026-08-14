@@ -30,7 +30,7 @@
 //
 // It shows ONLY to a signed-out visitor on a public church link. A member who
 // is signed in never sees it, and it never covers the content.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import AuthModal from './AuthModal.jsx';
 
@@ -51,14 +51,73 @@ export function catalogTotals(catalog = LEARN_CATALOG) {
   return { courses: list.length, lessons };
 }
 
-export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'top' }) {
+// How long the top line stays before it steps aside on its own.
+//
+// Darrell 2026-08-13: "can the banner leave after a certain time for the Word
+// or lesson to be most dominant?" and "still before for like the first
+// paragraph then move unless prompted for like touching the faint hover."
+//
+// This is DR-0290's own rule finished rather than a new one. That decision
+// already says neither placement may get "between a reader and what they came
+// for" — but the top line could only be moved by TAPPING × Hide, which is a
+// fight of its own on a phone, and the reader who does nothing keeps a black
+// bar over the Word for the whole lesson.
+//
+// Roughly the time a first paragraph takes at an unhurried pace. It is a
+// judgement, not a measurement, and it is the one number here that could be
+// wrong for a slow reader — which is exactly why retreating is REVERSIBLE and
+// silent rather than a dismissal: the affordance stays, and one touch brings
+// the line back for as long as it is wanted.
+export const TOP_BANNER_DWELL_MS = 12000;
+
+export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'top', dwellMs = TOP_BANNER_DWELL_MS }) {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // RETREATED is not DISMISSED. Dismissed is the reader's explicit "gone";
+  // retreated is the banner getting out of the Word's way by itself, and it is
+  // always one touch from coming back.
+  const [retreated, setRetreated] = useState(false);
+  // A READER WHO ASKS FOR IT IS NOT OVERRULED BY A TIMER.
+  //
+  // Caught by this component's own test: the retreat effect re-armed the moment
+  // `retreated` went back to false, so tapping the faint strip showed the line
+  // and then took it away again a few seconds later. Retreating on its own is
+  // the app's judgement about a reader who has said nothing; once the reader
+  // has said something, the judgement is theirs and the timer is done.
+  const [asked, setAsked] = useState(false);
   const totals = useMemo(() => catalogTotals(catalog), [catalog]);
+
+  useEffect(() => {
+    if (placement === 'end' || dismissed || retreated || asked) return undefined;
+    const ms = Number(dwellMs);
+    if (!Number.isFinite(ms) || ms <= 0) return undefined; // 0 disables the retreat
+    const t = setTimeout(() => setRetreated(true), ms);
+    return () => clearTimeout(t);
+  }, [placement, dismissed, retreated, asked, dwellMs]);
+
   if (dismissed) return null;
 
   // TOP — one line. Short and sweet, because the reading is the draw.
   if (placement !== 'end') {
+    // RETREATED — a faint strip that says whose house this is without taking
+    // the room. Kept as a real button so it is reachable by keyboard and by a
+    // screen reader, not a hover-only affordance that a touch device can never
+    // find (the "faint hover" has to work with a finger).
+    if (retreated) {
+      return (
+        <div className="print:hidden" data-testid="public-welcome-rest">
+          <button
+            type="button"
+            onClick={() => { setRetreated(false); setAsked(true); }}
+            aria-label="Show who this is from — The Love Corner, free to read, no account"
+            title="The Love Corner — free to read, no account"
+            className="w-full border-b border-[#E8E4DC] bg-[#1A1815] text-[#8A857C] hover:text-[#FAF8F4] focus:text-[#FAF8F4] px-4 py-0.5 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            <span className="text-[0.5rem] uppercase tracking-[0.3em]" style={MONO}>The Love Corner</span>
+          </button>
+        </div>
+      );
+    }
     return (
       <div
         className="border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-3 flex-wrap print:hidden"
