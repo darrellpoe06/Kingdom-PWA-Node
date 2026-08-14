@@ -148,6 +148,43 @@ try {
   check('clearing restores the page exactly', (await page.locator('#t').screenshot()).equals(blank),
     'pixel-compared against the pre-highlight page');
 
+  // A PAGE WITH NO <main> STILL HIGHLIGHTS (DR-0304, 2026-08-14).
+  //
+  // Darrell: "this page just reads without a reader highlighting the words."
+  // The text extractor fell back to document.body when a surface renders no
+  // <main>; the follow map did not, so it was null and nothing could paint.
+  // ONLY SIX FILES in this app render a <main> — every other surface was here.
+  //
+  // The unit pins prove the map is BUILT. Only this proves the words actually
+  // change colour on such a page, in a real browser, with the real CSS — which
+  // is the whole reason this probe exists (a return value can be true while the
+  // CSS never matches).
+  const noMain = await browser.newPage({ viewport: { width: 420, height: 320 } });
+  await noMain.setContent(
+    `<style>${rules}\nbody{background:#fff;font:20px/1.6 Georgia,serif;margin:0;padding:16px;}</style>`
+    // Deliberately NO <main> — a div, which is what most surfaces render.
+    + '<div><p id="t">The Perfect You Were Made For. Two famous verses say be perfect.</p></div>');
+  await noMain.addScriptTag({ content: bundle, type: 'module' });
+  await noMain.waitForFunction('window.__rfReady===1');
+
+  const noMainBlank = await noMain.locator('#t').screenshot();
+  const noMainSeg = await noMain.evaluate(`(() => {
+    // readingRoot()'s rule, exercised where it matters: main || body.
+    const root = document.querySelector('main') || document.body;
+    const f = window.RF.buildFollowMap(root);
+    if (!f) return { built: false };
+    const r = window.RF.segmentRange(f, 0);
+    return { built: true, ok: window.RF.highlightSegment(r), text: r && r.toString() };
+  })()`);
+  check('a page with NO <main> still builds a follow map', noMainSeg.built === true,
+    noMainSeg.built ? 'built from document.body' : 'NULL MAP — the reader would speak and highlight nothing');
+  check('the sentence range is right on a main-less page',
+    /^The Perfect You Were Made For\.$/.test((noMainSeg.text || '').trim()), JSON.stringify(noMainSeg.text));
+  const noMainPainted = await noMain.locator('#t').screenshot();
+  check('THE HIGHLIGHT ACTUALLY PAINTS ON A PAGE WITH NO <main>', !noMainBlank.equals(noMainPainted),
+    noMainBlank.equals(noMainPainted) ? 'pixels identical — this is the defect Darrell reported' : 'pixels changed');
+  await noMain.close();
+
   await browser.close();
 
   const failed = results.filter((r) => !r.pass).length;

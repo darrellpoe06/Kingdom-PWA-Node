@@ -18,6 +18,7 @@
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F
 // error, #B85838 focus ring, labelled inputs, >=44px targets, aria-live status.
 import React, { useState } from 'react';
+import { authErrorMessage } from '../lib/auth-error-message.js';
 import {
   signUpWithPassword, signInWithPassword, validateCredentials, sendRoyaltyLink,
   signUpWithPhonePin, signInWithPhonePin, validatePhonePin,
@@ -62,7 +63,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       : await signInWithPhonePin(form.phone, form.pin);
     if (res.error) {
       setStatus('idle');
-      setError(res.error.message || 'That didn’t work — please check your phone number and PIN.');
+      setError(authErrorMessage(res.error, 'That didn’t work — please check your phone number and PIN.').text);
       return;
     }
     const hasSession = !!res.data?.session;
@@ -87,7 +88,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       : await signInWithPassword(form.email, form.password);
     if (res.error) {
       setStatus('idle');
-      setError(res.error.message || 'That didn’t work — please try again.');
+      setError(authErrorMessage(res.error).text);
       return;
     }
     // A session here means the app's onAuthChange will sign them in. If email
@@ -105,7 +106,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     if (isSignup && !usePassword && !form.name.trim()) { setError('Please add your name.'); return; }
     setStatus('working');
     const { error } = await sendRoyaltyLink(form.email, { name: form.name });
-    if (error) { setStatus('idle'); setError(error.message || 'Could not send the sign-in link.'); return; }
+    if (error) { setStatus('idle'); setError(authErrorMessage(error, 'Could not send the sign-in link.').text); return; }
     setStatus('linksent');
   };
 
