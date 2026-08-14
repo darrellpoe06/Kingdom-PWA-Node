@@ -1,0 +1,101 @@
+{
+  "v": 1,
+  "_comment": "The DECLARED set of devices the PoeTech pipeline depends on staying up. Darrell 2026-08-14: 'we need to come up with obstacles to turning off anything or device we use for this pipeline including creating master accounts on each cpu and using administrative procedures etc...' This manifest is the source of truth the availability witness probes against -- without a declared list, 'a node went dark' has no denominator and nobody can say whether it is normal. Tailnet addresses read from Darrell's live Tailscale admin view 2026-08-14 and cross-checked against app/src/lib/church-devices.js (SSH users + LAN IPs) and infra/gpu-scheduler/state/STREAMING_HOLD (LEFT/RIGHT tower naming). 'required' means the pipeline degrades when it is dark; 'expected_always_on' is the honest claim about whether being dark is a FAULT or just normal for that box -- a laptop that sleeps is not an incident, and a witness that cries wolf gets muted.",
+  "nodes": [
+    {
+      "slug": "poetech",
+      "tailnet": "poetech",
+      "tailnet_ip": "100.70.190.47",
+      "role": "nas",
+      "device_register_id": "dev-nas-1",
+      "required": true,
+      "expected_always_on": true,
+      "os": "synology-dsm",
+      "carries": [
+        "poetech-scribe.service (ingest)",
+        "poetech-mcp.service",
+        "poetech-photo-server.service",
+        "nas-loops (health-check, surface-audit, services-sync, funnel-watchdog, scribe-transcribe)",
+        "docker: n8n, ollama (CPU), ntfy, ytzero"
+      ],
+      "measured_2026_08_14": "up 36 days, load 0.66, /volume1 53% used (16T/29T). NO NVIDIA driver and no nvidia-smi -- this box has no CUDA and never did. Verified by nas-health run 31817289739.",
+      "hardening": "DSM box, always-on by design, no interactive session to lose. Lowest shutdown risk of the fleet."
+    },
+    {
+      "slug": "tlcmediadpt",
+      "tailnet": "tlcmediadpt",
+      "tailnet_ip": "100.69.19.13",
+      "lan_ip": "192.168.1.75",
+      "ssh_user": "creed",
+      "role": "gpu-worker",
+      "tower_side": "LEFT",
+      "device_register_id": "dev-gpu-node-1",
+      "required": true,
+      "expected_always_on": true,
+      "os": "windows",
+      "gpu": "NVIDIA GeForce RTX 4070, 12282 MiB, driver 595.95 (nvidia-smi VERIFIED 2026-07-08)",
+      "carries": [
+        "torch 2.6.0+cu124 -- torch.cuda.is_available()=True (proven 2026-07-08)",
+        "app build node -- npm ci + vite build PASS (proven 2026-07-08)"
+      ],
+      "measured_2026_08_14": "ONLINE in the tailnet (Darrell's Tailscale view).",
+      "hardening": "THE designated AI worker. Per DR-0012 role separation this is where heavy AI belongs -- it does NOT feed the NovaStar. Highest-value box to keep up, and the safest one to harden because no live service depends on its screen."
+    },
+    {
+      "slug": "livestream-main-pc",
+      "tailnet": "livestream-main-pc",
+      "tailnet_ip": "100.72.5.90",
+      "lan_ip": "192.168.1.73",
+      "ssh_user": "itdepartment",
+      "role": "gpu-presenter",
+      "tower_side": "RIGHT",
+      "device_register_id": "dev-gpu-node-2",
+      "required": false,
+      "expected_always_on": false,
+      "os": "windows",
+      "gpu": "NVIDIA GeForce RTX 4070, 12282 MiB, driver 595.95 (nvidia-smi VERIFIED 2026-07-08)",
+      "carries": [
+        "Ollama :11434 LIVE -- qwen2.5:14b-instruct, qwen2.5-coder:14b, nomic-embed-text (proven 2026-07-08)",
+        "livestream / Presenter output (Elgato Stream Deck attached)"
+      ],
+      "measured_2026_08_14": "OFFLINE in the tailnet (Darrell's Tailscale view).",
+      "hardening": "DELIBERATELY required:false and expected_always_on:false. This box feeds the wall. DR-0012 gives live/creative work ABSOLUTE priority over AI jobs, so an operator taking it -- including powering it down -- is CORRECT BEHAVIOUR, never an incident. Harden it for unattended RECOVERY (comes back after a reboot) and never against a human who wants it. See RUNBOOK.md 'The line we do not cross'."
+    },
+    {
+      "slug": "tlc-tech-team",
+      "tailnet": "tlc-tech-team",
+      "tailnet_ip": "100.92.143.124",
+      "role": "workstation",
+      "required": false,
+      "expected_always_on": false,
+      "os": "unknown",
+      "carries": [],
+      "measured_2026_08_14": "ONLINE in the tailnet. Role NOT confirmed -- not assumed to carry pipeline work.",
+      "hardening": "None declared until its role is confirmed. Recorded so the witness knows it exists and does not report it as a surprise."
+    },
+    {
+      "slug": "tlcrackstation",
+      "tailnet": "tlcrackstation",
+      "tailnet_ip": "100.66.173.22",
+      "role": "unknown",
+      "required": false,
+      "expected_always_on": false,
+      "os": "unknown",
+      "carries": [],
+      "measured_2026_08_14": "OFFLINE in the tailnet. Role NOT confirmed.",
+      "hardening": "None declared. sme_needed: Darrell or the media team should say what this box is for before anything depends on it."
+    },
+    {
+      "slug": "kingdom-home",
+      "tailnet": "kingdom-home",
+      "tailnet_ip": "100.74.53.117",
+      "role": "workstation",
+      "required": false,
+      "expected_always_on": false,
+      "os": "unknown",
+      "carries": [],
+      "measured_2026_08_14": "ONLINE in the tailnet. Home box; not a declared pipeline dependency.",
+      "hardening": "None declared."
+    }
+  ]
+}
