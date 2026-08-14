@@ -55,6 +55,9 @@ export const BOOK_MASTERPIECES = {
   'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
   'Job':           'The suffering-and-sovereignty masterpiece — the righteous man stripped to nothing, and the Voice from the whirlwind; in whose hand is the soul of every living thing and the breath of all mankind.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
+  'Zechariah':     'The night-visions book — the unseen court shown in pictures, and the Man on the red horse who turns out to be the LORD; it ends with the pierced One looked upon and everything common made holy.',
+  '2 Kings':       'The book of eyes opened and eyes shut — chariots of fire the servant could not see until he was shown, and kings who saw nothing though the prophets told them plainly.',
+  '1 Thessalonians': 'The waiting-well letter — how a young church works, grieves, and holds together while it looks up; it keeps spirit, soul and body in one blessing.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
   'Ecclesiastes':  'The Preacher\'s audit of everything under the sun — vanity weighed to the bottom, and the conclusion of the whole matter: fear God and keep His commandments, for He brings every work into judgment with every secret thing.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
@@ -113,6 +116,74 @@ export function algorithmsForBook(book) {
 // outcome (what you win with it), tags.
 export const GODHEAD_ALGORITHMS = [
   // ── TORAH & HISTORY ────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // THE HUMAN SPIRIT AND THE GODHEAD (Darrell 2026-08-14: "what does the Bible
+  // say about the human spirit and the relationship between The GodHead and us
+  // comprehensively... and impacts of the relationship?" and "John 10:9 unseen
+  // realm?"). Built because Issue 10's every error traced back to one unclear
+  // line: what a human spirit IS, and what its relation to Him is. Every ref
+  // below is verbatim in godhead-study-verses.json, fetched not recalled.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'gh-the-door', section: 'gospels', name: 'I Am The Door (there is no other way in)',
+    refs: ['John 10:9', 'John 10:1'],
+    condition: 'Access to the Father, to the fold, and to anything real in the unseen is THROUGH Him: "I am the door: by me if any man enter in..." And the alternative is named in the same passage, four verses earlier: "he that entereth not by the door into the sheepfold, but climbeth up some other way, the same is a thief and a robber."',
+    consequence: 'Entering by the Door: saved, and free movement with provision — "shall go in and out, and find pasture." Climbing up some other way does not fail to reach the fold; it reaches it as a thief.',
+    threeD: 'This is the answer to every technique that offers access — frequencies, encounters, asking your own spirit, seeking angels. The question is never "is the unseen real?" (it is) but "which way did you come in?" Jesus does not describe Himself as the best door or the recommended door. He is THE door, and He put the other route in the same breath so nobody could miss it.',
+    outcome: 'Confidence without curiosity-driven risk: you can hold the unseen realm as real, refuse every side entrance, and lose nothing — because everything on the other side is reached through Him anyway.',
+    psyche: 'A single clear gate removes an enormous decision load. When access has one door, every offered shortcut is answered without deliberation — the mind stops auditing techniques and rests.',
+    tags: ['access', 'the-door', 'unseen-realm', 'discernment', 'salvation'],
+  },
+  {
+    id: 'gh-one-mediator', section: 'epistles', name: 'One Mediator (the traffic all goes through the Son)',
+    refs: ['1 Timothy 2:5', 'John 15:5'],
+    condition: 'There is one God and ONE mediator — "the man Christ Jesus." Not one preferred among several; one. And the life that flows is His: "without me ye can do nothing."',
+    consequence: 'Every route that adds a mediator — an angel, a technique, a trained spirit-sense, a teacher — adds something the text says does not exist, and subtracts confidence from the one that does.',
+    threeD: 'Test any spiritual practice with one question: does this add a middleman? Angels are real and serve, but they are not mediators; they refuse the role when offered it. A branch bears fruit by staying joined, not by developing branch-powers.',
+    outcome: 'Direct, unbrokered access — you never have to qualify, tune, or ascend to be heard.',
+    psyche: 'Removing intermediaries collapses performance anxiety: there is no technique to get right, so failure to feel something is not evidence of failure to be heard.',
+    tags: ['mediator', 'access', 'christ-alone', 'abiding'],
+  },
+  {
+    id: 'gh-spirit-formed-and-returns', section: 'prophets', name: 'He Forms The Spirit Within (and it returns to Him)',
+    refs: ['Zechariah 12:1', 'Ecclesiastes 12:7', 'Job 32:8'],
+    condition: 'The human spirit is not self-existent and not a spark of deity. It is FORMED: the same LORD who "stretcheth forth the heavens, and layeth the foundation of the earth" also "formeth the spirit of man within him." Understanding likewise comes from outside: "there is a spirit in man: and the inspiration of the Almighty giveth them understanding."',
+    consequence: 'What He formed returns to Him: "the spirit shall return unto God who gave it." Origin and destination are both Him — so the spirit is a creature at both ends, never a deity at either.',
+    threeD: 'This is the line every inflation crosses. Your spirit is real, God-formed, and precious — and it is made, on loan, and accountable. Made-by-Him is the highest thing that can be said of it, and it is enough.',
+    outcome: 'A settled identity that needs no inflating: creaturely, dignified, His workmanship, and going home.',
+    psyche: 'Knowing the spirit is given rather than self-generated removes both pride and the exhausting project of self-divinization — you steward something entrusted instead of manufacturing something.',
+    tags: ['human-spirit', 'creation', 'identity', 'mortality'],
+  },
+  {
+    id: 'gh-spirit-bears-witness-with', section: 'epistles', name: 'His Spirit Bears Witness WITH Your Spirit (two, not one)',
+    refs: ['Romans 8:16', '1 Corinthians 2:11'],
+    condition: 'The assurance of sonship comes from a joint testimony: "The Spirit itself beareth witness WITH our spirit." Two witnesses. And the knowing runs one direction — a man’s own spirit knows a man’s things, but "the things of God knoweth no man, but the Spirit of God."',
+    consequence: 'Your spirit is a genuine witness and never the sole one; and it is not the organ that knows God’s things. His Spirit supplies that, not introspection.',
+    threeD: 'This is why "ask your spirit questions" runs backwards. Your spirit is a witness, not an oracle — it testifies alongside His Spirit, it does not brief you. When you want to know the things of God, you go to His Spirit and His Word, and your spirit says amen.',
+    outcome: 'Assurance you can rest on because it does not depend on your own instrument being reliable today — the confirming witness is His.',
+    psyche: 'Two-witness assurance survives a bad mental day. Feelings fluctuate; the joint testimony does not, so a low mood stops functioning as evidence about your standing.',
+    tags: ['witness', 'assurance', 'human-spirit', 'holy-spirit', 'sonship'],
+  },
+  {
+    id: 'gh-eyes-opened-by-prayer', section: 'prophets', name: 'Open His Eyes (the unseen is shown, never seized)',
+    refs: ['2 Kings 6:17', 'Ephesians 6:12', 'Colossians 1:16'],
+    condition: 'The unseen realm is real and populated — "we wrestle not against flesh and blood, but against principalities... spiritual wickedness in high places" — and it is all created: "by him were all things created... visible and invisible, whether they be thrones, or dominions, or principalities, or powers."',
+    consequence: 'When a servant needed to SEE it, the pattern was a prayer to Yahweh — "LORD, I pray thee, open his eyes" — and Yahweh opened them. Elisha asked God; he did not train the young man in a technique.',
+    threeD: 'Both errors are cut off here. Denying the unseen contradicts the text. Seeking access to it by method also contradicts the text — the one recorded instance of a man seeing it comes by another man’s prayer and Yahweh’s act. It was shown, not achieved. Notice also that Elisha was not anxious BEFORE the eyes opened: he already knew.',
+    outcome: 'Courage without curiosity: you can know the chariots are there without needing to see them, and you never have to bargain for sight.',
+    psyche: 'Believing a protection you cannot see steadies fear at the root, while removing the compulsion to verify it — which is what drives people into practices that promise sight.',
+    tags: ['unseen-realm', 'angels', 'prayer', 'fear', 'protection'],
+  },
+  {
+    id: 'gh-whole-spirit-soul-body', section: 'epistles', name: 'Whole: Spirit AND Soul AND Body (He keeps all three)',
+    refs: ['1 Thessalonians 5:23', 'Hebrews 4:12'],
+    condition: 'The blessing is over the whole person — "your whole spirit and soul and body be preserved blameless" — and the divider is His word, "piercing even to the dividing asunder of soul and spirit."',
+    consequence: 'The three are distinguished by Scripture and kept together by God. Only the Word does the dividing; we are not given a technique for sorting our own inner parts.',
+    threeD: 'This answers the "let the spirit rule the body" teaching from the other side. He preserves all three; He does not rank them so the body can be overridden by a trained spirit. And if the Word is what divides soul from spirit, then introspection is not the instrument for it — reading is.',
+    outcome: 'Wholeness rather than internal hierarchy: the body is kept, not conquered; the spirit is kept, not deified; the soul is kept, not bypassed.',
+    psyche: 'Being told all three are preserved removes the war between them — the sick or tired body stops being read as a spiritual failure, because God’s keeping covers it too.',
+    tags: ['human-spirit', 'soul', 'body', 'wholeness', 'the-word'],
+  },
   {
     id: 'gh-choose-life', section: 'torah', name: 'Choose This Day (life and death set before you)',
     refs: ['Deuteronomy 30:19'],
