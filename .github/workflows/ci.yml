@@ -180,6 +180,16 @@ jobs:
       - name: sovereign photos archive selftest
         working-directory: infra/nas-photos-archive
         run: python3 photos_archive.py --selftest
+      # Sovereign Supabase key minter (DR-0306). The three secrets must AGREE:
+      # a JWT signed by anything other than JWT_SECRET 401s every request with a
+      # message that says nothing useful, and the failure surfaces only once the
+      # stack is live. Proven-to-catch at its two real risks: a key signed by the
+      # WRONG secret is rejected, and a payload escalated anon -> service_role is
+      # rejected. Stdlib-only on purpose — this NAS runs Python 3.8.15 and root
+      # cannot import dpoe's site-packages, so an installer needing pip fails.
+      - name: sovereign supabase key minter selftest
+        working-directory: infra/nas-supabase
+        run: python3 mint_keys.py --selftest
       # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
       # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
       # steward heard values with no idea which column they were in. All 131 now
