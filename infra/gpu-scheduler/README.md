@@ -26,11 +26,21 @@ node whose `capabilities` include `transcription`.
    Recreate it any time to panic-stop.
 2. **Streaming hold** — `state/STREAMING_HOLD` present ⇒ a live stream is in
    progress ⇒ the CUDA towers (LEFT `tlcmediadpt`, RIGHT `livestream-main-pc`)
-   are reserved for the stream ⇒ nothing runs. *Ships present* (engaged
-   2026-07-14 by Darrell: "dont use the left or right cuda right now we are
-   streaming!"). This is DR-0012 as a physical brake, senior to every arm and
-   budget: create the file when streaming starts, delete it only when the
-   stream has ended. When in doubt, leave it engaged.
+   are reserved for the stream ⇒ nothing runs. This is DR-0012 as a physical
+   brake, senior to every arm and budget: create the file when streaming
+   starts, delete it only when the stream has ended. When in doubt, leave it
+   engaged. *Ships absent* — see the staleness note below.
+
+   **A brake that never clears stops meaning anything.** This shipped engaged
+   2026-07-14 ("dont use the left or right cuda right now we are streaming!")
+   and was still engaged on 2026-08-14 — a month, against a stream that ended
+   the same day. Cleared then. When every flag in a directory reads ENGAGED
+   permanently, nobody notices the one that matters, which is the failure mode
+   this note exists to prevent. **Put the date and the reason in the file when
+   you engage it**, so the next reader can tell a live hold from a forgotten
+   one at a glance. Clearing it is not the risk it looks like: the kill-switch,
+   the two absent arms, the unset budgets, the stubbed dispatch, and having no
+   clock each block the scheduler independently.
 3. **Arm (×2)** — both `state/ARMED` and `state/GPU_SCHED_ARMED` must exist
    (master arm + dedicated scheduler arm). *Ship absent.*
 4. **Budget** — `GPU_SCHED_MAX_JOBS_PER_RUN` and `GPU_SCHED_MAX_JOBS_PER_DAY`
