@@ -51,15 +51,78 @@ export function enrollmentToRow({ instanceId, userId, personKey, displayName, sc
   };
 }
 
-/** Load all enrolled/invited voice profiles for the caller's instance (RLS-scoped). */
-export async function loadVoiceProfiles() {
+// ONE FETCH, SHARED — NOT ONE PER COMPONENT.
+//
+// Measured 2026-08-14 during the egress outage: `voice_profiles` was 92 of ~120
+// requests (84% of all API traffic), arriving in bursts of three inside the same
+// 40ms. That was never a retry storm. `useReadAloud` runs a mount effect that
+// calls loadVoiceProfiles(), and FOUR components use that hook — TTSControl,
+// BibleReader, HelpButton, ReadingVoiceControl — so every instance independently
+// fetched the same instance-wide table, and did it again on every remount.
+//
+// The rows are small, so this was not the byte driver behind the 402 (that was
+// `feedback`, DR-0303). It is still four times the requests the app needs, on
+// the hottest path in the reader, and it is the shape that turns any future
+// backend problem into a self-inflicted flood.
+//
+// So: concurrent callers share ONE in-flight promise, and a completed fetch is
+// reused for a short window instead of re-issued on every mount.
+const CACHE_MS = 30_000;   // a completed read is good for this long
+const COOLDOWN_MS = 15_000; // after a failure, wait before hitting a sick backend
+
+let cached = null;      // { at, profiles }
+let inflight = null;    // promise shared by concurrent callers
+let failedAt = 0;       // when the last attempt failed
+
+/** Drop the cache — called by every write so a reader never sees stale consent. */
+export function invalidateVoiceProfiles() {
+  cached = null;
+  inflight = null;
+  failedAt = 0;
+}
+
+/**
+ * Load all enrolled/invited voice profiles for the caller's instance (RLS-scoped).
+ *
+ * @param fresh  bypass the cache (writes pass true; mount effects do not)
+ */
+export async function loadVoiceProfiles({ fresh = false } = {}) {
   if (!supabase) return { profiles: [], error: { message: 'No backend' } };
-  const { data, error } = await supabase
-    .from('voice_profiles')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) return { profiles: [], error };
-  return { profiles: (data || []).map(profileFromRow), error: null };
+
+  if (!fresh) {
+    if (cached && Date.now() - cached.at < CACHE_MS) {
+      return { profiles: cached.profiles, error: null };
+    }
+    // A FAILURE IS NOT A VERDICT, ONLY A REASON TO WAIT (LESSONS P23).
+    // The error is never cached as a fact about the data — the next call after
+    // the cooldown tries again and self-heals. What the cooldown prevents is a
+    // dead backend being hammered by every mount, which is exactly what a
+    // restricted project saw all day.
+    if (failedAt && Date.now() - failedAt < COOLDOWN_MS) {
+      return { profiles: cached ? cached.profiles : [], error: { message: 'Voice profiles unavailable — retrying shortly.' } };
+    }
+    if (inflight) return inflight;
+  }
+
+  const run = (async () => {
+    const { data, error } = await supabase
+      .from('voice_profiles')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) {
+      failedAt = Date.now();
+      inflight = null;
+      return { profiles: [], error };
+    }
+    const profiles = (data || []).map(profileFromRow);
+    cached = { at: Date.now(), profiles };
+    failedAt = 0;
+    inflight = null;
+    return { profiles, error: null };
+  })();
+
+  if (!fresh) inflight = run;
+  return run;
 }
 
 /**
@@ -79,6 +142,7 @@ export async function enrollMyVoice({ instanceId, userId, personKey, displayName
     .select()
     .maybeSingle();
   if (error) return { error };
+  invalidateVoiceProfiles(); // consent changed — the shared cache is now stale
   return { profile: data ? profileFromRow(data) : null, error: null };
 }
 
@@ -90,5 +154,6 @@ export async function revokeMyVoice(remoteId) {
     .from('voice_profiles')
     .update({ consent_state: CONSENT.REVOKED, consent_at: new Date().toISOString() })
     .eq('id', remoteId);
+  if (!error) invalidateVoiceProfiles(); // consent withdrawn — never serve it from cache
   return { error: error || null };
 }
