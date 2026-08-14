@@ -50,6 +50,7 @@ const VERBATIM_GATED = [
   // L76 quotes less than its neighbours by design — its subject is a silence in
   // the Word, and the restraint IS the teaching — so its floor is set lower.
   ['ll76-the-sky-the-speculation-and-the-test-that-works', 75, 16, ['DLM Christian Perspective', 'video teaching', 'summary', 'canon']],
+  ['ll77-the-king-over-the-children-of-pride', 76, 60, ['William Jackson', 'video teaching', 'summary', 'frame']],
 ];
 
 describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
