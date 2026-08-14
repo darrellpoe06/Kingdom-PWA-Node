@@ -190,6 +190,16 @@ jobs:
       - name: sovereign supabase key minter selftest
         working-directory: infra/nas-supabase
         run: python3 mint_keys.py --selftest
+      # Migration parity verifier (DR-0306). The DR-0291 photos lesson in SQL:
+      # a partial migration is byte-perfect -- every copied row correct, and the
+      # stack still wrong because rows are missing. INTEGRITY IS NOT
+      # COMPLETENESS. Proven-to-catch at the three ways this bites: tables
+      # short, users left behind, and the silent one -- all 183 tables and all
+      # the data present with ZERO policies, which is a total tenancy breach
+      # (DR-0060) that "the data is all there" hides completely.
+      - name: sovereign supabase migration parity selftest
+        working-directory: infra/nas-supabase
+        run: python3 migrate_verify.py --selftest
       # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
       # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
       # steward heard values with no idea which column they were in. All 131 now
