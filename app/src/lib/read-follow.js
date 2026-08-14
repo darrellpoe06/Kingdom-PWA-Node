@@ -306,27 +306,59 @@ export function stickyTopInset(win = (typeof window !== 'undefined' ? window : n
  * Bottom-anchored fixed/sticky boxes only, so the header can never be counted
  * twice, and clamped the same way.
  */
+// Floating chrome that DECLARES itself. Anything pinned over the reading can
+// add `data-reading-chrome` and be measured without this file knowing it exists.
+// `.tts-controls` is listed because it is the reader's own panel — the single
+// most likely thing to cover the words it is reading.
+const READING_CHROME = '.tts-controls, [data-reading-chrome]';
+
 export function stickyBottomInset(win = (typeof window !== 'undefined' ? window : null),
   doc = (typeof document !== 'undefined' ? document : null)) {
-  if (!win || !doc || typeof doc.elementsFromPoint !== 'function') return 0;
+  if (!win || !doc) return 0;
   try {
     const vh = win.innerHeight || 0;
     const vw = win.innerWidth || 0;
     if (!vh || !vw) return 0;
-    let inset = 0;
-    for (const x of [vw * 0.25, vw * 0.5, vw * 0.75]) {
-      for (const el of doc.elementsFromPoint(Math.round(x), Math.round(vh - 2)) || []) {
-        if (!el || !el.getBoundingClientRect) continue;
-        let pos = '';
-        try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
-        if (pos !== 'fixed' && pos !== 'sticky') continue;
-        const r = el.getBoundingClientRect();
-        if (r.bottom >= vh - 2) {
-          const covered = vh - r.top;
-          if (covered > inset) inset = covered;
+
+    // The lowest point that is still readable; anything pinned below it eats
+    // into the reading band.
+    let boundary = vh;
+    const consider = (el) => {
+      if (!el || !el.getBoundingClientRect) return;
+      let pos;
+      try { pos = (win.getComputedStyle(el) || {}).position; } catch (_) { return; }
+      if (pos !== 'fixed' && pos !== 'sticky') return;
+      const r = el.getBoundingClientRect();
+      if (!r || r.height <= 0) return;
+      // Lower half only — a top banner is the other function's business, and
+      // counting it here would double-charge the reading band.
+      if (r.top < vh / 2 || r.top >= vh) return;
+      if (r.top < boundary) boundary = r.top;
+    };
+
+    // 1. Chrome that names itself. THE FIX: the reading pill is
+    //    `fixed bottom-4 right-4` — INSET from the bottom and pinned RIGHT, so
+    //    a point-probe along the bottom edge at 25/50/75% width missed it on
+    //    both axes and reported no bottom chrome at all. That is why it kept
+    //    covering the very sentence it was reading. Asking the element is not a
+    //    fallback for probing; it is the reliable half.
+    if (typeof doc.querySelectorAll === 'function') {
+      for (const el of doc.querySelectorAll(READING_CHROME) || []) consider(el);
+    }
+
+    // 2. Unknown chrome, found by probing — a grid rather than one line, so an
+    //    inset or edge-hugging bar is still seen. Cheap and bounded.
+    if (typeof doc.elementsFromPoint === 'function') {
+      for (const x of [vw * 0.15, vw * 0.5, vw * 0.85]) {
+        for (const dy of [2, 40, 90, 150]) {
+          const y = Math.round(vh - dy);
+          if (y <= vh / 2) continue;
+          for (const el of doc.elementsFromPoint(Math.round(x), y) || []) consider(el);
         }
       }
     }
+
+    const inset = vh - boundary;
     return Math.max(0, Math.min(inset, vh * 0.45));
   } catch (_) {
     return 0;

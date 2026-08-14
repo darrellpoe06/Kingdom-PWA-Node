@@ -72,10 +72,19 @@ export const TOP_BANNER_DWELL_MS = 12000;
 
 export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'top', dwellMs = TOP_BANNER_DWELL_MS }) {
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  // RETREATED is not DISMISSED. Dismissed is the reader's explicit "gone";
-  // retreated is the banner getting out of the Word's way by itself, and it is
-  // always one touch from coming back.
+  // HIDE MEANS "GET OUT OF MY WAY", NOT "ERASE YOURSELF".
+  //
+  // Darrell 2026-08-13: "Hide needs to be able to come back... I could push
+  // anything to see what it is talking about if I or a user dont initially see
+  // it." This REVERSES an assumption of mine — an earlier test here asserted
+  // that x Hide must leave nothing behind. That was my design opinion, and it
+  // was wrong for the person it is for: a reader who hides the line, or who
+  // never noticed it, was left with no way to find out whose house this is or
+  // that the reading is free. A dead end for a stranger on a shared link is the
+  // exact thing DR-0290 exists to remove.
+  //
+  // So there is ONE rest state, always recoverable: the faint strip. Hiding
+  // reaches it immediately; doing nothing reaches it after the dwell.
   const [retreated, setRetreated] = useState(false);
   // A READER WHO ASKS FOR IT IS NOT OVERRULED BY A TIMER.
   //
@@ -85,17 +94,19 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
   // the app's judgement about a reader who has said nothing; once the reader
   // has said something, the judgement is theirs and the timer is done.
   const [asked, setAsked] = useState(false);
+  // The END placement's invitation closes once it has been accepted — there is
+  // nothing left to invite. Separate from the top line's rest state, which is
+  // about room on the page rather than about having signed up.
+  const [signedUp, setSignedUp] = useState(false);
   const totals = useMemo(() => catalogTotals(catalog), [catalog]);
 
   useEffect(() => {
-    if (placement === 'end' || dismissed || retreated || asked) return undefined;
+    if (placement === 'end' || retreated || asked) return undefined;
     const ms = Number(dwellMs);
     if (!Number.isFinite(ms) || ms <= 0) return undefined; // 0 disables the retreat
     const t = setTimeout(() => setRetreated(true), ms);
     return () => clearTimeout(t);
-  }, [placement, dismissed, retreated, asked, dwellMs]);
-
-  if (dismissed) return null;
+  }, [placement, retreated, asked, dwellMs]);
 
   // TOP — one line. Short and sweet, because the reading is the draw.
   if (placement !== 'end') {
@@ -128,7 +139,8 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
         </span>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={() => { setRetreated(true); setAsked(true); }}
+          title="Hide this line — tap The Love Corner strip to bring it back"
           className="text-[0.625rem] uppercase tracking-wider text-[#D8D4CC] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
         >
           × Hide
@@ -138,6 +150,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
   }
 
   // END — the full explanation, after they have read the thing they came for.
+  if (signedUp) return null;
   return (
     <section aria-label="What this is, and why" className="border border-[#1A1815] bg-white mt-8 mb-4 print:hidden" data-testid="public-welcome-end">
       <div className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2">
@@ -183,7 +196,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
         </div>
       </div>
 
-      <AuthModal open={open} onClose={() => setOpen(false)} onSignedIn={() => { setOpen(false); setDismissed(true); }} mode="signup" />
+      <AuthModal open={open} onClose={() => setOpen(false)} onSignedIn={() => { setOpen(false); setSignedUp(true); }} mode="signup" />
     </section>
   );
 }

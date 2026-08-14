@@ -102,21 +102,49 @@ describe('one touch brings it back — "unless prompted"', () => {
   });
 });
 
-describe('retreated is not dismissed', () => {
-  it('× Hide removes it completely — the faint strip does not linger', () => {
+describe('Hide gets out of the way — it does not erase the answer', () => {
+  // Darrell 2026-08-13: "Hide needs to be able to come back... I could push
+  // anything to see what it is talking about if I or a user dont initially see
+  // it."
+  //
+  // THIS REVERSES AN ASSERTION THAT WAS HERE. The earlier version of this file
+  // required x Hide to leave NOTHING behind, and called that the design. It was
+  // my opinion, not his, and it was wrong for the person it is for: a stranger
+  // on a shared link who hid the line — or never noticed it — had no way left
+  // to learn whose house this is or that the reading is free. DR-0290 exists to
+  // remove exactly that dead end.
+  it('× Hide retreats to the strip instead of vanishing', () => {
     render();
     act(() => { top().querySelector('button').click(); });
-    expect(top()).toBeNull();
-    expect(rest(), 'an explicit dismissal must not leave a stub behind').toBeNull();
-    expect(text().trim()).toBe('');
+    expect(top(), 'Hide should clear the line immediately').toBeNull();
+    expect(rest(), 'Hide left the reader no way back').toBeTruthy();
   });
 
-  it('dismissing while retreated is still available and still final', () => {
+  it('and one touch after hiding brings the whole line back', () => {
+    render();
+    act(() => { top().querySelector('button').click(); });
+    act(() => { rest().querySelector('button').click(); });
+    expect(text()).toMatch(/free to read, no account/i);
+  });
+
+  it('hiding counts as the reader speaking — the timer does not re-arm', () => {
+    render();
+    act(() => { top().querySelector('button').click(); });
+    act(() => { rest().querySelector('button').click(); });
+    act(() => { vi.advanceTimersByTime(TOP_BANNER_DWELL_MS * 3); });
+    expect(top(), 'it retreated again after the reader deliberately restored it').toBeTruthy();
+  });
+
+  it('there is ALWAYS something to push — the strip is never nothing', () => {
+    // The property behind his words: whatever the reader has done, some
+    // affordance remains that answers "what is this?".
     render();
     act(() => { vi.advanceTimersByTime(TOP_BANNER_DWELL_MS); });
+    expect(container.textContent.trim(), 'the reader is left with a dead end').not.toBe('');
     act(() => { rest().querySelector('button').click(); });
     act(() => { top().querySelector('button').click(); });
-    expect(container.textContent.trim()).toBe('');
+    expect(container.textContent.trim(), 'hiding twice must not erase the answer').not.toBe('');
+    expect(rest()).toBeTruthy();
   });
 });
 

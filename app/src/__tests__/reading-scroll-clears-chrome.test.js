@@ -164,20 +164,59 @@ describe('the reader’s OWN panel is chrome too', () => {
     expect(100 - d, 'a long sentence still shows its first line').toBe(180 + 24);
   });
 
-  it('only BOTTOM-anchored chrome counts — a top banner is not double-counted', () => {
-    const banner = { getBoundingClientRect: () => ({ top: 0, bottom: 180 }) };
-    const pill = { getBoundingClientRect: () => ({ top: VH - 120, bottom: VH }) };
-    const doc = { elementsFromPoint: () => [banner, pill] };
+  it('THE MISS: the reading pill is INSET and RIGHT-aligned, and is still found', () => {
+    // `fixed bottom-4 right-4` — its bottom is vh-16, not vh, and it hugs the
+    // right edge. The first version of this measurement probed the bottom EDGE
+    // at 25/50/75% width and missed it on both axes, reporting no bottom chrome
+    // while it sat on top of the sentence being read. Asking the element by
+    // class is what makes it reliable.
+    const pill = {
+      className: 'tts-controls',
+      getBoundingClientRect: () => ({ top: VH - 136, bottom: VH - 16, height: 120 }),
+    };
+    const doc = {
+      querySelectorAll: (sel) => (/tts-controls/.test(sel) ? [pill] : []),
+      elementsFromPoint: () => [],            // deliberately blind, as it was
+    };
     const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
-    expect(stickyBottomInset(win, doc)).toBe(120);
+    expect(stickyBottomInset(win, doc), 'the inset pill was missed again').toBe(136);
+  });
+
+  it('any control can declare itself with data-reading-chrome', () => {
+    const el = { getBoundingClientRect: () => ({ top: VH - 100, bottom: VH - 20, height: 80 }) };
+    const doc = {
+      querySelectorAll: (sel) => (/data-reading-chrome/.test(sel) ? [el] : []),
+      elementsFromPoint: () => [],
+    };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc)).toBe(100);
+  });
+
+  it('a TOP banner is never counted as bottom chrome — no double charge', () => {
+    const banner = { getBoundingClientRect: () => ({ top: 0, bottom: 180, height: 180 }) };
+    const doc = { querySelectorAll: () => [banner], elementsFromPoint: () => [banner] };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc)).toBe(0);
+  });
+
+  it('the LOWEST floating control wins when several overlap', () => {
+    const pill = { getBoundingClientRect: () => ({ top: VH - 120, bottom: VH - 16, height: 104 }) };
+    const give = { getBoundingClientRect: () => ({ top: VH - 260, bottom: VH - 200, height: 60 }) };
+    const doc = { querySelectorAll: () => [pill, give], elementsFromPoint: () => [] };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc), 'the highest intruding control sets the band').toBe(260);
   });
 
   it('a static bottom element is not chrome, and a failure degrades to 0', () => {
-    const el = { getBoundingClientRect: () => ({ top: VH - 200, bottom: VH }) };
+    const el = { getBoundingClientRect: () => ({ top: VH - 200, bottom: VH, height: 200 }) };
     expect(stickyBottomInset(
       { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'static' }) },
-      { elementsFromPoint: () => [el] },
+      { querySelectorAll: () => [el], elementsFromPoint: () => [] },
     )).toBe(0);
     expect(stickyBottomInset(null, null)).toBe(0);
+    expect(stickyBottomInset(
+      { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({}) },
+      { querySelectorAll: () => { throw new Error('detached'); } },
+    )).toBe(0);
   });
 });
