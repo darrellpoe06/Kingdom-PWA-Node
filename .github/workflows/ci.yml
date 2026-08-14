@@ -180,6 +180,12 @@ jobs:
       - name: sovereign photos archive selftest
         working-directory: infra/nas-photos-archive
         run: python3 photos_archive.py --selftest
+      # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
+      # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
+      # steward heard values with no idea which column they were in. All 131 now
+      # carry scope and this holds it at zero. Captions are tracked debt.
+      - name: table a11y guard (screen-reader navigability)
+        run: node scripts/table-a11y-guard.mjs
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

@@ -1441,11 +1441,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[#1A1815]">
-                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Category</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">In</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Out</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">#</th>
+                      <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Category</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">In</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Out</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">#</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1486,23 +1486,23 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     {txView === 'history' ? (
                       /* Clickable sort headers — same key flips direction. */
                       <tr className="border-b border-[#1A1815]">
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                           <button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Description{sortArrow('payee')}</button>
                           <span className="text-[#B8B2A8]"> · </span>
                           <button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Account{sortArrow('account')}</button>
                           <span className="text-[#B8B2A8]"> · </span>
                           <button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Category{sortArrow('category')}</button>
                         </th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
                       </tr>
                     ) : (
                       <tr className="border-b border-[#1A1815]">
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
                       </tr>
                     )}
                   </thead>
@@ -1626,11 +1626,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     <table className="w-full text-xs">
                       <thead className="sticky top-0 bg-white">
                         <tr className="border-b border-[#1A1815]">
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description</th>
-                          <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Cat</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Ok?</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description</th>
+                          <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Cat</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Ok?</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1662,11 +1662,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-[#E8E4DC]">
-                        <th className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Month</th>
-                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In ledger</th>
-                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In file</th>
-                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Missing</th>
-                        <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Extra</th>
+                        <th scope="col" className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Month</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In ledger</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In file</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Missing</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Extra</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1858,18 +1858,18 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
+                <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
               </tr>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−60d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−30d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+60d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+90d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−60d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−30d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+60d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+90d</th>
               </tr>
             </thead>
             <tbody>

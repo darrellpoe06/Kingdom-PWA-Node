@@ -421,11 +421,11 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-[#5A5751] border-b border-[#E8E4DC]">
-                  <th className="py-1.5 pr-2 font-medium">Category</th>
-                  <th className="py-1.5 px-2 font-medium text-right">Spent</th>
-                  <th className="py-1.5 px-2 font-medium text-right">Plan</th>
-                  <th className="py-1.5 px-2 font-medium text-right">On pace for</th>
-                  <th className="py-1.5 pl-2 font-medium text-right">Status</th>
+                  <th scope="col" className="py-1.5 pr-2 font-medium">Category</th>
+                  <th scope="col" className="py-1.5 px-2 font-medium text-right">Spent</th>
+                  <th scope="col" className="py-1.5 px-2 font-medium text-right">Plan</th>
+                  <th scope="col" className="py-1.5 px-2 font-medium text-right">On pace for</th>
+                  <th scope="col" className="py-1.5 pl-2 font-medium text-right">Status</th>
                 </tr>
               </thead>
               <tbody>

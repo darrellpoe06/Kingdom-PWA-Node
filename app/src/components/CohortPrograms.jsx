@@ -542,16 +542,16 @@ function RhythmSection({ program, schedule, cycle }) {
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
-              <th className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 text-left text-[0.625rem] uppercase tracking-wide text-[#5A5751]">Day</th>
+              <th scope="col" className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 text-left text-[0.625rem] uppercase tracking-wide text-[#5A5751]">Day</th>
               {weeks.map((w) => (
-                <th key={w} className={`border border-[#E8E4DC] p-2 text-left text-[0.625rem] uppercase tracking-wide ${cycle.week === w ? 'bg-[#F0F4EA] text-[#3F5226]' : 'bg-[#FAF8F4] text-[#5A5751]'}`}>Week {w}</th>
+                <th scope="col" key={w} className={`border border-[#E8E4DC] p-2 text-left text-[0.625rem] uppercase tracking-wide ${cycle.week === w ? 'bg-[#F0F4EA] text-[#3F5226]' : 'bg-[#FAF8F4] text-[#5A5751]'}`}>Week {w}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {schedule.map((row) => (
               <tr key={row.day}>
-                <th className="border border-[#E8E4DC] bg-white p-2 text-left align-top">
+                <th scope="col" className="border border-[#E8E4DC] bg-white p-2 text-left align-top">
                   <div className="flex items-center gap-1.5 text-[#1A1815]"><UiIcon name={row.icon} /><span className="font-semibold">{row.day}</span></div>
                   <div className="mt-0.5 text-[0.625rem] text-[#8A857C]">{row.label}</div>
                 </th>
