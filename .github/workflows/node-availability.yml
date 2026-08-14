@@ -1,0 +1,162 @@
+# Pipeline device availability — is every always-on node actually up?
+#
+# Darrell 2026-08-14: "we need to come up with obstacles to turning off anything
+# or device we use for this pipeline including creating master accounts on each
+# cpu and using administrative procedures etc..."
+#
+# WHY THIS EXISTS. Every obstacle in infra/device-availability/RUNBOOK.md is a
+# CLAIM until something watches. On the day it was written the tailnet showed
+# livestream-main-pc and tlcrackstation dark, nothing anywhere measured that,
+# and "how often does a node go dark?" had no answer — the same shape as the
+# 2026-07-08 site blind spot (DR-0125): every safeguard watched the pipeline,
+# none ever looked at the thing itself.
+#
+# WHAT IT MEASURES. One `tailscale status --json` — the coordination server's
+# own online/offline view of every peer, the same view Darrell reads on his
+# phone. Deliberately the CHEAPEST possible probe: no per-node traffic, no SSH,
+# no credential on any church device, and nothing that could wake or disturb a
+# tower during a service.
+#
+# WHAT IT WILL NOT DO — and this is the part that keeps it worth listening to.
+# livestream-main-pc feeds the NovaStar -> wall. DR-0012 §3 gives live/creative
+# work ABSOLUTE priority over AI jobs, so an operator powering that box down is
+# CORRECT BEHAVIOUR. It is declared expected_always_on:false and its darkness is
+# reported as normal, never filed as an incident. A witness that cries wolf on
+# legitimate behaviour gets muted, and a muted gate protects nothing.
+#
+# Unknown never reads as up (DR-0076): a node absent from the tailnet is
+# `unverified`, which is loud in the report and is NOT a device fault — a runner
+# that could not join is a runner problem, and conflating the two earns the mute.
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — one tailscale join + one status read + at most one issue write
+#      per fire. Hard 6-minute timeout. No compute is spawned, nothing is
+#      mutated on any device: the whole job is read-only observation.
+#   2. LOCK   — concurrency group `node-availability`, single-instance,
+#      cancel-in-progress:false. A slow run is never stacked on.
+#   3. KILL   — set repo variable NODE_AVAILABILITY_ENABLED='false' (or disable
+#      in the Actions UI) to pause instantly. Unset => runs. This is the
+#      bounded, idempotent, non-spawning prober class that ships active
+#      (DR-0110 / DR-0254), the same class as site-health.
+name: Pipeline device availability
+
+on:
+  schedule:
+    # Every 6 hours. NOT a typo for something tighter, and NOT to be read as a
+    # guarantee: GitHub throttles scheduled workflows (site-health requests
+    # */10 and MEASURES ~67 min, range 38-154). Six hours is matched to the real
+    # change rate — "did somebody turn a tower off" moves on hours-to-days, not
+    # minutes — and to a real cost: each fire consumes an ephemeral tailnet node
+    # from TS_AUTHKEY. Four fires a day answers "how often does this happen"
+    # without burning the authkey. Dispatch it by hand the moment you actually
+    # suspect a box is dark.
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: node-availability
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling incident record
+
+jobs:
+  probe:
+    if: ${{ vars.NODE_AVAILABILITY_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+        run: |
+          if [ "$TS" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secret TS_AUTHKEY (Reusable + Ephemeral), then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      # The probe writes its report to the step summary AND to a file, so the
+      # incident body below quotes the SAME text a human read — never a
+      # re-typed claim (DR-0076 §4).
+      - name: Read the fleet (read-only)
+        if: steps.gate.outputs.go == 'true'
+        id: probe
+        run: |
+          set +e
+          tailscale status --json > /tmp/ts-status.json
+          node scripts/pipeline-availability-probe.mjs --file /tmp/ts-status.json > /tmp/fleet-report.txt 2>&1
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/fleet-report.txt
+          {
+            echo '### Pipeline device availability'
+            echo ''
+            echo '```'
+            cat /tmp/fleet-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Exit 1 = a node declared always-on is dark. Exit 2 = the reading itself
+      # was unusable (bad JSON / no peers) — surfaced, but NOT filed against the
+      # church devices, because that is a runner fault and misattributing it
+      # would train everyone to ignore this issue.
+      - name: File the incident (rolling issue, the queryable ledger)
+        if: steps.gate.outputs.go == 'true' && steps.probe.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY_FILE=/tmp/incident-body.md
+          {
+            echo "A pipeline device declared **always-on** was measured dark."
+            echo ""
+            echo '```'
+            cat /tmp/fleet-report.txt
+            echo '```'
+            echo ""
+            echo "Measured by \`tailscale status --json\` (the coordination server's own view) at $(date -u '+%Y-%m-%d %H:%M UTC')."
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo ""
+            echo "Hardening runbook: \`infra/device-availability/RUNBOOK.md\`"
+            echo "Declared fleet: \`infra/device-availability/pipeline-nodes.json\`"
+            echo ""
+            echo "---"
+            echo "_Generated by [Claude Code](https://claude.ai/code)_"
+          } > "$BODY_FILE"
+
+          EXISTING=$(gh issue list --label incident --state open \
+            --search "Pipeline device dark in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            gh issue comment "$EXISTING" --body-file "$BODY_FILE"
+          else
+            gh issue create --title "Pipeline device dark" --label incident --body-file "$BODY_FILE"
+          fi
+
+      - name: Fail the run when a node is dark
+        if: steps.gate.outputs.go == 'true' && steps.probe.outputs.code == '1'
+        run: |
+          echo "::error::A pipeline device declared always-on is dark. See the step summary and the incident issue."
+          exit 1
+
+      - name: Surface an unusable reading (runner fault, not a device fault)
+        if: steps.gate.outputs.go == 'true' && steps.probe.outputs.code == '2'
+        run: |
+          echo "::warning::The tailnet reading was unusable (bad JSON or no peers). No device conclusion drawn — unknown never reads as up (DR-0076)."

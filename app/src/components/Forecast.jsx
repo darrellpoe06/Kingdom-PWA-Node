@@ -253,11 +253,11 @@ function Scenarios({ data, currentDate, scope, months }) {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-[#5A5751] border-b border-[#E3DDD2]">
-                <th className="py-1.5 pr-2 font-medium">Scenario</th>
-                <th className="py-1.5 px-2 font-medium">Assumptions</th>
-                <th className="py-1.5 px-2 font-medium text-right">Cash by {monthLabelFrom(currentDate, months)}</th>
-                <th className="py-1.5 px-2 font-medium text-right">vs Base</th>
-                <th className="py-1.5 pl-2 font-medium text-right">Runway</th>
+                <th scope="col" className="py-1.5 pr-2 font-medium">Scenario</th>
+                <th scope="col" className="py-1.5 px-2 font-medium">Assumptions</th>
+                <th scope="col" className="py-1.5 px-2 font-medium text-right">Cash by {monthLabelFrom(currentDate, months)}</th>
+                <th scope="col" className="py-1.5 px-2 font-medium text-right">vs Base</th>
+                <th scope="col" className="py-1.5 pl-2 font-medium text-right">Runway</th>
               </tr>
             </thead>
             <tbody>

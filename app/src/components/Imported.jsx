@@ -1288,13 +1288,13 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <table className="w-full text-xs">
                       <thead className="bg-white text-[#5A5751] uppercase tracking-wider text-[0.625rem]">
                         <tr>
-                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
-                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider hover:text-[#1A1815]">Account{sortArrow('account')}</button></th>
-                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider hover:text-[#1A1815]">Payee / Description{sortArrow('payee')}</button></th>
-                          <th className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider hover:text-[#1A1815]">Category{sortArrow('category')}</button></th>
-                          <th className="text-right px-2 py-1.5"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
-                          {showBalance && <th className="text-right px-2 py-1.5">Balance</th>}
-                          <th className="w-6 px-1 py-1.5" aria-label="Details" />
+                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider hover:text-[#1A1815]">Account{sortArrow('account')}</button></th>
+                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider hover:text-[#1A1815]">Payee / Description{sortArrow('payee')}</button></th>
+                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider hover:text-[#1A1815]">Category{sortArrow('category')}</button></th>
+                          <th scope="col" className="text-right px-2 py-1.5"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
+                          {showBalance && <th scope="col" className="text-right px-2 py-1.5">Balance</th>}
+                          <th scope="col" className="w-6 px-1 py-1.5" aria-label="Details" />
                         </tr>
                       </thead>
                       <tbody>

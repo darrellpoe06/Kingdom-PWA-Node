@@ -180,6 +180,28 @@ jobs:
       - name: sovereign photos archive selftest
         working-directory: infra/nas-photos-archive
         run: python3 photos_archive.py --selftest
+      # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
+      # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
+      # steward heard values with no idea which column they were in. All 131 now
+      # carry scope and this holds it at zero. Captions are tracked debt.
+      # working-directory is required: this job defaults to `app`, and both
+      # guards live at the repo root. Without it the step resolves
+      # app/scripts/… and dies MODULE_NOT_FOUND — which is a red build, not a
+      # false green, but it does mean the a11y gate never actually ran on the
+      # commit that introduced it.
+      - name: table a11y guard (screen-reader navigability)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/table-a11y-guard.mjs
+      # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
+      # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
+      # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,
+      # OBS encoding a service) wants the card. Measured 2026-08-14: church-gpu-node
+      # held 5m while CITING DR-0012, node1 held 15m, both on a 12 GB 4070 — and
+      # one of those boxes feeds the NovaStar -> wall. A CPU/RAM-bound Ollama is
+      # out of scope and never flagged. Proven-to-catch in gpu-preemption-guard.test.js.
+      - name: gpu preemption guard (a GPU Ollama yields VRAM in ~1s)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/gpu-preemption-guard.mjs
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
