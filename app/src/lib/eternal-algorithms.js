@@ -293,6 +293,35 @@ export function seedIfEmpty(library, nowMs = 0) {
 // =============================================================================
 export const SEED_ALGORITHMS = [
   {
+    // SPOKEN BY DARRELL, 2026-08-14, mid-outage, locked out of his own apps:
+    // "If Yahweh becomes your problem then your stuck in the problem..."
+    // Captured per the Layer 0 binding rule (spoken teachings are build input).
+    // Distilled FROM HIS WORDS, not replaced with generic theology. Every verse
+    // below is VERBATIM KJV from the in-app sovereign text (app/public/bible/kjv),
+    // fetched not recalled (DR-0076); "the LORD"/"God" inside a quotation are left
+    // exactly as written and are never overwritten with "Yahweh" (DR-0076 bright line).
+    name: 'Never Make Yahweh the Problem (or you stay in it)',
+    fourD: {
+      summary: 'Darrell, 2026-08-14: "If Yahweh becomes your problem then your stuck in the problem." '
+        + 'The Word says it as a mechanism, not a mood: "The foolishness of man perverteth his way: and his heart fretteth against the LORD" (Proverbs 19:3, KJV) — the man ruins his own road, then frets against the One who is the only way off it. '
+        + 'The wilderness is that sentence made visible. Israel "murmured against Moses and against Aaron... Would God that we had died in the land of Egypt!" (Numbers 14:2), and the outcome was to "wander in the wilderness forty years" (Numbers 14:33) — literally stuck IN the problem they blamed Him for. '
+        + 'Job is the counter-witness and the way out: at the bottom of everything he says "Though he slay me, yet will I trust in him" (Job 13:15). Yahweh never became Job\'s problem, so Job was never stuck. '
+        + '"Wherefore doth a living man complain, a man for the punishment of his sins?" (Lamentations 3:39).',
+      scripture: 'Proverbs 19:3; Numbers 14:2, 14:33; Job 13:15; Lamentations 3:39',
+    },
+    threeD: {
+      summary: 'The moment you put Yahweh in the dock, you have removed your own advocate — there is no appeal left, because the only exit from the trouble is the One you are now prosecuting. '
+        + 'It is not that complaining is impolite; it is that it is STRUCTURALLY self-defeating. Fretting against Him converts a passage into a residence. '
+        + 'Practically: take the trouble TO Him instead of laying it AT Him. Ask what He is building, not why He failed. The difference between forty years and a crossing is not the wilderness — it is who you decided the wilderness was evidence about.',
+    },
+    outcome: 'You keep the only door that opens. The trouble stays a passage instead of becoming an address — you go THROUGH it rather than settling in it, because the One you are trusting is the One holding the exit.',
+    tags: ['trust', 'wilderness', 'murmuring', 'suffering', 'spoken-by-darrell', 'stuck'],
+    links: [
+      { label: 'His Will Is Being Done (lesson movement)', where: 'Church › Learn' },
+      { label: 'The Source of Answers (Worldview spine)', where: 'CLAUDE.md' },
+    ],
+  },
+  {
     name: 'Response over Circumstance (90/10)',
     fourD: {
       summary: 'Joy is located in the response, not the event. "Count it all joy, my brothers, when you meet trials of various kinds" (Jas 1:2, ESV) — the trial is not the joy; the counting is. The testing is assigned to PRODUCE steadfastness so you become "perfect and complete, lacking in nothing" (Jas 1:3-4).',

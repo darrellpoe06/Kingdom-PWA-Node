@@ -1,0 +1,218 @@
+# =============================================================================
+# nas-supabase -- the sovereign Supabase stack on the NAS
+# =============================================================================
+# Darrell 2026-08-14: "I'm not paying them... other options!!!!!!!?" then
+# "start the NAS supabase stack."
+#
+# WHY. The hosted free tier restricted the project for exceeding its egress
+# quota and locked all 23 users out of all four apps for 86 hours. Self-hosted
+# Supabase serves the IDENTICAL API, which is what makes this a swap rather
+# than a rewrite -- measured in the app: 196 `.from()`, 68 `.auth`, 64 `.rpc()`,
+# 3 `.storage`, 2 `.channel`. All of them keep working against this stack.
+#
+# BINDING RULES THIS STACK OBEYS:
+#   * EVERY port binds 127.0.0.1 ONLY. Reached over LAN/Tailscale via Caddy,
+#     never the public net directly (the church-gpu-node rule, and the same
+#     shape as poetech-mcp/scribe/photo-server).
+#   * Ports chosen clear of every service measured live on this NAS
+#     (3001 3701 5678 8081 8099 8771 8772 8790 8791 8795 11434 24000):
+#       8800 kong (the API URL the app points at)
+#       5433 postgres (5432 left alone -- DSM may want it)
+#       8801 studio
+#   * Container names are prefixed `supabase-` and the network is its own, so
+#     nothing here can collide with n8n / ollama / ntfy / ytzero.
+#   * Data lives under /volume1/docker/supabase, beside the other stacks.
+#
+# NOTHING POINTS AT THIS YET. Standing it up costs nothing and proves it works;
+# the cutover (VITE_SUPABASE_URL + anon key) is a separate deliberate step, so
+# a half-proven stack can never take the family's app down.
+#
+# Secrets come from .env, minted ONCE by mint_keys.py and never re-minted over
+# a live stack (re-minting JWT_SECRET signs out every user at once).
+services:
+  db:
+    image: supabase/postgres:15.8.1.060
+    container_name: supabase-db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: 3600
+    volumes:
+      - /volume1/docker/supabase/db:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # Auth. THE reason self-hosting is a swap and not a rewrite -- 68 call sites
+  # in the app use supabase.auth, and GoTrue serves that exact API.
+  auth:
+    image: supabase/gotrue:v2.177.0
+    container_name: supabase-auth
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${SUPABASE_PUBLIC_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_DISABLE_SIGNUP: "false"
+      # SMTP is the ONE dependency self-hosting does not remove: magic links
+      # have to leave the building. Unset => email sign-in is disabled and the
+      # stack still comes up healthy, so a missing sender never blocks the
+      # standup. Phone+PIN and password paths do not need it.
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_MAILER_AUTOCONFIRM: ${MAILER_AUTOCONFIRM}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9999/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # The REST API behind all 196 `.from()` calls. RLS is enforced by Postgres
+  # itself, so DR-0060's tenancy guard keeps working unchanged.
+  rest:
+    image: postgrest/postgrest:v12.2.12
+    container_name: supabase-rest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage,graphql_public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+
+  realtime:
+    image: supabase/realtime:v2.34.47
+    container_name: supabase-realtime
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_ENC_KEY: ${VAULT_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+
+  storage:
+    image: supabase/storage-api:v1.19.3
+    container_name: supabase-storage
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+    volumes:
+      - /volume1/docker/supabase/storage:/var/lib/storage
+
+  meta:
+    image: supabase/postgres-meta:v0.86.1
+    container_name: supabase-meta
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # The single front door. THIS is the URL the app points at on cutover --
+  # one origin serving /auth, /rest, /realtime, /storage exactly as the hosted
+  # product does, which is why the client library needs no changes.
+  kong:
+    image: kong:2.8.1
+    container_name: supabase-kong
+    restart: unless-stopped
+    depends_on:
+      - auth
+      - rest
+    ports:
+      - "127.0.0.1:8800:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    volumes:
+      - ./kong.yml:/home/kong/kong.yml:ro
+
+  studio:
+    image: supabase/studio:2025.06.30-sha-6f5982d
+    container_name: supabase-studio
+    restart: unless-stopped
+    depends_on:
+      - meta
+    ports:
+      - "127.0.0.1:8801:3000"
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: PoeTech
+      DEFAULT_PROJECT_NAME: PoeTech Family OS (sovereign)
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+
+networks:
+  default:
+    name: supabase-net

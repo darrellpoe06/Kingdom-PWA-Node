@@ -37,6 +37,47 @@ an incident. It is hardened for unattended *recovery*, never against a human.
 
 ---
 
+## The DR-0108 challenge — run BEFORE anything below is called his-hand
+
+COMPREHENSIVE-REVIEW-STANDARD dimension 5 requires this challenge before any
+step is classified as human work, and **the first version of this runbook
+skipped it.** It shipped six layers of paste-ready PowerShell as Darrell's
+afternoon, on the same day the remote-hands channel was proven twice
+(`nas-health.yml`, runs 31817289739 and the branch dispatch). That is the fake
+boundary the standard names. Corrected here.
+
+**The channels, named, and whether each drives this work:**
+
+| Channel | Drives this? |
+| --- | --- |
+| **Remote-hands** (`nas-bootstrap.yml` / `nas-health.yml` — a runner joins the tailnet and SSHes) | **YES.** Both towers are tailnet peers with known SSH users (`creed@100.69.19.13`, `itdepartment@100.72.5.90`, both proven by a real `npm ci + vite build` 2026-07-08). Windows OpenSSH runs PowerShell, so every `Set-Service`, `sc.exe failure`, `powercfg`, registry write and `Get-NetAdapter` block below is remotely drivable. |
+| **DB lane** (`db-migrate` / `rls-isolation`) | No — nothing here touches the database. |
+| **Deploy lane** | No — nothing here ships app code. |
+
+**Therefore Layers 1–4 are CHANNEL-DRIVABLE and must be built as a workflow,
+not handed over.** Carrying them as manual steps is a review miss, not a
+delivery.
+
+**The lawful human tail — genuinely only Darrell, and only these:**
+
+1. **The `poetech-svc` password** — a secret value onto a physical device. It
+   must never be echoed into a public Actions log, which is exactly why the
+   Layer 1 block below uses `Read-Host -AsSecureString` rather than a parameter.
+2. **The BIOS Wake-on-LAN setting** — a POST-time firmware screen. No channel
+   reaches a machine before its OS boots.
+3. **The physical steward labels** — printing a card and putting it on a box.
+
+Everything else on this page is the channel's work. The PowerShell blocks below
+are kept because they are the exact commands the channel will run, and because
+they remain the right fallback when a tower is off the tailnet — but they are
+**not** the intended delivery, and nothing here should be scheduled as Darrell's
+time until the workflow is proven to fail against that box.
+
+`scripts/his-hand-guard.mjs` now fails the build on a runbook that hands over
+commands without this section, and it reads `infra/` — it did not before, and
+its `HUMAN_ONLY` pattern could not even match the hyphenated spelling `his-hand`,
+so this page scanned clean while being the thing the rule exists to catch.
+
 ## What PowerShell can and cannot reach
 
 Verified, not assumed:
