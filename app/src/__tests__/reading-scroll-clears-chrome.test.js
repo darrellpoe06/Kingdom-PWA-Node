@@ -29,7 +29,7 @@
 // the rects a real browser would produce — which is the only way this rule is
 // checkable at all.
 import { describe, it, expect } from 'vitest';
-import { readingScrollDelta, readingMargin, stickyTopInset } from '../lib/read-follow.js';
+import { readingScrollDelta, readingMargin, stickyTopInset, stickyBottomInset } from '../lib/read-follow.js';
 
 const VH = 900;
 
@@ -134,5 +134,89 @@ describe('the chrome height is measured, never assumed', () => {
   it('a measurement that throws degrades to 0 rather than breaking the read', () => {
     const doc = { elementsFromPoint: () => { throw new Error('detached'); } };
     expect(stickyTopInset({ innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({}) }, doc)).toBe(0);
+  });
+});
+
+describe('the reader’s OWN panel is chrome too', () => {
+  // Darrell 2026-08-13, after the top fix landed: "now blocked by the reader."
+  // Clearing the banner only to park the sentence under the reading pill is the
+  // same defect upside down — and this fix introduced it, so it ships with it.
+  it('a sentence under the reading pill is lifted clear of it', () => {
+    // Pill is 120px tall at the bottom; the sentence ends inside it.
+    const d = readingScrollDelta({
+      rangeTop: 800, rangeBottom: 860, topInset: 180, bottomInset: 120, viewportHeight: VH, margin: 24,
+    });
+    expect(d).toBeGreaterThan(0);
+    expect(860 - d, 'the sentence must end above the pill, not behind it').toBe(VH - 120 - 24);
+  });
+
+  it('without the pill the same sentence would NOT have moved', () => {
+    // The witness: this is the case the top-only fix left broken.
+    expect(readingScrollDelta({
+      rangeTop: 800, rangeBottom: 860, topInset: 180, bottomInset: 0, viewportHeight: VH, margin: 24,
+    })).toBe(0);
+  });
+
+  it('the reading band is squeezed from BOTH ends, and top still wins for a tall sentence', () => {
+    const d = readingScrollDelta({
+      rangeTop: 100, rangeBottom: 1400, topInset: 180, bottomInset: 120, viewportHeight: VH, margin: 24,
+    });
+    expect(100 - d, 'a long sentence still shows its first line').toBe(180 + 24);
+  });
+
+  it('THE MISS: the reading pill is INSET and RIGHT-aligned, and is still found', () => {
+    // `fixed bottom-4 right-4` — its bottom is vh-16, not vh, and it hugs the
+    // right edge. The first version of this measurement probed the bottom EDGE
+    // at 25/50/75% width and missed it on both axes, reporting no bottom chrome
+    // while it sat on top of the sentence being read. Asking the element by
+    // class is what makes it reliable.
+    const pill = {
+      className: 'tts-controls',
+      getBoundingClientRect: () => ({ top: VH - 136, bottom: VH - 16, height: 120 }),
+    };
+    const doc = {
+      querySelectorAll: (sel) => (/tts-controls/.test(sel) ? [pill] : []),
+      elementsFromPoint: () => [],            // deliberately blind, as it was
+    };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc), 'the inset pill was missed again').toBe(136);
+  });
+
+  it('any control can declare itself with data-reading-chrome', () => {
+    const el = { getBoundingClientRect: () => ({ top: VH - 100, bottom: VH - 20, height: 80 }) };
+    const doc = {
+      querySelectorAll: (sel) => (/data-reading-chrome/.test(sel) ? [el] : []),
+      elementsFromPoint: () => [],
+    };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc)).toBe(100);
+  });
+
+  it('a TOP banner is never counted as bottom chrome — no double charge', () => {
+    const banner = { getBoundingClientRect: () => ({ top: 0, bottom: 180, height: 180 }) };
+    const doc = { querySelectorAll: () => [banner], elementsFromPoint: () => [banner] };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc)).toBe(0);
+  });
+
+  it('the LOWEST floating control wins when several overlap', () => {
+    const pill = { getBoundingClientRect: () => ({ top: VH - 120, bottom: VH - 16, height: 104 }) };
+    const give = { getBoundingClientRect: () => ({ top: VH - 260, bottom: VH - 200, height: 60 }) };
+    const doc = { querySelectorAll: () => [pill, give], elementsFromPoint: () => [] };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyBottomInset(win, doc), 'the highest intruding control sets the band').toBe(260);
+  });
+
+  it('a static bottom element is not chrome, and a failure degrades to 0', () => {
+    const el = { getBoundingClientRect: () => ({ top: VH - 200, bottom: VH, height: 200 }) };
+    expect(stickyBottomInset(
+      { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'static' }) },
+      { querySelectorAll: () => [el], elementsFromPoint: () => [] },
+    )).toBe(0);
+    expect(stickyBottomInset(null, null)).toBe(0);
+    expect(stickyBottomInset(
+      { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({}) },
+      { querySelectorAll: () => { throw new Error('detached'); } },
+    )).toBe(0);
   });
 });

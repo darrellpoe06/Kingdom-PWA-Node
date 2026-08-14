@@ -30,7 +30,7 @@
 //
 // It shows ONLY to a signed-out visitor on a public church link. A member who
 // is signed in never sees it, and it never covers the content.
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import AuthModal from './AuthModal.jsx';
 
@@ -51,14 +51,84 @@ export function catalogTotals(catalog = LEARN_CATALOG) {
   return { courses: list.length, lessons };
 }
 
-export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'top' }) {
+// How long the top line stays before it steps aside on its own.
+//
+// Darrell 2026-08-13: "can the banner leave after a certain time for the Word
+// or lesson to be most dominant?" and "still before for like the first
+// paragraph then move unless prompted for like touching the faint hover."
+//
+// This is DR-0290's own rule finished rather than a new one. That decision
+// already says neither placement may get "between a reader and what they came
+// for" — but the top line could only be moved by TAPPING × Hide, which is a
+// fight of its own on a phone, and the reader who does nothing keeps a black
+// bar over the Word for the whole lesson.
+//
+// Roughly the time a first paragraph takes at an unhurried pace. It is a
+// judgement, not a measurement, and it is the one number here that could be
+// wrong for a slow reader — which is exactly why retreating is REVERSIBLE and
+// silent rather than a dismissal: the affordance stays, and one touch brings
+// the line back for as long as it is wanted.
+export const TOP_BANNER_DWELL_MS = 12000;
+
+export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'top', dwellMs = TOP_BANNER_DWELL_MS }) {
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  // HIDE MEANS "GET OUT OF MY WAY", NOT "ERASE YOURSELF".
+  //
+  // Darrell 2026-08-13: "Hide needs to be able to come back... I could push
+  // anything to see what it is talking about if I or a user dont initially see
+  // it." This REVERSES an assumption of mine — an earlier test here asserted
+  // that x Hide must leave nothing behind. That was my design opinion, and it
+  // was wrong for the person it is for: a reader who hides the line, or who
+  // never noticed it, was left with no way to find out whose house this is or
+  // that the reading is free. A dead end for a stranger on a shared link is the
+  // exact thing DR-0290 exists to remove.
+  //
+  // So there is ONE rest state, always recoverable: the faint strip. Hiding
+  // reaches it immediately; doing nothing reaches it after the dwell.
+  const [retreated, setRetreated] = useState(false);
+  // A READER WHO ASKS FOR IT IS NOT OVERRULED BY A TIMER.
+  //
+  // Caught by this component's own test: the retreat effect re-armed the moment
+  // `retreated` went back to false, so tapping the faint strip showed the line
+  // and then took it away again a few seconds later. Retreating on its own is
+  // the app's judgement about a reader who has said nothing; once the reader
+  // has said something, the judgement is theirs and the timer is done.
+  const [asked, setAsked] = useState(false);
+  // The END placement's invitation closes once it has been accepted — there is
+  // nothing left to invite. Separate from the top line's rest state, which is
+  // about room on the page rather than about having signed up.
+  const [signedUp, setSignedUp] = useState(false);
   const totals = useMemo(() => catalogTotals(catalog), [catalog]);
-  if (dismissed) return null;
+
+  useEffect(() => {
+    if (placement === 'end' || retreated || asked) return undefined;
+    const ms = Number(dwellMs);
+    if (!Number.isFinite(ms) || ms <= 0) return undefined; // 0 disables the retreat
+    const t = setTimeout(() => setRetreated(true), ms);
+    return () => clearTimeout(t);
+  }, [placement, retreated, asked, dwellMs]);
 
   // TOP — one line. Short and sweet, because the reading is the draw.
   if (placement !== 'end') {
+    // RETREATED — a faint strip that says whose house this is without taking
+    // the room. Kept as a real button so it is reachable by keyboard and by a
+    // screen reader, not a hover-only affordance that a touch device can never
+    // find (the "faint hover" has to work with a finger).
+    if (retreated) {
+      return (
+        <div className="print:hidden" data-testid="public-welcome-rest">
+          <button
+            type="button"
+            onClick={() => { setRetreated(false); setAsked(true); }}
+            aria-label="Show who this is from — The Love Corner, free to read, no account"
+            title="The Love Corner — free to read, no account"
+            className="w-full border-b border-[#E8E4DC] bg-[#1A1815] text-[#8A857C] hover:text-[#FAF8F4] focus:text-[#FAF8F4] px-4 py-0.5 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            <span className="text-[0.5rem] uppercase tracking-[0.3em]" style={MONO}>The Love Corner</span>
+          </button>
+        </div>
+      );
+    }
     return (
       <div
         className="border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-3 flex-wrap print:hidden"
@@ -69,7 +139,8 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
         </span>
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={() => { setRetreated(true); setAsked(true); }}
+          title="Hide this line — tap The Love Corner strip to bring it back"
           className="text-[0.625rem] uppercase tracking-wider text-[#D8D4CC] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
         >
           × Hide
@@ -79,6 +150,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
   }
 
   // END — the full explanation, after they have read the thing they came for.
+  if (signedUp) return null;
   return (
     <section aria-label="What this is, and why" className="border border-[#1A1815] bg-white mt-8 mb-4 print:hidden" data-testid="public-welcome-end">
       <div className="bg-[#1A1815] text-[#FAF8F4] px-4 py-2">
@@ -124,7 +196,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
         </div>
       </div>
 
-      <AuthModal open={open} onClose={() => setOpen(false)} onSignedIn={() => { setOpen(false); setDismissed(true); }} mode="signup" />
+      <AuthModal open={open} onClose={() => setOpen(false)} onSignedIn={() => { setOpen(false); setSignedUp(true); }} mode="signup" />
     </section>
   );
 }

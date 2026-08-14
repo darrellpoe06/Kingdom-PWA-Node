@@ -19,6 +19,11 @@
 #                  tip (catches the silent-stale class, 2026-07-06 incident).
 #   4. ISOLATED  — the same checks against poetech-app.pages.dev, so a failure
 #                  localizes to the custom domain layer vs the Pages project.
+#   5. USABLE    — the BACKEND answers on the path the app uses (DR-0303).
+#                  Added 2026-08-14 after every account across all four apps was
+#                  locked out for ~20 hours by a Supabase 402
+#                  `exceed_egress_quota` while checks 1-4 stayed green: the HTML
+#                  served perfectly the entire time. Site-up is not app-usable.
 #
 # WHAT IT DOES WITH A FAILURE:
 #   - DOWN/BROKEN: opens (or comments on) the single rolling "site-health
@@ -64,6 +69,10 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
       UA: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+      # The backend probe (step 7) walks the same path the app walks. The anon
+      # key is the public client key already shipped in the bundle.
+      SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
       - name: Probe the live site
         id: probe
@@ -153,6 +162,61 @@ jobs:
           note "- \`GET /property-history\` -> **$CODE** (401 = alive+gated; 000/5xx = down)"
           case "$HIST_CODE" in 200|400|401|403|404) : ;; *) echo "::warning::history bridge DOWN — /property-history returned HTTP $HIST_CODE" ;; esac
 
+          # 7. USABLE (DR-0303): the BACKEND answers, not just the HTML.
+          #
+          # 2026-08-14: every account across all four apps was signed out and
+          # could not sign back in for ~20 hours, and NOTHING here moved —
+          # because Cloudflare kept serving the shell perfectly while Supabase
+          # answered HTTP 402 `exceed_egress_quota` on /auth/v1/token,
+          # /auth/v1/signup and every /rest/v1 path. Checks 1-5 above all
+          # measure HTML. A locked front door BEHIND the HTML is invisible to
+          # every one of them.
+          #
+          # This is P31 one layer down: deploy-green is not site-up (why this
+          # file exists), and site-up is not APP-USABLE (why this step exists).
+          #
+          # It uses the anon key so it walks the exact path the app walks — a
+          # keyless probe would only prove the host resolves. The key is the
+          # public client key already shipped in the bundle; it grants nothing
+          # RLS does not already allow an anonymous visitor.
+          #
+          # A quota/billing restriction locks EVERY user out of EVERY app, so
+          # unlike the photo path (a family NAS that can legitimately be off)
+          # this goes on the incident ledger, not a warning.
+          BACKEND_CODE="unknown"
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
+            sb_fetch() {
+              BODY_FILE=$(mktemp)
+              # NO `|| echo 000` here. curl ALREADY prints 000 on a connection
+              # failure, so the fallback concatenated into "000000" — which
+              # missed both the retry test and the `000` case arm below. Caught
+              # by running this step against a dead port before shipping it.
+              CODE=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' --max-time 20 \
+                -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+                "$1" 2>/dev/null)
+              [ -z "$CODE" ] && CODE="000"
+            }
+            sb_fetch "${SB_URL%/}/auth/v1/health"
+            # One retry, so a single dropped connection is not an outage.
+            if [ "$CODE" = "000" ]; then sleep 5; sb_fetch "${SB_URL%/}/auth/v1/health"; fi
+            BACKEND_CODE="$CODE"
+            violation=$(grep -oE 'exceed_[a-z_]+|restricted due to[^"]*' "$BODY_FILE" 2>/dev/null | head -1 || true)
+            note "- \`GET auth/v1/health\` (anon) -> **$CODE**${violation:+ — \`$violation\`}"
+            case "$CODE" in
+              200|401) : ;; # answering; 401 means alive and gated
+              402) add_fail "BACKEND RESTRICTED — auth returned HTTP 402${violation:+ ($violation)}: every user is locked out of every app until the plan/spend cap is resolved" ;;
+              000) add_fail "backend unreachable — auth/v1/health did not answer (two attempts)" ;;
+              *)   add_fail "backend auth returned HTTP $CODE${violation:+ ($violation)}" ;;
+            esac
+          else
+            # UNKNOWN NEVER READS AS HEALTHY (DR-0076). Missing secrets means
+            # this dimension was not measured — say so loudly rather than let
+            # a green run imply the backend was checked.
+            note "- backend probe: **NOT MEASURED** (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY unset)"
+            echo "::warning::backend probe skipped — secrets unset, so this run does NOT prove the backend is usable"
+          fi
+
+          echo "backend_code=$BACKEND_CODE" >> "$GITHUB_OUTPUT"
           echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
           echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
@@ -179,11 +243,12 @@ jobs:
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
           SERVED: ${{ steps.probe.outputs.served_sha }}
           MAIN: ${{ steps.probe.outputs.main_sha }}
+          BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
         run: |
           set -uo pipefail
           title="site-health: poetech.us failing the outside-in probe"
-          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS}. pages.dev shell: HTTP ${PAGES_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
           if [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"

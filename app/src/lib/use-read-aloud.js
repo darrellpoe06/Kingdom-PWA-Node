@@ -178,6 +178,35 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
 
   // The one play path, honoring the global voice preference.
   // `title` names the reading on the phone's lock screen / media notification.
+  // CLAIM THE AUDIO SESSION INSIDE THE TAP — the caller must be able to do this
+  // BEFORE it awaits anything.
+  //
+  // Darrell 2026-08-13: "I cant listen to a lesson in the background yet."
+  // `read()` already claimed the session before its own awaits, and that was
+  // correct but not sufficient: BOTH play paths in TTSControl reveal collapsed
+  // content and `await settled(...)` — up to ten double-rAF frames — before they
+  // ever call read(). By then the user's gesture is spent, the browser refuses
+  // to start the silent looping element, the page never becomes an audio
+  // session, and a backgrounded tab is frozen mid-sentence. The rule was written
+  // here; the call site defeated it.
+  //
+  // start() is idempotent (it begins OR keeps the loop), so claiming early and
+  // again inside read() is safe — and claiming early is the only thing that can
+  // work, because a gesture cannot be re-entered once awaited.
+  const claimAudio = useCallback((title) => {
+    try {
+      const session = bg();
+      session.start();
+      session.describe({ title: title || (typeof document !== 'undefined' && document.title) || 'Reading' });
+      session.onControl({
+        onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
+        onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
+        onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
+      });
+      session.setState('playing');
+    } catch (_) { /* no audio session is a degraded read, never a broken one */ }
+  }, [bg]);
+
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
@@ -185,15 +214,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     stopCloud();
     // Claim the audio session INSIDE the user's tap — after an await the
     // gesture is spent and the browser refuses to start it.
-    const session = bg();
-    session.start();
-    session.describe({ title: title || (typeof document !== 'undefined' && document.title) || 'Reading' });
-    session.onControl({
-      onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
-      onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
-      onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
-    });
-    session.setState('playing');
+    claimAudio(title);
 
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
@@ -271,7 +292,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, bg]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -279,6 +300,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
 
   return {
     supported: tts.supported,
+    // The synchronous claim a play handler makes INSIDE the tap, before it
+    // awaits a reveal. Omitting it here is what made claimAudio undefined at
+    // the call site and threw on every press — caught by the reader suite.
+    claimAudio,
     isReading: tts.isReading || cloudPlaying,
     isPaused: tts.isPaused || cloudPaused,
     rate: tts.rate,

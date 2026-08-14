@@ -201,3 +201,47 @@ describe('the page-read fallback strips chrome', () => {
     page.remove();
   });
 });
+
+// ── the two lists that decide the SAME words ────────────────────────────────
+// Darrell 2026-08-14, on Eternal Algorithms: "this page just reads without a
+// reader highlighting the words."
+//
+// The DR-0299 fix taught readablePageText() to strip chrome — but that is only
+// the FALLBACK. The primary page path speaks buildFollowMap(main).text, and the
+// map used its own, much narrower SKIP_SELECTOR. So the furniture was still
+// spoken on every page-read surface, and every button label also became a
+// mapped RANGE, putting highlights on chrome instead of the Word.
+//
+// Same disease as the rest of this codebase's day: two places that must agree,
+// kept in agreement by nothing. This derives one from the other.
+describe('the spoken text and the mapped text exclude the SAME chrome', () => {
+  const FOLLOW = readFileSync(join(HERE, '..', 'lib', 'read-follow.js'), 'utf8');
+  const listFor = (src, name) => {
+    const i = src.indexOf(`const ${name} = [`);
+    if (i < 0) return null;
+    const body = src.slice(i, src.indexOf('].join', i));
+    return new Set((body.match(/'([^']+)'/g) || []).map((s) => s.slice(1, -1)));
+  };
+
+  it('both are real, derivable lists — not one array and one hand-written string', () => {
+    expect(listFor(TTS_SRC, 'CHROME_SELECTOR'), 'CHROME_SELECTOR is not a list').toBeTruthy();
+    expect(listFor(FOLLOW, 'SKIP_SELECTOR'), 'SKIP_SELECTOR is not a list').toBeTruthy();
+  });
+
+  it('every control the SPOKEN text strips is also excluded from the MAP', () => {
+    const spoken = listFor(TTS_SRC, 'CHROME_SELECTOR');
+    const mapped = listFor(FOLLOW, 'SKIP_SELECTOR');
+    const missing = [...spoken].filter((sel) => !mapped.has(sel));
+    expect(
+      missing,
+      `the map would still speak and highlight: ${missing.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('the interactive layer really is in both', () => {
+    const mapped = listFor(FOLLOW, 'SKIP_SELECTOR');
+    for (const sel of ['nav', 'button', '[role="tablist"]', '[role="menu"]']) {
+      expect(mapped, `${sel} is mapped, so a highlight can land on it`).toContain(sel);
+    }
+  });
+});

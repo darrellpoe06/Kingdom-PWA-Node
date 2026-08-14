@@ -43,7 +43,32 @@ import { motionBehavior } from './gentle-motion.js';
 // `.ts-chrome-region` / `[role="dialog"]` are the app's existing names for
 // floating chrome. A visibility rule for PAPER never again decides what a
 // person is allowed to hear.
-const SKIP_SELECTOR = '.tts-controls, [data-read-skip], [aria-hidden="true"], script, style, noscript, .install-prompt, .update-confirm, .ts-chrome-region, [role="dialog"]';
+// CONTROLS ARE NOT CONTENT — and THIS is the list that decides it.
+//
+// Darrell 2026-08-14, on Eternal Algorithms: "this page just reads without a
+// reader highlighting the words." Tracing that exposed a miss in the DR-0299
+// fix: that change taught `readablePageText()` to strip nav/buttons/menus, but
+// `readablePageText` is only the FALLBACK. The primary page path speaks
+// `buildFollowMap(main).text` — alignment by construction — and the map was
+// built with THIS selector, which excluded the reader's own panel and dialogs
+// but not a single button, nav, or tab strip.
+//
+// So on every page-read surface (everything except the three that register
+// their own reading) the listener still heard the furniture, and every button
+// label also became a mapped RANGE — highlights landing on chrome instead of
+// the Word.
+//
+// The two lists must agree, because the same words are spoken and highlighted.
+// They are kept in step by a test that derives one from the other rather than
+// by a promise in a comment — the failure mode this codebase keeps repeating.
+const SKIP_SELECTOR = [
+  '.tts-controls', '.feedback-modal', '[data-read-skip]', '[aria-hidden="true"]',
+  'script', 'style', 'noscript',
+  '.install-prompt', '.update-confirm', '.ts-chrome-region',
+  'nav', 'button', 'select', 'input', 'textarea',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]', '[role="dialog"]',
+  '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
+].join(', ');
 
 const isWs = (ch) => /\s/.test(ch);
 
@@ -293,8 +318,80 @@ export function stickyTopInset(win = (typeof window !== 'undefined' ? window : n
  * well placed — a sentence that is merely low in the viewport is not moved,
  * because re-centring on every sentence makes the page twitch under the reader.
  */
+/**
+ * The same measurement for the BOTTOM — because the reader's own panel is chrome.
+ *
+ * Darrell 2026-08-13, after the top fix landed: "now blocked by the reader."
+ * The reading pill ("READING… · KEEPS GOING") floats over the bottom of the
+ * screen, and so do GIVE and FEEDBACK. Clearing the banner only to park the
+ * sentence under the reader's own controls is the same defect with the page
+ * turned upside down — and it was introduced by fixing the top half, which is
+ * why it ships with it.
+ *
+ * Bottom-anchored fixed/sticky boxes only, so the header can never be counted
+ * twice, and clamped the same way.
+ */
+// Floating chrome that DECLARES itself. Anything pinned over the reading can
+// add `data-reading-chrome` and be measured without this file knowing it exists.
+// `.tts-controls` is listed because it is the reader's own panel — the single
+// most likely thing to cover the words it is reading.
+const READING_CHROME = '.tts-controls, [data-reading-chrome]';
+
+export function stickyBottomInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc) return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+
+    // The lowest point that is still readable; anything pinned below it eats
+    // into the reading band.
+    let boundary = vh;
+    const consider = (el) => {
+      if (!el || !el.getBoundingClientRect) return;
+      let pos;
+      try { pos = (win.getComputedStyle(el) || {}).position; } catch (_) { return; }
+      if (pos !== 'fixed' && pos !== 'sticky') return;
+      const r = el.getBoundingClientRect();
+      if (!r || r.height <= 0) return;
+      // Lower half only — a top banner is the other function's business, and
+      // counting it here would double-charge the reading band.
+      if (r.top < vh / 2 || r.top >= vh) return;
+      if (r.top < boundary) boundary = r.top;
+    };
+
+    // 1. Chrome that names itself. THE FIX: the reading pill is
+    //    `fixed bottom-4 right-4` — INSET from the bottom and pinned RIGHT, so
+    //    a point-probe along the bottom edge at 25/50/75% width missed it on
+    //    both axes and reported no bottom chrome at all. That is why it kept
+    //    covering the very sentence it was reading. Asking the element is not a
+    //    fallback for probing; it is the reliable half.
+    if (typeof doc.querySelectorAll === 'function') {
+      for (const el of doc.querySelectorAll(READING_CHROME) || []) consider(el);
+    }
+
+    // 2. Unknown chrome, found by probing — a grid rather than one line, so an
+    //    inset or edge-hugging bar is still seen. Cheap and bounded.
+    if (typeof doc.elementsFromPoint === 'function') {
+      for (const x of [vw * 0.15, vw * 0.5, vw * 0.85]) {
+        for (const dy of [2, 40, 90, 150]) {
+          const y = Math.round(vh - dy);
+          if (y <= vh / 2) continue;
+          for (const el of doc.elementsFromPoint(Math.round(x), y) || []) consider(el);
+        }
+      }
+    }
+
+    const inset = vh - boundary;
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
 export function readingScrollDelta({
-  rangeTop = 0, rangeBottom = 0, topInset = 0, viewportHeight = 0, margin = 24,
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24,
 } = {}) {
   const vh = Number(viewportHeight) || 0;
   if (!vh) return 0;
@@ -302,7 +399,7 @@ export function readingScrollDelta({
   const top = Number(rangeTop) || 0;
   const bottom = Number(rangeBottom) || top;
   const restTop = safeTop + margin;          // first line that is genuinely readable
-  const restBottom = vh - margin;
+  const restBottom = vh - (Number(bottomInset) || 0) - margin;
 
   // Hidden behind the chrome, or above the viewport entirely: bring it down to
   // just under the chrome. This is the case Darrell hit.
@@ -372,6 +469,7 @@ export function followRange(range) {
       rangeTop: rect.top,
       rangeBottom: rect.bottom,
       topInset: stickyTopInset(win, doc),
+      bottomInset: stickyBottomInset(win, doc),
       viewportHeight: win.innerHeight || 0,
       margin: readingMargin(textEl, win),
     });

@@ -62,9 +62,31 @@ const CHROME_SELECTOR = [
   '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
 ].join(', ');
 
+// THE ONE ROOT BOTH HALVES OF THE READER USE.
+//
+// Darrell 2026-08-14: "this page just reads without a reader highlighting the
+// words and following the word we currently read."
+//
+// That was this: the TEXT extractor fell back to `document.body` when a surface
+// renders no <main>, but the FOLLOW MAP did not — it was built only when
+// `querySelector('main')` returned an element, and was left null otherwise. So
+// on every surface without a <main> (only six files in the app render one) the
+// reader spoke the page perfectly and highlighted nothing, because there was no
+// map to highlight from. Reading worked, following did not, and the two were
+// reading off different roots.
+//
+// This is the same shape as SKIP_SELECTOR vs CHROME_SELECTOR earlier the same
+// day: two places that must agree, kept in agreement by nobody. One function,
+// called by both, is the fix — not a comment asking the next person to
+// remember.
+export function readingRoot(doc = (typeof document === 'undefined' ? null : document)) {
+  if (!doc) return null;
+  return doc.querySelector('main') || doc.body || null;
+}
+
 function readablePageText() {
   if (typeof document === 'undefined') return '';
-  const main = document.querySelector('main') || document.body;
+  const main = readingRoot();
   if (!main) return '';
   const clone = main.cloneNode(true);
   clone.querySelectorAll(CHROME_SELECTOR).forEach((el) => {
@@ -89,7 +111,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const [talking, setTalking] = useState(false);
   const [talkSource, setTalkSource] = useState('');
   const {
-    supported, isReading, isPaused, rate, read, pause, resume, stop, setRate,
+    supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
   } = useReadAloud({ isOwner });
@@ -240,7 +262,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const revealFab = useIdleReveal();
   useEffect(() => {
     if (!armed || typeof document === 'undefined') return undefined;
-    const main = document.querySelector('main') || document.body;
+    const main = readingRoot();
+    if (!main) return undefined;
     const onTap = (e) => {
       const inControls = e.target && e.target.closest && e.target.closest('.tts-controls');
       if (inControls) return; // panel taps (incl. Cancel) keep working normally
@@ -294,7 +317,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // disclosures are conditionally rendered, so a collapsed "About this" panel
     // has no text in the document — it could not be read because it was not
     // there. Reveal, let it paint, THEN map: what is heard is what is shown.
-    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
+    // CLAIM THE AUDIO SESSION FIRST — before ANY await (Darrell 2026-08-13:
+    // "I cant listen to a lesson in the background yet", "if the top tab is
+    // moved the reader stops"). `settled()` waits up to ten double-rAF frames,
+    // and a user gesture cannot be re-entered once awaited: claiming after it
+    // is claiming after the browser has already stopped listening.
+    claimAudio();
+    const main = readingRoot();
     if (main) { revealForReading(main); await settled(main); }
     // Build the follow map from the LIVE page and speak its exact normalized
     // text, so the engine's sentence N and the on-screen range N are the same
@@ -336,6 +365,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
     runRef.current = t;
+    // Same reason as the page path: the reveal + settle below spend the tap.
+    // A CONTINUING piece is not a new gesture, but the session is already held
+    // from the first press and start() is idempotent, so this is safe either way.
+    claimAudio(t.label);
     if (!continuing) setRunInfo({ label: t.label });
     let el = null;
     if (typeof document !== 'undefined') {
@@ -359,8 +392,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // No element to map: speak the registered text and align what we can find
     // on screen (sentence-level, unrendered passages carry no highlight).
     const spoken = segmentText(t.text);
-    const pageFollow = (typeof document !== 'undefined' && document.querySelector('main'))
-      ? buildFollowMap(document.querySelector('main')) : null;
+    const pageRoot = readingRoot();
+    const pageFollow = pageRoot ? buildFollowMap(pageRoot) : null;
     followRef.current = pageFollow ? {
       follow: pageFollow,
       base: 0,
@@ -382,7 +415,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const talkAbout = async () => {
     setTalking(true);
     setTalkSource('');
-    const main = (typeof document !== 'undefined' && document.querySelector('main')) || null;
+    // Same root as the reader (DR-0304): a surface with no <main> is still a
+    // surface a person can ask about, and describing it from `null` gave the
+    // help entry alone with none of the real on-screen numbers.
+    const main = readingRoot();
     const helpEntry = helpFor({ view, churchView, booksView });
     const digest = buildSurfaceDigest({ root: main, helpEntry, title: helpEntry && helpEntry.title });
     const { text, source } = await talkAboutSurface(digest);
