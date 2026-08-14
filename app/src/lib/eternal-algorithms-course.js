@@ -49,6 +49,27 @@ export function moduleFromAlgorithm(alg) {
     lesson: standard,
     levels: {
       standard,
+      // CHILD — the shortest true read there is (Darrell 2026-08-14: "young to
+      // old curriculum", "more or less depth based on... competence of the
+      // age"). Until now these 42 patterns had teen/standard/senior and NO
+      // child band at all, so a child landing on a pattern fell back to the
+      // teen text (depthChainForAge: child -> teen -> standard). Graceful, but
+      // not a child level, while Living Lessons carries 77 of them.
+      //
+      // NOTE WHAT THIS BAND CAN AND CANNOT DO, because the limit is doctrinal
+      // rather than technical. This module is GENERATED, and this file's rule
+      // is depth selection over the catalog's OWN sentences — never an invented
+      // rephrase of doctrine (DR-0076). So the child band is the fewest
+      // sentences that are still true, with gentle framing around them; it is
+      // NOT simplified wording, because simplifying a doctrinal sentence here
+      // would mean this generator rewriting the Word's conditional in its own
+      // voice. Genuinely child-pitched LANGUAGE has to be authored into the
+      // catalog entry, the way Living Lessons authors its child level by hand.
+      // Recorded rather than quietly approximated.
+      child: [
+        `What God says: IF ${alg.condition}`,
+        alg.outcome ? `What comes of it: ${alg.outcome}` : null,
+      ].filter(Boolean).join('\n\n'),
       // Teen — the shortest true read: the Word's own IF and the win, plain.
       teen: [
         `The Word says: IF ${alg.condition}`,
