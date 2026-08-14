@@ -99,6 +99,11 @@ jobs:
       # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
       # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
       - run: node ../scripts/lessons-gate-coverage.mjs
+      # UNBOUNDED SELECT RATCHET (DR-0303). The 2026-08-14 lockout was one
+      # `.select('*')` with no limit on a table that had grown base64 columns —
+      # 6.2 MB per sign-in, per user. Shrink-only: today's set is grandfathered,
+      # a NEW one fails, and fixing an old one shrinks the baseline.
+      - run: node ../scripts/unbounded-select-guard.mjs
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
