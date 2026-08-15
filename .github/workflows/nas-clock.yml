@@ -138,7 +138,18 @@ jobs:
           echo "=== firing services-sync once ==="
           "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
           echo "=== the crontab now ==="
-          crontab -l 2>/dev/null | grep -n "run.mjs" || echo "NO run.mjs ENTRY — the clock did not take"
+          # Run 31868259272 printed "NO run.mjs ENTRY — the clock did not take"
+          # while the root cycles were demonstrably firing every 15 minutes:
+          # this check read only dpoe's personal crontab, but install-clock.sh
+          # writes /etc/crontab (DSM has no per-user crontab binary). A witness
+          # that contradicts measured reality is worse than none — look where
+          # the clock actually lives, with each location named.
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          FOUND=""
+          $SUDO cat /etc/crontab 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ /etc/crontab (the installer's target)"
+          crontab -l 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ dpoe crontab"
+          $SUDO crontab -l 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ root crontab"
+          [ -n "$FOUND" ] || echo "NO run.mjs ENTRY in /etc/crontab, dpoe, or root crontab — the clock did not take"
           echo "=== trickle stamp (should be fresh if the drain ran) ==="
           ls -la "$REPO/infra/nas-sme-pipeline/out/.transcript-trickle.last" 2>&1 | tail -1
           EOS
