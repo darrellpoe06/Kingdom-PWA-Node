@@ -20,6 +20,7 @@ import {
   buildFollowMap, wordRange, highlightSegment, highlightWord,
   clearReadingHighlights, followRange, rangeFor,
   segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
+  paragraphStarts, paragraphJumpTarget,
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
@@ -31,6 +32,7 @@ import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // CONTROLS ARE NOT CONTENT — the reader must not read the buttons.
 //
@@ -209,6 +211,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // it", and it is the only thing that ends the run.
   const runRef = useRef(null);
   const [runInfo, setRunInfo] = useState(null); // { label } while a run is live
+  // A paragraph jump restarts the engine mid-piece; that restart can flicker
+  // through a not-reading render, which the run-continuation effect below must
+  // not mistake for "the piece ended on its own". Declared here — above the
+  // unsupported-device early return — so hook order never varies.
+  const jumpingRef = useRef(false);
+  useEffect(() => { if (isReading) jumpingRef.current = false; }, [isReading]);
   // readTargetNow is defined below the unsupported-device early return; the run
   // loop reaches it through this ref so the effect never depends on definition
   // order.
@@ -218,6 +226,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // place. Only ever restores a target THIS control expanded.
   useEffect(() => {
     if (isReading) return;
+    // A jump-in-progress is not an ended piece — the new read is about to
+    // start; touching the run or the prepared surface here would double-read.
+    if (jumpingRef.current) return;
     const prepared = preparedRef.current;
     // A run that is still live means the piece ENDED on its own (Stop clears
     // the run). Ask the surface for the next piece and keep reading.
@@ -260,6 +271,38 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // so the hook order is stable (rules-of-hooks). Applies to the collapsed button
   // only — an OPEN panel is in active use and must never fade.
   const revealFab = useIdleReveal();
+  // BACK TO TOP (Darrell 2026-08-15: "a way to get back to the top"). A long
+  // lesson leaves the reader far from the header with only a flick-scroll
+  // marathon home. One button, shown once the page is more than a screen deep,
+  // stacked above the read-aloud button so both thumbs find it in the same
+  // corner. Rendered even on a device with no speech support — scrolling is
+  // not a speech feature.
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setShowTop(window.scrollY > window.innerHeight * 1.25);
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  const scrollTopBtn = showTop && !isOpen ? (
+    <button
+      type="button"
+      onClick={() => { try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { window.scrollTo(0, 0); } }}
+      aria-label="Back to the top of the page"
+      title="Back to top"
+      className="ts-chrome-region bg-[#FAF8F4] text-[#1A1815] w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg border-2 border-[#1A1815] hover:bg-[#1A1815] hover:text-white flex items-center justify-center text-xl sm:text-2xl focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+    >
+      ↑
+    </button>
+  ) : null;
   useEffect(() => {
     if (!armed || typeof document === 'undefined') return undefined;
     const main = readingRoot();
@@ -309,7 +352,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     };
   }, [armed, read]);
 
-  if (!supported) return null; // graceful: device can't speak — show nothing
+  // A device that can't speak still scrolls: the read-aloud card stays hidden
+  // below but Back-to-top renders in the ONE corner wrapper (the fab-overlap
+  // guard rightly counts anchors — one anchor, one wrapper, both features).
+  if (!supported && !scrollTopBtn) return null;
 
   const start = async () => {
     // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
@@ -440,8 +486,52 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const stopAll = () => {
     runRef.current = null;
     setRunInfo(null);
+    jumpingRef.current = false;
     stop();
   };
+
+  // PARAGRAPH NAVIGATION + TOP (Darrell 2026-08-15: "a way to get back to the
+  // top or relisten to the last paragraph or pages/s and forward to the
+  // whatever number of page/s"). The reader restarts from a chosen sentence the
+  // same way Start-where-I-tap always has (play() cancels the prior utterance
+  // safely) — so Back re-listens the paragraph just heard (tap again to keep
+  // walking back), Forward skips to the next paragraph, and Top restarts the
+  // whole reading. Each tap moves ONE paragraph; several taps move several —
+  // that is the "whatever number" without inventing a page unit a continuous
+  // scroll does not have.
+  const currentGlobalSegment = () => {
+    const f = followRef.current;
+    if (!f) return -1;
+    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
+    return f.base + Math.max(0, local);
+  };
+  const jumpToSegment = (globalIdx) => {
+    const f = followRef.current;
+    if (!f || !f.follow || globalIdx == null) return;
+    const segs = f.follow.segments;
+    const idx = Math.max(0, Math.min(segs.length - 1, globalIdx));
+    const seg = segs[idx];
+    if (!seg) return;
+    const paraStarts = f.paraStarts || null;
+    // A jump can flicker the engine through a not-reading render; the guard
+    // keeps the hands-free run from mistaking that for "the piece ended".
+    jumpingRef.current = true;
+    followRef.current = { ...pageFollowState(f.follow, idx), paraStarts };
+    read(f.follow.text.slice(seg.start));
+  };
+  const jumpParagraph = (dir) => {
+    const f = followRef.current;
+    if (!f || !f.follow) return;
+    if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
+    const target = paragraphJumpTarget(f.paraStarts, currentGlobalSegment(), dir);
+    if (target != null) jumpToSegment(target);
+  };
+  const jumpTop = () => {
+    const f = followRef.current;
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { /* best-effort */ }
+    if (f && f.follow && isReading) jumpToSegment(0);
+  };
+  const canJump = isReading && !!(followRef.current && followRef.current.follow);
 
   const close = () => {
     if (!isReading) stopAll(); // idle: also stands down an armed tap-to-start
@@ -457,8 +547,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const statusLabel = isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready';
 
   return (
-    <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden">
-      {isOpen && minimized && isReading ? (
+    <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden flex flex-col items-end gap-2">
+      {scrollTopBtn}
+      {supported && (isOpen && minimized && isReading ? (
         /* THE READING PILL (DR-0265): while the voice is reading, the full card
            would sit on top of the very words being read + highlighted — so it
            collapses to this slim pill. Pause/resume, stop, and expand only;
@@ -470,7 +561,17 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           aria-label="Reading controls (minimized)"
         >
           <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
-          <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+          {canJump && (
+            <>
+              <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" title="Re-listen this paragraph (again = the one before)" className="px-[0.625em] py-[0.375em] min-h-[2.75rem] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                ↩¶
+              </button>
+              <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" title="Skip to the next paragraph" className="px-[0.625em] py-[0.375em] min-h-[2.75rem] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                ↪¶
+              </button>
+            </>
+          )}
+          <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] min-h-[2.75rem] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
             {isPaused ? '▶' : '⏸'}
           </button>
           <button type="button" onClick={stopAll} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -537,8 +638,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               </>
             ) : (
               <>
-                <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
-                <button type="button" onClick={stopAll} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+                <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] min-h-[2.75rem] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
+                <button type="button" onClick={stopAll} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] min-h-[2.75rem] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+                {/* Move by the unit a listener thinks in: re-listen the
+                    paragraph just heard (again = further back), skip the next,
+                    or start the whole reading over from the top. */}
+                {canJump && (
+                  <>
+                    <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75rem] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↩¶ Back</button>
+                    <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75rem] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↪¶ Next</button>
+                    <button type="button" onClick={jumpTop} aria-label="Back to the top — scrolls up and restarts the reading" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75rem] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏮ Top</button>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -614,7 +725,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </span>
           )}
         </button>
-      )}
+      ))}
     </div>
   );
 }

@@ -477,3 +477,54 @@ export function followRange(range) {
     if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
   } catch (_) { /* scrolling is best-effort */ }
 }
+
+// =============================================================================
+// PARAGRAPH NAVIGATION (Darrell 2026-08-15: "a way to get back to the top or
+// relisten to the last paragraph or pages/s and forward to the whatever number
+// of page/s")
+// =============================================================================
+// The reader speaks SENTENCES; a listener thinks in PARAGRAPHS. These map the
+// follow map's sentence segments onto the real block elements they render in,
+// so Back/Forward can move by the unit a person actually asked for. Pure over
+// an injected follow map + rangeFor, so a jsdom test can pin the grouping.
+
+const BLOCK_TAGS = /^(P|LI|H[1-6]|BLOCKQUOTE|TD|TH|DT|DD|FIGCAPTION|PRE)$/;
+
+/**
+ * The segment indexes where a new paragraph (block element) begins. A segment
+ * whose range cannot be resolved keeps the running paragraph (never splits).
+ */
+export function paragraphStarts(follow, doc = typeof document !== 'undefined' ? document : null) {
+  const starts = [];
+  if (!follow || !Array.isArray(follow.segments)) return starts;
+  let prevBlock;
+  follow.segments.forEach((s, i) => {
+    const r = s ? rangeFor(follow, s.start, s.end, doc) : null;
+    let n = r ? r.startContainer : null;
+    while (n && n.nodeType !== 1) n = n.parentNode;
+    while (n && n.tagName && !BLOCK_TAGS.test(n.tagName) && n.parentElement) n = n.parentElement;
+    const block = n || prevBlock || null;
+    if (i === 0 || (block && block !== prevBlock)) starts.push(i);
+    if (block) prevBlock = block;
+  });
+  return starts;
+}
+
+/**
+ * Where a Back/Forward tap should land, in segment indexes.
+ *   dir -1: the start of the CURRENT paragraph when we are past its first
+ *           sentence (re-listen what was just heard), else the previous
+ *           paragraph's start — so tapping again keeps walking back.
+ *   dir +1: the next paragraph's start; null at the end (nothing to skip to).
+ */
+export function paragraphJumpTarget(starts, current, dir) {
+  if (!Array.isArray(starts) || starts.length === 0) return null;
+  const cur = Math.max(0, Number(current) || 0);
+  let idx = 0;
+  for (let i = 0; i < starts.length; i++) { if (starts[i] <= cur) idx = i; else break; }
+  if (dir < 0) {
+    if (cur > starts[idx]) return starts[idx];
+    return idx > 0 ? starts[idx - 1] : starts[0];
+  }
+  return idx < starts.length - 1 ? starts[idx + 1] : null;
+}
