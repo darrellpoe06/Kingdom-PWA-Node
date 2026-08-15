@@ -249,7 +249,18 @@ fi
 
 # The verdict lines ride the LAST lines on purpose: the cycle event captures
 # an installer's tail, and three passes of the password cure went blind
-# because outcomes printed mid-output.
+# because outcomes printed mid-output. FOURTH blindness (22:52Z probe): a
+# SUCCEEDING installer's stdout is logged NOWHERE -- the cron log records only
+# failures -- so the moment the gateway went green, every verdict line
+# vanished. The status file is the fix: written every run regardless of exit,
+# read by nas-health, so success and failure leave the same receipt.
+{
+  echo "at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "nas-supabase: reconcile: $RECON"
+  echo "nas-supabase: replay: $REPLAY"
+  echo "nas-supabase: sync: $SYNC"
+  echo "nas-supabase: sb-transport: $SB_MOUNT"
+} > "$DATA/cutover.status" 2>/dev/null || true
 echo "nas-supabase: reconcile: $RECON"
 echo "nas-supabase: replay: $REPLAY"
 echo "nas-supabase: sync: $SYNC"
