@@ -90,13 +90,69 @@ CREATE TABLE IF NOT EXISTS public._sovereign_replay (
 );
 SQL
 
-TOTAL=$(ls "$MIG_DIR"/*.sql 2>/dev/null | wc -l | tr -d ' ')
+# --- the baseline the hosted project carried BEFORE migrations-auto ----------
+# Frontier discovery 2026-08-15 (ledger stuck at 2/150): 0003 ALTERs `feedback`
+# but no migrations-auto file ever CREATES it. The hosted schema's first months
+# live in the schema-v*.sql series (v1 2026-05-23 .. v2.17 2026-08-11) plus the
+# 2026-06-12 cleanup -- applied by hand in the dashboard era, so no file in
+# MIG_DIR reproduces them. They ride the same ledger, in EXPLICIT order because
+# lexical sort misorders v2.10 before v2.2. The late-dated three (v2.16,
+# v2.10-renter-portal-auth, v2.17) reference only v1/v2.1/v2.2 tables --
+# verified before this list was written. Seed files are DATA, not schema; the
+# data leg of cutover is its own step, never smuggled into a schema replay.
+SUPA_DIR="$REPO/infra/supabase"
+BASELINE="schema-v1.sql
+schema-v1.1-tenant-join.sql
+schema-v1.2-numeric-sync.sql
+schema-v2.1-infra.sql
+schema-v2.2-rentals.sql
+schema-v2.2.1-rentals-amendments.sql
+schema-v2.2.2-rentals-sync-amendments.sql
+schema-v2.3-therapy.sql
+schema-v2.4-contractor.sql
+schema-v2.6-legal.sql
+schema-v2.7-church.sql
+schema-v2.7.1-church-amendments.sql
+schema-v2.8-ops.sql
+schema-v2.9-portal-rls.sql
+schema-v2.9-smoke-findings.sql
+schema-v2.10-ai-workflow-state.sql
+schema-v2.10-renter-portal-auth.sql
+schema-v2.11-engagement.sql
+schema-v2.12-engagement-questions.sql
+schema-v2.13-family-data-sync.sql
+schema-v2.14-realtime-publication.sql
+schema-v2.15-family-snapshot.sql
+schema-v2.16-forecast-snapshots.sql
+schema-v2.17-data-liberation.sql
+cleanup-2026-06-12-entity-pollution.sql"
+
+# One-time ordering repair: 0001/0002 are SECURITY fixes that CREATE OR REPLACE
+# functions the baseline also creates -- they were ledgered before the baseline
+# joined this replay, so baseline applying after them would silently REVERT the
+# family-allowlist fix. If the baseline has not started but 0001 is ledgered,
+# clear those two rows so they re-apply AFTER the baseline (both idempotent).
+BASE_IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='schema-v1.sql';" | tr -d ' ')
+FIRST_IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='0001-join-default-instance-family-allowlist.sql';" | tr -d ' ')
+if [ "$BASE_IN" != "1" ] && [ "$FIRST_IN" = "1" ]; then
+  PSQL -c "DELETE FROM public._sovereign_replay WHERE fname IN ('0001-join-default-instance-family-allowlist.sql','0002-join-default-instance-self-serve.sql');" >/dev/null
+  echo "replay: cleared 0001/0002 from ledger to re-apply after baseline (security fixes stay senior)"
+fi
+
+FILE_LIST=""
+for B in $BASELINE; do FILE_LIST="$FILE_LIST $SUPA_DIR/$B"; done
+FILE_LIST="$FILE_LIST $(ls "$MIG_DIR"/*.sql | sort)"
+TOTAL=$(set -- $FILE_LIST; echo $#)
 DONE_BEFORE=$(PSQL -t -A -c "SELECT count(*) FROM public._sovereign_replay;" 2>/dev/null | tr -d ' ')
 APPLIED=0
 FRONTIER="none"
 
-for F in $(ls "$MIG_DIR"/*.sql | sort); do
+for F in $FILE_LIST; do
   B=$(basename "$F")
+  if [ ! -f "$F" ]; then
+    FRONTIER="$B MISSING on disk at $F"
+    break
+  fi
   IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='$B';" | tr -d ' ')
   [ "$IN" = "1" ] && continue
   if [ "$APPLIED" -ge "$MAX_PER_RUN" ]; then
