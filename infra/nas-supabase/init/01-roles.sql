@@ -24,8 +24,21 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
     CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS;
   END IF;
+  -- MEASURED 2026-08-15 16:00Z ('role "supabase_auth_admin" does not exist'):
+  -- this image does NOT ship the auth/storage service roles -- the official
+  -- self-host init volume creates them, and this file replaced that volume.
+  -- GoTrue and storage-api log in as these roles and own their schemas.
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_auth_admin') THEN
+    CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_storage_admin') THEN
+    CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN;
+  END IF;
 END $$;
 GRANT anon, authenticated, service_role TO authenticator;
+GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
+CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
+CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 -- Set the password on every service role that exists at this point in init.
 -- \gexec keeps it conditional: a role the image has not created yet (initdb.d
 -- ordering) is simply skipped here, and install.sh's every-cycle re-assert

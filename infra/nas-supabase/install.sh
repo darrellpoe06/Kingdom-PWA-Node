@@ -123,11 +123,33 @@ $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
 # TCP path as the fallback; (2) the outcome is stashed in RECON and RESTATED
 # as one of the installer's LAST lines, so the cycle event always carries the
 # verdict verbatim. Single quotes keep the backtick literal for psql.
+# 2026-08-15, fourth pass -- the instrument finally spoke (16:00Z cycle):
+#   reconcile: ALTER FAILED: ERROR: role "supabase_auth_admin" does not exist
+# The role NEVER EXISTED. Every earlier pass assumed the image ships the
+# service roles and only their passwords were wrong -- but this stack replaced
+# the official init volume with the minimal 01-roles.sql, so the auth and
+# storage service roles (and their schemas) were never created at all;
+# realtime survived because it connects as the superuser supabase_admin. And
+# ON_ERROR_STOP halted at that first missing role, so authenticator's ALTER
+# -- which would have worked -- never ran behind it. The cure now CREATES
+# what is missing first (roles, schemas, grants), then sets every password.
 RECON="not-run"
 ALTER_SQL='\set pw `printenv PW`
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '"'"'supabase_auth_admin'"'"') THEN
+    CREATE ROLE supabase_auth_admin NOINHERIT CREATEROLE LOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '"'"'supabase_storage_admin'"'"') THEN
+    CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN;
+  END IF;
+END $$;
 ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE authenticator WITH LOGIN PASSWORD :'"'"'pw'"'"';
-ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';'
+ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
+GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
+CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
+CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;'
 PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 if [ -n "$PW" ]; then
   if OUT=$(printf '%s\n' "$ALTER_SQL" | $DOCKER exec -i -e PW="$PW" -u postgres supabase-db \
