@@ -17,8 +17,29 @@ MANIFEST="$REPO/infra/nas-loops/services.json"
 # mirror pulls -> this loop installs" is only true if THIS loop does the pull.
 # Fail-soft: offline/diverged keeps the current checkout and says so — the
 # cycle still runs what it has (an old-but-real manifest beats a dead run).
-if ! git -C "$REPO" pull --ff-only 2>&1; then
-  echo "services-sync: mirror pull failed (offline or diverged) — running with the existing checkout" >&2
+#
+# 2026-08-15 (run 31871686957): root's pull NEVER advanced the mirror. The
+# checkout is dpoe-owned, so git-as-root aborts with "dubious ownership"
+# before touching anything; the fail-soft branch printed only to the cron log,
+# and every root cycle deployed a stale tree while the nas-clock bridge's
+# dpoe pulls were the only thing moving HEAD (mirror pinned at a33ff92b while
+# main advanced through three merges — including the supabase cure this loop
+# was supposed to be deploying). ONE OWNER for the mirror: when the loop runs
+# as root, pull AS dpoe, so every git object stays dpoe-owned and the bridge
+# and the cron can never fight over ownership again. The failure reason is
+# printed to BOTH channels — a silent stale deploy looks exactly like a
+# healthy one.
+if [ "$(id -u)" = "0" ]; then
+  PULL_CMD='sudo -n -u dpoe git -C "$REPO" pull --ff-only'
+else
+  PULL_CMD='git -C "$REPO" -c safe.directory="$REPO" pull --ff-only'
+fi
+if PULL_OUT=$(eval "$PULL_CMD" 2>&1); then
+  echo "$PULL_OUT" | tail -3
+else
+  echo "services-sync: mirror pull FAILED - deploying the EXISTING (stale) checkout. Reason:"
+  echo "$PULL_OUT" | tail -5
+  echo "services-sync: mirror pull FAILED: $(echo "$PULL_OUT" | tail -2 | tr '\n' ' ')" >&2
 fi
 
 if [ ! -f "$MANIFEST" ]; then
