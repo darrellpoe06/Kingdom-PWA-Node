@@ -141,4 +141,22 @@ jobs:
           ${SUDO} sh -c 'command -v node' 2>/dev/null || echo "NO node on root PATH either"
           echo "=== disk (the volume the services live on) ==="
           df -h /volume1 2>&1 | tail -1
+          # ---------------------------------------------------------------
+          # 2026-08-15: WHY do the sovereign Supabase legs restart? Observed
+          # at 05:06Z: storage restart-looping since birth, studio unhealthy,
+          # and now auth + rest joining the restart loop — and NO probe ever
+          # captured a single container log line, so the cutover sprint's
+          # first target had a symptom but never a reason. Read-only tails,
+          # restarting/unhealthy legs only; healthy legs stay unlogged (noise
+          # discipline). docker logs needs the socket => sudo -n, same grant
+          # as the ps table above.
+          echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
+          for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
+            ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
+            case "$ST" in
+              running*health=healthy*) echo "--- $c: $ST (healthy — logs skipped)";;
+              "") echo "--- $c: not present";;
+              *) echo "--- $c: $ST"; ${SUDO} docker logs --tail 12 "$c" 2>&1 | tail -12;;
+            esac
+          done
           EOS
