@@ -105,18 +105,36 @@ $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
 # them every cycle over supabase_admin's verified credentials, so neither a
 # bad first init nor a future rotation is ever stranded. The password value is
 # never echoed; -v pw + quote via :'pw' keeps any charset safe.
+# 2026-08-15, second pass: the first reconcile used `psql -c ... :'pw'` — and
+# psql applies NO variable interpolation to -c command strings, so the server
+# received the literal three characters :'pw', errored, and the legs stayed
+# sick while the failure printed only where the event capture cannot see.
+# SQL now arrives on stdin (where interpolation is guaranteed), the password
+# rides the environment (never the command line), and the cure is VERIFIED by
+# actually logging in as authenticator — the role that never had a password —
+# before this installer claims anything (DR-0076: prove, don't claim). Every
+# outcome prints on stdout so the cycle event carries the reason.
 PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 if [ -n "$PW" ]; then
-  if $DOCKER exec -e PGPASSWORD="$PW" supabase-db \
-      psql -h 127.0.0.1 -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 -v pw="$PW" \
-      -c "ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'pw';" \
-      -c "ALTER ROLE authenticator WITH LOGIN PASSWORD :'pw';" \
-      -c "ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'pw';" >/dev/null; then
-    echo "nas-supabase: service-role passwords re-asserted (auth/rest/storage)"
+  if RES=$(printf '%s\n' \
+      "\\set pw \`printenv PW\`" \
+      "ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'pw';" \
+      "ALTER ROLE authenticator WITH LOGIN PASSWORD :'pw';" \
+      "ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'pw';" \
+    | $DOCKER exec -i -e PGPASSWORD="$PW" -e PW="$PW" supabase-db \
+        psql -h 127.0.0.1 -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 2>&1); then
+    if $DOCKER exec -e PGPASSWORD="$PW" supabase-db \
+        psql -h 127.0.0.1 -U authenticator -d postgres -q -c "SELECT 1;" >/dev/null 2>&1; then
+      echo "nas-supabase: service-role passwords re-asserted AND VERIFIED (authenticator logs in)"
+    else
+      echo "nas-supabase: ALTER ROLE ran but authenticator STILL cannot log in - pg_hba or role shape, not the password"
+    fi
   else
-    echo "nas-supabase: service-role password reconcile FAILED - the gateway poll below will say so too" >&2
+    echo "nas-supabase: password reconcile FAILED: $(printf '%s' "$RES" | tail -2 | tr '\n' ' ')"
+    echo "nas-supabase: password reconcile FAILED (reason above)" >&2
   fi
 else
+  echo "nas-supabase: no POSTGRES_PASSWORD in $ENV_FILE - cannot reconcile roles"
   echo "nas-supabase: no POSTGRES_PASSWORD in $ENV_FILE - cannot reconcile roles" >&2
 fi
 
