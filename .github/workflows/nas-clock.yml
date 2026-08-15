@@ -98,6 +98,19 @@ jobs:
           echo "=== drift being discarded (tracked files only) ==="
           git -C "$REPO" status --porcelain | head -20
           git -C "$REPO" checkout -- . 2>&1 || true
+          # Untracked collisions block the pull too (run 31865492555: the L78
+          # test file, untracked on the box AND created by the incoming merge —
+          # git refuses to overwrite it, and checkout -- . never touches
+          # untracked files). Clean untracked SOURCE drift; the -e excludes keep
+          # every known runtime-state dir untouched. Origin of the drift: two
+          # concurrent pulls raced (the cron's root pull at :15:01, the bridge
+          # at :15:12) — the loop lock protects the loop, not SSH pulls.
+          git -C "$REPO" clean -fd \
+            -e infra/church-media-golive/state \
+            -e infra/nas-loops/events \
+            -e infra/nas-loops/state \
+            -e infra/nas-sme-pipeline/out \
+            -e infra/gpu-scheduler/state 2>&1 | head -10
           git -C "$REPO" pull --ff-only 2>&1 || echo "pull failed (offline or diverged) — continuing with what is here"
           echo "=== mirror AFTER ==="
           git -C "$REPO" log -1 --format='%h %ci %s'
