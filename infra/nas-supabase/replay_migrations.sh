@@ -44,6 +44,27 @@ PSQL() {
 #   * the auth.* helper functions every RLS policy calls (uid/role/jwt/email)
 #   * baseline grants for the API roles on public
 PSQL >/dev/null <<'SQL'
+-- Realtime's home schema (upstream's init created this; ours was shadowed).
+-- The compose pins realtime's search_path here so its Ecto migrations stop
+-- landing in public.
+CREATE SCHEMA IF NOT EXISTS _realtime AUTHORIZATION supabase_admin;
+-- Evict realtime's squatter tables from public (frontier 2026-08-15 23:10Z:
+-- the APP's schema-v1 found a tenants table with no slug column -- realtime's
+-- tenants, migrated into public before the search_path pin existed). The
+-- jwt_secret-column guard means this can ONLY ever match realtime's shape,
+-- never the app's own tenants; once the baseline creates the real tenants
+-- this block is a permanent no-op.
+DO $cleanup$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema='public' AND table_name='tenants'
+               AND column_name='jwt_secret') THEN
+    DROP TABLE IF EXISTS public.extensions CASCADE;
+    DROP TABLE IF EXISTS public.tenants CASCADE;
+    DROP TABLE IF EXISTS public.schema_migrations CASCADE;
+  END IF;
+END
+$cleanup$;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
