@@ -74,6 +74,14 @@ set_kv SMTP_USER ""
 set_kv SMTP_PASS ""
 set_kv SMTP_ADMIN_EMAIL "darrellpoe06@gmail.com"
 set_kv MAILER_AUTOCONFIRM "true"
+# Realtime encrypts its tenant secrets with AES-128 and requires DB_ENC_KEY to
+# be EXACTLY 16 bytes. The first standup wired the 32-char VAULT_ENC_KEY into
+# it and realtime crashed seeding with "Bad key size" (285 restarts, measured
+# run 31870361908) -- upstream Supabase ships realtime its own 16-char key for
+# this reason. No tenant was ever seeded, so minting the key now loses nothing.
+if ! grep -q '^REALTIME_DB_ENC_KEY=' "$ENV_FILE" 2>/dev/null; then
+  printf 'REALTIME_DB_ENC_KEY=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(8))')" >> "$ENV_FILE"
+fi
 
 # --- bring it up ------------------------------------------------------------
 cd "$SRC"
@@ -86,6 +94,31 @@ echo "nas-supabase: docker compose up -d (no-op when already current)"
 # --env-file keeps the secrets OUT of the repo tree; the compose file itself is
 # committed and carries no values.
 $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
+
+# --- reconcile service-role passwords (every cycle; measured 2026-08-15) -----
+# Run 31870361908 named the stack's whole disease in one line: "password
+# authentication failed" for supabase_auth_admin (auth, 292 restarts),
+# authenticator (rest, 292), and supabase_storage_admin (storage, 285). The
+# image sets only supabase_admin's password from POSTGRES_PASSWORD at first
+# init (meta healthy = the proof those credentials work), and the original
+# 01-roles.sql never set the other three. ALTER ROLE is idempotent -- re-assert
+# them every cycle over supabase_admin's verified credentials, so neither a
+# bad first init nor a future rotation is ever stranded. The password value is
+# never echoed; -v pw + quote via :'pw' keeps any charset safe.
+PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
+if [ -n "$PW" ]; then
+  if $DOCKER exec -e PGPASSWORD="$PW" supabase-db \
+      psql -h 127.0.0.1 -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 -v pw="$PW" \
+      -c "ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'pw';" \
+      -c "ALTER ROLE authenticator WITH LOGIN PASSWORD :'pw';" \
+      -c "ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'pw';" >/dev/null; then
+    echo "nas-supabase: service-role passwords re-asserted (auth/rest/storage)"
+  else
+    echo "nas-supabase: service-role password reconcile FAILED - the gateway poll below will say so too" >&2
+  fi
+else
+  echo "nas-supabase: no POSTGRES_PASSWORD in $ENV_FILE - cannot reconcile roles" >&2
+fi
 
 # --- prove it, do not claim it (DR-0076) ------------------------------------
 # A green installer that never checked the stack answers is the theater this

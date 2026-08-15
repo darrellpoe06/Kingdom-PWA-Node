@@ -121,7 +121,11 @@ services:
       DB_USER: supabase_admin
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: postgres
-      DB_ENC_KEY: ${VAULT_ENC_KEY}
+      # AES-128: realtime requires EXACTLY 16 bytes here. The 32-char
+      # VAULT_ENC_KEY crashed seeding with "Bad key size" (285 restarts,
+      # measured run 31870361908); upstream ships realtime its own 16-char
+      # key. install.sh mints REALTIME_DB_ENC_KEY once, beside the others.
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
       API_JWT_SECRET: ${JWT_SECRET}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       ERL_AFLAGS: -proto_dist inet_tcp
