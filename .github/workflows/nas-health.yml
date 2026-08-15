@@ -153,6 +153,10 @@ jobs:
           # The installer's own words from the last cycles — the reconcile
           # verdict lines the event capture kept truncating (three blind
           # passes of the password cure). The cron log holds full stdout.
+          # The direct witness (DR-0076): the literal HTTP code from kong,
+          # read fresh -- a passing installer is inferred; this is measured.
+          echo "=== sovereign gateway: does kong answer? (direct probe) ==="
+          curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
           echo "=== the installer's own words (nas-supabase lines, cron log) ==="
           ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
