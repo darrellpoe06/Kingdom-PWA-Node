@@ -150,6 +150,11 @@ jobs:
           # restarting/unhealthy legs only; healthy legs stay unlogged (noise
           # discipline). docker logs needs the socket => sudo -n, same grant
           # as the ps table above.
+          # The installer's own words from the last cycles — the reconcile
+          # verdict lines the event capture kept truncating (three blind
+          # passes of the password cure). The cron log holds full stdout.
+          echo "=== the installer's own words (nas-supabase lines, cron log) ==="
+          ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
           for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
             ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)

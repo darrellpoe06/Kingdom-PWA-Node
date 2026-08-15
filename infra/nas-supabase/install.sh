@@ -114,29 +114,45 @@ $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
 # actually logging in as authenticator — the role that never had a password —
 # before this installer claims anything (DR-0076: prove, don't claim). Every
 # outcome prints on stdout so the cycle event carries the reason.
+# 2026-08-15, third pass (run 31893397378: legs still 28P01 after the stdin
+# rewrite, and the outcome line was again buried mid-output where the cycle
+# event's last-lines capture cannot see it). Two changes: (1) the ADMIN
+# connection tries the UNIX SOCKET as the postgres OS user FIRST -- peer auth
+# inside the container needs no password at all, removing every pg_hba and
+# password uncertainty from the curing connection -- with the supabase_admin
+# TCP path as the fallback; (2) the outcome is stashed in RECON and RESTATED
+# as one of the installer's LAST lines, so the cycle event always carries the
+# verdict verbatim. Single quotes keep the backtick literal for psql.
+RECON="not-run"
+ALTER_SQL='\set pw `printenv PW`
+ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
+ALTER ROLE authenticator WITH LOGIN PASSWORD :'"'"'pw'"'"';
+ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';'
 PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 if [ -n "$PW" ]; then
-  if RES=$(printf '%s\n' \
-      "\\set pw \`printenv PW\`" \
-      "ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'pw';" \
-      "ALTER ROLE authenticator WITH LOGIN PASSWORD :'pw';" \
-      "ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'pw';" \
-    | $DOCKER exec -i -e PGPASSWORD="$PW" -e PW="$PW" supabase-db \
+  if OUT=$(printf '%s\n' "$ALTER_SQL" | $DOCKER exec -i -e PW="$PW" -u postgres supabase-db \
+        psql -U postgres -d postgres -q -v ON_ERROR_STOP=1 2>&1); then
+    RECON="altered via postgres socket"
+  elif OUT=$(printf '%s\n' "$ALTER_SQL" | $DOCKER exec -i -e PGPASSWORD="$PW" -e PW="$PW" supabase-db \
         psql -h 127.0.0.1 -U supabase_admin -d postgres -q -v ON_ERROR_STOP=1 2>&1); then
-    if $DOCKER exec -e PGPASSWORD="$PW" supabase-db \
-        psql -h 127.0.0.1 -U authenticator -d postgres -q -c "SELECT 1;" >/dev/null 2>&1; then
-      echo "nas-supabase: service-role passwords re-asserted AND VERIFIED (authenticator logs in)"
-    else
-      echo "nas-supabase: ALTER ROLE ran but authenticator STILL cannot log in - pg_hba or role shape, not the password"
-    fi
+    RECON="altered via supabase_admin tcp"
   else
-    echo "nas-supabase: password reconcile FAILED: $(printf '%s' "$RES" | tail -2 | tr '\n' ' ')"
-    echo "nas-supabase: password reconcile FAILED (reason above)" >&2
+    RECON="ALTER FAILED: $(printf '%s' "$OUT" | tail -2 | tr '\n' ' ')"
   fi
+  case "$RECON" in
+    altered*)
+      if $DOCKER exec -e PGPASSWORD="$PW" supabase-db \
+          psql -h 127.0.0.1 -U authenticator -d postgres -q -c "SELECT 1;" >/dev/null 2>&1; then
+        RECON="$RECON, VERIFIED (authenticator logs in)"
+      else
+        RECON="$RECON, but authenticator STILL cannot log in (pg_hba or role shape, not the password)"
+      fi
+      ;;
+  esac
 else
-  echo "nas-supabase: no POSTGRES_PASSWORD in $ENV_FILE - cannot reconcile roles"
-  echo "nas-supabase: no POSTGRES_PASSWORD in $ENV_FILE - cannot reconcile roles" >&2
+  RECON="no POSTGRES_PASSWORD in $ENV_FILE"
 fi
+echo "nas-supabase: reconcile: $RECON"
 
 # --- prove it, do not claim it (DR-0076) ------------------------------------
 # A green installer that never checked the stack answers is the theater this
@@ -153,6 +169,10 @@ done
 
 $COMPOSE --env-file "$ENV_FILE" ps
 
+# The reconcile verdict rides the LAST lines on purpose: the cycle event
+# captures an installer's tail, and three passes of this cure went blind
+# because the outcome printed mid-output.
+echo "nas-supabase: reconcile: $RECON"
 if [ "$ok" = "1" ]; then
   echo "nas-supabase: OK - auth answers 200 on 127.0.0.1:8800 (loopback only; nothing points at it yet)"
   exit 0
