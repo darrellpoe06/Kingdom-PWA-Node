@@ -95,6 +95,15 @@ echo "nas-supabase: docker compose up -d (no-op when already current)"
 # committed and carries no values.
 $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
 
+# kong.yml is a bind mount: compose cannot see content changes, and kong 2.8
+# reads declarative config only at start. Track the file's hash; a change
+# (e.g. the /sb mirror routes, DR-0307) restarts kong once, never in a loop.
+KONG_HASH=$(md5sum "$SRC/kong.yml" 2>/dev/null | cut -d' ' -f1)
+if [ -n "$KONG_HASH" ] && [ "$KONG_HASH" != "$(cat "$DATA/.kong.hash" 2>/dev/null)" ]; then
+  echo "nas-supabase: kong.yml changed - restarting kong to load it"
+  $DOCKER restart supabase-kong >/dev/null 2>&1 && printf '%s' "$KONG_HASH" > "$DATA/.kong.hash"
+fi
+
 # --- reconcile service-role passwords (every cycle; measured 2026-08-15) -----
 # Run 31870361908 named the stack's whole disease in one line: "password
 # authentication failed" for supabase_auth_admin (auth, 292 restarts),
@@ -197,12 +206,56 @@ done
 
 $COMPOSE --env-file "$ENV_FILE" ps
 
-# The reconcile verdict rides the LAST lines on purpose: the cycle event
-# captures an installer's tail, and three passes of this cure went blind
-# because the outcome printed mid-output.
-echo "nas-supabase: reconcile: $RECON"
+# --- the cutover sprint rides a GREEN gateway (DR-0307) ----------------------
+# Only after kong answers 200: replay the repo's migration history into the
+# sovereign db (resumable ledger, budgeted per cycle), and once the ledger is
+# complete, copy the auth accounts and measure parity. Each leg prints one
+# summary line in the installer's tail where the cycle event carries it.
+REPLAY="not-run (gateway not green)"
+SYNC="not-run"
 if [ "$ok" = "1" ]; then
-  echo "nas-supabase: OK - auth answers 200 on 127.0.0.1:8800 (loopback only; nothing points at it yet)"
+  if R_OUT=$(sh "$SRC/replay_migrations.sh" 2>&1); then
+    REPLAY=$(printf '%s' "$R_OUT" | tail -1)
+    if S_OUT=$(python3 "$SRC/cutover_sync.py" 2>&1); then
+      SYNC=$(printf '%s' "$S_OUT" | tail -2 | tr '\n' ' ')
+    else
+      SYNC="$(printf '%s' "$S_OUT" | tail -2 | tr '\n' ' ')"
+    fi
+  else
+    REPLAY=$(printf '%s' "$R_OUT" | tail -1)
+    SYNC="waiting on replay"
+  fi
+fi
+
+# --- public transport: mount /sb on the funnel (additive, reversible) --------
+# Same guarded pattern as the mcp installer: only the real DSM binary, only
+# when not already mounted, never touching '/' (the legacy transport).
+TS="$(command -v tailscale 2>/dev/null || true)"
+[ -n "$TS" ] || TS="$(ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null || true)"
+SB_MOUNT="not-attempted"
+if [ -n "$TS" ]; then
+  if sudo -n true 2>/dev/null; then TSC="sudo -n $TS"; else TSC="$TS"; fi
+  FSTAT="$($TSC funnel status 2>/dev/null || true)"
+  if printf '%s' "$FSTAT" | grep -q "/sb"; then
+    SB_MOUNT="already mounted"
+  elif $TSC funnel --bg --set-path /sb http://127.0.0.1:8800 2>/dev/null; then
+    SB_MOUNT="mounted /sb -> kong 8800"
+  else
+    SB_MOUNT="mount FAILED - by hand: sudo $TS funnel --bg --set-path /sb http://127.0.0.1:8800"
+  fi
+else
+  SB_MOUNT="tailscale binary not found"
+fi
+
+# The verdict lines ride the LAST lines on purpose: the cycle event captures
+# an installer's tail, and three passes of the password cure went blind
+# because outcomes printed mid-output.
+echo "nas-supabase: reconcile: $RECON"
+echo "nas-supabase: replay: $REPLAY"
+echo "nas-supabase: sync: $SYNC"
+echo "nas-supabase: sb-transport: $SB_MOUNT"
+if [ "$ok" = "1" ]; then
+  echo "nas-supabase: OK - auth answers 200 on 127.0.0.1:8800"
   exit 0
 fi
 echo "nas-supabase: FAILED - the gateway did not answer 200 within 150s. Stack state above." >&2
