@@ -149,7 +149,9 @@ ALTER ROLE authenticator WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
-CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;'
+CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
+ALTER ROLE supabase_auth_admin SET search_path = auth;
+ALTER ROLE supabase_storage_admin SET search_path = storage;'
 PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 if [ -n "$PW" ]; then
   if OUT=$(printf '%s\n' "$ALTER_SQL" | $DOCKER exec -i -e PW="$PW" -u postgres supabase-db \
