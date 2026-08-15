@@ -39,6 +39,12 @@ GRANT anon, authenticated, service_role TO authenticator;
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
+-- 16:30Z cycle: with the roles cured, GoTrue's migrator progressed to its
+-- NEXT wall -- 'permission denied for schema public' -- because it creates
+-- its bookkeeping in the FIRST schema on its path. The official init pins
+-- each service admin's search_path to the schema it owns; so do we.
+ALTER ROLE supabase_auth_admin SET search_path = auth;
+ALTER ROLE supabase_storage_admin SET search_path = storage;
 -- Set the password on every service role that exists at this point in init.
 -- \gexec keeps it conditional: a role the image has not created yet (initdb.d
 -- ordering) is simply skipped here, and install.sh's every-cycle re-assert
