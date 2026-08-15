@@ -134,6 +134,13 @@ services:
       APP_NAME: realtime
       SEED_SELF_HOST: "true"
       RUN_JANITOR: "true"
+      # Realtime is itself a multi-tenant server: its Ecto migrations create
+      # their OWN tenants/extensions tables. Without this pin they landed in
+      # public and collided with the APP's tenants table (the 23:10Z replay
+      # frontier: schema-v1 INSERT failed on a tenants with no slug column).
+      # Upstream pins realtime to _realtime; the schema is asserted by
+      # replay_migrations.sh prerequisites.
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
 
   storage:
     image: supabase/storage-api:v1.19.3
