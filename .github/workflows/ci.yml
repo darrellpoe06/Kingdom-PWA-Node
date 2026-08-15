@@ -104,6 +104,13 @@ jobs:
       # 6.2 MB per sign-in, per user. Shrink-only: today's set is grandfathered,
       # a NEW one fails, and fixing an old one shrinks the baseline.
       - run: node ../scripts/unbounded-select-guard.mjs
+      # LESSON QUOTE RATCHET (DR-0305). The verbatim gate claimed "every quoted
+      # Scripture is KJV-VERBATIM" and read exactly one field — `mod.lesson`. The
+      # child/teen/senior bands, benefits, quiz and facilitator prose carry 3363
+      # more referenced quotes and were never checked; 556 sites do not match.
+      # Shrink-only: today's set is grandfathered, a NEW altered quote fails.
+      - run: node ../scripts/lesson-quote-guard.mjs
+      - run: node ../scripts/lesson-quote-guard.mjs --selftest
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a

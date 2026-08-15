@@ -52,6 +52,7 @@ const VERBATIM_GATED = [
   ['ll76-the-sky-the-speculation-and-the-test-that-works', 75, 16, ['DLM Christian Perspective', 'video teaching', 'summary', 'canon']],
   ['ll77-the-king-over-the-children-of-pride', 76, 60, ['William Jackson', 'video teaching', 'summary', 'frame']],
   ['ll78-justice-and-righteousness-travel-together', 77, 55, ['Manny Scott', 'video teaching', 'summary', 'testimony']],
+  ['ll79-the-heavens-declare-and-the-timetable-is-held-open', 78, 45, ['Hugh Ross', 'Fuz Rana', 'Taylor Welch', 'Reasons to Believe', 'video teaching', 'summary']],
 ];
 
 describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
