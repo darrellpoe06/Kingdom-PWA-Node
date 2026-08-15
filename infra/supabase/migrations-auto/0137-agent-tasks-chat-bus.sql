@@ -73,3 +73,10 @@ BEGIN
     NULL; -- caught, as required
   END;
 END $$;
+
+-- Every instance-scoped table re-runs the standing overlays (DR-0241 / 0130):
+-- the viewer read-only family and the assistant scope family must cover this
+-- table too, or a viewer could write chat rows and an assistant could read
+-- outside its office. The tenancy/assistant gates enforce exactly this line.
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();

@@ -86,7 +86,7 @@ export default function ChatPane({ isPrivate = false, vendorKeysPresent = {} }) 
   }
 
   return (
-    <div className="max-w-2xl" style={serif}>
+    <div style={serif}>
       <h2 className="ts-chrome-region text-2xl mb-2" style={{ fontWeight: 500 }}>
         Ask the models
       </h2>
@@ -145,7 +145,7 @@ export default function ChatPane({ isPrivate = false, vendorKeysPresent = {} }) 
         <input
           id="chat-pane-input"
           className="flex-1 border rounded px-3"
-          style={{ fontSize: '1.0625rem', minHeight: '44px' }}
+          style={{ fontSize: '1.0625rem', minHeight: '2.75rem' }}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ask… (@claude / @gemini / plain = local)"
@@ -153,7 +153,7 @@ export default function ChatPane({ isPrivate = false, vendorKeysPresent = {} }) 
         <button
           type="submit"
           className="border rounded px-4"
-          style={{ fontSize: '1.0625rem', minHeight: '44px' }}
+          style={{ fontSize: '1.0625rem', minHeight: '2.75rem' }}
           disabled={sendState === 'sending'}
         >
           {sendState === 'sending' ? 'Queuing…' : 'Send'}
