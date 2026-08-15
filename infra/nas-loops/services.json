@@ -9,6 +9,12 @@
       "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
     },
     {
+      "name": "agent-consumer",
+      "install": "infra/nas-agent/install.sh",
+      "enabled": true,
+      "description": "The box agent (DR-0132 P1, built 2026-08-15 on Darrell's arm: 'you arm it dont make it not work to start'). Drains agent_tasks (migration 0137) through the DIRECT Postgres pooler -- measured open while the REST gateway is 402-restricted, so the Ask-the-models pane answers BEFORE the Aug 23 reset -- and serves @local on the NAS's own Ollama (Up 5 weeks, 127.0.0.1:11434) with keep_alive 0 (DR-0012). Deterministic class per DR-0248: --max budget + single-flight lock, no kill-switch. Keyless vendor rows FAIL with the why instead of spinning (the pane's honesty rules, mirrored server-side; selftest 12/12 gates merge in ci.yml). Credential placed by nas-agent-arm.yml over remote-hands; absent env = polite no-op naming exactly what is missing."
+    },
+    {
       "name": "supabase",
       "install": "infra/nas-supabase/install.sh",
       "enabled": true,
