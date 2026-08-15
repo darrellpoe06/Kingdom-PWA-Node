@@ -53,6 +53,7 @@ import {
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import MemberInspect from './MemberInspect.jsx';
+import ChatPane from './ChatPane.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -256,6 +257,21 @@ export default function AdminConsole({
       // THE USERS REPORT — absorbed from the retired Access tab. Real KPIs, self-
       // fetching, fail-soft, family/governor-gated at the DB.
       render: () => <AccessUsageMetrics />,
+    },
+    {
+      // The unified model pane (DR-0132 bus; migration 0137; green-lit
+      // 2026-08-15 via the ensemble seam). Governor-gated with the rest of
+      // Admin while the box agent is being armed; @local default, vendors
+      // dark until keys exist. Mounted as an Admin TAB so the frozen monolith
+      // is untouched (DR-0078) — Admin is already its own module.
+      id: 'models',
+      label: 'Ask the models',
+      icon: 'sliders',
+      render: () => (
+        <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+          <ChatPane />
+        </section>
+      ),
     },
     {
       id: 'system',
