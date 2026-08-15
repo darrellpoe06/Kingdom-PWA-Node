@@ -19,11 +19,18 @@ if ! PYTHONPATH="$VENDOR" python3 -c 'import pg8000' >/dev/null 2>&1; then
   echo "nas-agent: vendoring pg8000 into the repo (both users can read it)"
   mkdir -p "$VENDOR"
   DPOE_PIP="/var/services/homes/dpoe/.local/bin/pip"
-  python3 -m pip install --target "$VENDOR" --quiet pg8000 >/dev/null 2>&1 \
-    || { [ -x "$DPOE_PIP" ] && "$DPOE_PIP" install --target "$VENDOR" --quiet pg8000 >/dev/null 2>&1; } \
+  # Measured 2026-08-15 (cycles 03:30/03:45/04:00): NO pip route works as root
+  # on this DSM, so the wheel is COMMITTED to the repo (.vendor, pg8000 1.30.5,
+  # the last release whose floor is python 3.8 -- 1.31+ declares >=3.9 and
+  # imports zoneinfo). The repo carries what the box cannot fetch; this pip
+  # path remains only as a fallback for other hosts, and it PRINTS its failure
+  # instead of swallowing it -- three cycles failed with no recorded reason
+  # because of the exact >/dev/null below, the sin this day kept correcting.
+  python3 -m pip install --target "$VENDOR" --quiet "pg8000==1.30.5" \
+    || { [ -x "$DPOE_PIP" ] && "$DPOE_PIP" install --target "$VENDOR" --quiet "pg8000==1.30.5"; } \
     || true
   PYTHONPATH="$VENDOR" python3 -c 'import pg8000' >/dev/null 2>&1 || {
-    echo "nas-agent: could not vendor pg8000 (no pip route worked)" >&2; exit 1; }
+    echo "nas-agent: could not vendor pg8000 (no pip route worked AND the committed .vendor is missing -- was it checked out?)" >&2; exit 1; }
 fi
 
 if [ ! -f "$ENVF" ]; then
