@@ -111,6 +111,13 @@ jobs:
       # Shrink-only: today's set is grandfathered, a NEW altered quote fails.
       - run: node ../scripts/lesson-quote-guard.mjs
       - run: node ../scripts/lesson-quote-guard.mjs --selftest
+      # SILENT WATCHER GUARD (DR-0306). A watcher that cannot say "I could not
+      # observe" reports silence as health. Every network poll must carry a
+      # bound AND a loud end. Found by shipping the defect in this session's own
+      # CI watcher; caught a real one in ship.sh, which merged on an unobserved
+      # CI timeout.
+      - run: node ../scripts/silent-watcher-guard.mjs
+      - run: node ../scripts/silent-watcher-guard.mjs --selftest
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a

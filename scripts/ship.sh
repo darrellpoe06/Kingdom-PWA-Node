@@ -108,6 +108,17 @@ if gh pr checks "$PR_NUM" 2>/dev/null | grep -qiE "lint \+ vitest.*(fail|error)"
   exit 1
 fi
 
+# The loop above can also end by EXHAUSTING its budget (i >= 60, ~5 minutes)
+# without the check ever reporting pass OR fail - a slow queue, a runner outage,
+# or gh being unable to read the checks at all. That is UNKNOWN, and it must not
+# fall through to the merge below: silence is not a pass (DR-0306). Say so and
+# stop; re-run ship once CI has actually reported.
+if ! gh pr checks "$PR_NUM" 2>/dev/null | grep -qE "lint \+ vitest.*pass"; then
+  echo "ship: could NOT observe 'lint + vitest' reporting pass on PR #$PR_NUM after ~5 minutes - not merging." >&2
+  echo "ship: this is UNKNOWN, not green. Check the run, then re-run ship. See: $PR_URL" >&2
+  exit 1
+fi
+
 echo "==> squash-merge + delete branch"
 gh pr merge "$PR_NUM" --squash --delete-branch
 echo "==> shipped: PR #$PR_NUM merged to main"
