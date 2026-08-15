@@ -126,6 +126,27 @@ def process_once(fetch_queued, mark, answer=ask_ollama, max_rows=5, vendor_keys=
 
 
 # ----------------------------------------------------------------- db plumbing
+CA_PATH = os.path.join(HERE, "supabase-prod-ca-2021.crt")
+
+
+def build_ssl_context():
+    """A VERIFYING TLS context that works on a box with no usable CA store.
+
+    Measured (services-sync cycle 2026-08-15T05:00Z): ssl_context=True made
+    pg8000 build Python's default context, and the handshake with the Supabase
+    pooler died CERTIFICATE_VERIFY_FAILED -- Supabase signs its database
+    endpoints with its own CA ("Supabase Root 2021 CA", the cert the dashboard
+    offers for download), which no OS bundle carries, and DSM root's store may
+    be empty besides. The fix PINS that CA (committed beside this file,
+    sha256 fingerprint 80:70:25:AD:...:CA:FA) and also loads the system store
+    where one exists. Verification stays ON; disabling it is not a fix."""
+    import ssl
+    ctx = ssl.create_default_context()
+    if os.path.exists(CA_PATH):
+        ctx.load_verify_locations(cafile=CA_PATH)
+    return ctx
+
+
 def db_run(max_rows):
     import pg8000.native  # vendored by install.sh; fails loudly if absent
     url = os.environ.get("AGENT_DB_URL", "")
@@ -137,7 +158,7 @@ def db_run(max_rows):
     con = pg8000.native.Connection(
         user=u.username, password=u.password, host=u.hostname,
         port=u.port or 5432, database=(u.path or "/postgres").lstrip("/"),
-        ssl_context=True, timeout=30)
+        ssl_context=build_ssl_context(), timeout=30)
     try:
         con.run("SET statement_timeout = '20s'")
 
@@ -222,6 +243,24 @@ def selftest():
     check("every Ollama call carries keep_alive '0' (DR-0012, never squat)", sent.get("keep_alive") == "0")
     check("empty model response reads as FAILURE, not silence",
           ask_ollama("t", transport=lambda u, b: json.dumps({"response": ""}))[0] is False)
+
+    # TLS: the pinned Supabase CA is present, loads, and verification stays ON.
+    # Proven-to-catch: get_ca_certs() only lists CAs that actually parsed and
+    # loaded, so a missing/corrupt pin fails here BEFORE a cycle burns on the
+    # box; and anyone "fixing" TLS by turning verification off trips the last
+    # two checks.
+    import ssl as _ssl
+    check("pinned Supabase CA file is committed beside the consumer",
+          os.path.exists(CA_PATH))
+    try:
+        _ctx = build_ssl_context()
+        _loaded = _ctx.get_ca_certs()
+        check("pinned CA parses and loads into the context",
+              any("Supabase Root 2021 CA" in str(ca.get("subject", "")) for ca in _loaded))
+        check("TLS verification is ON (CERT_REQUIRED)", _ctx.verify_mode == _ssl.CERT_REQUIRED)
+        check("hostname checking is ON", _ctx.check_hostname is True)
+    except Exception as e:  # noqa: BLE001 - a context that cannot build is a FAIL, not a crash
+        check("ssl context builds without error ({})".format(e), False)
 
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0
