@@ -143,10 +143,14 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '"'"'supabase_storage_admin'"'"') THEN
     CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN;
   END IF;
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '"'"'postgres'"'"') THEN
+    CREATE ROLE postgres NOSUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION BYPASSRLS;
+  END IF;
 END $$;
 ALTER ROLE supabase_auth_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE authenticator WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
+ALTER ROLE postgres WITH LOGIN PASSWORD :'"'"'pw'"'"';
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;

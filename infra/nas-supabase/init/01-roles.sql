@@ -34,6 +34,12 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'supabase_storage_admin') THEN
     CREATE ROLE supabase_storage_admin NOINHERIT CREATEROLE LOGIN;
   END IF;
+  -- 17:36Z: GoTrue's own migrations GRANT to a role named postgres (this
+  -- image's superuser is supabase_admin; the official init creates postgres
+  -- separately). The hosted project's 148 migrations reference it too.
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'postgres') THEN
+    CREATE ROLE postgres NOSUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION BYPASSRLS;
+  END IF;
 END $$;
 GRANT anon, authenticated, service_role TO authenticator;
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
@@ -51,5 +57,5 @@ ALTER ROLE supabase_storage_admin SET search_path = storage;
 -- catches it once the stack is up.
 SELECT 'ALTER ROLE ' || quote_ident(rolname) || ' WITH LOGIN PASSWORD ' || quote_literal(:'pw')
 FROM pg_roles
-WHERE rolname IN ('authenticator', 'supabase_auth_admin', 'supabase_storage_admin')
+WHERE rolname IN ('authenticator', 'supabase_auth_admin', 'supabase_storage_admin', 'postgres')
 \gexec
