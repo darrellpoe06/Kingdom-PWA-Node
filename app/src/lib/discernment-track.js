@@ -261,6 +261,30 @@ export function lintEvenhanded(issue) {
 export function lintNoOneSidedPersuasion(issue) {
   const i = normalizeIssue(issue);
   const out = [];
+
+  // RENDERABILITY IS PART OF CORRECTNESS (2026-08-14). Every other check here
+  // asks whether a field is TRUTHY. React asks something stricter: an object
+  // handed to it as a child throws, and the whole curriculum renders EMPTY.
+  // Issue 10 shipped `lens.threeD` as { practical: '...' } instead of a string;
+  // this audit passed it (truthy), the verse gate passed it, and the render
+  // test 40 files away was the only thing that caught it -- by then reporting
+  // "expected '' to match /(Issue)\s*1/", which names the symptom and not the
+  // cause. Check the shape HERE, where the message can say what is wrong.
+  // These four are interpolated directly as React children by the modules.
+  for (const key of ['threeD', 'graceNote', 'stewardship']) {
+    const v = i.lens?.[key];
+    if (v != null && typeof v !== 'string') {
+      out.push({
+        code: `lens/${key}-not-a-string`,
+        severity: 'error',
+        message: `lens.${key} must be a STRING — it is rendered directly as a React child, and an object there throws and blanks the whole curriculum (got ${Array.isArray(v) ? 'array' : typeof v}${v && typeof v === 'object' ? ` with keys {${Object.keys(v).join(', ')}}` : ''}).`,
+      });
+    }
+  }
+  if (i.lens?.fourD != null && typeof i.lens.fourD.deepSource !== 'string') {
+    out.push({ code: 'lens/fourD-deepSource-not-a-string', severity: 'error', message: 'lens.fourD.deepSource must be a STRING (fourD is the one lens field that IS an object — its deepSource is the rendered child).' });
+  }
+
   if (!i.subject.isNamedRealPerson) return out; // safeguard targets named-person lessons
 
   if (!isNonEmptyStr(i.lens.graceNote)) {

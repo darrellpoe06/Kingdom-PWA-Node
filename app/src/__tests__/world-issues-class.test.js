@@ -5,7 +5,7 @@ import {
   buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
   auditWorldIssues, resolveWorldIssuesCohort, WORLD_ISSUES_TUTOR_META,
 } from '../lib/world-issues-class.js';
-import { buildDiscernmentModules } from '../lib/discernment-track.js';
+import { buildDiscernmentModules, auditIssue } from '../lib/discernment-track.js';
 
 describe('the published World Issues track passes every safeguard (the gate)', () => {
   it('every issue audits clean — no error-severity violations', () => {
@@ -153,5 +153,49 @@ describe('session flow mirrors the five discernment stages', () => {
   it('has five stages', () => {
     expect(WORLD_ISSUES_SESSION_FLOW.length).toBe(5);
     expect(WORLD_ISSUES_SESSION_FLOW.map((s) => s.name).join(' ')).toMatch(/claim/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PROVEN-TO-CATCH: the shape that blanked the whole curriculum (2026-08-14).
+// Issue 10 shipped lens.threeD as { practical: '...' } instead of a string.
+// The publish audit passed it (truthy), the verse-integrity gate passed it, and
+// the ONLY thing that caught it was a render test in another file — reporting
+// "expected '' to match /(Issue)\s*1/", which names the symptom, not the cause.
+// React throws on an object child and the entire World Issues curriculum
+// rendered EMPTY. Renderability is part of correctness, so the audit checks it.
+describe('lens fields that are rendered must be strings (the blank-curriculum class)', () => {
+  const base = () => JSON.parse(JSON.stringify(WORLD_ISSUES.find((i) => i.id === 'wi-victorious-emotions')));
+
+  it('CATCHES lens.threeD handed in as an object — the exact 2026-08-14 break', () => {
+    const bad = base();
+    bad.lens.threeD = { practical: 'text that React cannot render' };
+    const codes = auditIssue(bad).violations.map((v) => v.code);
+    expect(codes).toContain('lens/threeD-not-a-string');
+  });
+
+  it('CATCHES an object grace note and an object stewardship too', () => {
+    for (const key of ['graceNote', 'stewardship']) {
+      const bad = base();
+      bad.lens[key] = { text: 'nope' };
+      expect(auditIssue(bad).violations.map((v) => v.code)).toContain(`lens/${key}-not-a-string`);
+    }
+  });
+
+  it('CATCHES a non-string fourD.deepSource (fourD is the one lens field that IS an object)', () => {
+    const bad = base();
+    bad.lens.fourD.deepSource = { text: 'nope' };
+    expect(auditIssue(bad).violations.map((v) => v.code)).toContain('lens/fourD-deepSource-not-a-string');
+  });
+
+  it('the real published issues all pass the shape check', () => {
+    for (const issue of WORLD_ISSUES) {
+      const shape = auditIssue(issue).violations.filter((v) => v.code.startsWith('lens/'));
+      expect(shape, `${issue.id} has a non-renderable lens field`).toEqual([]);
+    }
+  });
+
+  it('does not cry wolf on a correct string lens', () => {
+    expect(auditIssue(base()).violations.filter((v) => v.code.startsWith('lens/'))).toEqual([]);
   });
 });
