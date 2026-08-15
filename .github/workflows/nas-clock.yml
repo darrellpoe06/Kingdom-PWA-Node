@@ -88,6 +88,16 @@ jobs:
           REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
           echo "=== mirror BEFORE ==="
           git -C "$REPO" log -1 --format='%h %ci %s'
+          # THE MIRROR IS A MIRROR (2026-08-15, run 31865156478): tracked-file
+          # drift appeared in the working tree (living-lessons-class.js modified,
+          # a test file untracked) and blocked every --ff-only pull, including
+          # this workflow's. Local edits on the mirror are corruption, not state
+          # -- print what is being discarded, discard TRACKED drift only
+          # (untracked runtime state like church-media-golive/state survives),
+          # then pull.
+          echo "=== drift being discarded (tracked files only) ==="
+          git -C "$REPO" status --porcelain | head -20
+          git -C "$REPO" checkout -- . 2>&1 || true
           git -C "$REPO" pull --ff-only 2>&1 || echo "pull failed (offline or diverged) — continuing with what is here"
           echo "=== mirror AFTER ==="
           git -C "$REPO" log -1 --format='%h %ci %s'
