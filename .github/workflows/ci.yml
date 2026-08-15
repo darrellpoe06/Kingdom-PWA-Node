@@ -200,6 +200,14 @@ jobs:
       - name: sovereign supabase migration parity selftest
         working-directory: infra/nas-supabase
         run: python3 migrate_verify.py --selftest
+      # Box agent consumer (DR-0132 P1; built on Darrell's arm 2026-08-15).
+      # Proven-to-catch: keyless vendor rows FAIL with the why (never spin),
+      # Ollama errors land verbatim, empty responses read as failure, the
+      # --max budget caps every pass, and keep_alive '0' rides every Ollama
+      # call (DR-0012). Pure logic; no network or db in the selftest.
+      - name: box agent consumer selftest
+        working-directory: infra/nas-agent
+        run: python3 agent_consumer.py --selftest
       # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
       # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
       # steward heard values with no idea which column they were in. All 131 now

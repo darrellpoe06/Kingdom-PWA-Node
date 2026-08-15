@@ -1,0 +1,50 @@
+# nas-agent-arm -- place the consumer's DB credential on the NAS (remote-hands).
+# Darrell 2026-08-15: "you arm it dont make it not work to start..." The secret
+# is the ONE piece the repo cannot carry (a credential onto a device); this
+# workflow moves it from the repo secret store over the proven tailnet+SSH
+# channel, never echoed to the log. Dispatch-only; mutates, so never a timer.
+# The MEASURED bypass this enables: Supabase's REST gateway is 402-restricted
+# until Aug 23, but the DIRECT pooler answers -- so the pane works NOW.
+name: nas-agent-arm
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: nas-agent-arm
+  cancel-in-progress: false
+jobs:
+  arm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check secrets
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+          DB: ${{ secrets.SUPABASE_DB_URL != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ] || [ "$DB" != "true" ]; then
+            echo "NOT CONFIGURED: need TS_AUTHKEY, NAS_SSH_KEY, SUPABASE_DB_URL repo secrets."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Write agent.env (0600, never echoed) and prove the loop answers
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          printf 'AGENT_DB_URL=%s\n' "$DB_URL" | $SSH 'umask 077; mkdir -p /volume1/docker/poetech; cat > /volume1/docker/poetech/agent.env; echo "agent.env written ($(wc -c < /volume1/docker/poetech/agent.env) bytes, 0600)"'
+          # Prove, do not claim (DR-0076): run the installer once, right now.
+          $SSH 'sh /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-agent/install.sh'
