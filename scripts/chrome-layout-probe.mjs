@@ -40,7 +40,7 @@
 import { chromium } from 'playwright-core';
 import { strandedGutter } from './layout-rules.mjs';
 import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -118,6 +118,8 @@ catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chro
 
 let failures = 0;
 let tsFailuresBefore = 0;
+// Collected so the numbers land somewhere a human can actually READ them.
+const measured = { gutters: [], slack: [] };
 const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
 
 try {
@@ -217,6 +219,7 @@ try {
       const { left, right } = m.gutters;
       fail(`${view}@${width}px: content stranded to one side — ${right}px of dead space on the RIGHT vs ${left}px on the left (uncentred width cap)`);
     }
+    if (m.gutters) measured.gutters.push(`${view}@${width}px ${m.gutters.left}/${m.gutters.right}px`);
     if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap${m.gutters ? `, gutters ${m.gutters.left}/${m.gutters.right}px` : ''}`);
   }
   // ---------------------------------------------------------------------------
@@ -320,6 +323,7 @@ try {
     if (failures === before && Number.isFinite(m.slack) && m.slack < 8) {
       console.log(`textscale MARGINAL  ${v.name}@${width}px — escape hatch clears the viewport by only ${Math.round(m.slack)}px; this is the flake boundary`);
     }
+    measured.slack.push(`${v.name}@${width}px ${Number.isFinite(m.slack) ? `${Math.round(m.slack)}px` : (m.reachable ? '?' : 'TRAPPED')}`);
     if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls, slack ${Number.isFinite(m.slack) ? Math.round(m.slack) : '?'}px)`);
   }
 } finally {
@@ -327,6 +331,20 @@ try {
   server.close();
 }
 
+// THE NUMBERS MUST BE RETRIEVABLE (2026-08-16). The slack measurement added
+// earlier printed only into the step's stdout — and the four steps that run
+// after this one flood the log tail, so reading it back through the Actions
+// API was impractical: five attempts failed to reach the block. A measurement
+// nobody can retrieve is not a measurement (DR-0076 §4). The step summary is a
+// separate, compact surface, the same one site-health and live-link-probe use.
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const lines = ['## Chrome layout probe', '',
+    `**Gutters** (left/right dead space; a one-sided gutter is the ChurchLearn defect class)`,
+    '```', ...measured.gutters, '```', '',
+    `**Big Print escape-hatch slack** (px the text-size control clears the viewport by; TRAPPED = unreachable)`,
+    '```', ...measured.slack, '```', ''];
+  try { writeFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join('\n')}\n`, { flag: 'a' }); } catch { /* summary is a convenience, never a failure */ }
+}
 if (SELFTEST) {
   // BOTH passes must prove they can fail: the chrome pass's collapse AND the
   // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
