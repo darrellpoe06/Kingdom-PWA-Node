@@ -43,6 +43,12 @@
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
       "description": "YT Zero (ghcr.io/pelski/ytzero pinned 0.25.3) -- sovereign chosen-channels-only YouTube inbox on host port 3701. Public RSS -> own SQLite at /volume1/docker/ytzero; no Google account, no API key, no recommendation feed; optional yt-dlp downloads; LAN/Tailscale only. Runbook: infra/nas-ytzero/README.md."
+    },
+    {
+      "name": "announce",
+      "install": "infra/nas-announce/install.sh",
+      "enabled": true,
+      "description": "Sovereign ops-announce relay (announce_server.py, poetech-announce.service on 127.0.0.1:8796). REPLACES the deleted n8n wf-ops-announce (DR-0218 zero-n8n). site-health.yml and verify-boot post an incident here and it pushes to the family's phones via the sovereign ntfy container; the topic is PINNED server-side so a leaked bearer can only ring the family's own bell. Built 2026-08-16 after site-health measured Supabase at 402, filed the incident correctly, and the phone push returned 404 -- the bell had not rung for the whole outage. Fail-soft: a dead bell reports WHY and never fails a probe run (DR-0306). Stdlib only, no venv."
     }
   ]
 }

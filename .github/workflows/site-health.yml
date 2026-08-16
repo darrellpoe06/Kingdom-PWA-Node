@@ -306,7 +306,7 @@ jobs:
             payload=$(printf '{"title":"poetech.us is failing the probe","message":%s,"url":"%s","priority":"5"}' \
               "$(printf '%s' "$REASONS" | head -c 800 | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" \
               "${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}")
-            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
+            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/announce/ops-announce" \
               -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
               --max-time 15 -d "$payload" \
               || echo "::warning::announce relay unreachable — incident recorded on the ledger, phone push skipped"
