@@ -136,7 +136,16 @@ jobs:
           REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
           NODE=$(command -v node || echo /usr/local/bin/node)
           echo "=== firing services-sync once ==="
-          "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
+          # Fire AS ROOT when the narrow sudo grant covers it: the clocked
+          # cycles run as root, so the day's state files (call caps, locks)
+          # are root-owned 644 -- a dpoe-fired one-shot dies on EACCES at the
+          # call counter (run 31953897257) without ever reaching the loop.
+          # Same owner for clock and hand means one owner for the state.
+          if sudo -n true 2>/dev/null; then
+            sudo -n "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
+          else
+            "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
+          fi
           echo "=== the crontab now ==="
           # Run 31868259272 printed "NO run.mjs ENTRY — the clock did not take"
           # while the root cycles were demonstrably firing every 15 minutes:
