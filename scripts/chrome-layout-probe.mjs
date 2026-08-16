@@ -61,6 +61,30 @@ if (!existsSync(join(DIST, 'index.html'))) {
   process.exit(2);
 }
 
+/**
+ * Wait for LAYOUT TO SETTLE before measuring — fonts, then two frames.
+ *
+ * Born 2026-08-16 from a FLAKY GATE, which is nearly as corrosive as a false
+ * one: `textscale church@360px` and `library@360px` failed the escape-hatch
+ * invariant on f7a7a30 and 33f1cd9 and PASSED on a3245b3 and 4104ef6 — same
+ * code path, same widths, opposite verdicts. Cause: the pass measured straight
+ * after `networkidle`, which does not wait for WEB FONTS. At Big Print (2.75x)
+ * with Fraunces + JetBrains Mono, the fallback-to-webfont swap reflows the
+ * header enough to push a control a few pixels below the fold, so the run's
+ * verdict depended on whether the swap had landed yet.
+ *
+ * This does NOT weaken the invariant. "At least one text-size control is fully
+ * on screen at load" is a claim about the layout a reader actually meets, not
+ * about a transient mid-swap frame nobody sees. A control genuinely off-screen
+ * after settling still fails — which is the point.
+ */
+async function settle(page) {
+  await page.evaluate(async () => {
+    try { await document.fonts.ready; } catch { /* no font API: fall through */ }
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }).catch(() => {});
+}
+
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
@@ -102,6 +126,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
+    await settle(page);
     if (SELFTEST) {
       // The pre-fix collapse, reproduced deliberately: the brand is forced to
       // wrap letter-per-line (white-space:normal at ~1ch width — the nowrap
@@ -219,6 +244,7 @@ try {
     });
     await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('button', { timeout: 20000 }).catch(() => {});
+    await settle(page);
     if (SELFTEST) {
       // The trap, reproduced deliberately: the comfort controls are shoved a
       // full 3 viewports down (the ballooned-header failure) and the body is
