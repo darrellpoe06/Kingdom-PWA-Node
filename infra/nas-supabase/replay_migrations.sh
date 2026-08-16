@@ -65,6 +65,25 @@ BEGIN
   END IF;
 END
 $cleanup$;
+-- Rename-collision repair (frontier 2026-08-16 13:30Z): schema-v2.1 renames
+-- join_default_tenant -> join_default_instance, but migrations 0001/0002 ran
+-- on day one (before the baseline joined this replay) and already created
+-- join_default_instance -- clearing their ledger rows did not undo their
+-- effects. In hosted history the two functions NEVER coexist (v1.1 created
+-- the old name, v2.1 renamed it, 0001/0002 only ever replaced the new name),
+-- so both-exist can only mean the sovereign collision state: drop the
+-- migration-created copy, let the rename proceed, and 0001/0002 re-apply
+-- afterward with the security fix intact. No-op forever once past v2.1.
+DO $rename_repair$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname = 'public' AND p.proname = 'join_default_tenant')
+     AND EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                 WHERE n.nspname = 'public' AND p.proname = 'join_default_instance') THEN
+    DROP FUNCTION IF EXISTS public.join_default_instance(text);
+  END IF;
+END
+$rename_repair$;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;

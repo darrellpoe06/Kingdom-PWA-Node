@@ -195,12 +195,24 @@ try {
         const r = b.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
       });
+      // The instrument names WHERE (instrument-blindness law): a bare "none is
+      // on screen" forced a blind bisect on 2026-08-16 — the fail line now
+      // carries each control's rect + the header's height so the failing run
+      // itself says which edge lost the control and by how many pixels.
+      const hdr = document.querySelector('header');
       return {
         size: doc.getAttribute('data-text-size'),
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
         hatchCount: hatch.length,
         reachable,
+        vh,
+        vw,
+        headerH: hdr ? Math.round(hdr.getBoundingClientRect().height) : null,
+        rects: hatch.slice(0, 6).map((b) => {
+          const r = b.getBoundingClientRect();
+          return `${(b.getAttribute('aria-label') || '?').slice(0, 14)}@t${Math.round(r.top)},l${Math.round(r.left)},b${Math.round(r.bottom)},r${Math.round(r.right)}`;
+        }),
       };
     });
     await page.close();
@@ -208,7 +220,7 @@ try {
     const before = failures;
     if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${v.name}@${width}px: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
     if (!m.hatchCount) fail(`textscale ${v.name}@${width}px: no text-size control rendered — no way out of big text`);
-    else if (!m.reachable) fail(`textscale ${v.name}@${width}px: text-size controls exist but none is on screen — reader trapped in big text`);
+    else if (!m.reachable) fail(`textscale ${v.name}@${width}px: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
     if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
 } finally {
