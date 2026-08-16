@@ -1,7 +1,8 @@
 # CI — the mechanical floor under RELEASE-TIERS.md.
 # Every PR and every push to main runs lint + the Vitest suite + a real
-# production build + the wf36 Quality Gatekeeper harness. Nothing merges with a
-# red suite, regardless of tier. Added per
+# production build. Nothing merges with a red suite, regardless of tier.
+# (The wf36 gatekeeper harness was removed 2026-08-16 with the n8n artifacts —
+# DR-0218 zero-n8n; there is no workflow JSON left to harness.) Added per
 # docs/99-session-notes/2026-06-11-test-coverage-analysis.md (P2); the suite runs
 # without app/.env.local because vitest.config.js stubs the Supabase env (P1).
 #
@@ -118,14 +119,6 @@ jobs:
       # CI timeout.
       - run: node ../scripts/silent-watcher-guard.mjs
       - run: node ../scripts/silent-watcher-guard.mjs --selftest
-      # N8N WORKFLOW CONFORMANCE (DR-0132 §4, enforced 2026-08-16 on Darrell's
-      # word: "make the conformance gate fail the build"). Two tiers — an ACTIVE
-      # workflow must conform and is NEVER grandfathered (a cron with no brakes
-      # is the 2026-06-06 runaway precedent; an unauthenticated live webhook is
-      # an open door); inactive findings ratchet from today's 92. Reads the repo
-      # `active` flag only — it gates what we SHIP, not what the NAS is running.
-      - run: node ../scripts/workflow-conformance.mjs
-      - run: node ../scripts/workflow-conformance.mjs --selftest
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
@@ -289,12 +282,3 @@ jobs:
         run: node scripts/scripture-inference-guard.mjs
         working-directory: ${{ github.workspace }}
 
-  workflows:
-    name: n8n workflows — wf36 gatekeeper harness
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: node scripts/test-wf36-quality-gatekeeper.js

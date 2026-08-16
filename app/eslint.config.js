@@ -33,8 +33,6 @@ export default [
         // Vite build-time injected constants (see vite.config.js define block).
         __BUILD_TIME__: 'readonly',
         __BUILD_SHA__: 'readonly',
-        __WORKFLOW_STATS__: 'readonly',
-        __WORKFLOW_REGISTRY__: 'readonly',
         __GOVERNANCE_QUEUE__: 'readonly',
         __DR_LEDGER__: 'readonly',
         __DR_PRINCIPLES__: 'readonly',

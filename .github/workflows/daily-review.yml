@@ -48,16 +48,6 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           node scripts/fruit-scout.mjs | tail -n +1 | head -60 >> "$GITHUB_STEP_SUMMARY" || true
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-      - name: Workflow conformance
-        run: |
-          echo "## Workflow conformance" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          # --report is the FULL listing for the daily summary and exits 0 by
-          # design; enforcement lives in ci.yml, which fails the build (DR-0132
-          # §4). The old `|| true` here hid the exit code entirely — explicit
-          # report-mode says what this is instead of swallowing it.
-          node scripts/workflow-conformance.mjs --report >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Tenancy guard (data isolation)
         run: |
           echo "## Tenancy guard (data isolation — DR-0060)" >> "$GITHUB_STEP_SUMMARY"
