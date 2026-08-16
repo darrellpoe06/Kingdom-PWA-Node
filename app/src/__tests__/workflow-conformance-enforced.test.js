@@ -30,7 +30,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { inspectWorkflow, judge } from '../../../scripts/workflow-conformance.mjs';
+import { inspectWorkflow, judge, judgeCount } from '../../../scripts/workflow-conformance.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoFile = (p) => readFileSync(join(here, '../../..', p), 'utf8');
@@ -86,6 +86,43 @@ describe('workflow conformance is enforced, not reported', () => {
     const ci = repoFile('.github/workflows/ci.yml');
     expect(ci).toMatch(/node \.\.\/scripts\/workflow-conformance\.mjs\s*$/m);
     expect(ci).toMatch(/workflow-conformance\.mjs --selftest/);
+  });
+
+  // ---------------------------------------------------------------------------
+  // THE COUNT RATCHET (DR-0218 / DR-0308) — the number that actually matters.
+  // Added after Darrell corrected the premise: "we used python not n8n for
+  // reasons... review our history of this." DR-0218 (2026-07-21) AMENDS DR-0132,
+  // overriding its "some flows stay on n8n" endpoint — the target is ZERO — and
+  // the app-side cutover is already DONE (app/src/lib/n8n-base.js:63 resolves
+  // N8N_BASE EMPTY by default, so no app code calls n8n at all). Grading the
+  // QUALITY of retired artifacts was the wrong instrument; grading their
+  // EXISTENCE is the right one.
+  // ---------------------------------------------------------------------------
+  it('adding an n8n artifact fails, and points at the sovereign path', () => {
+    const grew = judgeCount(56, 55);
+    expect(grew).toHaveLength(1);
+    expect(grew[0]).toMatch(/ZERO/);
+    expect(grew[0], 'the fix is a sovereign path, never "make it conform"').toMatch(/sovereign path/);
+  });
+
+  it('holding steady passes; shrinking flags so the gain is locked in', () => {
+    expect(judgeCount(55, 55)).toEqual([]);
+    expect(judgeCount(54, 55)).toHaveLength(1);
+    expect(judgeCount(54, 55)[0]).toMatch(/SHRANK/);
+  });
+
+  it('the ceiling file exists and only ever goes down', () => {
+    const f = join(here, '../../../scripts/n8n-artifact-ceiling.json');
+    expect(existsSync(f)).toBe(true);
+    const { ceiling } = JSON.parse(readFileSync(f, 'utf8'));
+    expect(typeof ceiling).toBe('number');
+    expect(ceiling).toBeLessThanOrEqual(55);
+  });
+
+  it('the app-side cutover is DONE — N8N_BASE defaults empty, so nothing calls n8n', () => {
+    const base = repoFile('app/src/lib/n8n-base.js');
+    expect(base, 'DR-0218 retirement must stay recorded at the source').toMatch(/RETIRED \(DR-0218/);
+    expect(base).toMatch(/export const N8N_BASE = RAW \? RAW\.replace\([^)]*\) : '';/);
   });
 
   it('the daily review no longer swallows the exit code with `|| true`', () => {

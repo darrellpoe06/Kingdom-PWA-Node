@@ -187,8 +187,45 @@ async function selftest() {
   );
   check('a NEW inactive finding DOES block (the ratchet bites)', fresh.length === 1);
 
+  // THE COUNT RATCHET (DR-0218 / DR-0308) — the number that actually matters
+  // now that the app-side cutover is done (n8n-base.js:63, N8N_BASE empty).
+  check('adding an n8n artifact FAILS', judgeCount(56, 55).length === 1);
+  check('...and the message points at the sovereign path, not at conforming it',
+    /sovereign path/.test(judgeCount(56, 55)[0] || ''));
+  check('holding steady passes', judgeCount(55, 55).length === 0);
+  check('SHRINKING flags, so the gain is locked into the ceiling', judgeCount(54, 55).length === 1);
+
   console.log(`\n${failures === 0 ? 'SELFTEST OK' : 'SELFTEST FAILED'} — ${failures} failure(s)`);
   process.exit(failures === 0 ? 0 : 1);
+}
+
+// -----------------------------------------------------------------------------
+// THE COUNT RATCHET — n8n only ever shrinks (DR-0218, DR-0308)
+// -----------------------------------------------------------------------------
+// The conformance checks above grade the QUALITY of these files. This grades
+// their EXISTENCE, which after DR-0218 is the number that actually matters:
+//
+//   "The target is ZERO n8n... No new n8n webhook is ever added."     (DR-0218 §1)
+//   "Progress is measured by webhooks actually cut over (13 -> 0)."   (DR-0218 §Verification)
+//
+// The app-side cutover is DONE — app/src/lib/n8n-base.js:63 resolves N8N_BASE
+// EMPTY by default, so no app code calls n8n at all. What remains in
+// docs/00-foundations/n8n-workflows/ and infra/n8n/ are RETIRED ARTIFACTS kept
+// as why-records (DR-0218 §3: historical warning, never forward guidance).
+//
+// So the honest gate on them is not "make them conform" — it is "there are
+// never more of them." A workflow JSON removed as its record stops earning its
+// keep shrinks this number; one added fails the build.
+export const ARTIFACT_CEILING_FILE = join(HERE, 'n8n-artifact-ceiling.json');
+
+export function judgeCount(currentCount, ceiling) {
+  if (currentCount > ceiling) {
+    return [`n8n artifacts GREW: ${currentCount} > ceiling ${ceiling}. DR-0218 takes n8n to ZERO — "No new n8n webhook is ever added." Build the sovereign path (Python/FastAPI + Caddy, a Cloudflare Function, or a Supabase RPC/view) instead.`];
+  }
+  if (currentCount < ceiling) {
+    return [`n8n artifacts SHRANK to ${currentCount} (ceiling ${ceiling}) — good. Lower the ceiling in scripts/n8n-artifact-ceiling.json to lock the gain in.`];
+  }
+  return [];
 }
 
 /** Decide what blocks. Exported so the selftest and vitest can drive it. */
@@ -223,15 +260,23 @@ function main() {
   const baseline = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : [];
   const { blocking, healed } = judge(result.findings, baseline);
 
+  // THE COUNT RATCHET (DR-0218 / DR-0308) — the number that actually matters.
+  const ceiling = existsSync(ARTIFACT_CEILING_FILE)
+    ? JSON.parse(readFileSync(ARTIFACT_CEILING_FILE, 'utf8')).ceiling
+    : result.total;
+  const countProblems = judgeCount(result.total, ceiling);
+  console.log(`n8n artifacts: ${result.total} (ceiling ${ceiling}) — DR-0218 takes these to ZERO; the count only shrinks.`);
+
   console.log(`${result.findings.length} findings; ${baseline.length} grandfathered (inactive only).`);
   console.log('NOTE: this reads the repo `active` flag. Activation lives in n8n\'s DB on the NAS,');
   console.log('      so this gates WHAT WE SHIP, not what is running (DR-0132 context; DR-0307).');
 
-  if (!blocking.length && !healed.length) {
-    console.log('\nOK — no active non-conformance, no new findings; the baseline holds (shrink-only).');
+  if (!blocking.length && !healed.length && !countProblems.length) {
+    console.log('\nOK — no active non-conformance, no new findings, n8n did not grow.');
     return process.exit(0);
   }
   console.error('\nworkflow-conformance: FAIL —');
+  for (const c of countProblems) console.error(`  ${c}`);
   for (const b of blocking) {
     console.error(`  ${b.code}  ${b.name}${b.active ? '  [ACTIVE]' : ''}\n     ${b.detail}\n     ${b.why}`);
   }
