@@ -38,6 +38,7 @@
 // runner's Chrome or PLAYWRIGHT_CHROMIUM_PATH.
 // =============================================================================
 import { chromium } from 'playwright-core';
+import { strandedGutter } from './layout-rules.mjs';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
@@ -107,7 +108,10 @@ try {
       // was exactly why the first injection failed to trip, which the
       // anti-theater exit caught), and the first header control is pinned
       // over the name (the LOG OUT screenshot). Both invariants MUST trip.
-      await page.addStyleTag({ content: 'header h1 { max-width:14px !important; white-space:normal !important; overflow-wrap:anywhere !important } header button:first-of-type { position:absolute !important; left:0 !important; top:0 !important; transform:none !important }' });
+      // The third injection is the STRANDED GUTTER (2026-08-16): reproduce
+      // ChurchLearn's real defect — an uncentred width cap on the content —
+      // so the new check is proven able to fail rather than assumed to be.
+      await page.addStyleTag({ content: 'header h1 { max-width:14px !important; white-space:normal !important; overflow-wrap:anywhere !important } header button:first-of-type { position:absolute !important; left:0 !important; top:0 !important; transform:none !important } main, main > section { max-width:300px !important; margin-right:auto !important; margin-left:0 !important }' });
       await page.evaluate(() => {
         const h1 = document.querySelector('header h1');
         const btn = document.querySelector('header button');
@@ -129,9 +133,38 @@ try {
         // >4px in both axes = a real occlusion, not subpixel kissing.
         if (x > 4 && y > 4) overlaps.push(`${(el.textContent || el.ariaLabel || el.tagName).trim().slice(0, 24)} (${Math.round(x)}x${Math.round(y)}px)`);
       }
+      // STRANDED GUTTER (added 2026-08-16). Overflow is only HALF the failure
+      // space. The opposite defect — content that fits easily and abandons a
+      // third of the screen — was invisible to every gate here, which is how
+      // ChurchLearn shipped `max-w-3xl` with no `mx-auto`: a 768px column
+      // pinned to the LEFT edge, dead space down the right, and every control
+      // (Next → included) stranded in the left portion. Darrell found it on a
+      // phone: "I don't like the empty space on the right ever!!!!???"
+      //
+      // Measure the main content band, not the page: where does real content
+      // start and end horizontally? A CENTRED narrow column is fine (good
+      // typography); a ONE-SIDED gutter is the defect. So compare the two
+      // margins rather than the column width — that distinction is the whole
+      // check, and it is why this does not punish `mx-auto` prose.
+      const main = document.querySelector('main') || document.body;
+      let left = Infinity, right = 0;
+      for (const el of main.querySelectorAll('section, article, ul, ol, table, p, h1, h2, h3')) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 40 || r.height < 8) continue;          // ignore slivers
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+        left = Math.min(left, r.left);
+        right = Math.max(right, r.right);
+      }
+      const vw = window.innerWidth;
+      const gutters = Number.isFinite(left)
+        ? { left: Math.round(Math.max(0, left)), right: Math.round(Math.max(0, vw - right)) }
+        : null;
       return {
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
+        vw,
+        gutters,
         h1: { w: Math.round(hr.width), h: Math.round(hr.height), text: (h1.textContent || '').trim().slice(0, 40) },
         overlaps,
       };
@@ -151,7 +184,15 @@ try {
     if (m.scrollWidth > m.clientWidth + 1) fail(`${view}@${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
     if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
     if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
-    if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
+    // A one-sided gutter, only where there is room for it to matter. Below
+    // 900px a narrow column is normal; the defect is a wide screen abandoning
+    // one side. Trips when the right gutter both exceeds a quarter of the
+    // viewport AND is far larger than the left — i.e. uncentred, not `mx-auto`.
+    if (m.gutters && strandedGutter({ ...m.gutters, vw: m.vw, width })) {
+      const { left, right } = m.gutters;
+      fail(`${view}@${width}px: content stranded to one side — ${right}px of dead space on the RIGHT vs ${left}px on the left (uncentred width cap)`);
+    }
+    if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap${m.gutters ? `, gutters ${m.gutters.left}/${m.gutters.right}px` : ''}`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
