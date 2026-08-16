@@ -258,15 +258,36 @@ try {
       const vw = window.innerWidth, vh = window.innerHeight;
       const hatch = [...document.querySelectorAll('button')]
         .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''));
-      const reachable = hatch.some((b) => {
+      // REPORT THE GEOMETRY, not just the verdict (2026-08-16). This check
+      // failed on church@360 and library@360 across several commits and
+      // passed on others, and every diagnosis was a guess because the message
+      // said only "none is on screen" — no rect, no viewport, no reason. A
+      // gate that reports a verdict without its measurement cannot be
+      // debugged by anyone who cannot reproduce the render, which is the
+      // whole point of having it run in CI (DR-0076 §4: measure, don't claim).
+      const rects = hatch.map((b) => {
         const r = b.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
+        const why = [];
+        if (r.width <= 0 || r.height <= 0) why.push('zero-size');
+        if (r.top < 0) why.push(`top ${Math.round(r.top)}<0`);
+        if (r.left < 0) why.push(`left ${Math.round(r.left)}<0`);
+        if (r.bottom > vh) why.push(`bottom ${Math.round(r.bottom)}>${vh}`);
+        if (r.right > vw) why.push(`right ${Math.round(r.right)}>${vw}`);
+        return {
+          label: (b.getAttribute('aria-label') || '').slice(0, 28),
+          box: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`,
+          why: why.join(' '),
+        };
       });
+      const reachable = rects.some((x) => !x.why);
       return {
         size: doc.getAttribute('data-text-size'),
         scrollWidth: doc.scrollWidth,
         clientWidth: doc.clientWidth,
+        vw,
+        vh,
         hatchCount: hatch.length,
+        rects,
         reachable,
       };
     });
@@ -275,7 +296,10 @@ try {
     const before = failures;
     if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${v.name}@${width}px: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
     if (!m.hatchCount) fail(`textscale ${v.name}@${width}px: no text-size control rendered — no way out of big text`);
-    else if (!m.reachable) fail(`textscale ${v.name}@${width}px: text-size controls exist but none is on screen — reader trapped in big text`);
+    else if (!m.reachable) {
+      const detail = m.rects.map((x) => `${x.label || '?'} [${x.box}] ${x.why}`).join(' | ');
+      fail(`textscale ${v.name}@${width}px: text-size controls exist but none is fully on screen — reader trapped in big text. viewport ${m.vw}x${m.vh}; controls: ${detail}`);
+    }
     if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
 } finally {
