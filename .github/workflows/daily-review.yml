@@ -52,7 +52,11 @@ jobs:
         run: |
           echo "## Workflow conformance" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          node scripts/workflow-conformance.mjs >> "$GITHUB_STEP_SUMMARY" || true
+          # --report is the FULL listing for the daily summary and exits 0 by
+          # design; enforcement lives in ci.yml, which fails the build (DR-0132
+          # §4). The old `|| true` here hid the exit code entirely — explicit
+          # report-mode says what this is instead of swallowing it.
+          node scripts/workflow-conformance.mjs --report >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
       - name: Tenancy guard (data isolation)
         run: |

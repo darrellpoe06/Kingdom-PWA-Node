@@ -118,6 +118,14 @@ jobs:
       # CI timeout.
       - run: node ../scripts/silent-watcher-guard.mjs
       - run: node ../scripts/silent-watcher-guard.mjs --selftest
+      # N8N WORKFLOW CONFORMANCE (DR-0132 §4, enforced 2026-08-16 on Darrell's
+      # word: "make the conformance gate fail the build"). Two tiers — an ACTIVE
+      # workflow must conform and is NEVER grandfathered (a cron with no brakes
+      # is the 2026-06-06 runaway precedent; an unauthenticated live webhook is
+      # an open door); inactive findings ratchet from today's 92. Reads the repo
+      # `active` flag only — it gates what we SHIP, not what the NAS is running.
+      - run: node ../scripts/workflow-conformance.mjs
+      - run: node ../scripts/workflow-conformance.mjs --selftest
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
