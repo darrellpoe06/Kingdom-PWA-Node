@@ -53,6 +53,11 @@ const VERBATIM_GATED = [
   ['ll77-the-king-over-the-children-of-pride', 76, 60, ['William Jackson', 'video teaching', 'summary', 'frame']],
   ['ll78-justice-and-righteousness-travel-together', 77, 55, ['Manny Scott', 'video teaching', 'summary', 'testimony']],
   ['ll79-the-heavens-declare-and-the-timetable-is-held-open', 78, 45, ['Hugh Ross', 'Fuz Rana', 'Taylor Welch', 'Reasons to Believe', 'video teaching', 'summary']],
+  // L80's source is a SOCIAL POST plus its replies, not a video — the shortest
+  // captured source yet, so its quote floor sits lower. The replies carry real
+  // teaching weight here (the wettest-August farmer supplies the lesson's hinge),
+  // which is why the attribution list names the post AND its register.
+  ['ll80-the-stork-knows-her-appointed-times', 79, 14, ['Massimo', 'The Nature Conservancy', 'BirdReturns', 'social post', 'summary']],
 ];
 
 describe.each(VERBATIM_GATED)('%s — every quote is corpus-verbatim', (id, row, minQuotes, attribs) => {
