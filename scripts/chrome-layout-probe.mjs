@@ -280,6 +280,19 @@ try {
         };
       });
       const reachable = rects.some((x) => !x.why);
+      // SLACK — how much room the best on-screen control actually has. A
+      // PASS one pixel from the fold is not a pass anyone should trust: this
+      // check has flipped 3-and-3 across six runs of the same code, which
+      // means the control sits ON the boundary and the verdict is decided by
+      // sub-pixel noise. Reporting the margin turns an invisible marginal
+      // condition into a measured one, so a thin result reads as the finding
+      // it is instead of a green tick (DR-0076 §4).
+      const slack = rects.reduce((best, x, i) => {
+        if (x.why) return best;
+        const r = hatch[i].getBoundingClientRect();
+        const m2 = Math.min(r.top, r.left, vh - r.bottom, vw - r.right);
+        return best === null ? m2 : Math.min(best, m2);
+      }, null);
       return {
         size: doc.getAttribute('data-text-size'),
         scrollWidth: doc.scrollWidth,
@@ -289,6 +302,7 @@ try {
         hatchCount: hatch.length,
         rects,
         reachable,
+        slack,
       };
     });
     await page.close();
@@ -300,7 +314,13 @@ try {
       const detail = m.rects.map((x) => `${x.label || '?'} [${x.box}] ${x.why}`).join(' | ');
       fail(`textscale ${v.name}@${width}px: text-size controls exist but none is fully on screen — reader trapped in big text. viewport ${m.vw}x${m.vh}; controls: ${detail}`);
     }
-    if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
+    // A margin this thin is why the verdict has been a coin-flip. Warn loudly
+    // (not a build failure — the reader IS able to escape) so the marginal
+    // case is visible instead of hiding inside a green tick.
+    if (failures === before && Number.isFinite(m.slack) && m.slack < 8) {
+      console.log(`textscale MARGINAL  ${v.name}@${width}px — escape hatch clears the viewport by only ${Math.round(m.slack)}px; this is the flake boundary`);
+    }
+    if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls, slack ${Number.isFinite(m.slack) ? Math.round(m.slack) : '?'}px)`);
   }
 } finally {
   await browser.close();
