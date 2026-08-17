@@ -134,17 +134,24 @@ if [ "$IN_LEDGER" != "1" ]; then
     echo "replay: applied 0 this run, ledger 0/?, frontier: $MARKER FAILED: no AGENT_DB_URL in $AGENT_ENV"
     exit 1
   fi
-  if ! $DOCKER exec -i supabase-db sh -c 'cat > /tmp/hosted-ca.crt' < "$CA_SRC"; then
-    echo "replay: applied 0 this run, frontier: $MARKER FAILED: could not stage the pinned CA into supabase-db"
-    exit 1
-  fi
+  # Hosted runs PostgreSQL 17.6 (measured 2026-08-17: the in-container
+  # pg_dump 15.8 aborted on "server version mismatch" -- pg_dump never dumps
+  # a server newer than itself), so the dump runs a matching 17 CLIENT in a
+  # throwaway container: host network for egress, the pinned CA bind-mounted
+  # read-only, verification stays ON. The restore target remains PG 15.8;
+  # PG17's dump preamble carries settings 15 does not know
+  # (transaction_timeout), stripped below -- anything deeper, the frontier
+  # names it next cycle.
   case "$HOSTED_URL" in *\?*) SEP='&';; *) SEP='?';; esac
-  DUMP_URL="${HOSTED_URL}${SEP}sslmode=verify-full&sslrootcert=/tmp/hosted-ca.crt"
-  if ! $DOCKER exec supabase-db pg_dump "$DUMP_URL" --schema=public --no-owner \
+  DUMP_URL="${HOSTED_URL}${SEP}sslmode=verify-full&sslrootcert=/hosted-ca.crt"
+  if ! $DOCKER run --rm --network host -v "$CA_SRC":/hosted-ca.crt:ro \
+       postgres:17-alpine pg_dump "$DUMP_URL" --schema=public --no-owner \
        > "$DATA/hosted-baseline.sql" 2>"$DATA/.dump.err"; then
     echo "replay: applied 0 this run, frontier: $MARKER FAILED at pg_dump: $(tail -3 "$DATA/.dump.err" 2>/dev/null | tr '\n' ' ')"
     exit 1
   fi
+  grep -v '^SET transaction_timeout' "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
+    && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
   echo "replay: hosted baseline dumped ($BYTES bytes) - resetting sovereign public and restoring"
   PSQL >/dev/null <<'RESET'
