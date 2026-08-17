@@ -150,7 +150,12 @@ if [ "$IN_LEDGER" != "1" ]; then
     echo "replay: applied 0 this run, frontier: $MARKER FAILED at pg_dump: $(tail -3 "$DATA/.dump.err" 2>/dev/null | tr '\n' ' ')"
     exit 1
   fi
-  grep -v '^SET transaction_timeout' "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
+  # PG17 pg_dump emits two things psql/server 15.8 cannot read, both wrappers
+  # rather than schema content: the transaction_timeout setting (unknown GUC)
+  # and the \restrict / \unrestrict meta-command pair (the 2025 dump-injection
+  # hardening; psql 15.8: "invalid command \restrict" -- measured 02:14Z).
+  grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict' "$DATA/hosted-baseline.sql" \
+    > "$DATA/hosted-baseline.filtered.sql" \
     && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
   echo "replay: hosted baseline dumped ($BYTES bytes) - resetting sovereign public and restoring"
