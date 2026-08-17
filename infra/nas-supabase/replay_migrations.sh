@@ -1,20 +1,21 @@
 #!/bin/sh
 # =============================================================================
-# replay_migrations.sh -- replay the repo's migration history into the
-# sovereign stack, resumably, with a ledger (DR-0084 lane, new target)
+# replay_migrations.sh -- the HOSTED TRUTH is the baseline; migrations-auto
+# replays only what lands after it (DR-0084 lane, new target; DR-0308)
 # =============================================================================
-# Darrell 2026-08-15: "drive it now until done." The hosted project's schema
-# was built by infra/supabase/migrations-auto/*.sql applied in filename order;
-# replaying the same files into the sovereign db reproduces the 183 tables and
-# ~1,719 policies (mostly DO-loop generated -- migrate_verify.py's measured
-# note), which is what makes cutover a swap and not a rewrite.
-#
-# RESUMABLE BY LEDGER: public._sovereign_replay records every applied file.
-# Each run applies only what is missing, in order, and STOPS at the first
-# failure so the frontier names itself in one line (the day's proven loop:
-# every wall so far announced itself here and was cured one cycle later).
-# BUDGETED: at most MAX_PER_RUN files per cycle so the services-sync 600s
-# timeout can never be blown by a 150-file first run.
+# Darrell 2026-08-15: "drive it now until done." The original premise -- that
+# replaying the repo's SQL files in order reproduces the hosted schema -- was
+# MEASURED WRONG by this script's own frontier receipts (2026-08-16/17):
+# v2.1 renamed live v1 tables in place, v2.2.1 depended on v2.8, v2.2.2
+# needed a rentals.links column no file ever adds, and the dashboard era left
+# hand-applied state no file records. Files are not the history; the hosted
+# DATABASE is. So the baseline is now a pg_dump of hosted's public schema
+# (schema AND data -- closing the empty-public-tables repoint gap), taken
+# over the pinned CA with verification ON, applied once through the same
+# ledger. Every migrations-auto file already lives inside that dump (hosted
+# ran them all), so they pre-ledger at baseline time; only files that land
+# AFTER the baseline replay normally, in filename order, stop-at-first-
+# failure so the frontier names itself (the proven one-wall-per-cycle loop).
 #
 # Runs from install.sh only after the gateway answers 200. Idempotent forever.
 set -e
@@ -65,25 +66,6 @@ BEGIN
   END IF;
 END
 $cleanup$;
--- Rename-collision repair (frontier 2026-08-16 13:30Z): schema-v2.1 renames
--- join_default_tenant -> join_default_instance, but migrations 0001/0002 ran
--- on day one (before the baseline joined this replay) and already created
--- join_default_instance -- clearing their ledger rows did not undo their
--- effects. In hosted history the two functions NEVER coexist (v1.1 created
--- the old name, v2.1 renamed it, 0001/0002 only ever replaced the new name),
--- so both-exist can only mean the sovereign collision state: drop the
--- migration-created copy, let the rename proceed, and 0001/0002 re-apply
--- afterward with the security fix intact. No-op forever once past v2.1.
-DO $rename_repair$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-             WHERE n.nspname = 'public' AND p.proname = 'join_default_tenant')
-     AND EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-                 WHERE n.nspname = 'public' AND p.proname = 'join_default_instance') THEN
-    DROP FUNCTION IF EXISTS public.join_default_instance(text);
-  END IF;
-END
-$rename_repair$;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
@@ -130,69 +112,75 @@ CREATE TABLE IF NOT EXISTS public._sovereign_replay (
 );
 SQL
 
-# --- the baseline the hosted project carried BEFORE migrations-auto ----------
-# Frontier discovery 2026-08-15 (ledger stuck at 2/150): 0003 ALTERs `feedback`
-# but no migrations-auto file ever CREATES it. The hosted schema's first months
-# live in the schema-v*.sql series (v1 2026-05-23 .. v2.17 2026-08-11) plus the
-# 2026-06-12 cleanup -- applied by hand in the dashboard era, so no file in
-# MIG_DIR reproduces them. They ride the same ledger, in EXPLICIT order because
-# lexical sort misorders v2.10 before v2.2. The late-dated three (v2.16,
-# v2.10-renter-portal-auth, v2.17) reference only v1/v2.1/v2.2 tables --
-# verified before this list was written. Seed files are DATA, not schema; the
-# data leg of cutover is its own step, never smuggled into a schema replay.
-SUPA_DIR="$REPO/infra/supabase"
-BASELINE="schema-v1.sql
-schema-v1.1-tenant-join.sql
-schema-v1.2-numeric-sync.sql
-schema-v2.1-infra.sql
-schema-v2.2-rentals.sql
-schema-v2.2.1-rentals-amendments.sql
-schema-v2.2.2-rentals-sync-amendments.sql
-schema-v2.3-therapy.sql
-schema-v2.4-contractor.sql
-schema-v2.6-legal.sql
-schema-v2.7-church.sql
-schema-v2.7.1-church-amendments.sql
-schema-v2.8-ops.sql
-schema-v2.9-portal-rls.sql
-schema-v2.9-smoke-findings.sql
-schema-v2.10-ai-workflow-state.sql
-schema-v2.10-renter-portal-auth.sql
-schema-v2.11-engagement.sql
-schema-v2.12-engagement-questions.sql
-schema-v2.13-family-data-sync.sql
-schema-v2.14-realtime-publication.sql
-schema-v2.15-family-snapshot.sql
-schema-v2.16-forecast-snapshots.sql
-schema-v2.17-data-liberation.sql
-cleanup-2026-06-12-entity-pollution.sql"
-
-# One-time ordering repair: 0001/0002 are SECURITY fixes that CREATE OR REPLACE
-# functions the baseline also creates -- they were ledgered before the baseline
-# joined this replay, so baseline applying after them would silently REVERT the
-# family-allowlist fix. If the baseline has not started but 0001 is ledgered,
-# clear those two rows so they re-apply AFTER the baseline (both idempotent).
-BASE_IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='schema-v1.sql';" | tr -d ' ')
-FIRST_IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='0001-join-default-instance-family-allowlist.sql';" | tr -d ' ')
-if [ "$BASE_IN" != "1" ] && [ "$FIRST_IN" = "1" ]; then
-  PSQL -c "DELETE FROM public._sovereign_replay WHERE fname IN ('0001-join-default-instance-family-allowlist.sql','0002-join-default-instance-self-serve.sql');" >/dev/null
-  echo "replay: cleared 0001/0002 from ledger to re-apply after baseline (security fixes stay senior)"
+# --- the hosted baseline: pg_dump of the real public schema + data ----------
+# Applied ONCE, guarded by its ledger marker. The sovereign public schema is
+# scratch until this succeeds (no users, no live traffic), so each attempt
+# resets it clean -- destructive ONLY to the sovereign build surface, purely
+# read-only against hosted. TLS: the pinned Supabase prod CA rides into the
+# container and pg_dump runs sslmode=verify-full -- verification is never
+# disabled (the box agent's proven pattern). Storage blobs remain the named
+# DR-0307 gap; auth.users still copies via cutover_sync AS-IS. Public DATA
+# rides the dump, closing the empty-tables repoint gap. session_replication_
+# role=replica during restore: rows referencing auth.users load before the
+# account copy lands; hosted's own FK validity guarantees integrity once
+# cutover_sync brings every user across.
+MARKER="hosted-baseline.sql"
+AGENT_ENV="/volume1/docker/poetech/agent.env"
+CA_SRC="$REPO/infra/nas-agent/supabase-prod-ca-2021.crt"
+IN_LEDGER=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='$MARKER';" 2>/dev/null | tr -d ' ')
+if [ "$IN_LEDGER" != "1" ]; then
+  HOSTED_URL=$(grep '^AGENT_DB_URL=' "$AGENT_ENV" 2>/dev/null | head -1 | cut -d= -f2-)
+  if [ -z "$HOSTED_URL" ]; then
+    echo "replay: applied 0 this run, ledger 0/?, frontier: $MARKER FAILED: no AGENT_DB_URL in $AGENT_ENV"
+    exit 1
+  fi
+  if ! $DOCKER exec -i supabase-db sh -c 'cat > /tmp/hosted-ca.crt' < "$CA_SRC"; then
+    echo "replay: applied 0 this run, frontier: $MARKER FAILED: could not stage the pinned CA into supabase-db"
+    exit 1
+  fi
+  case "$HOSTED_URL" in *\?*) SEP='&';; *) SEP='?';; esac
+  DUMP_URL="${HOSTED_URL}${SEP}sslmode=verify-full&sslrootcert=/tmp/hosted-ca.crt"
+  if ! $DOCKER exec supabase-db pg_dump "$DUMP_URL" --schema=public --no-owner \
+       > "$DATA/hosted-baseline.sql" 2>"$DATA/.dump.err"; then
+    echo "replay: applied 0 this run, frontier: $MARKER FAILED at pg_dump: $(tail -3 "$DATA/.dump.err" 2>/dev/null | tr '\n' ' ')"
+    exit 1
+  fi
+  BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
+  echo "replay: hosted baseline dumped ($BYTES bytes) - resetting sovereign public and restoring"
+  PSQL >/dev/null <<'RESET'
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT USAGE, CREATE ON SCHEMA public TO postgres;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+RESET
+  if ! OUT=$( { echo "SET session_replication_role = replica;"; cat "$DATA/hosted-baseline.sql"; } | PSQL 2>&1 ); then
+    echo "replay: applied 0 this run, frontier: $MARKER FAILED at restore: $(printf '%s' "$OUT" | tail -3 | tr '\n' ' ')"
+    exit 1
+  fi
+  PSQL >/dev/null <<LEDGER
+CREATE TABLE IF NOT EXISTS public._sovereign_replay (
+  fname text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public._sovereign_replay (fname) VALUES ('$MARKER') ON CONFLICT DO NOTHING;
+LEDGER
+  # Every migrations-auto file is already INSIDE the hosted state we just
+  # restored -- hosted ran them all. Pre-ledger them so only future files run.
+  PRELEDGERED=0
+  for F in $(ls "$MIG_DIR"/*.sql | sort); do
+    PSQL -c "INSERT INTO public._sovereign_replay (fname) VALUES ('$(basename "$F")') ON CONFLICT DO NOTHING;" >/dev/null
+    PRELEDGERED=$((PRELEDGERED + 1))
+  done
+  echo "replay: hosted baseline RESTORED (schema+data, $BYTES bytes); $PRELEDGERED already-in-baseline migrations pre-ledgered"
 fi
 
-FILE_LIST=""
-for B in $BASELINE; do FILE_LIST="$FILE_LIST $SUPA_DIR/$B"; done
-FILE_LIST="$FILE_LIST $(ls "$MIG_DIR"/*.sql | sort)"
-TOTAL=$(set -- $FILE_LIST; echo $#)
+TOTAL=$(( $(ls "$MIG_DIR"/*.sql 2>/dev/null | wc -l | tr -d ' ') + 1 ))
 DONE_BEFORE=$(PSQL -t -A -c "SELECT count(*) FROM public._sovereign_replay;" 2>/dev/null | tr -d ' ')
 APPLIED=0
 FRONTIER="none"
 
-for F in $FILE_LIST; do
+for F in $(ls "$MIG_DIR"/*.sql | sort); do
   B=$(basename "$F")
-  if [ ! -f "$F" ]; then
-    FRONTIER="$B MISSING on disk at $F"
-    break
-  fi
   IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='$B';" | tr -d ' ')
   [ "$IN" = "1" ] && continue
   if [ "$APPLIED" -ge "$MAX_PER_RUN" ]; then
