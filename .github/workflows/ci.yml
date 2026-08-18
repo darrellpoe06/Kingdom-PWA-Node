@@ -1,7 +1,8 @@
 # CI — the mechanical floor under RELEASE-TIERS.md.
 # Every PR and every push to main runs lint + the Vitest suite + a real
-# production build + the wf36 Quality Gatekeeper harness. Nothing merges with a
-# red suite, regardless of tier. Added per
+# production build. Nothing merges with a red suite, regardless of tier.
+# (The wf36 gatekeeper harness was removed 2026-08-16 with the n8n artifacts —
+# DR-0218 zero-n8n; there is no workflow JSON left to harness.) Added per
 # docs/99-session-notes/2026-06-11-test-coverage-analysis.md (P2); the suite runs
 # without app/.env.local because vitest.config.js stubs the Supabase env (P1).
 #
@@ -99,6 +100,25 @@ jobs:
       # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
       # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
       - run: node ../scripts/lessons-gate-coverage.mjs
+      # UNBOUNDED SELECT RATCHET (DR-0303). The 2026-08-14 lockout was one
+      # `.select('*')` with no limit on a table that had grown base64 columns —
+      # 6.2 MB per sign-in, per user. Shrink-only: today's set is grandfathered,
+      # a NEW one fails, and fixing an old one shrinks the baseline.
+      - run: node ../scripts/unbounded-select-guard.mjs
+      # LESSON QUOTE RATCHET (DR-0309). The verbatim gate claimed "every quoted
+      # Scripture is KJV-VERBATIM" and read exactly one field — `mod.lesson`. The
+      # child/teen/senior bands, benefits, quiz and facilitator prose carry 3363
+      # more referenced quotes and were never checked; 556 sites do not match.
+      # Shrink-only: today's set is grandfathered, a NEW altered quote fails.
+      - run: node ../scripts/lesson-quote-guard.mjs
+      - run: node ../scripts/lesson-quote-guard.mjs --selftest
+      # SILENT WATCHER GUARD (DR-0310). A watcher that cannot say "I could not
+      # observe" reports silence as health. Every network poll must carry a
+      # bound AND a loud end. Found by shipping the defect in this session's own
+      # CI watcher; caught a real one in ship.sh, which merged on an unobserved
+      # CI timeout.
+      - run: node ../scripts/silent-watcher-guard.mjs
+      - run: node ../scripts/silent-watcher-guard.mjs --selftest
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
       # The matrix runs only when db-migrate dispatches it against prod, so a
@@ -180,7 +200,7 @@ jobs:
       - name: sovereign photos archive selftest
         working-directory: infra/nas-photos-archive
         run: python3 photos_archive.py --selftest
-      # Sovereign Supabase key minter (DR-0306). The three secrets must AGREE:
+      # Sovereign Supabase key minter (DR-0310). The three secrets must AGREE:
       # a JWT signed by anything other than JWT_SECRET 401s every request with a
       # message that says nothing useful, and the failure surfaces only once the
       # stack is live. Proven-to-catch at its two real risks: a key signed by the
@@ -190,7 +210,7 @@ jobs:
       - name: sovereign supabase key minter selftest
         working-directory: infra/nas-supabase
         run: python3 mint_keys.py --selftest
-      # Migration parity verifier (DR-0306). The DR-0291 photos lesson in SQL:
+      # Migration parity verifier (DR-0310). The DR-0291 photos lesson in SQL:
       # a partial migration is byte-perfect -- every copied row correct, and the
       # stack still wrong because rows are missing. INTEGRITY IS NOT
       # COMPLETENESS. Proven-to-catch at the three ways this bites: tables
@@ -312,12 +332,3 @@ jobs:
         run: node scripts/scripture-inference-guard.mjs
         working-directory: ${{ github.workspace }}
 
-  workflows:
-    name: n8n workflows — wf36 gatekeeper harness
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: node scripts/test-wf36-quality-gatekeeper.js

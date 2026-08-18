@@ -70,7 +70,16 @@ html[data-text-size='bigprint'] .ts-grid-collapse {
 html[data-text-size='larger'] .ts-safe-sticky,
 html[data-text-size='largest'] .ts-safe-sticky,
 html[data-text-size='bigprint'] .ts-safe-sticky {
-  max-height: 100dvh;
+  /* SUBTRACT THE STICKY OFFSET (2026-08-16). The shell header is
+     `sticky; top: var(--lwb-h)` — offset by the LiveWorshipBar's height when a
+     service window is open. Capping it at a flat 100dvh therefore let its
+     BOTTOM sit --lwb-h px BELOW the viewport, pushing the last control in the
+     header (the text-size escape hatch) off screen by exactly that much. The
+     cap has to be the space that actually remains under the offset, or the
+     "may never exceed the viewport" promise above is false whenever the bar
+     is showing — which is time-dependent, so it read as a flaky CI check
+     rather than the layout bug it is. */
+  max-height: calc(100dvh - var(--lwb-h, 0px));
   overflow-y: auto;
   overflow-x: clip;
 }

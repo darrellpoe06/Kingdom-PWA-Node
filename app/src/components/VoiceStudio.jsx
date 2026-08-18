@@ -200,7 +200,8 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       displayName: PERSONA_NAME[personaKey], scope: 'read-aloud-narration',
     });
     if (error) { setNotice(error.message || 'Could not enroll right now.'); setBusy(false); return; }
-    const { profiles: rows } = await loadVoiceProfiles();
+    // fresh: this read follows a WRITE, so it must not be served from the shared cache.
+    const { profiles: rows } = await loadVoiceProfiles({ fresh: true });
     if (rows) setProfiles(rows);
     setNotice('Your voice is enrolled. It reads with a labeled stand-in until the local voice studio is live.');
     setBusy(false);
@@ -210,7 +211,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     if (!v?.remoteId) return;
     setBusy(true);
     const { error } = await revokeMyVoice(v.remoteId);
-    if (!error) { const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+    if (!error) { const { profiles: rows } = await loadVoiceProfiles({ fresh: true }); if (rows) setProfiles(rows); }
     setNotice(error ? (error.message || 'Could not withdraw.') : 'Consent withdrawn.');
     setBusy(false);
   };
@@ -230,7 +231,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
         instanceId, userId, personKey: personaKey,
         displayName: PERSONA_NAME[personaKey], scope: 'read-aloud-narration',
       });
-      if (!error) { const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+      if (!error) { const { profiles: rows } = await loadVoiceProfiles({ fresh: true }); if (rows) setProfiles(rows); }
     }
     recorder.reset();
     setNotice(sovereignVoiceReady

@@ -48,9 +48,6 @@ const STATUS = {
 };
 const ORDER = ['building', 'next', 'gated', 'shipped'];
 
-// Real automation-pipeline count, computed at BUILD time from the actual n8n
-// workflow files (vite.config __WORKFLOW_STATS__). Not a hand-typed number.
-const WORKFLOW_STATS = (typeof __WORKFLOW_STATS__ !== 'undefined') ? __WORKFLOW_STATS__ : { built: 0, active: 0 };
 
 // Open governance-decision queue — the SAME real source as the Decisions tab
 // (decision-queue.md parsed into __GOVERNANCE_QUEUE__ at build time). It now
@@ -148,9 +145,6 @@ export function BuildBoard({ onViewDecisions = null, onNavigate = null, isGovern
           <span className="text-[#5A6E3D]">✓ {counts.shipped} decision records shipped{span.first ? `, ${span.first} → ${span.last}` : ''} · {counts.building} boards building · {counts.next} queued</span>
           {counts.overdue > 0 && <span className="text-[#B85838]"> · ⚠ {counts.overdue} past target</span>}
           {inFlight.complete.length > 0 && <span className="text-[#5A6E3D]"> · {inFlight.complete.length} board{inFlight.complete.length === 1 ? '' : 's'} complete</span>}
-        </div>
-        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-          🔧 {WORKFLOW_STATS.built} automation workflows built · {WORKFLOW_STATS.active} active in the repo
         </div>
         {/* Provenance line (DR-0076/DR-0121): name the real source behind each
             stage, on the surface itself. */}

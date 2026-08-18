@@ -25,7 +25,6 @@ import {
 import { handoffSummary } from '../lib/orchestrator-handoff.js';
 import { ARI } from '../lib/ari.js';
 import { ariNotesFromLedger, ariAssignments, resolveDuties, dutySummary } from '../lib/ari-notes.js';
-import { storedWorkflowRegistry, workflowExpertise, workflowWhyLine } from '../lib/workflow-registry.js';
 import { RESEARCH_DAY, SOURCING_BENCH, RESEARCH_FINDINGS, researchCadence } from '../lib/research-intake.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 
@@ -50,17 +49,10 @@ function AriRecord() {
   const tasks = useBoardTasks();
   const [visibleCount, setVisibleCount] = useState(6);
   const [visibleFindings, setVisibleFindings] = useState(4);
-  const [visibleWorkflows, setVisibleWorkflows] = useState(8);
   const [openDuty, setOpenDuty] = useState(null);   // one duty expanded at a time (DR-0243)
   const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
   const work = useMemo(() => ariAssignments(tasks), [tasks]);
   const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
-  // The workflow bench (DR-0158): documented whys first, gaps visible after.
-  const wfRows = useMemo(() => {
-    const rows = storedWorkflowRegistry();
-    return [...rows].sort((a, b) => (String(b.why || '').trim() ? 1 : 0) - (String(a.why || '').trim() ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
-  }, []);
-  const wfBench = useMemo(() => workflowExpertise(wfRows), [wfRows]);
   // The Research Day cadence — measured from the same review registry the
   // Quality panel reads; a pass exists only when its REV record is filed.
   const cadence = useMemo(() => researchCadence(UIUX_REVIEWS, Date.now()), []);
@@ -143,46 +135,6 @@ function AriRecord() {
             className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
             Show more findings · {RESEARCH_FINDINGS.length - visibleFindings} remaining
           </button>
-        )}
-      </div>
-
-      {/* The workflow bench (DR-0158) — Ari's expertise on every workflow the
-          house stores, derived at build from the REAL exports in the repo.
-          A workflow with no recorded why is a NAMED gap, never a painted
-          description (NO-STATIC-DATA). */}
-      <div className="mt-3">
-        <div className="flex items-baseline justify-between gap-2 flex-wrap">
-          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Workflow bench — every stored workflow, and why the house uses it</div>
-          <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-            {wfBench.total} stored · {wfBench.active} active in repo · {wfBench.documented} whys recorded · {wfBench.gaps.length} gaps
-          </span>
-        </div>
-        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          Derived at build from the real exports (docs/00-foundations/n8n-workflows + infra/n8n) — names, doors, and active flags are measured from the files, and the why comes from each workflow&apos;s paired record. A missing why is an open expertise debt {ARI.name} closes file by file — named below, never papered over.
-        </p>
-        {wfBench.total === 0 ? (
-          <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>The registry was not injected in this build — showing nothing rather than inventing workflows.</p>
-        ) : (
-          <>
-            <ul className="mt-1.5 space-y-1">
-              {wfRows.slice(0, visibleWorkflows).map((w) => (
-                <li key={`${w.dir}/${w.file}`} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>
-                  <span style={{ fontWeight: 600 }}>{w.name}</span>
-                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    {' '}· {w.active ? 'active' : 'inactive'} in repo{Array.isArray(w.webhooks) && w.webhooks.length > 0 ? ` · /webhook/${w.webhooks.join(', /webhook/')}` : ''}
-                  </span>
-                  <span className={String(w.why || '').trim() ? 'text-[#5A5751]' : 'text-[#B45309]'}> — {workflowWhyLine(w)}</span>
-                </li>
-              ))}
-            </ul>
-            {wfRows.length > visibleWorkflows && (
-              <button type="button" onClick={() => setVisibleWorkflows((c) => c + 12)}
-                className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
-                Show more workflows · {wfRows.length - visibleWorkflows} remaining
-              </button>
-            )}
-          </>
         )}
       </div>
 

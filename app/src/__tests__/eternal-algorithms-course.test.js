@@ -95,3 +95,52 @@ describe('multi-neurological levels by depth selection (never an invented rephra
     }
   });
 });
+
+// -----------------------------------------------------------------------------
+// THE CHILD BAND (2026-08-14). Darrell, looking at Pattern 18 on his phone:
+// "The lessons were supposed to add more or less depth based on time and
+// competence of the age", after asking for a "young to old curriculum".
+//
+// Measured before building: these 42 generated patterns carried
+// teen/standard/senior and ZERO child levels, while Living Lessons carried 77.
+// A child landing on a pattern fell back to the teen text via depthChainForAge
+// (child -> teen -> standard). Graceful, but not a child band.
+//
+// PROVEN-TO-CATCH (DR-0076 §3): removing the `child` key from the generator
+// fails 'every generated pattern has a child band'; making child longer than
+// teen fails the gradient case; rewording the catalog's sentence fails the
+// no-rephrase case.
+// -----------------------------------------------------------------------------
+describe('the child band — young to old, on every generated pattern', () => {
+  const ALG = {
+    id: 'demo', name: 'Demo', refs: ['Romans 1:1'],
+    condition: 'the condition is met', consequence: 'the consequence follows',
+    outcome: 'The win.', threeD: 'The practical walk.', psyche: 'Why it works.',
+  };
+
+  it('every generated pattern has a child band', () => {
+    const m = moduleFromAlgorithm(ALG);
+    expect(m.levels.child, 'a child must not fall back to the teen text').toBeTruthy();
+    expect(Object.keys(m.levels).sort()).toEqual(['child', 'senior', 'standard', 'teen']);
+  });
+
+  it('the ladder actually gets deeper — child is the shortest true read', () => {
+    const m = moduleFromAlgorithm(ALG);
+    expect(m.levels.child.length, 'child must be shorter than teen').toBeLessThan(m.levels.teen.length);
+    expect(m.levels.teen.length, 'teen must be shorter than senior').toBeLessThan(m.levels.senior.length);
+  });
+
+  it('uses the catalog\'s OWN sentences — never a rephrase of doctrine', () => {
+    // This file's binding rule: depth SELECTION, never an invented rephrase
+    // (DR-0076). The child band may frame; it may not reword the conditional.
+    const m = moduleFromAlgorithm(ALG);
+    expect(m.levels.child).toContain('the condition is met');
+    expect(m.levels.child).toContain('The win.');
+  });
+
+  it('degrades honestly when the catalog has no outcome', () => {
+    const m = moduleFromAlgorithm({ ...ALG, outcome: null });
+    expect(m.levels.child).toContain('the condition is met');
+    expect(m.levels.child).not.toMatch(/null|undefined/);
+  });
+});

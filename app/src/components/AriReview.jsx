@@ -20,7 +20,6 @@ import { fetchWaysBrain } from '../lib/ways-brain.js';
 import { SectionTitle } from './shared.jsx';
 import { buildAppReview, reviewHeadline } from '../lib/ari-app-review.js';
 import { fleetOversight } from '../lib/agent-brakes.js';
-import { storedWorkflowRegistry } from '../lib/workflow-registry.js';
 import { REVIEW_WATCHER_MEMBER } from '../lib/review-watcher.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
 import { runAriLoop, loopHeadline } from '../lib/ari-loop.js';
@@ -76,9 +75,10 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     reviews: Array.isArray(UIUX_REVIEWS.items) ? UIUX_REVIEWS.items : [],
     decisions: Array.isArray(DR_LEDGER.items) ? DR_LEDGER.items : [],
     transactions, rentals, debts, demoRowIds,
-    // The real build-measured automation fleet (DR-0158 registry) under Ari's
-    // oversight — brake coverage only ever from proven declarations (DR-0225).
-    fleet: fleetOversight({ workflows: storedWorkflowRegistry(), agents: [REVIEW_WATCHER_MEMBER] }),
+    // The app-native agent fleet under Ari's oversight — brake coverage only
+    // ever from proven declarations (DR-0225). The n8n workflow registry was
+    // removed with the artifacts themselves (DR-0218 zero-n8n, 2026-08-16).
+    fleet: fleetOversight({ agents: [REVIEW_WATCHER_MEMBER] }),
   }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds]);
 
   const overall = sevMeta(review.summary.status);

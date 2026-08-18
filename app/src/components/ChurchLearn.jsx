@@ -2147,7 +2147,16 @@ export default function ChurchLearn({
     : null;
 
   return (
-    <section className="max-w-3xl" aria-labelledby="learn-h">
+    // FULL WIDTH, no cap (Darrell 2026-08-16, on Lesson 9 with a wide gutter to
+    // the right: "I don't like the empty space on the right ever!!!!???" and
+    // "the next button is only on the left side of the screen"). Both were ONE
+    // bug: this section carried `max-w-3xl` (768px) with no `mx-auto`, so on any
+    // viewport wider than 768px the whole surface hugged the LEFT edge — dead
+    // space on the right, and every control including Next → stranded in the
+    // left portion. ChurchLearn was the ONLY top-level surface in the codebase
+    // carrying a width cap; every sibling (Projects, etc.) returns a bare
+    // <section>. Pinned in church-learn-uses-the-width.test.jsx.
+    <section aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>

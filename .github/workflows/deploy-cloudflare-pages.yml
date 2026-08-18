@@ -213,7 +213,7 @@ jobs:
           # Announce, not only record (DR-0156): fail-soft phone push via the
           # NAS relay — the ledger above stays the record either way.
           if [ -n "${N8N_BEARER:-}" ]; then
-            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
+            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/announce/ops-announce" \
               -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
               --max-time 15 \
               -d "{\"title\":\"deploy failed the real-browser boot-check\",\"message\":\"The deployed app did not boot after ${GITHUB_SHA}. Details on the incident ledger.\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"priority\":\"5\"}" \
