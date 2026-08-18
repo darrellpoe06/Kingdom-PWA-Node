@@ -162,6 +162,19 @@ if [ "$IN_LEDGER" != "1" ]; then
     "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
     && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
+  # ACCOUNTS BEFORE DATA (measured 2026-08-18 22:16Z): pg_dump re-creates the
+  # public FKs AFTER its data rows via ALTER TABLE ... ADD CONSTRAINT, which
+  # VALIDATES immediately -- session_replication_role=replica skips row
+  # triggers, not constraint validation -- and those FKs reference auth.users
+  # ("accounts_created_by_fkey ... not present in table users" on an empty
+  # auth.users). So the AS-IS account copy (DR-0307 decision 2) lands FIRST,
+  # via cutover_sync's accounts-only mode over the proven vendored-pg8000 +
+  # pinned-CA rail.
+  if ! SYNC_OUT=$(python3 "$REPO/infra/nas-supabase/cutover_sync.py" --accounts-only 2>&1); then
+    echo "replay: applied 0 this run, frontier: $MARKER FAILED at accounts-first copy: $(printf '%s' "$SYNC_OUT" | tail -2 | tr '\n' ' ')"
+    exit 1
+  fi
+  echo "replay: accounts-first $(printf '%s' "$SYNC_OUT" | grep 'cutover-sync:' | tail -3 | tr '\n' ' ')"
   echo "replay: hosted baseline dumped ($BYTES bytes) - resetting sovereign public and restoring"
   PSQL >/dev/null <<'RESET'
 DROP SCHEMA IF EXISTS public CASCADE;

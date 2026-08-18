@@ -79,7 +79,7 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { organizeCourses, courseLessonCount, COURSE_SORTS } from '../lib/learn-organize.js';
+import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
@@ -2014,6 +2014,12 @@ export default function ChurchLearn({
   ))[0];
   const [activeKey, setActiveKey] = useState('ai');
   const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
+  // The lesson finder (Darrell 2026-08-18: "not obvious how to find a lesson
+  // unless you already know the course it is in") — one search box over EVERY
+  // mounted course's live schedule. Results jump through the SAME real path
+  // the resume banner drives, so a found lesson opens exactly like a resumed
+  // one (never a painted list).
+  const [lessonQuery, setLessonQuery] = useState('');
   // Resume-your-place (Darrell 2026-07-30): the device's saved Learn place,
   // read once on mount (client-only app; same read-in-render pattern as
   // ux-signals' "Recently opened"). Cleared from view on resume/dismiss.
@@ -2219,6 +2225,54 @@ export default function ChurchLearn({
             </div>
           </div>
         )}
+
+        {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
+            and review the available lessons... not obvious how to find a lesson
+            unless you already know the course it is in") — one search box over
+            every course's live schedule: title words, topic words, or a verse
+            reference all find their lesson, and one tap opens it through the
+            same real path Resume drives. Index derives from the mounted
+            catalog (lib/learn-organize.js, DR-0121). */}
+        {courses.length > 1 && !lessonFocus && (() => {
+          const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(courses), lessonQuery) : [];
+          return (
+            <div className="mb-4">
+              <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Find a lesson — any course, by name, topic, or verse</label>
+              <input
+                id="learn-lesson-find"
+                type="search"
+                value={lessonQuery}
+                onChange={(e) => setLessonQuery(e.target.value)}
+                placeholder='Try "hardening heart", "tongues", or "2 Corinthians 7"'
+                autoComplete="off"
+                className="w-full min-h-[44px] px-3 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
+              />
+              {lessonQuery.trim() ? (
+                hits.length ? (
+                  <ul className="mt-2 border border-[#E8E4DC] divide-y divide-[#E8E4DC]" aria-label="Matching lessons">
+                    {hits.map((h) => (
+                      <li key={`${h.courseKey}:${h.lessonId}`}>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveKey(h.courseKey); setResumeLessonId(h.lessonId); setLessonQuery(''); }}
+                          className="w-full text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                        >
+                          <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{h.title}</span>
+                          <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                            {h.courseTitle} · {h.unitLabel}{h.ref ? ` · ${h.ref}` : ''}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-[#5A5751]">No lesson matches “{lessonQuery.trim()}” yet — try fewer words, or a verse reference like “Romans 8”.</p>
+                )
+              ) : null}
+            </div>
+          );
+        })()}
 
         {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
             with sorts and dropdowns") — 18 courses as a wall of buttons made the
