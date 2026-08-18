@@ -158,7 +158,11 @@ if [ "$IN_LEDGER" != "1" ]; then
   # pre-creates ("schema public already exists" -- measured 20:46Z; RESET
   # pre-creates it ON PURPOSE so a failed restore never strands the next
   # cycle's prerequisites without a public schema).
-  grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict|^CREATE SCHEMA public;|^COMMENT ON SCHEMA public' \
+  # ...and PG17's MAINTAIN privilege (new in 17) rides the dumped GRANTs --
+  # PG15: 'unrecognized privilege type "maintain"' (measured 22:45Z, AFTER
+  # the 23 accounts landed). A privilege that does not exist on the target
+  # grants nothing by being dropped.
+  grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict|^CREATE SCHEMA public;|^COMMENT ON SCHEMA public|^GRANT MAINTAIN' \
     "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
     && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
