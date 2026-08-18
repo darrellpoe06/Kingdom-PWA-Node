@@ -110,7 +110,7 @@ def parity(con, queries):
     return out
 
 
-def real_run():
+def real_run(accounts_only=False):
     from migrate_verify import PARITY_QUERIES, compare_counts
     hosted_url = env_value(AGENT_ENV, "AGENT_DB_URL")
     pw = env_value(SUPA_ENV, "POSTGRES_PASSWORD")
@@ -124,6 +124,14 @@ def real_run():
         for t in COPY_TABLES:
             copied, total = copy_table(src, dst, t)
             print("cutover-sync: auth.{} copied {} rows (source holds {})".format(t, copied, total))
+        # --accounts-only: the replay's hosted-baseline restore calls this
+        # FIRST (DR-0308 measured 2026-08-18: pg_dump re-creates public FKs
+        # after its data with immediate validation, and they reference
+        # auth.users -- so the AS-IS account copy must land before the
+        # public data does). Parity waits for the full run after replay.
+        if accounts_only:
+            print("cutover-sync: accounts-only copy complete")
+            return 0
         s = parity(src, PARITY_QUERIES)
         d = parity(dst, PARITY_QUERIES)
         verdict = compare_counts(
@@ -166,4 +174,5 @@ def selftest():
 
 
 if __name__ == "__main__":
-    sys.exit(selftest() if "--selftest" in sys.argv else real_run())
+    sys.exit(selftest() if "--selftest" in sys.argv
+             else real_run(accounts_only="--accounts-only" in sys.argv))
