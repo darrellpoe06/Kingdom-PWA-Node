@@ -44,6 +44,14 @@ jobs:
             exit 1
           fi
           tailscale status --peers=false
+      - name: Outside-in transport proof (the runner IS the outside)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          # DR-0125 applied to the cutover transport: the sandbox has no route
+          # to poetech.us, so THIS runner is the team's outside eye. Three
+          # hops measured end-to-end: Pages function /sb -> Funnel path-mount
+          # -> kong mirror route -> GoTrue. The literal code, never inferred.
+          curl -s -o /dev/null -w 'OUTSIDE-IN https://poetech.us/sb/auth/v1/health HTTP %{http_code}\n' --max-time 20 https://poetech.us/sb/auth/v1/health || echo "OUTSIDE-IN probe unreachable"
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:
