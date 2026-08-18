@@ -150,12 +150,16 @@ if [ "$IN_LEDGER" != "1" ]; then
     echo "replay: applied 0 this run, frontier: $MARKER FAILED at pg_dump: $(tail -3 "$DATA/.dump.err" 2>/dev/null | tr '\n' ' ')"
     exit 1
   fi
-  # PG17 pg_dump emits two things psql/server 15.8 cannot read, both wrappers
-  # rather than schema content: the transaction_timeout setting (unknown GUC)
-  # and the \restrict / \unrestrict meta-command pair (the 2025 dump-injection
-  # hardening; psql 15.8: "invalid command \restrict" -- measured 02:14Z).
-  grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict' "$DATA/hosted-baseline.sql" \
-    > "$DATA/hosted-baseline.filtered.sql" \
+  # PG17 pg_dump emits three things the 15.8 restore cannot take, none of
+  # them schema content: the transaction_timeout setting (unknown GUC), the
+  # \restrict / \unrestrict meta-command pair (2025 dump-injection hardening;
+  # "invalid command \restrict" -- measured 02:14Z), and an explicit
+  # CREATE SCHEMA public which collides with the schema the RESET block
+  # pre-creates ("schema public already exists" -- measured 20:46Z; RESET
+  # pre-creates it ON PURPOSE so a failed restore never strands the next
+  # cycle's prerequisites without a public schema).
+  grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict|^CREATE SCHEMA public;|^COMMENT ON SCHEMA public' \
+    "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
     && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
   echo "replay: hosted baseline dumped ($BYTES bytes) - resetting sovereign public and restoring"
