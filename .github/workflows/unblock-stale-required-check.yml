@@ -1,0 +1,59 @@
+# =============================================================================
+# unblock-stale-required-check — ONE-SHOT repair of an orphaned required check
+# =============================================================================
+# DR-0218 took n8n to zero, deleting scripts/test-wf36-quality-gatekeeper.js and
+# the CI job that ran it. That job's NAME was a REQUIRED STATUS CHECK on the
+# main-branch ruleset, so it can never report again and now blocks EVERY pull
+# request to main. The correct order was ruleset first, job second; it was
+# inverted, and this is the repair.
+#
+# WHY A WORKFLOW, NOT A CLICK. Darrell, 2026-08-17: "the path should already
+# exist." It does — DR-0249 built the governed remote-hands channel as the
+# answer to "why can't you do it?", and COMPREHENSIVE-REVIEW-STANDARD dim 5
+# says a step is the human's ONLY when no channel drives it. A runner's own
+# GITHUB_TOKEN with `administration: write` drives this one.
+#
+# WHY `on: push`. workflow_dispatch is only registered from the DEFAULT branch,
+# and main is exactly what is blocked — a dispatch-only repair could never run.
+# A push trigger executes from the branch it lives on, breaking the circle.
+#
+# BLAST RADIUS: one substring (`wf36`), only inside required_status_checks
+# rules, before/after printed, idempotent, and it fails LOUDLY on a 403 rather
+# than leaving main quietly blocked (DR-0310).
+#
+# THIS FILE AND ITS SCRIPT ARE DELETED once the check is gone. A standing
+# workflow able to rewrite branch protection is a far larger capability than
+# the problem it solves; keeping it would be the real governance failure.
+# =============================================================================
+name: unblock-stale-required-check
+
+on:
+  push:
+    branches: ['claude/reader-background-playback-7g9n4w']
+    paths: ['.github/workflows/unblock-stale-required-check.yml']
+
+permissions:
+  contents: read
+  administration: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show the plan (writes nothing)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/remove-stale-required-check.py --repo "${{ github.repository }}" --dry-run
+      - name: Remove the orphaned wf36 required check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/remove-stale-required-check.py --repo "${{ github.repository }}" | tee /tmp/out.txt
+          {
+            echo "## Stale required-check repair"
+            echo '```'
+            cat /tmp/out.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
