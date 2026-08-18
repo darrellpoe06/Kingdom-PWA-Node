@@ -171,6 +171,8 @@ jobs:
           # FAILING installers -- the moment the gateway went green every
           # verdict line vanished from it. The status file is written by
           # install.sh every run regardless of exit; this is its reader.
+          echo "=== does MAINTAIN survive the dump filter? (measure, not infer) ==="
+          ${SUDO} grep -n "MAINTAIN" /volume1/docker/supabase/hosted-baseline.sql 2>/dev/null | head -4 || echo "no MAINTAIN lines in the filtered dump"
           echo "=== cutover status file (written EVERY run, success included) ==="
           ${SUDO} cat /volume1/docker/supabase/cutover.status 2>/dev/null || echo "no cutover.status yet — installer predates the status-file fix or has not run"
           echo "=== replay ledger, read straight from the database (not inferred) ==="

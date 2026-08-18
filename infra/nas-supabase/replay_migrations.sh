@@ -162,8 +162,15 @@ if [ "$IN_LEDGER" != "1" ]; then
   # PG15: 'unrecognized privilege type "maintain"' (measured 22:45Z, AFTER
   # the 23 accounts landed). A privilege that does not exist on the target
   # grants nothing by being dropped.
+  # MAINTAIN survives line-level filtering when it rides a combined privilege
+  # list or an ALTER DEFAULT PRIVILEGES ... GRANT (measured 23:00Z: the
+  # ^GRANT MAINTAIN filter ran on a fresh dump and the error persisted). The
+  # strip is token-level, ADDRESSED to GRANT / ALTER DEFAULT PRIVILEGES lines
+  # only so COPY data rows are never touched.
   grep -vE '^SET transaction_timeout|^\\restrict|^\\unrestrict|^CREATE SCHEMA public;|^COMMENT ON SCHEMA public|^GRANT MAINTAIN' \
-    "$DATA/hosted-baseline.sql" > "$DATA/hosted-baseline.filtered.sql" \
+    "$DATA/hosted-baseline.sql" \
+    | sed -E '/^(GRANT|ALTER DEFAULT PRIVILEGES)/{ s/MAINTAIN, ?//g; s/, ?MAINTAIN//g; }' \
+    > "$DATA/hosted-baseline.filtered.sql" \
     && mv "$DATA/hosted-baseline.filtered.sql" "$DATA/hosted-baseline.sql"
   BYTES=$(wc -c < "$DATA/hosted-baseline.sql" | tr -d ' ')
   # ACCOUNTS BEFORE DATA (measured 2026-08-18 22:16Z): pg_dump re-creates the
