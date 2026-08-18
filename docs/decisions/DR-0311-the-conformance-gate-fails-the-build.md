@@ -1,5 +1,5 @@
 ---
-id: DR-0307
+id: DR-0311
 title: The n8n conformance gate fails the build — active workflows conform, the rest ratchet, and the gate cannot see the box
 date: 2026-08-16
 status: accepted
@@ -79,7 +79,7 @@ Verified against the LIVE tree, not only fixtures:
 
 (The first measurement of that run reported `exit=0` because `$?` after a pipe
 into `tail` returns *tail's* status. Caught and re-measured with the pipe
-removed. Worth recording: that is DR-0306's class appearing inside the
+removed. Worth recording: that is DR-0310's class appearing inside the
 verification of a different gate.)
 
 ## The honest limit — this gate cannot see the box
@@ -96,7 +96,7 @@ Live proof of the gap, same day: `wf-ops-announce` was imported and activated by
 hand on the NAS on 2026-08-16, and its repo JSON still reads inactive — so Tier 1
 reports clean on a workflow that is live and non-conforming (no `errorWorkflow`).
 Stated in the script header, the test header, and the gate's own runtime output
-so a green run never implies more than it measured (DR-0306).
+so a green run never implies more than it measured (DR-0310).
 
 Closing it needs the box to report its activation state back into the repo (an
 export/diff loop, or the box agent of DR-0132 §1 writing state to Supabase).

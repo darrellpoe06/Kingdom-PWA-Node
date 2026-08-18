@@ -37,7 +37,7 @@ configured means nobody gets in.
 
 Fail-soft on BOTH sides: a dead bell returns `ok:true, delivered:false` with the
 reason, so it never turns a passing probe red — and never hides why it was dead
-(DR-0306: unknown is a third state, reported, not swallowed).
+(DR-0310: unknown is a third state, reported, not swallowed).
 
 ## Deploy
 

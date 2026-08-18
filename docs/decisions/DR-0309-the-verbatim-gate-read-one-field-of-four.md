@@ -1,5 +1,5 @@
 ---
-id: DR-0305
+id: DR-0309
 title: The verbatim gate claimed every quoted Scripture and read one field of thirteen — the child band was the least-gated prose in the repository
 date: 2026-08-15
 status: accepted

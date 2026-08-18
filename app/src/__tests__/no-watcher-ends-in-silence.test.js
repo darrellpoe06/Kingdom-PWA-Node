@@ -12,7 +12,7 @@
 // fine." The script had no path that says I COULD NOT OBSERVE.
 //
 // Same shape as DR-0303 (an instrument trusted for a property it never
-// measured), DR-0305 (a gate whose claim outran its reach), DR-0125 (every
+// measured), DR-0309 (a gate whose claim outran its reach), DR-0125 (every
 // safeguard watched the pipeline; none watched the product). The rule: a green
 // check must mean something, and SO MUST A QUIET ONE. Unknown is a third state
 // and never reads as healthy (DR-0076).

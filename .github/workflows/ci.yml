@@ -105,14 +105,14 @@ jobs:
       # 6.2 MB per sign-in, per user. Shrink-only: today's set is grandfathered,
       # a NEW one fails, and fixing an old one shrinks the baseline.
       - run: node ../scripts/unbounded-select-guard.mjs
-      # LESSON QUOTE RATCHET (DR-0305). The verbatim gate claimed "every quoted
+      # LESSON QUOTE RATCHET (DR-0309). The verbatim gate claimed "every quoted
       # Scripture is KJV-VERBATIM" and read exactly one field — `mod.lesson`. The
       # child/teen/senior bands, benefits, quiz and facilitator prose carry 3363
       # more referenced quotes and were never checked; 556 sites do not match.
       # Shrink-only: today's set is grandfathered, a NEW altered quote fails.
       - run: node ../scripts/lesson-quote-guard.mjs
       - run: node ../scripts/lesson-quote-guard.mjs --selftest
-      # SILENT WATCHER GUARD (DR-0306). A watcher that cannot say "I could not
+      # SILENT WATCHER GUARD (DR-0310). A watcher that cannot say "I could not
       # observe" reports silence as health. Every network poll must carry a
       # bound AND a loud end. Found by shipping the defect in this session's own
       # CI watcher; caught a real one in ship.sh, which merged on an unobserved
@@ -200,6 +200,56 @@ jobs:
       - name: sovereign photos archive selftest
         working-directory: infra/nas-photos-archive
         run: python3 photos_archive.py --selftest
+      # Sovereign Supabase key minter (DR-0310). The three secrets must AGREE:
+      # a JWT signed by anything other than JWT_SECRET 401s every request with a
+      # message that says nothing useful, and the failure surfaces only once the
+      # stack is live. Proven-to-catch at its two real risks: a key signed by the
+      # WRONG secret is rejected, and a payload escalated anon -> service_role is
+      # rejected. Stdlib-only on purpose — this NAS runs Python 3.8.15 and root
+      # cannot import dpoe's site-packages, so an installer needing pip fails.
+      - name: sovereign supabase key minter selftest
+        working-directory: infra/nas-supabase
+        run: python3 mint_keys.py --selftest
+      # Migration parity verifier (DR-0310). The DR-0291 photos lesson in SQL:
+      # a partial migration is byte-perfect -- every copied row correct, and the
+      # stack still wrong because rows are missing. INTEGRITY IS NOT
+      # COMPLETENESS. Proven-to-catch at the three ways this bites: tables
+      # short, users left behind, and the silent one -- all 183 tables and all
+      # the data present with ZERO policies, which is a total tenancy breach
+      # (DR-0060) that "the data is all there" hides completely.
+      - name: sovereign supabase migration parity selftest
+        working-directory: infra/nas-supabase
+        run: python3 migrate_verify.py --selftest
+      # Box agent consumer (DR-0132 P1; built on Darrell's arm 2026-08-15).
+      # Proven-to-catch: keyless vendor rows FAIL with the why (never spin),
+      # Ollama errors land verbatim, empty responses read as failure, the
+      # --max budget caps every pass, and keep_alive '0' rides every Ollama
+      # call (DR-0012). Pure logic; no network or db in the selftest.
+      - name: box agent consumer selftest
+        working-directory: infra/nas-agent
+        run: python3 agent_consumer.py --selftest
+      # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
+      # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
+      # steward heard values with no idea which column they were in. All 131 now
+      # carry scope and this holds it at zero. Captions are tracked debt.
+      # working-directory is required: this job defaults to `app`, and both
+      # guards live at the repo root. Without it the step resolves
+      # app/scripts/… and dies MODULE_NOT_FOUND — which is a red build, not a
+      # false green, but it does mean the a11y gate never actually ran on the
+      # commit that introduced it.
+      - name: table a11y guard (screen-reader navigability)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/table-a11y-guard.mjs
+      # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
+      # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
+      # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,
+      # OBS encoding a service) wants the card. Measured 2026-08-14: church-gpu-node
+      # held 5m while CITING DR-0012, node1 held 15m, both on a 12 GB 4070 — and
+      # one of those boxes feeds the NovaStar -> wall. A CPU/RAM-bound Ollama is
+      # out of scope and never flagged. Proven-to-catch in gpu-preemption-guard.test.js.
+      - name: gpu preemption guard (a GPU Ollama yields VRAM in ~1s)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/gpu-preemption-guard.mjs
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails

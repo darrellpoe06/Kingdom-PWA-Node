@@ -173,7 +173,15 @@ export function navKey(loc) {
 // `join` is deliberately NOT here: it is a one-time claim token, read once into
 // state by ClaimInviteBanner, and keeping it in the URL would leave an invite
 // token sitting in every screenshot and shared link.
-export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'demo'];
+//
+// `course`/`lesson` joined 2026-08-12 (DR-0293) for the opposite reason to
+// `demo`: they are not a scope, they are the DESTINATION. ChurchLearn reads
+// them ONCE on mount, and the history seed ran first and stripped them, so a
+// shared lesson link opened the church home with no lesson. Darrell, from his
+// phone: "it takes me to the Love Corner App... no lesson... just the app."
+// Unlike `join` these carry no token — a course/lesson id in a screenshot is
+// exactly what the sharer meant to send.
+export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'demo', 'course', 'lesson'];
 
 // Compose the full URL for a location, preserving the app's base path
 // (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —

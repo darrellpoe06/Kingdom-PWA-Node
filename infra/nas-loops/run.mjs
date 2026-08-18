@@ -51,7 +51,7 @@
 //   NTFY_URL / NTFY_TOPIC   failure alert (best-effort; optional)
 // =============================================================================
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmdirSync, statSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -129,7 +129,31 @@ function recordCall(name) {
 
 // --- Single-flight lock (atomic mkdir; mirrors brakes.sh acquire_lock) --------
 function lockDir(name) { return join(STATE_DIR, `${name}.lock`); }
-function lockHeld(name) { return existsSync(lockDir(name)); }
+// A lock older than the loop's own wall-clock budget cannot be a live run:
+// the runner kills the child at timeout_seconds and releases in finally, so
+// only a crashed or kill -9'd harness leaves one behind (2026-08-16: a dpoe
+// one-shot died on EACCES at the call counter between acquire and the
+// try/finally, and every root cycle after it skipped on "single-flight lock
+// held" -- the brake was holding a ghost). Past timeout + 120s grace the
+// lock is cleared as stale, with its own event line so the reel shows it.
+function lockHeld(name, timeoutSeconds) {
+  const dir = lockDir(name);
+  if (!existsSync(dir)) return false;
+  if (timeoutSeconds) {
+    try {
+      const ageMs = Date.now() - statSync(dir).mtimeMs;
+      const staleMs = (Number(timeoutSeconds) + 120) * 1000;
+      if (ageMs > staleMs) {
+        try { rmdirSync(dir); } catch { /* raced or perms -- fall through to held */ }
+        if (!existsSync(dir)) {
+          logEvent('loops_lock_stale_cleared', `lock for '${name}' was ${Math.round(ageMs / 1000)}s old (budget ${timeoutSeconds}s + 120s grace) -- cleared as a crashed run's ghost`);
+          return false;
+        }
+      }
+    } catch { /* stat failed -- treat as held */ }
+  }
+  return true;
+}
 function acquireLock(name) {
   try { mkdirSync(STATE_DIR, { recursive: true }); } catch { /* exists */ }
   try { mkdirSync(lockDir(name)); return true; } catch { return false; }
@@ -246,7 +270,7 @@ async function main() {
 
   const dryRun = hasFlag('dry-run') || hasFlag('plan');
   const used = callsToday(name);
-  const decision = decideRun({ loop, loopsArmed: loopsArmed(), lockHeld: lockHeld(name), callsToday: used });
+  const decision = decideRun({ loop, loopsArmed: loopsArmed(), lockHeld: lockHeld(name, loop.timeout_seconds), callsToday: used });
   const head = `loop=${name} kind=${loop.kind} cap=${loop.max_calls_per_day}/day usedToday=${used} timeout=${loop.timeout_seconds}s decision=${decision.go ? 'GO' : 'HOLD'}(${decision.reason})`;
 
   // Governance = the PARAMETERS (registry caps + LOOPS_ARMED) plus the human kill-
@@ -268,9 +292,15 @@ async function main() {
   }
 
   logEvent('loop_run_start', head);
-  const newCalls = recordCall(name); // count the fire before exec — a crashing loop still consumes its cap slot (anti-runaway)
+  // recordCall lives INSIDE the finally-protected region: on 2026-08-16 its
+  // EACCES (root-owned counter, dpoe hand) escaped between acquire and the
+  // old try, exiting without release -- the orphaned lock wedged every later
+  // cycle. Counted before exec as ever: a crashing loop still consumes its
+  // cap slot (anti-runaway).
+  let newCalls;
   let res;
   try {
+    newCalls = recordCall(name);
     res = await runScript(scriptPath, loop.timeout_seconds);
   } finally {
     releaseLock(name);

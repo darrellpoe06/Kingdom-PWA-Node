@@ -103,6 +103,49 @@ export function createTableSync(spec) {
     toRow,
     fromRow,
     idOf = (item) => item?.id,
+    // APPEND-ONLY tables refresh by DELTA, not by re-downloading the table.
+    //
+    // WHY THIS EXISTS (2026-08-14, the egress outage). record_events is the
+    // audit log: one row per change to ANY tracked record, 20,129 rows / 15 MB,
+    // with fat before/after JSON blobs (largest single row 1.18 MB). subscribe()
+    // called fetchAll() on EVERY realtime change, so ten inventory edits meant
+    // ten full 15 MB re-downloads on every connected device. 5 GB of free-tier
+    // egress is ~340 of those refetches, and the project was hard-restricted
+    // with `exceed_egress_quota` -- every account across all four apps locked
+    // out for 3.5 days (last successful sign-in 2026-08-11 03:04 UTC, measured).
+    //
+    // Worse, the pagination directly above was added to fix TRUNCATION at 1,000
+    // rows, which turned a capped 1,000-row pull into a guaranteed 20,129-row
+    // one. The correctness fix made the egress bill strictly worse, and nothing
+    // measured egress, so it was invisible until the service was cut off.
+    //
+    // Safe ONLY where the merge is a UNION (see mergeRemoteRecordEvents ->
+    // unionPreservingLocal): the refresh then hands the consumer just the new
+    // rows and the union folds them in. A consumer that REPLACES its list would
+    // lose history, so this is opt-in per table and never a default.
+    appendOnly = false,
+    // MUTABLE tables refresh by WATERMARK on updated_at (2026-08-14, the second
+    // half of the same egress work; the plan corrected by Gemini's review then
+    // corrected again by measurement). transactions is 2,953 rows / 3.4 MB with
+    // 17,374 lifetime writes — every one of which re-downloaded the whole
+    // ledger. appendOnly is UNSOUND there (rows update; deletes happen), so:
+    //
+    //   * upserts ride `updated_at > watermark` (migration 0136 backfills the
+    //     1,978 NULL updated_at rows and adds the touch trigger — measured 67%
+    //     of the ledger was invisible to a watermark before that);
+    //   * deletions are reconciled from record_events (record_kind=eventsKind,
+    //     action='delete'), whose record_id carries the LOCAL id (measured);
+    //     no soft-delete column, so the ledger's semantics and RLS are untouched;
+    //   * the controller keeps a by-id cache and ALWAYS hands the consumer the
+    //     FULL list, so the consumer contract is unchanged — a partial list to
+    //     a replace-style consumer is how history gets lost (DR-0305's rule).
+    //
+    // Cheaper never means less correct: any failed leg falls back to fetchAll,
+    // a partial full read never advances the watermark, and before the first
+    // full load there is no delta at all.
+    mutableDelta = false,
+    // record_events.record_kind used for deletion reconciliation ('transaction').
+    eventsKind = null,
   } = spec;
 
   async function upload(item) {
@@ -233,21 +276,188 @@ export function createTableSync(spec) {
       if (error) {
         console.warn(`[table-sync:${remoteTable}] fetch failed at offset ${from}:`, error);
         // Keep what already paged in rather than dropping the whole ledger.
+        // A PARTIAL read must not advance the watermark: doing so would make
+        // the next delta start past rows this read never returned, and the gap
+        // would be permanent and silent. For mutableDelta it must also CLEAR
+        // the watermark: the cache is about to hold a partial picture, and the
+        // only safe next refresh is another full read, not a delta on top of
+        // a hole.
+        updatedWatermark = null;
         return from === 0 ? null : rows.map(fromRow);
       }
       const batch = data || [];
       rows.push(...batch);
       if (batch.length < PAGE) break;
     }
+    advanceWatermark(rows);
+    advanceUpdatedWatermark(rows);
     return rows.map(fromRow);
+  }
+
+  // The high-water mark for an append-only table: the newest created_at this
+  // controller has seen. Null until the first successful full load, and any
+  // refresh before that falls back to fetchAll — never to "fetch nothing".
+  let watermark = null;
+
+  function advanceWatermark(rawRows) {
+    for (const r of rawRows || []) {
+      const t = r && r.created_at;
+      if (t && (!watermark || t > watermark)) watermark = t;
+    }
+  }
+
+  // Only rows written since the watermark. Same page loop and same stable total
+  // order as fetchAll, so a burst landing in one millisecond cannot be skipped.
+  // `.gt` (not `.gte`) because the watermark row is already held locally.
+  async function fetchSince(since) {
+    let tenantId;
+    try {
+      tenantId = await tenantIdCached();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
+    const PAGE = 1000;
+    const raw = [];
+    for (let from = 0; from < 200000; from += PAGE) {
+      const { data, error } = await supabase
+        .from(remoteTable)
+        .select('*')
+        .eq('instance_id', tenantId)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] delta fetch failed at offset ${from}:`, error);
+        // A failed delta must not look like "nothing new" — fall back to the
+        // full read so a dropped page can never silently lose history.
+        return null;
+      }
+      const batch = data || [];
+      raw.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+    advanceWatermark(raw);
+    return raw.map(fromRow);
+  }
+
+  // ── mutableDelta: watermark on updated_at + deletes from record_events ─────
+  // The by-id cache. The consumer's contract is a FULL list on every callback;
+  // the cache is what lets the fetch be delta-sized while the callback stays
+  // whole. Keyed by the LOCAL id (idOf after fromRow) because record_events
+  // .record_id carries the local id (measured against production deletes).
+  const cache = new Map();
+
+  function cacheReplaceAll(items) {
+    cache.clear();
+    for (const it of items || []) { const k = idOf(it); if (k != null) cache.set(k, it); }
+  }
+
+  // updated_at watermark for mutableDelta (the created_at one above serves
+  // appendOnly; they advance on different columns and never mix).
+  let updatedWatermark = null;
+  function advanceUpdatedWatermark(rawRows) {
+    for (const r of rawRows || []) {
+      const t = r && r.updated_at;
+      if (t && (!updatedWatermark || t > updatedWatermark)) updatedWatermark = t;
+    }
+  }
+
+  // Rows MODIFIED since the watermark — inserts and edits both, because the
+  // 0136 trigger touches updated_at on INSERT OR UPDATE. Same stable total
+  // order and page loop as fetchAll; `.gt` because the watermark row is held.
+  async function fetchChangedSince(since) {
+    let tenantId;
+    try { tenantId = await tenantIdCached(); } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
+    const PAGE = 1000;
+    const raw = [];
+    for (let from = 0; from < 200000; from += PAGE) {
+      const { data, error } = await supabase
+        .from(remoteTable)
+        .select('*')
+        .eq('instance_id', tenantId)
+        .gt('updated_at', since)
+        .order('updated_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] watermark delta failed at offset ${from}:`, error);
+        return null; // a failed delta must never read as "nothing changed"
+      }
+      const batch = data || [];
+      raw.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+    advanceUpdatedWatermark(raw);
+    return raw.map(fromRow);
+  }
+
+  // Local ids deleted since the watermark, read from the audit log. No
+  // soft-delete column: record_events already records every books delete
+  // (18,502 of them measured), so the ledger's own semantics and RLS stay
+  // untouched. A delete bumps no transactions row, so this window re-reads
+  // until an upsert advances the watermark — idempotent removals, small rows.
+  async function fetchDeletedIdsSince(since) {
+    if (!eventsKind) return [];
+    let tenantId;
+    try { tenantId = await tenantIdCached(); } catch (_e) { return null; }
+    const { data, error } = await supabase
+      .from('record_events')
+      .select('record_id')
+      .eq('instance_id', tenantId)
+      .eq('record_kind', eventsKind)
+      .eq('action', 'delete')
+      .gt('occurred_at', since)
+      .order('occurred_at', { ascending: true })
+      .range(0, 999);
+    if (error) {
+      console.warn(`[table-sync:${remoteTable}] delete reconciliation failed:`, error);
+      return null; // fall back to the full read rather than resurrect deleted rows
+    }
+    return (data || []).map((r) => r.record_id).filter(Boolean);
   }
 
   function subscribe(onRemote) {
     let channel = null;
     let cancelled = false;
     const refresh = () => {
-      fetchAll().then((refreshed) => {
-        if (refreshed && !cancelled) onRemote(refreshed);
+      if (mutableDelta && updatedWatermark) {
+        // Both legs must succeed; either failing falls back to the full read.
+        Promise.all([
+          fetchChangedSince(updatedWatermark),
+          fetchDeletedIdsSince(updatedWatermark),
+        ]).then(async ([upserts, deletedIds]) => {
+          if (cancelled) return;
+          if (upserts === null || deletedIds === null) {
+            const full = await fetchAll();
+            if (!full || cancelled) return;
+            cacheReplaceAll(full);
+            onRemote(full);
+            return;
+          }
+          if (upserts.length === 0 && deletedIds.length === 0) return; // quiet
+          for (const it of upserts) { const k = idOf(it); if (k != null) cache.set(k, it); }
+          for (const id of deletedIds) cache.delete(id);
+          onRemote([...cache.values()]);
+        });
+        return;
+      }
+      // Append-only: ask for the delta. On any failure, or before the first
+      // full load has set a watermark, fall back to the whole table — cheaper
+      // is never allowed to mean less correct.
+      const pull = (appendOnly && watermark)
+        ? fetchSince(watermark).then((d) => (d === null ? fetchAll() : d))
+        : fetchAll();
+      pull.then((refreshed) => {
+        if (!refreshed || cancelled) return;
+        // A delta of zero rows is the common case once the log is quiet; there
+        // is nothing for the consumer to merge, so do not churn its state.
+        if (appendOnly && watermark && refreshed.length === 0) return;
+        onRemote(refreshed);
       });
     };
     // A4: coalesce a burst of realtime changes (incl. own writes) into one
@@ -258,7 +468,10 @@ export function createTableSync(spec) {
       const session = await currentSession();
       if (!session || cancelled) return;
       const initial = await fetchAll();
-      if (initial) onRemote(initial);
+      if (initial) {
+        if (mutableDelta) cacheReplaceAll(initial);
+        onRemote(initial);
+      }
       let tenantId = null;
       try { tenantId = await tenantIdCached(); } catch (_) { /* filter below stays broad; fetchAll still scopes */ }
       if (cancelled) return;

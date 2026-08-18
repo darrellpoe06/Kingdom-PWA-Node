@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import {
   serializeNav, parseNav, navKey, initialBooksView, VALID_BOOKS_SUBS, VALID_VIEWS,
   useBrowserHistoryNav, useHistoryToggle, useHistoryValue,
+  initialChurchView, VALID_CHURCH_SUBS, PRESERVED_PARAMS,
 } from '../lib/nav-history.js';
 
 // ── the two-lists guard (DR-0296's remainder, closed) ───────────────────────
@@ -296,5 +297,72 @@ describe('useHistoryValue — Back reverts a sub-view to its base', () => {
     // Back steps off the 'scopes' entry (state has no matching hvKey) -> base.
     await act(async () => { window.dispatchEvent(new PopStateEvent('popstate', { state: null })); });
     expect(container.querySelector('.v').textContent).toBe('list');
+  });
+});
+
+// =============================================================================
+// DR-0293 — a shared lesson link must survive the URL seed
+// =============================================================================
+// Darrell 2026-08-12, from his phone, with the address bar as evidence: he
+// pasted
+//   /poetech-app/?view=church&sub=learn&course=kingdom-economics&lesson=econ1-soul-first
+// and the bar afterward read
+//   /poetech-app/?view=church
+// — "it takes me to the Love Corner App... no lesson... just the app."
+//
+// Two independent defects produced that one symptom, and fixing either alone
+// leaves it broken:
+//   1. the shell's getInitialChurchView read only `?view=`, so `sub=learn`
+//      never selected Learn and the seed then wrote a URL with no sub at all;
+//   2. course/lesson were absent from PRESERVED_PARAMS, so the seed stripped
+//      them before ChurchLearn's one-time read could see them.
+//
+// The build stamp on his screen was 832775A · LATEST, which ruled out a stale
+// cache and is why this is a routing bug rather than a delivery one.
+
+const SHARED = '?view=church&sub=learn&course=kingdom-economics&lesson=econ1-soul-first';
+
+describe('DR-0293 — the shared lesson link', () => {
+  it('THE BUG: ?view=church&sub=learn selects Learn, not the church home', () => {
+    expect(initialChurchView(SHARED)).toBe('learn');
+  });
+
+  it('keeps the alias form working too (?view=learn)', () => {
+    expect(initialChurchView('?view=learn')).toBe('learn');
+  });
+
+  it('THE OTHER HALF: course and lesson survive the URL seed', () => {
+    expect(PRESERVED_PARAMS).toContain('course');
+    expect(PRESERVED_PARAMS).toContain('lesson');
+  });
+
+  it('round-trips: parse then re-serialize keeps sub=learn in the URL', () => {
+    const loc = parseNav(SHARED);
+    expect(loc.view).toBe('church');
+    expect(loc.churchView).toBe('learn');
+    // This is the exact step that dropped it: state said "home", so the seed
+    // wrote no sub. With the sub parsed, it must be written back.
+    expect(serializeNav(loc)).toContain('sub=learn');
+  });
+
+  it('every church sub-tab the shell can render is a valid deep-link target', () => {
+    for (const sub of ['learn', 'engagement', 'choir', 'pulpit', 'events', 'scripture']) {
+      expect(VALID_CHURCH_SUBS, `${sub} must be deep-linkable`).toContain(sub);
+      expect(initialChurchView(`?view=church&sub=${sub}`)).toBe(sub);
+    }
+  });
+
+  it('an unknown sub falls back to home rather than a branch that renders nothing', () => {
+    expect(initialChurchView('?view=church&sub=not-a-real-tab')).toBe('home');
+  });
+
+  it('a non-church view is unaffected', () => {
+    expect(initialChurchView('?view=books&sub=imported')).toBe('home');
+  });
+
+  it('malformed input never throws', () => {
+    for (const bad of ['', '?%%%', undefined]) {
+      expect(() => initialChurchView(bad)).not.toThrow();
+    }
   });
 });

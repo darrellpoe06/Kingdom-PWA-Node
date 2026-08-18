@@ -152,8 +152,8 @@ export default function BooksTaxes({ entities = [] }) {
             <table className="w-full text-[0.6875rem] text-[#1A1815]">
               <thead>
                 <tr className="text-left text-[#5A5751]">
-                  <th className="py-1 pr-2 font-semibold">Year</th>
-                  {TAX_FIGURE_KEYS.map((k) => (<th key={k} className="py-1 px-2 font-semibold text-right">{FIGURE_LABEL[k]}</th>))}
+                  <th scope="col" className="py-1 pr-2 font-semibold">Year</th>
+                  {TAX_FIGURE_KEYS.map((k) => (<th scope="col" key={k} className="py-1 px-2 font-semibold text-right">{FIGURE_LABEL[k]}</th>))}
                 </tr>
               </thead>
               <tbody>

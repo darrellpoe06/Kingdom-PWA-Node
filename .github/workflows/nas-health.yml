@@ -97,6 +97,95 @@ jobs:
           ${SUDO} docker run --rm --network host curlimages/curl:latest -s -o /dev/null -w 'youtube HTTP %{http_code}\n' --max-time 20 https://www.youtube.com 2>&1 | tail -1
           echo "=== the trickle stamp (read-only; running the installer would burn a slot) ==="
           ls -la /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/out/.transcript-trickle.last 2>&1 | tail -1
+          # ---------------------------------------------------------------
+          # 2026-08-14: IS THE LOOP EVEN RUNNING? The file-level trace of
+          # transcript_trickle_install.sh CONTRADICTS ITSELF against the
+          # 2026-08-11 reading, which is why these lines exist:
+          #   .vendor absent  => `mkdir -p "$VENDOR"` (line 105) never ran
+          #                   => the import check (line 103) SUCCEEDED
+          #   but if 103 succeeded, control reaches line 125 and the stamp is
+          #   rewritten -- and the stamp has not moved since Aug 11.
+          # Both branches cannot be true. So the installer is probably not
+          # being RUN at all, and the fault is upstream in services-sync, not
+          # in the installer. Everything below discriminates that: an armed,
+          # clocked, freshly-pulled loop that is firing looks completely
+          # different from one that never starts. Measure it (DR-0076 §5:
+          # characterize before you change) instead of patching a script that
+          # may be innocent.
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== is the fleet ARMED? (all three arms — DR-0247) ==="
+          ls -la "$LOOPS/ARMED-BY-RECORD" 2>&1 | tail -1
+          ls -la "$LOOPS/.env" 2>&1 | tail -1
+          grep -c LOOPS_ARMED "$LOOPS/.env" 2>/dev/null || echo "no LOOPS_ARMED in .env (or no .env)"
+          ls -la "$LOOPS/state/LOOPS_ARMED" 2>&1 | tail -1
+          echo "=== is it CLOCKED? (an enabled-but-unclocked loop reads GREEN while nothing fires) ==="
+          ${SUDO} crontab -l 2>&1 | grep -iE "run\.mjs|nas-loops|services-sync" || echo "root crontab: no nas-loops entry"
+          crontab -l 2>&1 | grep -iE "run\.mjs|nas-loops|services-sync" || echo "dpoe crontab: no nas-loops entry"
+          ${SUDO} cat /etc/crontab 2>/dev/null | grep -iE "run\.mjs|nas-loops" || echo "/etc/crontab: no nas-loops entry"
+          echo "=== DID IT RUN? the runner's own event log (last 12) ==="
+          ls -la "$LOOPS/events/events.jsonl" 2>&1 | tail -1
+          tail -12 "$LOOPS/events/events.jsonl" 2>/dev/null || echo "no events.jsonl — the runner has never written an event here"
+          echo "=== per-loop state: locks + today's call caps ==="
+          ls -la "$LOOPS/state/" 2>&1 | tail -20
+          echo "=== KILL_SWITCH / brakes in the loop tree ==="
+          ls -la "$LOOPS/state/KILL_SWITCH" 2>&1 | tail -1
+          echo "=== is the MIRROR fresh? (services-sync pulls FIRST; a stale mirror runs yesterday) ==="
+          git -C "$REPO" log -1 --format='mirror HEAD: %h %ci %s' 2>&1 | tail -1
+          git -C "$REPO" status --porcelain 2>&1 | head -5
+          git -C "$REPO" rev-parse --abbrev-ref HEAD 2>&1 | tail -1
+          echo "=== the reel the Dispatch Status surface reads (last 8) ==="
+          tail -8 /data/poetech-briefing/_reel.jsonl 2>/dev/null || echo "no reel at /data/poetech-briefing/_reel.jsonl"
+          echo "=== node present? (run.mjs needs it; no node = no loop, silently) ==="
+          command -v node && node -v 2>&1 || echo "NO node on PATH — run.mjs cannot execute"
+          ${SUDO} sh -c 'command -v node' 2>/dev/null || echo "NO node on root PATH either"
           echo "=== disk (the volume the services live on) ==="
           df -h /volume1 2>&1 | tail -1
+          # ---------------------------------------------------------------
+          # 2026-08-15: WHY do the sovereign Supabase legs restart? Observed
+          # at 05:06Z: storage restart-looping since birth, studio unhealthy,
+          # and now auth + rest joining the restart loop — and NO probe ever
+          # captured a single container log line, so the cutover sprint's
+          # first target had a symptom but never a reason. Read-only tails,
+          # restarting/unhealthy legs only; healthy legs stay unlogged (noise
+          # discipline). docker logs needs the socket => sudo -n, same grant
+          # as the ps table above.
+          # The installer's own words from the last cycles — the reconcile
+          # verdict lines the event capture kept truncating (three blind
+          # passes of the password cure). The cron log holds full stdout.
+          # The direct witness (DR-0076): the literal HTTP code from kong,
+          # read fresh -- a passing installer is inferred; this is measured.
+          echo "=== sovereign gateway: does kong answer? (direct probe) ==="
+          curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
+          echo "=== the installer's own words (nas-supabase lines, cron log) ==="
+          ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
+          # FOURTH blindness (2026-08-15 22:52Z): the cron log records only
+          # FAILING installers -- the moment the gateway went green every
+          # verdict line vanished from it. The status file is written by
+          # install.sh every run regardless of exit; this is its reader.
+          echo "=== cutover status file (written EVERY run, success included) ==="
+          ${SUDO} cat /volume1/docker/supabase/cutover.status 2>/dev/null || echo "no cutover.status yet — installer predates the status-file fix or has not run"
+          echo "=== replay ledger, read straight from the database (not inferred) ==="
+          SUPA_PW=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          if [ -n "$SUPA_PW" ]; then
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'ledger '||count(*)||' applied, latest: '||COALESCE(max(fname),'none') FROM public._sovereign_replay;" 2>&1 | tail -2
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'sovereign auth.users: '||count(*) FROM auth.users;" 2>&1 | tail -1
+          else
+            echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
+          fi
+          echo "=== /sb mirror routes: does kong answer on the CUTOVER path? ==="
+          curl -s -o /dev/null -w '/sb/auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/auth/v1/health 2>&1 || echo "/sb probe unreachable"
+          echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
+          for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
+            ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
+            case "$ST" in
+              running*health=healthy*) echo "--- $c: $ST (healthy — logs skipped)";;
+              "") echo "--- $c: not present";;
+              *) echo "--- $c: $ST"; ${SUDO} docker logs --tail 12 "$c" 2>&1 | tail -12;;
+            esac
+          done
           EOS

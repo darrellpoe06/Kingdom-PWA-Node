@@ -225,12 +225,12 @@ export default function Inventory({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                <th className="px-2 py-2">Item</th>
-                <th className="px-2 py-2 hidden sm:table-cell">Category</th>
-                <th className="px-2 py-2 hidden md:table-cell">Location</th>
-                <th className="px-2 py-2 text-right">On hand</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
+                <th scope="col" className="px-2 py-2">Item</th>
+                <th scope="col" className="px-2 py-2 hidden sm:table-cell">Category</th>
+                <th scope="col" className="px-2 py-2 hidden md:table-cell">Location</th>
+                <th scope="col" className="px-2 py-2 text-right">On hand</th>
+                <th scope="col" className="px-2 py-2">Status</th>
+                <th scope="col" className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
               </tr>
             </thead>
             <tbody>
@@ -449,7 +449,7 @@ function LedgerView({ ledger, unit }) {
       <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-            <th className="py-1 pr-2">When</th><th className="py-1 pr-2">Type</th><th className="py-1 pr-2 text-right">Change</th><th className="py-1 pr-2 text-right">On hand</th><th className="py-1 pr-2">Where</th><th className="py-1 pr-2">Reason</th><th className="py-1 pr-2">By</th>
+            <th scope="col" className="py-1 pr-2">When</th><th scope="col" className="py-1 pr-2">Type</th><th scope="col" className="py-1 pr-2 text-right">Change</th><th scope="col" className="py-1 pr-2 text-right">On hand</th><th scope="col" className="py-1 pr-2">Where</th><th scope="col" className="py-1 pr-2">Reason</th><th scope="col" className="py-1 pr-2">By</th>
           </tr>
         </thead>
         <tbody>
@@ -501,7 +501,7 @@ function CategoryRollup({ items, movements }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              <th className="px-2 py-1.5">Category</th><th className="px-2 py-1.5 text-right">Items</th><th className="px-2 py-1.5 text-right">Units</th><th className="px-2 py-1.5 text-right">Value</th><th className="px-2 py-1.5 text-right">Low / Out</th>
+              <th scope="col" className="px-2 py-1.5">Category</th><th scope="col" className="px-2 py-1.5 text-right">Items</th><th scope="col" className="px-2 py-1.5 text-right">Units</th><th scope="col" className="px-2 py-1.5 text-right">Value</th><th scope="col" className="px-2 py-1.5 text-right">Low / Out</th>
             </tr>
           </thead>
           <tbody>

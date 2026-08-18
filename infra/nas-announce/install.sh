@@ -40,7 +40,7 @@ systemctl enable poetech-announce >/dev/null 2>&1 || true
 systemctl is-active --quiet poetech-announce || systemctl restart poetech-announce
 
 echo "== announce install: proving it answers =="
-# Liveness only -- no token needed, and a failure here is LOUD (DR-0306).
+# Liveness only -- no token needed, and a failure here is LOUD (DR-0310).
 sleep 1
 if curl -sS --max-time 5 http://127.0.0.1:8796/healthz | grep -q '"ok"'; then
   echo "  announce relay is up on 127.0.0.1:8796"

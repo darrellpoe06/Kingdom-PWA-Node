@@ -20,7 +20,7 @@
 // references). They are grandfathered rather than swept: a blind find-replace
 // through quoted Scripture is the very move DR-0210's bright line forbids, and
 // the bracketed-gloss convention ("charity [love]") is an editorial question for
-// the SME rather than something a script gets to decide. See DR-0305 for the
+// the SME rather than something a script gets to decide. See DR-0309 for the
 // re-review dates on working that debt down.
 //
 // PROVEN-TO-CATCH (DR-0076 §3): `node scripts/lesson-quote-guard.mjs --selftest`

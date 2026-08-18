@@ -56,7 +56,7 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
-import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload } from '../lib/lesson-links.js';
+import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -1417,10 +1417,35 @@ function CourseView({
                   scroll (reported from the phone, 2026-08-03) — one lesson,
                   one copy. */}
               {!tutorOpen && (<>
-              <p className="text-sm text-[#1A1815] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
+              {/* EVERY SECTION TRAVELS (Darrell 2026-08-15: "a button to copy or
+                  share any section as the text... an intro to that lesson for
+                  each section... prompts the interest of the two people... so
+                  the Word is clear to them"). Each section carries its own
+                  Share: the section's text is the message body — the specific
+                  idea that made the sender think of someone — with the link
+                  back to this exact lesson under it. navigator.share first;
+                  no sheet => the same control copies and says so honestly. */}
+              {(() => {
+                const secUrl = lessonUrl({ courseKey: course.meta.key, lessonId: m.id });
+                const sec = (label, text) => (
+                  <ShareButton
+                    label="Share this part"
+                    title={`Share "${label}" — the text plus a link to this ${U.noun}`}
+                    className="text-[0.625rem] uppercase tracking-wider px-2.5 min-h-[2.75rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    payload={() => sectionSharePayload(m, { label, text, url: secUrl, courseTitle: course.meta.title || '' })}
+                  />
+                );
+                return (<>
+              <div className="flex items-start justify-between gap-2 mt-2">
+                <p className="text-sm text-[#1A1815] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
+                {sec('The big idea', m.bigIdea || '')}
+              </div>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">What this frees in you</div>
+                    {sec('What this frees in you', m.benefits.map((b) => `• ${b}`).join('\n'))}
+                  </div>
                   <ul className="list-disc pl-4 space-y-1">
                     {m.benefits.map((b, i) => (
                       <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
@@ -1428,14 +1453,22 @@ function CourseView({
                   </ul>
                 </div>
               )}
-              <p className="text-xs text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
-              </p>
-              {m.anchor?.ref && (
-                <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
+              <div className="flex items-start justify-between gap-2 mt-2">
+                <p className="text-xs text-[#5A5751] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
                 </p>
+                {sec(handsOnLabel, m.inApp || '')}
+              </div>
+              {m.anchor?.ref && (
+                <div className="flex items-start justify-between gap-2 mt-2">
+                  <p className="text-[0.6875rem] text-[#5A6E3D] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
+                  </p>
+                  {sec(`Anchor — ${m.anchor.ref}`, m.anchor.theme || '')}
+                </div>
               )}
+                </>);
+              })()}
               {/* THE LORD'S MATRIX (Darrell 2026-08-10) — the other lessons
                   standing on the SAME Scripture, DERIVED from the citations in
                   the lessons themselves so it can never claim a link that is not
@@ -1447,8 +1480,21 @@ function CourseView({
                 if (kin.length === 0) return null;
                 return (
                   <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2">
-                    <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">
-                      The Lord’s Matrix — where else this Word stands
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
+                        The Lord’s Matrix — where else this Word stands
+                      </div>
+                      <ShareButton
+                        label="Share this part"
+                        title="Share where else this Word stands — with a link to this lesson"
+                        className="text-[0.625rem] uppercase tracking-wider px-2.5 min-h-[2.75rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                        payload={() => sectionSharePayload(m, {
+                          label: 'The Lord’s Matrix — where else this Word stands',
+                          text: kin.map((k) => `L${k.week} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
+                          url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
+                          courseTitle: course.meta.title || '',
+                        })}
+                      />
                     </div>
                     <ul className="space-y-1">
                       {kin.map((k) => (

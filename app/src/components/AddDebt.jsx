@@ -239,12 +239,12 @@ function AddDebt({ entities = [], addAccount, addAccounts, existingDebts = [] })
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-white">
                     <tr className="border-b border-[#1A1815]">
-                      <th className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Add</th>
-                      <th className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</th>
-                      <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Owed</th>
-                      <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Rate</th>
-                      <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Pay</th>
-                      <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Limit</th>
+                      <th scope="col" className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Add</th>
+                      <th scope="col" className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</th>
+                      <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Owed</th>
+                      <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Rate</th>
+                      <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Pay</th>
+                      <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Limit</th>
                     </tr>
                   </thead>
                   <tbody>

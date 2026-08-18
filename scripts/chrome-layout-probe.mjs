@@ -282,6 +282,11 @@ try {
           why: why.join(' '),
         };
       });
+      // headerH comes from main's convergent fix (the instrument-blindness
+      // law): when a control is pushed off screen, the header's HEIGHT is
+      // the number that explains why, so the failing run carries it too.
+      const hdr = document.querySelector('header');
+      const headerH = hdr ? Math.round(hdr.getBoundingClientRect().height) : null;
       const reachable = rects.some((x) => !x.why);
       // SLACK — how much room the best on-screen control actually has. A
       // PASS one pixel from the fold is not a pass anyone should trust: this
@@ -303,6 +308,7 @@ try {
         vw,
         vh,
         hatchCount: hatch.length,
+        headerH,
         rects,
         reachable,
         slack,
@@ -315,7 +321,7 @@ try {
     if (!m.hatchCount) fail(`textscale ${v.name}@${width}px: no text-size control rendered — no way out of big text`);
     else if (!m.reachable) {
       const detail = m.rects.map((x) => `${x.label || '?'} [${x.box}] ${x.why}`).join(' | ');
-      fail(`textscale ${v.name}@${width}px: text-size controls exist but none is fully on screen — reader trapped in big text. viewport ${m.vw}x${m.vh}; controls: ${detail}`);
+      fail(`textscale ${v.name}@${width}px: text-size controls exist but none is fully on screen — reader trapped in big text. viewport ${m.vw}x${m.vh}; header ${m.headerH}px tall; controls: ${detail}`);
     }
     // A margin this thin is why the verdict has been a coin-flip. Warn loudly
     // (not a build failure — the reader IS able to escape) so the marginal

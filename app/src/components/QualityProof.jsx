@@ -300,7 +300,7 @@ export default function QualityProof({ defaultSection = 'gates' }) {
               const rows = sortReReviews(all, rrSort.key, rrSort.dir);
               const sum = reReviewSummary(all);
               const Th = ({ k, children, right }) => (
-                <th className={`px-2 py-1 ${right ? 'text-right' : 'text-left'}`}>
+                <th scope="col" className={`px-2 py-1 ${right ? 'text-right' : 'text-left'}`}>
                   <button type="button" onClick={() => toggleRrSort(k)} className="uppercase tracking-wider hover:text-[#B85838]">
                     {children}{rrArrow(k)}
                   </button>

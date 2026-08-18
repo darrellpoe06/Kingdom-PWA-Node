@@ -61,9 +61,15 @@ services:
       - "11434:11434"
     environment:
       - TZ=America/Chicago
-      # Evict the model quickly so the GPU is free for creative/live work between
-      # calls (DR-0012 absolute-priority preemption). Raise for a busier box.
-      - OLLAMA_KEEP_ALIVE=5m
+      # Evict the model IMMEDIATELY so the GPU is free for creative/live work
+      # between calls. DR-0012 §3 is exact: any non-Ollama CUDA process (a
+      # Premiere export, a C4D render, OBS encoding a service) is an
+      # absolute-priority preemption trigger, and the reasoner "frees VRAM
+      # (`OLLAMA_KEEP_ALIVE=0`) within ~1 s". This line read 5m until 2026-08-14
+      # while citing that very rule — 300x the allowed hold, on a box that also
+      # feeds the NovaStar -> wall. Do NOT "raise for a busier box": a busier box
+      # is precisely the one that must yield. gpu-preemption-guard holds this.
+      - OLLAMA_KEEP_ALIVE=0
       - OLLAMA_MAX_LOADED_MODELS=1
     volumes:
       - ${DATA_ROOT:-./data}/ollama:/root/.ollama

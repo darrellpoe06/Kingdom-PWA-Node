@@ -199,6 +199,43 @@ export function courseSharePayload(meta, { url = '', lessonCount = 0, unitPlural
   return { title, text, url: String(url || '') };
 }
 
+// =============================================================================
+// SECTION SHARE — one part of a lesson, as the invitation itself
+// =============================================================================
+// Darrell 2026-08-15, reading L-series on the tablet: "we need a button to copy
+// or share any section as the text... an intro to that lesson for each
+// section... usually that prompts the interest of the two people... a specific
+// idea or way of merging understanding so the Word is clear to them."
+//
+// The whole-lesson share hands someone the door; THIS hands them the sentence
+// that made you think of them. The section's own text travels as the body —
+// specific enough to start the conversation — and the link back to the exact
+// lesson rides under it so the two of them land on the same page.
+
+/**
+ * The full copy text for ONE SECTION: the section named, its lesson named, the
+ * section's text verbatim as rendered, and the link back to the exact lesson.
+ */
+export function sectionShareText(module, { label = '', text = '', url = '' } = {}) {
+  const m = module || {};
+  const head = [line(label), line(m.title) && `from ${line(m.title)}`].filter(Boolean).join(' — ');
+  const out = [head, '', line(text)];
+  if (url) out.push('', `Read the whole lesson: ${url}`);
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * What the share sheet gets for one section. The section text IS the message
+ * body (the invitation), with the course named and the exact-lesson link.
+ */
+export function sectionSharePayload(module, { label = '', text = '', url = '', courseTitle = '' } = {}) {
+  const m = module || {};
+  const title = [line(label) || 'A word worth sharing', line(m.title)].filter(Boolean).join(' — ');
+  const from = line(courseTitle);
+  const body = [line(text), from && `— ${from}, The Love Corner`].filter(Boolean).join('\n');
+  return { title, text: body || title, url: String(url || '') };
+}
+
 /**
  * Offer the share sheet, falling back to the clipboard where there is none
  * (desktop Firefox, most non-secure contexts, older webviews).

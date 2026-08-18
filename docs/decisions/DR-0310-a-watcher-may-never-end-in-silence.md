@@ -1,5 +1,5 @@
 ---
-id: DR-0306
+id: DR-0310
 title: A watcher may never end in silence — unknown is a third state, and it never reads as healthy
 date: 2026-08-15
 status: accepted
@@ -85,7 +85,7 @@ Fourth instance of one pattern in eight days:
 
 - DR-0125 — every safeguard watched the pipeline; none watched the product.
 - DR-0303 — the query pulled every column the table would ever have.
-- DR-0305 — the gate's claim was wide; its reach was one field of thirteen.
+- DR-0309 — the gate's claim was wide; its reach was one field of thirteen.
 - Here — the watcher could not distinguish "nothing to report" from "cannot see."
 
 Every time: an instrument trusted for a property it never measured, and nothing

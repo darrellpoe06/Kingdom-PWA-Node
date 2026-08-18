@@ -3891,7 +3891,7 @@ ${THEME_CSS}
                 <div className="max-h-64 overflow-y-auto border border-[#E8E4DC] bg-white mb-3">
                   <table className="w-full text-xs">
                     <thead className="bg-[#FAF8F4] sticky top-0">
-                      <tr><th className="text-left p-2">Date</th><th className="text-left p-2">Description</th><th className="text-right p-2">Amount</th></tr>
+                      <tr><th scope="col" className="text-left p-2">Date</th><th scope="col" className="text-left p-2">Description</th><th scope="col" className="text-right p-2">Amount</th></tr>
                     </thead>
                     <tbody>
                       {uploadResult.transactions.slice(0, 50).map((t, i) => (

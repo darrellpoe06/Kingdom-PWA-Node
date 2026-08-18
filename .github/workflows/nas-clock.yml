@@ -1,0 +1,165 @@
+# nas-clock — give the NAS loop fleet a clock, over the remote-hands channel.
+#
+# Darrell 2026-08-14: "fix the clock and the ytzero failure."
+#
+# WHY THIS EXISTS. nas-health run 31820238770 measured the fleet and found no
+# clock anywhere: no nas-loops entry in root's crontab, dpoe's crontab, or
+# /etc/crontab. The event log ends 2026-08-11T21:19:36Z and the newest
+# call-count file is calls-services-sync-2026-08-11.txt. The recorded run times
+# (01:37, 02:03, 13:15, 20:58, 21:17) are not a 15-minute schedule — they are
+# occasional hand-firing, then three days of nothing.
+#
+# The consequence was bigger than a stalled transcript drain: services-sync
+# pulls the mirror BEFORE it installs, so with no clock the NAS checkout froze
+# at dffb6546 (2026-08-11 21:14). Every merge to main since deployed nothing to
+# the NAS while CI stayed green. "Merge = deploy" quietly stopped being true.
+#
+# WHY NOT services.json: circular. services-sync is the thing with no clock; it
+# cannot install its own clock. This is the DR-0108 answer — the remote-hands
+# channel drives it, not Darrell (the same tailnet-join + SSH path nas-health
+# has now proven three times today).
+#
+# THIS ONE MUTATES, so unlike nas-health it is dispatch-only and never on a
+# timer. It installs a crontab block it owns and leaves every other line alone,
+# and it re-runs safely forever.
+name: nas-clock
+
+on:
+  workflow_dispatch:
+    inputs:
+      also_run_once:
+        description: 'Also fire services-sync once immediately (proves the runner works without waiting 15 minutes)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-clock
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      # FRESHEN THE MIRROR FIRST. The checkout is three days stale, and the
+      # installer we are about to run lives in the repo — without this pull the
+      # NAS would run the OLD install-clock.sh, which does not exist there yet.
+      - name: Pull the mirror, then install the clock
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          echo "=== mirror BEFORE ==="
+          git -C "$REPO" log -1 --format='%h %ci %s'
+          # THE MIRROR IS A MIRROR (2026-08-15, run 31865156478): tracked-file
+          # drift appeared in the working tree (living-lessons-class.js modified,
+          # a test file untracked) and blocked every --ff-only pull, including
+          # this workflow's. Local edits on the mirror are corruption, not state
+          # -- print what is being discarded, discard TRACKED drift only
+          # (untracked runtime state like church-media-golive/state survives),
+          # then pull.
+          echo "=== drift being discarded (tracked files only) ==="
+          git -C "$REPO" status --porcelain | head -20
+          git -C "$REPO" checkout -- . 2>&1 || true
+          # Untracked collisions block the pull too (run 31865492555: the L78
+          # test file, untracked on the box AND created by the incoming merge —
+          # git refuses to overwrite it, and checkout -- . never touches
+          # untracked files). Clean untracked SOURCE drift; the -e excludes keep
+          # every known runtime-state dir untouched. Origin of the drift: two
+          # concurrent pulls raced (the cron's root pull at :15:01, the bridge
+          # at :15:12) — the loop lock protects the loop, not SSH pulls.
+          git -C "$REPO" clean -fd \
+            -e infra/church-media-golive/state \
+            -e infra/nas-loops/events \
+            -e infra/nas-loops/state \
+            -e infra/nas-sme-pipeline/out \
+            -e infra/gpu-scheduler/state 2>&1 | head -10
+          git -C "$REPO" pull --ff-only 2>&1 || echo "pull failed (offline or diverged) — continuing with what is here"
+          echo "=== mirror AFTER ==="
+          git -C "$REPO" log -1 --format='%h %ci %s'
+          echo "=== install the clock ==="
+          sh "$REPO/infra/nas-loops/install-clock.sh"
+          EOS
+
+      # PROVE THE CLOCK WORKS rather than trusting the crontab entry — a cron
+      # line that cannot find node fails silently every 15 minutes, which looks
+      # exactly like having no clock at all. Firing once now also surfaces the
+      # ytzero failure REASON, which the loop has never recorded.
+      - name: Fire services-sync once (proof, not a claim)
+        if: steps.gate.outputs.go == 'true' && inputs.also_run_once
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          set +e
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          NODE=$(command -v node || echo /usr/local/bin/node)
+          echo "=== firing services-sync once ==="
+          # Fire AS ROOT when the narrow sudo grant covers it: the clocked
+          # cycles run as root, so the day's state files (call caps, locks)
+          # are root-owned 644 -- a dpoe-fired one-shot dies on EACCES at the
+          # call counter (run 31953897257) without ever reaching the loop.
+          # Same owner for clock and hand means one owner for the state.
+          if sudo -n true 2>/dev/null; then
+            sudo -n "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
+          else
+            "$NODE" "$REPO/infra/nas-loops/run.mjs" --loop=services-sync 2>&1 | tail -60
+          fi
+          echo "=== the crontab now ==="
+          # Run 31868259272 printed "NO run.mjs ENTRY — the clock did not take"
+          # while the root cycles were demonstrably firing every 15 minutes:
+          # this check read only dpoe's personal crontab, but install-clock.sh
+          # writes /etc/crontab (DSM has no per-user crontab binary). A witness
+          # that contradicts measured reality is worse than none — look where
+          # the clock actually lives, with each location named.
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          FOUND=""
+          $SUDO cat /etc/crontab 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ /etc/crontab (the installer's target)"
+          crontab -l 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ dpoe crontab"
+          $SUDO crontab -l 2>/dev/null | grep -n "run.mjs" && FOUND=1 && echo "^ root crontab"
+          [ -n "$FOUND" ] || echo "NO run.mjs ENTRY in /etc/crontab, dpoe, or root crontab — the clock did not take"
+          echo "=== trickle stamp (should be fresh if the drain ran) ==="
+          ls -la "$REPO/infra/nas-sme-pipeline/out/.transcript-trickle.last" 2>&1 | tail -1
+          EOS
+          echo "one-shot exit: $?  (a non-zero services-sync is EXPECTED while ytzero is unfixed on the mirror; the point is the REASON is now printed above)"

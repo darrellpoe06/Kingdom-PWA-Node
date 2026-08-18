@@ -11,7 +11,7 @@
 // path that says "I could not observe."
 //
 // This is the same shape as DR-0303 (an instrument trusted for a property it
-// never measured), DR-0305 (a gate whose claim was wider than its reach), and
+// never measured), DR-0309 (a gate whose claim was wider than its reach), and
 // DR-0125 (every safeguard watched the pipeline; none watched the product).
 // Stated as a rule: A GREEN CHECK MUST MEAN SOMETHING, AND SO MUST A QUIET ONE.
 // Unknown is a THIRD state. It is never allowed to read as healthy (DR-0076).
@@ -182,7 +182,7 @@ function main() {
     console.error(`  ${p.file}:${p.line}\n     missing ${p.missing.join('\n     missing ')}`);
   }
   console.error('\nA watcher that cannot say "I could not observe" reports silence as health.');
-  console.error('Unknown is a third state and never reads as healthy (DR-0076, DR-0125, DR-0306).');
+  console.error('Unknown is a third state and never reads as healthy (DR-0076, DR-0125, DR-0310).');
   return process.exit(1);
 }
 

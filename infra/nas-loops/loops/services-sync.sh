@@ -17,8 +17,29 @@ MANIFEST="$REPO/infra/nas-loops/services.json"
 # mirror pulls -> this loop installs" is only true if THIS loop does the pull.
 # Fail-soft: offline/diverged keeps the current checkout and says so — the
 # cycle still runs what it has (an old-but-real manifest beats a dead run).
-if ! git -C "$REPO" pull --ff-only 2>&1; then
-  echo "services-sync: mirror pull failed (offline or diverged) — running with the existing checkout" >&2
+#
+# 2026-08-15 (run 31871686957): root's pull NEVER advanced the mirror. The
+# checkout is dpoe-owned, so git-as-root aborts with "dubious ownership"
+# before touching anything; the fail-soft branch printed only to the cron log,
+# and every root cycle deployed a stale tree while the nas-clock bridge's
+# dpoe pulls were the only thing moving HEAD (mirror pinned at a33ff92b while
+# main advanced through three merges — including the supabase cure this loop
+# was supposed to be deploying). ONE OWNER for the mirror: when the loop runs
+# as root, pull AS dpoe, so every git object stays dpoe-owned and the bridge
+# and the cron can never fight over ownership again. The failure reason is
+# printed to BOTH channels — a silent stale deploy looks exactly like a
+# healthy one.
+if [ "$(id -u)" = "0" ]; then
+  PULL_CMD='sudo -n -u dpoe git -C "$REPO" pull --ff-only'
+else
+  PULL_CMD='git -C "$REPO" -c safe.directory="$REPO" pull --ff-only'
+fi
+if PULL_OUT=$(eval "$PULL_CMD" 2>&1); then
+  echo "$PULL_OUT" | tail -3
+else
+  echo "services-sync: mirror pull FAILED - deploying the EXISTING (stale) checkout. Reason:"
+  echo "$PULL_OUT" | tail -5
+  echo "services-sync: mirror pull FAILED: $(echo "$PULL_OUT" | tail -2 | tr '\n' ' ')" >&2
 fi
 
 if [ ! -f "$MANIFEST" ]; then
@@ -42,11 +63,38 @@ for svc in doc.get("services", []):
         failed.append(svc.get("name"))
         continue
     print(f"services-sync: installing {svc.get('name')} ...")
-    r = subprocess.run(["sh", path], timeout=480)
+    # CAPTURE THE REASON, NOT JUST THE VERDICT (2026-08-14). Measured: every
+    # recorded services-sync run since 2026-08-04 failed, and the loop event
+    # log preserved only "installing ytzero ..." -- the last line of STDOUT --
+    # while the actual error went to a stderr no one kept. Six identical
+    # failures over a week and the cause was never once recorded, so diagnosing
+    # it meant guessing. A failure that does not say WHY is barely better than
+    # a silent one (DR-0076).
+    try:
+        r = subprocess.run(["sh", path], timeout=480,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = (r.stdout or b"").decode("utf-8", "replace")
+    except subprocess.TimeoutExpired as e:
+        partial = getattr(e, "output", None) or b""
+        out = partial.decode("utf-8", "replace") if isinstance(partial, bytes) else str(partial)
+        print(out, end="" if out.endswith("\n") else "\n")
+        print(f"services-sync: {svc.get('name')} TIMED OUT after 480s", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (timeout 480s)")
+        continue
+    # Always echo the installer's own output so a GOOD run stays as readable as
+    # it was before this change.
+    print(out, end="" if out.endswith("\n") else "\n")
     if r.returncode != 0:
-        failed.append(svc.get("name"))
+        tail = [ln for ln in out.strip().splitlines() if ln.strip()][-3:]
+        why = " | ".join(tail) if tail else "(no output)"
+        print(f"services-sync: {svc.get('name')} exit={r.returncode} :: {why}", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (exit {r.returncode}: {why[:180]})")
 if failed:
-    print(f"services-sync: FAILED: {', '.join(failed)}", file=sys.stderr)
+    print(f"services-sync: FAILED: {'; '.join(failed)}", file=sys.stderr)
+    # ALSO to stdout: the loop runner records the last stdout line in its event
+    # detail, which is how six failures logged the service name and never the
+    # cause. Now the cause rides the channel that is actually kept.
+    print(f"services-sync: FAILED: {'; '.join(failed)}")
     sys.exit(1)
 print("services-sync: all services synced")
 EOF

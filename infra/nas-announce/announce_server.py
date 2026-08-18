@@ -44,7 +44,7 @@
 # FAIL-SOFT BY DESIGN (both sides). The GitHub issue is the RECORD; this is the
 # announcement. A push failure returns ok:true with delivered:false and a
 # reason, so a dead bell never turns a passing probe into a failing one — and
-# never hides WHY it was dead either (DR-0306: unknown is a third state, and it
+# never hides WHY it was dead either (DR-0310: unknown is a third state, and it
 # is reported, not swallowed).
 #
 # MODES:
