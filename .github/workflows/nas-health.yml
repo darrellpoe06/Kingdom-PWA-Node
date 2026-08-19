@@ -278,7 +278,8 @@ jobs:
           ${SUDO} docker inspect -f 'kong started: {{.State.StartedAt}}' supabase-kong 2>/dev/null || echo "kong inspect unavailable"
           echo "=== sovereign auth forensics (2026-08-19: 'Invalid login credentials' + 'Database error saving new user') ==="
           # COUNTS ONLY -- no email or phone ever prints to this public log.
-          PSQLA() { ${SUDO} docker exec supabase-db psql -U supabase_admin -d postgres -t -A -c "$1" 2>&1; }
+          PWA=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          PSQLA() { ${SUDO} docker exec -e PGPASSWORD="$PWA" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>&1; }
           echo "auth.users total: $(PSQLA 'SELECT count(*) FROM auth.users;')"
           echo "phone-pin users (@phone.poetech.us): $(PSQLA "SELECT count(*) FROM auth.users WHERE email LIKE '%@phone.poetech.us';")"
           echo "darrell gmail user present: $(PSQLA "SELECT count(*) FROM auth.users WHERE email='darrellpoe06@gmail.com';")"
