@@ -41,7 +41,10 @@ BEGIN
   END IF;
 END $$;
 
--- The 0125 viewer deny-overlay only covers tables that exist when it runs;
--- re-run it so the 'viewer' role stays read-only on THIS table too (DR-0241 —
--- the tenancy gate enforces exactly this line on every instance-scoped table).
+-- The 0125 viewer deny-overlay and the 0130 assistant scope-overlay only cover
+-- tables that exist when they run; re-run BOTH so the 'viewer' role stays
+-- read-only on THIS table and an assistant cannot read outside its office
+-- (DR-0241 — the tenancy/assistant gates enforce exactly these lines on every
+-- instance-scoped table).
 SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();
