@@ -95,6 +95,21 @@ export function authErrorMessage(error, fallback = 'That didn’t work — pleas
   const detail = rawText(error);
   if (!error) return { text: fallback, detail: '', serviceFailure: false };
 
+  // Email sends need SMTP, which the sovereign stack deliberately runs
+  // WITHOUT (DR-0307 §3: phone+PIN and password lead; magic links are a later
+  // optional add) — GoTrue answers a mail-send attempt with a 5xx whose text
+  // names the send. That is NOT "unreachable": the service answered, and the
+  // reader has a working door one tap away. Say so, plainly (2026-08-19: the
+  // first post-cutover sign-in walked into this and read "we can't reach our
+  // service" — true-sounding, wrong, and it hid the working path).
+  if (/(send|sending).{0,20}(magic ?link|email|confirmation|recovery|invite)|smtp/i.test(detail)) {
+    return {
+      text: 'Email sign-in isn’t set up on our system yet. Please use your phone number + PIN instead — the button below switches to it.',
+      detail,
+      serviceFailure: false,
+    };
+  }
+
   if (isServiceFailure(error)) {
     // Say the true thing, and say whose problem it is. No blame on the reader,
     // no instruction they cannot follow, no invented recovery time — we do not

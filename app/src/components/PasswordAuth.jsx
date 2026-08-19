@@ -36,10 +36,20 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   const brandEyebrow = (brand && (brand.eyebrow || brand.name)) || 'PoeTech';
   const brandLogo = (brand && brand.logo) || null;
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
-  const [usePassword, setUsePassword] = useState(false); // the LINK is the default door
-  const [usePhonePin, setUsePhonePin] = useState(false); // phone + PIN, no email (DR-0172)
+  const [usePassword, setUsePassword] = useState(false);
+  // Phone + PIN is the DEFAULT door (DR-0307 §3: on the sovereign stack SMTP
+  // is deliberately out of auth's critical path — phone+PIN and password lead,
+  // magic links are a later optional add). The email link led here until
+  // 2026-08-19, when the first post-cutover sign-in walked straight into the
+  // one path the backend cannot serve yet and read "we can't reach our
+  // service" — the door must lead with what works.
+  const [usePhonePin, setUsePhonePin] = useState(true); // phone + PIN, no email (DR-0172)
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', phone: '', pin: '', pinConfirm: '' });
   const [error, setError] = useState('');
+  // The backend's raw words, rendered SMALL under the friendly sentence so a
+  // screenshot diagnoses itself (2026-08-19: three historical incidents share
+  // one friendly message; the differentiating detail lived only in the console).
+  const [errorDetail, setErrorDetail] = useState('');
   const [status, setStatus] = useState('idle'); // idle | working | done | linksent
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -50,7 +60,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   // user_metadata; email is added later, never required to start.
   const submitPhonePin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); setErrorDetail('');
     const v = validatePhonePin(form.phone, form.pin);
     if (v.error) { setError(v.error.message); return; }
     if (isSignup) {
@@ -63,7 +73,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       : await signInWithPhonePin(form.phone, form.pin);
     if (res.error) {
       setStatus('idle');
-      setError(authErrorMessage(res.error, 'That didn’t work — please check your phone number and PIN.').text);
+      const m1 = authErrorMessage(res.error, 'That didn’t work — please check your phone number and PIN.');
+      setError(m1.text); setErrorDetail(m1.detail);
       return;
     }
     const hasSession = !!res.data?.session;
@@ -74,7 +85,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
 
   const submit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); setErrorDetail('');
     // Shared email + password rules (8-char min) live in validateCredentials.
     const v = validateCredentials(form.email, form.password);
     if (v.error) { setError(v.error.message); return; }
@@ -88,7 +99,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       : await signInWithPassword(form.email, form.password);
     if (res.error) {
       setStatus('idle');
-      setError(authErrorMessage(res.error).text);
+      const m2 = authErrorMessage(res.error);
+      setError(m2.text); setErrorDetail(m2.detail);
       return;
     }
     // A session here means the app's onAuthChange will sign them in. If email
@@ -101,12 +113,12 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   };
 
   const tryLink = async () => {
-    setError('');
+    setError(''); setErrorDetail('');
     if (!form.email.trim() || !form.email.includes('@')) { setError('Please enter your email address.'); return; }
     if (isSignup && !usePassword && !form.name.trim()) { setError('Please add your name.'); return; }
     setStatus('working');
     const { error } = await sendRoyaltyLink(form.email, { name: form.name });
-    if (error) { setStatus('idle'); setError(authErrorMessage(error, 'Could not send the sign-in link.').text); return; }
+    if (error) { setStatus('idle'); const m3 = authErrorMessage(error, 'Could not send the sign-in link.'); setError(m3.text); setErrorDetail(m3.detail); return; }
     setStatus('linksent');
   };
 
@@ -174,6 +186,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
             </div>
           )}
           {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
+          {error && errorDetail && errorDetail !== error && <p className="text-[0.625rem] text-[#5A5751] mb-2 break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{errorDetail}</p>}
           <button type="submit" disabled={status === 'working'} className="w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
             {status === 'working' ? 'One moment…' : (isSignup ? 'Create profile & enter →' : 'Sign in →')}
           </button>
@@ -221,6 +234,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
             <input id="pa-email" type="email" value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" />
           </div>
           {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
+          {error && errorDetail && errorDetail !== error && <p className="text-[0.625rem] text-[#5A5751] mb-2 break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{errorDetail}</p>}
           <button type="submit" disabled={status === 'working'} className="w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
             {status === 'working' ? 'One moment…' : 'Email me my sign-in link →'}
           </button>
@@ -288,6 +302,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         )}
 
         {error && <p className="text-xs text-[#7A1F1F] mb-2" role="alert" aria-live="assertive">{error}</p>}
+          {error && errorDetail && errorDetail !== error && <p className="text-[0.625rem] text-[#5A5751] mb-2 break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{errorDetail}</p>}
 
         <button type="submit" disabled={status === 'working'} className="w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
           {status === 'working' ? 'One moment…' : (isSignup ? 'Create profile & enter →' : 'Sign in →')}

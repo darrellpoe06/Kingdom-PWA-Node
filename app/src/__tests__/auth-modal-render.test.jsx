@@ -64,10 +64,11 @@ describe('AuthModal — the quiet in-app sign-in dialog', () => {
     const text = document.body.textContent;
     expect(text).toMatch(/Sign in or create your profile/i);
     expect(text).toMatch(/Continue with Google/i);
-    expect(text).toMatch(/Email/i);
-    expect(text).toMatch(/Password/i);
-    // The Royalty Link no-lockout fallback rides along inside PasswordAuth.
-    expect(text).toMatch(/sign-in link/i);
+    // Phone+PIN leads since 2026-08-19 (DR-0307 §3: the sovereign stack has
+    // no SMTP, so the email link cannot be the first door). The email path
+    // stays one tap away — no lockout.
+    expect(text).toMatch(/PIN/i);
+    expect(text).toMatch(/Use email instead/i);
   });
 
   it('focus lands on the primary action inside the dialog (not loose on the page)', async () => {

@@ -25,32 +25,33 @@ afterEach(() => { if (root) act(() => root.unmount()); if (container) container.
 
 const btn = (re) => [...container.querySelectorAll('button')].find((b) => re.test(b.textContent));
 
-describe('phone+PIN is a prominent, findable way in (no email needed)', () => {
-  it('the first screen offers phone+PIN as a real button, not fine print', async () => {
+describe('phone+PIN LEADS — the first screen IS the no-email door (DR-0307 §3)', () => {
+  // 2026-08-19, first post-cutover sign-in: the email link led, and on the
+  // sovereign stack (SMTP deliberately absent) it walked straight into "we
+  // can't reach our service." The door now leads with what works: phone+PIN
+  // is the FIRST screen, email is the toggle. Proven-to-catch: if the email
+  // link ever leads again, this fails.
+  it('the first screen asks for phone + PIN + name — and NEVER an email', async () => {
     await mount({ mode: 'signup' });
-    const phoneBtn = btn(/no email\?.*phone/i);
-    expect(phoneBtn, 'the "No email? phone + PIN" option is missing from the first screen').toBeTruthy();
-    // a real tap target, bordered — not a muted inline text link
-    expect(phoneBtn.className).toMatch(/min-h-\[48px\]/);
-    expect(phoneBtn.className).toMatch(/border-2/);
-  });
-
-  it('tapping it opens a door that needs phone + PIN + name — and NEVER an email', async () => {
-    await mount({ mode: 'signup' });
-    await act(async () => { btn(/no email\?.*phone/i).click(); });
     const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
     expect(labels).toContain('Your name');
     expect(labels).toContain('Cell phone number');
     expect(labels.some((l) => /6-digit PIN/i.test(l))).toBe(true);
-    // no email field anywhere on the phone path
+    // no email field anywhere on the first screen
     expect([...container.querySelectorAll('input')].some((i) => i.type === 'email')).toBe(false);
     expect(container.textContent.toLowerCase()).toContain('no email needed');
   });
 
-  it('there is no lockout — the phone door links back to email', async () => {
+  it('there is no lockout — the phone door links to email, and email links back', async () => {
     await mount({ mode: 'signup' });
-    await act(async () => { btn(/no email\?.*phone/i).click(); });
     expect(btn(/use email instead/i)).toBeTruthy();
+    await act(async () => { btn(/use email instead/i).click(); });
+    // the email door renders, and the way back to phone+PIN is a real button
+    expect([...container.querySelectorAll('input')].some((i) => i.type === 'email')).toBe(true);
+    const phoneBtn = btn(/no email\?.*phone/i);
+    expect(phoneBtn, 'the way back to phone+PIN is missing from the email door').toBeTruthy();
+    expect(phoneBtn.className).toMatch(/min-h-\[48px\]/);
+    expect(phoneBtn.className).toMatch(/border-2/);
   });
 });
 

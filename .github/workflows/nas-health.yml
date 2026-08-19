@@ -63,13 +63,22 @@ jobs:
             -d '{"email":"probe@example.invalid","password":"probe-not-real"}' \
             "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN POST /sb/auth/v1/token HTTP $C :: $(head -c 200 "$BODY")"
+          # Deep path on purpose: the /sb proxy re-joins segments and drops a
+          # trailing slash, and kong's /sb/rest/v1/ PREFIX needs the slash -- a
+          # bare /sb/rest/v1/ probe 404s as an artifact (measured 2026-08-19)
+          # while every real app call, which goes deeper, matches fine.
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 \
-            "https://poetech.us/sb/rest/v1/" 2>/dev/null) || C="000"
-          echo "OUTSIDE-IN GET /sb/rest/v1/ HTTP $C :: $(head -c 200 "$BODY")"
+            "https://poetech.us/sb/rest/v1/rpc/probe_nonexistent" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN GET /sb/rest/v1/rpc/... HTTP $C :: $(head -c 200 "$BODY")"
+          # The app's REAL create-profile shape (phone-pin synthetic email,
+          # DR-0172) with a PROBE phone -- captures the true signup verdict a
+          # reader hit ("can't reach our service", 2026-08-19). A 200 creates
+          # one deletable probe user; any 4xx/5xx prints GoTrue's own reason.
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
-            -H 'Content-Type: application/json' -d '{}' \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"090909","data":{"name":"Probe User","phone":"+15555550100","login_method":"phone-pin"}}' \
             "https://poetech.us/sb/auth/v1/signup" 2>/dev/null) || C="000"
-          echo "OUTSIDE-IN POST /sb/auth/v1/signup HTTP $C :: $(head -c 200 "$BODY")"
+          echo "OUTSIDE-IN POST /sb/auth/v1/signup (app shape) HTTP $C :: $(head -c 300 "$BODY")"
           # WHICH key does the LIVE app carry? The bundle inlines the anon key
           # (public-by-design); its decoded payload names it -- a hosted key
           # carries a "ref" claim, the sovereign-minted one is iss-only with
