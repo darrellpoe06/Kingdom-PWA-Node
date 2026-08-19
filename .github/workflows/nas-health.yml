@@ -67,6 +67,9 @@ jobs:
           ASSETS=$(printf '%s' "$HTML" | grep -oE 'assets/[A-Za-z0-9_.-]+\.js' | sort -u | head -12)
           echo "LIVE-BUNDLE assets found: $(printf '%s' "$ASSETS" | tr '\n' ' ')"
           if [ -z "$ASSETS" ]; then echo "LIVE-BUNDLE: no assets in html ($(printf '%s' "$HTML" | wc -c) bytes)"; fi
+          # The key may be a legacy JWT (eyJ...) OR the new sb_publishable_
+          # format; the inlined *.supabase.co / poetech.us URL names the URL
+          # half directly. Report all three signatures per chunk.
           FOUND=0
           for A in $ASSETS; do
             OUT=$(curl -sL -A "$UA" --max-time 30 "https://poetech.us/poetech-app/$A" | python3 -c '
@@ -75,10 +78,15 @@ jobs:
           for tok in dict.fromkeys(re.findall(r"eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,}", js)):
               p = tok.split(".")[1]
               print("LIVE-BUNDLE KEY PAYLOAD:", base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)).decode())
+          for k in dict.fromkeys(re.findall(r"sb_(?:publishable|secret)_[A-Za-z0-9_-]{8,}", js)):
+              print("LIVE-BUNDLE KEY (new format):", k[:24] + "...")
+          for u in dict.fromkeys(re.findall(r"https://[a-z0-9-]+\.supabase\.co", js)):
+              print("LIVE-BUNDLE SUPABASE URL:", u)
+          if re.search(r"poetech\.us/sb", js): print("LIVE-BUNDLE SUPABASE URL: poetech.us/sb (sovereign transport)")
           ' 2>&1) || OUT="LIVE-BUNDLE decode failed for $A"
             if [ -n "$OUT" ]; then echo "[$A] $OUT"; FOUND=1; fi
           done
-          [ "$FOUND" = 1 ] || echo "LIVE-BUNDLE: no inlined JWT in any referenced chunk"
+          [ "$FOUND" = 1 ] || echo "LIVE-BUNDLE: no key or supabase URL signature in any referenced chunk"
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:
