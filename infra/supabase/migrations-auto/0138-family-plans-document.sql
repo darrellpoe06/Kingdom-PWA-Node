@@ -40,3 +40,8 @@ BEGIN
     CREATE POLICY family_plans_member_delete ON public.family_plans FOR DELETE USING (user_in_instance(instance_id));
   END IF;
 END $$;
+
+-- The 0125 viewer deny-overlay only covers tables that exist when it runs;
+-- re-run it so the 'viewer' role stays read-only on THIS table too (DR-0241 —
+-- the tenancy gate enforces exactly this line on every instance-scoped table).
+SELECT public.apply_viewer_readonly_overlay();
