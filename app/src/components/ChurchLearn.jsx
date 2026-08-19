@@ -1375,6 +1375,89 @@ function CourseView({
         {(focusModule ? [focusModule] : schedule).map((m) => {
           const done = !!progress[m.id];
           const tutorOpen = openTutorId === m.id;
+          // PRIMARY ACTIONS AT THE HEAD (Darrell 2026-08-18: "The lesson
+          // options are at the bottom of the lessons... make it primary so it
+          // is at the beginning users are asked these questions... start...
+          // present... and done"). Defined ONCE, rendered twice: at the top of
+          // the card where the reader decides, and again after the content so
+          // a finished reader never scrolls back up to mark done.
+          const actionsRow = (
+            <>
+              {/* Actions: start the week (tutor + launch), and mark done */}
+              <div className="flex flex-wrap gap-2 mt-3 items-center">
+                {/* TAKE IT WITH YOU (Darrell 2026-08-10: "copy paste options for
+                    each section... links to the exact lessons"). The lesson's
+                    own text — Word-first big idea, the body at the reader's
+                    level, its anchor, and a link back to THIS lesson — and the
+                    link alone, for a text message. */}
+                {/* SHARE FIRST (Darrell 2026-08-10: "can we just share right
+                    from the lessons? not have to copy a link... users can but
+                    not necessary... share and it will open whatever they
+                    usually do"). One tap into their own share sheet; the copy
+                    controls stay for anyone who wants the raw text or link. */}
+                <ShareButton
+                  label="Share"
+                  title="Share this lesson using your usual apps"
+                  payload={() => lessonSharePayload(m, {
+                    url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
+                    courseTitle: course.meta.title || '',
+                  })}
+                />
+                <CopyButton
+                  label="Copy lesson"
+                  copiedLabel="Lesson copied ✓"
+                  title="Copy this lesson's text, with its anchor and a link back to it"
+                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                />
+                <CopyButton
+                  label="Copy link"
+                  copiedLabel="Link copied ✓"
+                  title="Copy a link that opens exactly this lesson"
+                  text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
+                />
+                <button
+                  type="button"
+                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
+                  aria-expanded={tutorOpen}
+                  aria-controls={`tutor-panel-${m.id}`}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                >
+                  {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
+                </button>
+                {/* Present THIS lesson — the presenter opens on the chosen lesson,
+                    timed to itself, at the pace already set. Governor-only (same gate
+                    as the whole-series overview). Darrell 2026-07-16. */}
+                {isGovernor && (
+                  <button
+                    type="button"
+                    onClick={() => setPresentLesson(m)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    ▶ Present this {U.noun}
+                  </button>
+                )}
+                {m.launch && onLaunch && !tutorOpen && (
+                  <button
+                    type="button"
+                    onClick={() => onLaunch(m.launch)}
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                  >
+                    {launchLabel(m.launch)} →
+                  </button>
+                )}
+                {toggleModule && (
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(m.id)}
+                    aria-pressed={done}
+                    className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                  >
+                    {done ? '✓ Done' : `Mark this ${U.noun} done`}
+                  </button>
+                )}
+              </div>
+            </>
+          );
           return (
             <li key={m.id} id={`learn-lesson-${m.id}`} className="border border-[#E8E4DC] p-4 scroll-mt-28">
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -1387,6 +1470,7 @@ function CourseView({
                   </span>
                 )}
               </div>
+              {actionsRow}
               {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
                   "a lesson ... that connects the others ... on their respective
                   timelines"). Only Living Lessons are anchored on the spine, so this
@@ -1541,79 +1625,7 @@ function CourseView({
                   no `issue`, so this is inert for them. */}
               {m.issue && <DiscernmentStages issue={m.issue} />}
 
-              {/* Actions: start the week (tutor + launch), and mark done */}
-              <div className="flex flex-wrap gap-2 mt-3 items-center">
-                {/* TAKE IT WITH YOU (Darrell 2026-08-10: "copy paste options for
-                    each section... links to the exact lessons"). The lesson's
-                    own text — Word-first big idea, the body at the reader's
-                    level, its anchor, and a link back to THIS lesson — and the
-                    link alone, for a text message. */}
-                {/* SHARE FIRST (Darrell 2026-08-10: "can we just share right
-                    from the lessons? not have to copy a link... users can but
-                    not necessary... share and it will open whatever they
-                    usually do"). One tap into their own share sheet; the copy
-                    controls stay for anyone who wants the raw text or link. */}
-                <ShareButton
-                  label="Share"
-                  title="Share this lesson using your usual apps"
-                  payload={() => lessonSharePayload(m, {
-                    url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
-                    courseTitle: course.meta.title || '',
-                  })}
-                />
-                <CopyButton
-                  label="Copy lesson"
-                  copiedLabel="Lesson copied ✓"
-                  title="Copy this lesson's text, with its anchor and a link back to it"
-                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
-                />
-                <CopyButton
-                  label="Copy link"
-                  copiedLabel="Link copied ✓"
-                  title="Copy a link that opens exactly this lesson"
-                  text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
-                />
-                <button
-                  type="button"
-                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
-                  aria-expanded={tutorOpen}
-                  aria-controls={`tutor-panel-${m.id}`}
-                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
-                >
-                  {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
-                </button>
-                {/* Present THIS lesson — the presenter opens on the chosen lesson,
-                    timed to itself, at the pace already set. Governor-only (same gate
-                    as the whole-series overview). Darrell 2026-07-16. */}
-                {isGovernor && (
-                  <button
-                    type="button"
-                    onClick={() => setPresentLesson(m)}
-                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                  >
-                    ▶ Present this {U.noun}
-                  </button>
-                )}
-                {m.launch && onLaunch && !tutorOpen && (
-                  <button
-                    type="button"
-                    onClick={() => onLaunch(m.launch)}
-                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                  >
-                    {launchLabel(m.launch)} →
-                  </button>
-                )}
-                {toggleModule && (
-                  <button
-                    type="button"
-                    onClick={() => toggleModule(m.id)}
-                    aria-pressed={done}
-                    className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${done ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
-                  >
-                    {done ? '✓ Done' : `Mark this ${U.noun} done`}
-                  </button>
-                )}
-              </div>
+              {actionsRow}
 
               {/* The solo tutor for this week */}
               {tutorOpen && (
