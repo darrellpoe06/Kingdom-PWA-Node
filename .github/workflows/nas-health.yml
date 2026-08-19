@@ -287,6 +287,8 @@ jobs:
           echo "users with EMPTY password hash: $(PSQLA "SELECT count(*) FROM auth.users WHERE encrypted_password IS NULL OR encrypted_password='';")"
           echo "identities total: $(PSQLA 'SELECT count(*) FROM auth.identities;')"
           echo "users with NO identity row (GoTrue may refuse them): $(PSQLA 'SELECT count(*) FROM auth.users u WHERE NOT EXISTS (SELECT 1 FROM auth.identities i WHERE i.user_id=u.id);')"
+          echo "hash fingerprint for the 5636502416 phone-pin user (md5 OF the bcrypt hash -- hosted prints 5ca6e40523d87f15b30f358b68114d04):"
+          PSQLA "SELECT md5(encrypted_password), email_confirmed_at IS NOT NULL, banned_until, deleted_at FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';"
           echo "-- triggers on auth.users (a failing one breaks every INSERT):"
           PSQLA "SELECT tgname FROM pg_trigger WHERE tgrelid='auth.users'::regclass AND NOT tgisinternal;"
           echo "-- auth container's own words (emails masked):"
