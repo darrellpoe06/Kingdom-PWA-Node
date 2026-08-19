@@ -187,6 +187,12 @@ jobs:
           else
             echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
           fi
+          echo "=== triggers by schema (naming the +1 the parity comparator flagged) ==="
+          if [ -n "$SUPA_PW" ]; then
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT n.nspname||' schema: '||count(*)||' triggers' FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE NOT t.tgisinternal GROUP BY n.nspname ORDER BY 1;" 2>&1 | tail -8
+          fi
           echo "=== /sb mirror routes: does kong answer on the CUTOVER path? ==="
           curl -s -o /dev/null -w '/sb/auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/auth/v1/health 2>&1 || echo "/sb probe unreachable"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
