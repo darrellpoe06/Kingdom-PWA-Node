@@ -63,9 +63,13 @@ jobs:
             -d '{"email":"probe@example.invalid","password":"probe-not-real"}' \
             "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN POST /sb/auth/v1/token HTTP $C :: $(head -c 200 "$BODY")"
+          # Deep path on purpose: the /sb proxy re-joins segments and drops a
+          # trailing slash, and kong's /sb/rest/v1/ PREFIX needs the slash -- a
+          # bare /sb/rest/v1/ probe 404s as an artifact (measured 2026-08-19)
+          # while every real app call, which goes deeper, matches fine.
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 \
-            "https://poetech.us/sb/rest/v1/" 2>/dev/null) || C="000"
-          echo "OUTSIDE-IN GET /sb/rest/v1/ HTTP $C :: $(head -c 200 "$BODY")"
+            "https://poetech.us/sb/rest/v1/rpc/probe_nonexistent" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN GET /sb/rest/v1/rpc/... HTTP $C :: $(head -c 200 "$BODY")"
           # The app's REAL create-profile shape (phone-pin synthetic email,
           # DR-0172) with a PROBE phone -- captures the true signup verdict a
           # reader hit ("can't reach our service", 2026-08-19). A 200 creates
