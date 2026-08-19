@@ -102,10 +102,22 @@ function FamilyPlan() {
     );
   }
   if (!state.plan) {
+    // Every instance gets this surface (Darrell 2026-08-19: "when other users
+    // use their instances they will see it"); RLS means each family only ever
+    // sees its own plan. An empty tab INVITES rather than shrugs: it says what
+    // a plan is and names the honest path to getting one — assistant-ingested
+    // today, in-app upload is the tracked opportunity.
     return (
       <Section label="Family plan">
+        <h2 className="text-lg" style={{ ...serif, fontWeight: 600 }}>No plan has been published for this family yet.</h2>
+        <p className="text-sm leading-relaxed" style={serif}>
+          This is where your family's written financial plan lives — the strategy in your own words first,
+          then every worksheet behind it: debts, monthly budget, cash plan, payoff checkpoints, and the bill calendar.
+          Only members of your family can see it.
+        </p>
         <p className="text-xs text-[#5A5751]" style={serif}>
-          No plan has been published for this family yet. When one is added it appears here — the written strategy first, then every worksheet behind it.
+          To get yours here: share your budget spreadsheet or written plan with the family assistant and ask for it
+          to be added to the Plan tab — it will appear for everyone in your family, on every device.
         </p>
       </Section>
     );

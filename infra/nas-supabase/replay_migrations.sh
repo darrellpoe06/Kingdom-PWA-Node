@@ -124,7 +124,14 @@ SQL
 # role=replica during restore: rows referencing auth.users load before the
 # account copy lands; hosted's own FK validity guarantees integrity once
 # cutover_sync brings every user across.
-MARKER="hosted-baseline.sql"
+# BASELINE-REFRESH (DR-0309): the committed nonce file joins the marker name,
+# so bumping the nonce in the repo makes the ledger "forget" the baseline and
+# the whole dump flow re-runs next cycle — RESET, fresh hosted dump (schema +
+# data as of now), accounts-first copy, re-ledger. This is how hosted data
+# born AFTER the last dump (e.g. the family_plans plan row, 2026-08-19) rides
+# to the sovereign box BEFORE the repoint, through the lane, no hands on the NAS.
+REFRESH_NONCE=$(cat "$REPO/infra/nas-supabase/BASELINE-REFRESH" 2>/dev/null | tr -d '[:space:]')
+MARKER="hosted-baseline.sql${REFRESH_NONCE:+@$REFRESH_NONCE}"
 AGENT_ENV="/volume1/docker/poetech/agent.env"
 CA_SRC="$REPO/infra/nas-agent/supabase-prod-ca-2021.crt"
 IN_LEDGER=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='$MARKER';" 2>/dev/null | tr -d ' ')
