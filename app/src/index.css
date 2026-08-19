@@ -75,6 +75,24 @@ html[data-text-size='bigprint'] .ts-safe-sticky {
   overflow-x: clip;
 }
 
+/* .ts-escape-hatch — the comfort-controls row (text size, voice, theme) pins to
+   the BOTTOM edge of the scrolling .ts-safe-sticky header at big sizes, so the
+   escape hatch is on screen WITHOUT scrolling no matter how tall the header
+   chrome wraps. Born 2026-08-19: at 360px Big Print the header reached 740px
+   (the whole viewport) and the controls sat 27px below the fold — "reader
+   trapped in big text", caught deterministically by chrome-layout-probe's
+   textscale pass on church/library. Reachable-by-scroll is not the contract;
+   VISIBLE is. The row carries bg-[#FAF8F4] so every theme's existing override
+   recolors it with the header. No-op at Normal/Large (rule scoped like the
+   sticky cap above). */
+html[data-text-size='larger'] .ts-safe-sticky .ts-escape-hatch,
+html[data-text-size='largest'] .ts-safe-sticky .ts-escape-hatch,
+html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
 /* ===========================================================================
    Tab strips scroll horizontally — never overflow the page (Darrell 2026-06-18)
    ===========================================================================
