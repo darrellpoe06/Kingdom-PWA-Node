@@ -93,6 +93,7 @@ export const SURFACES = [
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
   { id: 'cart',  label: 'Subscriptions', nav: 'books', view: 'books', sub: 'cart',  load: pick(() => import('./components/Cart.jsx'), 'Cart') },
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
+  { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
 ];
 
 // Derive each lazy component ONCE from its loader and hang it on the entry.
@@ -159,3 +160,4 @@ export const BusMinistry      = surfaceById['bus'].component;
 export const BooksTransactions = surfaceById['transactions'].component;
 export const Cart             = surfaceById['cart'].component;
 export const Contractors1099  = surfaceById['k1099'].component;
+export const FamilyPlan       = surfaceById['plan'].component;

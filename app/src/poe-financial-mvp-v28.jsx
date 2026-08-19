@@ -23,7 +23,6 @@ import { LegalPlaceholder } from './components/Legal.jsx';
 import BooksTaxes from './components/BooksTaxes.jsx';
 import { BooksEntities } from './components/BooksEntities.jsx';
 import { Debts } from './components/Debts.jsx';
-import { FamilyPlan } from './components/FamilyPlan.jsx';
 import { Inbound } from './components/Inbound.jsx';
 import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
@@ -150,7 +149,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships,
+  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, Relationships, FamilyPlan,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
