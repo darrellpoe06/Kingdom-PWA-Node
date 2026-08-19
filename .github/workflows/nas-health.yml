@@ -276,6 +276,23 @@ jobs:
           md5sum /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml 2>/dev/null || echo "mirror kong.yml unreadable"
           echo "stamped: $(cat /volume1/docker/supabase/.kong.hash 2>/dev/null || echo 'no hash stamped')"
           ${SUDO} docker inspect -f 'kong started: {{.State.StartedAt}}' supabase-kong 2>/dev/null || echo "kong inspect unavailable"
+          echo "=== sovereign auth forensics (2026-08-19: 'Invalid login credentials' + 'Database error saving new user') ==="
+          # COUNTS ONLY -- no email or phone ever prints to this public log.
+          PWA=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          PSQLA() { ${SUDO} docker exec -e PGPASSWORD="$PWA" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>&1; }
+          echo "auth.users total: $(PSQLA 'SELECT count(*) FROM auth.users;')"
+          echo "phone-pin users (@phone.poetech.us): $(PSQLA "SELECT count(*) FROM auth.users WHERE email LIKE '%@phone.poetech.us';")"
+          echo "darrell gmail user present: $(PSQLA "SELECT count(*) FROM auth.users WHERE email='darrellpoe06@gmail.com';")"
+          echo "darrell phone-pin user present: $(PSQLA "SELECT count(*) FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';")"
+          echo "users with EMPTY password hash: $(PSQLA "SELECT count(*) FROM auth.users WHERE encrypted_password IS NULL OR encrypted_password='';")"
+          echo "identities total: $(PSQLA 'SELECT count(*) FROM auth.identities;')"
+          echo "users with NO identity row (GoTrue may refuse them): $(PSQLA 'SELECT count(*) FROM auth.users u WHERE NOT EXISTS (SELECT 1 FROM auth.identities i WHERE i.user_id=u.id);')"
+          echo "hash fingerprint for the 5636502416 phone-pin user (md5 OF the bcrypt hash -- hosted prints 5ca6e40523d87f15b30f358b68114d04):"
+          PSQLA "SELECT md5(encrypted_password), email_confirmed_at IS NOT NULL, banned_until, deleted_at FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';"
+          echo "-- triggers on auth.users (a failing one breaks every INSERT):"
+          PSQLA "SELECT tgname FROM pg_trigger WHERE tgrelid='auth.users'::regclass AND NOT tgisinternal;"
+          echo "-- auth container's own words (emails masked):"
+          ${SUDO} docker logs --tail 60 supabase-auth 2>&1 | grep -iE 'error|failed|500' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no recent auth errors logged"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
           for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
             ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
