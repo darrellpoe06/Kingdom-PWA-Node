@@ -85,12 +85,28 @@ html[data-text-size='bigprint'] .ts-safe-sticky {
    VISIBLE is. The row carries bg-[#FAF8F4] so every theme's existing override
    recolors it with the header. No-op at Normal/Large (rule scoped like the
    sticky cap above). */
-html[data-text-size='larger'] .ts-safe-sticky .ts-escape-hatch,
-html[data-text-size='largest'] .ts-safe-sticky .ts-escape-hatch,
-html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
+html[data-text-size='larger'] .ts-safe-sticky .ts-escape-hatch {
   position: sticky;
   bottom: 0;
   z-index: 5;
+}
+/* At the two sizes that actually trap (2x Largest, 2.75x Big Print), sticky is
+   NOT enough: the row also carries .ts-chrome-region's `zoom`, and Chromium
+   leaves a zoomed bottom-sticky element unshifted inside an overflow-y:auto
+   ancestor — measured 2026-08-19 by the probe's ancestry flags ([hse:sticky]
+   computed, rects unmoved). `fixed` anchors to the viewport, immune to that
+   interaction: the comfort row becomes a bottom bar, on screen by
+   construction. The row's own bg-[#FAF8F4] keeps it theme-recolored; the
+   shadow separates it from content on every theme. */
+html[data-text-size='largest'] .ts-safe-sticky .ts-escape-hatch,
+html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 12px;
+  box-shadow: 0 -1px 0 rgba(128, 128, 128, 0.6);
+  z-index: 60;
 }
 
 /* ===========================================================================
