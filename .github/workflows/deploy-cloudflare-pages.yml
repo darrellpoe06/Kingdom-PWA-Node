@@ -69,6 +69,46 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # THE REPOINT RIDES THE RECORD (DR-0310). When the committed
+      # infra/nas-supabase/REPOINT-ARMED file exists, this build points the app
+      # at the sovereign stack: the URL is the proven /sb transport (DR-0307
+      # hop chain), and the anon key is fetched from the NAS ITSELF over the
+      # team's own tailnet channel — the same TS_AUTHKEY + NAS_SSH_KEY that
+      # nas-health/nas-clock already hold. The NAS is authoritative for its own
+      # key; no secret-store hands, no human paste (DR-0108: a "must-be-by-
+      # hand" is a premise to challenge). Fail-LOUD: armed + fetch failure =
+      # the deploy fails; the running site stays up and never ships half a
+      # backend (DR-0107). Reverting the record file is the whole off-switch.
+      - name: Join the tailnet (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Fetch the sovereign anon key from the NAS (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        working-directory: .
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          KEY=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
+          rm -f /tmp/nas_key
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *)
+              echo "::error::REPOINT-ARMED but the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT — failing this deploy rather than shipping half a backend (DR-0107). The live site keeps its current build."
+              exit 1
+              ;;
+          esac
+          echo "::add-mask::$KEY"
+          {
+            echo "SOVEREIGN_SB_URL=https://poetech.us/sb"
+            echo "SOVEREIGN_SB_ANON=$KEY"
+          } >> "$GITHUB_ENV"
+          echo "repoint: armed — this build carries the sovereign backend (poetech.us/sb + the NAS-minted anon key)."
       - name: Build (static, base /poetech-app/)
         run: npm run build
         env:
@@ -78,8 +118,10 @@ jobs:
           # time. They are public-by-design (anon key + RLS, shared-secret bearer
           # that pairs with a server gate) — copying them into CI secrets is not a
           # secret-handling risk, but the cutover is not done until each is set.
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Sovereign values (set by the armed repoint steps above) take
+          # precedence; the hosted secrets remain the un-armed fallback.
+          VITE_SUPABASE_URL: ${{ env.SOVEREIGN_SB_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
           # VITE_N8N_BEARER intentionally NOT injected (2026-07-30 access
           # evaluation): a build-time var is inlined into the PUBLIC bundle, and
           # this one carried the NAS bearer gating the bank-PII webhook — any

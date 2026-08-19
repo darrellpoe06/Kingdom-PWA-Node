@@ -231,6 +231,13 @@ jobs:
             # One retry, so a single dropped connection is not an outage.
             if [ "$CODE" = "000" ]; then sleep 5; sb_fetch "${SB_URL%/}/auth/v1/health"; fi
             BACKEND_CODE="$CODE"
+            # The sovereign /sb transport gets its own witness line (DR-0310):
+            # measured keyless (the health route answers without an apikey), so
+            # this watches the cutover backend regardless of which one the
+            # secrets still name. Observe-only for now — the incident arm
+            # follows once /sb is the app's live backend.
+            SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000"
+            note "- \`GET poetech.us/sb/auth/v1/health\` (sovereign transport) -> **${SB_SOV:-000}**"
             violation=$(grep -oE 'exceed_[a-z_]+|restricted due to[^"]*' "$BODY_FILE" 2>/dev/null | head -1 || true)
             note "- \`GET auth/v1/health\` (anon) -> **$CODE**${violation:+ — \`$violation\`}"
             case "$CODE" in

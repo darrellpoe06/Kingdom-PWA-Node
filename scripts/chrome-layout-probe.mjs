@@ -211,7 +211,14 @@ try {
         headerH: hdr ? Math.round(hdr.getBoundingClientRect().height) : null,
         rects: hatch.slice(0, 6).map((b) => {
           const r = b.getBoundingClientRect();
-          return `${(b.getAttribute('aria-label') || '?').slice(0, 14)}@t${Math.round(r.top)},l${Math.round(r.left)},b${Math.round(r.bottom)},r${Math.round(r.right)}`;
+          // Ancestry flags (2026-08-19, instrument-blindness law round 2): the
+          // identical-rects run could not say WHERE the controls live, so a
+          // sticky fix was aimed at the wrong element. h=inside <header>,
+          // s=inside .ts-safe-sticky, e=inside .ts-escape-hatch, then the
+          // escape-hatch row's computed position (did the CSS engage at all).
+          const eh = b.closest('.ts-escape-hatch');
+          const flags = `${b.closest('header') ? 'h' : '-'}${b.closest('.ts-safe-sticky') ? 's' : '-'}${eh ? 'e' : '-'}${eh ? ':' + getComputedStyle(eh).position : ''}`;
+          return `${(b.getAttribute('aria-label') || '?').slice(0, 14)}[${flags}]@t${Math.round(r.top)},l${Math.round(r.left)},b${Math.round(r.bottom)},r${Math.round(r.right)}`;
         }),
       };
     });
