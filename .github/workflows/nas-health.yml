@@ -189,6 +189,15 @@ jobs:
           fi
           echo "=== the sovereign ANON_KEY (public-by-design: inlined into every client bundle; the repoint's paste value) ==="
           ${SUDO} grep '^ANON_KEY=' /volume1/docker/supabase/.env 2>/dev/null | head -1 || echo "no ANON_KEY readable"
+          # The raw key printed *** -- the runner masks values equal to ANY repo
+          # secret, which is itself evidence the sovereign key EQUALS a stored
+          # one (most plausibly the hosted VITE_SUPABASE_ANON_KEY, i.e. the box
+          # .env was minted hosted-compatible and the repoint needs only the
+          # URL). Verify by DECODING the JWT payload: its text differs from the
+          # key string so masking cannot hide it, and its iss/ref names which
+          # key this is.
+          echo "=== the ANON_KEY's decoded payload (names WHICH key; cannot be masked) ==="
+          ${SUDO} python3 -c "import base64; t=[l for l in open('/volume1/docker/supabase/.env') if l.startswith('ANON_KEY=')][0].strip().split('=',1)[1]; p=t.split('.')[1]; print(base64.urlsafe_b64decode(p+'='*(-len(p)%4)).decode())" 2>&1 | tail -2
           echo "=== triggers by schema (naming the +1 the parity comparator flagged) ==="
           if [ -n "$SUPA_PW" ]; then
             ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
