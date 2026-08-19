@@ -187,6 +187,8 @@ jobs:
           else
             echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
           fi
+          echo "=== the sovereign ANON_KEY (public-by-design: inlined into every client bundle; the repoint's paste value) ==="
+          ${SUDO} grep '^ANON_KEY=' /volume1/docker/supabase/.env 2>/dev/null | head -1 || echo "no ANON_KEY readable"
           echo "=== triggers by schema (naming the +1 the parity comparator flagged) ==="
           if [ -n "$SUPA_PW" ]; then
             ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
