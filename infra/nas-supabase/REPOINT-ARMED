@@ -1,0 +1,11 @@
+armed: 2026-08-19
+by: Darrell — "I'm not doing that you are... follow our Ways" / "ssh and or cli
+    you have access already for our work" (directed in-session, 2026-08-19)
+what: deploy-cloudflare-pages.yml sees this file and builds the app against the
+    sovereign backend — VITE_SUPABASE_URL=https://poetech.us/sb, anon key
+    fetched from the NAS (/volume1/docker/supabase/.env) over the tailnet at
+    build time. DR-0310 holds the decision; DR-0307 SS4 the sequence.
+prerequisite met: DR-0309 baseline re-dump (nonce 20260819a) receipt verified
+    before this file merged.
+off-switch: revert this file and dispatch deploy-cloudflare-pages — the build
+    returns to the hosted secrets. Full rollback is that one revert.
