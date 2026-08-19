@@ -1,6 +1,10 @@
 # Kong declarative config -- the single front door.
 # Routes mirror the hosted product EXACTLY, which is what lets the app swap URL
 # + anon key without touching any of its 333 supabase.* call sites.
+# reload-nonce: 20260819a -- this line exists to change the file's hash so
+# install.sh's kong-restart mechanism fires (measured 2026-08-19: the live
+# kong answered /sb/auth/v1 but 404'd /sb/rest/v1 -- serving a config OLDER
+# than this file, so sign-in's PostgREST leg died while health passed).
 _format_version: "2.1"
 _transform: true
 
