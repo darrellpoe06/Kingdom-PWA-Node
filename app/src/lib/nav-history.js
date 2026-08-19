@@ -94,7 +94,7 @@ export function parseNav(search) {
 // default, never route to a branch that renders nothing (the "blank Books tab"
 // class this module exists to prevent).
 export const VALID_BOOKS_SUBS = [
-  'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart', 'k1099', 'calendar', 'legal',
+  'entities', 'accounts', 'debts', 'plan', 'transactions', 'imported', 'cart', 'k1099', 'taxes', 'calendar', 'legal',
 ];
 
 // initialBooksView — the Books sub-tab a URL deep-links to, validated. The shell
