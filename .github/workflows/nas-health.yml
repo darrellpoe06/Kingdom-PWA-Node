@@ -52,6 +52,24 @@ jobs:
           # hops measured end-to-end: Pages function /sb -> Funnel path-mount
           # -> kong mirror route -> GoTrue. The literal code, never inferred.
           curl -s -o /dev/null -w 'OUTSIDE-IN https://poetech.us/sb/auth/v1/health HTTP %{http_code}\n' --max-time 20 https://poetech.us/sb/auth/v1/health || echo "OUTSIDE-IN probe unreachable"
+          # SIGN-IN SHAPED probes (2026-08-19, live report: "We can't reach our
+          # service" on the repointed app while health answered 200). Health
+          # never exercises the routes sign-in needs; these do, with junk
+          # creds. A 400/401/422 means the SERVICE answered (route alive); a
+          # 404/5xx/000 names the missing hop.
+          BODY=$(mktemp)
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"probe@example.invalid","password":"probe-not-real"}' \
+            "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN POST /sb/auth/v1/token HTTP $C :: $(head -c 200 "$BODY")"
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 \
+            "https://poetech.us/sb/rest/v1/" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN GET /sb/rest/v1/ HTTP $C :: $(head -c 200 "$BODY")"
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' -d '{}' \
+            "https://poetech.us/sb/auth/v1/signup" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN POST /sb/auth/v1/signup HTTP $C :: $(head -c 200 "$BODY")"
           # WHICH key does the LIVE app carry? The bundle inlines the anon key
           # (public-by-design); its decoded payload names it -- a hosted key
           # carries a "ref" claim, the sovereign-minted one is iss-only with
