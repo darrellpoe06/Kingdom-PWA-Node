@@ -57,7 +57,7 @@ jobs:
           # carries a "ref" claim, the sovereign-minted one is iss-only with
           # iat 2026-08-14. Answers whether the repoint's key half is already
           # done without touching the secret store.
-          python3 - <<'PY' || echo "LIVE-BUNDLE key read failed"
+          python3 - <<'PY' 2>&1 || echo "LIVE-BUNDLE key read failed (traceback above)"
           import re, base64, urllib.request
           html = urllib.request.urlopen('https://poetech.us/poetech-app/', timeout=20).read().decode(errors='ignore')
           m = re.search(r'assets/index-[^"]+\.js', html)
