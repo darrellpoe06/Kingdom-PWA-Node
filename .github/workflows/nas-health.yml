@@ -259,6 +259,14 @@ jobs:
           fi
           echo "=== /sb mirror routes: does kong answer on the CUTOVER path? ==="
           curl -s -o /dev/null -w '/sb/auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/auth/v1/health 2>&1 || echo "/sb probe unreachable"
+          # Sign-in's follow-up leg (2026-08-19 live 404): rest through kong.
+          # 401 "No API key" = route ALIVE (key-auth answered); 404 = kong is
+          # serving a config older than the repo's kong.yml.
+          curl -s -o /dev/null -w '/sb/rest/v1/ HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/rest/v1/ 2>&1 || echo "/sb/rest probe unreachable"
+          echo "=== kong config freshness (mirror file vs stamped hash vs container age) ==="
+          md5sum /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml 2>/dev/null || echo "mirror kong.yml unreadable"
+          echo "stamped: $(cat /volume1/docker/supabase/.kong.hash 2>/dev/null || echo 'no hash stamped')"
+          ${SUDO} docker inspect -f 'kong started: {{.State.StartedAt}}' supabase-kong 2>/dev/null || echo "kong inspect unavailable"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
           for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
             ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
