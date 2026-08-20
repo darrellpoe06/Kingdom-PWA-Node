@@ -240,6 +240,13 @@ SYNC="not-run"
 if [ "$ok" = "1" ]; then
   if R_OUT=$(sh "$SRC/replay_migrations.sh" 2>&1); then
     REPLAY=$(printf '%s' "$R_OUT" | tail -1)
+    # PostgREST caches the DB schema at startup — a replayed migration is
+    # invisible to the API until a reload (measured 2026-08-20: rpc
+    # has_user_pin answered PGRST202 "no matches" while the ledger read
+    # 153/153; the function existed, the cache predated it). NOTIFY is the
+    # documented live-reload channel; harmless when nothing changed.
+    $DOCKER exec -u postgres supabase-db \
+      psql -U postgres -d postgres -q -c "NOTIFY pgrst, 'reload schema';" 2>/dev/null || true
     if S_OUT=$(python3 "$SRC/cutover_sync.py" 2>&1); then
       SYNC=$(printf '%s' "$S_OUT" | tail -2 | tr '\n' ' ')
     else

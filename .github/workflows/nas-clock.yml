@@ -226,7 +226,14 @@ jobs:
             > /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml
           EOSH
           $SUDO docker restart supabase-kong
-          sleep 10
+          # PostgREST caches the DB schema AT STARTUP: every migration replayed
+          # after it came up is invisible to it until a reload (measured
+          # 2026-08-20, this step's first run: has_user_pin answered PGRST202
+          # "no matches" while the replay ledger read 153/153 — the function
+          # existed, the cache predated it). Restart clears it; install.sh now
+          # also NOTIFYs a reload after every replay so this stays cured.
+          $SUDO docker restart supabase-rest
+          sleep 12
 
           echo "=== AFTER (proof, not a claim — DR-0076) ==="
           C=$(curl -s -o /tmp/kf3 -w '%{http_code}' --max-time 15 -X POST \
@@ -238,5 +245,9 @@ jobs:
             echo "RESCUE VERDICT: kong STILL rejects the real key — investigate before touching anything else"
             exit 1
           fi
-          echo "RESCUE VERDICT: kong accepts the real key — the data path is open"
+          if grep -q 'PGRST202' /tmp/kf3; then
+            echo "RESCUE VERDICT: kong passes the key but PostgREST still cannot see the schema — investigate the replay/cache"
+            exit 1
+          fi
+          echo "RESCUE VERDICT: kong accepts the real key and PostgREST sees the schema — the data path is open"
           EOS
