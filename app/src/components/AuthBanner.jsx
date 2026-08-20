@@ -43,6 +43,18 @@ export default function AuthBanner() {
     const { error } = await promoteEmailToLogin(addEmailValue);
     setAddEmailBusy(false);
     if (error) {
+      // An address that already belongs to another account here is usually the
+      // READER'S OWN other account (Darrell 2026-08-20: "since we already have
+      // my email address why don't we already have it connected?") — one email
+      // per account, no duplicates, by design. Say that truth instead of the
+      // vendor's "already registered".
+      if (/already.{0,30}registered|email_exists|already.{0,30}exists/i.test(String(error.message || error.error_code || ''))) {
+        setAddEmailStatus({
+          kind: 'err',
+          message: 'That address already belongs to another PoeTech account — usually your own original one. If it is yours, you can simply sign in with it (password door); both of your accounts share the same family space, so nothing needs attaching.',
+        });
+        return;
+      }
       // Route through the app's own voice: with SMTP deliberately absent the
       // confirmation send fails server-side, and the raw GoTrue string reads
       // like a mystery ("SENDING…" then vendor text — measured 2026-08-20,
