@@ -35,6 +35,10 @@ on:
         description: 'Render the real API keys into kong.yml on the box and restart kong (2026-08-20: kong 2.8 never substitutes the $SUPABASE_ANON_KEY placeholder, so every data call 401s while sign-in passes)'
         type: boolean
         default: false
+      rescue_gmail_password:
+        description: 'Box-generates a password for the darrellpoe06 admin account and writes it to a root-only file on the NAS (never printed to any log). The gmail account is the admin identity in every layer; with SMTP deliberately absent it has no working door until this.'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -250,4 +254,61 @@ jobs:
             exit 1
           fi
           echo "RESCUE VERDICT: kong accepts the real key and PostgREST sees the schema — the data path is open"
+          EOS
+
+      # GMAIL-ADMIN PASSWORD RESCUE (2026-08-20, gated). darrellpoe06@gmail.com
+      # is the admin identity in EVERY layer (ADMIN_EMAILS, the family persona
+      # map, join_default_instance's founder allowlist, 0113 poe-family owner,
+      # 0025 admin RLS) — but with SMTP deliberately absent (DR-0307 §3) the
+      # magic-link door cannot send, so the account has no way in. The box
+      # itself mints a random password, bcrypts it into auth.users via the
+      # same pgcrypto path GoTrue verifies, confirms the email if unconfirmed,
+      # and writes the password to a ROOT-ONLY file on the NAS. NOTHING
+      # sensitive is printed to this (public) log — only row counts.
+      - name: Rescue — box-minted password for the gmail admin account (root-only file)
+        if: steps.gate.outputs.go == 'true' && inputs.rescue_gmail_password
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          $SUDO sh <<'EOSH'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          PW=$(grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env | head -1 | cut -d= -f2-)
+          # 16 hex chars from the kernel: comfortably past the app's 8-char
+          # minimum, no shell-special characters, typed once from the file.
+          NEWPASS=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+          CHANGED=$(docker exec -i -e PGPASSWORD="$PW" -e NP="$NEWPASS" supabase-db \
+            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A <<'EOSQL' | tr -d '[:space:]'
+          \set np `printenv NP`
+          UPDATE auth.users
+             SET encrypted_password = crypt(:'np', gen_salt('bf')),
+                 email_confirmed_at = coalesce(email_confirmed_at, now()),
+                 updated_at = now()
+           WHERE email = 'darrellpoe06@gmail.com'
+          RETURNING 1;
+          EOSQL
+          )
+          if [ "$CHANGED" != "1" ]; then
+            echo "GMAIL RESCUE: UPDATE changed $CHANGED rows (expected 1) — NOT writing the file"
+            exit 1
+          fi
+          umask 077
+          {
+            echo "PoeTech admin sign-in (written $(date -u +%Y-%m-%dT%H:%M:%SZ) by nas-clock rescue)"
+            echo "email:    darrellpoe06@gmail.com"
+            echo "password: $NEWPASS"
+            echo "door:     poetech.us -> 'Prefer a password? Use one'"
+            echo "Change it whenever you like by re-running this rescue."
+          } > /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt
+          chmod 600 /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt
+          echo "GMAIL RESCUE: password set (1 row), file written root-only"
+          EOSH
+          echo "Read it on the NAS: sudo cat /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt"
           EOS
