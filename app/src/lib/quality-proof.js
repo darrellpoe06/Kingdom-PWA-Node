@@ -47,15 +47,28 @@ export function shortSha(sha) {
 }
 
 // Build freshness: is the SERVED build the latest on main?
-//   served  = __BUILD_SHA__ baked into this bundle (7-char, or 'dev' locally)
-//   mainSha = live main HEAD short SHA from the GitHub API (github-ops)
+//   served        = __BUILD_SHA__ baked into this bundle (7-char, or 'dev' locally)
+//   mainSha       = live main HEAD short SHA from the GitHub API (github-ops)
+//   updateWaiting = the DEVICE's own signal — a newer build's service worker has
+//                   downloaded and is waiting behind this open tab
 // Returns a KPI-ready descriptor. 'dev'/unknown => idle (honest "can't tell"),
 // never a misleading green.
-export function freshnessVerdict(servedSha, mainSha) {
+//
+// The two clocks, reconciled (Darrell 2026-08-20, one screenshot: the header
+// dot said "Update available — reload" while this card said "LATEST"): the
+// header speaks the DEVICE's now — a waiting worker is physical proof a newer
+// build exists — while this card compared against a main-HEAD snapshot fetched
+// at load. When the device knows better, the card concedes: a waiting update
+// outranks a matching snapshot, because the snapshot can be stale and the
+// downloaded worker cannot.
+export function freshnessVerdict(servedSha, mainSha, updateWaiting = false) {
   const served = shortSha(servedSha);
   const main = shortSha(mainSha);
   if (!served || served === 'dev') {
     return { status: 'idle', label: 'Local / unknown build', latest: null, served, main };
+  }
+  if (updateWaiting) {
+    return { status: 'problem', label: `Superseded · ${served} — a newer build is waiting, reload`, latest: false, served, main };
   }
   if (!main) {
     return { status: 'idle', label: 'Latest build unknown (offline)', latest: null, served, main };
