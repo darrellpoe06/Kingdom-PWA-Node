@@ -67,9 +67,14 @@ jobs:
           # trailing slash, and kong's /sb/rest/v1/ PREFIX needs the slash -- a
           # bare /sb/rest/v1/ probe 404s as an artifact (measured 2026-08-19)
           # while every real app call, which goes deeper, matches fine.
+          # KEYLESS on purpose, so know what its 401 MEANS: kong's key-auth
+          # answering "No API key found" proves ROUTING only. It says NOTHING
+          # about whether a real key is accepted — the 2026-08-20 incident hid
+          # exactly there (this probe read "route alive" while key-auth was
+          # rejecting every real key). The keyed probes below carry that proof.
           C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 \
             "https://poetech.us/sb/rest/v1/rpc/probe_nonexistent" 2>/dev/null) || C="000"
-          echo "OUTSIDE-IN GET /sb/rest/v1/rpc/... HTTP $C :: $(head -c 200 "$BODY")"
+          echo "OUTSIDE-IN GET /sb/rest/v1/rpc/... (keyless, routing only) HTTP $C :: $(head -c 200 "$BODY")"
           # The app's REAL create-profile shape (phone-pin synthetic email,
           # DR-0172) with a PROBE phone -- captures the true signup verdict a
           # reader hit ("can't reach our service", 2026-08-19). A 200 creates
@@ -88,6 +93,9 @@ jobs:
             -d '{"email":"15555550100@phone.poetech.us","password":"090909"}' \
             "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN probe-user SIGN-IN HTTP $C :: $(head -c 120 "$BODY" | sed -E 's/\"(access|refresh)_token\":\"[^\"]+\"/\"\1_token\":\"<present>\"/g')"
+          # Keep the probe session's token IN MEMORY for the keyed REST probe
+          # below — never printed (the sed above is what reaches the log).
+          PROBE_TOKEN=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("access_token",""))' "$BODY" 2>/dev/null || true)
           # WHICH key does the LIVE app carry? The bundle inlines the anon key
           # (public-by-design); its decoded payload names it -- a hosted key
           # carries a "ref" claim, the sovereign-minted one is iss-only with
@@ -123,6 +131,46 @@ jobs:
             if [ -n "$OUT" ]; then echo "[$A] $OUT"; FOUND=1; fi
           done
           [ "$FOUND" = 1 ] || echo "LIVE-BUNDLE: no key or supabase URL signature in any referenced chunk"
+          # THE APP'S FIRST DATA CALL, exactly as the served bundle makes it
+          # (2026-08-20 incident: sign-in passed — the auth route carries no
+          # key-auth — then every data call answered kong's own "Invalid
+          # authentication credentials", because the mounted kong.yml still
+          # held the un-substituted $SUPABASE_ANON_KEY placeholder as the
+          # key-auth credential; kong 2.8 never templates declarative config).
+          # This probe uses the LIVE BUNDLE's own anon key (public-by-design),
+          # so it fails exactly when a real reader fails, whatever the cause:
+          # placeholder config, key rotation drift, or a broken route. The
+          # kong rejection text is the tripwire — PostgREST answers anything
+          # else (200/401/404 with its own wording) once the key is accepted.
+          BKEY=""
+          for A in $ASSETS; do
+            BKEY=$(curl -sL -A "$UA" --max-time 30 "https://poetech.us/poetech-app/$A" | grep -oE 'eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}' | head -1)
+            [ -n "$BKEY" ] && break
+          done
+          if [ -z "$BKEY" ]; then
+            echo "OUTSIDE-IN REST-with-key: SKIPPED — no anon key found in the live bundle"
+          else
+            C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+              -H "apikey: $BKEY" -H "Authorization: Bearer $BKEY" \
+              -H 'Content-Type: application/json' -d '{}' \
+              "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
+            echo "OUTSIDE-IN REST rpc has_user_pin (bundle key, anon bearer) HTTP $C :: $(head -c 160 "$BODY")"
+            if grep -q 'Invalid authentication credentials' "$BODY"; then
+              echo "::error::KONG REJECTS THE LIVE BUNDLE'S KEY — every reader's data calls are failing right now (sign-in still passes; the failure appears one screen later)"
+            fi
+            if [ -n "$PROBE_TOKEN" ]; then
+              # Signed-in shape: the probe user's real session, the same call
+              # PinGate makes on Darrell's screen. 200 = the whole signed-in
+              # data path is open end-to-end from outside.
+              C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+                -H "apikey: $BKEY" -H "Authorization: Bearer $PROBE_TOKEN" \
+                -H 'Content-Type: application/json' -d '{}' \
+                "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
+              echo "OUTSIDE-IN REST rpc has_user_pin (probe user's SESSION) HTTP $C :: $(head -c 160 "$BODY")"
+            else
+              echo "OUTSIDE-IN REST (session shape): SKIPPED — probe sign-in returned no token above"
+            fi
+          fi
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:
