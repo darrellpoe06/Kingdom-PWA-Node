@@ -79,6 +79,15 @@ jobs:
             -d '{"email":"15555550100@phone.poetech.us","password":"090909","data":{"name":"Probe User","phone":"+15555550100","login_method":"phone-pin"}}' \
             "https://poetech.us/sb/auth/v1/signup" 2>/dev/null) || C="000"
           echo "OUTSIDE-IN POST /sb/auth/v1/signup (app shape) HTTP $C :: $(head -c 300 "$BODY")"
+          # Sign the probe user IN (its hash was minted BY sovereign GoTrue at
+          # creation): 200 = password verification works end-to-end; anything
+          # else = GoTrue itself cannot verify, and no migrated hash stood a
+          # chance (2026-08-19 "same PIN doesn't work" triage).
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"090909"}' \
+            "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN probe-user SIGN-IN HTTP $C :: $(head -c 120 "$BODY" | sed -E 's/\"(access|refresh)_token\":\"[^\"]+\"/\"\1_token\":\"<present>\"/g')"
           # WHICH key does the LIVE app carry? The bundle inlines the anon key
           # (public-by-design); its decoded payload names it -- a hosted key
           # carries a "ref" claim, the sovereign-minted one is iss-only with
@@ -287,8 +296,18 @@ jobs:
           echo "users with EMPTY password hash: $(PSQLA "SELECT count(*) FROM auth.users WHERE encrypted_password IS NULL OR encrypted_password='';")"
           echo "identities total: $(PSQLA 'SELECT count(*) FROM auth.identities;')"
           echo "users with NO identity row (GoTrue may refuse them): $(PSQLA 'SELECT count(*) FROM auth.users u WHERE NOT EXISTS (SELECT 1 FROM auth.identities i WHERE i.user_id=u.id);')"
-          echo "hash fingerprint for the 5636502416 phone-pin user (md5 OF the bcrypt hash -- hosted prints 5ca6e40523d87f15b30f358b68114d04):"
-          PSQLA "SELECT md5(encrypted_password), email_confirmed_at IS NOT NULL, banned_until, deleted_at FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';"
+          echo "hash fingerprint for the 5636502416 phone-pin user (md5 OF the bcrypt hash -- hosted prints 5ca6e40523d87f15b30f358b68114d04; a DIFFERENT value means the reset landed):"
+          PSQLA "SELECT md5(encrypted_password), updated_at, email_confirmed_at IS NOT NULL FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';"
+          echo "exact-form check (the reset script and the app both use the 11-digit form):"
+          echo "exact 11-digit match: $(PSQLA "SELECT count(*) FROM auth.users WHERE email='15636502416@phone.poetech.us';")"
+          echo "stored form (length + first char only): $(PSQLA "SELECT length(split_part(email,'@',1)) || ':' || left(email,1) FROM auth.users WHERE email LIKE '%2416@phone.poetech.us';")"
+          echo "pgcrypto available (the reset needs crypt/gen_salt): $(PSQLA "SELECT count(*) FROM pg_proc WHERE proname='crypt';")"
+          echo "aud / instance_id / role by group (sovereign GoTrue scopes every lookup by these -- a mismatch makes copied users INVISIBLE to sign-in while the unique index still knows them: 'invalid credentials' + 'Database error saving new user'):"
+          PSQLA "SELECT coalesce(aud,'<null>') || ' | ' || coalesce(instance_id::text,'<null>') || ' | ' || coalesce(role,'<null>') || ' | n=' || count(*) FROM auth.users GROUP BY aud, instance_id, role ORDER BY count(*) DESC;"
+          echo "probe user's tags (minted BY sovereign GoTrue -- the shape lookups expect): $(PSQLA "SELECT coalesce(aud,'<null>') || ' | ' || coalesce(instance_id::text,'<null>') || ' | ' || coalesce(role,'<null>') FROM auth.users WHERE email='15555550100@phone.poetech.us';")"
+          echo "identity providers in use (which DOORS the family signed in with):"
+          PSQLA "SELECT provider || ': ' || count(*) FROM auth.identities GROUP BY provider ORDER BY provider;"
+          echo "darrell gmail user's providers: $(PSQLA "SELECT string_agg(i.provider, ',') FROM auth.identities i JOIN auth.users u ON u.id=i.user_id WHERE u.email='darrellpoe06@gmail.com';")"
           echo "-- triggers on auth.users (a failing one breaks every INSERT):"
           PSQLA "SELECT tgname FROM pg_trigger WHERE tgrelid='auth.users'::regclass AND NOT tgisinternal;"
           echo "-- auth container's own words (emails masked):"

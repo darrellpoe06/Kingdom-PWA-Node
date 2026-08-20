@@ -71,6 +71,15 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      # THE INVISIBLE-USERS BUG (measured 2026-08-20, run 32325254572): with
+      # no aud configured, GoTrue mints users with aud='' and filters EVERY
+      # lookup by aud='' -- the 23 migrated accounts carry hosted's
+      # aud='authenticated', so correct PINs answered "Invalid login
+      # credentials" and an existing email answered "Database error saving
+      # new user" (lookup missed, unique index refused the re-insert).
+      # 'authenticated' is hosted's value and the standard one; migration
+      # 0139 normalizes the one empty-aud row minted before this landed.
+      GOTRUE_JWT_AUD: authenticated
       GOTRUE_DISABLE_SIGNUP: "false"
       # SMTP is the ONE dependency self-hosting does not remove: magic links
       # have to leave the building. Unset => email sign-in is disabled and the
