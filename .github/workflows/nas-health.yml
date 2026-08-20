@@ -372,6 +372,30 @@ jobs:
           PSQLA "SELECT 'debts: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM debts d LEFT JOIN instances i ON i.id=d.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
           PSQLA "SELECT 'accounts: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM accounts a LEFT JOIN instances i ON i.id=a.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
           PSQLA "SELECT 'family_plans: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM family_plans f LEFT JOIN instances i ON i.id=f.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
+          echo "=== UUID footprint census (2026-08-20: account unification — the remap list must be a RECEIPT, not memory) ==="
+          echo "-- every public column referencing auth.users (declared FKs + conventional user columns), row counts per UUID:"
+          GML="e4378173-6af3-4703-b6bc-462a4fc3ce0f"
+          PHN=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
+          echo "gmail uuid: $GML | phone uuid: $PHN"
+          PAIRS=$(PSQLA "SELECT DISTINCT pair FROM (
+              SELECT tc.table_name||'|'||kcu.column_name AS pair
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage kcu ON kcu.constraint_name=tc.constraint_name AND kcu.table_schema=tc.table_schema
+                JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name=tc.constraint_name
+               WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'
+                 AND ccu.table_schema='auth' AND ccu.table_name='users'
+              UNION
+              SELECT c.table_name||'|'||c.column_name
+                FROM information_schema.columns c
+                JOIN information_schema.tables t ON t.table_schema='public' AND t.table_name=c.table_name AND t.table_type='BASE TABLE'
+               WHERE c.table_schema='public' AND c.data_type='uuid'
+                 AND c.column_name IN ('user_id','created_by','owner_id','updated_by','invited_by','author_id','member_id','requested_by')
+            ) u ORDER BY pair;")
+          for P in $PAIRS; do
+            TBL=${P%%|*}; COL=${P##*|}
+            PSQLA "SELECT '$TBL.$COL: gmail=' || count(*) FILTER (WHERE \"$COL\"='$GML'::uuid) || ' phone=' || count(*) FILTER (WHERE \"$COL\"='$PHN'::uuid) || ' total=' || count(*) FROM \"$TBL\";" | grep -v ': gmail=0 phone=0 ' || true
+          done
+          echo "-- (columns where both UUIDs count 0 are suppressed; suppressed columns are still enumerated above by the PAIRS query)"
           echo "-- Christina: does she have a phone-pin account, and does her gmail account have memberships?"
           PSQLA "SELECT 'mrspoe06 present: ' || count(*) FROM auth.users WHERE email='mrspoe06@gmail.com';"
           PSQLA "SELECT 'mrspoe06 memberships: ' || coalesce(string_agg(i.slug || '(' || im.role || ')', ', '), '<none>') FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE im.user_id=(SELECT id FROM auth.users WHERE email='mrspoe06@gmail.com');"
