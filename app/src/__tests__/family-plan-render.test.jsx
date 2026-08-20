@@ -110,6 +110,38 @@ describe('FamilyPlan (Books → Plan)', () => {
     expect(elanRow.textContent).not.toContain('$0');
   });
 
+  // Darrell 2026-08-20, reading the live tracker: "where are the total amount
+  // of money and timelines for each debt?!" The totals were nowhere and the
+  // payoff column sat off the right edge of a narrow screen with no cue.
+  it('sums the debt tracker into a Total row — numeric rows only, never a painted $0', async () => {
+    armed.data = [PLAN_ROW];
+    const c = await mount();
+    const debtTable = [...c.querySelectorAll('table')].find((t) => /Christina Capital One/.test(t.textContent));
+    const totalRow = debtTable.querySelector('tfoot tr');
+    expect(totalRow.textContent).toContain('Total');
+    // Balance: 1550 + null → only the numeric row sums
+    expect(totalRow.textContent).toContain('$1,550');
+    // Planned/mo: 79 + 227
+    expect(totalRow.textContent).toContain('$306');
+    // APR is a rate — never summed into a fake number
+    expect(totalRow.textContent).not.toContain('%');
+  });
+
+  it('puts each debt timeline beside its balance, ahead of the APR', async () => {
+    armed.data = [PLAN_ROW];
+    const c = await mount();
+    const debtTable = [...c.querySelectorAll('table')].find((t) => /Christina Capital One/.test(t.textContent));
+    expect(debtTable.textContent).toContain('Apr 2028');
+    const headers = [...debtTable.querySelectorAll('th')].map((th) => th.textContent);
+    expect(headers.findIndex((h) => /Payoff/i.test(h))).toBeLessThan(headers.findIndex((h) => /APR/i.test(h)));
+  });
+
+  it('a wide table names that it scrolls sideways on a narrow screen', async () => {
+    armed.data = [PLAN_ROW];
+    const c = await mount();
+    expect(c.textContent).toContain('swipe the table sideways');
+  });
+
   it('shows the honest empty state when no plan row exists', async () => {
     armed.data = [];
     const c = await mount();

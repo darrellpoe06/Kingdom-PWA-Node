@@ -37,32 +37,71 @@ function Section({ label, children }) {
 
 // One generic table: columns are [header, key, kind, align]. Kind picks the
 // formatter; align defaults right for numbers. Wide tables scroll in place.
-function PlanTable({ columns, rows, caption }) {
+//
+// totals: when true, a Total row sums every 'money' column across the rows
+// that carry NUMBERS — a blank or text cell contributes nothing, and a money
+// column with no numeric rows totals '—', never a painted $0 (DR-0076).
+// Darrell 2026-08-20, reading the live debt tracker: "where are the total
+// amount of money and timelines for each debt?!" — the sums were nowhere and
+// the payoff column sat off-screen. The swipe cue names the off-screen part:
+// a ≥5-column table on a narrow screen IS wider than the viewport, and
+// nothing said so.
+function PlanTable({ columns, rows, caption, totals }) {
   if (!rows || !rows.length) return null;
   const fmtFor = (kind) => (kind === 'money' ? money : kind === 'pct' ? pct : text);
+  const sums = totals && rows.length > 1
+    ? columns.map(([, key, kind]) => {
+        if (kind !== 'money') return null;
+        let sum = 0, hit = 0;
+        for (const r of rows) {
+          const v = r[key];
+          if (typeof v === 'number' && Number.isFinite(v)) { sum += v; hit += 1; }
+        }
+        return hit > 0 ? Math.round(sum * 100) / 100 : null;
+      })
+    : null;
+  const showTotals = sums && sums.some((s) => s != null);
   return (
-    <div className="border border-[#1A1815] overflow-x-auto">
-      <table className="w-full text-xs">
-        {caption && <caption className="sr-only">{caption}</caption>}
-        <thead>
-          <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-            {columns.map(([h, , kind]) => (
-              <th key={h} scope="col" className={`p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ${kind === 'text' ? 'text-left' : 'text-right'}`}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-b border-[#E8E4DC]">
-              {columns.map(([h, key, kind]) => (
-                <td key={h} className={`p-2 ${kind === 'text' ? 'text-left' : 'text-right'}`} style={kind === 'text' ? serif : mono}>
-                  {fmtFor(kind)(r[key])}
-                </td>
+    <div>
+      {columns.length >= 5 && (
+        <p className="sm:hidden text-[0.625rem] text-[#5A5751] mb-1" style={serif}>
+          Wider than the screen — swipe the table sideways for every column →
+        </p>
+      )}
+      <div className="border border-[#1A1815] overflow-x-auto">
+        <table className="w-full text-xs">
+          {caption && <caption className="sr-only">{caption}</caption>}
+          <thead>
+            <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
+              {columns.map(([h, , kind]) => (
+                <th key={h} scope="col" className={`p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ${kind === 'text' ? 'text-left' : 'text-right'}`}>{h}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b border-[#E8E4DC]">
+                {columns.map(([h, key, kind]) => (
+                  <td key={h} className={`p-2 ${kind === 'text' ? 'text-left' : 'text-right'}`} style={kind === 'text' ? serif : mono}>
+                    {fmtFor(kind)(r[key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          {showTotals && (
+            <tfoot>
+              <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4] font-semibold">
+                {columns.map(([h, , kind], ci) => (
+                  <td key={h} className={`p-2 ${kind === 'text' ? 'text-left' : 'text-right'}`} style={kind === 'text' ? serif : mono}>
+                    {ci === 0 ? 'Total' : kind === 'money' ? (sums[ci] != null ? money(sums[ci]) : '—') : ''}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </div>
   );
 }
@@ -192,11 +231,12 @@ function FamilyPlan() {
       {Array.isArray(p.debtTracker) && p.debtTracker.length > 0 && (
         <Section label="Debt tracker and payoff estimates">
           <p className="text-xs text-[#5A5751]" style={serif}>
-            Every debt as the workbook states it — a blank means the workbook does not have that number yet, not that it is zero.
+            Every debt as the workbook states it — a blank means the workbook does not have that number yet, not that it is zero,
+            and the Total row sums only the rows that carry numbers. The payoff column is each debt's timeline.
             The Debts tab's snowball engine is where these become live, editable rows.
           </p>
-          <PlanTable caption="Debt tracker"
-            columns={[['Debt', 'debt', 'text'], ['Balance', 'balance', 'money'], ['APR', 'apr', 'pct'], ['Planned/mo', 'payment', 'money'], ['Priority', 'priority', 'text'], ['Approx. payoff', 'payoff', 'text'], ['Notes', 'note', 'text']]}
+          <PlanTable caption="Debt tracker" totals
+            columns={[['Debt', 'debt', 'text'], ['Balance', 'balance', 'money'], ['Payoff (timeline)', 'payoff', 'text'], ['Planned/mo', 'payment', 'money'], ['APR', 'apr', 'pct'], ['Priority', 'priority', 'text'], ['Notes', 'note', 'text']]}
             rows={p.debtTracker} />
         </Section>
       )}
@@ -216,7 +256,7 @@ function FamilyPlan() {
                 <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-2 mb-1">
                   {k === 'income' ? 'Income' : k === 'housing' ? 'Housing / operating' : 'Debt payments'}
                 </h3>
-                <PlanTable caption={k}
+                <PlanTable caption={k} totals
                   columns={[['Item', 'item', 'text'], ['Amount', 'amount', 'money'], ['Priority', 'priority', 'text'], ['Notes', 'note', 'text']]}
                   rows={mb[k]} />
               </div>
@@ -235,7 +275,7 @@ function FamilyPlan() {
 
       {Array.isArray(p.cashPlan) && p.cashPlan.length > 0 && (
         <Section label="Cash reserve, catch-up and school plan">
-          <PlanTable caption="Cash plan"
+          <PlanTable caption="Cash plan" totals
             columns={[['Item', 'item', 'text'], ['Amount', 'amount', 'money'], ['Timing', 'timing', 'text'], ['Strategy', 'strategy', 'text'], ['Notes', 'note', 'text']]}
             rows={p.cashPlan} />
         </Section>
