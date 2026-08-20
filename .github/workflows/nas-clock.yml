@@ -284,8 +284,11 @@ jobs:
           # 16 hex chars from the kernel: comfortably past the app's 8-char
           # minimum, no shell-special characters, typed once from the file.
           NEWPASS=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+          # -q: without it psql prints the "UPDATE 1" command tag even in
+          # tuples-only mode, and the capture read "1UPDATE1" (run 32389158714
+          # — the UPDATE succeeded, the check misread it).
           CHANGED=$(docker exec -i -e PGPASSWORD="$PW" -e NP="$NEWPASS" supabase-db \
-            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A <<'EOSQL' | tr -d '[:space:]'
+            psql -q -h 127.0.0.1 -U supabase_admin -d postgres -t -A <<'EOSQL' | tr -d '[:space:]'
           \set np `printenv NP`
           UPDATE auth.users
              SET encrypted_password = crypt(:'np', gen_salt('bf')),

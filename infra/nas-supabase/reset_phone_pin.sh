@@ -53,8 +53,11 @@ esac
 
 # pgcrypto's crypt(..., gen_salt('bf')) emits the $2a$ bcrypt GoTrue verifies.
 # psql :'var' quoting keeps the PIN out of every shell-quoting layer.
+# -q: without it psql prints the "UPDATE 1" command tag even in tuples-only
+# mode, so the capture read "1UPDATE1" and a SUCCESSFUL update was reported
+# as "found but not updated" (measured 2026-08-20, run 32389158714).
 CHANGED=$($DOCKER exec -i -e PGPASSWORD="$PW" supabase-db \
-  psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+  psql -q -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
   -v pin="$PIN" -v em="$EMAIL" <<'EOSQL' | tr -d '[:space:]'
 UPDATE auth.users
    SET encrypted_password = crypt(:'pin', gen_salt('bf')), updated_at = now()
