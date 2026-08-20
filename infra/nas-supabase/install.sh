@@ -91,14 +91,19 @@ fi
 # Darrell's first signed-in session: sign-in passed (the auth route carries no
 # key-auth) and the FIRST data call answered kong's own "Invalid
 # authentication credentials" (rpc/set_user_pin through /sb/rest/v1). The
-# rendered file lives OUTSIDE the repo tree (0600 beside .env, which holds the
-# same values); the compose file mounts the RENDERED path.
+# rendered file lives OUTSIDE the repo tree (644 so the non-root kong
+# process can read it through the mount); the compose file mounts it.
 ANONK=$(grep '^ANON_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 SVCK=$(grep '^SERVICE_ROLE_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 if [ -n "$ANONK" ] && [ -n "$SVCK" ]; then
   sed -e "s|\$SUPABASE_ANON_KEY|$ANONK|g" -e "s|\$SUPABASE_SERVICE_KEY|$SVCK|g" \
     "$SRC/kong.yml" > "$DATA/kong.yml"
-  chmod 600 "$DATA/kong.yml" 2>/dev/null || true
+  # 644, NOT 600: the kong process in the container is NOT root; a 0600
+  # root-owned file behind the bind mount is unreadable inside and kong
+  # crash-loops (measured 2026-08-20 17:06Z: every probe 502, container
+  # 'Restarting'). Anon key is public-by-design; the service-key local-read
+  # tradeoff is accepted to keep the gateway alive.
+  chmod 644 "$DATA/kong.yml" 2>/dev/null || true
   echo "nas-supabase: kong.yml rendered with real keys -> $DATA/kong.yml"
 else
   # Never ship the placeholder file into the mount: a kong that rejects every

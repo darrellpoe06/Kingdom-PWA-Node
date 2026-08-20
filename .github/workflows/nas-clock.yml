@@ -221,7 +221,13 @@ jobs:
           sed -e "s|\$SUPABASE_ANON_KEY|$ANONK|g" -e "s|\$SUPABASE_SERVICE_KEY|$SVCK|g" \
             /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml \
             > /volume1/docker/supabase/kong.yml
-          chmod 600 /volume1/docker/supabase/kong.yml
+          # 644, NOT 600: the kong container process is NOT root, and a
+          # root-only file behind the bind mount is unreadable inside — kong
+          # crash-looped on it and every probe answered 502 (measured
+          # 2026-08-20 17:06Z, run 32395749427). The anon key is
+          # public-by-design; the local-read tradeoff on the service key is
+          # accepted to keep the gateway alive.
+          chmod 644 /volume1/docker/supabase/kong.yml
           # The RUNNING container still mounts the repo file — overlay the
           # rendered config there too (tracked drift on the mirror, on purpose:
           # the durable fix moves the mount to /volume1/docker/supabase/kong.yml
