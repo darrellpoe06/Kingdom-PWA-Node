@@ -212,7 +212,13 @@ services:
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
     volumes:
-      - ./kong.yml:/home/kong/kong.yml:ro
+      # The RENDERED config, not the repo file: kong 2.8 does not substitute
+      # env vars in declarative config, so the repo file's $SUPABASE_ANON_KEY
+      # placeholder became key-auth's literal credential and every real key
+      # was rejected ("Invalid authentication credentials" on the app's first
+      # data call, measured 2026-08-20). install.sh renders the repo file with
+      # the .env keys into this path before compose runs.
+      - /volume1/docker/supabase/kong.yml:/home/kong/kong.yml:ro
 
   studio:
     image: supabase/studio:2025.06.30-sha-6f5982d

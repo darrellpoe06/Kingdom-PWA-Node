@@ -31,6 +31,10 @@ on:
         description: 'Also fire services-sync once immediately (proves the runner works without waiting 15 minutes)'
         type: boolean
         default: true
+      rescue_kong:
+        description: 'Render the real API keys into kong.yml on the box and restart kong (2026-08-20: kong 2.8 never substitutes the $SUPABASE_ANON_KEY placeholder, so every data call 401s while sign-in passes)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -163,3 +167,76 @@ jobs:
           ls -la "$REPO/infra/nas-sme-pipeline/out/.transcript-trickle.last" 2>&1 | tail -1
           EOS
           echo "one-shot exit: $?  (a non-zero services-sync is EXPECTED while ytzero is unfixed on the mirror; the point is the REASON is now printed above)"
+
+      # KONG KEY RESCUE (2026-08-20, gated). Darrell's screens: sign-in passed,
+      # then "Invalid authentication credentials" on the first data call
+      # (rpc/set_user_pin). Kong 2.8 loads declarative config VERBATIM — the
+      # $SUPABASE_ANON_KEY placeholder in the mounted kong.yml became the
+      # literal key-auth credential, so the REST route rejected every real key
+      # while the auth route (no key-auth plugin) let sign-in through. This
+      # step carries its own evidence: BEFORE probes (real key vs the literal
+      # placeholder string), the cure (render + restart), and an AFTER probe
+      # that must pass or the step fails. The durable fix (install.sh renders,
+      # compose mounts the rendered path) rides the lane behind this rescue.
+      - name: Rescue — render kong keys and restart kong (evidence, cure, proof)
+        if: steps.gate.outputs.go == 'true' && inputs.rescue_kong
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          DATA=/volume1/docker/supabase
+          ANONK=$($SUDO grep '^ANON_KEY=' "$DATA/.env" | head -1 | cut -d= -f2-)
+          [ -n "$ANONK" ] || { echo "RESCUE: no ANON_KEY in $DATA/.env — cannot proceed"; exit 1; }
+
+          echo "=== BEFORE (evidence — the server's own words, loopback) ==="
+          C=$(curl -s -o /tmp/kf1 -w '%{http_code}' --max-time 10 -X POST \
+            -H "apikey: $ANONK" -H "Authorization: Bearer $ANONK" \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:8800/rest/v1/rpc/has_user_pin) || C=000
+          echo "REST with the REAL anon key:            HTTP $C :: $(head -c 160 /tmp/kf1)"
+          C=$(curl -s -o /tmp/kf2 -w '%{http_code}' --max-time 10 -X POST \
+            -H 'apikey: $SUPABASE_ANON_KEY' \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:8800/rest/v1/rpc/has_user_pin) || C=000
+          echo "REST with the LITERAL placeholder text: HTTP $C :: $(head -c 160 /tmp/kf2)"
+          echo "kong.yml key lines as the container loaded them (real JWTs masked):"
+          $SUDO docker exec supabase-kong sh -c 'grep -n "key:" /home/kong/kong.yml' | sed -E 's/eyJ[A-Za-z0-9_.-]+/<real-jwt-masked>/g' || true
+
+          echo "=== CURE (render the real keys; restart kong) ==="
+          $SUDO sh <<'EOSH'
+          set -e
+          ANONK=$(grep '^ANON_KEY=' /volume1/docker/supabase/.env | head -1 | cut -d= -f2-)
+          SVCK=$(grep '^SERVICE_ROLE_KEY=' /volume1/docker/supabase/.env | head -1 | cut -d= -f2-)
+          sed -e "s|\$SUPABASE_ANON_KEY|$ANONK|g" -e "s|\$SUPABASE_SERVICE_KEY|$SVCK|g" \
+            /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml \
+            > /volume1/docker/supabase/kong.yml
+          chmod 600 /volume1/docker/supabase/kong.yml
+          # The RUNNING container still mounts the repo file — overlay the
+          # rendered config there too (tracked drift on the mirror, on purpose:
+          # the durable fix moves the mount to /volume1/docker/supabase/kong.yml
+          # and the mirror's next drift-discard heals the working tree).
+          cat /volume1/docker/supabase/kong.yml \
+            > /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml
+          EOSH
+          $SUDO docker restart supabase-kong
+          sleep 10
+
+          echo "=== AFTER (proof, not a claim — DR-0076) ==="
+          C=$(curl -s -o /tmp/kf3 -w '%{http_code}' --max-time 15 -X POST \
+            -H "apikey: $ANONK" -H "Authorization: Bearer $ANONK" \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:8800/rest/v1/rpc/has_user_pin) || C=000
+          echo "REST with the REAL anon key:            HTTP $C :: $(head -c 160 /tmp/kf3)"
+          if grep -q 'Invalid authentication credentials' /tmp/kf3; then
+            echo "RESCUE VERDICT: kong STILL rejects the real key — investigate before touching anything else"
+            exit 1
+          fi
+          echo "RESCUE VERDICT: kong accepts the real key — the data path is open"
+          EOS

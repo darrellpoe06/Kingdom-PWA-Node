@@ -83,6 +83,30 @@ if ! grep -q '^REALTIME_DB_ENC_KEY=' "$ENV_FILE" 2>/dev/null; then
   printf 'REALTIME_DB_ENC_KEY=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(8))')" >> "$ENV_FILE"
 fi
 
+# --- render kong.yml with the REAL keys (before compose touches the mount) ---
+# Kong 2.8 does NOT substitute env vars in a mounted declarative config -- the
+# official Supabase compose templates kong.yml with an eval/echo entrypoint;
+# this stack mounted the raw file, so key-auth held the LITERAL text
+# '$SUPABASE_ANON_KEY' and rejected every real key. Measured 2026-08-20 on
+# Darrell's first signed-in session: sign-in passed (the auth route carries no
+# key-auth) and the FIRST data call answered kong's own "Invalid
+# authentication credentials" (rpc/set_user_pin through /sb/rest/v1). The
+# rendered file lives OUTSIDE the repo tree (0600 beside .env, which holds the
+# same values); the compose file mounts the RENDERED path.
+ANONK=$(grep '^ANON_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2-)
+SVCK=$(grep '^SERVICE_ROLE_KEY=' "$ENV_FILE" | head -1 | cut -d= -f2-)
+if [ -n "$ANONK" ] && [ -n "$SVCK" ]; then
+  sed -e "s|\$SUPABASE_ANON_KEY|$ANONK|g" -e "s|\$SUPABASE_SERVICE_KEY|$SVCK|g" \
+    "$SRC/kong.yml" > "$DATA/kong.yml"
+  chmod 600 "$DATA/kong.yml" 2>/dev/null || true
+  echo "nas-supabase: kong.yml rendered with real keys -> $DATA/kong.yml"
+else
+  # Never ship the placeholder file into the mount: a kong that rejects every
+  # key looks healthy from /auth (no key-auth there) and fails every data call.
+  echo "nas-supabase: FATAL - ANON_KEY/SERVICE_ROLE_KEY missing from $ENV_FILE; kong.yml NOT rendered" >&2
+  exit 1
+fi
+
 # --- bring it up ------------------------------------------------------------
 cd "$SRC"
 COMPOSE="$DOCKER compose"
@@ -96,9 +120,9 @@ echo "nas-supabase: docker compose up -d (no-op when already current)"
 $COMPOSE --env-file "$ENV_FILE" up -d --remove-orphans
 
 # kong.yml is a bind mount: compose cannot see content changes, and kong 2.8
-# reads declarative config only at start. Track the file's hash; a change
-# (e.g. the /sb mirror routes, DR-0307) restarts kong once, never in a loop.
-KONG_HASH=$(md5sum "$SRC/kong.yml" 2>/dev/null | cut -d' ' -f1)
+# reads declarative config only at start. Track the RENDERED file's hash; a
+# change (routes OR key rotation) restarts kong once, never in a loop.
+KONG_HASH=$(md5sum "$DATA/kong.yml" 2>/dev/null | cut -d' ' -f1)
 if [ -n "$KONG_HASH" ] && [ "$KONG_HASH" != "$(cat "$DATA/.kong.hash" 2>/dev/null)" ]; then
   echo "nas-supabase: kong.yml changed - restarting kong to load it"
   $DOCKER restart supabase-kong >/dev/null 2>&1 && printf '%s' "$KONG_HASH" > "$DATA/.kong.hash"
