@@ -374,7 +374,11 @@ jobs:
           PSQLA "SELECT 'family_plans: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM family_plans f LEFT JOIN instances i ON i.id=f.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
           echo "=== UUID footprint census (2026-08-20: account unification — the remap list must be a RECEIPT, not memory) ==="
           echo "-- every public column referencing auth.users (declared FKs + conventional user columns), row counts per UUID:"
-          GML="e4378173-6af3-4703-b6bc-462a4fc3ce0f"
+          # BOTH uuids resolved LIVE by email — the first census run hardcoded
+          # the hosted-era gmail id from memory and every gmail count read 0
+          # while the membership witness (same run) showed 3 rows by email
+          # lookup: the receipt caught its own instrument (run 32417274320).
+          GML=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
           PHN=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
           echo "gmail uuid: $GML | phone uuid: $PHN"
           PAIRS=$(PSQLA "SELECT DISTINCT pair FROM (
