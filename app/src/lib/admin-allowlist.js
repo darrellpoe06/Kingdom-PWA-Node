@@ -11,8 +11,11 @@
 // =============================================================================
 
 // Darrell + Christina — the only eyes on the admin surfaces ("all of this before
-// me and my wife Christina").
-export const ADMIN_EMAILS = ['darrellpoe06@gmail.com', 'mrspoe06@gmail.com'];
+// me and my wife Christina"). The phone-pin synthetic address IS Darrell — the
+// same person through the phone door (DR-0172; measured 2026-08-20, nas-health
+// run 32388793736, when the phone sign-in carried no admin). Mirrors 0140's
+// RLS policies; the database remains the real gate.
+export const ADMIN_EMAILS = ['darrellpoe06@gmail.com', 'mrspoe06@gmail.com', '15636502416@phone.poetech.us'];
 
 export function isAdminEmail(email) {
   return !!email && ADMIN_EMAILS.includes(String(email).toLowerCase().trim());
