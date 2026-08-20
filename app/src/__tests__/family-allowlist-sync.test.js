@@ -31,6 +31,9 @@ const FAMILY_EMAILS = [
   'mrspoe06@gmail.com',
   'christina@tlctherapysolutions.com',
   'darrellpoejr@gmail.com',
+  // Darrell through the phone-pin door (0140) — anchored here so the SQL
+  // layer and the shell can never silently disagree on his phone identity.
+  '15636502416@phone.poetech.us',
 ];
 
 describe('family allowlist — SQL and shell agree (no "in but not really")', () => {

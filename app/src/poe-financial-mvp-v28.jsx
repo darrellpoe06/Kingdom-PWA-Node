@@ -570,6 +570,7 @@ export const EMPTY_WORLD = {
 // (DRY; avoids the two drifting apart).
 const FAMILY_EMAIL_PROFILES = {
   'darrellpoe06@gmail.com': 'darrell',
+  '15636502416@phone.poetech.us': 'darrell', // the phone door is the same person (0140)
   'mrspoe06@gmail.com': 'christina',
   'christina@tlctherapysolutions.com': 'christina',
   // Darrell Jr (2026-07-05): 'family' persona = household roll-up only, not the

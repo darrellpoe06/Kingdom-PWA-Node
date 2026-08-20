@@ -19,6 +19,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { onAuthChange, isPhoneLoginSession, identityLabel, promoteEmailToLogin } from '../lib/supabase.js';
+import { authErrorMessage } from '../lib/auth-error-message.js';
 
 export default function AuthBanner() {
   const [session, setSession] = useState(null);
@@ -42,7 +43,11 @@ export default function AuthBanner() {
     const { error } = await promoteEmailToLogin(addEmailValue);
     setAddEmailBusy(false);
     if (error) {
-      setAddEmailStatus({ kind: 'err', message: error.message || 'Could not add that email. Please try again.' });
+      // Route through the app's own voice: with SMTP deliberately absent the
+      // confirmation send fails server-side, and the raw GoTrue string reads
+      // like a mystery ("SENDING…" then vendor text — measured 2026-08-20,
+      // Darrell's Add-email attempts). authErrorMessage names the truth.
+      setAddEmailStatus({ kind: 'err', message: authErrorMessage(error, 'Could not add that email. Please try again.').text });
       return;
     }
     setAddEmailStatus({ kind: 'ok', message: 'Check your inbox — tap the link we sent to confirm, then you can sign in with this email too.' });

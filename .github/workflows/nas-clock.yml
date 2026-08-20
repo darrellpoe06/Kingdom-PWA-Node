@@ -36,7 +36,7 @@ on:
         type: boolean
         default: false
       rescue_gmail_password:
-        description: 'Box-generates a password for the darrellpoe06 admin account and writes it to a root-only file on the NAS (never printed to any log). The gmail account is the admin identity in every layer; with SMTP deliberately absent it has no working door until this.'
+        description: 'Box-generates passwords for BOTH gmail admin accounts (darrellpoe06 + mrspoe06) and writes them to a root-only file on the NAS (never printed to any log). The gmail accounts are the admin identities in every layer; with SMTP deliberately absent they have no working door until this.'
         type: boolean
         default: false
 
@@ -281,37 +281,43 @@ jobs:
           set -e
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           PW=$(grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env | head -1 | cut -d= -f2-)
-          # 16 hex chars from the kernel: comfortably past the app's 8-char
-          # minimum, no shell-special characters, typed once from the file.
-          NEWPASS=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
-          # -q: without it psql prints the "UPDATE 1" command tag even in
-          # tuples-only mode, and the capture read "1UPDATE1" (run 32389158714
-          # — the UPDATE succeeded, the check misread it).
-          CHANGED=$(docker exec -i -e PGPASSWORD="$PW" -e NP="$NEWPASS" supabase-db \
-            psql -q -h 127.0.0.1 -U supabase_admin -d postgres -t -A <<'EOSQL' | tr -d '[:space:]'
+          OUT=/volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt
+          umask 077
+          echo "PoeTech admin sign-in (written $(date -u +%Y-%m-%dT%H:%M:%SZ) by nas-clock rescue)" > "$OUT"
+          echo "door: poetech.us -> 'Prefer a password? Use one'" >> "$OUT"
+          chmod 600 "$OUT"
+          for EM in darrellpoe06@gmail.com mrspoe06@gmail.com; do
+            # 16 hex chars from the kernel: comfortably past the app's 8-char
+            # minimum, no shell-special characters, typed once from the file.
+            NEWPASS=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+            # -q: without it psql prints the "UPDATE 1" command tag even in
+            # tuples-only mode, and the capture read "1UPDATE1" (run
+            # 32389158714 — the UPDATE succeeded, the check misread it).
+            CHANGED=$(docker exec -i -e PGPASSWORD="$PW" -e NP="$NEWPASS" -e EM="$EM" supabase-db \
+              psql -q -h 127.0.0.1 -U supabase_admin -d postgres -t -A <<'EOSQL' | tr -d '[:space:]'
           \set np `printenv NP`
+          \set em `printenv EM`
           UPDATE auth.users
              SET encrypted_password = crypt(:'np', gen_salt('bf')),
                  email_confirmed_at = coalesce(email_confirmed_at, now()),
                  updated_at = now()
-           WHERE email = 'darrellpoe06@gmail.com'
+           WHERE email = :'em'
           RETURNING 1;
           EOSQL
-          )
-          if [ "$CHANGED" != "1" ]; then
-            echo "GMAIL RESCUE: UPDATE changed $CHANGED rows (expected 1) — NOT writing the file"
-            exit 1
-          fi
-          umask 077
-          {
-            echo "PoeTech admin sign-in (written $(date -u +%Y-%m-%dT%H:%M:%SZ) by nas-clock rescue)"
-            echo "email:    darrellpoe06@gmail.com"
-            echo "password: $NEWPASS"
-            echo "door:     poetech.us -> 'Prefer a password? Use one'"
-            echo "Change it whenever you like by re-running this rescue."
-          } > /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt
-          chmod 600 /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt
-          echo "GMAIL RESCUE: password set (1 row), file written root-only"
+            )
+            if [ "$CHANGED" != "1" ]; then
+              echo "GMAIL RESCUE: UPDATE for $EM changed '$CHANGED' rows (expected 1) — NOT writing its line"
+              exit 1
+            fi
+            {
+              echo ""
+              echo "email:    $EM"
+              echo "password: $NEWPASS"
+            } >> "$OUT"
+            echo "GMAIL RESCUE: password set for $EM (1 row)"
+          done
+          echo "Change them whenever you like by re-running this rescue." >> "$OUT"
+          echo "GMAIL RESCUE: both credentials written root-only to $OUT"
           EOSH
           echo "Read it on the NAS: sudo cat /volume1/docker/supabase/RESCUE-GMAIL-PASSWORD.txt"
           EOS
