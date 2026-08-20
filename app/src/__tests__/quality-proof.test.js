@@ -29,6 +29,23 @@ describe('freshnessVerdict', () => {
     expect(freshnessVerdict('dev', 'abc1234').status).toBe('idle');
     expect(freshnessVerdict('abc1234', null).status).toBe('idle');
   });
+  // The two clocks, reconciled (Darrell 2026-08-20, one screenshot: the header
+  // said "Update available — reload" while this card said LATEST). The device's
+  // waiting worker is physical proof of a newer build; a matching load-time
+  // HEAD snapshot must concede to it.
+  it('a waiting update outranks a matching HEAD snapshot — never green beside a red header', () => {
+    const v = freshnessVerdict('abc1234', 'abc1234', true);
+    expect(v.status).toBe('problem');
+    expect(v.latest).toBe(false);
+    expect(v.label).toMatch(/superseded/i);
+    expect(v.label).toMatch(/reload/i);
+  });
+  it('a waiting update also overrides the offline-idle branch (the device still knows)', () => {
+    expect(freshnessVerdict('abc1234', null, true).status).toBe('problem');
+  });
+  it('a dev build stays idle even with a waiting update (local runs never nag)', () => {
+    expect(freshnessVerdict('dev', 'abc1234', true).status).toBe('idle');
+  });
 });
 
 describe('ciVerdict', () => {

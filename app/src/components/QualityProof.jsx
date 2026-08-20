@@ -38,6 +38,7 @@ import {
 } from '../lib/quality-proof.js';
 import { normalizeInterconnect, loopRowStatus, interconnectHeadline } from '../lib/interconnect-loops.js';
 import { extractReReviews, sortReReviews, reReviewStatus, reReviewSummary } from '../lib/re-reviews.js';
+import { useStaleBuild } from '../lib/freshness.js';
 
 const MANIFEST = normalizeManifest(typeof __QUALITY_PROOF__ !== 'undefined' ? __QUALITY_PROOF__ : null);
 const INTERCONNECT = normalizeInterconnect(typeof __INTERCONNECT_LOOPS__ !== 'undefined' ? __INTERCONNECT_LOOPS__ : null);
@@ -68,6 +69,7 @@ function Row({ name, detail, status, label }) {
 // defaultSection opens a specific sub-tab (tests + future deep links); the
 // default stays 'gates' — the first thing a steward checks.
 export default function QualityProof({ defaultSection = 'gates' }) {
+  const staleBuild = useStaleBuild();
   const [state, setState] = useState({ phase: 'loading', data: null });
   // Sortable backlog of dated re-review commitments (Darrell 2026-07-06: "keep a
   // sortable list inside the PoeTech App"). Default: date asc = overdue / soonest
@@ -87,7 +89,9 @@ export default function QualityProof({ defaultSection = 'gates' }) {
 
   const mainSha = state.data && state.data.main ? state.data.main.shortSha : null;
   const mainCi = state.data ? state.data.mainCi : null;
-  const fresh = freshnessVerdict(BUILD_SHA, mainSha);
+  // The device's own newer-build signal outranks the load-time HEAD snapshot —
+  // the header dot and this card must never disagree (2026-08-20 screenshot).
+  const fresh = freshnessVerdict(BUILD_SHA, mainSha, staleBuild);
   const verdict = ciVerdict(mainCi, BUILD_SHA);
   const contrast = MANIFEST.contrast;
   const cStat = contrastStatus(contrast);
