@@ -138,9 +138,15 @@ export function storageBannerMessage(mode, cloudSafe) {
   if (cloudSafe && (mode === 'slim' || mode === 'extra')) return null;
   if (mode === 'slim') return 'This device is low on space — your books are saving fine, but new photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
   if (mode === 'extra') return 'This device is low on space; older edit-history and photos aren’t kept on this phone. Remove or export a few photos (Big Picture → photos) to free space.';
+  // 'fail' — even the extra-slim copy could not be written. Measured 2026-08-21
+  // on Darrell's phone: the old copy blamed "this device is out of local space"
+  // when the device had gigabytes free — the real wall was the browser's ~5MB
+  // localStorage cap for the site (now cured by the IndexedDB-backed shim; this
+  // tier fires only when IndexedDB is unavailable too). Name the true limit —
+  // the app's cache on this device, not the phone's storage (DR-0100).
   return cloudSafe
-    ? 'This device is out of local space, but your transactions are synced to the cloud and safe. Remove a few photos (Big Picture → photos) to restore local caching.'
-    : 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.';
+    ? 'This device could not keep the app’s local cache (a browser storage limit, not your phone being full) — your data is synced to the cloud and safe. A reload usually clears this.'
+    : 'This device could not save the app’s local cache (a browser storage limit) — changes are NOT being saved. Sign in so your books sync to the cloud, or free browser site data, then make any small edit to retry.';
 }
 
 // snapshotByteSize(obj) -> the UTF-8 byte length of the serialized object, so a

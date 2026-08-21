@@ -191,4 +191,14 @@ describe('storageBannerMessage — honest wording, no false alarm on a synced le
     expect(msg).toMatch(/safe/i);
     expect(msg).not.toMatch(/back up|nas/i);
   });
+  it('a hard FAIL never blames the DEVICE being out of space — the wall is the browser limit (measured 2026-08-21)', () => {
+    // Darrell's phone had gigabytes free while the old copy said "This device
+    // is out of local space" — the real wall was the browser's per-site cap.
+    // PROVEN-TO-CATCH: the old wording fails both assertions.
+    for (const cloudSafe of [true, false]) {
+      const msg = storageBannerMessage('fail', cloudSafe);
+      expect(msg).not.toMatch(/out of local space|device.s storage is full/i);
+      expect(msg).toMatch(/browser storage limit/i);
+    }
+  });
 });
