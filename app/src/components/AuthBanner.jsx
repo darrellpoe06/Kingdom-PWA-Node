@@ -20,6 +20,7 @@
 import React, { useEffect, useState } from 'react';
 import { onAuthChange, isPhoneLoginSession, identityLabel, promoteEmailToLogin } from '../lib/supabase.js';
 import { authErrorMessage } from '../lib/auth-error-message.js';
+import { isLinkedDoor, linkedPrimary } from '../lib/person-links.js';
 
 export default function AuthBanner() {
   const [session, setSession] = useState(null);
@@ -68,7 +69,12 @@ export default function AuthBanner() {
 
   const userEmail = session?.user?.email;
   // A phone+PIN account with no real email yet: show the number, offer to add one.
+  // A door ALREADY LINKED to a primary identity (person_links, DR-0311) gets no
+  // "Add email" — the address it would add is its own other account, and the
+  // library is already one (measured 2026-08-20: the add could only ever fail
+  // "already registered" against himself).
   const isPhoneUser = isPhoneLoginSession(session);
+  const linkedDoor = isLinkedDoor(userEmail);
   const label = identityLabel(session) || userEmail;
 
   // Signed OUT: render nothing. The ONE way in is HeaderAuthButton's "Log in" box
@@ -82,7 +88,15 @@ export default function AuthBanner() {
           <span className="text-[#5A6E3D]">●</span> Signed in as{' '}
           <span className="normal-case tracking-normal font-mono">{label}</span>
         </span>
-        {isPhoneUser && (
+        {isPhoneUser && linkedDoor && (
+          <>
+            <span className="text-[#5A5751]">·</span>
+            <span className="normal-case tracking-normal">
+              linked to <span className="font-mono">{linkedPrimary(userEmail)}</span> — one library, both doors
+            </span>
+          </>
+        )}
+        {isPhoneUser && !linkedDoor && (
           <>
             <span className="text-[#5A5751]">·</span>
             <button
@@ -98,8 +112,9 @@ export default function AuthBanner() {
       </div>
 
       {/* Phone user adding a real login email — same account, same id, no merge:
-          a verified email is attached to this account (DR-0172, built now). */}
-      {isPhoneUser && addEmailOpen && (
+          a verified email is attached to this account (DR-0172, built now).
+          Never shown to a linked door (DR-0311): its email already exists. */}
+      {isPhoneUser && !linkedDoor && addEmailOpen && (
         <div className="max-w-7xl mx-auto mt-2 px-1 normal-case tracking-normal">
           <form onSubmit={handleAddEmail} className="flex flex-wrap items-center justify-center gap-2">
             <label htmlFor="add-login-email" className="text-[#FAF8F4] text-[0.6875rem]">
