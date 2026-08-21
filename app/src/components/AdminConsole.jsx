@@ -31,6 +31,7 @@ import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import FamilyDoors from './FamilyDoors.jsx';
 import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
 // Live-systems panels (each self-fetches real state at runtime — reality-traced
@@ -257,6 +258,15 @@ export default function AdminConsole({
       // THE USERS REPORT — absorbed from the retired Access tab. Real KPIs, self-
       // fetching, fail-soft, family/governor-gated at the DB.
       render: () => <AccessUsageMetrics />,
+    },
+    {
+      id: 'doors',
+      label: 'Family doors',
+      icon: 'lock',
+      // Instant access from inside the app (Darrell 2026-08-21, mid-lockout:
+      // "I should be able to give access instantly to her or anyone....
+      // especially my family"). The RPC (0142) is the gate; this is the hand.
+      render: () => <FamilyDoors />,
     },
     {
       // The unified model pane (DR-0132 bus; migration 0137; green-lit

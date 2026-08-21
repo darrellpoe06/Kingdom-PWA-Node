@@ -140,6 +140,15 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       <div className="max-w-sm" aria-live="polite">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Sign-in link sent</h3>
         <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Check {form.email || 'your email'} and tap the link — that’s the whole sign-in. No password.</p>
+        {/* HONESTY (Darrell 2026-08-21, "never got an email..."): this screen only
+            knows the REQUEST was accepted — if email sending isn't wired on the
+            family server, nothing ever arrives and the reader waits on a promise.
+            Name the other doors instead of leaving them stranded (DR-0100). */}
+        <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          No email after a couple of minutes? Check spam — and if it’s not there, email sending may not
+          be set up yet. Go back and use <strong>“Prefer a password? Use one”</strong> or the
+          <strong> phone number + PIN</strong> door instead; both work without email.
+        </p>
         <button type="button" onClick={() => setStatus('idle')} className="mt-3 text-xs uppercase tracking-wider underline text-[#5A6E3D]">Back</button>
       </div>
     );
