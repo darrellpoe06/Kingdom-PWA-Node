@@ -51,7 +51,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability } from '../lib/member-roles.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
@@ -198,6 +198,13 @@ export default function AdminConsole({
   };
   const changeMemberRole = async (userId, role) => {
     const r = await setMemberRole(scopeInstance, userId, role);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers(scopeInstance);
+  };
+  // Worker classification (0143) — the label axis beside the role: family /
+  // W-2 / 1099 / volunteer. A label, never a power; '' clears it.
+  const changeMemberClassification = async (userId, classification) => {
+    const r = await setMemberClassification(scopeInstance, userId, classification);
     if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
     await loadMembers(scopeInstance);
   };
@@ -421,6 +428,20 @@ export default function AdminConsole({
                             </select>
                           ) : (
                             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
+                          )}
+                          {/* Worker classification (0143, Darrell 2026-08-22 "1099
+                              and other etc..."): what they ARE to the books —
+                              beside what they may DO. A label, never a power. */}
+                          {m.userId && (
+                            <select
+                              aria-label={`Worker classification for ${m.displayName || m.email || 'member'}`}
+                              className="text-xs p-1 border border-[#E8E4DC] bg-white"
+                              value={m.classification || ''}
+                              onChange={(e) => changeMemberClassification(m.userId, e.target.value)}
+                            >
+                              <option value="">Unclassified</option>
+                              {CLASSIFICATIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                            </select>
                           )}
                           {/* The governance checklist (DR-0242): additive powers
                               between the roles — per person, DB-enforced. */}
