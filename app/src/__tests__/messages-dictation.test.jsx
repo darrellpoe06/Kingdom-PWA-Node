@@ -33,6 +33,7 @@ vi.mock('../lib/direct-messages-sync.js', () => ({
   subscribeDirectMessages: (set) => { set([]); return () => {}; },
   sendDirectMessage: async () => ({ ok: true }),
   markThreadRead: async () => {},
+  markThreadReadLocal: (rows) => rows,
   groupDmThreads: () => [],
   threadMessages: () => [],
   isSendableBody: (b) => typeof b === 'string' && b.trim().length > 0,

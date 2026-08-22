@@ -77,7 +77,7 @@ describe('source pins — the wiring the review dated 2026-07-29, shipped 2026-0
 
   it('DirectMessages sends on the contact\'s own instance and renders pending invites', () => {
     const src = read('../components/DirectMessages.jsx');
-    expect(src).toMatch(/sendDirectMessage\(openWith, draft, displayName, contact\?\.instanceId\)/);
+    expect(src).toMatch(/sendDirectMessage\(openWith, text, displayName, contact\?\.instanceId\)/);
     expect(src).toMatch(/Invited — waiting for their first sign-in/);
   });
 

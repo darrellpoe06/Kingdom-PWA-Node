@@ -65,3 +65,71 @@ describe('isSendableBody', () => {
     expect(isSendableBody(null)).toBe(false);
   });
 });
+
+// -----------------------------------------------------------------------------
+// The smooth-flow cures (Darrell + Christina, live, 2026-08-22: "I had to go
+// out and come back in to see I had new messages" · "once I view the message I
+// should not have it look like I didn't view it yet"). The realtime stream is
+// the fast path, never the only path; viewed = read instantly.
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { markThreadReadLocal } from '../lib/direct-messages.js';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+describe('markThreadReadLocal — viewed means read, instantly', () => {
+  const mk = (id, other, mine, readAt = null) => ({ id, otherUserId: other, mine, readAt, body: id, createdAt: '2026-08-22T10:00:00Z' });
+
+  it('marks only the open thread\'s unread INCOMING rows; everything else passes through', () => {
+    const rows = [mk('a', 'chris', false), mk('b', 'chris', true), mk('c', 'other', false), mk('d', 'chris', false, '2026-08-22T09:00:00Z')];
+    const out = markThreadReadLocal(rows, 'chris', '2026-08-22T10:05:00Z');
+    expect(out[0].readAt).toBe('2026-08-22T10:05:00Z'); // incoming unread -> read
+    expect(out[1]).toBe(rows[1]);                        // my own row untouched (same reference)
+    expect(out[2]).toBe(rows[2]);                        // other thread untouched
+    expect(out[3]).toBe(rows[3]);                        // already-read untouched
+  });
+
+  it('clears the thread badge and the nav badge together', () => {
+    const rows = [mk('a', 'chris', false), mk('b', 'chris', false)];
+    expect(unreadDmCount(rows)).toBe(2);
+    const out = markThreadReadLocal(rows, 'chris');
+    expect(unreadDmCount(out)).toBe(0);
+    expect(groupDmThreads(out)[0].unread).toBe(0);
+  });
+
+  it('is pure — the input array is never mutated', () => {
+    const rows = [mk('a', 'chris', false)];
+    markThreadReadLocal(rows, 'chris');
+    expect(rows[0].readAt).toBe(null);
+  });
+});
+
+describe('the stream is never the only path (source gates, proven-to-catch)', () => {
+  const sync = readFileSync(join(HERE, '..', 'lib', 'direct-messages-sync.js'), 'utf8');
+  const surface = readFileSync(join(HERE, '..', 'components', 'DirectMessages.jsx'), 'utf8');
+
+  it('subscribeDirectMessages carries a heartbeat poll and a visibility refetch', () => {
+    expect(sync).toMatch(/DM_HEARTBEAT_MS = 15000/);
+    expect(sync).toMatch(/}, DM_HEARTBEAT_MS\)/);
+    // Occurrence-first: the heartbeat never ticks off-screen.
+    expect(sync).toMatch(/visibilityState === 'hidden'\) return;/);
+    expect(sync).toMatch(/visibilitychange/);
+    expect(sync).toMatch(/unsubscribe\.refresh = \(\) => refresh\(\)/);
+  });
+
+  it('the surface refreshes on the user\'s own actions instead of waiting', () => {
+    expect(surface).toMatch(/subRef\.current\?\.refresh\?\.\(\)/);
+    expect(surface).toMatch(/markThreadReadLocal\(prev, otherUserId\)/);
+  });
+
+  it('a message arriving while its thread is open never shows an unread badge', () => {
+    expect(surface).toMatch(/convo\.some\(\(m\) => m && !m\.mine && !m\.readAt\)/);
+  });
+
+  it('sending appends optimistically and keeps the composer focused; Enter sends', () => {
+    expect(surface).toMatch(/local-\$\{nowIso\}/);
+    expect(surface).toMatch(/taRef\.current\?\.focus\(\)/);
+    expect(surface).toMatch(/e\.key === 'Enter' && !e\.shiftKey/);
+  });
+});

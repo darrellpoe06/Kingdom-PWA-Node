@@ -84,6 +84,18 @@ export function threadMessages(rows = [], otherUserId) {
     .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
 }
 
+// Mark a thread's incoming messages read LOCALLY — the optimistic twin of the
+// server-side markThreadRead, so the badge clears the instant the reader looks
+// (Darrell 2026-08-22: "once I view the message I should not have it look like
+// I didn't view it yet"). Pure: returns a new array; only the given thread's
+// unread incoming rows change; everything else passes through by reference.
+export function markThreadReadLocal(rows = [], otherUserId, atIso) {
+  const at = atIso || new Date().toISOString();
+  return (rows || []).map((m) => (
+    m && m.otherUserId === otherUserId && !m.mine && !m.readAt ? { ...m, readAt: at } : m
+  ));
+}
+
 // -----------------------------------------------------------------------------
 // Security reports — "anyone can report to security." A report is an instance-
 // scoped alert readable by the security team (Observation-tab holders). Status
