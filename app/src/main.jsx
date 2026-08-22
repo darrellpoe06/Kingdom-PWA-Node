@@ -10,6 +10,7 @@ import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
+import { startDmNotifications } from './lib/dm-notify.js';
 
 // The entry module is ALIVE — public/watchdog.js watches for this flag and
 // retries the load once (cache-busted) if it never appears (LESSONS P32:
@@ -40,6 +41,13 @@ initTextSize();
 // delegated listener covers every date/datetime field on every surface and
 // every standalone boot, current and future. See lib/date-picker-tap.js.
 wireDatePickerTap();
+
+// New-message awareness beyond the Messages tab (Darrell 2026-08-22: "do the
+// users get notifications?"): the tab title carries a "(N)" unread badge and
+// a browser Notification rings when a message lands while the app is
+// off-screen. App-wide — it must work while the reader is on any tab, so it
+// mounts at boot, not inside the Messages surface. See lib/dm-notify.js.
+startDmNotifications(window);
 
 // Catch the browser's one-shot PWA install event at boot so any surface (the
 // PwaPrompts banner, DownloadLatest's install offer) can fire the native

@@ -22,6 +22,7 @@ import {
   groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
 } from '../lib/direct-messages-sync.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
+import { requestDmNotificationPermission } from '../lib/dm-notify.js';
 import UiIcon from './UiIcon.jsx';
 
 // Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
@@ -57,6 +58,10 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // Browser-notification permission — asked ONLY on the reader's own tap.
+  const [notifPerm, setNotifPerm] = useState(() => (
+    typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'unsupported'
+  ));
   const endRef = useRef(null);
   const taRef = useRef(null);
 
@@ -156,6 +161,19 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
         <h4 className="text-sm font-medium text-[#1A1815]">{title}</h4>
         {openWith && <button type="button" onClick={() => setOpenWith(null)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>← Inbox</button>}
       </div>
+
+      {/* Notifications the reader chooses (2026-08-22 "do the users get
+          notifications?"): a one-tap grant; once granted, a message arriving
+          while the app is off-screen rings the browser's own bell. */}
+      {notifPerm === 'default' && (
+        <button
+          type="button"
+          onClick={async () => setNotifPerm(await requestDmNotificationPermission())}
+          className={`${BTN} w-full border border-dashed border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]`}
+        >
+          <UiIcon name="alert" /> Notify me when a message arrives — turn on notifications
+        </button>
+      )}
 
       {err && <p className="text-xs text-[#991B1B]" role="alert">{err}</p>}
 
