@@ -19,7 +19,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   subscribeDirectMessages, sendDirectMessage, markThreadRead,
-  groupDmThreads, threadMessages, isSendableBody,
+  groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
 } from '../lib/direct-messages-sync.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import UiIcon from './UiIcon.jsx';
@@ -69,9 +69,16 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   useEffect(() => { autoGrow(taRef.current); }, [draft]);
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
+  // The subscription handle carries .refresh() — pulled the instant the user
+  // acts (open, send) so the thread never waits on the realtime stream or the
+  // heartbeat (measured 2026-08-22: both readers had to leave and re-enter to
+  // see new messages while the sovereign realtime leg was sick).
+  const subRef = useRef(null);
   useEffect(() => {
     if (!signedIn) { setRows([]); return undefined; }
-    return subscribeDirectMessages(setRows);
+    const sub = subscribeDirectMessages(setRows);
+    subRef.current = sub;
+    return () => { subRef.current = null; sub(); };
   }, [signedIn]);
 
   const threads = useMemo(() => groupDmThreads(rows), [rows]);
@@ -92,22 +99,51 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const openThread = (otherUserId) => {
     setOpenWith(otherUserId);
     setErr('');
-    markThreadRead(otherUserId);
+    // Viewed = read, INSTANTLY: clear the badge locally the moment the reader
+    // looks (Darrell 2026-08-22: "once I view the message I should not have it
+    // look like I didn't view it yet"), persist server-side, and pull fresh.
+    setRows((prev) => markThreadReadLocal(prev, otherUserId));
+    markThreadRead(otherUserId).then(() => subRef.current?.refresh?.());
   };
 
   const convo = useMemo(() => (openWith ? threadMessages(rows, openWith) : []), [rows, openWith]);
   useEffect(() => { try { endRef.current?.scrollIntoView({ block: 'end' }); } catch { /* noop */ } }, [convo.length, openWith]);
 
+  // A message that arrives WHILE the thread is open is read the moment it
+  // renders — never a stale badge for a conversation the reader is inside.
+  useEffect(() => {
+    if (!openWith) return;
+    if (convo.some((m) => m && !m.mine && !m.readAt)) {
+      setRows((prev) => markThreadReadLocal(prev, openWith));
+      markThreadRead(openWith);
+    }
+  }, [convo, openWith]);
+
   const send = async () => {
     if (!isSendableBody(draft) || !openWith) return;
+    const text = draft;
     setBusy(true);
     const contact = (roster || []).find((p) => p && p.userId === openWith);
-    const r = await sendDirectMessage(openWith, draft, displayName, contact?.instanceId);
+    const r = await sendDirectMessage(openWith, text, displayName, contact?.instanceId);
     setBusy(false);
-    if (r?.sent) { setDraft(''); setErr(''); markThreadRead(openWith); }
-    else setErr(r?.skipped === 'send-blocked'
-      ? 'Message not sent — you may not have a shared ministry with this person.'
-      : `Message not sent (${r?.skipped || 'error'}). Try again.`);
+    if (r?.sent) {
+      setDraft('');
+      setErr('');
+      // The message shows in the thread IMMEDIATELY (optimistic row), then the
+      // refresh replaces it with the server's truth — no waiting on realtime.
+      const nowIso = new Date().toISOString();
+      setRows((prev) => [...prev, {
+        id: `local-${nowIso}`, otherUserId: openWith, mine: true, body: text,
+        createdAt: nowIso, readAt: null, encrypted: !!r.encrypted, locked: false, senderName: displayName || '',
+      }]);
+      markThreadRead(openWith);
+      subRef.current?.refresh?.();
+      try { taRef.current?.focus(); } catch { /* noop */ }
+    } else {
+      setErr(r?.skipped === 'send-blocked'
+        ? 'Message not sent — you may not have a shared ministry with this person.'
+        : `Message not sent (${r?.skipped || 'error'}). Your words are still in the box — try again.`);
+    }
   };
 
   if (!signedIn) {
@@ -202,9 +238,15 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
               ref={taRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // The messenger feel (Darrell 2026-08-22: "make it flow better"):
+                // Enter sends, Shift+Enter makes a new line — long-form still
+                // welcome via Shift+Enter or Speak.
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
               rows={2}
               className={`${FIELD} overflow-y-auto`}
-              placeholder="Words that edify (Ephesians 4:29)…"
+              placeholder="Words that edify (Ephesians 4:29)… Enter sends · Shift+Enter for a new line"
             />
           </label>
           {mic.error && <p className="text-[0.625rem] text-[#B85838]" role="status">{mic.error}</p>}

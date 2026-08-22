@@ -89,9 +89,22 @@ async function decryptShape(m, myUserId) {
 // --- Direct messages ---------------------------------------------------------
 // Stream every DM I'm a party to (RLS already scopes to participant rows), then
 // map to shapes from MY perspective. The surface groups them into threads.
+// The realtime stream is the FAST path, never the ONLY path (measured
+// 2026-08-22, Darrell + Christina both live: "I had to go out and come back in
+// to see I had new messages" — the sovereign realtime leg is the stack's one
+// sick container, so a surface that waits on its events waits forever). Three
+// independent triggers keep the thread honest: the stream when it works, a
+// 15-second heartbeat poll always, and an immediate refetch when the tab
+// becomes visible again. The returned unsubscribe function also carries
+// `.refresh()` so the surface can pull truth the instant the user acts
+// (send, open, read) instead of waiting for any of the three.
+const DM_HEARTBEAT_MS = 15000;
 export function subscribeDirectMessages(onChange) {
   let channel = null;
   let cancelled = false;
+  let timer = null;
+  let onVisible = null;
+  let refresh = async () => {};
   (async () => {
     const session = await currentSession();
     if (!session || cancelled) return;
@@ -103,16 +116,36 @@ export function subscribeDirectMessages(onChange) {
       if (error) { console.warn('[dm-sync] fetch failed:', error); return null; }
       return Promise.all((data || []).map((r) => decryptShape(toDmShape(r, myUserId), myUserId)));
     };
-    const initial = await fetchAll();
-    if (initial && !cancelled) onChange(initial);
+    refresh = async () => {
+      const rows = await fetchAll();
+      if (rows && !cancelled) onChange(rows);
+    };
+    await refresh();
     channel = supabase
       .channel('direct_messages-stream')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => {
-        fetchAll().then((rows) => { if (rows && !cancelled) onChange(rows); });
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => { refresh(); })
       .subscribe();
+    // Occurrence-based delivery stays PRIMARY (the stream fires per message);
+    // the heartbeat is the net under a sick stream — and it never ticks while
+    // the app is off-screen (Darrell 2026-08-22: "why does it need to be time
+    // based instead of occurrence based?" — it doesn't; this is the backstop).
+    timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      refresh();
+    }, DM_HEARTBEAT_MS);
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+      document.addEventListener('visibilitychange', onVisible);
+    }
   })();
-  return function unsubscribe() { cancelled = true; if (channel) supabase.removeChannel(channel); };
+  function unsubscribe() {
+    cancelled = true;
+    if (timer) clearInterval(timer);
+    if (onVisible && typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+    if (channel) supabase.removeChannel(channel);
+  }
+  unsubscribe.refresh = () => refresh();
+  return unsubscribe;
 }
 
 // The instance a DM rides: the contact's OWN space when the roster carried it
