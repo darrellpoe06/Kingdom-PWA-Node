@@ -97,6 +97,30 @@ export async function removeInstanceMember(instanceId, targetUserId) {
   return data || { status: 'noop' };
 }
 
+// Worker classification (0143; Darrell 2026-08-22 "1099 and other etc...") —
+// the SECOND axis beside the access role: what the person IS to the family's
+// books. A label, never a power; owner/admin sets it, '' clears it.
+export const CLASSIFICATIONS = [
+  { key: 'family', label: 'Family' },
+  { key: 'w2', label: 'W-2 staff' },
+  { key: '1099', label: '1099 contractor' },
+  { key: 'volunteer', label: 'Volunteer' },
+];
+
+export function classificationLabel(key) {
+  const c = CLASSIFICATIONS.find((x) => x.key === key);
+  return c ? c.label : '';
+}
+
+export async function setMemberClassification(instanceId, targetUserId, classification) {
+  if (!instanceId || !targetUserId) return { skipped: 'bad-args' };
+  const { data, error } = await supabase.rpc('set_member_classification', {
+    instance_uuid: instanceId, target_user: targetUserId, new_class: classification || '',
+  });
+  if (error) return { skipped: 'classify-error', error };
+  return data || { ok: true, classification: classification || null };
+}
+
 // Change a member's role. Returns { status: 'changed'|'noop', role } or
 // { skipped, error } (the error message carries the RPC's reason).
 export async function setMemberRole(instanceId, targetUserId, newRole) {
@@ -194,5 +218,6 @@ export async function listInstanceMembers(instanceId) {
     displayName: r.display_name ?? null,
     email: r.email ?? null,
     role: r.role ?? null,
+    classification: r.classification ?? null,
   }));
 }
