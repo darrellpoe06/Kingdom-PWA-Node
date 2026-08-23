@@ -67,3 +67,20 @@ describe('the client speaks the four classifications', () => {
     expect(src).toMatch(/classification: r\.classification \?\? null/);
   });
 });
+
+// 2026-08-23, Darrell's screenshot: "No members to manage" shown to the OWNER
+// of the space — the roster RPC had just been re-created by 0144 and the API
+// cache missed; the fail-soft [] rendered as truth. The control surface now
+// uses the STRICT read so an error SAYS it is one (DR-0100).
+describe('the roster error is never dressed as an empty roster', () => {
+  it('member-roles exports the strict twin that throws instead of returning []', () => {
+    const lib = readFileSync(join(HERE, '..', 'lib', 'member-roles.js'), 'utf8');
+    expect(lib).toMatch(/export async function listInstanceMembersStrict/);
+    expect(lib).toMatch(/if \(error\) throw new Error\(error\.message \|\| 'list_instance_members failed'\)/);
+  });
+  it('AdminConsole reads the roster strictly — its catch renders the honest error', () => {
+    const src = readFileSync(join(HERE, '..', 'components', 'AdminConsole.jsx'), 'utf8');
+    expect(src).toMatch(/await listInstanceMembersStrict\(wanted\)/);
+    expect(src).toMatch(/status: 'error', list: \[\], myRole: null, error:/);
+  });
+});
