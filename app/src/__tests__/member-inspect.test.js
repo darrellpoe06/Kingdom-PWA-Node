@@ -77,3 +77,53 @@ describe('buildObservation — the insert refuses what the schema would refuse',
     expect(out.row).toBeNull();
   });
 });
+
+// 2026-08-23, Darrell inspecting his son: "what is inspect doing.... vs what
+// is documented... requests and feedback..." — 0122's mirror ran one way
+// (steward observes member). Now it runs both: the panel also shows the
+// member's OWN recent feedback, confidential rows badged, never hidden as a
+// false "no feedback".
+import { readFileSync as rf } from 'node:fs';
+import { join as j, dirname as dn } from 'node:path';
+import { fileURLToPath as fu } from 'node:url';
+const H = dn(fu(import.meta.url));
+describe('the mirror runs both ways — their words beside your observations', () => {
+  it('member-inspect-sync loads the member\'s real feedback rows with the confidential flag', () => {
+    const lib = rf(j(H, '..', 'lib', 'member-inspect-sync.js'), 'utf8');
+    expect(lib).toMatch(/export async function loadMemberFeedback/);
+    expect(lib).toMatch(/feedback_text, sentiment, which_tab, submitted_at, is_confidential/);
+  });
+  it('MemberInspect renders their words with the confidential badge', () => {
+    const src = rf(j(H, '..', 'components', 'MemberInspect.jsx'), 'utf8');
+    expect(src).toMatch(/In their own words — recent feedback/);
+    expect(src).toMatch(/confidential/);
+    expect(src).toMatch(/loadMemberFeedback\(member\.userId\)/);
+  });
+});
+
+// 0145 — "what does my son like to use the most so we can make it better"
+// (Darrell 2026-08-23). The platform's aggregate-only posture was ITS choice,
+// not the Governor's (DR-0094's correction governs); the steward gate lives in
+// the DATABASE, the person still owns + can delete their trail, and the
+// aggregate surface's copy now tells the whole truth.
+describe('per-person usage for the stewards (0145)', () => {
+  const MIG = j(H, '..', '..', '..', 'infra', 'supabase', 'migrations-auto', '0145-per-person-usage-for-the-stewards.sql');
+  const sql = rf(MIG, 'utf8').replace(/--.*$/gm, '');
+  it('the RPC is steward-gated by shared space, bounded, and PUBLIC-revoked', () => {
+    expect(sql).toMatch(/a\.role IN \('owner','admin'\)/);
+    expect(sql).toMatch(/only a steward of one of their spaces/);
+    expect(sql).toMatch(/GREATEST\(1, LEAST\(days_in, 365\)\)/);
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.user_usage_metrics\(uuid, int\) FROM PUBLIC/);
+  });
+  it('the trail stays the member\'s own: 0145 touches no policy and deletes nothing', () => {
+    expect(sql).not.toMatch(/DROP POLICY|CREATE POLICY|DELETE FROM/);
+  });
+  it('Inspect renders what they use most; the aggregate copy tells the whole truth', () => {
+    const src = rf(j(H, '..', 'components', 'MemberInspect.jsx'), 'utf8');
+    expect(src).toMatch(/What they use most — last 30 days/);
+    expect(src).toMatch(/fetchUserUsage\(member\.userId\)/);
+    const agg = rf(j(H, '..', 'components', 'AccessUsageMetrics.jsx'), 'utf8');
+    expect(agg).not.toMatch(/never any one person/);
+    expect(agg).toMatch(/owns — and can delete — their own trail/);
+  });
+});

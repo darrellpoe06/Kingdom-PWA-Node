@@ -36,7 +36,7 @@ import {
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
 // Friendly names for the raw view ids the usage stream records.
-const VIEW_LABELS = {
+export const VIEW_LABELS = {
   overview: 'Big Picture', books: 'Books', tvtime: 'TV Time', church: 'Church',
   practice: 'Practice', library: 'Library', games: 'Games', voice: 'Voice',
   create: 'Create', recipes: 'Recipes', markets: 'Markets', notes: 'Notes',
@@ -222,7 +222,7 @@ function UsageFlow() {
       {flow === undefined ? (
         <p className={note}>Loading usage…</p>
       ) : rows.length === 0 ? (
-        <p className={note + ' italic'}>No usage recorded yet — as people move through the app, the most-used tabs show here. Aggregate only; never any one person&apos;s activity.</p>
+        <p className={note + ' italic'}>No usage recorded yet — as people move through the app, the most-used tabs show here. This view is the family aggregate; a steward can also see one member&apos;s most-used tabs in Role &amp; stewards → Inspect (0145), and every person still owns — and can delete — their own trail.</p>
       ) : (
         <>
           <p className={note + ' mb-2'}>{flow.active_users || 0} {(flow.active_users === 1) ? 'person' : 'people'} active · {flow.total_views || 0} tab opens</p>
