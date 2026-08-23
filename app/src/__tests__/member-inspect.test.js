@@ -77,3 +77,26 @@ describe('buildObservation — the insert refuses what the schema would refuse',
     expect(out.row).toBeNull();
   });
 });
+
+// 2026-08-23, Darrell inspecting his son: "what is inspect doing.... vs what
+// is documented... requests and feedback..." — 0122's mirror ran one way
+// (steward observes member). Now it runs both: the panel also shows the
+// member's OWN recent feedback, confidential rows badged, never hidden as a
+// false "no feedback".
+import { readFileSync as rf } from 'node:fs';
+import { join as j, dirname as dn } from 'node:path';
+import { fileURLToPath as fu } from 'node:url';
+const H = dn(fu(import.meta.url));
+describe('the mirror runs both ways — their words beside your observations', () => {
+  it('member-inspect-sync loads the member\'s real feedback rows with the confidential flag', () => {
+    const lib = rf(j(H, '..', 'lib', 'member-inspect-sync.js'), 'utf8');
+    expect(lib).toMatch(/export async function loadMemberFeedback/);
+    expect(lib).toMatch(/feedback_text, sentiment, which_tab, submitted_at, is_confidential/);
+  });
+  it('MemberInspect renders their words with the confidential badge', () => {
+    const src = rf(j(H, '..', 'components', 'MemberInspect.jsx'), 'utf8');
+    expect(src).toMatch(/In their own words — recent feedback/);
+    expect(src).toMatch(/confidential/);
+    expect(src).toMatch(/loadMemberFeedback\(member\.userId\)/);
+  });
+});

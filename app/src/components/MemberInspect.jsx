@@ -15,7 +15,7 @@ import supabase from '../lib/supabase.js';
 import {
   MEMBER_STATUSES, SATISFACTION_LEVELS, latestByMember, satisfactionTrend,
 } from '../lib/member-inspect.js';
-import { loadObservations, addObservation } from '../lib/member-inspect-sync.js';
+import { loadObservations, addObservation, loadMemberFeedback } from '../lib/member-inspect-sync.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -36,6 +36,7 @@ export default function MemberInspect({ instanceId, member }) {
   const [status, setStatus] = useState('active');
   const [form, setForm] = useState({ position: '', satisfaction: '', note: '' });
   const [msg, setMsg] = useState('');
+  const [theirWords, setTheirWords] = useState([]); // their recent feedback (0122's mirror, both directions)
 
   const refresh = () => loadObservations(instanceId).then((r) => {
     if (!r.ok) { setMsg(r.reason === 'no-instance' ? '' : `Could not load the record (${r.reason}).`); return; }
@@ -51,6 +52,7 @@ export default function MemberInspect({ instanceId, member }) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setRecordedBy(data?.user?.id || null)).catch(() => {});
     refresh();
+    loadMemberFeedback(member.userId).then((r) => { if (r.ok) setTheirWords(r.rows); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId, member.userId]);
 
@@ -115,6 +117,22 @@ export default function MemberInspect({ instanceId, member }) {
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mr-2">{fmtDay(o.created_at)}</span>
               {[o.position, o.status, o.satisfaction].filter(Boolean).join(' · ')}
               {o.note ? <span className="text-[#5A5751]"> — {o.note}</span> : null}
+            </div>
+          ))}
+        </div>
+      )}
+      {/* The mirror runs BOTH ways (Darrell 2026-08-23: "requests and
+          feedback..."): under what you observe, what THEY have said — their
+          real feedback rows, confidential ones badged, never hidden. */}
+      {theirWords.length > 0 && (
+        <div className="space-y-1 pt-1 border-t border-[#E8E4DC]">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">In their own words — recent feedback</div>
+          {theirWords.map((f) => (
+            <div key={f.id} className="text-xs text-[#1A1815]">
+              <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mr-2">{fmtDay(f.submitted_at)}</span>
+              {[f.which_tab, f.sentiment].filter(Boolean).join(' · ')}
+              {f.is_confidential ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] ml-1">confidential</span> : null}
+              <span className="text-[#5A5751]"> — {String(f.feedback_text || '').slice(0, 160)}{String(f.feedback_text || '').length > 160 ? '…' : ''}</span>
             </div>
           ))}
         </div>
