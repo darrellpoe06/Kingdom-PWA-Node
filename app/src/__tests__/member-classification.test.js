@@ -84,3 +84,18 @@ describe('the roster error is never dressed as an empty roster', () => {
     expect(src).toMatch(/status: 'error', list: \[\], myRole: null, error:/);
   });
 });
+
+// Build 0755B9C, Darrell's screenshot: the honest error surfaced the TRUE root
+// cause — the Load-members button passed its CLICK EVENT as the space id, and
+// the RPC tried to JSON-serialize an HTMLButtonElement (circular structure).
+// Two pins: the button passes NO argument, and the loader accepts only strings.
+describe('the loader never receives a click event as a space id', () => {
+  const src = readFileSync(join(HERE, '..', 'components', 'AdminConsole.jsx'), 'utf8');
+  it('the Load-members button calls loadMembers with no argument', () => {
+    expect(src).toMatch(/onClick=\{\(\) => loadMembers\(\)\}/);
+    expect(src).not.toMatch(/onClick=\{loadMembers\}/);
+  });
+  it('loadMembers type-guards its argument to a string space id', () => {
+    expect(src).toMatch(/typeof targetInstance === 'string' && targetInstance \? targetInstance : null/);
+  });
+});
