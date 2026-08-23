@@ -55,3 +55,16 @@ export function viewShare(row, flow) {
   if (!total || !row) return 0;
   return Math.max(0, Math.min(1, (Number(row.count) || 0) / total));
 }
+
+// Per-person usage for the STEWARDS (0145; Darrell 2026-08-23: "what does my
+// son like to use the most so we can make it better... which users to ask to
+// help"). The DB guard is the authority: only an owner/admin of one of the
+// member's spaces may call. Null on failure so surfaces degrade honestly.
+export async function fetchUserUsage(userId, days = 30) {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase.rpc('user_usage_metrics', { target_user: userId, days_in: days });
+    if (error) { console.warn('[usage-events] user usage fetch failed:', error); return null; }
+    return data || [];
+  } catch (err) { console.warn('[usage-events] user usage fetch failed:', err); return null; }
+}

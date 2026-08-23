@@ -16,6 +16,8 @@ import {
   MEMBER_STATUSES, SATISFACTION_LEVELS, latestByMember, satisfactionTrend,
 } from '../lib/member-inspect.js';
 import { loadObservations, addObservation, loadMemberFeedback } from '../lib/member-inspect-sync.js';
+import { fetchUserUsage } from '../lib/usage-events.js';
+import { VIEW_LABELS } from './AccessUsageMetrics.jsx';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -37,6 +39,7 @@ export default function MemberInspect({ instanceId, member }) {
   const [form, setForm] = useState({ position: '', satisfaction: '', note: '' });
   const [msg, setMsg] = useState('');
   const [theirWords, setTheirWords] = useState([]); // their recent feedback (0122's mirror, both directions)
+  const [theirUsage, setTheirUsage] = useState(null); // what they use most (0145, steward-gated in the DB)
 
   const refresh = () => loadObservations(instanceId).then((r) => {
     if (!r.ok) { setMsg(r.reason === 'no-instance' ? '' : `Could not load the record (${r.reason}).`); return; }
@@ -53,6 +56,7 @@ export default function MemberInspect({ instanceId, member }) {
     supabase.auth.getUser().then(({ data }) => setRecordedBy(data?.user?.id || null)).catch(() => {});
     refresh();
     loadMemberFeedback(member.userId).then((r) => { if (r.ok) setTheirWords(r.rows); });
+    fetchUserUsage(member.userId).then((rows) => setTheirUsage(rows));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId, member.userId]);
 
@@ -133,6 +137,20 @@ export default function MemberInspect({ instanceId, member }) {
               {[f.which_tab, f.sentiment].filter(Boolean).join(' · ')}
               {f.is_confidential ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] ml-1">confidential</span> : null}
               <span className="text-[#5A5751]"> — {String(f.feedback_text || '').slice(0, 160)}{String(f.feedback_text || '').length > 160 ? '…' : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* What they use most (0145; Darrell 2026-08-23: "what does my son like
+          to use the most so we can make it better") — steward-gated in the DB;
+          serve-them-better data, and they still own + can delete their trail. */}
+      {Array.isArray(theirUsage) && theirUsage.length > 0 && (
+        <div className="space-y-1 pt-1 border-t border-[#E8E4DC]">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">What they use most — last 30 days</div>
+          {theirUsage.slice(0, 5).map((u) => (
+            <div key={u.name} className="text-xs text-[#1A1815]">
+              {VIEW_LABELS[u.name] || u.name}
+              <span className="text-[#5A5751]"> — {u.views} {u.views === 1 ? 'visit' : 'visits'}</span>
             </div>
           ))}
         </div>
