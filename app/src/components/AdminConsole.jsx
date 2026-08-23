@@ -51,7 +51,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
+import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
@@ -188,7 +188,7 @@ export default function AdminConsole({
     setMembers((p) => ({ ...p, status: 'loading' }));
     try {
       const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
-      const list = await listInstanceMembers(wanted);
+      const list = await listInstanceMembersStrict(wanted);
       setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
       setCapGrants(await listMemberCapabilities(wanted));
       loadPending();

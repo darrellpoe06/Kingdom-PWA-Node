@@ -235,6 +235,23 @@ export async function listInstanceMembers(instanceId) {
   if (!instanceId) return [];
   const { data, error } = await supabase.rpc('list_instance_members', { instance_uuid: instanceId });
   if (error) { console.warn('[member-roles] list_instance_members failed:', error); return []; }
+  return mapMemberRows(data);
+}
+
+// The STRICT twin for control surfaces (measured 2026-08-23: right after a
+// migration re-created the roster function, the API layer's stale cache made
+// the call FAIL — and the fail-soft [] rendered as "No members to manage",
+// a false statement shown as truth. DR-0100: an error must say it is one).
+// Throws on RPC error so the caller's error path renders "couldn't read —
+// Refresh" instead of an empty roster.
+export async function listInstanceMembersStrict(instanceId) {
+  if (!instanceId) return [];
+  const { data, error } = await supabase.rpc('list_instance_members', { instance_uuid: instanceId });
+  if (error) throw new Error(error.message || 'list_instance_members failed');
+  return mapMemberRows(data);
+}
+
+function mapMemberRows(data) {
   return (data || []).map((r) => ({
     userId: r.user_id,
     displayName: r.display_name ?? null,
