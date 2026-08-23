@@ -178,9 +178,15 @@ export default function AdminConsole({
   // + ministries) so the panel can offer an instance picker.
   const loadMembers = async (targetInstance) => {
     // Populate the picker on first load; keep the current pick if still valid.
+    // TYPE-GUARDED (measured 2026-08-23, build 0755B9C: the Load-members
+    // button passed its CLICK EVENT here; the RPC then tried to serialize an
+    // HTMLButtonElement — the circular-structure TypeError on Darrell's
+    // screen, and before the strict read, a silent empty roster): only a
+    // string can be a space id; anything else means "use the current scope".
+    const requested = typeof targetInstance === 'string' && targetInstance ? targetInstance : null;
     const spaces = await listMyAdminInstances();
     setAdminInstances(spaces);
-    const wanted = targetInstance || scopeInstance
+    const wanted = requested || scopeInstance
       || (spaces.find((s) => s.instanceId === instanceId) ? instanceId : spaces[0]?.instanceId)
       || instanceId;
     setScopeInstance(wanted);
@@ -392,7 +398,7 @@ export default function AdminConsole({
           <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
             <div className="flex items-baseline justify-between gap-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Manage access roles</div>
-              <button type="button" onClick={loadMembers}
+              <button type="button" onClick={() => loadMembers()}
                 className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
                 {members.status === 'loading' ? 'Loading…' : members.status === 'ok' ? 'Refresh' : 'Load members'}
               </button>
