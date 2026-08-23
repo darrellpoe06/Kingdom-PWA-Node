@@ -6,9 +6,9 @@ import { grantableRoles, canEditRole, roleLabel, isInviteEmail } from '../lib/me
 
 describe('grantableRoles (mirror of set_member_role guards)', () => {
   it('an owner may set admin/member/viewer on a non-owner', () => {
-    expect(grantableRoles('owner', 'member')).toEqual(['admin', 'member', 'viewer', 'assistant']);
-    expect(grantableRoles('owner', 'viewer')).toEqual(['admin', 'member', 'viewer', 'assistant']);
-    expect(grantableRoles('owner', 'admin')).toEqual(['admin', 'member', 'viewer', 'assistant']);
+    expect(grantableRoles('owner', 'member')).toEqual(['admin', 'member', 'viewer', 'assistant', 'successor', 'child']);
+    expect(grantableRoles('owner', 'viewer')).toEqual(['admin', 'member', 'viewer', 'assistant', 'successor', 'child']);
+    expect(grantableRoles('owner', 'admin')).toEqual(['admin', 'member', 'viewer', 'assistant', 'successor', 'child']);
   });
   it('an owner is NEVER editable via this control (untouchable — no lockout)', () => {
     expect(grantableRoles('owner', 'owner')).toEqual([]);
@@ -110,5 +110,22 @@ describe('governance checklist (mirror of set_member_capability, 0126)', () => {
     expect(capabilityLabel('invite:viewer')).toBe('May invite guests (read-only)');
     expect(capabilityLabel('write:choir')).toBe('Choir — edit');
     expect(capabilityLabel('write:unknown')).toBe('write:unknown');
+  });
+});
+
+// 0144 — the protective standings are the owner's hand alone (Darrell
+// 2026-08-23 "child/successor... how can we safeguard?"): an admin can never
+// set or lift child/successor; an owner moves anyone between all standings.
+import { describe as d0144, it as it0144, expect as ex0144 } from 'vitest';
+d0144('grantableRoles — 0144 protective standings', () => {
+  it0144('an owner can set child and successor; an admin cannot', () => {
+    ex0144(grantableRoles('owner', 'member')).toContain('child');
+    ex0144(grantableRoles('owner', 'member')).toContain('successor');
+    ex0144(grantableRoles('admin', 'member')).not.toContain('child');
+    ex0144(grantableRoles('admin', 'member')).not.toContain('successor');
+  });
+  it0144('an admin cannot touch someone already standing as child or successor', () => {
+    ex0144(grantableRoles('admin', 'child')).toEqual([]);
+    ex0144(grantableRoles('admin', 'successor')).toEqual([]);
   });
 });

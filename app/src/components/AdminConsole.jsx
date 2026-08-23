@@ -51,7 +51,7 @@ import {
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
-import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification } from '../lib/member-roles.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
@@ -205,6 +205,12 @@ export default function AdminConsole({
   // W-2 / 1099 / volunteer. A label, never a power; '' clears it.
   const changeMemberClassification = async (userId, classification) => {
     const r = await setMemberClassification(scopeInstance, userId, classification);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers(scopeInstance);
+  };
+  // Relationship (0144) — free-growing label (Son, Uncle, Brother-in-law, …).
+  const changeMemberRelationship = async (userId, relationship) => {
+    const r = await setMemberRelationship(scopeInstance, userId, relationship);
     if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
     await loadMembers(scopeInstance);
   };
@@ -393,7 +399,11 @@ export default function AdminConsole({
             </div>
             <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
               Change a member’s access in this space. You can’t change an owner, an admin (only an owner can), or yourself — and no one is ever made owner here.
+              Child and Successor are the protective standings (child: no financial visibility; successor: sees, cannot change) — only you as owner set or lift them.
             </p>
+            <datalist id="rel-suggestions">
+              {RELATIONSHIP_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
+            </datalist>
             {adminInstances.length > 1 && (
               <label className="flex items-center gap-2 mt-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 Space
@@ -442,6 +452,22 @@ export default function AdminConsole({
                               <option value="">Unclassified</option>
                               {CLASSIFICATIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                             </select>
+                          )}
+                          {/* Relationship (0144) — the free-growing label: type
+                              anything (Son, Uncle, Brother-in-law…); saves on
+                              blur or Enter. Suggestions, never a whitelist. */}
+                          {m.userId && (
+                            <input
+                              type="text"
+                              list="rel-suggestions"
+                              aria-label={`Relationship for ${m.displayName || m.email || 'member'}`}
+                              className="text-xs p-1 border border-[#E8E4DC] bg-white w-28"
+                              defaultValue={m.relationship || ''}
+                              placeholder="Relationship"
+                              maxLength={40}
+                              onBlur={(e) => { if ((e.target.value || '') !== (m.relationship || '')) changeMemberRelationship(m.userId, e.target.value); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                            />
                           )}
                           {/* The governance checklist (DR-0242): additive powers
                               between the roles — per person, DB-enforced. */}

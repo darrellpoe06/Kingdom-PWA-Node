@@ -38,10 +38,15 @@ export function roleLabel(role) {
 export function grantableRoles(actorRole, targetRole, { isSelf = false } = {}) {
   if (isSelf) return [];
   if (targetRole === 'owner') return [];        // owners untouchable via this control
-  if (actorRole === 'owner') return ['admin', 'member', 'viewer', 'assistant'];
+  // Every standing at the Governor's will (0144; Darrell 2026-08-23 "all
+  // statuses to be able to update to our decided status at will"): an OWNER
+  // moves anyone between the full vocabulary — the protective standings
+  // (child: no books; successor: reads, cannot write) included.
+  if (actorRole === 'owner') return ['admin', 'member', 'viewer', 'assistant', 'successor', 'child'];
   if (actorRole === 'admin') {
     if (targetRole === 'admin') return [];       // only an owner touches an admin
-    return ['member', 'viewer', 'assistant'];    // an admin can't grant admin
+    if (targetRole === 'child' || targetRole === 'successor') return []; // owner's hand alone (0144)
+    return ['member', 'viewer', 'assistant'];    // an admin can't grant admin/child/successor
   }
   return [];                                     // not an owner/admin -> no control
 }
@@ -110,6 +115,23 @@ export const CLASSIFICATIONS = [
 export function classificationLabel(key) {
   const c = CLASSIFICATIONS.find((x) => x.key === key);
   return c ? c.label : '';
+}
+
+// Relationship — the label that GROWS (0144; "keep the relationship fields
+// capable of growing"): free text, suggestions only, never a whitelist.
+export const RELATIONSHIP_SUGGESTIONS = [
+  'Son', 'Daughter', 'Wife', 'Husband', 'Mother', 'Father',
+  'Uncle', 'Aunt', 'Brother-in-law', 'Sister-in-law',
+  'Grandparent', 'Grandchild', 'Cousin', 'Friend',
+];
+
+export async function setMemberRelationship(instanceId, targetUserId, relationship) {
+  if (!instanceId || !targetUserId) return { skipped: 'bad-args' };
+  const { data, error } = await supabase.rpc('set_member_relationship', {
+    instance_uuid: instanceId, target_user: targetUserId, new_rel: relationship || '',
+  });
+  if (error) return { skipped: 'relationship-error', error };
+  return data || { ok: true, relationship: relationship || null };
 }
 
 export async function setMemberClassification(instanceId, targetUserId, classification) {
@@ -219,5 +241,6 @@ export async function listInstanceMembers(instanceId) {
     email: r.email ?? null,
     role: r.role ?? null,
     classification: r.classification ?? null,
+    relationship: r.relationship ?? null,
   }));
 }
