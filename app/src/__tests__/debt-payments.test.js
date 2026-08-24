@@ -6,11 +6,16 @@
 // (authoritative over a manual entry), and the name classifier that surfaces a
 // mis-typed imported card.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   debtPaymentStats, estimatePayoff, deriveApr, debtPayoffInsight,
   isInterestCharge, looksLikeDebtAccount, cardPaymentSuggestions, debtNameFromPayee,
   linkedDebtPaymentStats,
 } from '../lib/debt-payments.js';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const asOf = new Date('2026-07-15T00:00:00');
 // Six monthly $500 payments to card account 'cc', plus a couple of charges.
@@ -191,6 +196,51 @@ describe('linkedDebtPaymentStats — payments recovered by cleaned payee name', 
   });
   it('is honest on a blank name', () => {
     expect(linkedDebtPaymentStats(txns, '', 'a-x', asOf).paymentCount).toBe(0);
+  });
+});
+
+describe('name matching widened — 29 "not observed" while the family paid monthly (Darrell 2026-08-24)', () => {
+  // Descriptions below are the REAL shapes from the imported ledger. Matching is
+  // by NAME, never by amount; these pin the three widenings that link the
+  // family's own compact naming to the bank's spaced naming.
+  const asOf = new Date('2026-08-15T00:00:00');
+  const txns = [
+    { id: 'c1', date: '2026-07-02', accountId: 'a-chk', amount: -62, description: 'Credit One Bank  Payment    68135128        WEB ID: WEB000004' },
+    { id: 'c2', date: '2026-08-02', accountId: 'a-chk', amount: -62, description: 'Credit One Bank  Payment    68199201        WEB ID: WEB000004' },
+    { id: 'a1', date: '2026-07-03', accountId: 'a-chk', amount: -124, description: 'AMERICAN EXPRESS ACH PMT    A4306           TEL ID: 9493560001' },
+    { id: 'a2', date: '2026-08-04', accountId: 'a-chk', amount: -124, description: 'AMERICAN EXPRESS ACH PMT    A5652           TEL ID: 9493560001' },
+    { id: 'w1', date: '2026-07-16', accountId: 'a-chk', amount: -2622.83, description: 'WF HOME MTG      AUTO PAY   0511000606      WEB ID: 1562287461' },
+    { id: 'g1', date: '2026-07-20', accountId: 'a-chk', amount: -84.12, description: 'WFM WHOLE FOODS CHAMPAIGN IL' },
+    { id: 'k1', date: '2026-07-21', accountId: 'a-chk', amount: -148, description: 'DISCOVER E-PAYMENT 7244' },
+  ];
+  it('a compact family name matches the bank\'s spaced one: CreditOne ↔ Credit One Bank', () => {
+    const s = linkedDebtPaymentStats(txns, 'CreditOne', 'a-c1', asOf);
+    expect(s.paymentCount).toBe(2);
+    expect(s.grossPaymentPerMonth).toBeCloseTo(62, 2);
+  });
+  it('an issuer alias links Amex ↔ AMERICAN EXPRESS', () => {
+    const s = linkedDebtPaymentStats(txns, 'Amex 5652', 'a-am', asOf);
+    expect(s.paymentCount).toBe(2);
+  });
+  it('the payeeAlias "payment name" is the universal cure — and groceries never leak in', () => {
+    // "House Mortgage" matches nothing by name; the alias links the WF payment
+    // — and ONLY it: WFM Whole Foods must not ride the short "wf" alias.
+    const miss = linkedDebtPaymentStats(txns, 'House Mortgage', 'a-wf', asOf);
+    expect(miss.paymentCount).toBe(0);
+    const s = linkedDebtPaymentStats(txns, 'House Mortgage', 'a-wf', asOf, 6, 'WF HOME MTG AUTO PAY');
+    expect(s.paymentCount).toBe(1);
+    expect(s.grossPaymentPerMonth).toBeCloseTo(2622.83, 2);
+    const wells = linkedDebtPaymentStats(txns, 'Wells Fargo Mortgage', 'a-wf', asOf);
+    expect(wells.paymentCount).toBe(1); // the wf whole-word alias, not the grocer
+  });
+  it('Discover still matches as before (spaced containment, back-compat)', () => {
+    expect(linkedDebtPaymentStats(txns, 'Discover', 'a-d', asOf).paymentCount).toBe(1);
+  });
+  it('deriveDebts runs linked recovery for TYPED credit accounts too, not only treat-as-debt', () => {
+    const src = readFileSync(join(HERE, '..', 'lib', 'financial-engineering.js'), 'utf8');
+    expect(src).toMatch(/if \(!insight\.hasPayments\) \{/);
+    expect(src).toMatch(/linkedDebtPaymentStats\(txns, a\.name, a\.id, asOf, 6, a\.payeeAlias \|\| null\)/);
+    expect(src).toMatch(/payeeAlias: a\.payeeAlias \|\| null/);
   });
 });
 

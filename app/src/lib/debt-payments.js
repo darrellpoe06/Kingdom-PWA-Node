@@ -245,14 +245,59 @@ export function cardPaymentSuggestions(transactions, accounts = [], opts = {}) {
 // -> "American Express Ach A"). Without this the row said "no payments seen"
 // forever while the family paid it every month — a false negative (DR-0100).
 //
+// Darrell 2026-08-24 ("how can we have 29 payments not observed... we never
+// paid that exact amount from that exact debt?"): matching is by NAME, never by
+// amount — and strict spaced-key containment missed the family's own naming
+// ("CreditOne" vs the bank's "Credit One Bank", "Amex" vs "AMERICAN EXPRESS").
+// Three deterministic widenings close that gap, each still name-based:
+//   · SQUASHED containment (spaces stripped, shorter side ≥ 5 chars) so compact
+//     names match the bank's spaced ones: creditone ⊂ creditonebank.
+//   · ISSUER_ALIASES — known same-issuer name pairs (amex ↔ american express).
+//   · payeeAlias — the row's own "payment name" (set in Edit): the exact way
+//     the bank ledger names its payment, matched with the same rules. The
+//     universal cure when an issuer abbreviates beyond recognition.
+//
 // From the checking side only PAYMENTS are visible (outflows; the card's new
 // charges are not in this ledger), so this reports the payment pace alone —
 // gross, never presented as net paydown. Pure; asOf injected.
-export function linkedDebtPaymentStats(transactions, accountName, ownAccountId, asOf, windowMonths = 6) {
+export const ISSUER_ALIASES = [
+  ['amex', 'american express'],
+  ['wells fargo', 'wf'],
+  ['bank of america', 'bofa'],
+  ['bank of america', 'boa'],
+  ['small business administration', 'sba'],
+  ['navy federal', 'nfcu'],
+];
+
+const squash = (k) => k.replace(/ /g, '');
+
+// One matcher for a (cleaned tx key, cleaned name key) pair.
+function nameKeysMatch(tk, nameKey) {
+  if (!tk || !nameKey) return false;
+  // The original spaced containment (back-compat, exact suggestion-flow names).
+  if (tk === nameKey || tk.includes(nameKey) || nameKey.includes(tk)) return true;
+  // Squashed containment: compact family naming vs the bank's spaced naming.
+  const ts = squash(tk), ns = squash(nameKey);
+  if (Math.min(ts.length, ns.length) >= 5 && (ts.includes(ns) || ns.includes(ts))) return true;
+  // Known issuer aliases: one side of the pair in the name, the other in the tx.
+  // A short alias ("wf", "boa") must appear as a WHOLE WORD of the spaced key —
+  // substring would let "WFM Whole Foods" pass as a Wells Fargo payment.
+  const has = (spaced, squashed, alias) => (squash(alias).length >= 4
+    ? squashed.includes(squash(alias))
+    : ` ${spaced} `.includes(` ${alias} `));
+  for (const [a, b] of ISSUER_ALIASES) {
+    if ((has(nameKey, ns, a) && has(tk, ts, b)) || (has(nameKey, ns, b) && has(tk, ts, a))) return true;
+  }
+  return false;
+}
+
+export function linkedDebtPaymentStats(transactions, accountName, ownAccountId, asOf, windowMonths = 6, payeeAlias = null) {
   const nowMs = asOf instanceof Date ? asOf.getTime() : Number(asOf) || Date.now();
   const sinceMs = nowMs - windowMonths * 30 * DAY_MS;
   const nameKey = payeeKey(accountName || '');
-  if (!nameKey) return { paymentCount: 0, grossPaymentPerMonth: 0, months: 0 };
+  const aliasKey = payeeKey(debtNameFromPayee(payeeAlias || ''));
+  const aliasUsable = payeeAlias && aliasKey && aliasKey !== 'debt';
+  if (!nameKey && !aliasUsable) return { paymentCount: 0, grossPaymentPerMonth: 0, months: 0 };
   let gross = 0, paymentCount = 0;
   const months_ = new Set();
   for (const t of (transactions || [])) {
@@ -262,7 +307,8 @@ export function linkedDebtPaymentStats(transactions, accountName, ownAccountId, 
     const ms = txMs(t);
     if (ms == null || ms < sinceMs || ms > nowMs) continue;
     const tk = payeeKey(debtNameFromPayee(t.description || t.name || ''));
-    if (!tk || (tk !== nameKey && !tk.includes(nameKey) && !nameKey.includes(tk))) continue;
+    if (!tk) continue;
+    if (!nameKeysMatch(tk, nameKey) && !(aliasUsable && nameKeysMatch(tk, aliasKey))) continue;
     gross += -a;
     paymentCount += 1;
     months_.add(monthKey(ms));

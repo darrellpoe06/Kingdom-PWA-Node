@@ -107,9 +107,9 @@ export function traceDebtPayoff(d, clearedAtMonth = null) {
     result = text(`month ${clearedAtMonth} of the plan`);
     sources.push({ label: 'Source: the snowball engine over balance + rate + minimum', ...text('projected, not observed') });
   } else if (d.hasPayments === false && !d.leaveAlone) {
-    formula = 'No payments observed and no full terms — nothing honest to project from yet.';
+    formula = 'No payments observed and no full terms — nothing honest to project from yet. Payments are matched by NAME from the bank ledger, never by amount.';
     result = text('no payments seen');
-    note = 'Add the rate and minimum (or import a statement) and this cell earns a date.';
+    note = 'If you DO pay this every month: the bank likely names the payment differently — open Edit and set “Payment name in the bank ledger”, and the real history drives this date. Or add the rate and minimum (or import a statement) and this cell earns a date.';
   } else {
     formula = 'Not projectable with what is recorded.';
     result = text('—');
