@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // sovereign-ai-class — "Sovereign A.I.: Why We Build Local" must use the SHARED
-// Learn framework (8-week set, computed timeline, multi-modal fields), teach the
+// Learn framework (9-week set, computed timeline, multi-modal fields), teach the
 // REAL, VERIFIED model + hardware landscape (DR-0076 — no fabrication), carry the
 // age-adaptive levels (teen + senior on every module) and the Research → Plan →
 // Execute primitive, and never assert the illustrative "provider banned a model"
@@ -18,15 +18,16 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 8-week module set', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(8);
-    expect(SOVEREIGN_AI_META.weeks).toBe(8);
+  it('has the full 9-week module set (week 9: verification earns trust, captured 2026-08-24)', () => {
+    expect(SOVEREIGN_AI_MODULES).toHaveLength(9);
+    expect(SOVEREIGN_AI_META.weeks).toBe(9);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
     expect(ids).toContain('sov3-model-tier-landscape');        // the tiers
     expect(ids).toContain('sov7-five-opportunities');          // the strategy
     expect(ids).toContain('sov8-build-sovereign-hand-it-on');  // the capstone
+    expect(ids).toContain('sov9-verification-earns-trust');    // DR-0076 taught (from Darrell's forwarded article)
   });
   it('every module id is unique and prefixed sov*', () => {
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
@@ -163,16 +164,16 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(8);
+    expect(sched).toHaveLength(9);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(8);
+    expect(r.total).toBe(9);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(25);
+    expect(r.pct).toBe(22);
   });
   it('the cohort starts PROPOSED (not confirmed) until Darrell locks it', () => {
     expect(SOVEREIGN_AI_CONFIRMED_COHORT.confirmed).toBe(false);
