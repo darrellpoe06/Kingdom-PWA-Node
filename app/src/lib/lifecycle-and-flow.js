@@ -191,6 +191,22 @@ export function computePressure(map, totals, outflows = {}, reservesMonthly = 0)
   };
 }
 
+// FLAG-1 CLOSED (2026-08-24, CALC-INVENTORY.md's own recommendation): real
+// credit cards accrue interest DAILY, so the old APR/12 model biased the
+// "total interest paid" figures LOW (~0.5–1.5%/yr at card rates) and the
+// payoff dates slightly optimistic. Card-class debts (rate > 10%, per the
+// inventory's classing) now accrue at the effective monthly rate of daily
+// compounding: (1 + APR/365)^(365/12) − 1. Lower-rate debts (and the rental
+// mortgages in projectRentalSnowball) stay monthly-periodic — correct for US
+// mortgages and standard installment loans. ONE shared helper so every debt
+// engine agrees (the cross-engine agreement pins depend on it).
+export function monthlyInterestRate(aprPercent) {
+  const apr = Number(aprPercent);
+  if (!isFinite(apr) || apr <= 0) return 0;
+  if (apr > 10) return Math.pow(1 + apr / 100 / 365, 365 / 12) - 1;
+  return apr / 100 / 12;
+}
+
 // 2026-07-05 financial-math audit fix: the extra pool is NO LONGER reduced by
 // minimum payments. The caller's `extraAvailable` (computePressure) starts from
 // netCashFlow, whose outflows already include debtService — the budget that
@@ -203,7 +219,7 @@ export function projectDebt(debts, monthlyExtraAvailable, currentDate, maxMonths
   let activeDebts = debts.filter((d) => !d.leaveAlone).map((d) => ({ ...d, currentBalance: d.balance, clearedAtMonth: null }));
   const projection = []; let totalInterestPaid = 0; let freedMinimums = 0;
   for (let m = 1; m <= maxMonths; m++) {
-    activeDebts.forEach((d) => { if (d.currentBalance > 0 && d.rate > 0) { const interest = d.currentBalance * (d.rate / 100 / 12); d.currentBalance += interest; totalInterestPaid += interest; } });
+    activeDebts.forEach((d) => { if (d.currentBalance > 0 && d.rate > 0) { const interest = d.currentBalance * monthlyInterestRate(d.rate); d.currentBalance += interest; totalInterestPaid += interest; } });
     activeDebts.forEach((d) => { if (d.currentBalance > 0) { const pay = Math.min(d.minPayment, d.currentBalance); d.currentBalance -= pay; if (d.currentBalance <= 0.01 && !d.clearedAtMonth) { d.clearedAtMonth = m; d.currentBalance = 0; freedMinimums += d.minPayment; } } });
     // Pool AFTER the minimums pass so a same-month-cleared debt's freed minimum
     // joins this month's attack — the exact ordering projectDebtSnowball uses.
@@ -243,7 +259,7 @@ export function projectDebtSnowball(debts, monthlyExtra, sortOrder, currentDate,
 
   for (let m = 1; m <= maxMonths; m++) {
     // Accrue interest
-    active.forEach(d => { if (d.currentBalance > 0 && d.rate > 0) { const interest = d.currentBalance * (d.rate / 100 / 12); d.currentBalance += interest; d.interestPaid += interest; } });
+    active.forEach(d => { if (d.currentBalance > 0 && d.rate > 0) { const interest = d.currentBalance * monthlyInterestRate(d.rate); d.currentBalance += interest; d.interestPaid += interest; } });
 
     // Pay minimums
     active.forEach(d => {
@@ -299,7 +315,7 @@ export function projectDebtMinimumOnly(debts, currentDate, maxMonths = 600) {
   for (let m = 1; m <= maxMonths; m++) {
     active.forEach(d => {
       if (d.currentBalance > 0 && !d.stuck) {
-        const interest = d.currentBalance * (d.rate / 100 / 12);
+        const interest = d.currentBalance * monthlyInterestRate(d.rate);
         d.currentBalance += interest;
         d.interestPaid += interest;
         const pay = Math.min(d.minPayment, d.currentBalance);
@@ -327,6 +343,8 @@ export function projectRentalSnowball(rentals, monthlyExtra, sortOrder, currentD
   function sortQueue(list) { return [...list].filter(r => r.currentBalance > 0).sort((a, b) => { if (sortOrder === 'smallest-balance') return a.currentBalance - b.currentBalance; if (sortOrder === 'highest-rate') return b.rate - a.rate; if (sortOrder === 'best-cashflow') return (b.rent - b.monthlyPI - b.escrow) - (a.rent - a.monthlyPI - a.escrow); return a.currentBalance - b.currentBalance; }); }
   const monthlyHistory = []; let freedFromSnowball = 0;
   for (let m = 1; m <= maxMonths; m++) {
+    // Mortgages really are monthly-periodic (CALC-INVENTORY: FLAG-1 does not
+    // apply here) — deliberately NOT monthlyInterestRate's card-class daily.
     active.forEach(r => { if (r.currentBalance > 0) { const interest = r.currentBalance * (r.rate / 100 / 12); r.currentBalance += interest; r.interestPaid += interest; } });
     active.forEach(r => { if (r.currentBalance > 0) { const pay = Math.min(r.monthlyPI, r.currentBalance); r.currentBalance -= pay; if (r.currentBalance <= 0.01 && !r.clearedAtMonth) { r.clearedAtMonth = m; r.currentBalance = 0; freedFromSnowball += r.monthlyPI; } } });
     let pool = monthlyExtra + freedFromSnowball; let safety = 0;
