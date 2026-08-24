@@ -1,7 +1,9 @@
 // projectDebt — basic correctness tests (C1 in CALC-INVENTORY.md).
-// Pass 2 starting set. These tests don't yet address FLAG-1 (monthly vs
-// daily compounding) — that fix would change the expected interest totals,
-// and the test will be updated in lockstep when FLAG-1 lands.
+// Pass 2 starting set. FLAG-1 (monthly vs daily compounding) LANDED
+// 2026-08-24: card-class debts (rate > 10%) now compound daily via
+// monthlyInterestRate (lifecycle-and-flow.js); the exact-value cases here
+// are at 0% APR, deliberately unaffected. The bias-direction and classing
+// pins live in flag-1-daily-compounding.test.js.
 import { describe, it, expect } from 'vitest';
 import { projectDebt, projectDebtSnowball } from '../lib/financial-calcs.js';
 

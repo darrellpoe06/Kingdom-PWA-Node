@@ -1,6 +1,39 @@
 # Financial Calculation Inventory — Audit Pass 1
 
 > **Status:** IN PROGRESS, 2026-05-24. Pass 1 of the four-pass financial accuracy audit committed to before the June 1 family + church launch. Per `project_financial-accuracy-load-bearing` memory: financial calcs in this app drive real money decisions; verification is load-bearing, not aspirational.
+
+---
+
+## RE-BASELINE, 2026-08-24 (Darrell: "does the money math accuracy validation occur?")
+
+The per-section statuses below are the 2026-05-24 snapshot and now UNDERSTATE
+real coverage — under-claiming a verified truth is also a truth failure
+(DR-0100). Measured against the live test suite today:
+
+- **FLAG-1 — CLOSED 2026-08-24.** Card-class debts (rate > 10%, this
+  inventory's own classing) now compound DAILY via `monthlyInterestRate()` in
+  `app/src/lib/lifecycle-and-flow.js`; low-rate debts and mortgages stay
+  monthly-periodic. Bias-direction + classing + engine-agreement pins:
+  `app/src/__tests__/flag-1-daily-compounding.test.js` (the test Pass 2
+  promised). The C1/C2/C3 "biased low" caveat no longer applies.
+- **FLAG-10 — fixed** (incidents are not a perpetual monthly drain):
+  `lib/financial-calcs.js` + `flag-10-incidents-reserves.test.js`.
+- **FLAG-11 — fixed**: `flag-11-practice-annual-revenue.test.js`.
+- **Cross-engine agreement is pinned** (2026-07-05 audit): projectDebt and
+  projectDebtSnowball proved to give different payoff dates for the same
+  inputs (pool-netting); fixed and locked proven-to-catch in
+  `projectDebt.basic.test.js` + `flag-1-daily-compounding.test.js`.
+- **Pass-2 test census (2026-08-24):** projectDebt.basic 10 · calc-engines 13
+  · financial-engineering 39 · debts-derive 28 · number-trace 29 ·
+  financial-scenarios 11 · budget-engine · three reconciliation suites ·
+  debt-outcomes 13 · flag-1 6 — hand-computed truths and invariants, not
+  shape checks. Sections C1–C3 are effectively VERIFIED-BY-HAND now.
+- **Still open, honestly:** Pass 3 (VERIFIED-AGAINST-XLSX / real-statement
+  reconciliation) has never run — it needs the family's real statement or
+  spreadsheet figures, a value only Darrell holds; the engines are ready to
+  be checked against one real card statement's actual interest charge the
+  day he supplies one. FLAG-2 (cascade assumes discipline — a disclosure) and
+  FLAG-3 (stuck-detector plateau) remain as documented.
 >
 > **Scope of Pass 1:** read every consequential calculation in the codebase. For each, document: what it computes, the literal formula, its inputs, its assumptions, where it surfaces in the UI, the risk class if wrong, and current verification status. No code changes in this pass.
 >
