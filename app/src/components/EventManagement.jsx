@@ -24,7 +24,7 @@ import VenueRequestForm from './VenueRequestForm.jsx';
 import {
   CAMPUSES, eventTypeLabel, findCampus, findSpace,
   responsibilitiesFor, responsibilityProgress, bookingConflicts,
-  revenueSummary, formatPrice,
+  revenueSummary, formatPrice, mediaExpectedLabels, hasCueSheet,
   subscribeBookings, updateBooking, toggleResponsibility, deleteBooking,
 } from '../lib/venue-rental.js';
 
@@ -168,6 +168,28 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
       )}
 
       {booking.notes && <p className="text-xs text-[#5A5751] mt-2 italic" style={serif}>“{booking.notes}”</p>}
+
+      {/* The media cue sheet (Bro Clifton Reed's intake, merged 0146): what the
+          requester says the media team should expect. Files travel the media
+          team's channel until in-app upload lands (DR-0307). */}
+      {hasCueSheet(booking) && (
+        <div className="mt-2 border-l-4 border-[#1A1815] bg-[#FAF8F4] px-3 py-2">
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Media cue sheet · Media Team</p>
+          {mediaExpectedLabels(booking).length > 0 && (
+            <p className="text-xs text-[#1A1815] mt-0.5" style={serif}>Expecting: {mediaExpectedLabels(booking).join(' · ')}</p>
+          )}
+          {booking.spotifyLink && (
+            <p className="text-xs text-[#1A1815] mt-0.5" style={serif}>
+              {/* Public-form input: only an http(s) URL becomes clickable —
+                  anything else renders as inert text (no javascript: hrefs). */}
+              Music: {/^https?:\/\//i.test(booking.spotifyLink)
+                ? <a href={booking.spotifyLink} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline underline-offset-2 break-all focus:outline focus:outline-2 focus:outline-[#B85838]">{booking.spotifyLink}</a>
+                : <span className="break-all">{booking.spotifyLink}</span>}
+            </p>
+          )}
+          {booking.mediaNotes && <p className="text-xs text-[#5A5751] mt-0.5 italic" style={serif}>“{booking.mediaNotes}”</p>}
+        </div>
+      )}
 
       <button type="button" onClick={() => setOpen((o) => !o)} className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mt-2 underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">
         {open ? 'Hide details' : 'Manage'}

@@ -80,8 +80,10 @@ export function findSpace(spaceId) {
 // team, food on the kitchen, etc. The booking's `responsibilities` jsonb stores
 // which keys are DONE; the template is the source of truth for what must happen.
 export const EVENT_TYPES = [
-  { id: 'funeral',   label: 'Funeral / Homegoing' },
-  { id: 'wedding',   label: 'Wedding' },
+  { id: 'funeral',    label: 'Funeral / Homegoing' },
+  { id: 'wedding',    label: 'Wedding' },
+  { id: 'concert',    label: 'Concert / Musical' },
+  { id: 'conference', label: 'Conference / Workshop' },
   { id: 'community', label: 'Community Event' },
 ];
 export const EVENT_TYPE_IDS = EVENT_TYPES.map((t) => t.id);
@@ -89,10 +91,18 @@ export function eventTypeLabel(id) {
   return EVENT_TYPES.find((t) => t.id === id)?.label || 'Event';
 }
 
+// Every event type carries the media CUE SHEET as a named Media Team step —
+// merged 2026-08-24 from Bro Clifton Reed's Event Media Intake process, built
+// from his experience working with the congregation: the media team confirms
+// what it will receive (photos, videos, slides, documents, music) BEFORE the
+// day, so nothing is chased mid-event.
+const CUE_SHEET_STEP = { key: 'cuesheet', label: 'Media cue sheet confirmed (files + music received)', team: 'Media Team' };
+
 const RESPONSIBILITY_TEMPLATES = {
   funeral: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
     { key: 'av',           label: 'AV / livestream',         team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'kitchen',      label: 'Repast / kitchen',        team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
@@ -102,15 +112,35 @@ const RESPONSIBILITY_TEMPLATES = {
   wedding: [
     { key: 'setup',        label: 'Setup & décor',           team: 'Deacons' },
     { key: 'av',           label: 'AV / sound',              team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'rehearsal',    label: 'Rehearsal scheduling',    team: 'Church Office' },
     { key: 'kitchen',      label: 'Reception / kitchen',     team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
     { key: 'officiant',    label: 'Officiant coordination',  team: 'Pastoral' },
   ],
+  concert: [
+    { key: 'setup',        label: 'Setup & staging',         team: 'Deacons' },
+    { key: 'av',           label: 'AV / sound & lighting',   team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'soundcheck',   label: 'Sound check scheduled',   team: 'Media Team' },
+    { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
+    { key: 'security',     label: 'Security & parking',      team: 'Security' },
+    { key: 'scheduling',   label: 'Scheduling & coordination', team: 'Church Office' },
+  ],
+  conference: [
+    { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
+    { key: 'av',           label: 'AV / projection & mics',  team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'kitchen',      label: 'Refreshments (if catered)', team: 'Hospitality' },
+    { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
+    { key: 'security',     label: 'Security & parking',      team: 'Security' },
+    { key: 'scheduling',   label: 'Scheduling & coordination', team: 'Church Office' },
+  ],
   community: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
     { key: 'av',           label: 'AV / sound',              team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'kitchen',      label: 'Kitchen (if catered)',    team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
@@ -121,6 +151,34 @@ const RESPONSIBILITY_TEMPLATES = {
 // The responsibility checklist for an event type (defaults to community).
 export function responsibilitiesFor(eventType) {
   return RESPONSIBILITY_TEMPLATES[eventType] || RESPONSIBILITY_TEMPLATES.community;
+}
+
+// --- The media cue sheet (Bro Clifton Reed's Event Media Intake, merged) ------
+// The four media categories his congregation-tested form collects, with the
+// formats the media team can actually play. The booking's `media_expected`
+// jsonb stores { key: true } for what the requester says is coming; the
+// Spotify link + media notes ride their own columns (0146). Files themselves
+// travel the media team's channel until the storage work lands (DR-0307) —
+// the cue sheet is the coordination record, not the file store.
+export const MEDIA_CATEGORIES = [
+  { key: 'photos',    label: 'Pictures / photos',       formats: 'JPG, PNG, HEIC' },
+  { key: 'videos',    label: 'Videos',                  formats: 'MP4, MOV' },
+  { key: 'slides',    label: 'PowerPoints / slides',    formats: 'PPT, PPTX, KEY, PDF' },
+  { key: 'documents', label: 'Documents (programs, obituaries, lyrics)', formats: 'PDF, DOC, DOCX, TXT' },
+];
+export const MEDIA_CATEGORY_KEYS = MEDIA_CATEGORIES.map((c) => c.key);
+
+// The labels of the categories a booking says to expect (for the staff card).
+export function mediaExpectedLabels(booking) {
+  const state = (booking?.mediaExpected && typeof booking.mediaExpected === 'object') ? booking.mediaExpected : {};
+  return MEDIA_CATEGORIES.filter((c) => state[c.key] === true).map((c) => c.label);
+}
+
+// Does this booking carry ANY cue-sheet info worth showing the media team?
+export function hasCueSheet(booking) {
+  return mediaExpectedLabels(booking).length > 0
+    || !!String(booking?.spotifyLink ?? '').trim()
+    || !!String(booking?.mediaNotes ?? '').trim();
 }
 
 // Progress over a booking's responsibilities: which of the required items are done.
@@ -282,8 +340,22 @@ export function buildBookingRow(form = {}) {
     end_time: String(form.endTime ?? '').trim() || null,
     expected_attendance: cleanInt(form.expectedAttendance),
     notes: String(form.notes ?? '').trim() || null,
+    media_expected: buildMediaExpected(form.mediaExpected),
+    spotify_link: String(form.spotifyLink ?? '').trim() || null,
+    media_notes: String(form.mediaNotes ?? '').trim() || null,
     source: form.source || 'public-request',
   };
+}
+
+// Only known category keys, only true values — the stored shape stays clean.
+function buildMediaExpected(input) {
+  const out = {};
+  if (input && typeof input === 'object') {
+    for (const key of MEDIA_CATEGORY_KEYS) {
+      if (input[key] === true) out[key] = true;
+    }
+  }
+  return out;
 }
 
 // DB row -> camelCase shape for the management surface.
@@ -307,6 +379,9 @@ export function toBookingShape(row) {
     quotedPrice: row.quoted_price ?? null,
     responsibilities: (row.responsibilities && typeof row.responsibilities === 'object') ? row.responsibilities : {},
     notes: row.notes ?? null,
+    mediaExpected: (row.media_expected && typeof row.media_expected === 'object') ? row.media_expected : {},
+    spotifyLink: row.spotify_link ?? null,
+    mediaNotes: row.media_notes ?? null,
     source: row.source ?? null,
     createdAt: row.created_at ?? null,
   };
