@@ -177,7 +177,7 @@ export function mediaExpectedLabels(booking) {
 // Does this booking carry ANY cue-sheet info worth showing the media team?
 export function hasCueSheet(booking) {
   return mediaExpectedLabels(booking).length > 0
-    || !!String(booking?.spotifyLink ?? '').trim()
+    || !!String(booking?.musicLink ?? '').trim()
     || !!String(booking?.mediaNotes ?? '').trim();
 }
 
@@ -341,7 +341,7 @@ export function buildBookingRow(form = {}) {
     expected_attendance: cleanInt(form.expectedAttendance),
     notes: String(form.notes ?? '').trim() || null,
     media_expected: buildMediaExpected(form.mediaExpected),
-    spotify_link: String(form.spotifyLink ?? '').trim() || null,
+    music_link: String(form.musicLink ?? '').trim() || null,
     media_notes: String(form.mediaNotes ?? '').trim() || null,
     source: form.source || 'public-request',
   };
@@ -380,8 +380,11 @@ export function toBookingShape(row) {
     responsibilities: (row.responsibilities && typeof row.responsibilities === 'object') ? row.responsibilities : {},
     notes: row.notes ?? null,
     mediaExpected: (row.media_expected && typeof row.media_expected === 'object') ? row.media_expected : {},
-    spotifyLink: row.spotify_link ?? null,
+    musicLink: row.music_link ?? null,
     mediaNotes: row.media_notes ?? null,
+    // Trigger-stamped (0147): the requester's own account when they submitted
+    // signed-in — staff can follow up in Messages; null for anonymous requests.
+    requesterUser: row.requester_user ?? null,
     source: row.source ?? null,
     createdAt: row.created_at ?? null,
   };
@@ -494,6 +497,80 @@ export async function toggleResponsibility(booking, key) {
   const next = { ...current, [key]: !current[key] };
   if (!next[key]) delete next[key];
   return updateBooking(booking.id, { responsibilities: next });
+}
+
+// --- Booking correspondence (0148): the thread the team can carry -----------
+// DMs are E2E-encrypted between two people by design, so the TEAM-visible
+// history lives on the booking: staff and the booking's own signed-in
+// requester read/write; identity is server-stamped; nothing is editable or
+// deletable — when someone is out, the next person has the whole thread.
+
+function toThreadMessage(row) {
+  return {
+    id: row.id,
+    bookingId: row.booking_id,
+    author: row.author ?? null,
+    authorEmail: row.author_email ?? null,
+    fromStaff: row.from_staff === true,
+    body: row.body ?? '',
+    createdAt: row.created_at ?? null,
+  };
+}
+
+export async function fetchBookingMessages(bookingId) {
+  if (!bookingId) return { ok: false, error: 'no-booking', rows: [] };
+  try {
+    const { data, error } = await supabase
+      .from('venue_booking_messages')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .order('created_at', { ascending: true });
+    if (error) return { ok: false, error, rows: [] };
+    return { ok: true, rows: (data || []).map(toThreadMessage) };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
+}
+
+export async function sendBookingMessage(bookingId, body) {
+  const text = String(body ?? '').trim();
+  if (!bookingId) return { ok: false, error: 'no-booking' };
+  if (!text) return { ok: false, error: 'empty' };
+  try {
+    const { error } = await supabase
+      .from('venue_booking_messages')
+      .insert({ booking_id: bookingId, body: text.slice(0, 4000) });
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// The signed-in requester's own requests, in the SAFE server shape (no price,
+// no internal fields) — the in-app "we'll get back to you directly" view.
+export async function fetchMyVenueRequests() {
+  try {
+    const { data, error } = await supabase.rpc('my_venue_requests');
+    if (error) return { ok: false, error, rows: [] };
+    return {
+      ok: true,
+      rows: (data || []).map((r) => ({
+        id: r.id,
+        campus: r.campus ?? 'south',
+        spaceName: r.space_name ?? null,
+        eventType: r.event_type ?? 'community',
+        eventTitle: r.event_title ?? null,
+        eventDate: r.event_date ?? null,
+        startTime: r.start_time ?? null,
+        endTime: r.end_time ?? null,
+        status: r.status ?? 'requested',
+        createdAt: r.created_at ?? null,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
 }
 
 export async function deleteBooking(id) {

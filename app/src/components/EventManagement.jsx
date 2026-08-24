@@ -26,6 +26,7 @@ import {
   responsibilitiesFor, responsibilityProgress, bookingConflicts,
   revenueSummary, formatPrice, mediaExpectedLabels, hasCueSheet,
   subscribeBookings, updateBooking, toggleResponsibility, deleteBooking,
+  fetchBookingMessages, sendBookingMessage, fetchMyVenueRequests,
 } from '../lib/venue-rental.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -101,6 +102,79 @@ function Responsibilities({ booking, onToggle }) {
   );
 }
 
+// --- Booking correspondence (0148): the thread the team can carry ------------
+// Shared by the staff card and the requester's "My requests" view. Direct
+// Messages are E2E-encrypted between two people by design, so the TEAM-visible
+// history lives here, on the booking — append-only, so when someone is out the
+// next person has the whole thread and can contact the parties.
+function CorrespondenceThread({ bookingId, viewerIsStaff }) {
+  const [messages, setMessages] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [sendState, setSendState] = useState('idle'); // idle | sending | error
+
+  const load = async () => {
+    const { ok, rows } = await fetchBookingMessages(bookingId);
+    if (ok) setMessages(rows);
+    setLoaded(true);
+  };
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId]);
+
+  const send = async () => {
+    const text = draft.trim();
+    if (!text || sendState === 'sending') return;
+    setSendState('sending');
+    const res = await sendBookingMessage(bookingId, text);
+    if (res.ok) { setDraft(''); setSendState('idle'); await load(); }
+    else setSendState('error');
+  };
+
+  const who = (m) => {
+    if (viewerIsStaff) return m.fromStaff ? (m.authorEmail || 'Team') : 'Requester';
+    return m.fromStaff ? 'The Love Corner team' : 'You';
+  };
+
+  return (
+    <div>
+      <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Correspondence</p>
+      <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={serif}>
+        Shared with the church’s event and media team — so someone can always pick it up. It can’t be edited or deleted.
+      </p>
+      {!loaded && <p className="text-xs text-[#5A5751] mt-2" style={serif}>Loading…</p>}
+      {loaded && messages.length === 0 && <p className="text-xs text-[#5A5751] mt-2" style={serif}>No messages yet.</p>}
+      {messages.length > 0 && (
+        <ul className="mt-2 space-y-2">
+          {messages.map((m) => (
+            <li key={m.id} className="text-xs" style={serif}>
+              <span className="font-semibold text-[#1A1815]">{who(m)}</span>
+              <span className="text-[#5A5751]"> · {m.createdAt ? new Date(m.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}</span>
+              <p className="text-[#1A1815] mt-0.5 whitespace-pre-wrap break-words">{m.body}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-2 mt-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); send(); } }}
+          placeholder="Write a message…"
+          aria-label="Write a correspondence message"
+          className="flex-1 border border-[#1A1815] px-3 py-2 min-h-[40px] text-sm text-[#1A1815] bg-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+        />
+        <button type="button" onClick={send} disabled={sendState === 'sending' || !draft.trim()} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Send
+        </button>
+      </div>
+      {sendState === 'error' && <p className="text-xs text-[#7A1F1F] mt-1" aria-live="assertive" style={serif}>That message did NOT send — please try again.</p>}
+    </div>
+  );
+}
+
 // --- One booking card (staff) ------------------------------------------------
 function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
   const [priceDraft, setPriceDraft] = useState(booking.quotedPrice ?? '');
@@ -148,6 +222,13 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
             {booking.requesterPhone ? ` · ${booking.requesterPhone}` : ''}
             {booking.requesterEmail ? ` · ${booking.requesterEmail}` : ''}
           </p>
+          {/* 0147: they submitted signed-in, so the app itself is a follow-up
+              channel — Messages first, email/phone still an option. */}
+          {booking.requesterUser && (
+            <p className="text-[0.6875rem] text-[#1A1815] mt-0.5" style={serif}>
+              <span className="uppercase tracking-wide font-semibold text-[#B85838]">App member</span> — you can follow up in Messages; email/phone stay optional.
+            </p>
+          )}
         </div>
         <div className="text-right shrink-0">
           <KpiDot status={prog.tone} label={`${prog.done}/${prog.total} ready`} title="Responsibilities assigned" className="text-[0.6875rem]" />
@@ -178,13 +259,13 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
           {mediaExpectedLabels(booking).length > 0 && (
             <p className="text-xs text-[#1A1815] mt-0.5" style={serif}>Expecting: {mediaExpectedLabels(booking).join(' · ')}</p>
           )}
-          {booking.spotifyLink && (
+          {booking.musicLink && (
             <p className="text-xs text-[#1A1815] mt-0.5" style={serif}>
               {/* Public-form input: only an http(s) URL becomes clickable —
                   anything else renders as inert text (no javascript: hrefs). */}
-              Music: {/^https?:\/\//i.test(booking.spotifyLink)
-                ? <a href={booking.spotifyLink} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline underline-offset-2 break-all focus:outline focus:outline-2 focus:outline-[#B85838]">{booking.spotifyLink}</a>
-                : <span className="break-all">{booking.spotifyLink}</span>}
+              Music: {/^https?:\/\//i.test(booking.musicLink)
+                ? <a href={booking.musicLink} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline underline-offset-2 break-all focus:outline focus:outline-2 focus:outline-[#B85838]">{booking.musicLink}</a>
+                : <span className="break-all">{booking.musicLink}</span>}
             </p>
           )}
           {booking.mediaNotes && <p className="text-xs text-[#5A5751] mt-0.5 italic" style={serif}>“{booking.mediaNotes}”</p>}
@@ -202,6 +283,9 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
             <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">Responsibilities</p>
             <Responsibilities booking={booking} onToggle={onToggle} />
           </div>
+
+          {/* Correspondence — the team-visible history (0148) */}
+          <CorrespondenceThread bookingId={booking.id} viewerIsStaff={true} />
 
           {/* Status actions — Schedule is guarded by the conflict check */}
           <div>
@@ -383,15 +467,63 @@ function StaffConsole() {
   );
 }
 
+// --- My requests (0148): the signed-in requester's own loop -------------------
+// "Create an account... and we will get back to you directly." A signed-in
+// requester sees their own requests (the SAFE server shape — no pricing) and
+// the correspondence thread on each. Signed-out visitors see nothing here —
+// the RPC refuses without an account, and that is rendered as absence, not
+// as an error.
+function MyVenueRequests() {
+  const [rows, setRows] = useState(null); // null = not loaded / not signed in
+  useEffect(() => {
+    let alive = true;
+    fetchMyVenueRequests().then(({ ok, rows: r }) => { if (alive && ok) setRows(r); });
+    return () => { alive = false; };
+  }, []);
+  const [openId, setOpenId] = useState(null);
+  if (!rows || rows.length === 0) return null;
+  return (
+    <div className="bg-white border border-[#E8E4DC] p-5 mb-4">
+      <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={serif}>My requests</h3>
+      <p className="text-sm text-[#5A5751] mb-3" style={serif}>
+        We get back to you right here in the app — open a request to read and reply.
+      </p>
+      <ul className="space-y-2">
+        {rows.map((r) => (
+          <li key={r.id} className="border border-[#E8E4DC] p-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-[#1A1815]" style={serif}>{eventTypeLabel(r.eventType)}</span>
+              {r.eventTitle && <span className="text-sm text-[#5A5751]" style={serif}>— {r.eventTitle}</span>}
+              <KpiDot status={STATUS_TONE[r.status] || 'idle'} label={STATUS_LABEL[r.status] || r.status} className="text-[0.6875rem]" />
+            </div>
+            <p className="text-xs text-[#5A5751] mt-0.5" style={serif}>
+              {findCampus(r.campus)?.name || r.campus}{r.spaceName ? ` · ${r.spaceName}` : ''} · {formatDate(r.eventDate)} · {formatTimeRange(r.startTime, r.endTime)}
+            </p>
+            <button type="button" onClick={() => setOpenId((v) => (v === r.id ? null : r.id))} className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] mt-1 underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">
+              {openId === r.id ? 'Hide messages' : 'Messages'}
+            </button>
+            {openId === r.id && (
+              <div className="mt-2 border-t border-[#E8E4DC] pt-2">
+                <CorrespondenceThread bookingId={r.id} viewerIsStaff={false} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 // --- Public front door (everyone) --------------------------------------------
 function CommunityFrontDoor() {
   return (
     <div>
       <CampusCatalog />
+      <MyVenueRequests />
       <div className="bg-white border border-[#E8E4DC] p-5">
         <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={serif}>Request a space</h3>
         <p className="text-sm text-[#5A5751] mb-4" style={serif}>
-          Tell us what you’re planning and a church leader will reach out to confirm availability and details. No account needed.
+          Tell us what you’re planning and a church leader will reach out to confirm availability and details. No account needed — and if you create a free account first, we can get back to you directly in the app.
         </p>
         <VenueRequestForm source="in-app" />
       </div>

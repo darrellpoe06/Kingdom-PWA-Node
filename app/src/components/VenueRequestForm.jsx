@@ -24,7 +24,7 @@ const BLANK = {
   requesterName: '', requesterEmail: '', requesterPhone: '', organization: '',
   campus: 'north', spaceId: '', eventType: 'community', eventTitle: '',
   eventDate: '', startTime: '', endTime: '', expectedAttendance: '', notes: '',
-  mediaExpected: {}, spotifyLink: '', mediaNotes: '',
+  mediaExpected: {}, musicLink: '', mediaNotes: '',
 };
 
 export default function VenueRequestForm({ source = 'public-request', onDone = null }) {
@@ -68,6 +68,9 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
         <h3 className="text-lg font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Request received 🙏</h3>
         <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           Thank you{form.requesterName ? `, ${form.requesterName.trim().split(/\s+/)[0]}` : ''} — we’ve got your request to use the church’s space. A church leader will review it and reach out to confirm availability and details. Nothing is booked until a leader confirms with you.
+        </p>
+        <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+          Have an account in the app? If you submitted while signed in, we’ll get back to you directly under “My requests” on the Venues page — otherwise we’ll reach you by the phone or email you gave.
         </p>
         <button
           type="button"
@@ -185,8 +188,8 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
           </label>
         ))}
         <div className="mt-2">
-          <label htmlFor="vr-spotify" className={labelCls}>Spotify link for your music <span className="text-[#5A5751] font-normal">(optional)</span></label>
-          <input id="vr-spotify" type="url" value={form.spotifyLink} onChange={set('spotifyLink')} className={inputCls} placeholder="paste a playlist or song link" autoComplete="off" />
+          <label htmlFor="vr-music" className={labelCls}>Spotify link for your music <span className="text-[#5A5751] font-normal">(optional — any music link works, YouTube included)</span></label>
+          <input id="vr-music" type="url" value={form.musicLink} onChange={set('musicLink')} className={inputCls} placeholder="paste a share link" autoComplete="off" />
         </div>
         <div className="mt-2">
           <label htmlFor="vr-media-notes" className={labelCls}>Notes for the media team <span className="text-[#5A5751] font-normal">(optional)</span></label>
