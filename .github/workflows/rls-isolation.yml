@@ -125,6 +125,15 @@ jobs:
             echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
             exit 1
           fi
+          # A leg's optional pre-step SQL (matrix.pre) runs BEFORE its chain —
+          # e.g. role-control drops list_instance_members so 0111 can recreate
+          # it and 0143/0144 can rebuild it to the current shape (run 33 proved
+          # the key alone does nothing without this executor).
+          PRE=${{ toJSON(matrix.pre || '') }}
+          if [ -n "$PRE" ]; then
+            echo "=== running pre-step SQL ==="
+            psql "$DBURL" -v ON_ERROR_STOP=1 -c "$PRE"
+          fi
           for mig in ${{ matrix.migrations }}; do
             echo "=== applying ${mig} (idempotent) ==="
             psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
