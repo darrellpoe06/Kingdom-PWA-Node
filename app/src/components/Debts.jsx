@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary, debtCountdown } from '../lib/debt-outcomes.js';
-import { spendingByPriority, killOpportunities, spendVsDebtVerdict } from '../lib/spending-priorities.js';
+import { spendingByPriority, killOpportunities, spendVsDebtVerdict, traceSpendTier } from '../lib/spending-priorities.js';
 import { traceDebtRate, traceDebtBalance, traceDebtMin, traceDebtPayoff, traceTotalDebt, tracePaidDown, traceLeftToPay, traceSaved } from '../lib/debt-trace.js';
 import TraceableNumber from './TraceableNumber.jsx';
 import AddDebt from './AddDebt.jsx';
@@ -585,11 +585,11 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-              <MetricCell label="Essential" value={fmt(spending.tiers.essential)} sub={`${spending.counts.essential} purchases`} small />
-              <MetricCell label="Giving (covenant)" value={fmt(spending.tiers.covenant)} sub="never counted killable" small accent="green" />
-              <MetricCell label="Medium" value={fmt(spending.tiers.medium)} sub={`${spending.counts.medium} purchases`} small />
-              <MetricCell label="Low priority" value={fmt(spending.tiers.low)} sub={`${spending.counts.low} purchases`} small accent="rust" />
-              <MetricCell label="Uncategorized" value={fmt(spending.tiers.unknown)} sub="unknown, not low" small />
+              <MetricCell label="Essential" value={fmt(spending.tiers.essential)} sub={`${spending.counts.essential} purchases · tap for the list`} small trace={traceSpendTier('essential', spending)} />
+              <MetricCell label="Giving (covenant)" value={fmt(spending.tiers.covenant)} sub="never counted killable" small accent="green" trace={traceSpendTier('covenant', spending)} />
+              <MetricCell label="Medium" value={fmt(spending.tiers.medium)} sub={`${spending.counts.medium} purchases · tap for the list`} small trace={traceSpendTier('medium', spending)} />
+              <MetricCell label="Low priority" value={fmt(spending.tiers.low)} sub={`${spending.counts.low} purchases · tap for the list`} small accent="rust" trace={traceSpendTier('low', spending)} />
+              <MetricCell label="Uncategorized" value={fmt(spending.tiers.unknown)} sub="unknown, not low · tap for the list" small trace={traceSpendTier('unknown', spending)} />
             </div>
             {/* The verdict he asked to see plainly: low-priority buying vs real
                 bottom-line debt movement (net paydown, not minimum payments). */}
