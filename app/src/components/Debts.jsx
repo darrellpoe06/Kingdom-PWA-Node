@@ -536,15 +536,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
               <strong>Reality check:</strong> at current net cash flow of <strong>{fmt(netCashFlow)}/mo</strong>, you can sustainably commit up to <strong>{fmt(baselineExtra)}/mo</strong>. Cash on hand right now: <strong>{fmt(cashTotal)}</strong>. The Explore buttons show what's possible if you grow income or unlock a war chest.
             </div>
             <details className="mt-2">
-              <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show top debts that add up to total</summary>
+              <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show all debts that add up to total</summary>
               <div className="mt-2 space-y-1 text-xs">
-                {[...debts].filter(d => !d.leaveAlone).sort((a, b) => b.balance - a.balance).slice(0, 8).map(d => (
+                {[...debts].filter(d => !d.leaveAlone).sort((a, b) => b.balance - a.balance).map(d => (
                   <div key={d.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
                     <span style={{ fontFamily: '"Fraunces", serif' }}>{d.name} <span className="text-[#5A5751]">· {pct(d.rate)}</span></span>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</span>
                   </div>
                 ))}
-                {debts.filter(d => !d.leaveAlone).length > 8 && <div className="text-[0.625rem] text-[#5A5751] italic pt-1">+ {debts.filter(d => !d.leaveAlone).length - 8} more accounts shown in the full table below</div>}
               </div>
             </details>
           </div>
