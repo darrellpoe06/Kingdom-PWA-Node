@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  EVENT_TYPE_IDS, MEDIA_CATEGORIES, MEDIA_CATEGORY_KEYS,
+  EVENT_TYPE_IDS, MEDIA_CATEGORIES, MEDIA_CATEGORY_KEYS, eventTypeLabel,
   responsibilitiesFor, mediaExpectedLabels, hasCueSheet,
   buildBookingRow, toBookingShape,
 } from '../lib/venue-rental.js';
@@ -109,5 +109,42 @@ describe('both surfaces render the cue sheet', () => {
     expect(src).toMatch(/mediaExpectedLabels\(booking\)/);
     // Public-form input never becomes a clickable javascript: href.
     expect(src).toMatch(/\/\^https\?:\\\/\\\/\/i\.test\(booking\.musicLink\)/);
+  });
+});
+
+// Darrell 2026-08-24, on the live list: "Should say Sunday and Wednesday
+// Service too" — then "separated": each service its own type. The regular
+// services are the media team's most regular work, so the cue sheet serves
+// them first-class. 0149 widens the DB vocabulary and heals the same-day
+// spotify_link -> music_link rename seam.
+describe('0149 — Sunday and Wednesday Service join the cue sheet, separated', () => {
+  const MIG9 = join(HERE, '..', '..', '..', 'infra', 'supabase', 'migrations-auto', '0149-sunday-wednesday-service-and-music-link-heal.sql');
+  const code9 = readFileSync(MIG9, 'utf8').replace(/--.*$/gm, '');
+
+  it('the widened CHECK carries BOTH services ahead of the 0146 list', () => {
+    expect(code9).toMatch(/DROP CONSTRAINT IF EXISTS venue_bookings_event_type_check/);
+    expect(code9).toMatch(/CHECK \(event_type IN \('sunday-service','wednesday-service','funeral','wedding','concert','conference','community'\)\)/);
+    // The short-lived combined type can never wedge a replay.
+    expect(code9).toMatch(/SET event_type = 'sunday-service' WHERE event_type = 'service'/);
+  });
+  it('the rename seam heals: values carried, orphan column dropped, guarded', () => {
+    expect(code9).toMatch(/column_name = 'spotify_link'/);
+    expect(code9).toMatch(/SET music_link = COALESCE\(music_link, spotify_link\)/);
+    expect(code9).toMatch(/DROP COLUMN spotify_link/);
+  });
+  it('the client speaks the two services, separated', () => {
+    expect(EVENT_TYPE_IDS).toContain('sunday-service');
+    expect(EVENT_TYPE_IDS).toContain('wednesday-service');
+    expect(EVENT_TYPE_IDS).not.toContain('service');
+    expect(eventTypeLabel('sunday-service')).toBe('Sunday Service');
+    expect(eventTypeLabel('wednesday-service')).toBe('Wednesday Service');
+  });
+  it('each service checklist is the media team’s standing lane', () => {
+    for (const t of ['sunday-service', 'wednesday-service']) {
+      const list = responsibilitiesFor(t);
+      expect(list.find((r) => r.key === 'av')?.team).toBe('Media Team');
+      expect(list.find((r) => r.key === 'cuesheet')?.team).toBe('Media Team');
+      expect(list.find((r) => r.key === 'soundcheck')?.team).toBe('Media Team');
+    }
   });
 });
