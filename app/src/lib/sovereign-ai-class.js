@@ -66,9 +66,9 @@ export const SOVEREIGN_AI_META = {
   title: 'Sovereign A.I.: Why We Build Local',
   audience: 'builders, leaders, and family — anyone deciding where our A.I. should run',
   tagline: 'A generator in the garage. The grid can flicker; our lights stay on.',
-  format: '8 weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces',
+  format: '9 weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces',
   cadenceDays: 7,
-  weeks: 8,
+  weeks: 9,
   handsOnLabel: 'Hands-on in the app',
   footer: '_Taught by Darrell Poe · The Church of the Living God + the Poe family · built on PoeTech. We run our A.I. on machines we own so the data serves the family and the community — and is never sold. Built to be handed on, at every age._',
 };
@@ -421,6 +421,57 @@ export const SOVEREIGN_AI_MODULES = [
         'Which idea from this course do you understand well enough to teach simply?',
         'What’s the difference between honest "this is planned" and dishonest "this works"?',
         'What does "founders raise founders" mean for how you’ll use what you learned?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // Week 9 — captured 2026-08-24 from an article Darrell forwarded into the
+  // platform as build input: ByteByteGo's "Why Code Verification Matters More
+  // Than Ever in the Age of AI" (featuring Andrea Malagodi, CTO of Sonar).
+  // Distilled faithfully FROM that source and taught THROUGH our Ways — the
+  // platform's own Verification Doctrine (DR-0076, declared by Darrell
+  // 2026-06-15) said the same thing before the industry article arrived:
+  // trust nothing unverified; a green check must mean something.
+  {
+    id: 'sov9-verification-earns-trust',
+    title: 'Why verification matters in the age of A.I. — trust is earned, never claimed',
+    bigIdea: 'A.I. made WRITING code fast and cheap — so VERIFYING code is now the hard, precious work. Code that runs is not code you can trust: trust is earned in degrees, one check at a time, through a stack of filters — type checks, tests, independent review, live monitoring. Our house learned this before the industry said it: DR-0076, "the A.I.\'s job is not to sound right — it is to be verifiably right." Prove all things.',
+    inApp: 'Open Admin → the OpsBoard and watch the delivery lane live: every change to this very app passes 8,000+ tests and deterministic gates before it can ship, and a red gate stops it no matter how confident the author was. That screen IS this lesson running.',
+    anchor: { ref: '1 Thessalonians 5:21; Proverbs 14:15', theme: 'KJV: "Prove all things; hold fast that which is good." And: "The simple believeth every word: but the prudent man looketh well to his going." Verification is not distrust of people — it is the prudence the Word commands.' },
+    rpe: {
+      research: 'Find one claim this week — from an A.I., an ad, or a person — that arrived with confidence but no evidence.',
+      plan: 'Name the cheapest check that would actually test it (a source, a measurement, a second independent witness).',
+      execute: 'Run the check before repeating the claim. Keep what proves good; drop what doesn\'t.',
+    },
+    media: [
+      { type: 'diagram', key: 'verification-filter-stack', title: 'The filter stack', caption: 'Cheap and early to costly and late: type checks + linters → unit tests → independent review → production monitoring. Each layer catches what the one above it cannot; the later a flaw is caught, the more it costs.' },
+    ],
+    levels: {
+      teen: 'A.I. can now write working code in seconds — so is the job done? No, and here\'s the surprise: WRITING was never the whole job. The real question is "can we TRUST this?" — and trust has to be EARNED, like a contract isn\'t real until it\'s reviewed and signed. Software teams earn it with a stack of filters: quick automatic checks, then tests that run the code against known answers, then a real person reading it, then watching it live. A.I. writing MORE code means MORE to verify — studies even show A.I. code carries a known security flaw almost half the time, and that developers who FELT faster with A.I. actually measured slower, because checking the output took the time. Our app lives this: over 8,000 tests and hard gates run on every single change, and a red gate blocks it — no matter who wrote it or how sure they sounded. The Word said it first: "Prove all things; hold fast that which is good."',
+      senior: 'The industry data (per ByteByteGo\'s synthesis): DORA finds delivery stability dips as A.I. adoption rises with over a third of developers reporting low trust in A.I. output; a METR controlled trial measured experienced developers ~19% SLOWER with A.I. on their own mature projects while believing they were faster; a study across 100+ models found A.I.-generated code introduced a known security flaw in roughly 45% of cases, with security performance flat even as run-cleanly performance improved. The verification economics inverted: generation is cheap, so verification is the bottleneck and the value. The mechanics: trust is earned in degrees through layered filters (static analysis — fast, broad, blind to runtime; dynamic analysis — real behavior, limited to exercised paths), each tuned against the false-positive/false-negative tension — alarm fatigue kills a noisy tool\'s authority (Sonar\'s Andrea Malagodi frames it as a CAP-like trade among speed, accuracy, coverage). Shift-left holds: the same defect costs more at every later stage. And the deepest risk of A.I. reviewing A.I.: a reviewer sharing the writer\'s training shares its blind spots — one opinion stated twice is not two independent checks. Our house codified all of this as DR-0076 on 2026-06-15, before this article: no claim without evidence, deterministic gates that fail the build, gates proven-to-catch (a gate that always passes is itself a lie), measure-don\'t-claim, and independent adversarial verification for high stakes — the live RLS proofs that attack our own child-wall are exactly the "independent check" the article says A.I. review lacks.',
+    },
+    quiz: {
+      questions: [
+        { q: 'A.I. writes a function and it runs without errors. What has been proven?', options: ['That it is safe to ship', 'Only that it executes — trust still has to be EARNED through the filter stack: checks, tests, independent review, monitoring', 'That it is secure'], answer: 1, explain: 'Running is the weakest claim. The article\'s center and DR-0076\'s: verification is the work of earning trust in degrees; execution proves almost nothing by itself.' },
+        { q: 'Why is an A.I. reviewing another A.I.\'s code not automatically enough?', options: ['A.I. reviewers are always wrong', 'A reviewer built like the writer shares its blind spots — one opinion stated twice, not two independent checks', 'Human review is obsolete'], answer: 1, explain: 'Independence is what makes a second check a real check. That is why our high-stakes proofs are adversarial and run against the live system, not just a re-read of the code.' },
+        { q: 'A checking tool cries wolf constantly. What does the false-alarm research say happens?', options: ['Developers get more careful', 'Developers start ignoring it — and real warnings get waved away with the noise, so signal quality matters as much as coverage', 'Nothing changes'], answer: 1, explain: 'Alarm fatigue erodes a tool\'s authority until it is switched off or tuned out — reopening the door to the very bugs it existed to stop.' },
+      ],
+    },
+    lesson: 'This week\'s lesson arrived by email — an industry article Darrell forwarded into the platform (ByteByteGo, "Why Code Verification Matters More Than Ever in the Age of AI," with Andrea Malagodi, CTO of Sonar) — and the reason it belongs in this course is that it is the world catching up to a Way this house already wrote down. The article\'s claim: for decades, WRITING code was the slow, expensive step. A.I. flipped that — a working function in seconds, a feature in minutes — so the scarce, precious work is now VERIFICATION: earning enough trust to put a change in front of real people. The evidence is sobering. Google\'s DORA research finds delivery stability DIPPING as teams adopt more A.I., with over a third of developers reporting little confidence in what the tools produce. A controlled trial (METR) found experienced developers who expected A.I. to make them ~25% faster actually measured ~19% SLOWER on their own projects — the time went into prompting, reading, and correcting the output — while still FEELING faster. And across 100+ models, A.I.-generated code introduced a known security flaw in roughly 45% of cases: the models got much better at making code RUN and barely better at making it SAFE. How is trust actually earned? In degrees, through a stack of filters, cheapest first: type checkers and linters that read the code without running it; unit tests that run it against known answers (a function can be perfectly typed and still multiply where it should add — only a test catches that); a human review that judges what machines cannot (does this FIT, is it the RIGHT solution); and live monitoring underneath everything, watching real traffic for what every earlier layer missed. Two families: static analysis (fast, broad, blind to runtime) and dynamic analysis (real behavior, but only on the paths you exercise). Every filter faces the same tension — flag too eagerly and the false alarms train people to ignore it until real warnings drown with the noise; stay too quiet and real defects slip through. Andrea frames it as a CAP-like trade among speed, accuracy, and coverage — no tool wins all three, so a finding is worth raising when a developer can ACT on it. And position matters: the same flaw costs a moment in the editor and an incident in production — push the checks left, where mistakes are cheap. Now the A.I.-specific warning, and it is the deepest one: when an A.I. reviews code an A.I. wrote, and both were built from the same kind of training, the reviewer tends to share the writer\'s assumptions — and therefore its blind spots. That is one opinion stated twice, not two independent checks. Here is why this course teaches it: our house encoded this BEFORE the article arrived. DR-0076 — the Verification Doctrine, declared 2026-06-15 — says the A.I.\'s job is not to sound right but to be VERIFIABLY right or clearly marked unverified; no claim without evidence; deterministic gates that fail the build; every gate proven-to-catch (a gate that always passes is itself a lie); measure, don\'t claim; independent adversarial verification for the high-stakes paths — and this very app lives it: 8,000+ tests and hard gates run on every change, the OpsBoard shows the lane live, and our security walls are proven by ATTACKING them on the live system, not by re-reading the code and nodding. The Word said it before any of us: "Prove all things; hold fast that which is good" (1 Thessalonians 5:21, KJV) — and "The simple believeth every word: but the prudent man looketh well to his going" (Proverbs 14:15, KJV). Verification is not cynicism. It is the prudence the Word commands, applied to a world where words — and now code — are cheap.',
+    facilitator: {
+      talkingPoints: [
+        'The inversion: A.I. made writing cheap, so verifying is now the scarce, valuable work. More code written = more code to verify.',
+        'The numbers, honestly sourced from the article: DORA stability dip + low trust; METR ~19% slower while feeling faster; ~45% of A.I. code carrying a known security flaw across 100+ models.',
+        'Trust is EARNED in degrees: the filter stack — type checks/linters → tests → human review → live monitoring; static vs dynamic; false alarms erode a tool\'s authority.',
+        'Shift left: the same flaw costs a moment in the editor and an incident in production.',
+        'A.I. reviewing A.I. built alike = one opinion stated twice. Independence makes a second check real — our adversarial live RLS proofs are that independence.',
+        'The house said it first: DR-0076 (2026-06-15) — no claim without evidence; proven-to-catch gates; measure don\'t claim. 1 Thessalonians 5:21; Proverbs 14:15.',
+      ],
+      howToRun: 'Prayer + the anchor (5): open in prayer; read 1 Thessalonians 5:21 and Proverbs 14:15 aloud (KJV). | Recap last week (10): the capstone — who taught their one idea, and to whom? | Teach the big idea (15): the inversion (writing cheap → verifying precious), the filter stack, the same-blind-spots warning, and DR-0076 as the house\'s prior encoding. | Hands-on in the app (25): open Admin → OpsBoard; watch a real change ride the lane — tests, gates, auto-merge on green; find where a red gate would stop it. | Discussion (15): where in OUR lives do we accept confident claims unproven — and what is the cheapest honest check? | Send-off + solo task (5): the R→P→E — catch one confident, evidence-free claim this week and check it before repeating it.',
+      discussionPrompts: [
+        'Where do you personally accept "it sounds right" instead of "it proved right" — and what would earning trust look like there?',
+        'Why is a second opinion from someone (or something) trained exactly like the first not really a second opinion?',
+        'The developers FELT faster and measured slower. Where might that gap between feeling and measurement live in your own work?',
       ],
     },
   },
