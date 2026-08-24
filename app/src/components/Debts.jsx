@@ -6,6 +6,8 @@ import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary, debtCountdown } from '../lib/debt-outcomes.js';
 import { spendingByPriority, killOpportunities, spendVsDebtVerdict } from '../lib/spending-priorities.js';
+import { traceDebtRate, traceDebtBalance, traceDebtMin, traceDebtPayoff, traceTotalDebt, tracePaidDown, traceLeftToPay, traceSaved } from '../lib/debt-trace.js';
+import TraceableNumber from './TraceableNumber.jsx';
 import AddDebt from './AddDebt.jsx';
 import EditDebtRow from './EditDebtRow.jsx';
 import DebtStatementUpload from './DebtStatementUpload.jsx';
@@ -167,6 +169,8 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
     arr.sort((a, b) => {
       if (a.leaveAlone !== b.leaveAlone) return a.leaveAlone ? 1 : -1;
       if (allDebtsSort === 'balance') return b.balance - a.balance;
+      if (allDebtsSort === 'min') return (b.minPayment || 0) - (a.minPayment || 0);
+      if (allDebtsSort === 'name') return String(a.name || '').localeCompare(String(b.name || ''));
       if (allDebtsSort === 'payoff') {
         const aClear = debtSnowball.activeDebts.find(p => p.id === a.id)?.clearedAtMonth ?? 999;
         const bClear = debtSnowball.activeDebts.find(p => p.id === b.id)?.clearedAtMonth ?? 999;
@@ -292,9 +296,9 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const allDebtsSection = (
     <section>
         <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3 pb-2 border-b border-[#1A1815]">
-          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {allDebtsSort === 'rate' ? 'rate' : allDebtsSort === 'balance' ? 'balance' : 'payoff date'}</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {({ rate: 'rate', balance: 'balance', payoff: 'payoff date', min: 'payment', name: 'name' })[allDebtsSort] || allDebtsSort} · tap any number for its sources</h2>
           <div className="flex gap-1">
-            {[['rate','Rate'],['balance','Balance'],['payoff','Payoff date']].map(([id, label]) => (
+            {[['rate','Rate'],['balance','Balance'],['payoff','Payoff date'],['min','Payment'],['name','A–Z']].map(([id, label]) => (
               <button key={id} onClick={() => setAllDebtsSort(id)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${allDebtsSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
                 {label}
               </button>
@@ -364,9 +368,9 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                               yet shows a dash — it is unknown, not zero, and
                               conflating the two is what left every 0% card stuck
                               on "Add terms" forever. */}
-                          {d.rateKnown
+                          <TraceableNumber trace={traceDebtRate(d)} label={`${d.name} rate`}>{d.rateKnown
                             ? (d.rateMin != null ? `${pct(d.rateMin)}–${pct(d.rate)}` : pct(d.rate))
-                            : <span className="text-[#5A5751]">—</span>}
+                            : <span className="text-[#5A5751]">—</span>}</TraceableNumber>
                           {d.rateSource === 'derived' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Read from this account's own statement interest — the data sets it by default">data</span>}
                           {d.rateSource === 'override' && <span className="text-[0.5625rem] text-[#B85838] uppercase tracking-wider" title={`You set this by hand. The statements say ${d.dataRate}% — open Edit to revert to the data.`}>edited{d.dataRate != null ? ` · data ${pct(d.dataRate)}` : ''}</span>}
                           {d.rateKnown && d.rate === 0 && d.rateSource !== 'derived' && d.rateSource !== 'override' && <span className="text-[0.5625rem] text-[#5A6E3D] uppercase tracking-wider" title="Confirmed 0% — a promotional or closed-account rate, not a missing figure">0% confirmed</span>}
@@ -382,7 +386,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {isEditing(d, 'min') ? cellInput(d, `Monthly payment for ${d.name}`) : (
                         <span className="inline-flex items-center gap-1 justify-end">
-                          {fmt(d.minPayment)}
+                          <TraceableNumber trace={traceDebtMin(d)} label={`${d.name} payment`}>{fmt(d.minPayment)}</TraceableNumber>
                           {d.accountId && updateAccount && (
                             <button type="button" onClick={() => startEditCell(d, 'min', d.minPayment)}
                               className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
@@ -394,7 +398,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                       {isEditing(d, 'owed') ? cellInput(d, `Amount owed for ${d.name}`) : (
                         <span className="inline-flex items-center gap-1 justify-end">
-                          {fmt(d.balance)}
+                          <TraceableNumber trace={traceDebtBalance(d)} label={`${d.name} balance`}>{fmt(d.balance)}</TraceableNumber>
                           {d.accountId && updateAccount && (
                             <button type="button" onClick={() => startEditCell(d, 'owed', d.balance)}
                               className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-1 focus:outline-[#B85838]"
@@ -404,7 +408,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                       )}
                     </td>
                     <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <div className={po.warn ? 'text-[#B85838]' : ''}>{po.text}</div>
+                      <TraceableNumber trace={traceDebtPayoff(d, debtSnowball.activeDebts.find(p => p.id === d.id)?.clearedAtMonth ?? null)} label={`${d.name} payoff`}><div className={po.warn ? 'text-[#B85838]' : ''}>{po.text}</div></TraceableNumber>
                       {po.sub && <div className="text-[0.5625rem] text-[#5A5751] normal-case" style={{ fontFamily: '"Fraunces", serif' }}>{po.sub}</div>}
                     </td>
                     <td className="p-3 text-right">
@@ -720,9 +724,9 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
       <section>
         <SectionTitle>Where We Are Today</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-          <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${activeDebts.length} accounts`} small accent="rust" />
+          <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${activeDebts.length} accounts`} small accent="rust" trace={traceTotalDebt(debts)} />
           <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
-          <MetricCell label="Paid down so far" value={fmt(paidDown.total)} sub={paidDown.counted ? `from ${paidDown.counted} card peak${paidDown.counted === 1 ? '' : 's'}` : 'no peaks recorded yet'} small accent="green" />
+          <MetricCell label="Paid down so far" value={fmt(paidDown.total)} sub={paidDown.counted ? `from ${paidDown.counted} card peak${paidDown.counted === 1 ? '' : 's'}` : 'no peaks recorded yet'} small accent="green" trace={tracePaidDown(paidDown)} />
           <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—')} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr with the plan` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded')} small accent="green" />
         </div>
         {/* Left to pay, with and without the added money — the difference in
@@ -733,14 +737,16 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
             value={fmt(outlook.withPlanTotal)}
             sub={canProject ? `balances + ${fmt(debtSnowball.totalInterest)} interest · done ${debtSnowball.allClearedDate}` : 'add terms to project'}
             small
+            trace={traceLeftToPay(outlook, true, debtSnowballExtra)}
           />
           <MetricCell
             label="Left to pay · minimums only"
             value={outlook.minOnlyFinishes ? fmt(outlook.minOnlyTotal) : `${fmt(outlook.minOnlyTotal)}+`}
             sub={outlook.minOnlyFinishes ? `balances + ${fmt(debtMinOnly.totalInterest)} interest` : `${outlook.stuckCount} debt${outlook.stuckCount === 1 ? '' : 's'} NEVER finish at minimums`}
             small accent="rust"
+            trace={traceLeftToPay(outlook, false, debtSnowballExtra)}
           />
-          <MetricCell label="The extra money saves" value={fmt(outlook.saved)} sub="never paid, with the plan" small accent="green" />
+          <MetricCell label="The extra money saves" value={fmt(outlook.saved)} sub="never paid, with the plan" small accent="green" trace={traceSaved(outlook)} />
         </div>
         {/* Who is being paid above the minimum right now — observed, not assumed. */}
         <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
