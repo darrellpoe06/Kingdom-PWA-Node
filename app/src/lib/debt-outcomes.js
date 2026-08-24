@@ -75,6 +75,40 @@ export function paymentPaceBadge(d) {
   return { tone: 'at', label: `paying the minimum (~$${Math.round(pace).toLocaleString()}/mo)` };
 }
 
+// --- The countdown: when are we down to only X debts left? -------------------
+// Darrell 2026-08-24: "make sure we know when we can have each paid off with
+// a only x number of debts left etc... type view." Groups the projected
+// clearings by month and counts down what remains after each — including,
+// honestly, the debts that CANNOT be scheduled yet (no rate/min terms): they
+// stay in the "left" count and are named, so the countdown never pretends to
+// reach zero while unscheduled debts remain.
+export function debtCountdown(debts) {
+  const active = (debts || []).filter((d) => d && !d.leaveAlone);
+  const scheduled = active
+    .filter((d) => Number.isFinite(d.clearedAtMonth) && d.clearedAtMonth > 0)
+    .sort((a, b) => a.clearedAtMonth - b.clearedAtMonth);
+  const unscheduled = active.length - scheduled.length;
+  const milestones = [];
+  let remaining = active.length;
+  for (const d of scheduled) {
+    const last = milestones[milestones.length - 1];
+    remaining -= 1;
+    if (last && last.monthOffset === d.clearedAtMonth) {
+      last.cleared.push(d.name || 'debt');
+      last.remaining = remaining;
+    } else {
+      milestones.push({ monthOffset: d.clearedAtMonth, cleared: [d.name || 'debt'], remaining });
+    }
+  }
+  return {
+    total: active.length,
+    milestones,
+    unscheduled,
+    // Zero is only reached when every active debt has a projected clearing.
+    reachesZero: unscheduled === 0 && active.length > 0,
+  };
+}
+
 // Roll the per-debt badges up so the band can say it in one line.
 export function paceSummary(debts) {
   const out = { above: 0, at: 0, below: 0, growing: 0, unknown: 0 };

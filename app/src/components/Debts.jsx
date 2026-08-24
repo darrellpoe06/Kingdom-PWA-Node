@@ -4,7 +4,8 @@
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
-import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary } from '../lib/debt-outcomes.js';
+import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary, debtCountdown } from '../lib/debt-outcomes.js';
+import { spendingByPriority, killOpportunities, spendVsDebtVerdict } from '../lib/spending-priorities.js';
 import AddDebt from './AddDebt.jsx';
 import EditDebtRow from './EditDebtRow.jsx';
 import DebtStatementUpload from './DebtStatementUpload.jsx';
@@ -555,10 +556,127 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
       </section>
   );
 
+  // The countdown: when are we down to only X debts left? (Darrell 2026-08-24)
+  const countdown = debtCountdown(debtsWithCleared);
+
+  // Kill opportunities from spending priorities (Darrell 2026-08-24): the
+  // window's LOW-priority spending vs the debts' real bottom-line movement,
+  // and what that money would kill outright. All from their own transactions
+  // through the one deterministic categorizer.
+  const spending = useMemo(
+    () => spendingByPriority(transactions, { learned: categoryRules, nowMs }),
+    [transactions, categoryRules, nowMs],
+  );
+  const verdict = useMemo(() => spendVsDebtVerdict(spending, debts), [spending, debts]);
+  const kills = useMemo(() => killOpportunities(debts, spending.tiers.low), [debts, spending.tiers.low]);
+
+  const killSection = (
+    <section className="space-y-3">
+      <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Spending by priority · last {spending.days} days</div>
+        {!spending.hasData ? (
+          <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            No dated transactions in the window yet — import statements on the All Debts or Tx tabs and this fills with your real spending.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+              <MetricCell label="Essential" value={fmt(spending.tiers.essential)} sub={`${spending.counts.essential} purchases`} small />
+              <MetricCell label="Giving (covenant)" value={fmt(spending.tiers.covenant)} sub="never counted killable" small accent="green" />
+              <MetricCell label="Medium" value={fmt(spending.tiers.medium)} sub={`${spending.counts.medium} purchases`} small />
+              <MetricCell label="Low priority" value={fmt(spending.tiers.low)} sub={`${spending.counts.low} purchases`} small accent="rust" />
+              <MetricCell label="Uncategorized" value={fmt(spending.tiers.unknown)} sub="unknown, not low" small />
+            </div>
+            {/* The verdict he asked to see plainly: low-priority buying vs real
+                bottom-line debt movement (net paydown, not minimum payments). */}
+            <div className={`mt-3 border-l-4 px-3 py-2 ${verdict.flagged ? 'border-[#7A1F1F] bg-[#FBF2F2]' : 'border-[#5A6E3D] bg-white'}`}>
+              <p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+                {verdict.measurable ? (
+                  verdict.flagged ? (
+                    <>Low-priority spending was <strong>{fmt(verdict.lowSpend)}</strong> while the debt bottom line moved only <strong>{fmt(verdict.bottomLineReduction)}/mo</strong> — under the {fmt(verdict.floor)} floor. That money is a debt-killer being spent elsewhere.</>
+                  ) : (
+                    <>Low-priority spending: <strong>{fmt(verdict.lowSpend)}</strong> · real bottom-line debt reduction: <strong>{fmt(verdict.bottomLineReduction)}/mo</strong> (net paydown from your own payments, not minimums).</>
+                  )
+                ) : (
+                  <>Bottom-line movement can’t be measured yet — no debts with observed payment history. The low-priority total still stands: <strong>{fmt(verdict.lowSpend)}</strong>.</>
+                )}
+              </p>
+            </div>
+            {spending.tiers.low > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">What that {fmt(kills.pool)} would kill outright</div>
+                {kills.kills.length > 0 ? (
+                  <ul className="text-xs space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {kills.kills.map((k) => (
+                      <li key={k.name}><span className="text-[#5A6E3D] font-semibold">✓ {k.name}</span> — {fmt(k.balance)} gone entirely</li>
+                    ))}
+                    {kills.leftover > 0 && <li className="text-[#5A5751]">+ {fmt(kills.leftover)} straight off the next debt’s bottom line</li>}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Not enough to clear the smallest debt outright — but {fmt(kills.pool)} goes straight off the bottom line, beyond every minimum.
+                  </p>
+                )}
+              </div>
+            )}
+            {spending.lowItems.length > 0 && (
+              <details className="mt-2">
+                <summary className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ The low-priority purchases, largest first</summary>
+                <ul className="mt-1 text-xs space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {spending.lowItems.slice(0, 12).map((it, i) => (
+                    <li key={i} className="flex justify-between gap-2 border-b border-[#E8E4DC] pb-0.5">
+                      <span className="truncate">{it.description}</span>
+                      <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(it.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+
   // Payoff cascade
   const cascadeSection = (
       <section>
         <SectionTitle>Payoff Cascade · What Frees Up When</SectionTitle>
+        {countdown.milestones.length > 0 && (
+          <div className="bg-white border-2 border-[#5A6E3D] p-4 mb-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">The countdown · what's left, when</div>
+            <div className="space-y-1">
+              {countdown.milestones.map((m) => (
+                <div key={m.monthOffset} className="flex items-baseline justify-between gap-3 flex-wrap text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <span>
+                    <strong style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, m.monthOffset)}</strong>
+                    <span className="text-[#5A5751]"> — {m.cleared.length === 1 ? m.cleared[0] : `${m.cleared.length} debts`} paid off</span>
+                  </span>
+                  <span className={m.remaining === 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#1A1815]'}>
+                    {m.remaining === 0 && countdown.reachesZero ? 'DEBT-FREE · 0 left' : `only ${m.remaining} left`}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {countdown.unscheduled > 0 && (
+              <p className="text-[0.6875rem] text-[#B85838] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                {countdown.unscheduled} debt{countdown.unscheduled === 1 ? '' : 's'} can't be scheduled yet (need rate + minimum) — the count above never reaches zero until they're in.
+              </p>
+            )}
+            {/* Down to 0 debts, then the NEW LIFE: asset acquisition periods
+                (Darrell 2026-08-24). Pure arithmetic on the freed cash flow —
+                the minimums released + the extra already committed — with no
+                invented investment returns. The seven-year pattern begins. */}
+            {countdown.reachesZero && canProject && (
+              <div className="mt-3 border-t-2 border-[#5A6E3D] pt-2">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">Then the new life · asset acquisition</div>
+                <p className="text-xs mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  From <strong>{debtSnowball.allClearedDate}</strong>, every payment that fed debt pivots to building: <strong>{fmt(debtSnowball.finalFreedCashFlow + debtSnowballExtra)}/mo</strong> of acquisition capital — ≈ <strong>{fmt((debtSnowball.finalFreedCashFlow + debtSnowballExtra) * 12)}</strong> in year one, <strong>{fmt((debtSnowball.finalFreedCashFlow + debtSnowballExtra) * 24)}</strong> by year two, <strong>{fmt((debtSnowball.finalFreedCashFlow + debtSnowballExtra) * 36)}</strong> by year three. Your own dollars, no invented returns — the down payments for the next rentals and the family's next assets.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="bg-white border border-[#1A1815]">
           {orderedByPayoff.map((d, i) => {
             const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.minPayment, 0);
@@ -655,6 +773,11 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
             id: 'cascade',
             label: 'Payoff cascade',
             render: () => cascadeSection,
+          },
+          {
+            id: 'kill',
+            label: 'Kill opportunities',
+            render: () => killSection,
           },
           {
             id: 'add',
