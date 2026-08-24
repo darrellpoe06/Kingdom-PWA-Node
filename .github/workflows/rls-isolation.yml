@@ -53,8 +53,17 @@ jobs:
           - feature: choir-claim
             migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0110-choir-claim-smoke.sql"
+          # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
+          # with new columns (classification, relationship), and CREATE OR
+          # REPLACE cannot change a return type — 0111 alone now fails with
+          # "cannot change return type of existing function" (runs 30/31).
+          # Same dependency-order principle as books-role-wall below: drop the
+          # function first (pre), then apply the FULL chain so the live DB only
+          # ever reaches the final combined state. The smoke counts rows, so it
+          # holds across the shape change.
           - feature: role-control
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid);"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
             migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
