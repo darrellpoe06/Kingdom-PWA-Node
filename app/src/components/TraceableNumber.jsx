@@ -59,7 +59,8 @@ function OpBadge({ op }) {
   );
 }
 
-function TraceRow({ item }) {
+function TraceRow({ item, action = null }) {
+  const selectId = useId();
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-[#E8E4DC] last:border-b-0">
       <div className="flex items-baseline gap-1 min-w-0">
@@ -70,6 +71,23 @@ function TraceRow({ item }) {
           </div>
           {item.meta && (
             <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
+          )}
+          {/* Optional per-record action (e.g. recategorize a purchase in place —
+              the same control the Tx tab has, so no drill-down is a dead end). */}
+          {action && (
+            <div className="mt-1">
+              <label htmlFor={selectId} className="sr-only">{`${action.label || 'Set'} for ${item.label}`}</label>
+              <select
+                id={selectId}
+                value={action.value(item)}
+                onChange={(e) => action.onPick(item, e.target.value)}
+                className="text-[0.6875rem] border border-[#8A857B] bg-white text-[#1A1815] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {action.options.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
       </div>
@@ -89,6 +107,10 @@ export default function TraceableNumber({
   label,
   className = '',
   align = 'left',
+  // Optional action rendered on every SOURCE row: { label, options: [...],
+  // value(item), onPick(item, value) }. Lets a drill-down act on its records
+  // in place (recategorize a purchase) instead of sending the user elsewhere.
+  sourceAction = null,
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -239,7 +261,7 @@ export default function TraceableNumber({
                   </div>
                   <div>
                     {trace.sources.map((it, i) => (
-                      <TraceRow key={`src-${i}`} item={it} />
+                      <TraceRow key={`src-${i}`} item={it} action={sourceAction} />
                     ))}
                   </div>
                 </section>

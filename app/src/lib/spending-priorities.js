@@ -143,6 +143,9 @@ export function traceSpendTier(tierKey, spending) {
     formula: TIER_FORMULAS[tierKey] || '',
     result: { value: total, kind: 'money' },
     inputs: [{ label: `${count} purchase${count === 1 ? '' : 's'} in the window — all listed below`, value: count, kind: 'count' }],
-    sources: items.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+' })),
+    // `category` rides along so the drill-down can offer the same in-place
+    // recategorize control the Tx tab has — all tabs work the same (Darrell
+    // 2026-08-24: "don't want to need to go anywhere else").
+    sources: items.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+', category: i.category })),
   };
 }

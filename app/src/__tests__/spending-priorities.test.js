@@ -164,4 +164,22 @@ describe('the Debts surface renders the countdown and the kill view', () => {
     }
     expect(src).toMatch(/tap for the list/);
   });
+  it('the drill-down categorizes IN PLACE — all tabs work the same (Darrell 2026-08-24)', () => {
+    // Every source row carries its category so the picker shows the truth...
+    const s = spendingByPriority([{ description: 'STARBUCKS #123', amount: -25, date: daysAgo(2) }], { nowMs: NOW });
+    expect(traceSpendTier('low', s).sources[0].category).toBe('dining');
+    // ...and the surface wires the same learn-and-back-apply the Tx tab uses.
+    expect(src).toMatch(/recategorizePayee\(item\.label, category\)/);
+    expect(src).toMatch(/options: TX_CATEGORIES/);
+    for (let i = 0; i < 5; i += 1) expect(src).toMatch(/traceAction=\{spendAction\}/);
+    const tn = readFileSync(join(HERE, '..', 'components', 'TraceableNumber.jsx'), 'utf8');
+    expect(tn).toMatch(/sourceAction/);
+    expect(tn).toMatch(/action\.onPick\(item, e\.target\.value\)/);
+  });
+  it('the projection uses the terms that exist and names the missing data plainly', () => {
+    expect(src).toMatch(/projectDebtSnowball\(withTerms, debtSnowballExtra/);
+    expect(src).toMatch(/more need rate \+ minimum|need data on \$\{missingTerms\.length\} more/);
+    expect(src).toMatch(/confirmed 0% rate/);
+    expect(src).toMatch(/every dollar paid is principal/);
+  });
 });
