@@ -49,6 +49,7 @@ function EditDebtRow({ debt: d, entities = [], colSpan = 6, onClose, updateAccou
     minPayment: d.minPayment ? str(d.minPayment) : '',
     creditLimit: str(d.creditLimit),
     highestBalance: str(d.highestBalance),
+    payeeAlias: d.payeeAlias || '',
     leaveAlone: !!d.leaveAlone,
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -77,6 +78,7 @@ function EditDebtRow({ debt: d, entities = [], colSpan = 6, onClose, updateAccou
       minPayment: minPayment ?? 0,
       creditLimit: form.creditLimit.trim() === '' ? null : numOrNull(form.creditLimit),
       highestBalance: form.highestBalance.trim() === '' ? null : numOrNull(form.highestBalance),
+      payeeAlias: form.payeeAlias.trim() || null,
       leaveAlone: !!form.leaveAlone,
     };
     // The balance is only sent when it actually changed, so simply opening the
@@ -179,6 +181,13 @@ function EditDebtRow({ debt: d, entities = [], colSpan = 6, onClose, updateAccou
                 <div>
                   <label className={LABEL} htmlFor={`e-high-${d.id}`}>Highest balance</label>
                   <input id={`e-high-${d.id}`} className={INPUT} style={mono} inputMode="decimal" value={form.highestBalance} onChange={set('highestBalance')} />
+                </div>
+                <div className="sm:col-span-3">
+                  <label className={LABEL} htmlFor={`e-alias-${d.id}`}>Payment name in the bank ledger</label>
+                  <input id={`e-alias-${d.id}`} className={INPUT} value={form.payeeAlias} onChange={set('payeeAlias')} placeholder="e.g. AMERICAN EXPRESS ACH PMT — how the bank names this debt's payment" />
+                  <p className="text-[0.5625rem] text-[#5A5751] mt-1" style={serif}>
+                    Payments are matched by NAME, never by amount. If this row says "no payments seen" while you pay it every month, copy the payment's name from the Tx tab here — the real history then drives the payoff date.
+                  </p>
                 </div>
               </>
             )}

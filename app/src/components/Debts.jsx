@@ -749,7 +749,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         </div>
         {/* Who is being paid above the minimum right now — observed, not assumed. */}
         <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Right now: <strong className="text-[#5A6E3D]">{pace.above}</strong> debt{pace.above === 1 ? '' : 's'} paid above the minimum · <strong>{pace.at}</strong> at the minimum · <strong className={pace.below ? 'text-[#B85838]' : ''}>{pace.below}</strong> under it · <strong className={pace.growing ? 'text-[#B85838]' : ''}>{pace.growing}</strong> growing (charges outpace payments){pace.unknown ? ` · ${pace.unknown} with no payments observed yet` : ''}. Each row below says which it is.
+          Right now: <strong className="text-[#5A6E3D]">{pace.above}</strong> debt{pace.above === 1 ? '' : 's'} paid above the minimum · <strong>{pace.at}</strong> at the minimum · <strong className={pace.below ? 'text-[#B85838]' : ''}>{pace.below}</strong> under it · <strong className={pace.growing ? 'text-[#B85838]' : ''}>{pace.growing}</strong> growing (charges outpace payments){pace.unknown ? ` · ${pace.unknown} with no payments observed yet` : ''}. Each row below says which it is.{pace.unknown ? ' Payments are matched by name, never by amount — if a row you pay every month says "no payments seen", open its Edit and set the payment name the bank ledger uses.' : ''}
         </p>
       </section>
 

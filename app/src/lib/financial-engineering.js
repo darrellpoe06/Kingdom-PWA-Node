@@ -254,15 +254,18 @@ export function deriveDebts(data, asOf = new Date()) {
     // Expected payoff from their REAL payments (not a fabricated minimum): the pace
     // they actually pay, the net paydown, and the truthful reach-zero date.
     let insight = debtPayoffInsight(txns, a.id, owed, asOf);
-    // A debt DECLARED from a recurring-payment suggestion has no ledger rows of
-    // its own — its payments ride in checking under the payee name. Recover that
-    // pace by cleaned-name match so the row shows the real "$110/mo" instead of
-    // "no payments seen" (the 2026-08-04 Debts bug). Checking-side data shows
-    // payments only (a card's new charges never hit this ledger), so the pace is
-    // the payment pace, and the payoff is dated at that pace.
+    // A debt with no ledger rows of its own — manual, typed, or name-classified —
+    // still gets PAID: its payments ride in checking under the payee name.
+    // Recover that pace by cleaned-name match (+ issuer aliases + the row's own
+    // payeeAlias "payment name") so the row shows the real "$110/mo" instead of
+    // "no payments seen" (the 2026-08-04 Debts bug; widened 2026-08-24 — the
+    // manual-only gate left every typed credit/loan account blind to its own
+    // payment history in checking). Checking-side data shows payments only (a
+    // card's new charges never hit this ledger), so the pace is the payment
+    // pace, and the payoff is dated at that pace.
     let paceSource = 'own';
-    if (manualDebt && !insight.hasPayments) {
-      const linked = linkedDebtPaymentStats(txns, a.name, a.id, asOf);
+    if (!insight.hasPayments) {
+      const linked = linkedDebtPaymentStats(txns, a.name, a.id, asOf, 6, a.payeeAlias || null);
       if (linked.paymentCount > 0) {
         const payoff = estimatePayoff(owed, linked.grossPaymentPerMonth, asOf);
         insight = {
@@ -314,6 +317,8 @@ export function deriveDebts(data, asOf = new Date()) {
       leaveAlone: a.leaveAlone === true, needsTerms: !(rateKnown && minPayment > 0),
       // Payment-derived payoff — independent of the rate-based snowball engine.
       // paceSource 'linked' = pace recovered from checking-side payee payments.
+      // payeeAlias = the bank ledger's own name for this debt's payment (Edit).
+      payeeAlias: a.payeeAlias || null,
       payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
       estPayoffMonths: insight.payoffMonths, estPayoffOnTrack: insight.onTrack,
       growing: insight.growing, hasPayments: insight.hasPayments, paceSource,
