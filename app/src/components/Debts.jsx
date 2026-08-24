@@ -5,7 +5,9 @@ import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
 import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary, debtCountdown } from '../lib/debt-outcomes.js';
+import { projectDebtSnowball } from '../lib/lifecycle-and-flow.js';
 import { spendingByPriority, killOpportunities, spendVsDebtVerdict, traceSpendTier } from '../lib/spending-priorities.js';
+import { TX_CATEGORIES } from '../lib/categorize.js';
 import { traceDebtRate, traceDebtBalance, traceDebtMin, traceDebtPayoff, traceTotalDebt, tracePaidDown, traceLeftToPay, traceSaved } from '../lib/debt-trace.js';
 import TraceableNumber from './TraceableNumber.jsx';
 import AddDebt from './AddDebt.jsx';
@@ -33,7 +35,7 @@ function paidFromPeak(d) {
   return paid > 0.5 ? paid : null;
 }
 
-function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null, deleteAccount = null, updateRental = null, onImportStatement = null }) {
+function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSnowballExtra, setDebtSnowballExtra, debtSnowball, debtMinOnly, currentDate, netCashFlow = 0, cashTotal = 0, updateAccount = null, transactions = [], accounts = [], categoryRules = {}, addAccount = null, addAccounts = null, deleteAccount = null, updateRental = null, onImportStatement = null, recategorizePayee = null }) {
   // "All credit card and lines companies should be listed on [the Debts] Tab"
   // (Darrell 2026-07-20). deriveDebts can only surface an account that EXISTS as a
   // debt — but a family's other cards are often paid by autopay OUT of checking and
@@ -193,6 +195,19 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const activeDebts = debts.filter(d => !d.leaveAlone);
   const missingTerms = activeDebts.filter(d => d.needsTerms || !(d.minPayment > 0));
   const canProject = activeDebts.length > 0 && missingTerms.length === 0;
+  // USE THE TERMS THAT EXIST (Darrell 2026-08-24: "use the terms there... say
+  // we need more data for the others"). When some debts still lack terms, run
+  // the same engine over ONLY the debts whose rate + minimum are known and show
+  // THAT date — labeled as covering those debts, with the excluded count named
+  // plainly. Not a painted number (DR-0076): the partial date claims exactly
+  // what it covers, and the missing-data gap is stated beside it, never hidden.
+  const withTerms = useMemo(() => activeDebts.filter(d => !(d.needsTerms || !(d.minPayment > 0))), [activeDebts]);
+  const partialSnowball = useMemo(
+    () => (!canProject && withTerms.length > 0 ? projectDebtSnowball(withTerms, debtSnowballExtra, debtSnowballSort, currentDate, 360) : null),
+    [canProject, withTerms, debtSnowballExtra, debtSnowballSort, currentDate],
+  );
+  // Confirmed 0% debts carry no interest at all — every dollar is principal.
+  const zeroRateCount = activeDebts.filter(d => d.rateKnown && d.rate === 0 && d.minPayment > 0).length;
   const interestSaved = debtMinOnly.totalInterest - debtSnowball.totalInterest;
   const stuckCount = debtMinOnly.stuckDebts.length;
   // The headline money (Darrell 2026-08-24: "add total payments up until today
@@ -548,7 +563,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
             </details>
           </div>
           <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="All paid in" value={canProject ? yearsAndMonths(debtSnowball.allClearedMonth) : 'Add terms'} sub={canProject ? debtSnowball.allClearedDate : `${missingTerms.length} debt(s) need rate + minimum`} small />
+            <MetricCell label={canProject ? 'All paid in' : `${withTerms.length} with terms paid in`} value={canProject ? yearsAndMonths(debtSnowball.allClearedMonth) : (partialSnowball ? yearsAndMonths(partialSnowball.allClearedMonth) : 'Add terms')} sub={canProject ? debtSnowball.allClearedDate : (partialSnowball ? `${partialSnowball.allClearedDate} · ${missingTerms.length} more need rate + minimum` : `${missingTerms.length} debt(s) need rate + minimum`)} small />
             <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} small accent="rust" />
             <MetricCell label="Final freed" value={fmt(debtSnowball.finalFreedCashFlow)} sub="/mo" small accent="green" />
           </div>
@@ -572,6 +587,16 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   );
   const verdict = useMemo(() => spendVsDebtVerdict(spending, debts), [spending, debts]);
   const kills = useMemo(() => killOpportunities(debts, spending.tiers.low), [debts, spending.tiers.low]);
+  // Recategorize IN PLACE from the drill-down — the same learn-and-back-apply
+  // the Tx tab uses (Darrell 2026-08-24: "can't categorize any of them from
+  // these lists... don't want to need to go anywhere else... all tabs work the
+  // same"). One pick teaches the payee everywhere; the tiles recompute live.
+  const spendAction = useMemo(() => (recategorizePayee ? {
+    label: 'Category',
+    options: TX_CATEGORIES,
+    value: (item) => item.category || 'other',
+    onPick: (item, category) => recategorizePayee(item.label, category),
+  } : null), [recategorizePayee]);
 
   const killSection = (
     <section className="space-y-3">
@@ -584,11 +609,11 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-              <MetricCell label="Essential" value={fmt(spending.tiers.essential)} sub={`${spending.counts.essential} purchases · tap for the list`} small trace={traceSpendTier('essential', spending)} />
-              <MetricCell label="Giving (covenant)" value={fmt(spending.tiers.covenant)} sub="never counted killable" small accent="green" trace={traceSpendTier('covenant', spending)} />
-              <MetricCell label="Medium" value={fmt(spending.tiers.medium)} sub={`${spending.counts.medium} purchases · tap for the list`} small trace={traceSpendTier('medium', spending)} />
-              <MetricCell label="Low priority" value={fmt(spending.tiers.low)} sub={`${spending.counts.low} purchases · tap for the list`} small accent="rust" trace={traceSpendTier('low', spending)} />
-              <MetricCell label="Uncategorized" value={fmt(spending.tiers.unknown)} sub="unknown, not low · tap for the list" small trace={traceSpendTier('unknown', spending)} />
+              <MetricCell label="Essential" value={fmt(spending.tiers.essential)} sub={`${spending.counts.essential} purchases · tap for the list`} small trace={traceSpendTier('essential', spending)} traceAction={spendAction} />
+              <MetricCell label="Giving (covenant)" value={fmt(spending.tiers.covenant)} sub="never counted killable" small accent="green" trace={traceSpendTier('covenant', spending)} traceAction={spendAction} />
+              <MetricCell label="Medium" value={fmt(spending.tiers.medium)} sub={`${spending.counts.medium} purchases · tap for the list`} small trace={traceSpendTier('medium', spending)} traceAction={spendAction} />
+              <MetricCell label="Low priority" value={fmt(spending.tiers.low)} sub={`${spending.counts.low} purchases · tap for the list`} small accent="rust" trace={traceSpendTier('low', spending)} traceAction={spendAction} />
+              <MetricCell label="Uncategorized" value={fmt(spending.tiers.unknown)} sub="unknown, not low · tap to categorize" small trace={traceSpendTier('unknown', spending)} traceAction={spendAction} />
             </div>
             {/* The verdict he asked to see plainly: low-priority buying vs real
                 bottom-line debt movement (net paydown, not minimum payments). */}
@@ -726,15 +751,24 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${activeDebts.length} accounts`} small accent="rust" trace={traceTotalDebt(debts)} />
           <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
           <MetricCell label="Paid down so far" value={fmt(paidDown.total)} sub={paidDown.counted ? `from ${paidDown.counted} card peak${paidDown.counted === 1 ? '' : 's'}` : 'no peaks recorded yet'} small accent="green" trace={tracePaidDown(paidDown)} />
-          <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—')} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr with the plan` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded')} small accent="green" />
+          <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (partialSnowball ? partialSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—'))} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr with the plan` : (partialSnowball ? `the ${withTerms.length} with terms · need data on ${missingTerms.length} more` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded'))} small accent="green" />
         </div>
+        {/* Confirmed 0% debts, named plainly (Darrell 2026-08-24: "some have 0%
+            interest literally just pay off the balance asap... or not"): no
+            interest is accruing on them, so every dollar sent is principal —
+            they cost nothing to hold and their payoff is pure balance ÷ payment. */}
+        {zeroRateCount > 0 && (
+          <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>{zeroRateCount} debt{zeroRateCount === 1 ? '' : 's'} at a confirmed 0% rate:</strong> no interest is accruing — every dollar paid is principal, and the payoff date is simply balance ÷ payment. Clear them for the freed cash flow and the finished account, or park the money on an interest-charging debt first; either way the 0% ones cost nothing to hold.
+          </p>
+        )}
         {/* Left to pay, with and without the added money — the difference in
             outcome, stated in dollars. */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC] border-t-0">
           <MetricCell
             label={`Left to pay · with ${fmt(debtSnowballExtra)}/mo extra`}
             value={fmt(outlook.withPlanTotal)}
-            sub={canProject ? `balances + ${fmt(debtSnowball.totalInterest)} interest · done ${debtSnowball.allClearedDate}` : 'add terms to project'}
+            sub={canProject ? `balances + ${fmt(debtSnowball.totalInterest)} interest · done ${debtSnowball.allClearedDate}` : (partialSnowball ? `${withTerms.length} with terms done ${partialSnowball.allClearedDate} · need data on ${missingTerms.length} more` : 'add terms to project')}
             small
             trace={traceLeftToPay(outlook, true, debtSnowballExtra)}
           />
