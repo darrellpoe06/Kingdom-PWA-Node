@@ -36,3 +36,27 @@ describe('sov9 — verification earns trust quotes the Word verbatim', () => {
     expect(KJV['1 Thessalonians 5:21'].length).toBe(47);
   });
 });
+
+describe('sov9 postscript — the primary-source figures stay pinned (2026-08-24 verification pass)', () => {
+  // Darrell: "research the same outside sources for comprehensive understanding."
+  // These figures were read from / corroborated against the primary sources in
+  // that session (DORA 2024+2025, METR trial + follow-up, Veracode 2025 report
+  // accounts, GitClear research PDF, the 100x-provenance investigation). The
+  // postscript may be reworded, but a changed NUMBER must be a deliberate
+  // re-verification, never drift — so each is pinned here.
+  it('carries the verified numbers, the honest provenance flag, and the fallen claim', () => {
+    const p = sov9.lesson;
+    for (const pin of [
+      '7.2% DECREASE in delivery stability', '39.2%',            // DORA 2024
+      'throughput has since flipped POSITIVE',                   // DORA 2025 nuance
+      '246 real issues', '19% LONGER', '24% forecast',           // METR
+      'early-2025 snapshot',                                     // METR's own caveat
+      '45% of completions introduced an OWASP Top-10',           // Veracode
+      'unreachable from this session',                           // honest provenance
+      '0.45% (2022) to 6.66% (2024)', '24.8% to 9.5%',           // GitClear
+      'no documented empirical study',                           // the 100x folklore
+    ]) {
+      expect(p).toContain(pin);
+    }
+  });
+});
