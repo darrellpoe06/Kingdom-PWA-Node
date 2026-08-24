@@ -131,6 +131,9 @@ describe('0149 — Sunday and Wednesday Service join the cue sheet, separated', 
     expect(code9).toMatch(/column_name = 'spotify_link'/);
     expect(code9).toMatch(/SET music_link = COALESCE\(music_link, spotify_link\)/);
     expect(code9).toMatch(/DROP COLUMN spotify_link/);
+    // Self-sufficient: the NAS replay applies by FILENAME (never re-applies an
+    // edited 0146), so 0149 creates music_link itself (NAS frontier incident).
+    expect(code9).toMatch(/ADD COLUMN IF NOT EXISTS music_link text/);
   });
   it('the client speaks the two services, separated', () => {
     expect(EVENT_TYPE_IDS).toContain('sunday-service');
