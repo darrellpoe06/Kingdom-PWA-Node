@@ -83,19 +83,19 @@ describe('traceSpendTier — the main totals drill down too (Darrell 2026-08-24)
     expect(t.sources.map((s) => s.label)).toEqual(['STARBUCKS #123', 'NETFLIX.COM']);
     expect(t.sources.every((s) => s.kind === 'money' && s.op === '+')).toBe(true);
     expect(t.inputs[0].label).toContain('2 purchases in the window');
-    expect(t.note).toBeUndefined();
   });
   it('giving names the covenant stand; unknown says UNKNOWN is not LOW', () => {
     expect(traceSpendTier('covenant', spending).formula).toContain('never counted killable');
     expect(traceSpendTier('unknown', spending).formula).toContain('UNKNOWN is not LOW');
   });
-  it('past 12 purchases the trace stays honest: top 12 shown, the rest counted and totaled', () => {
-    const many = Array.from({ length: 15 }, (_, i) => ({ description: `SHOP ${i}`, amount: -(100 - i), date: daysAgo(2) }));
+  it('ALL purchases list — never truncated, never "+N more" (Darrell: "give me all of them")', () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ description: `SHOP ${i}`, amount: -(100 - i), date: daysAgo(2) }));
     const s = spendingByPriority(many, { nowMs: NOW });
-    const key = Object.keys(s.itemsByTier).find((k) => s.itemsByTier[k].length === 15);
+    const key = Object.keys(s.itemsByTier).find((k) => s.itemsByTier[k].length === 40);
     const t = traceSpendTier(key, s);
-    expect(t.sources).toHaveLength(12);
-    expect(t.note).toContain('+ 3 more purchases totaling $');
+    expect(t.sources).toHaveLength(40);
+    expect(t.note).toBeUndefined();
+    expect(t.inputs[0].label).toContain('all listed below');
   });
 });
 

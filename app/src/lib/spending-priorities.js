@@ -115,8 +115,10 @@ export function spendVsDebtVerdict(spending, debts, { floor = BOTTOM_LINE_FLOOR 
 
 // --- Drill-down trace for a tier's headline total ----------------------------
 // The same tap-the-number standard as the rest of the Debts tab: formula,
-// inputs, and the REAL purchases behind the figure (top 12, then an honest
-// "+N more" note — nothing hidden, nothing invented).
+// inputs, and EVERY real purchase behind the figure. Darrell 2026-08-24:
+// "give me all of them not x left... we are reviewing in this location...
+// we want to see" — the drill-down is the review surface, so nothing is
+// truncated; the full list renders, largest first.
 const TIER_TITLES = {
   essential: 'Essential spending',
   covenant: 'Giving (covenant)',
@@ -136,15 +138,11 @@ export function traceSpendTier(tierKey, spending) {
   const total = spending?.tiers?.[tierKey] || 0;
   const count = spending?.counts?.[tierKey] || 0;
   const items = spending?.itemsByTier?.[tierKey] || [];
-  const shown = items.slice(0, 12);
-  const rest = items.length - shown.length;
-  const restTotal = Math.round(items.slice(12).reduce((s, i) => s + i.amount, 0));
   return {
     title: `${TIER_TITLES[tierKey] || tierKey} · last ${spending?.days || 30} days`,
     formula: TIER_FORMULAS[tierKey] || '',
     result: { value: total, kind: 'money' },
-    inputs: [{ label: `${count} purchase${count === 1 ? '' : 's'} in the window`, value: count, kind: 'count' }],
-    sources: shown.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+' })),
-    note: rest > 0 ? `+ ${rest} more purchase${rest === 1 ? '' : 's'} totaling $${restTotal.toLocaleString()}.` : undefined,
+    inputs: [{ label: `${count} purchase${count === 1 ? '' : 's'} in the window — all listed below`, value: count, kind: 'count' }],
+    sources: items.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+' })),
   };
 }

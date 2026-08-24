@@ -125,7 +125,8 @@ export function traceTotalDebt(debts) {
     title: 'Total debt',
     formula: 'Sum of today’s balances across every active (not parked) debt.',
     result: money(Math.round(active.reduce((s, x) => s + (Number(x.balance) || 0), 0))),
-    inputs: active.slice(0, 8).map((x) => ({ label: x.name, ...money(Math.round(x.balance)), op: '+' })),
+    // Every active debt listed — the review wants to see all of them, untruncated.
+    inputs: active.map((x) => ({ label: x.name, ...money(Math.round(x.balance)), op: '+' })),
     sources: [{ label: `${active.length} active accounts on this tab (parked “leave alone” excluded)`, ...text('their recorded balances') }],
   };
 }
