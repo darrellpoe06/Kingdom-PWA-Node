@@ -14,7 +14,7 @@
 // labelled inputs, aria-live on the result + errors. Honeypot swallows bots.
 import React, { useState } from 'react';
 import {
-  CAMPUSES, EVENT_TYPES, spacesForCampus, validateBookingRequest, submitSpaceRequest,
+  CAMPUSES, EVENT_TYPES, MEDIA_CATEGORIES, spacesForCampus, validateBookingRequest, submitSpaceRequest,
 } from '../lib/venue-rental.js';
 
 const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
@@ -24,6 +24,7 @@ const BLANK = {
   requesterName: '', requesterEmail: '', requesterPhone: '', organization: '',
   campus: 'north', spaceId: '', eventType: 'community', eventTitle: '',
   eventDate: '', startTime: '', endTime: '', expectedAttendance: '', notes: '',
+  mediaExpected: {}, spotifyLink: '', mediaNotes: '',
 };
 
 export default function VenueRequestForm({ source = 'public-request', onDone = null }) {
@@ -38,6 +39,15 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
       // Changing campus clears a now-invalid space choice.
       if (k === 'campus') return { ...f, campus: v, spaceId: '' };
       return { ...f, [k]: v };
+    });
+  };
+
+  // Toggle one media cue-sheet category expected/not (Bro Reed's Q3).
+  const toggleMedia = (key) => () => {
+    setForm((f) => {
+      const next = { ...(f.mediaExpected || {}) };
+      if (next[key]) delete next[key]; else next[key] = true;
+      return { ...f, mediaExpected: next };
     });
   };
 
@@ -152,6 +162,37 @@ export default function VenueRequestForm({ source = 'public-request', onDone = n
         <label htmlFor="vr-notes" className={labelCls}>Anything we should know? <span className="text-[#5A5751] font-normal">(optional)</span></label>
         <textarea id="vr-notes" rows={3} value={form.notes} onChange={set('notes')} className={inputCls} placeholder="Catering, AV/livestream, accessibility needs, setup help…" />
       </div>
+
+      {/* Media cue sheet — merged from Bro Clifton Reed's Event Media Intake
+          process, built from his experience serving the congregation: telling
+          the media team what to expect BEFORE the day is what makes the day
+          smooth. All optional. */}
+      <fieldset className="mb-3 border border-[#E8E4DC] p-3">
+        <legend className="text-xs font-semibold text-[#1A1815] px-1">Media for your event <span className="text-[#5A5751] font-normal">(optional — the media team’s cue sheet)</span></legend>
+        <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Check what you’ll be sending so our media team can prepare. They’ll reach out to confirm how to get the files to them.
+        </p>
+        {MEDIA_CATEGORIES.map((c) => (
+          <label key={c.key} className="flex items-center gap-2 text-xs text-[#1A1815] cursor-pointer min-h-[36px]">
+            <input
+              type="checkbox"
+              checked={form.mediaExpected?.[c.key] === true}
+              onChange={toggleMedia(c.key)}
+              className="w-4 h-4 accent-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+            />
+            <span>{c.label}</span>
+            <span className="text-[0.625rem] uppercase tracking-wide text-[#5A5751]">· {c.formats}</span>
+          </label>
+        ))}
+        <div className="mt-2">
+          <label htmlFor="vr-spotify" className={labelCls}>Spotify link for your music <span className="text-[#5A5751] font-normal">(optional)</span></label>
+          <input id="vr-spotify" type="url" value={form.spotifyLink} onChange={set('spotifyLink')} className={inputCls} placeholder="paste a playlist or song link" autoComplete="off" />
+        </div>
+        <div className="mt-2">
+          <label htmlFor="vr-media-notes" className={labelCls}>Notes for the media team <span className="text-[#5A5751] font-normal">(optional)</span></label>
+          <textarea id="vr-media-notes" rows={2} value={form.mediaNotes} onChange={set('mediaNotes')} className={inputCls} placeholder="When each piece should play, slideshow order, livestream wishes…" />
+        </div>
+      </fieldset>
 
       {/* honeypot: visually hidden, off-tab; bots fill it, people don't */}
       <input type="text" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
