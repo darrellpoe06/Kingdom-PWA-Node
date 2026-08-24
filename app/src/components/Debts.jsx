@@ -4,9 +4,11 @@
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
 import { cardPaymentSuggestions, debtNameFromPayee, looksLikeDebtAccount } from '../lib/debt-payments.js';
+import { totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary } from '../lib/debt-outcomes.js';
 import AddDebt from './AddDebt.jsx';
 import EditDebtRow from './EditDebtRow.jsx';
 import DebtStatementUpload from './DebtStatementUpload.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -188,21 +190,31 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
   const canProject = activeDebts.length > 0 && missingTerms.length === 0;
   const interestSaved = debtMinOnly.totalInterest - debtSnowball.totalInterest;
   const stuckCount = debtMinOnly.stuckDebts.length;
+  // The headline money (Darrell 2026-08-24: "add total payments up until today
+  // and total left to payoff with and without any added money... the difference
+  // in outcome to be obvious... all KPI's"). Pure arithmetic on the family's
+  // own numbers — lib/debt-outcomes.js, unit-locked.
+  const paidDown = useMemo(() => totalPaidDownFromPeaks(debts), [debts]);
+  const outlook = useMemo(() => payoffOutlook(debts, debtSnowball, debtMinOnly), [debts, debtSnowball, debtMinOnly]);
+  const pace = useMemo(() => paceSummary(debts), [debts]);
 
-  return (
-    <div className="space-y-6">
-      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Debt Snowball Engine</div>
-        <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Same pattern. Smaller numbers. Faster wins.</h2>
-        <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          The same snowball that pays off 11 rental properties also clears consumer debt — and the math here is even more motivating because the interest rates are much higher. Watch what gets freed up at each payoff.
-        </p>
-      </section>
+  // The intro + add/import panels, reused inside the subtabs below.
+  const introCard = (
+    <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Debt Snowball Engine</div>
+      <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Same pattern. Smaller numbers. Faster wins.</h2>
+      <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+        The same snowball that pays off 11 rental properties also clears consumer debt — and the math here is even more motivating because the interest rates are much higher. Watch what gets freed up at each payoff.
+      </p>
+    </section>
+  );
 
-      {/* Add a debt by hand, or paste a whole list (Christina 2026-08-10). Every
-          other route onto this tab is a SUGGESTION the app makes; this is the
-          one that lets a person add a card the app has never seen — a closed
-          account, a gas card, a business card with no feed behind it. */}
+  // Add a debt by hand, or paste a whole list (Christina 2026-08-10). Every
+  // other route onto this tab is a SUGGESTION the app makes; this is the
+  // one that lets a person add a card the app has never seen — a closed
+  // account, a gas card, a business card with no feed behind it.
+  const addPanels = (
+    <>
       {addAccount && (
         <AddDebt entities={entities} addAccount={addAccount} addAccounts={addAccounts} existingDebts={debts} />
       )}
@@ -272,9 +284,12 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           </p>
         </section>
       )}
+    </>
+  );
 
-      {/* All Debts table — excel-style sort by rate / balance / payoff date */}
-      <section>
+  // All Debts table — excel-style sort by rate / balance / payoff date
+  const allDebtsSection = (
+    <section>
         <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3 pb-2 border-b border-[#1A1815]">
           <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Debts · sorted by {allDebtsSort === 'rate' ? 'rate' : allDebtsSort === 'balance' ? 'balance' : 'payoff date'}</h2>
           <div className="flex gap-1">
@@ -328,6 +343,16 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                           )}
                         </div>
                       )}
+                      {/* Above/below-minimum, from this card's OWN observed
+                          payments (Darrell 2026-08-24: "show when there is
+                          more than the minimum payment being made and when
+                          it's not"). Silent when no pace is observed. */}
+                      {(() => {
+                        const pb = paymentPaceBadge(d);
+                        if (!pb) return null;
+                        const toneCls = pb.tone === 'above' ? 'text-[#5A6E3D]' : pb.tone === 'at' ? 'text-[#5A5751]' : 'text-[#B85838] font-medium';
+                        return <div className={`text-[0.5625rem] mt-0.5 ${toneCls}`} style={{ fontFamily: '"Fraunces", serif' }}>{pb.label}</div>;
+                      })()}
                     </td>
                     <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
                     <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -396,19 +421,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           </table>
         </div>
       </section>
+  );
 
-      {/* Top metrics */}
-      <section>
-        <SectionTitle>Where We Are Today</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-          <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${debts.filter(d => !d.leaveAlone).length} accounts`} small accent="rust" />
-          <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
-          <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—')} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded')} small accent="green" />
-          <MetricCell label="Interest paid" value={fmt(debtSnowball.totalInterest)} sub="over journey" small accent="rust" />
-        </div>
-      </section>
-
-      {/* The motivator — interest saved */}
+  // The motivator — interest saved
+  const savingsSection = (
       <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-6">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-medium mb-3">Interest Savings vs. Paying Minimums Only</div>
         <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
@@ -432,8 +448,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           {stuckCount > 0 ? `Note: ${stuckCount} debt(s) at minimum payment don't even cover their interest — they'd grow indefinitely without the snowball.` : 'Every dollar you put toward snowballing is multiplied by the interest you avoid.'}
         </p>
       </section>
+  );
 
-      {/* Strategy selector */}
+  // Strategy selector
+  const strategySection = (
       <section>
         <SectionTitle>Snowball Strategy</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-5 space-y-5">
@@ -535,8 +553,10 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           </p>
         </div>
       </section>
+  );
 
-      {/* Payoff cascade */}
+  // Payoff cascade
+  const cascadeSection = (
       <section>
         <SectionTitle>Payoff Cascade · What Frees Up When</SectionTitle>
         <div className="bg-white border border-[#1A1815]">
@@ -567,26 +587,82 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
           })}
         </div>
       </section>
+  );
 
-      {/* MOVED-FROM-BOTTOM: lighter dead anchor for the future. The visible section is at the top now. */}
-      <section style={{ display: 'none' }} aria-hidden>
-        <div className="bg-white border border-[#1A1815] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-[#1A1815]"><th scope="col" className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Account</th><th scope="col" className="text-left p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hidden sm:table-cell">Entity</th><th scope="col" className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Rate</th><th scope="col" className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Min</th><th scope="col" className="text-right p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Balance</th></tr></thead>
-            <tbody>
-              {sorted.map((d) => (
-                <tr key={d.id} className={`border-b border-[#E8E4DC] ${d.flag ? 'bg-[#FAF8F4]' : ''} ${d.leaveAlone ? 'opacity-60' : ''}`}>
-                  <td className="p-3"><span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>{d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}{d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}</td>
-                  <td className="p-3 text-xs text-[#5A5751] hidden sm:table-cell">{ent(d.entityId)?.name.split('(')[0].trim() || '—'}</td>
-                  <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.rate === 0 ? '0%' : `${d.rate.toFixed(2).replace(/\.00$/, '')}%`}</td>
-                  <td className="p-3 text-right text-xs" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.minPayment)}</td>
-                  <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(d.balance)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  // ---------------------------------------------------------------------------
+  // The tab itself: EVERY KPI pinned in one money band (Darrell 2026-08-24:
+  // "all KPI's... we want money or the mathematics to make everything easier
+  // for comprehensive comprehension and clarity"), then the long sections as
+  // SIDE-BY-SIDE subtabs instead of a long scroll ("Make these tabs next to
+  // each other so we know they exist" — the proven SectionTabs pattern).
+  // ---------------------------------------------------------------------------
+  return (
+    <div className="space-y-5">
+      {/* Pinned: the whole money story before any tab is opened. */}
+      <section>
+        <SectionTitle>Where We Are Today</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+          <MetricCell label="Total debt" value={fmtCompact(totalDebt)} sub={`${activeDebts.length} accounts`} small accent="rust" />
+          <MetricCell label="Min payments" value={fmt(totalMinPayment)} sub="/mo" small />
+          <MetricCell label="Paid down so far" value={fmt(paidDown.total)} sub={paidDown.counted ? `from ${paidDown.counted} card peak${paidDown.counted === 1 ? '' : 's'}` : 'no peaks recorded yet'} small accent="green" />
+          <MetricCell label="Debt-free" value={canProject ? debtSnowball.allClearedDate : (activeDebts.length ? 'Add terms' : '—')} sub={canProject ? `${debtSnowball.allClearedYears.toFixed(1)}yr with the plan` : (activeDebts.length ? `${missingTerms.length} need rate/min` : 'no debts loaded')} small accent="green" />
         </div>
+        {/* Left to pay, with and without the added money — the difference in
+            outcome, stated in dollars. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC] border-t-0">
+          <MetricCell
+            label={`Left to pay · with ${fmt(debtSnowballExtra)}/mo extra`}
+            value={fmt(outlook.withPlanTotal)}
+            sub={canProject ? `balances + ${fmt(debtSnowball.totalInterest)} interest · done ${debtSnowball.allClearedDate}` : 'add terms to project'}
+            small
+          />
+          <MetricCell
+            label="Left to pay · minimums only"
+            value={outlook.minOnlyFinishes ? fmt(outlook.minOnlyTotal) : `${fmt(outlook.minOnlyTotal)}+`}
+            sub={outlook.minOnlyFinishes ? `balances + ${fmt(debtMinOnly.totalInterest)} interest` : `${outlook.stuckCount} debt${outlook.stuckCount === 1 ? '' : 's'} NEVER finish at minimums`}
+            small accent="rust"
+          />
+          <MetricCell label="The extra money saves" value={fmt(outlook.saved)} sub="never paid, with the plan" small accent="green" />
+        </div>
+        {/* Who is being paid above the minimum right now — observed, not assumed. */}
+        <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Right now: <strong className="text-[#5A6E3D]">{pace.above}</strong> debt{pace.above === 1 ? '' : 's'} paid above the minimum · <strong>{pace.at}</strong> at the minimum · <strong className={pace.below ? 'text-[#B85838]' : ''}>{pace.below}</strong> under it · <strong className={pace.growing ? 'text-[#B85838]' : ''}>{pace.growing}</strong> growing (charges outpace payments){pace.unknown ? ` · ${pace.unknown} with no payments observed yet` : ''}. Each row below says which it is.
+        </p>
       </section>
+
+      <SectionTabs
+        ariaLabel="Debt sections"
+        idBase="debts-sub"
+        defaultId="all"
+        sections={[
+          {
+            id: 'all',
+            label: `All Debts (${activeDebts.length})`,
+            render: () => allDebtsSection,
+          },
+          {
+            id: 'plan',
+            label: 'Snowball plan',
+            render: () => (
+              <div className="space-y-5">
+                {savingsSection}
+                {strategySection}
+                {introCard}
+              </div>
+            ),
+          },
+          {
+            id: 'cascade',
+            label: 'Payoff cascade',
+            render: () => cascadeSection,
+          },
+          {
+            id: 'add',
+            label: 'Add & import',
+            render: () => <div className="space-y-5">{addPanels}</div>,
+          },
+        ]}
+      />
     </div>
   );
 }
