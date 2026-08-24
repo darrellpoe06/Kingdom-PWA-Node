@@ -45,6 +45,15 @@ sys.path.insert(0, os.path.join(HERE, ".vendor"))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:14b-instruct-q4_K_M")
 LOCK_PATH = os.environ.get("AGENT_LOCK", "/tmp/poetech-agent-consumer.lock")
+# @gemini runner (built 2026-08-24 -- the vendor branch was documented
+# "unreachable in production" and a live row proved it: aa3c40f5 failed with
+# "the @gemini route is dark"). The key comes ONLY from the service env the
+# installer writes root-only (never the repo, never chat); no key = the same
+# honest fail as before. The key rides an HTTP HEADER, never a URL, so it can
+# never land in a log line or a process list.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
 
 # DR-0210 shapes the voice: prefer the covenant name Yahweh over the generic
 # "God" in the model's OWN words (many faiths claim "god"; the house is clear
@@ -83,12 +92,39 @@ def ask_ollama(message, transport=None):
         return False, "local model unreachable: {}".format(e)
 
 
-def _http_transport(url, body):
-    req = urllib.request.Request(
-        url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"})
+def _http_transport(url, body, headers=None):
+    h = {"Content-Type": "application/json"}
+    h.update(headers or {})
+    req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=h)
     with urllib.request.urlopen(req, timeout=300) as res:
         return res.read().decode("utf-8")
+
+
+def ask_gemini(message, transport=None, api_key=None):
+    """Call the Gemini API; returns (ok, text). Same honesty contract as
+    ask_ollama: any failure -- transport, HTTP, empty answer, safety block --
+    returns (False, why) so the row records WHY instead of spinning."""
+    key = api_key if api_key is not None else GEMINI_API_KEY
+    if not key:
+        return False, "the @gemini route is dark -- no API key is provisioned."
+    send = transport or _http_transport
+    body = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": message}]}],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1024},
+    }
+    try:
+        raw = send(GEMINI_URL.format(GEMINI_MODEL), body, {"x-goog-api-key": key})
+        data = json.loads(raw)
+        cands = data.get("candidates") or []
+        parts = ((cands[0].get("content") or {}).get("parts") or []) if cands else []
+        text = "".join(p.get("text", "") for p in parts).strip()
+        if not text:
+            reason = (cands[0].get("finishReason") if cands else None) or (data.get("promptFeedback") or {}).get("blockReason") or "empty response"
+            return False, "gemini returned no text ({})".format(reason)
+        return True, text
+    except Exception as e:  # noqa: BLE001 - the row must record ANY failure
+        return False, "gemini unreachable: {}".format(e)
 
 
 def decide(row, vendor_keys=None):
@@ -104,17 +140,19 @@ def decide(row, vendor_keys=None):
     if target == "local":
         return "answer", None
     if keys.get(target) is True:
-        # Vendor execution lands with the keys; until the runner carries them
-        # this branch is unreachable in production -- and the tests pin that a
-        # keyless vendor row FAILS with the why instead of spinning forever.
+        # A provisioned key opens the vendor branch; process_once routes it to
+        # that vendor's OWN runner (ask_gemini for @gemini). A key without a
+        # runner still fails with the why -- never a silent wrong-model answer.
         return "answer", None
     return "fail", ("the @{} route is dark -- no API key is provisioned. "
                     "Resend without the prefix to use the local model.").format(target)
 
 
-def process_once(fetch_queued, mark, answer=ask_ollama, max_rows=5, vendor_keys=None):
-    """One braked pass. fetch_queued(limit) -> rows; mark(id, status, result, error)."""
+def process_once(fetch_queued, mark, answer=ask_ollama, max_rows=5, vendor_keys=None, vendor_answerers=None):
+    """One braked pass. fetch_queued(limit) -> rows; mark(id, status, result, error).
+    `answer` serves @local; a vendor row routes to vendor_answerers[target]."""
     done = failed = 0
+    vendors = vendor_answerers or {}
     for row in (fetch_queued(max_rows) or [])[:max_rows]:
         action, note = decide(row, vendor_keys)
         if action == "skip":
@@ -123,8 +161,15 @@ def process_once(fetch_queued, mark, answer=ask_ollama, max_rows=5, vendor_keys=
             mark(row["id"], "failed", None, note)
             failed += 1
             continue
+        target = (row.get("target") or "local").lower()
+        fn = answer if target == "local" else vendors.get(target)
+        if fn is None:
+            mark(row["id"], "failed", None,
+                 "the @{} route has a key but no runner in this build -- honest fail, not a wrong-model answer".format(target))
+            failed += 1
+            continue
         mark(row["id"], "running", None, None)
-        ok, text = answer(row["message"])
+        ok, text = fn(row["message"])
         if ok:
             mark(row["id"], "done", text, None)
             done += 1
@@ -183,7 +228,10 @@ def db_run(max_rows):
                 "UPDATE public.agent_tasks SET status=:s, result=:r, error=:e "
                 "WHERE id=:i::uuid", s=status, r=result, e=error, i=task_id)
 
-        out = process_once(fetch_queued, mark, max_rows=max_rows)
+        out = process_once(
+            fetch_queued, mark, max_rows=max_rows,
+            vendor_keys={"gemini": bool(GEMINI_API_KEY)},
+            vendor_answerers={"gemini": ask_gemini})
         print("agent-consumer: {}".format(json.dumps(out)))
         return 0
     finally:
@@ -241,6 +289,40 @@ def selftest():
     marks2 = []
     process_once(lambda n: many, lambda i, s, r, e: marks2.append(i), answer=lambda m: (True, "ok"), max_rows=3)
     check("BUDGET: --max caps the pass (3 rows -> 6 marks, never 50)", len(marks2) == 6)
+
+    # the @gemini runner (2026-08-24): key -> that vendor's OWN runner; the key
+    # rides a header, never the URL; empty/blocked answers fail with the why.
+    gmarks = []
+    grows = [{"id": "g", "message": "hi", "target": "gemini", "status": "queued"}]
+    process_once(lambda n: grows, lambda i, s, r, e: gmarks.append((i, s, r, e)),
+                 answer=lambda m: (True, "WRONG MODEL"), max_rows=5,
+                 vendor_keys={"gemini": True},
+                 vendor_answerers={"gemini": lambda m: (True, "gemini: " + m)})
+    check("a keyed @gemini row lands via the GEMINI runner, never the local one",
+          ("g", "done", "gemini: hi", None) in gmarks and not any(r == "WRONG MODEL" for (_, _, r, _) in gmarks))
+    gmarks2 = []
+    process_once(lambda n: grows, lambda i, s, r, e: gmarks2.append((i, s, r, e)),
+                 answer=lambda m: (True, "WRONG MODEL"), max_rows=5,
+                 vendor_keys={"gemini": True}, vendor_answerers={})
+    check("CATCHES key-without-runner -> honest fail, not a wrong-model answer",
+          any(s == "failed" and "no runner" in (e or "") for (_, s, _, e) in gmarks2))
+    gsent = {}
+
+    def gspy(url, body, headers=None):
+        gsent["url"] = url
+        gsent["headers"] = headers or {}
+        gsent["body"] = body
+        return json.dumps({"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
+    ok_g, text_g = ask_gemini("test", transport=gspy, api_key="k-test")
+    check("gemini call parses candidates -> text", ok_g and text_g == "ok")
+    check("the key rides the x-goog-api-key HEADER, never the URL",
+          gsent["headers"].get("x-goog-api-key") == "k-test" and "k-test" not in gsent["url"])
+    check("gemini call carries the house system prompt",
+          "Yahweh" in json.dumps(gsent["body"].get("system_instruction", {})))
+    check("a blocked/empty gemini answer FAILS with the why",
+          ask_gemini("t", transport=lambda u, b, h=None: json.dumps({"candidates": [{"finishReason": "SAFETY", "content": {"parts": []}}]}), api_key="k")[0] is False)
+    check("keyless ask_gemini fails honestly without a network call",
+          ask_gemini("t", transport=None, api_key="")[0] is False)
 
     # ollama call shape: keep_alive 0 rides every request (DR-0012)
     sent = {}

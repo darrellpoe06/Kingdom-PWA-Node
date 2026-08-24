@@ -39,5 +39,7 @@ if [ ! -f "$ENVF" ]; then
   exit 0
 fi
 . "$ENVF"
-export AGENT_DB_URL OLLAMA_MODEL
+# GEMINI_API_KEY lights the @gemini route (2026-08-24); absent = the route
+# stays dark and rows fail with the why -- same honesty as before.
+export AGENT_DB_URL OLLAMA_MODEL GEMINI_API_KEY GEMINI_MODEL
 python3 "$SRC/agent_consumer.py" --max "${AGENT_MAX:-5}"
