@@ -25,6 +25,12 @@ ALTER TABLE venue_bookings ADD CONSTRAINT venue_bookings_event_type_check
   CHECK (event_type IN ('sunday-service','wednesday-service','funeral','wedding','concert','conference','community'));
 
 -- Carry any spotify_link value into music_link, then drop the orphan column.
+-- SELF-SUFFICIENT (NAS ledger 162/163, frontier 0149): the NAS replay applies
+-- by FILENAME, so the edited 0146 (spotify_link -> music_link rename) never
+-- re-applied there and music_link did not exist when this UPDATE first ran.
+-- This migration therefore creates the column itself — idempotent on every
+-- box, whichever 0146 variant it carries.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS music_link text;
 DO $$
 BEGIN
   IF EXISTS (
