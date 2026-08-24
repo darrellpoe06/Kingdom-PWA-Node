@@ -28,7 +28,7 @@ const code = sql.replace(/--.*$/gm, '');
 describe('0146 — the migration adds the cue sheet and nothing else', () => {
   it('adds the three cue-sheet columns, idempotently', () => {
     expect(code).toMatch(/ADD COLUMN IF NOT EXISTS media_expected jsonb NOT NULL DEFAULT '\{\}'::jsonb/);
-    expect(code).toMatch(/ADD COLUMN IF NOT EXISTS spotify_link text/);
+    expect(code).toMatch(/ADD COLUMN IF NOT EXISTS music_link text/);
     expect(code).toMatch(/ADD COLUMN IF NOT EXISTS media_notes text/);
   });
   it('widens the event-type CHECK with concert + conference (drop-then-add)', () => {
@@ -65,24 +65,24 @@ describe('the row round-trips the cue sheet', () => {
       requesterName: 'A', spaceId: 'north-sanctuary', campus: 'north',
       eventType: 'concert', eventDate: '2026-09-01',
       mediaExpected: { photos: true, videos: false, slides: 'yes', hacked: true },
-      spotifyLink: '  https://open.spotify.com/playlist/x  ',
+      musicLink: '  https://open.spotify.com/playlist/x  ',
       mediaNotes: ' play at the close ',
     });
     expect(row.event_type).toBe('concert');
     expect(row.media_expected).toEqual({ photos: true });
-    expect(row.spotify_link).toBe('https://open.spotify.com/playlist/x');
+    expect(row.music_link).toBe('https://open.spotify.com/playlist/x');
     expect(row.media_notes).toBe('play at the close');
   });
   it('an empty form yields an empty-but-present cue sheet (never undefined)', () => {
     const row = buildBookingRow({ requesterName: 'A', spaceId: 'north-sanctuary' });
     expect(row.media_expected).toEqual({});
-    expect(row.spotify_link).toBeNull();
+    expect(row.music_link).toBeNull();
     expect(row.media_notes).toBeNull();
   });
-  it('toBookingShape surfaces mediaExpected / spotifyLink / mediaNotes', () => {
-    const b = toBookingShape({ id: 'x', media_expected: { videos: true }, spotify_link: 'https://s', media_notes: 'n' });
+  it('toBookingShape surfaces mediaExpected / musicLink / mediaNotes', () => {
+    const b = toBookingShape({ id: 'x', media_expected: { videos: true }, music_link: 'https://s', media_notes: 'n' });
     expect(b.mediaExpected).toEqual({ videos: true });
-    expect(b.spotifyLink).toBe('https://s');
+    expect(b.musicLink).toBe('https://s');
     expect(b.mediaNotes).toBe('n');
     expect(mediaExpectedLabels(b)).toEqual(['Videos']);
     expect(hasCueSheet(b)).toBe(true);
@@ -94,10 +94,12 @@ describe('the row round-trips the cue sheet', () => {
 });
 
 describe('both surfaces render the cue sheet', () => {
-  it('the shared request form asks Bro Reed’s Q3 (categories + Spotify + notes)', () => {
+  it('the form keeps Bro Reed’s Spotify label and accepts any music link', () => {
     const src = readFileSync(join(HERE, '..', 'components', 'VenueRequestForm.jsx'), 'utf8');
     expect(src).toMatch(/MEDIA_CATEGORIES\.map/);
-    expect(src).toMatch(/vr-spotify/);
+    expect(src).toMatch(/vr-music/);
+    expect(src).toMatch(/Spotify link for your music/);
+    expect(src).toMatch(/any music link works, YouTube included/);
     expect(src).toMatch(/vr-media-notes/);
     expect(src).toMatch(/Clifton Reed/); // his work is credited where it lives
   });
@@ -106,6 +108,6 @@ describe('both surfaces render the cue sheet', () => {
     expect(src).toMatch(/hasCueSheet\(booking\)/);
     expect(src).toMatch(/mediaExpectedLabels\(booking\)/);
     // Public-form input never becomes a clickable javascript: href.
-    expect(src).toMatch(/\/\^https\?:\\\/\\\/\/i\.test\(booking\.spotifyLink\)/);
+    expect(src).toMatch(/\/\^https\?:\\\/\\\/\/i\.test\(booking\.musicLink\)/);
   });
 });

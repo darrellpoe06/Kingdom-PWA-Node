@@ -35,8 +35,10 @@
 -- { photos: true, videos: true, slides: true, documents: true } — only the
 -- categories the requester expects to send; absent key = not expected.
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS media_expected jsonb NOT NULL DEFAULT '{}'::jsonb;
--- Music for the event (Bro Reed's form asks for a Spotify link).
-ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS spotify_link text;
+-- Music for the event. Bro Reed's form asked for a Spotify link; Darrell
+-- 2026-08-24: "links from YouTube for music are most common however we have
+-- Spotify as well... other options" — so the column takes ANY music link.
+ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS music_link text;
 -- The cue-sheet notes for the media team specifically (distinct from the
 -- general booking notes the office reads).
 ALTER TABLE venue_bookings ADD COLUMN IF NOT EXISTS media_notes text;
