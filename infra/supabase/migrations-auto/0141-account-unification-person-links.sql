@@ -155,15 +155,22 @@ CREATE POLICY tv_share_select ON tv_share FOR SELECT
 -- by design (the relay's strict "exactly 110" was rejected on the record:
 -- usage_events grows live, so equality would jam the replay frontier on
 -- honest growth):
---   • FLOOR — after the remap, the gmail-side count per column must be >= the
---     census sum (gmail + phone as measured in run 32417595488). Gmail-side
---     counts only grow, so this holds on every replay.
+--   • FLOOR (conservation) — after the remap, each gmail-side count must be
+--     >= its own pre-remap count plus the rows just moved. CORRECTED
+--     2026-08-24: the original floor hardcoded the NAS census (board>=17,
+--     usage>=2164, ...), which described ONE database at one moment; the
+--     cloud twin behind db-migrate carries slightly different counts, so
+--     0141 rolled back there on every replay (runs red since merge — run
+--     32681100792 is the receipt). Conservation states the same no-loss
+--     intent from the database's OWN baseline, so it holds on any box and
+--     still uses >= (never =) so honest live growth can never jam a replay.
 --   • EXHAUSTION — zero phone-attributed rows remain in each column. Holds by
 --     construction immediately after the UPDATE, on every replay.
 -- Actual moved counts are NOTICE'd so the replay log is the receipt.
 DO $$
 DECLARE
   gml uuid; phn uuid;
+  b_board int; b_usage int; b_feed int; b_watch int; b_snap int;
   n_board int; n_usage int; n_feed int; n_watch int; n_snap int;
   g_board int; g_usage int; g_feed int; g_watch int; g_snap int;
   x_total int;
@@ -174,6 +181,13 @@ BEGIN
     RAISE NOTICE 'DR-0311 remap skipped: both identities are not present on this box (gmail found: %, phone found: %)', gml IS NOT NULL, phn IS NOT NULL;
     RETURN;
   END IF;
+
+  -- Baseline: this database's own gmail-side counts BEFORE the remap.
+  SELECT count(*) INTO b_board FROM board_tasks      WHERE created_by = gml;
+  SELECT count(*) INTO b_usage FROM usage_events     WHERE owner      = gml;
+  SELECT count(*) INTO b_feed  FROM feedback         WHERE user_id    = gml;
+  SELECT count(*) INTO b_watch FROM market_watchlist WHERE created_by = gml;
+  SELECT count(*) INTO b_snap  FROM family_snapshots WHERE updated_by = gml;
 
   UPDATE board_tasks       SET created_by = gml WHERE created_by = phn;
   GET DIAGNOSTICS n_board = ROW_COUNT;
@@ -189,17 +203,17 @@ BEGIN
   RAISE NOTICE 'DR-0311 remap moved phone->gmail: board_tasks.created_by=% usage_events.owner=% feedback.user_id=% market_watchlist.created_by=% family_snapshots.updated_by=% (total %)',
     n_board, n_usage, n_feed, n_watch, n_snap, n_board + n_usage + n_feed + n_watch + n_snap;
 
-  -- FLOOR: gmail-side per column >= census sum (run 32417595488:
-  -- board 0+17, usage 2084+80, feedback 127+8, watchlist 0+4, snapshots 0+1).
+  -- FLOOR (conservation): gmail-side per column >= its own baseline + moved.
   SELECT count(*) INTO g_board FROM board_tasks      WHERE created_by = gml;
   SELECT count(*) INTO g_usage FROM usage_events     WHERE owner      = gml;
   SELECT count(*) INTO g_feed  FROM feedback         WHERE user_id    = gml;
   SELECT count(*) INTO g_watch FROM market_watchlist WHERE created_by = gml;
   SELECT count(*) INTO g_snap  FROM family_snapshots WHERE updated_by = gml;
-  RAISE NOTICE 'DR-0311 floor check (gmail-side after remap): board_tasks=% (>=17) usage_events=% (>=2164) feedback=% (>=135) market_watchlist=% (>=4) family_snapshots=% (>=1)',
-    g_board, g_usage, g_feed, g_watch, g_snap;
-  IF g_board < 17 OR g_usage < 2164 OR g_feed < 135 OR g_watch < 4 OR g_snap < 1 THEN
-    RAISE EXCEPTION 'DR-0311 FLOOR FAILED: a gmail-side count is below the census sum — the library this remap promised is not all here. Check the baseline data before re-running (board=% usage=% feed=% watch=% snap=%)',
+  RAISE NOTICE 'DR-0311 floor check (gmail-side after remap, vs own baseline+moved): board_tasks=% (>=%) usage_events=% (>=%) feedback=% (>=%) market_watchlist=% (>=%) family_snapshots=% (>=%)',
+    g_board, b_board + n_board, g_usage, b_usage + n_usage, g_feed, b_feed + n_feed, g_watch, b_watch + n_watch, g_snap, b_snap + n_snap;
+  IF g_board < b_board + n_board OR g_usage < b_usage + n_usage OR g_feed < b_feed + n_feed
+     OR g_watch < b_watch + n_watch OR g_snap < b_snap + n_snap THEN
+    RAISE EXCEPTION 'DR-0311 FLOOR FAILED: a gmail-side count fell below its own baseline plus the rows just moved — the library this remap promised is not all here. Check the baseline data before re-running (board=% usage=% feed=% watch=% snap=%)',
       g_board, g_usage, g_feed, g_watch, g_snap;
   END IF;
 

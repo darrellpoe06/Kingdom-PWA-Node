@@ -80,6 +80,11 @@ export function findSpace(spaceId) {
 // team, food on the kitchen, etc. The booking's `responsibilities` jsonb stores
 // which keys are DONE; the template is the source of truth for what must happen.
 export const EVENT_TYPES = [
+  // Darrell 2026-08-24: "Should say Sunday and Wednesday Service too" — then
+  // "separated": each service is its own type. The media team's most regular
+  // work is the regular services, so the cue sheet serves them first-class.
+  { id: 'sunday-service',    label: 'Sunday Service' },
+  { id: 'wednesday-service', label: 'Wednesday Service' },
   { id: 'funeral',    label: 'Funeral / Homegoing' },
   { id: 'wedding',    label: 'Wedding' },
   { id: 'concert',    label: 'Concert / Musical' },
@@ -98,7 +103,21 @@ export function eventTypeLabel(id) {
 // day, so nothing is chased mid-event.
 const CUE_SHEET_STEP = { key: 'cuesheet', label: 'Media cue sheet confirmed (files + music received)', team: 'Media Team' };
 
+// The regular services: the media team's standing weekly lane. No rental
+// logistics here — the checklist is what makes the broadcast ready. Sunday
+// and Wednesday share the same steps; they are separate TYPES so each
+// service's bookings, cue sheets, and checklists stand on their own.
+const SERVICE_TEMPLATE = [
+  { key: 'av',           label: 'AV / livestream',         team: 'Media Team' },
+  CUE_SHEET_STEP,
+  { key: 'soundcheck',   label: 'Sound check before service', team: 'Media Team' },
+  { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
+  { key: 'scheduling',   label: 'Order of service confirmed', team: 'Church Office' },
+];
+
 const RESPONSIBILITY_TEMPLATES = {
+  'sunday-service': SERVICE_TEMPLATE,
+  'wednesday-service': SERVICE_TEMPLATE,
   funeral: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
     { key: 'av',           label: 'AV / livestream',         team: 'Media Team' },
