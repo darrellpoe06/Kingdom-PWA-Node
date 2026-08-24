@@ -43,7 +43,10 @@ export function spendingByPriority(transactions, { learned = {}, nowMs = null, d
   const since = now - days * DAY_MS;
   const tiers = { essential: 0, covenant: 0, medium: 0, low: 0, unknown: 0 };
   const counts = { essential: 0, covenant: 0, medium: 0, low: 0, unknown: 0 };
-  const lowItems = [];
+  // Darrell 2026-08-24: "want to be able to drill down into the totals at the
+  // top too... Main totals" — every tier keeps its own purchase list, largest
+  // first, so each headline number can show exactly what it is made of.
+  const itemsByTier = { essential: [], covenant: [], medium: [], low: [], unknown: [] };
   let sawDated = false;
   for (const t of transactions || []) {
     const amt = Number(t?.amount);
@@ -58,14 +61,15 @@ export function spendingByPriority(transactions, { learned = {}, nowMs = null, d
     const spend = Math.abs(amt);
     tiers[tier] += spend;
     counts[tier] += 1;
-    if (tier === 'low') lowItems.push({ description: t.description || t.payee || '', amount: spend, category });
+    itemsByTier[tier].push({ description: t.description || t.payee || '', amount: spend, category });
   }
-  lowItems.sort((a, b) => b.amount - a.amount);
+  for (const k of Object.keys(itemsByTier)) itemsByTier[k].sort((a, b) => b.amount - a.amount);
   return {
     days,
     tiers: Object.fromEntries(Object.entries(tiers).map(([k, v]) => [k, Math.round(v)])),
     counts,
-    lowItems,
+    itemsByTier,
+    lowItems: itemsByTier.low,
     hasData: sawDated,
   };
 }
@@ -106,5 +110,39 @@ export function spendVsDebtVerdict(spending, debts, { floor = BOTTOM_LINE_FLOOR 
     // The flag he asked for: meaningful low-priority buying while the debt
     // bottom line moved less than the floor.
     flagged: measurable && low > 0 && bottomLine < floor && low >= floor / 2,
+  };
+}
+
+// --- Drill-down trace for a tier's headline total ----------------------------
+// The same tap-the-number standard as the rest of the Debts tab: formula,
+// inputs, and EVERY real purchase behind the figure. Darrell 2026-08-24:
+// "give me all of them not x left... we are reviewing in this location...
+// we want to see" — the drill-down is the review surface, so nothing is
+// truncated; the full list renders, largest first.
+const TIER_TITLES = {
+  essential: 'Essential spending',
+  covenant: 'Giving (covenant)',
+  medium: 'Medium-priority spending',
+  low: 'Low-priority spending',
+  unknown: 'Uncategorized spending',
+};
+const TIER_FORMULAS = {
+  essential: 'Sum of purchases the categorizer marks essential: groceries, utilities, medical, insurance, fuel, vehicle, professional, fees — learned corrections included.',
+  covenant: 'Charitable giving — the tithe and offerings. Covenant, never counted killable (Proverbs 3:9): shown for the full picture, excluded from every kill calculation.',
+  medium: 'Household-class purchases — real needs mixed with wants; reviewed, not auto-condemned.',
+  low: 'Dining and subscriptions — the tier the kill calculations draw from.',
+  unknown: 'Purchases the categorizer could not place. UNKNOWN is not LOW: nothing here is counted killable until it is categorized (one correction on the Tx tab teaches the payee everywhere).',
+};
+
+export function traceSpendTier(tierKey, spending) {
+  const total = spending?.tiers?.[tierKey] || 0;
+  const count = spending?.counts?.[tierKey] || 0;
+  const items = spending?.itemsByTier?.[tierKey] || [];
+  return {
+    title: `${TIER_TITLES[tierKey] || tierKey} · last ${spending?.days || 30} days`,
+    formula: TIER_FORMULAS[tierKey] || '',
+    result: { value: total, kind: 'money' },
+    inputs: [{ label: `${count} purchase${count === 1 ? '' : 's'} in the window — all listed below`, value: count, kind: 'count' }],
+    sources: items.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+' })),
   };
 }

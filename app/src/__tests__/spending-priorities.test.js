@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   PRIORITY_TIERS, tierOfCategory, spendingByPriority, killOpportunities,
-  spendVsDebtVerdict, BOTTOM_LINE_FLOOR,
+  spendVsDebtVerdict, BOTTOM_LINE_FLOOR, traceSpendTier,
 } from '../lib/spending-priorities.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -60,6 +60,42 @@ describe('spendingByPriority — the window, from their own rows', () => {
   });
   it('no dated rows -> hasData false (the surface says so instead of zeroes-as-truth)', () => {
     expect(spendingByPriority([], { nowMs: NOW }).hasData).toBe(false);
+  });
+  it('every tier keeps its purchase list, largest first (the drill-down data)', () => {
+    const s = spendingByPriority(tx, { nowMs: NOW });
+    expect(s.itemsByTier.low.map((i) => i.amount)).toEqual([25, 20]);
+    expect(s.itemsByTier.essential[0]).toMatchObject({ description: 'COUNTY MARKET', amount: 180, category: 'groceries' });
+    expect(s.itemsByTier.covenant[0]).toMatchObject({ description: 'CHURCH TITHE', amount: 300 });
+    expect(s.lowItems).toBe(s.itemsByTier.low); // back-compat alias, same list
+  });
+});
+
+describe('traceSpendTier — the main totals drill down too (Darrell 2026-08-24)', () => {
+  const tx = [
+    { description: 'STARBUCKS #123', amount: -25, date: daysAgo(5) },
+    { description: 'NETFLIX.COM', amount: -20, date: daysAgo(10) },
+    { description: 'CHURCH TITHE', amount: -300, date: daysAgo(7) },
+  ];
+  const spending = spendingByPriority(tx, { nowMs: NOW });
+  it('a tier trace carries the real purchases as sources, the total as money', () => {
+    const t = traceSpendTier('low', spending);
+    expect(t.result).toEqual({ value: 45, kind: 'money' });
+    expect(t.sources.map((s) => s.label)).toEqual(['STARBUCKS #123', 'NETFLIX.COM']);
+    expect(t.sources.every((s) => s.kind === 'money' && s.op === '+')).toBe(true);
+    expect(t.inputs[0].label).toContain('2 purchases in the window');
+  });
+  it('giving names the covenant stand; unknown says UNKNOWN is not LOW', () => {
+    expect(traceSpendTier('covenant', spending).formula).toContain('never counted killable');
+    expect(traceSpendTier('unknown', spending).formula).toContain('UNKNOWN is not LOW');
+  });
+  it('ALL purchases list — never truncated, never "+N more" (Darrell: "give me all of them")', () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ description: `SHOP ${i}`, amount: -(100 - i), date: daysAgo(2) }));
+    const s = spendingByPriority(many, { nowMs: NOW });
+    const key = Object.keys(s.itemsByTier).find((k) => s.itemsByTier[k].length === 40);
+    const t = traceSpendTier(key, s);
+    expect(t.sources).toHaveLength(40);
+    expect(t.note).toBeUndefined();
+    expect(t.inputs[0].label).toContain('all listed below');
   });
 });
 
@@ -121,5 +157,11 @@ describe('the Debts surface renders the countdown and the kill view', () => {
     expect(src).toMatch(/spendVsDebtVerdict/);
     expect(src).toMatch(/killOpportunities\(debts, spending\.tiers\.low\)/);
     expect(src).toMatch(/never counted killable/);
+  });
+  it('all five tier tiles drill down — trace on every main total', () => {
+    for (const tier of ['essential', 'covenant', 'medium', 'low', 'unknown']) {
+      expect(src).toMatch(new RegExp(`trace=\\{traceSpendTier\\('${tier}', spending\\)\\}`));
+    }
+    expect(src).toMatch(/tap for the list/);
   });
 });
