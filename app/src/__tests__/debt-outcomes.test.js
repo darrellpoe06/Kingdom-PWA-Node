@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary,
+  totalPaidDownFromPeaks, payoffOutlook, paymentPaceBadge, paceSummary, debtCountdown,
 } from '../lib/debt-outcomes.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -81,6 +81,42 @@ describe('paymentPaceBadge — above / at / under the minimum, from observed pay
       { minPayment: 100 },
     ]);
     expect(s).toEqual({ above: 1, at: 0, below: 1, growing: 1, unknown: 1 });
+  });
+});
+
+// Darrell 2026-08-24: "make sure we know when we can have each paid off with
+// a only x number of debts left etc... type view."
+describe('debtCountdown — when are we down to only X debts left?', () => {
+  it('counts down by clearing month, grouping same-month clearings', () => {
+    const r = debtCountdown([
+      { name: 'A', clearedAtMonth: 1 },
+      { name: 'B', clearedAtMonth: 1 },
+      { name: 'C', clearedAtMonth: 3 },
+    ]);
+    expect(r.total).toBe(3);
+    expect(r.milestones).toEqual([
+      { monthOffset: 1, cleared: ['A', 'B'], remaining: 1 },
+      { monthOffset: 3, cleared: ['C'], remaining: 0 },
+    ]);
+    expect(r.reachesZero).toBe(true);
+    expect(r.unscheduled).toBe(0);
+  });
+  it('an unscheduled debt keeps the countdown from ever claiming zero', () => {
+    const r = debtCountdown([
+      { name: 'A', clearedAtMonth: 2 },
+      { name: 'NoTerms' }, // no clearedAtMonth — cannot be scheduled
+    ]);
+    expect(r.milestones).toEqual([{ monthOffset: 2, cleared: ['A'], remaining: 1 }]);
+    expect(r.reachesZero).toBe(false);
+    expect(r.unscheduled).toBe(1);
+  });
+  it('parked (leaveAlone) debts are outside the countdown entirely', () => {
+    const r = debtCountdown([
+      { name: 'A', clearedAtMonth: 1 },
+      { name: 'P', clearedAtMonth: 2, leaveAlone: true },
+    ]);
+    expect(r.total).toBe(1);
+    expect(r.milestones).toEqual([{ monthOffset: 1, cleared: ['A'], remaining: 0 }]);
   });
 });
 
