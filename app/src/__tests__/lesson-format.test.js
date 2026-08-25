@@ -19,15 +19,12 @@ const norm = (t) => t.replace(/\s+/g, ' ').trim();
 const mod = (prefix) => LIVING_LESSONS_MODULES.find((m) => m.id.startsWith(prefix));
 
 describe('word preservation — the one unbreakable rule', () => {
-  const flatten = (items) => items
-    .map((i) => (i.kind === 'point' ? i.lines.join(' ') : i.text))
-    .join(' ');
   it('rejoining the formatted items reproduces every lesson text exactly (all modules, all fields)', () => {
     for (const m of LIVING_LESSONS_MODULES) {
       const texts = [m.bigIdea, m.lesson, ...(m.levels ? Object.values(m.levels) : [])].filter(Boolean);
       for (const t of texts) {
         const { items } = formatLessonText(t);
-        expect(flatten(items)).toBe(norm(t));
+        expect(items.map((i) => i.text).join(' ')).toBe(norm(t));
       }
     }
   });
@@ -62,42 +59,11 @@ describe('numbering comes from the author’s own markers (stable across chunks)
     const ns = items.filter((i) => i.kind === 'heading').map((h) => h.n);
     expect(ns).toEqual(expect.arrayContaining([1, 2, 3, 4]));
   });
-  it('a lesson with no markers still gains breath lines inside its points, never one wall', () => {
+  it('a lesson with no markers still gains breath lines, never one wall', () => {
     const { items, sectionCount } = formatLessonText(mod('ll84').bigIdea);
     expect(sectionCount).toBe(0);
-    const lines = items.flatMap((i) => (i.kind === 'point' ? i.lines : [i.text]));
-    expect(lines.length).toBeGreaterThan(3);
-    for (const l of lines) expect(l.length).toBeLessThanOrEqual(420);
-  });
-});
-
-describe('3-6 numbered points for the WHOLE lesson (Darrell 2026-08-25: "maybe 3 to 6 points... for the whole lesson")', () => {
-  it('an unmarked lesson derives 3-6 main points (or fewer only when the text is tiny)', () => {
-    for (const m of LIVING_LESSONS_MODULES) {
-      const texts = [m.bigIdea, m.lesson, ...(m.levels ? Object.values(m.levels) : [])].filter(Boolean);
-      for (const t of texts) {
-        const { items, sectionCount, pointCount } = formatLessonText(t);
-        expect(pointCount).toBeGreaterThan(0);
-        if (sectionCount === 0 && norm(t).length >= 900) {
-          expect(pointCount).toBeGreaterThanOrEqual(3);
-          expect(pointCount).toBeLessThanOrEqual(6);
-          const ps = items.filter((i) => i.kind === 'point').map((i) => i.p);
-          expect(ps).toEqual(Array.from({ length: pointCount }, (_, k) => k + 1));
-        }
-      }
-    }
-  });
-  it('a marked lesson keeps the author-numbered sections AS the points', () => {
-    const { sectionCount, pointCount } = formatLessonText(mod('ll87').bigIdea);
-    expect(sectionCount).toBe(6);
-    expect(pointCount).toBe(6);
-  });
-  it('share text numbers every point, marked and unmarked alike', () => {
-    const marked = lessonShareText(mod('ll87').bigIdea).split('\n');
-    expect(marked.some((r) => r.startsWith('1. FIRST'))).toBe(true);
-    const unmarked = lessonShareText(mod('ll84').bigIdea).split('\n');
-    expect(unmarked.some((r) => /^1\. /.test(r))).toBe(true);
-    expect(unmarked.some((r) => /^3\. /.test(r))).toBe(true);
+    expect(items.length).toBeGreaterThan(3);
+    for (const i of items) expect(i.text.length).toBeLessThanOrEqual(420);
   });
 });
 
@@ -107,7 +73,6 @@ describe('the surfaces are wired — screen and share carry the same structure',
     expect(src).toMatch(/export function LessonProse/);
     expect((src.match(/<LessonProse text=\{/g) || []).length).toBeGreaterThanOrEqual(3);
     expect(src).toMatch(/import \{ formatLessonText \} from '\.\.\/lib\/lesson-format\.js'/);
-    expect(src).toMatch(/\{it\.p\}/); // the point-number chip renders on every point
   });
   it('the copy/share block runs both bigIdea and body through lessonShareText', () => {
     const src = readFileSync(join(HERE, '..', 'lib', 'lesson-links.js'), 'utf8');

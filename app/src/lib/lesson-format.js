@@ -34,15 +34,6 @@ const MARKER_RES = [
 ];
 
 const MAX_LINE = 260; // chars per breath line — one or two sentences, phone-comfortable
-const MAX_POINT = 700; // an uncited stretch still closes as a point by here
-
-// The thought has LANDED when its sentence closes on a Scripture citation:
-// "... (Psalms 1:6)." / "(Luke 8:12-15)" / "(1 John 2:3-4; Amos 3:3)." —
-// a trailing parenthetical containing a chapter:verse.
-function endsWithCitation(sentence) {
-  const m = /\(([^()]*)\)['’”"]?[.!?…]?$/.exec(sentence);
-  return !!(m && /\d+:\d+/.test(m[1]));
-}
 
 // Split normalized text into sentences WITHOUT losing a character: cut after
 // . ! ? … (optionally followed by closing quote/paren) when a space + opener
@@ -109,88 +100,27 @@ function markerAt(sentence) {
 export function formatLessonText(text) {
   const clean = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
   if (!clean) return { items: [], sectionCount: 0 };
-  // THE POINT MODEL (Darrell 2026-08-25, refined live: "numbers on all
-  // lessons... points of the messages... not every breath line... more like
-  // after the main point is made from each section... maybe 3 to 6 points...
-  // for the whole lesson"). Where the author wrote section markers, those
-  // sections ARE the numbered points. Where no markers exist, the machine
-  // derives 3-6 main points for the whole lesson: thought-atoms close where a
-  // sentence lands on its Scripture citation (or at ~MAX_POINT chars), then
-  // the atoms merge into K contiguous points sized by lesson length.
-  const sents = sentences(clean);
-  const hasMarkers = sents.some((s) => markerAt(s));
-  const toLines = (sentList) => {
-    const lines = [];
-    let buf = '';
-    for (const sent of sentList) {
-      for (const s of splitLong(sent, 320)) {
-        if (!buf) { buf = s; continue; }
-        if (buf.length + 1 + s.length <= MAX_LINE) { buf = `${buf} ${s}`; continue; }
-        lines.push(buf); buf = s;
-      }
-    }
-    if (buf) lines.push(buf);
-    return lines;
-  };
-
   const items = [];
-  if (hasMarkers) {
-    let sectionCount = 0;
-    let body = [];
-    const flushBody = () => {
-      for (const line of toLines(body)) items.push({ kind: 'line', text: line });
-      body = [];
-    };
-    for (const sent of sents) {
-      const mark = markerAt(sent);
-      if (mark) {
-        flushBody();
-        sectionCount += 1;
-        items.push({ kind: 'heading', n: mark.n, text: sent });
-      } else {
-        body.push(sent);
-      }
+  let buf = '';
+  const flush = () => { if (buf) { items.push({ kind: 'line', text: buf }); buf = ''; } };
+  let sectionCount = 0;
+  for (const sent of sentences(clean)) {
+    const mark = markerAt(sent);
+    if (mark) {
+      flush();
+      sectionCount += 1;
+      items.push({ kind: 'heading', n: mark.n, text: sent });
+      continue;
     }
-    flushBody();
-    return { items, sectionCount, pointCount: sectionCount };
-  }
-
-  // Unmarked: atoms → K points (3..6, sized by length, never more than atoms).
-  const atoms = [];
-  let cur = [];
-  let curLen = 0;
-  for (const sent of sents) {
-    cur.push(sent);
-    curLen += sent.length + 1;
-    if (endsWithCitation(sent) || curLen >= MAX_POINT) { atoms.push(cur); cur = []; curLen = 0; }
-  }
-  if (cur.length) atoms.push(cur);
-  const target = Math.min(6, Math.max(3, Math.round(clean.length / 500)));
-  // A citation-dense text can land on fewer atoms than the 3-point floor —
-  // split the longest atom at its sentence midpoint until the floor is met
-  // (only where an atom still has 2+ sentences to give).
-  for (;;) {
-    if (atoms.length >= target) break;
-    let big = -1;
-    for (let a = 0; a < atoms.length; a += 1) {
-      if (atoms[a].length >= 2 && (big < 0 || atoms[a].join(' ').length > atoms[big].join(' ').length)) big = a;
+    for (const s of splitLong(sent, 320)) {
+      if (!buf) { buf = s; continue; }
+      if (buf.length + 1 + s.length <= MAX_LINE) { buf = `${buf} ${s}`; continue; }
+      flush();
+      buf = s;
     }
-    if (big < 0) break;
-    const mid = Math.ceil(atoms[big].length / 2);
-    atoms.splice(big, 1, atoms[big].slice(0, mid), atoms[big].slice(mid));
   }
-  const k = Math.max(1, Math.min(atoms.length, target));
-  let pointCount = 0;
-  let from = 0;
-  for (let b = 0; b < k; b += 1) {
-    const take = Math.ceil((atoms.length - from) / (k - b));
-    const group = atoms.slice(from, from + take).flat();
-    from += take;
-    if (!group.length) continue;
-    pointCount += 1;
-    items.push({ kind: 'point', p: pointCount, lines: toLines(group) });
-  }
-  return { items, sectionCount: 0, pointCount };
+  flush();
+  return { items, sectionCount };
 }
 
 /**
@@ -203,13 +133,8 @@ export function lessonShareText(text) {
   const rows = [];
   for (const it of items) {
     if (it.kind === 'heading') {
-      // The heading IS the numbered point; its number rides in front so the
-      // share reads as a countable list even where the author wrote FIRST/III.
       if (rows.length) rows.push('');
       rows.push(`${it.n}. ${it.text}`);
-    } else if (it.kind === 'point') {
-      if (rows.length) rows.push('');
-      it.lines.forEach((line, i) => rows.push(i === 0 ? `${it.p}. ${line}` : line));
     } else {
       rows.push(it.text);
     }

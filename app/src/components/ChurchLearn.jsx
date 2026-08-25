@@ -446,31 +446,16 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
   if (!items.length) return null;
   return (
     <div className={className} style={{ fontFamily: '"Fraunces", serif' }}>
-      {items.map((it, i) => {
-        if (it.kind === 'heading') {
-          return (
-            <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
-              <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
-              {it.text}
-            </p>
-          );
-        }
-        if (it.kind === 'point') {
-          return (
-            <div key={i} className={i === 0 ? '' : 'mt-3'}>
-              {it.lines.map((line, j) => (
-                <p key={j} className={j === 0 ? 'flex gap-1.5' : 'mt-1.5 pl-[26px]'}>
-                  {j === 0 && (
-                    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0 min-w-[20px] h-[20px] px-1 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold">{it.p}</span>
-                  )}
-                  <span className="min-w-0">{line}</span>
-                </p>
-              ))}
-            </div>
-          );
-        }
-        return <p key={i} className="mt-1.5">{it.text}</p>;
-      })}
+      {items.map((it, i) => (
+        it.kind === 'heading' ? (
+          <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
+            <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
+            {it.text}
+          </p>
+        ) : (
+          <p key={i} className="mt-1.5">{it.text}</p>
+        )
+      ))}
     </div>
   );
 }
