@@ -199,6 +199,83 @@ describe('sov10 — the settled Word quotes its whole spine verbatim, Word first
   });
 });
 
+// =============================================================================
+// sov11 — the sealed trace (captured 2026-08-25 by the Gmail-lesson-intake
+// Way's first self-caught tick, DR-0312)
+// =============================================================================
+const sov11 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov11-the-sealed-trace');
+
+const SOV11_FRAGMENTS = {
+  '1 Kings 8:39': 'for thou, even thou only, knowest the hearts of all the children of men',
+  'Psalms 139:2': 'thou understandest my thought afar off',
+  'Psalms 139:4': 'For there is not a word in my tongue, but, lo, O LORD, thou knowest it altogether.',
+  'Hebrews 4:13': 'all things are naked and opened unto the eyes of him with whom we have to do.',
+  'Luke 12:2': 'For there is nothing covered, that shall not be revealed; neither hid, that shall not be known.',
+  'Luke 12:3': 'that which ye have spoken in the ear in closets shall be proclaimed upon the housetops.',
+  '1 Corinthians 5:6': 'Know ye not that a little leaven leaveneth the whole lump?',
+  'Proverbs 4:23': 'Keep thy heart with all diligence; for out of it are the issues of life.',
+  'Proverbs 25:9': 'discover not a secret to another',
+  'Proverbs 25:10': 'Lest he that heareth it put thee to shame',
+  'Matthew 6:19': 'where thieves break through and steal:',
+  'Matthew 6:19-open': 'Lay not up for yourselves treasures upon earth',
+  'Matthew 6:21': 'For where your treasure is, there will your heart be also.',
+  'Matthew 13:25': 'while men slept, his enemy came and sowed tares among the wheat, and went his way.',
+  '2 Corinthians 11:14': 'Satan himself is transformed into an angel of light.',
+  '1 Samuel 16:7': 'looketh on the outward appearance, but the LORD looketh on the heart',
+  'Revelation 5:2': 'Who is worthy to open the book, and to loose the seals thereof?',
+  'Revelation 5:5': 'behold, the Lion of the tribe of Juda, the Root of David, hath prevailed to open the book, and to loose the seven seals thereof.',
+};
+
+describe('sov11 — the sealed trace quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the heart-Reader and the sealed book', () => {
+    expect(sov11).toBeTruthy();
+    expect(sov11.anchor.ref).toContain('1 Kings 8:39');
+    expect(sov11.anchor.ref).toContain('Revelation 5:5');
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV11_FRAGMENTS)) {
+      expect(sov11.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('1Kings', 8, 39)).toContain(SOV11_FRAGMENTS['1 Kings 8:39']);
+    expect(verse('Psalms', 139, 2)).toContain(SOV11_FRAGMENTS['Psalms 139:2']);
+    expect(verse('Psalms', 139, 4)).toBe(SOV11_FRAGMENTS['Psalms 139:4']);
+    expect(verse('Hebrews', 4, 13)).toContain(SOV11_FRAGMENTS['Hebrews 4:13']);
+    expect(verse('Luke', 12, 2)).toBe(SOV11_FRAGMENTS['Luke 12:2']);
+    expect(verse('Luke', 12, 3)).toContain(SOV11_FRAGMENTS['Luke 12:3']);
+    expect(verse('1Corinthians', 5, 6)).toContain(SOV11_FRAGMENTS['1 Corinthians 5:6']);
+    expect(verse('Proverbs', 4, 23)).toBe(SOV11_FRAGMENTS['Proverbs 4:23']);
+    expect(verse('Proverbs', 25, 9)).toContain(SOV11_FRAGMENTS['Proverbs 25:9']);
+    expect(verse('Proverbs', 25, 10)).toContain(SOV11_FRAGMENTS['Proverbs 25:10']);
+    expect(verse('Matthew', 6, 19)).toContain(SOV11_FRAGMENTS['Matthew 6:19']);
+    expect(verse('Matthew', 6, 19)).toContain(SOV11_FRAGMENTS['Matthew 6:19-open']);
+    expect(verse('Matthew', 6, 21)).toBe(SOV11_FRAGMENTS['Matthew 6:21']);
+    expect(verse('Matthew', 13, 25)).toContain(SOV11_FRAGMENTS['Matthew 13:25']);
+    expect(verse('2Corinthians', 11, 14)).toContain(SOV11_FRAGMENTS['2 Corinthians 11:14']);
+    expect(verse('1Samuel', 16, 7)).toContain(SOV11_FRAGMENTS['1 Samuel 16:7']);
+    expect(verse('Revelation', 5, 2)).toContain(SOV11_FRAGMENTS['Revelation 5:2']);
+    expect(verse('Revelation', 5, 5)).toContain(SOV11_FRAGMENTS['Revelation 5:5']);
+  });
+  it('the Word LEADS and the eight movements run in order', () => {
+    expect(sov11.lesson.indexOf('FIRST, ONE READER')).toBe(0);
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov11.lesson.indexOf(m);
+      expect(at, `${m} must appear`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('carries no vendor self-reference as fact — the principle stands without naming a model (DR-0076/DR-0100)', () => {
+    const blob = `${sov11.lesson} ${sov11.levels.teen} ${sov11.levels.senior} ${sov11.bigIdea} ${JSON.stringify(sov11.facilitator)}`;
+    expect(blob).not.toMatch(/Fable-?5/i);
+    expect(sov11.lesson).toContain('thing is safe only when it is bound to the one who may open it');
+  });
+});
+
 describe('sov9 postscript — the primary-source figures stay pinned (2026-08-24 verification pass)', () => {
   // Darrell: "research the same outside sources for comprehensive understanding."
   // These figures were read from / corroborated against the primary sources in
