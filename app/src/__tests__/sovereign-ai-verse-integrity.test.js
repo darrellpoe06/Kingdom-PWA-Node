@@ -299,3 +299,88 @@ describe('sov9 postscript — the primary-source figures stay pinned (2026-08-24
     }
   });
 });
+
+
+// =============================================================================
+// sov12 — the engineering disaster (captured 2026-08-25 from a forwarded video
+// quoting The Atlantic; tech routed to the Sovereign A.I. class per DR-0312)
+// =============================================================================
+const sov12 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov12-the-engineering-disaster');
+
+const SOV12_FRAGMENTS = {
+  'Zechariah 4:6': 'Not by might, nor by power, but by my spirit, saith the LORD of hosts.',
+  'Psalms 20:7': 'Some trust in chariots, and some in horses: but we will remember the name of the LORD our God.',
+  'Proverbs 21:31': 'The horse is prepared against the day of battle: but safety is of the LORD.',
+  'Haggai 1:6': 'Ye have sown much, and bring in little',
+  'Haggai 1:6b': 'he that earneth wages earneth wages to put it into a bag with holes.',
+  'Proverbs 13:11': 'Wealth gotten by vanity shall be diminished: but he that gathereth by labour shall increase.',
+  'Genesis 2:15': 'to dress it and to keep it',
+  'Jeremiah 2:13': 'broken cisterns, that can hold no water.',
+  'Genesis 11:4': 'let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name',
+  'Luke 12:18': 'I will pull down my barns, and build greater',
+  'Luke 12:20': 'Thou fool, this night thy soul shall be required of thee',
+  'Ecclesiastes 10:10': 'If the iron be blunt, and he do not whet the edge, then must he put to more strength: but wisdom is profitable to direct.',
+  'Ecclesiastes 9:16': 'Wisdom is better than strength',
+  'Ecclesiastes 9:18': 'Wisdom is better than weapons of war: but one sinner destroyeth much good.',
+  'Proverbs 16:18': 'Pride goeth before destruction, and an haughty spirit before a fall.',
+  'Proverbs 26:11': 'As a dog returneth to his vomit, so a fool returneth to his folly.',
+  'Luke 14:28': 'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+  'Proverbs 28:13': 'He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy.',
+};
+
+describe('sov12 — the engineering disaster quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on Not-by-might and the whetted edge', () => {
+    expect(sov12).toBeTruthy();
+    expect(sov12.anchor.ref).toContain('Zechariah 4:6');
+    expect(sov12.anchor.ref).toContain('Ecclesiastes 10:10');
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV12_FRAGMENTS)) {
+      expect(sov12.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('Zechariah', 4, 6)).toContain(SOV12_FRAGMENTS['Zechariah 4:6']);
+    expect(verse('Psalms', 20, 7)).toBe(SOV12_FRAGMENTS['Psalms 20:7']);
+    expect(verse('Proverbs', 21, 31)).toBe(SOV12_FRAGMENTS['Proverbs 21:31']);
+    expect(verse('Haggai', 1, 6)).toContain(SOV12_FRAGMENTS['Haggai 1:6b']);
+    expect(verse('Proverbs', 13, 11)).toBe(SOV12_FRAGMENTS['Proverbs 13:11']);
+    expect(verse('Genesis', 2, 15)).toContain(SOV12_FRAGMENTS['Genesis 2:15']);
+    expect(verse('Jeremiah', 2, 13)).toContain(SOV12_FRAGMENTS['Jeremiah 2:13']);
+    expect(verse('Genesis', 11, 4)).toContain(SOV12_FRAGMENTS['Genesis 11:4']);
+    expect(verse('Luke', 12, 18)).toContain(SOV12_FRAGMENTS['Luke 12:18']);
+    expect(verse('Luke', 12, 20)).toContain(SOV12_FRAGMENTS['Luke 12:20']);
+    expect(verse('Ecclesiastes', 10, 10)).toBe(SOV12_FRAGMENTS['Ecclesiastes 10:10']);
+    expect(verse('Ecclesiastes', 9, 16)).toContain(SOV12_FRAGMENTS['Ecclesiastes 9:16']);
+    expect(verse('Ecclesiastes', 9, 18)).toBe(SOV12_FRAGMENTS['Ecclesiastes 9:18']);
+    expect(verse('Proverbs', 16, 18)).toBe(SOV12_FRAGMENTS['Proverbs 16:18']);
+    expect(verse('Proverbs', 26, 11)).toBe(SOV12_FRAGMENTS['Proverbs 26:11']);
+    expect(verse('Luke', 14, 28)).toBe(SOV12_FRAGMENTS['Luke 14:28']);
+    expect(verse('Proverbs', 28, 13)).toBe(SOV12_FRAGMENTS['Proverbs 28:13']);
+  });
+  it('the Word LEADS and the eight movements run in order', () => {
+    expect(sov12.lesson.indexOf('FIRST, THE KINGDOM')).toBe(0);
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov12.lesson.indexOf(m);
+      expect(at, `${m} must appear`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('provenance honesty: the video/Atlantic figures are carried as reported (DR-0076 §8)', () => {
+    expect(sov12.lesson).toContain('not independently re-verified here');
+    expect(sov12.levels.senior).toContain('not independently re-verified');
+  });
+  it('teen and senior carry the whole message at full coverage', () => {
+    for (const band of ['teen', 'senior']) {
+      const t = sov12.levels[band];
+      expect(t.toLowerCase()).toContain('scaling laws');
+      expect(t).toContain('wisdom is profitable to direct');
+      expect(t).toContain('Zechariah 4:6');
+      expect(t.length).toBeGreaterThan(2000);
+    }
+  });
+});
