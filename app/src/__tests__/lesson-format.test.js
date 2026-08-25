@@ -101,6 +101,43 @@ describe('3-6 numbered points for the WHOLE lesson (Darrell 2026-08-25: "maybe 3
   });
 });
 
+describe('one chronological count per lesson — never restarting (Darrell 2026-08-25: "the whole lesson should be building... never starting over inside the same lesson")', () => {
+  it('derived points continue across paced segments: a segment picks up where the last one ended', () => {
+    // Simulate the age-band pacing: the same unmarked lesson split into two
+    // chunks at a sentence boundary. Threading startAt through them must yield
+    // one sequence 1..N — the exact "1-3 then 1-3 again" restart is the bug.
+    const t = norm(mod('ll84').bigIdea);
+    const half = Math.floor(t.length / 2);
+    const cut = t.indexOf('. ', half);
+    expect(cut).toBeGreaterThan(0);
+    const seg1 = t.slice(0, cut + 1);
+    const seg2 = t.slice(cut + 2);
+    const r1 = formatLessonText(seg1);
+    const r2 = formatLessonText(seg2, { startAt: r1.nextStart });
+    const ps = [...r1.items, ...r2.items].filter((i) => i.kind === 'point').map((i) => i.p);
+    expect(ps.length).toBeGreaterThanOrEqual(3);
+    expect(ps).toEqual(Array.from({ length: ps.length }, (_, k) => k + 1));
+    // And the restart the Governor saw is provably gone: segment 2 never re-numbers from 1.
+    expect(r2.items.find((i) => i.kind === 'point').p).toBe(r1.pointCount + 1);
+  });
+  it('the speaker’s own section numbers are never overridden by the thread', () => {
+    // A marked text keeps the author’s numbers regardless of where the pacing
+    // cuts — FOURTH is 4 even when it opens a segment ("the speakers create
+    // points"; the machine only threads the unmarked ones).
+    const { items, nextStart } = formatLessonText(mod('ll87').bigIdea);
+    const heads = items.filter((i) => i.kind === 'heading');
+    expect(heads.map((h) => h.n)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(nextStart).toBe(7);
+  });
+  it('unnumbered share mode keeps the structure but drops the labels (the big idea is the thesis)', () => {
+    const t = mod('ll84').bigIdea;
+    const share = lessonShareText(t, { numbered: false });
+    expect(share.split('\n').some((r) => /^\d+\. /.test(r))).toBe(false);
+    const restored = share.split('\n').filter(Boolean).join(' ');
+    expect(restored).toBe(norm(t));
+  });
+});
+
 describe('the surfaces are wired — screen and share carry the same structure', () => {
   it('ChurchLearn renders lessons through LessonProse at every text site', () => {
     const src = readFileSync(join(HERE, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
@@ -108,10 +145,14 @@ describe('the surfaces are wired — screen and share carry the same structure',
     expect((src.match(/<LessonProse text=\{/g) || []).length).toBeGreaterThanOrEqual(3);
     expect(src).toMatch(/import \{ formatLessonText \} from '\.\.\/lib\/lesson-format\.js'/);
     expect(src).toMatch(/\{it\.p\}/); // the point-number chip renders on every point
+    // The paced stepper threads ONE count across its segments — both the
+    // read-along map and the stepper pass the running startAt.
+    expect((src.match(/<LessonProse text=\{[^}]+\} startAt=\{segStarts\[/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(src).toMatch(/formatLessonText\(s, \{ startAt: n \}\)\.nextStart/);
   });
-  it('the copy/share block runs both bigIdea and body through lessonShareText', () => {
+  it('the copy/share block: unnumbered thesis, then the body’s single numbered run', () => {
     const src = readFileSync(join(HERE, '..', 'lib', 'lesson-links.js'), 'utf8');
-    expect(src).toMatch(/lessonShareText\(line\(module\.bigIdea\)\)/);
+    expect(src).toMatch(/lessonShareText\(line\(module\.bigIdea\), \{ numbered: false \}\)/);
     expect(src).toMatch(/lessonShareText\(line\(body\)\)/);
   });
 });

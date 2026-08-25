@@ -100,15 +100,27 @@ function markerAt(sentence) {
 }
 
 /**
- * formatLessonText(text) -> { items, sectionCount }
- * items: [{ kind: 'heading', n, text } | { kind: 'line', text }]
+ * formatLessonText(text, { startAt }) -> { items, sectionCount, pointCount, nextStart }
+ * items: [{ kind: 'heading', n, text } | { kind: 'point', p, lines } | { kind: 'line', text }]
  * Headings are the author's own marker sentences (whole sentence, untouched);
  * lines are one-or-two-sentence groups. Joining every item's text with single
  * spaces reproduces the normalized input exactly.
+ *
+ * ONE CHRONOLOGICAL COUNT PER LESSON (Darrell 2026-08-25, reviewing the first
+ * points build: "each point would be chronological not for each section... 1-3
+ * and restarting 1-3 again in the same lesson is very confusing... the whole
+ * lesson should be building and the points are supposed to be associated with
+ * each other never starting over inside the same lesson"). A lesson body is
+ * PACED into segments for the reader's age band, and each segment used to
+ * derive its own 1..K — restarting at every step. Now derived points take
+ * `startAt` and report `nextStart`, so a caller rendering segments in order
+ * threads one running count through the whole lesson. Author-marked sections
+ * keep the speaker's own numbers (FIRST=1... SOIL 4=4) — those are chunk-stable
+ * by construction and are never overridden by the machine.
  */
-export function formatLessonText(text) {
+export function formatLessonText(text, { startAt = 1 } = {}) {
   const clean = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
-  if (!clean) return { items: [], sectionCount: 0 };
+  if (!clean) return { items: [], sectionCount: 0, pointCount: 0, nextStart: startAt };
   // THE POINT MODEL (Darrell 2026-08-25, refined live: "numbers on all
   // lessons... points of the messages... not every breath line... more like
   // after the main point is made from each section... maybe 3 to 6 points...
@@ -152,7 +164,10 @@ export function formatLessonText(text) {
       }
     }
     flushBody();
-    return { items, sectionCount, pointCount: sectionCount };
+    // The speaker's own count governs; the next number after their last section
+    // keeps any following derived content in the same chronological run.
+    const lastN = items.reduce((mx, it) => (it.kind === 'heading' ? Math.max(mx, it.n) : mx), 0);
+    return { items, sectionCount, pointCount: sectionCount, nextStart: Math.max(startAt, lastN + 1) };
   }
 
   // Unmarked: atoms → K points (3..6, sized by length, never more than atoms).
@@ -187,18 +202,26 @@ export function formatLessonText(text) {
     const group = atoms.slice(from, from + take).flat();
     from += take;
     if (!group.length) continue;
+    // Derived points continue from startAt — a paced segment mid-lesson picks
+    // up the count where the previous segment left off, never back at 1.
+    items.push({ kind: 'point', p: startAt + pointCount, lines: toLines(group) });
     pointCount += 1;
-    items.push({ kind: 'point', p: pointCount, lines: toLines(group) });
   }
-  return { items, sectionCount: 0, pointCount };
+  return { items, sectionCount: 0, pointCount, nextStart: startAt + pointCount };
 }
 
 /**
- * lessonShareText(text) — the same structure as plain text for copy/share:
- * a blank line before each numbered section, one breath line per row.
+ * lessonShareText(text, { numbered }) — the same structure as plain text for
+ * copy/share: a blank line before each section, one breath line per row.
  * Every word of the input survives; only line breaks are added.
+ *
+ * `numbered: false` keeps the paragraph structure but drops the "N. " labels —
+ * used for the big idea, which is the lesson's THESIS: only the body carries
+ * the lesson's one chronological run of points, so a shared block never reads
+ * 1-3 and then 1-3 again (Darrell 2026-08-25: "never starting over inside the
+ * same lesson").
  */
-export function lessonShareText(text) {
+export function lessonShareText(text, { numbered = true } = {}) {
   const { items } = formatLessonText(text);
   const rows = [];
   for (const it of items) {
@@ -206,10 +229,10 @@ export function lessonShareText(text) {
       // The heading IS the numbered point; its number rides in front so the
       // share reads as a countable list even where the author wrote FIRST/III.
       if (rows.length) rows.push('');
-      rows.push(`${it.n}. ${it.text}`);
+      rows.push(numbered ? `${it.n}. ${it.text}` : it.text);
     } else if (it.kind === 'point') {
       if (rows.length) rows.push('');
-      it.lines.forEach((line, i) => rows.push(i === 0 ? `${it.p}. ${line}` : line));
+      it.lines.forEach((line, i) => rows.push(i === 0 && numbered ? `${it.p}. ${line}` : line));
     } else {
       rows.push(it.text);
     }
