@@ -256,7 +256,22 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
       }
     }
   }
-  return { text: m.lesson || '', levelId: chain[0], branched: false, band };
+  if (m.lesson) return { text: m.lesson, levelId: chain[0], branched: false, band };
+  // No band ever dead-ends into empty text (measured 2026-08-25: ten lessons
+  // authored with child/teen/senior levels and no `lesson` field served the
+  // ADULT band — the widest audience — zero characters, because its chain was
+  // ['standard'] alone with nothing behind it). Only when BOTH the band's own
+  // chain and the full `lesson` prose are absent, fall back to the richest
+  // text the module actually carries: senior (fullest), then teen, then
+  // child. Every word the author wrote beats a blank screen.
+  if (levels) {
+    for (const key of ['senior', 'teen', 'child']) {
+      if (typeof levels[key] === 'string' && levels[key]) {
+        return { text: levels[key], levelId: key, branched: true, band };
+      }
+    }
+  }
+  return { text: '', levelId: chain[0], branched: false, band };
 }
 
 // Split a lesson into developmentally-sized segments. Younger bands get shorter
