@@ -46,7 +46,13 @@ on:
     # auto-merges the real catcher is the armed-PR wait loop in the deploy
     # step (sized to span a full CI run), with the deploy-freshness cron
     # (best-effort, observed ~hourly) as the outer net.
-    types: [opened, reopened, ready_for_review, synchronize, closed]
+    # `labeled` (2026-08-25, post-incident PR #1339): a `hold` label added AFTER
+    # auto-merge was armed did nothing — native auto-merge ignores labels once
+    # enabled, and the sweep only checked `hold` when ARMING. PR #1339 carried
+    # the Governor's hold and merged anyway (the exact brake DR-0103 promises).
+    # Now every labeling re-runs the sweep, and the sweep DISARMS any armed PR
+    # that carries `hold` (step below) — the hand on the brake wins the race.
+    types: [opened, reopened, ready_for_review, synchronize, closed, labeled, unlabeled]
     branches: [main]
   check_suite:
     types: [completed]
@@ -108,6 +114,37 @@ jobs:
             # list and the enable. Auto-merge still respects branch protection.
             if ! gh pr merge --repo "$REPO" --auto --squash "$n"; then
               echo "::warning::could not enable auto-merge on #$n (may have just merged or become ineligible)"
+            fi
+          done
+
+      - name: DISARM auto-merge on every hold-labeled PR (the brake wins the race)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Post-incident guard (PR #1339, 2026-08-25): native auto-merge armed
+          # BEFORE a `hold` label lands keeps merging — labels never disarm it.
+          # So every sweep also runs the reverse pass: any open PR to main that
+          # carries `hold` AND has auto-merge armed gets DISARMED. Idempotent;
+          # never fails the sweep on one PR.
+          mapfile -t held < <(
+            gh pr list --repo "$REPO" --state open --base main \
+              --json number,autoMergeRequest,labels \
+              --jq '.[]
+                    | select(.autoMergeRequest != null)
+                    | select(any(.labels[].name; . == "hold"))
+                    | .number'
+          )
+          if [ "${#held[@]}" -eq 0 ]; then
+            echo "No armed hold-labeled PRs to disarm."
+            exit 0
+          fi
+          for n in "${held[@]}"; do
+            echo "DISARMING auto-merge on held PR #$n"
+            if ! gh pr merge --repo "$REPO" --disable-auto "$n"; then
+              echo "::warning::could not disarm auto-merge on #$n"
             fi
           done
 
