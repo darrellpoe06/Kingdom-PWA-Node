@@ -248,6 +248,14 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
   const band = ageBandProfile(ageBandId);
   const m = module || {};
   const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
+  // Age bands DIVERSIFY the same message by mental capacity (Darrell 2026-08-25:
+  // "based on age mental capacity... diversification of the same messages",
+  // "full message, age-simple", "THE SHORT LESSON IS THE ONLY PROBLEM"). The
+  // band's own authored level wins when present — a child reads the child
+  // version, a teen the teen version, an adult the full `lesson`. The SHORT-
+  // LESSON fix lives in the CONTENT, not here: each age version is authored at
+  // FULL COVERAGE (every point of the lesson, in that age's words), so no band
+  // is ever handed a fragment. The framework is unchanged — the process stands.
   const chain = levelOverride ? [levelOverride, 'standard'] : depthChainForAge(ageBandId);
   if (levels) {
     for (const key of chain) {
