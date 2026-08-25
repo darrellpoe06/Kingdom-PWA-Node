@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, resolveLevel, normalizeMedia, hasReadyMedia,
-  gradeQuiz, moduleQuizPassed, courseAssessment, helperInterestText, QUIZ_PASS_RATIO,
+  gradeQuiz, moduleQuizPassed, courseAssessment, helperInterestText, QUIZ_PASS_RATIO, resolveForAge,
 } from '../lib/learn-framework.js';
 
 describe('skill-level branching', () => {
@@ -94,5 +94,31 @@ describe('graduate → next-cohort helper path', () => {
     expect(t).toContain('[Broadcast class helper]');
     expect(t).toContain('Bradley');
     expect(t).toContain('The Broadcast: How It All Works');
+  });
+});
+
+describe('no age band ever gets an empty lesson (Darrell 2026-08-25: "every age group etc?")', () => {
+  // Measured before the fix: ten living-lessons modules authored with only
+  // child/teen/senior levels (no `lesson` field) served the ADULT band zero
+  // characters — its chain was ['standard'] with nothing behind it. The fix:
+  // only when the band's own chain AND the full lesson prose both miss, fall
+  // back to the richest authored level (senior → teen → child).
+  const levelsOnly = { id: 'x', levels: { child: 'c-text', teen: 't-text', senior: 's-text' } };
+  it('adult falls back to the richest authored level instead of a blank screen', () => {
+    const r = resolveForAge(levelsOnly, 'adult');
+    expect(r.levelId).toBe('senior');
+    expect(r.text).toBe('s-text');
+  });
+  it('a module WITH full lesson prose still serves adults that prose (no behavior change)', () => {
+    const withLesson = { id: 'y', lesson: 'full prose', levels: { teen: 't', senior: 's' } };
+    expect(resolveForAge(withLesson, 'adult').text).toBe('full prose');
+  });
+  it('every band resolves non-empty on a levels-only module', () => {
+    for (const band of ['child', 'youth', 'teen', 'adult', 'senior']) {
+      expect(resolveForAge(levelsOnly, band).text.length).toBeGreaterThan(0);
+    }
+  });
+  it('CATCHES the truly-empty module honestly (no invented text)', () => {
+    expect(resolveForAge({ id: 'z' }, 'adult').text).toBe('');
   });
 });
