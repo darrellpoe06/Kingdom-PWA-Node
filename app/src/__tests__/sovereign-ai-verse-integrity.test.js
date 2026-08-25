@@ -86,6 +86,19 @@ describe('sov9 — verification earns trust quotes the Word verbatim', () => {
     expect(verse('Proverbs', 18, 17)).toBe(LESSON_FRAGMENTS['Proverbs 18:17']);
     expect(verse('1John', 4, 1)).toContain(LESSON_FRAGMENTS['1 John 4:1']);
   });
+  it('the 2026-08-25 case study lives in the tenth movement — the day the doctrine ran live twice', () => {
+    // Darrell: "add this situation as a part of that lesson." Both cases are
+    // pinned so neither can silently drift out of the teaching: the lane that
+    // merged past the Governor's hold, and this lesson's own first version
+    // falling to the human witness's search (Proverbs 18:17 as an event).
+    expect(sov9.lesson).toContain('THE DAY THIS PAGE WAS REBUILT');
+    expect(sov9.lesson).toContain('past the Governor\'s hold label');
+    expect(sov9.lesson).toContain('DISARMS an already-armed merge');
+    expect(sov9.lesson).toContain('its own review shared its own blind spots');
+    expect(sov9.lesson).toContain('I gave more information in the prompt than that whole lesson');
+    // And it sits INSIDE the tenth movement, after the marker.
+    expect(sov9.lesson.indexOf('THE DAY THIS PAGE WAS REBUILT')).toBeGreaterThan(sov9.lesson.indexOf('TENTH,'));
+  });
   it('the ten movements are marked FIRST through TENTH, in order', () => {
     const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
     let last = -1;
