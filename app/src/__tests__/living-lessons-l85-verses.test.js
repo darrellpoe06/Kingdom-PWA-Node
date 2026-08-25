@@ -76,7 +76,7 @@ describe('L85 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Matthew 25:32-33'", 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
-    expect(src).toMatch(/weeks: 84,/);
+    expect(src).toMatch(/weeks: \d+,/); // the catalog count grows with every new lesson; this lesson's presence is the real pin
     expect(src).toContain('L85 The King’s Code');
   });
   it("keeps the Governor's own framing: code, agreement, the GOAT wordplay, best written", () => {
