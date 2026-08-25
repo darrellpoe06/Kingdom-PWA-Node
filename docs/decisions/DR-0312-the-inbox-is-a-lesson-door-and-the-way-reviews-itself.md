@@ -43,10 +43,32 @@ in its report (ambiguity is surfaced, never silently dropped).
 
 ## The automation (opportunities and constraints)
 
-A **fresh-session Routine** ("Gmail lesson intake") fires on a schedule, searches
-the inbox for unprocessed Lesson emails
-(`{from:darrellpoe06@gmail.com from:dpoe@illinois.edu}` + "Lesson" marker,
-minus `Lesson-Captured`), and runs the capture protocol on each.
+**AMENDED same-day, declared by Darrell:** *"I would rather an event triggered
+event for pulls... like whenever it comes from dpoe@illinois.edu... etc..."*
+The intake is **event-driven first** (DR-0255), with the schedule demoted to a
+fallback heartbeat:
+
+1. **The event chain:** `.github/workflows/lesson-mail-watch.yml` peeks at the
+   inbox every ~5 minutes (GitHub's schedule floor) over **read-only IMAP**
+   for unprocessed Lesson mail from his two addresses. On a hit it comments on
+   the **permanent draft signal PR #1346** (`signal/lesson-intake` — drafts
+   are sweep-ineligible, so the channel can never merge), one deduped comment
+   per Message-ID. The comment **wakes the subscribed capture session**, which
+   runs the protocol immediately. Arrival → wake in ~5 minutes; wake →
+   shipped lesson in ~15-20 more.
+2. **The watcher never mutates mail** (peek only) and never prints subjects or
+   bodies to public logs — sender + date only in the poke; the capture session
+   reads the content privately over the Gmail connector.
+3. **Dormant until armed:** the watcher needs the `GMAIL_WATCH_APP_PASSWORD`
+   Actions secret — a value only Darrell holds (a Google App Password, created
+   at myaccount.google.com/apppasswords, stored at Settings → Secrets →
+   Actions; **never pasted into chat**). Secret absent = clean, honestly
+   logged no-op every tick.
+4. **Fallback heartbeat:** the "Gmail lesson intake" **Routine** still fires
+   every 4 hours into the capture session and runs the full protocol itself —
+   catching anything the watcher misses (secret unset, Actions outage,
+   webhook loss). The label ledger keeps both paths idempotent: whichever
+   path runs first labels the thread; the other finds nothing.
 
 **Opportunities**
 - No lesson waits on a chat session being open: forward → captured → live,
