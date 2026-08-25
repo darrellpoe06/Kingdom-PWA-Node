@@ -55,6 +55,7 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
+import { formatLessonText } from '../lib/lesson-format.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
@@ -433,6 +434,32 @@ function SopLibrary({ sequences, pipeline }) {
 }
 
 // -----------------------------------------------------------------------------
+// LessonProse — every lesson text renders as NUMBERED SECTIONS with short
+// breath lines instead of a run-on prose wall (Darrell 2026-08-25: "bullet
+// points with the number next to the sections... instead of looking like
+// run-on sentences"). The structure is derived from markers the author wrote
+// (FIRST/SECOND..., I./II., SOIL n) by lib/lesson-format.js — not one word is
+// altered, so the verse-pin gates hold untouched. Lessons without markers
+// still gain sentence-grouped breathing room.
+export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
+  const { items } = formatLessonText(text);
+  if (!items.length) return null;
+  return (
+    <div className={className} style={{ fontFamily: '"Fraunces", serif' }}>
+      {items.map((it, i) => (
+        it.kind === 'heading' ? (
+          <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
+            <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
+            {it.text}
+          </p>
+        ) : (
+          <p key={i} className="mt-1.5">{it.text}</p>
+        )
+      ))}
+    </div>
+  );
+}
+
 // AgePacedLesson — renders the authored lesson PACED to the learner's age band.
 // The same authored text is chunked into developmentally-sized segments
 // (learn-framework lessonPlanForAge); younger bands get a short stepper with break
@@ -477,7 +504,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
               Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
             </span>
-            <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{s}</p>
+            <div className="mt-1"><LessonProse text={s} /></div>
           </div>
         ))}
       </div>
@@ -493,7 +520,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // Adult/single-segment: just show the whole lesson, no stepper.
   if (totalSegments <= 1) {
     return (
-      <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{segments[0]}</p>
+      <div className="mb-2"><LessonProse text={segments[0]} /></div>
     );
   }
 
@@ -522,7 +549,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
           <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
         </div>
       </div>
-      <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{segments[cur]}</p>
+      <div aria-live="polite"><LessonProse text={segments[cur]} /></div>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}

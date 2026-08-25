@@ -107,18 +107,25 @@ describe('a copied witness section carries what makes it trustworthy', () => {
 
 describe('a copied lesson is the lesson', () => {
   const lesson = buildHealthyLivingSchedule()[0];
+  // The copy block now carries the numbered-section / breath-line structure
+  // (Darrell 2026-08-25: "the text when sharing needs the same clean up") —
+  // line breaks are ADDED, words never change. So containment is asserted on
+  // whitespace-collapsed text: every word, in order, still present.
+  const flat = (t) => t.replace(/^\d+\. /gm, '').replace(/\s+/g, ' ').trim();
   it('title, Word-first big idea, the body, the anchor, and the link', () => {
     const block = lessonCopyBlock(lesson, { url: 'https://poetech.us/?view=church&sub=learn&course=healthy-living&lesson=' + lesson.id });
     expect(block.startsWith(lesson.title)).toBe(true);
-    expect(block).toContain(lesson.bigIdea);
-    expect(block).toContain(lesson.levels.standard);
+    expect(flat(block)).toContain(flat(lesson.bigIdea));
+    expect(flat(block)).toContain(flat(lesson.levels.standard));
     expect(block).toContain(`Anchor — ${lesson.anchor.ref}`);
     expect(block).toContain(lesson.id);
+    // the share text is broken for reading, not a single wall
+    expect(block.split('\n').length).toBeGreaterThan(4);
   });
 
   it('honors the reader’s own level', () => {
     const teen = lessonCopyBlock(lesson, { level: 'teen' });
-    expect(teen).toContain(lesson.levels.teen);
+    expect(flat(teen)).toContain(flat(lesson.levels.teen));
   });
 
   it('no module, no block', () => {

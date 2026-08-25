@@ -26,6 +26,8 @@
 //     against the room it came from.
 // =============================================================================
 
+import { lessonShareText } from './lesson-format.js';
+
 export const LEARN_LINK_PARAMS = { course: 'course', lesson: 'lesson' };
 
 /**
@@ -119,12 +121,15 @@ export function witnessCopyBlock(source, { verseFor = () => '', url = '', care =
 export function lessonCopyBlock(module, { url = '', level = 'standard' } = {}) {
   if (!module) return '';
   const body = (module.levels && module.levels[level]) || module.lesson || '';
+  // Shared text carries the same numbered-section structure as the screen
+  // (Darrell 2026-08-25: "the text when sharing needs the same clean up so
+  // there are breaks in the flow of words") — breaks only, never a changed word.
   const out = [
     line(module.title),
     '',
-    line(module.bigIdea),
+    lessonShareText(line(module.bigIdea)),
     '',
-    line(body),
+    lessonShareText(line(body)),
   ];
   if (module.anchor && module.anchor.ref) out.push('', `Anchor — ${module.anchor.ref}`);
   if (url) out.push('', url);
