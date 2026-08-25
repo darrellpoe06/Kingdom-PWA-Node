@@ -110,6 +110,95 @@ describe('sov9 — verification earns trust quotes the Word verbatim', () => {
   });
 });
 
+// =============================================================================
+// sov10 — the settled Word (captured 2026-08-25 from Darrell's forwarded
+// essay, the first catch of the Gmail-lesson-intake Way, DR-0312)
+// =============================================================================
+const sov10 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov10-the-settled-word');
+
+// Every fragment quoted in the sov10 deep lesson, verbatim from the corpus.
+const SOV10_FRAGMENTS = {
+  'Psalms 119:89': 'For ever, O LORD, thy word is settled in heaven.',
+  'Isaiah 40:8': 'The grass withereth, the flower fadeth: but the word of our God shall stand for ever.',
+  'Matthew 24:35': 'Heaven and earth shall pass away, but my words shall not pass away.',
+  'John 14:6': 'I am the way, the truth, and the life',
+  'John 17:17': 'Sanctify them through thy truth: thy word is truth.',
+  'Jeremiah 36:23': 'cut it with the penknife, and cast it into the fire',
+  'Jeremiah 36:28': 'Take thee again another roll, and write in it all the former words that were in the first roll',
+  'Exodus 31:18': 'tables of stone, written with the finger of God',
+  'Deuteronomy 17:18': 'write him a copy of this law in a book',
+  'Habakkuk 2:2': 'Write the vision, and make it plain upon tables, that he may run that readeth it.',
+  '2 Timothy 4:3': 'For the time will come when they will not endure sound doctrine; but after their own lusts shall they heap to themselves teachers, having itching ears;',
+  '2 Timothy 4:4': 'And they shall turn away their ears from the truth, and shall be turned unto fables.',
+  'Exodus 23:2': 'Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment',
+  'Matthew 7:13': 'wide is the gate, and broad is the way, that leadeth to destruction, and many there be which go in thereat:',
+  'Matthew 7:14': 'Because strait is the gate, and narrow is the way, which leadeth unto life, and few there be that find it.',
+  'Colossians 1:17': 'And he is before all things, and by him all things consist.',
+  'John 1:14a': 'And the Word was made flesh, and dwelt among us',
+  'John 1:14b': 'full of grace and truth',
+  'Hebrews 10:25a': 'Not forsaking the assembling of ourselves together',
+  'Hebrews 10:25b': 'and so much the more, as ye see the day approaching.',
+  'Joshua 1:8': 'This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night',
+  'Acts 17:11': 'received the word with all readiness of mind, and searched the scriptures daily, whether those things were so',
+  'Matthew 4:4': 'It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.',
+};
+
+describe('sov10 — the settled Word quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the settled Word', () => {
+    expect(sov10).toBeTruthy();
+    expect(sov10.anchor.ref).toContain('Psalms 119:89');
+    expect(sov10.anchor.ref).toContain('John 17:17');
+    expect(sov10.anchor.theme).toContain('For ever, O LORD, thy word is settled in heaven.');
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV10_FRAGMENTS)) {
+      expect(sov10.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('Psalms', 119, 89)).toBe(SOV10_FRAGMENTS['Psalms 119:89']);
+    expect(verse('Isaiah', 40, 8)).toBe(SOV10_FRAGMENTS['Isaiah 40:8']);
+    expect(verse('Matthew', 24, 35)).toBe(SOV10_FRAGMENTS['Matthew 24:35']);
+    expect(verse('John', 14, 6)).toContain(SOV10_FRAGMENTS['John 14:6']);
+    expect(verse('John', 17, 17)).toBe(SOV10_FRAGMENTS['John 17:17']);
+    expect(verse('Jeremiah', 36, 23)).toContain(SOV10_FRAGMENTS['Jeremiah 36:23']);
+    expect(verse('Jeremiah', 36, 28)).toContain(SOV10_FRAGMENTS['Jeremiah 36:28']);
+    expect(verse('Exodus', 31, 18)).toContain(SOV10_FRAGMENTS['Exodus 31:18']);
+    expect(verse('Deuteronomy', 17, 18)).toContain(SOV10_FRAGMENTS['Deuteronomy 17:18']);
+    expect(verse('Habakkuk', 2, 2)).toContain(SOV10_FRAGMENTS['Habakkuk 2:2']);
+    expect(verse('2Timothy', 4, 3)).toBe(SOV10_FRAGMENTS['2 Timothy 4:3']);
+    expect(verse('2Timothy', 4, 4)).toBe(SOV10_FRAGMENTS['2 Timothy 4:4']);
+    expect(verse('Exodus', 23, 2)).toContain(SOV10_FRAGMENTS['Exodus 23:2']);
+    expect(verse('Matthew', 7, 13)).toContain(SOV10_FRAGMENTS['Matthew 7:13']);
+    expect(verse('Matthew', 7, 14)).toBe(SOV10_FRAGMENTS['Matthew 7:14']);
+    expect(verse('Colossians', 1, 17)).toBe(SOV10_FRAGMENTS['Colossians 1:17']);
+    expect(verse('John', 1, 14)).toContain(SOV10_FRAGMENTS['John 1:14a']);
+    expect(verse('John', 1, 14)).toContain(SOV10_FRAGMENTS['John 1:14b']);
+    expect(verse('Hebrews', 10, 25)).toContain(SOV10_FRAGMENTS['Hebrews 10:25a']);
+    expect(verse('Hebrews', 10, 25)).toContain(SOV10_FRAGMENTS['Hebrews 10:25b']);
+    expect(verse('Joshua', 1, 8)).toContain(SOV10_FRAGMENTS['Joshua 1:8']);
+    expect(verse('Acts', 17, 11)).toContain(SOV10_FRAGMENTS['Acts 17:11']);
+    expect(verse('Matthew', 4, 4)).toContain(SOV10_FRAGMENTS['Matthew 4:4']);
+  });
+  it('the Word LEADS and the eight movements run in order', () => {
+    expect(sov10.lesson.indexOf('FIRST, THE WORD')).toBe(0);
+    expect(sov10.lesson.indexOf('Psalms 119:89')).toBeLessThan(sov10.lesson.indexOf('Gonja'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov10.lesson.indexOf(m);
+      expect(at, `${m} must appear`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('provenance honesty: the essay\'s scholarship is carried as the essay\'s own (DR-0076 §8)', () => {
+    expect(sov10.lesson).toContain('not independently re-read');
+    expect(sov10.levels.senior).toContain('not re-verified at the underlying books');
+  });
+});
+
 describe('sov9 postscript — the primary-source figures stay pinned (2026-08-24 verification pass)', () => {
   // Darrell: "research the same outside sources for comprehensive understanding."
   // These figures were read from / corroborated against the primary sources in
