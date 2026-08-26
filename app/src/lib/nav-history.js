@@ -37,7 +37,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 // tlc-assistant). The drift is now GUARDED — nav-history.test.jsx derives the
 // shell's list from source and fails if these two ever disagree again.
 export const VALID_VIEWS = [
-  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice', 'tlc',
+  'overview', 'books', 'inbound', 'rentals', 'properties', 'projects', 'practice', 'tlc',
   'opportunities', 'about', 'church', 'markets', 'notes', 'create', 'voice',
   'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
   'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',

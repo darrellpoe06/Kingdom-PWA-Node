@@ -33,6 +33,14 @@ const TARGETS = [
   // TLC Therapy Solutions — raster fallbacks so the TLC install carries real
   // PNGs like the other three brands (manifest-tlc had SVG-only icons; older
   // Android/Samsung installers are safest with 192/512 rasters).
+  // Poe Properties (DR-0313) — the fifth installable face needs real rasters
+  // like the other four (older Android/Samsung installers are safest with
+  // 192/512 PNGs; iOS ignores SVG apple-touch-icons on some versions).
+  ['properties-icon.svg', 'properties-icon-192.png', 192],
+  ['properties-icon.svg', 'properties-icon-512.png', 512],
+  ['properties-icon-maskable.svg', 'properties-icon-maskable-192.png', 192],
+  ['properties-icon-maskable.svg', 'properties-icon-maskable-512.png', 512],
+  ['properties-icon-maskable.svg', 'properties-apple-touch.png', 180],
   ['tlc-icon.svg', 'tlc-icon-192.png', 192],
   ['tlc-icon.svg', 'tlc-icon-512.png', 512],
   ['tlc-icon.svg', 'tlc-apple-touch.png', 180],

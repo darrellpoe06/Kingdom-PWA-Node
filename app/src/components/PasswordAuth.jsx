@@ -31,7 +31,7 @@ import {
 // `brand` skins the entry for a specific door (DR-0174: the church door wears
 // "The Love Corner" + the church logo, not "PoeTech"). Null = PoeTech's own
 // front door, unchanged. Shape: { name, eyebrow, logo }.
-export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false, brand = null }) {
+export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn = null, embedded = false, brand = null, startWith = 'phone' }) {
   const brandName = (brand && brand.name) || 'PoeTech';
   const brandEyebrow = (brand && (brand.eyebrow || brand.name)) || 'PoeTech';
   const brandLogo = (brand && brand.logo) || null;
@@ -43,7 +43,13 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   // 2026-08-19, when the first post-cutover sign-in walked straight into the
   // one path the backend cannot serve yet and read "we can't reach our
   // service" — the door must lead with what works.
-  const [usePhonePin, setUsePhonePin] = useState(true); // phone + PIN, no email (DR-0172)
+  // phone + PIN, no email (DR-0172) — the default door, and what leads for the
+  // congregation (DR-0307 §3). A caller whose IDENTITY IS an email address opts
+  // out with startWith="email": the Poe Properties door recognizes an invited
+  // tenant or 1099 worker by the exact address their landlord invited, so
+  // leading with phone+PIN there would hand them a login that cannot match
+  // their invitation (caught on the door's first render check, 2026-08-26).
+  const [usePhonePin, setUsePhonePin] = useState(startWith !== 'email');
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', phone: '', pin: '', pinConfirm: '' });
   const [error, setError] = useState('');
   // The backend's raw words, rendered SMALL under the friendly sentence so a

@@ -71,6 +71,7 @@ export const FEEDBACK_AREAS = [
   ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
+    ['properties', 'Properties · work orders, tenants, 1099 workers (the Poe Properties module)'],
     ['rentals-edit', '└ Inline quick-edit on property rows'],
     ['rentals-valuation', '└ Property Valuation (Zillow/Realtor/Redfin lookup + save)'],
     ['rentals-lease', '└ Lease & Tenant Contact'],

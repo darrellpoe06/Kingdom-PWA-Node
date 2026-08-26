@@ -11,7 +11,7 @@
 // (Bishop Gwin + Governor) governs when it opens publicly.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { SHARE_DOOR_URL, SHARE_DOOR_ALIASES, INSTALL_MANIFEST, DOOR_PHASES, LOVE_CORNER_BRAND, isChurchDoorContext } from '../lib/church-own-door.js';
@@ -60,12 +60,17 @@ describe('the church-branded install manifest', () => {
   // other, so the collision class can never silently return.
   it('EVERY installable face has a DISJOINT scope — no manifest scope contains another (DR-0258/DR-0261)', () => {
     // Extended 2026-08-01 after the on-device proof: Moore and TLC hit the same
-    // "already installed" wall the church did (Darrell's screenshots), so the
-    // gate now sweeps ALL FOUR faces pairwise. Any new installable manifest
-    // added to public/ joins this list or the collision class returns.
-    const faces = ['manifest.webmanifest', 'manifest-lovecorner.webmanifest',
-      'manifest-moore.webmanifest', 'manifest-tlc.webmanifest']
+    // "already installed" wall the church did (Darrell's screenshots).
+    // DERIVED, not hand-kept (2026-08-26, DR-0313): the list used to be four
+    // literals with a comment asking future authors to remember to add the
+    // fifth. Machinery over memory (DR-0250) — the sweep now READS every
+    // manifest in public/, so a new installable face is covered the moment its
+    // manifest exists, whether or not anyone remembered this file.
+    const faces = readdirSync(pub('.'))
+      .filter((f) => /^manifest.*\.webmanifest$/.test(f))
+      .sort()
       .map((f) => ({ f, m: JSON.parse(read(f)) }));
+    expect(faces.length, 'no installable manifests found — the sweep would pass vacuously').toBeGreaterThanOrEqual(5);
     for (const { f, m } of faces) {
       expect(m.id.startsWith(m.scope), `${f}: id must live inside its own scope`).toBe(true);
       expect(m.start_url.startsWith(m.scope), `${f}: start_url must live inside its own scope`).toBe(true);

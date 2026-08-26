@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- =========================================================================
+  poetech.us/properties — the Poe Properties shareable front-door link (DR-0313).
+  WHY THIS FILE EXISTS: link previews (RCS/iMessage/social) read the STATIC HTML
+  at the shared URL — they never run the app. This is the URL a landlord texts to
+  a tenant or a 1099 worker, so it carries the Poe Properties name in the tags,
+  then meta-refreshes into the real door (/properties/app/?properties=1) INSIDE
+  the app's own install scope. No inline JS (CSP: script-src 'self').
+  Brand strings mirror modules/properties/config.js + manifest-properties.
+========================================================================== -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poe Properties — work orders, history, and one clear conversation</title>
+  <meta name="description" content="Report what is broken, follow it to done, and keep every message and date in one place. For tenants, their families, and the 1099 workers who keep the place running." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Poe Properties" />
+  <meta property="og:title" content="Poe Properties" />
+  <meta property="og:description" content="Work orders, history, and the whole conversation — in one place." />
+  <meta property="og:url" content="https://poetech.us/properties/" />
+  <meta property="og:image" content="https://poetech.us/properties-icon-512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#2F5D50" />
+  <link rel="manifest" href="/manifest-properties.webmanifest" />
+  <link rel="apple-touch-icon" href="/properties-apple-touch.png" />
+  <link rel="icon" href="/properties-icon-192.png" />
+  <meta http-equiv="refresh" content="0; url=/properties/app/?properties=1" />
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FAF8F4; color: #1A1815; font-family: Georgia, 'Times New Roman', serif; text-align: center; }
+    .card { padding: 2rem; }
+    h1 { margin: 0 0 .25rem; font-size: 2rem; }
+    p { margin: .25rem 0; color: #5A5751; font-size: .95rem; }
+    a { color: #2F5D50; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Poe Properties</h1>
+    <p>Work orders · history · one clear conversation</p>
+    <p>Opening… <a href="/properties/app/?properties=1">tap here if it doesn't open</a>.</p>
+  </div>
+</body>
+</html>

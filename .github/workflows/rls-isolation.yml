@@ -50,6 +50,12 @@ jobs:
           - feature: delegated-pm
             migrations: "0075-delegated-property-management.sql"
             smokes: "0075-isolation-smoke.sql"
+          # The Poe Properties App's own gate (DR-0313): the invite->claim seam,
+          # the tenant's family arms, the field-worker ceiling, and the books-side
+          # posting guard. 0075 applies first — 0150 extends its policies.
+          - feature: poe-properties
+            migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql"
+            smokes: "0150-poe-properties-isolation-smoke.sql"
           - feature: choir-claim
             migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
             smokes: "0110-choir-claim-smoke.sql"
