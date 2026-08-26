@@ -140,7 +140,9 @@ export async function assignWorkOrder(id, { assignedTo = null, assignedToLabel =
 export async function postMessage({ instanceId, tenancyId, body, fromRole }, client = supabase) {
   try {
     const uid = await userId(client);
-    const role = ['tenant', 'landlord', 'manager'].includes(fromRole) ? fromRole : 'tenant';
+    // The thread names who actually spoke (0150 widened the CHECK): a worker's
+            // message must not appear as the manager's.
+    const role = ['tenant', 'household', 'worker', 'manager', 'landlord'].includes(fromRole) ? fromRole : 'tenant';
     const { error } = await client.from('tenant_messages').insert({
       instance_id: instanceId, tenancy_id: tenancyId, body, from_role: role, sender_user_id: uid,
     });
@@ -172,7 +174,7 @@ export async function recordRent({ instanceId, tenancyId, amount, forPeriod, met
     const uid = await userId(client);
     const { error } = await client.from('rent_records').insert({
       instance_id: instanceId, tenancy_id: tenancyId, reported_by: uid,
-      reported_by_role: ['tenant', 'landlord', 'manager'].includes(role) ? role : 'tenant',
+      reported_by_role: ['tenant', 'manager', 'landlord'].includes(role) ? role : 'tenant',
       amount, for_period: forPeriod || null, method: method || 'other', memo: memo || null,
       status: status || 'reported', money_moved_in_app: false,
     });

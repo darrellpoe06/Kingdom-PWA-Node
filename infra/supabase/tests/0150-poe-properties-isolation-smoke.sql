@@ -58,13 +58,16 @@ VALUES
   ('00000000-0000-0000-0000-000000000000', :'owner2',  'authenticated','authenticated','owner2150@test.local','',  now(), now())
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO instances (id, name, slug, kind) VALUES
-  (:'inst',  'Poe Properties Smoke', 'poe-properties-smoke-150', 'family'),
-  (:'inst2', 'Other Landlord Smoke', 'other-landlord-smoke-150', 'family')
+-- instances has slug + display_name + instance_type (no name/kind column) — the
+-- shape 0075's smoke already proves against this database. 'landlord' is a real
+-- instance_type here, and it is what a Poe Properties instance actually is.
+INSERT INTO instances (id, slug, display_name, instance_type) VALUES
+  (:'inst',  'poe-properties-smoke-150', 'Poe Properties Smoke', 'landlord'),
+  (:'inst2', 'other-landlord-smoke-150', 'Other Landlord Smoke', 'landlord')
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO instance_members (instance_id, user_id, role) VALUES
-  (:'inst',  :'owner',  'owner'),
-  (:'inst2', :'owner2', 'owner')
+INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
+  (:'inst',  :'owner',  'owner', 'Owner'),
+  (:'inst2', :'owner2', 'owner', 'Owner Two')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO rental_tenancies (id, instance_id, created_by, rental_ref, property_label, unit_label, tenant_name, tenant_email, monthly_rent, deposit, status) VALUES
@@ -204,11 +207,11 @@ BEGIN
   PERFORM pg_temp.assert_sees(f, 'tenant_maintenance_requests', reqB, 'F reads door B',              false);
   PERFORM pg_temp.assert_write(f,
     format('INSERT INTO tenant_maintenance_requests (instance_id, tenancy_id, created_by_role, title, priority, status) VALUES (%L,%L,%L,%L,%L,%L)',
-           inst, tenA, 'tenant', 'Family reports a leak', 'normal', 'submitted'),
+           inst, tenA, 'household', 'Family reports a leak', 'normal', 'submitted'),
     'F files a work order', true);
   PERFORM pg_temp.assert_write(f,
     format('INSERT INTO tenant_messages (instance_id, tenancy_id, from_role, body) VALUES (%L,%L,%L,%L)',
-           inst, tenA, 'tenant', 'We are home after 5.'),
+           inst, tenA, 'household', 'We are home after 5.'),
     'F writes on the thread', true);
   PERFORM pg_temp.assert_write(f,
     format('INSERT INTO tenancy_notes (instance_id, tenancy_id, author_role, body) VALUES (%L,%L,%L,%L)',
@@ -239,6 +242,13 @@ BEGIN
     format('INSERT INTO tenancy_notes (instance_id, tenancy_id, author_role, body) VALUES (%L,%L,%L,%L)',
            inst, tenA, 'worker', 'Tenant was home; part arrives Thursday.'),
     'W writes a note', true);
+  -- The thread must be able to say WORKER. Before 0150 widened the CHECK the only
+  -- values were tenant/landlord/manager, so a handyman's message had to pose as
+  -- the manager's — on a record whose entire purpose is judging who did what, when.
+  PERFORM pg_temp.assert_write(w,
+    format('INSERT INTO tenant_messages (instance_id, tenancy_id, from_role, body) VALUES (%L,%L,%L,%L)',
+           inst, tenA, 'worker', 'Igniter is in; back Thursday morning.'),
+    'W speaks on the thread AS the worker', true);
 
   -- 6. THE BOOKS ARE THE INSTANCE'S. A rent.adjust manager may correct a balance
   --    but may NEVER stamp the posting columns.

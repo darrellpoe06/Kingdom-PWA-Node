@@ -99,6 +99,41 @@ describe('the database seam is present and gated', () => {
     expect(sql).toMatch(/rent_records_posted_tx_uniq/);   // one books entry per record, ever
   });
 
+  it('the role vocabulary holds every person now on the door — and the app agrees with it', () => {
+    // 0055's CHECKs knew only tenant/landlord/manager. With a household member
+    // and a 1099 worker on the door, the un-widened vocabulary would have forced
+    // a handyman's message to post as the manager's, on the very record that
+    // exists to judge who did what and when (DR-0101 §5).
+    for (const t of ['tenant_messages_from_role_check', 'tenant_maintenance_requests_created_by_role_check']) {
+      const m = new RegExp(`ADD CONSTRAINT ${t}[\\s\\S]*?CHECK \\([^)]*?\\)`).exec(sql);
+      expect(m, `${t} is not widened by 0150`).toBeTruthy();
+      for (const role of ['tenant', 'household', 'worker', 'manager', 'landlord']) {
+        expect(m[0].includes(`'${role}'`), `${t} omits ${role}`).toBe(true);
+      }
+    }
+    // Rent is reported by the person it belongs to, or recorded by the manager /
+    // landlord — never by a worker or a household member.
+    const rent = /ADD CONSTRAINT rent_records_reported_by_role_check[\s\S]*?CHECK \([^)]*?\)/.exec(sql);
+    expect(rent[0].includes("'manager'")).toBe(true);
+    expect(rent[0].includes("'worker'")).toBe(false);
+    expect(rent[0].includes("'household'")).toBe(false);
+
+    // The app must never send a value the database would reject.
+    const app = readFileSync(join(here, '../modules/properties/PropertiesApp.jsx'), 'utf8');
+    expect(app).not.toMatch(/'household' \? 'tenant'/);
+    const cloud = readFileSync(join(here, '../modules/properties/cloud.js'), 'utf8');
+    expect(cloud).toMatch(/\['tenant', 'household', 'worker', 'manager', 'landlord'\]/);
+    expect(cloud).toMatch(/reported_by_role: \['tenant', 'manager', 'landlord'\]/);
+  });
+
+  it('the smoke sets its actors up in the shape THIS database actually has', () => {
+    const smoke = readRepo(SMOKE);
+    // A smoke that errors in its own setup proves nothing. instances carries
+    // slug + display_name + instance_type — there is no name or kind column.
+    expect(smoke).toMatch(/INSERT INTO instances \(id, slug, display_name, instance_type\)/);
+    expect(smoke).not.toMatch(/INSERT INTO instances[^;]*\bkind\b/);
+  });
+
   it('the isolation smoke exists and is wired into the rls-isolation matrix', () => {
     expect(existsSync(repo(SMOKE)), 'the enablement gate DR-0076 requires is missing').toBe(true);
     const wf = readRepo('.github/workflows/rls-isolation.yml');

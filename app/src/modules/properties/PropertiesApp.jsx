@@ -147,10 +147,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
   // ---- actions -------------------------------------------------------------
   const submitWorkOrder = async (form) => {
     if (!activeDoor) return;
-    const built = buildMaintenanceRequest({ ...form, tenancyId: activeDoor.id, byRole: role === 'household' ? 'tenant' : role });
+    const built = buildMaintenanceRequest({ ...form, tenancyId: activeDoor.id, byRole: role });
     const res = await fileWorkOrder({
       instance_id: activeDoor.instance_id, tenancy_id: activeDoor.id,
-      created_by_role: role === 'household' ? 'tenant' : role === 'field_worker' ? 'manager' : role,
+      created_by_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
       title: built.title || form.title, detail: built.detail || form.detail || null,
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
     });
@@ -162,7 +162,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
     if (!activeDoor || !body.trim()) return;
     const res = await postMessage({
       instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, body: body.trim(),
-      fromRole: role === 'household' ? 'tenant' : role === 'owner' ? 'landlord' : role === 'field_worker' ? 'manager' : role,
+      fromRole: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
     });
     say(res.ok ? 'Sent.' : `Not sent: ${res.reason}`);
     refresh();

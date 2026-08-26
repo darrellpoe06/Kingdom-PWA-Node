@@ -328,6 +328,32 @@ CREATE POLICY rent_records_read ON rent_records FOR SELECT TO authenticated
          OR user_delegated_can(tenancy_id,'rentroll.view'));
 
 -- ---------------------------------------------------------------------------
+-- 5b. The role vocabulary has to hold the people who are now in the room.
+--
+--     0055 wrote these CHECKs when the only actors were a tenant, a landlord and
+--     a manager. The Poe Properties App puts two more real people on the door: a
+--     HOUSEHOLD member and a 1099 WORKER. Without widening, a handyman's message
+--     would have to post as 'manager' and a spouse's work order as 'tenant' — a
+--     thread whose whole purpose is judging timelines accurately would be lying
+--     about who spoke (DR-0101 §5). A scoped manager with rent.confirm likewise
+--     records rent as themselves rather than as the landlord.
+--
+--     Purely ADDITIVE: every previously-valid value stays valid, and these tables
+--     hold zero rows today (measured 2026-08-26), so nothing is re-validated.
+-- ---------------------------------------------------------------------------
+ALTER TABLE tenant_messages DROP CONSTRAINT IF EXISTS tenant_messages_from_role_check;
+ALTER TABLE tenant_messages ADD CONSTRAINT tenant_messages_from_role_check
+  CHECK (from_role IN ('tenant','household','worker','manager','landlord'));
+
+ALTER TABLE tenant_maintenance_requests DROP CONSTRAINT IF EXISTS tenant_maintenance_requests_created_by_role_check;
+ALTER TABLE tenant_maintenance_requests ADD CONSTRAINT tenant_maintenance_requests_created_by_role_check
+  CHECK (created_by_role IN ('tenant','household','worker','manager','landlord'));
+
+ALTER TABLE rent_records DROP CONSTRAINT IF EXISTS rent_records_reported_by_role_check;
+ALTER TABLE rent_records ADD CONSTRAINT rent_records_reported_by_role_check
+  CHECK (reported_by_role IN ('tenant','manager','landlord'));
+
+-- ---------------------------------------------------------------------------
 -- 6. claim_property_access() — the ONLY path from an invite to a grant.
 --
 --    The caller must be signed in with a VERIFIED email that matches an
