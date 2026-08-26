@@ -392,10 +392,7 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
                 {(MAINTENANCE_TRANSITIONS[r.status] || []).map((next) => (
                   <Btn key={next} onClick={() => onStatus(r.id, next)}>{next}</Btn>
                 ))}
-                <Btn onClick={() => {
-                  const who = window.prompt('Assign to which worker? (name)');
-                  if (who) onAssign(r.id, who);
-                }}>Assign</Btn>
+                <AssignRow current={r.assigned_to_label} onAssign={(who) => onAssign(r.id, who)} />
               </div>
             )}
             {role === 'field_worker' && <DocRow requestId={r.id} onDocument={onDocument} />}
@@ -403,6 +400,23 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
         ))}
       </Card>
     </>
+  );
+}
+
+function AssignRow({ current, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const [who, setWho] = useState(current || '');
+  if (!open) return <Btn onClick={() => setOpen(true)}>{current ? 'Reassign' : 'Assign'}</Btn>;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <input
+        value={who} onChange={(e) => setWho(e.target.value)} autoFocus
+        placeholder="Worker's name" aria-label="Assign to which worker"
+        className="text-xs border border-[#E8E4DC] px-2 py-1 w-36" style={serif}
+      />
+      <Btn tone="primary" disabled={!who.trim()} onClick={() => { onAssign(who.trim()); setOpen(false); }}>Save</Btn>
+      <Btn onClick={() => { setWho(current || ''); setOpen(false); }}>Cancel</Btn>
+    </span>
   );
 }
 
