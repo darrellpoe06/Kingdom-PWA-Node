@@ -143,7 +143,7 @@ import { FeedbackModal, FeedbackPromotePanel } from './components/FeedbackCenter
 // `const X = lazy(...)` lines that every new-surface PR collided on (choke-point
 // C1). Same lazy components, same chunks; only the declaration site moved.
 import {
-  About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
+  About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, PropertiesApp, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
@@ -919,7 +919,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -4255,6 +4255,7 @@ ${THEME_CSS}
                 ['books','Books'],
                 ['inbound', <><UiIcon name="phone" /> Inbound</>],
                 ['rentals','Real Estate'],
+                ['properties','Properties'],
                 ['projects','Projects'],
                 // TLC — the unified TLC Therapy Solutions office. Operators
                 // (family/Governor or a business-tier account) get ONE entry that
@@ -4467,6 +4468,8 @@ ${THEME_CSS}
           </PrivateGate>
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
+        {/* Properties: the module the Poe Properties App also mounts (DR-0313; `books` only here — the books live in this app). */}
+        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" books={{ postEntry: (entry) => addTransaction(entry) }} /></SectionBoundary>}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.

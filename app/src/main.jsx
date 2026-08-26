@@ -87,6 +87,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('request-space') === '1'
   || __params.get('share') === '1' || __params.get('share') === 'church'
   || __params.get('moore') === '1'
+  || __params.get('properties') === '1'
   || !!__params.get('biz')
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
@@ -196,6 +197,17 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
     __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
   }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('properties') === '1') {
+  // The Poe Properties App (DR-0313). Its own installable face at
+  // /properties/app/ (scope /properties/, disjoint from every other face), for
+  // tenants, their families, and the 1099 workers who support the doors. A LEAN
+  // boot on purpose: it mounts the properties MODULE, never the monolith — a
+  // tenant downloads a property-management app, not the family platform. The
+  // PoeTech shell mounts the SAME module at ?view=properties, so both apps stay
+  // on the same rows with no second store to fall out of sync.
+  import('./components/PropertiesDoor.jsx').then(({ default: PropertiesDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><PropertiesDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('properties door boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('moore') === '1' || __params.get('biz')) {
   // A registered business's public door (cf-registry, DR-0114): ?biz=<slug>
   // resolves a BUSINESS_REGISTRY row and renders the door engine with it —

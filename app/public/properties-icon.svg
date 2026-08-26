@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Poe Properties install mark (DR-0313) — built from the module's brand
+       record (accent #2F5D50). A door under a roof: the unit is the thing the
+       whole app is organized around, and a tenant recognizes it instantly.
+       Distinct from the PoeTech "P" so both installed apps are unmistakable. -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="#FAF8F4" stroke="#2F5D50" stroke-width="20"/>
+  <path d="M256 118 L400 236 L400 250 L112 250 L112 236 Z" fill="#2F5D50"/>
+  <rect x="152" y="250" width="208" height="150" fill="none" stroke="#2F5D50" stroke-width="20"/>
+  <rect x="228" y="298" width="56" height="102" fill="#2F5D50"/>
+  <circle cx="272" cy="352" r="7" fill="#FAF8F4"/>
+  <text x="256" y="452" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" letter-spacing="6" fill="#1A1815">PROPERTIES</text>
+</svg>

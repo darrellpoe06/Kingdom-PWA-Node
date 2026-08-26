@@ -422,6 +422,7 @@ export default defineConfig({
         lovecorner: fileURLToPath(new URL('./lovecorner/app/index.html', import.meta.url)),
         moore: fileURLToPath(new URL('./moore/app/index.html', import.meta.url)),
         tlc: fileURLToPath(new URL('./tlc/app/index.html', import.meta.url)),
+        properties: fileURLToPath(new URL('./properties/app/index.html', import.meta.url)),
       },
       output: {
         // Per-BUILD banner on every JS chunk (DR-0139 incident, 2026-07-10).

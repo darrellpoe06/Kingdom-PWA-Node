@@ -40,6 +40,7 @@ export const SURFACES = [
   // ── top-level surfaces ──────────────────────────────────────────────────
   { id: 'about',        label: 'About',            nav: 'top', view: 'about',        sub: null,          load: () => import('./components/About.jsx') },
   { id: 'rentals',      label: 'Rentals',          nav: 'top', view: 'rentals',      sub: null,          load: pick(() => import('./components/Rentals.jsx'), 'Rentals') },
+  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesApp') },
   { id: 'markets',      label: 'Markets',          nav: 'top', view: 'markets',      sub: null,          load: pick(() => import('./components/Markets.jsx'), 'Markets') },
   { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
   { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
@@ -114,6 +115,7 @@ export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
 // registry-driven mount and these named exports retire.)
 export const About            = surfaceById['about'].component;
 export const Rentals          = surfaceById['rentals'].component;
+export const PropertiesApp    = surfaceById['properties'].component;
 export const Markets          = surfaceById['markets'].component;
 export const Practice         = surfaceById['practice'].component;
 export const Opportunities    = surfaceById['opportunities'].component;
