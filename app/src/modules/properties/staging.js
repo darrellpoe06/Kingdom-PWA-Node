@@ -155,3 +155,71 @@ export function tenancyRowFromDraft(staged, { instanceId, rentalRef, propertyLab
 export function confirmDraft(staged) {
   return staged ? { ...staged, needsConfirmation: false } : staged;
 }
+
+/**
+ * The landlord starting a tenancy on a door he owns — not a draft read from a
+ * record, so it takes a different path from tenancyRowFromDraft.
+ *
+ * PUT IN WHAT IS KNOWN; LET IT BE EDITED (Darrell, 2026-08-27: "if you dont
+ * have a name just put all the known data and let the users update and edit
+ * each profile and property"). So this refuses almost nothing. An earlier
+ * version demanded a written reason before it would accept a blank name — that
+ * is friction on the way IN, and EDITABLE-EVERYWHERE puts the answer on the way
+ * OUT instead: record what the family actually has, and make every field
+ * editable afterwards.
+ *
+ * What it still will not do is INVENT. A missing name is stored as NULL, never
+ * as "Unknown" — a placeholder string reads as a household called Unknown
+ * everywhere the roster renders, and someone would eventually mail it.
+ */
+export function tenancyRowForDoor({
+  instanceId, rentalRef, propertyLabel, unitLabel, tenantName,
+  tenantEmail, tenantPhone, leaseStart, leaseEnd, monthlyRent, deposit, subsidised, notes,
+} = {}) {
+  if (!instanceId || !rentalRef) return { ok: false, reason: 'no-door' };
+  const text = (v) => String(v ?? '').trim() || null;
+  const extra = [text(notes), subsidised ? 'Subsidised tenancy (voucher).' : null].filter(Boolean).join(' ');
+  return {
+    ok: true,
+    row: {
+      instance_id: instanceId,
+      rental_ref: rentalRef,
+      property_label: propertyLabel || null,
+      unit_label: unitLabel || null,
+      tenant_name: text(tenantName),
+      tenant_email: text(tenantEmail),
+      tenant_phone: text(tenantPhone),
+      lease_start: leaseStart || null,
+      lease_end: leaseEnd || null,
+      monthly_rent: Number(monthlyRent) || 0,
+      deposit: Number(deposit) || 0,
+      status: 'active',
+      notes: extra || null,
+    },
+  };
+}
+
+/**
+ * The fields a person may edit on a tenancy or a door, and what changed.
+ * Returns the patch plus a human sentence for the record — an edit that leaves
+ * no trace is how two people end up disagreeing about what the lease said.
+ */
+export function buildEdit(before = {}, after = {}, fields = []) {
+  const patch = {};
+  const changes = [];
+  const show = (v) => (v === null || v === undefined || v === '' ? '(blank)' : String(v));
+  for (const f of fields) {
+    const key = typeof f === 'string' ? f : f.key;
+    const label = typeof f === 'string' ? f : (f.label || f.key);
+    const numeric = typeof f !== 'string' && f.numeric;
+    let next = after[key];
+    if (numeric) next = next === '' || next === null || next === undefined ? 0 : Number(next);
+    else next = String(next ?? '').trim() || null;
+    const prev = numeric ? Number(before[key] ?? 0) : (String(before[key] ?? '').trim() || null);
+    if (numeric ? Number(next) !== prev : next !== prev) {
+      patch[key] = next;
+      changes.push(`${label}: ${show(prev)} → ${show(next)}`);
+    }
+  }
+  return { patch, changes, changed: changes.length > 0, summary: changes.join('; ') };
+}

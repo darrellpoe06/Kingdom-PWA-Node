@@ -23,8 +23,23 @@ import {
   roomBoard, unitSize, sizeChange, ROOM_KINDS, STARTER_SETS,
 } from './rooms.js';
 import { paymentLedger, gaps, discrepancies, accuracy, totals } from './payments.js';
+import { buildEdit } from './staging.js';
 
 const ACCENT = '#2F5D50';
+
+/** How far ahead a lease end reads as "coming available" rather than just rented. */
+export const COMING_WINDOW_DAYS = 90;
+
+/**
+ * One word for a door's state, used by both views so they can never disagree.
+ * "Coming" outranks "Rented" because it is the more useful truth to whoever is
+ * looking — someone is in it now, and it opens on a date.
+ */
+export function statusWord(x) {
+  if (x.comingSoon) return x.daysOut === 0 ? 'Opens today' : `Opens in ${x.daysOut}d`;
+  if (x.rented) return 'Rented';
+  return x.listed ? 'Advertised' : 'Available';
+}
 
 const Btn = ({ children, onClick, tone = 'ghost', disabled, ...rest }) => (
   <button
@@ -362,5 +377,363 @@ export function RoomsTab({
         </Card>
       )}
     </>
+  );
+}
+
+/**
+ * The landlord's own doors, and the way to put a tenant on one.
+ *
+ * THE DEFECT THIS CLOSES (measured 2026-08-27): the Doors tab listed
+ * rental_tenancies only. With 12 rentals and zero tenancies, the owner opened
+ * his own app to an empty screen — and because the role resolver needed a door
+ * to call him an owner, he was shown a TENANT face. Nothing he owned was
+ * reachable, and there was no path anywhere in the app to create the first
+ * tenancy, so the emptiness was self-sustaining.
+ *
+ * A door with no tenancy is not a problem to hide; it is the next piece of work,
+ * so it is listed as loudly as an occupied one.
+ */
+export function DoorsBoard({
+  rentals = [], tenancies = [], photos = [], canManage = false,
+  onPick, onStart, onListing, onEditTenancy, busy = false,
+}) {
+  const [openFor, setOpenFor] = useState(null);
+  const [editing, setEditing] = useState(null);
+  // Two views, because they answer different questions: the GRID is for
+  // looking at the properties (an applicant, or the landlord picking which one
+  // to photograph next), the LIST is for working them (status, rent, actions
+  // legible in one column). Remembered per device — a preference, not state
+  // anyone else should inherit, and a throw here must never blank the board.
+  const [view, setView] = useState(() => {
+    try { return localStorage.getItem('poe-properties-view') === 'grid' ? 'grid' : 'list'; } catch { return 'list'; }
+  });
+  const pickView = (v) => {
+    setView(v);
+    try { localStorage.setItem('poe-properties-view', v); } catch { /* private window, or site data blocked */ }
+  };
+
+  // One cover per door: the newest LISTING shot if there is one, else the newest
+  // picture of any kind. Photos are keyed by the rentals ID (uuid), not the slug.
+  const coverByRental = useMemo(() => {
+    const m = new Map();
+    for (const p of photos) {
+      if (!p.rental_ref || p.archived_at) continue;
+      const cur = m.get(p.rental_ref);
+      const better = !cur
+        || (p.kind === 'listing' && cur.kind !== 'listing')
+        || (p.kind === 'listing' === (cur.kind === 'listing')
+            && Date.parse(p.taken_at || p.uploaded_at || 0) > Date.parse(cur.taken_at || cur.uploaded_at || 0));
+      if (better) m.set(p.rental_ref, p);
+    }
+    return m;
+  }, [photos]);
+
+  // Two keys, not interchangeable: tenancies carry the rentals SLUG, the newer
+  // door tables carry the rentals ID. Match on slug here, because that is what
+  // a tenancy actually holds.
+  const activeByRef = useMemo(() => {
+    const m = new Map();
+    for (const t of tenancies) if (t.status === 'active') m.set(t.rental_ref, t);
+    return m;
+  }, [tenancies]);
+
+  const rows = useMemo(() => rentals.map((r) => {
+    const tenancy = activeByRef.get(r.slug) || null;
+    // What it rents for: the tenancy's actual rent if occupied, otherwise the
+    // asking rent, otherwise the door's own figure. Never invented — a door
+    // with no rent anywhere says so rather than showing $0.
+    const rent = Number(tenancy?.monthly_rent) || Number(r.listed_rent) || Number(r.monthly_rent) || 0;
+    // "so people can see when an opening is available or not... or coming"
+    // (Darrell). A lease with an end date inside the window is an opening the
+    // family can already talk about. Past the end date it is not "coming" any
+    // more — the tenancy is simply stale and says so rather than advertising.
+    const endMs = tenancy?.lease_end ? Date.parse(tenancy.lease_end) : NaN;
+    const daysOut = Number.isFinite(endMs) ? Math.ceil((endMs - Date.now()) / 86400000) : null;
+    const comingSoon = daysOut !== null && daysOut >= 0 && daysOut <= COMING_WINDOW_DAYS;
+    return {
+      rental: r,
+      tenancy,
+      rented: Boolean(tenancy),
+      comingSoon,
+      daysOut,
+      availableFrom: comingSoon ? tenancy.lease_end : null,
+      listed: Boolean(r.listed_at),
+      rent,
+      label: [r.display_name || r.address, r.unit].filter(Boolean).join(' · ') || 'Unnamed door',
+      // The ADDRESS is shown as its own line, not folded into a display name —
+      // "see the properties and their addresses" (Darrell).
+      address: [r.address, r.unit].filter(Boolean).join(', '),
+      where: [r.city, r.state].filter(Boolean).join(', '),
+      cover: coverByRental.get(r.id) || null,
+      photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
+    };
+  }), [rentals, activeByRef, coverByRental, photos]);
+
+  const rented = rows.filter((x) => x.rented).length;
+  const coming = rows.filter((x) => x.comingSoon).length;
+
+  if (rentals.length === 0) {
+    return (
+      <Card title="Your doors">
+        <Empty>
+          No properties are on your account yet. A door has to exist before a tenancy, a work order
+          or an invitation can hang on it.
+        </Empty>
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      title={`Your doors (${rentals.length})`}
+      right={
+        <span className="flex items-center gap-2">
+          <span className="text-[0.6875rem] text-[#6B665E]">
+            {rented} rented · {rentals.length - rented} available{coming ? ` · ${coming} coming` : ''}
+          </span>
+          <span className="flex gap-1">
+            <Btn tone={view === 'list' ? 'primary' : 'ghost'} onClick={() => pickView('list')}>List</Btn>
+            <Btn tone={view === 'grid' ? 'primary' : 'ghost'} onClick={() => pickView('grid')}>Grid</Btn>
+          </span>
+        </span>
+      }
+    >
+      {view === 'grid' && (
+        <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {rows.map((x) => (
+            <li key={x.rental.id} className="border border-[#E8E4DC] bg-white">
+              <button
+                type="button"
+                onClick={() => x.tenancy && onPick?.(x.tenancy.id)}
+                disabled={!x.tenancy}
+                className={`w-full text-left ${x.tenancy ? '' : 'cursor-default'}`}
+              >
+                <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
+                  {x.cover?.storage_path ? (
+                    <img src={x.cover.storage_path} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
+                  )}
+                </div>
+                <div className="p-2">
+                  <div className="text-[0.8125rem] text-[#1A1815] leading-snug">{x.label}</div>
+                  {x.address && <div className="text-[0.6875rem] text-[#5A5751] leading-snug">{x.address}</div>}
+                  <div className="text-[0.6875rem] mt-1">
+                    <span className="uppercase tracking-wider text-[0.5625rem] font-semibold" style={{ color: ACCENT }}>
+                      {statusWord(x)}
+                    </span>
+                    {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
+                  </div>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {view === 'list' && (
+      <ul>
+        {rows.map((x) => (
+          <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              {/* The picture, so the board reads like a property list and not a
+                  spreadsheet. A door with none says so rather than showing a
+                  stand-in photograph of somewhere else. */}
+              <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
+                {x.cover?.storage_path ? (
+                  <img
+                    src={x.cover.storage_path} alt={x.cover.caption || x.label}
+                    loading="lazy" className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => x.tenancy && onPick?.(x.tenancy.id)}
+                disabled={!x.tenancy}
+                className={`text-left flex-1 min-w-[10rem] ${x.tenancy ? 'hover:underline' : 'cursor-default'}`}
+              >
+                <div className="text-[0.875rem] text-[#1A1815]">{x.label}</div>
+                {x.address && <div className="text-[0.75rem] text-[#5A5751]">{x.address}</div>}
+                <div className="text-[0.75rem] text-[#5A5751]">
+                  {/* Rented or available, and the rent EITHER WAY — an occupied
+                      door still tells you what these units go for. */}
+                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: ACCENT }}>
+                    {statusWord(x)}
+                  </span>
+                  {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
+                  {x.where ? ` · ${x.where}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                </div>
+                <div className="text-[0.75rem] text-[#6B665E]">
+                  {x.rented
+                    ? (x.tenancy.tenant_name || 'Household not named in the record')
+                    : 'No tenancy on this door'}
+                </div>
+              </button>
+
+              {canManage && x.rented && (
+                <Btn onClick={() => setEditing(editing === x.tenancy.id ? null : x.tenancy.id)} disabled={busy}>
+                  {editing === x.tenancy.id ? 'Close' : 'Edit'}
+                </Btn>
+              )}
+              {canManage && !x.rented && (
+                <div className="flex flex-wrap gap-1">
+                  <Btn onClick={() => onListing?.(x.rental, !x.listed)} disabled={busy}>
+                    {x.listed ? 'Stop advertising' : 'Advertise'}
+                  </Btn>
+                  <Btn onClick={() => setOpenFor(openFor === x.rental.id ? null : x.rental.id)} disabled={busy}>
+                    {openFor === x.rental.id ? 'Close' : 'Start a tenancy'}
+                  </Btn>
+                </div>
+              )}
+            </div>
+            {editing === x.tenancy?.id && x.tenancy && (
+              <EditTenancy
+                tenancy={x.tenancy} busy={busy}
+                onSave={(patch, summary) => { onEditTenancy?.(x.tenancy.id, patch, summary); setEditing(null); }}
+              />
+            )}
+            {openFor === x.rental.id && (
+              <StartTenancy
+                rental={x.rental} busy={busy}
+                onStart={(input) => { onStart?.(input); setOpenFor(null); }}
+              />
+            )}
+          </li>
+        ))}
+      </ul>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Put a tenant on a door. The rent prefills from the door's OWN record — real
+ * data, not a guess — and the name may be left blank, because 1003 Koehn's
+ * household genuinely is not named in the family's sheet. A blank name then
+ * demands a reason, so it reads later as a decision rather than an oversight.
+ */
+function StartTenancy({ rental, onStart, busy }) {
+  const [f, setF] = useState({
+    tenantName: '', tenantPhone: '', tenantEmail: '',
+    leaseStart: '', monthlyRent: Number(rental?.monthly_rent) > 0 ? String(rental.monthly_rent) : '',
+    subsidised: false,
+  });
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const named = f.tenantName.trim().length > 0;
+
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+
+  return (
+    <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label><span className={lbl}>Tenant name</span>
+          <input type="text" className={field} value={f.tenantName} onChange={set('tenantName')} placeholder="Leave blank if the record does not name them" />
+        </label>
+        <label><span className={lbl}>Rent</span>
+          <input type="text" inputMode="decimal" className={field} value={f.monthlyRent} onChange={set('monthlyRent')} />
+        </label>
+        <label><span className={lbl}>Cell phone</span>
+          <input type="tel" className={field} value={f.tenantPhone} onChange={set('tenantPhone')} placeholder="How you will invite them" />
+        </label>
+        <label><span className={lbl}>Email</span>
+          <input type="email" className={field} value={f.tenantEmail} onChange={set('tenantEmail')} />
+        </label>
+        <label><span className={lbl}>Lease start</span>
+          <input type="date" className={field} value={f.leaseStart} onChange={set('leaseStart')} />
+        </label>
+        <label className="flex items-end gap-2 pb-2">
+          <input type="checkbox" checked={f.subsidised} onChange={set('subsidised')} className="w-4 h-4" />
+          <span className="text-[0.8125rem] text-[#1A1815]">Subsidised (Section 8 / voucher)</span>
+        </label>
+      </div>
+
+      {/* No gate on a blank name. Put in what is known and let it be edited
+          (Darrell, 2026-08-27) — an earlier version demanded a written reason
+          before it would accept a blank, which is friction on the way IN where
+          EDITABLE-EVERYWHERE puts the answer on the way OUT. */}
+      {!named && (
+        <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed mt-2">
+          No name yet is fine — the tenancy is saved with everything you do have, and every field
+          here stays editable. A blank stays blank; it is never filled in with &ldquo;Unknown&rdquo;.
+        </p>
+      )}
+
+      <div className="mt-2">
+        <Btn tone="primary" disabled={busy} onClick={() => onStart({ ...f, rental })}>
+          Start the tenancy
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Correct a tenancy in place (IN-PLACE-FIRST: the content comes to you, you do
+ * not get moved to it). Every field here is one somebody may need to fix later
+ * — a name that was blank when the tenancy started, a rent that changed, a
+ * lease end that got agreed. The change is described in words and kept on the
+ * tenancy's own note thread, because an edit nobody can see is how two people
+ * end up disagreeing about what the lease said.
+ */
+function EditTenancy({ tenancy, onSave, busy }) {
+  const [f, setF] = useState({
+    tenant_name: tenancy.tenant_name || '',
+    tenant_phone: tenancy.tenant_phone || '',
+    tenant_email: tenancy.tenant_email || '',
+    monthly_rent: tenancy.monthly_rent ?? '',
+    lease_start: tenancy.lease_start || '',
+    lease_end: tenancy.lease_end || '',
+  });
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const edit = useMemo(() => buildEdit(tenancy, f, [
+    { key: 'tenant_name', label: 'Tenant' },
+    { key: 'tenant_phone', label: 'Phone' },
+    { key: 'tenant_email', label: 'Email' },
+    { key: 'monthly_rent', label: 'Rent', numeric: true },
+    { key: 'lease_start', label: 'Lease start' },
+    { key: 'lease_end', label: 'Lease end' },
+  ]), [tenancy, f]);
+
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+
+  return (
+    <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label><span className={lbl}>Tenant name</span>
+          <input type="text" className={field} value={f.tenant_name} onChange={set('tenant_name')} placeholder="Blank if the record does not name them" />
+        </label>
+        <label><span className={lbl}>Rent</span>
+          <input type="text" inputMode="decimal" className={field} value={f.monthly_rent} onChange={set('monthly_rent')} />
+        </label>
+        <label><span className={lbl}>Cell phone</span>
+          <input type="tel" className={field} value={f.tenant_phone} onChange={set('tenant_phone')} />
+        </label>
+        <label><span className={lbl}>Email</span>
+          <input type="email" className={field} value={f.tenant_email} onChange={set('tenant_email')} />
+        </label>
+        <label><span className={lbl}>Lease start</span>
+          <input type="date" className={field} value={f.lease_start} onChange={set('lease_start')} />
+        </label>
+        <label><span className={lbl}>Lease end</span>
+          <input type="date" className={field} value={f.lease_end} onChange={set('lease_end')} />
+          <span className="block text-[0.6875rem] text-[#6B665E] mt-1">
+            Setting this makes the door read &ldquo;coming available&rdquo; as the date nears.
+          </span>
+        </label>
+      </div>
+      {edit.changed && (
+        <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed mt-2">{edit.summary}</p>
+      )}
+      <div className="mt-2">
+        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch, edit.summary)}>
+          {edit.changed ? 'Save the change' : 'Nothing changed'}
+        </Btn>
+      </div>
+    </div>
   );
 }
