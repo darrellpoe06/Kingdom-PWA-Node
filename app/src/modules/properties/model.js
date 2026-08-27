@@ -90,6 +90,7 @@ const MANAGER_TABS = [
   TAB('rent', 'Rent', 'Confirm what came in; correct a balance with a reason.', 'rentroll.view'),
   TAB('history', 'History', 'The whole relationship record, notes included.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
+  TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
 ];
 
