@@ -120,6 +120,17 @@ jobs:
             web_manifest: https://poetech.us/manifest-tlc.webmanifest
             icon: https://poetech.us/tlc-icon-512.png
             maskable: https://poetech.us/tlc-icon-512.png
+          # Poe Properties (DR-0313) — its own scope /properties/, so the TWA's
+          # start_url is its OWN page, not a query on the PoeTech scope. That is
+          # what makes it a separate app in the phone's Apps section.
+          - brand: properties
+            package_id: us.poetech.properties
+            app_name: Poe Properties
+            launcher: Poe Properties
+            start_url: /properties/app/?properties=1
+            web_manifest: https://poetech.us/manifest-properties.webmanifest
+            icon: https://poetech.us/properties-icon-512.png
+            maskable: https://poetech.us/properties-icon-maskable-512.png
           - brand: moore
             package_id: us.poetech.moore
             app_name: Moore Divahs

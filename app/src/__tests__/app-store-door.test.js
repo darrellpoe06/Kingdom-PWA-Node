@@ -4,9 +4,13 @@
 // Android at 100% and the installer never fired; this door is the fix).
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
 import { brandFromParam, onRequestGet } from '../../functions/store/apk/[brand].js';
 import { APP_STORE, APK_DOOR_BASE } from '../lib/app-store.js';
 
+const here = dirname(fileURLToPath(import.meta.url));
 const noCache = { match: async () => undefined, put: async () => {} };
 beforeEach(() => { vi.stubGlobal('caches', { default: noCache }); });
 afterEach(() => vi.unstubAllGlobals());
@@ -18,8 +22,10 @@ const ctx = (brand) => ({
 });
 
 describe('brandFromParam — allowlist only, .apk suffix tolerated', () => {
-  it('accepts exactly the four family brands, with or without .apk', () => {
-    for (const b of ['poetech', 'lovecorner', 'tlc', 'moore']) {
+  it('accepts exactly the family brands, with or without .apk', () => {
+    // DR-0313 added `properties` as the fifth. Derived from the shelf itself so
+    // a sixth app cannot be listed in the store while the door 404s it.
+    for (const b of ['poetech', 'lovecorner', 'tlc', 'moore', 'properties']) {
       expect(brandFromParam(b)).toBe(b);
       expect(brandFromParam(`${b}.apk`)).toBe(b);
     }
@@ -63,6 +69,37 @@ describe('the door', () => {
     expect((await onRequestGet(ctx('tlc.apk'))).status).toBe(502);
     vi.stubGlobal('fetch', async () => { throw new Error('net down'); });
     expect((await onRequestGet(ctx('tlc.apk'))).status).toBe(502);
+  });
+});
+
+describe('every app on the shelf is REALLY downloadable (DR-0313)', () => {
+  // A store row is a promise. Three things have to agree or the promise breaks:
+  // the shelf lists it, the door serves it, and the Android lane BUILDS it —
+  // otherwise the button downloads a 502 (worse than no button at all).
+  it('the Android lane builds a package for every app the store lists', () => {
+    const lane = readFileSync(join(here, '../../../.github/workflows/android-package.yml'), 'utf8');
+    for (const a of APP_STORE) {
+      expect(lane.includes(`- brand: ${a.key}`), `the store lists ${a.name} but the Android lane never builds ${a.key}.apk`).toBe(true);
+      expect(lane.includes(`package_id: ${a.packageId}`), `${a.name}: the lane's package id does not match the shelf's`).toBe(true);
+    }
+  });
+
+  it('every listed app has a real icon file on the origin it points at', () => {
+    for (const a of APP_STORE) {
+      expect(existsSync(join(here, '../../public/', a.icon)), `${a.name}: icon ${a.icon} does not exist`).toBe(true);
+    }
+  });
+
+  it('Poe Properties launches its OWN scope, not a query on PoeTech\'s', () => {
+    const lane = readFileSync(join(here, '../../../.github/workflows/android-package.yml'), 'utf8');
+    const block = lane.slice(lane.indexOf('- brand: properties'));
+    expect(block).toMatch(/start_url: \/properties\/app\//);
+    expect(block).toMatch(/web_manifest: https:\/\/poetech\.us\/manifest-properties\.webmanifest/);
+    const manifest = JSON.parse(readFileSync(join(here, '../../public/manifest-properties.webmanifest'), 'utf8'));
+    // The TWA's start_url must live inside the manifest scope, or the installed
+    // app opens OUTSIDE itself and Android shows the browser chrome.
+    expect(manifest.start_url.startsWith(manifest.scope)).toBe(true);
+    expect('/properties/app/?properties=1'.startsWith(manifest.scope)).toBe(true);
   });
 });
 

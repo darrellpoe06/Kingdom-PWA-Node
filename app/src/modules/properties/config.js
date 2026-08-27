@@ -63,7 +63,7 @@ export const LAUNCH_PLAN = Object.freeze([
     id: 'P3', title: 'The doors carry real tenancies',
     state: 'hand',
     detail: 'The 12 rental doors are live in the app; rental_tenancies is empty. Each door needs its tenant name, email, lease dates, and rent — the landlord’s own records, typed once from the Doors tab.',
-    whoseHand: 'Darrell / Christina (the tenant records are theirs; the agent cannot invent them — DR-0076)',
+    whoseHand: 'Darrell / Christina — but only for the CURRENT-STATE facts. The DR-0108 challenge was run 2026-08-26 rather than assumed: the agent CAN read the family\u2019s own records (a real 2022-23 lease PDF is in Drive; Gmail is connected), so sourcing and staging what exists is channel-drivable and is the next build. What no channel can supply is who lives where TODAY at what rent \u2014 that confirmation is the landlord\u2019s, and the agent will not invent it (DR-0076).',
     reReview: '2026-09-02',
   }),
   Object.freeze({
@@ -103,6 +103,7 @@ export const OPPORTUNITIES = Object.freeze([
   Object.freeze({ id: 'O2', title: 'The relationship record builds itself', detail: 'Work orders, messages, notes, job documentation, payments, and notices merge into one chronological history per door. Nobody has to assemble a timeline later — responsiveness is judged on real timestamps.', reReview: '2026-10-14' }),
   Object.freeze({ id: 'O3', title: 'Rent flows into the books instead of a spreadsheet', detail: 'A confirmed payment posts once into the PoeTech books as rental income against the property. One river: the landlord’s books stay whole without re-typing what the tenant already reported.', reReview: '2026-10-14' }),
   Object.freeze({ id: 'O4', title: 'A product for other landlords', detail: 'The engine is landlord-agnostic: a second landlord is a config object plus their own instance. Property management sells on its own; the books, taxes, entities, and forecasting stay the reason to add PoeTech — a natural upgrade, not a bundle nobody asked for.', reReview: '2026-10-21' }),
+  Object.freeze({ id: 'O6', title: 'The tenancies can be STAGED from the family\u2019s own records', detail: 'The DR-0108 challenge found the agent is not blocked from the data it can reach: a real lease PDF sits in Drive and Gmail is connected, so leases and threads can be read and staged as draft tenancies for one-tap confirmation instead of twelve doors typed by hand. The landlord still confirms every row \u2014 staging is not asserting.', reReview: '2026-09-09' }),
   Object.freeze({ id: 'O5', title: 'The 1099 record and the work record become one', detail: 'The contractor list already lives in the books for taxes. When a worker documents jobs in the app, the year’s work and the year’s 1099 come from the same rows.', reReview: '2026-11-04' }),
 ]);
 
