@@ -213,16 +213,52 @@ if (isMain && process.argv.includes('--names')) {
   process.exit(0);
 }
 
+// --sql prints the COMPLETE query, names inlined. psql does not interpolate
+// :'vars' inside -c, which is how the first CI run sent the placeholder to the
+// server verbatim, got nothing back, and reported all ten functions "absent" —
+// a false alarm, which is a broken gate exactly as surely as a silent one.
+// Building the statement here removes the substitution step entirely.
+if (isMain && process.argv.includes('--sql')) {
+  const names = functionsToQuery(deriveExpectations());
+  // Names come from CREATE OR REPLACE FUNCTION in our own migrations and are
+  // matched as [a-z0-9_]; anything else would be a parse bug, so refuse rather
+  // than interpolate something unexpected.
+  const bad = names.filter((n) => !/^[a-z0-9_]+$/.test(n));
+  if (bad.length) {
+    console.error(`live-definition-witness: refusing to build SQL for unexpected name(s): ${bad.join(', ')}`);
+    process.exit(2);
+  }
+  console.log(`select coalesce(json_agg(json_build_object('name', p.proname, 'def', pg_get_functiondef(p.oid))), '[]'::json)
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in (${names.map((n) => `'${n}'`).join(', ')});`);
+  process.exit(0);
+}
+
 // --check reads `[{"name":..,"def":..}, ...]` on stdin (what the psql step
 // produces) and exits non-zero on any live definition older than the repo's.
 if (isMain && process.argv.includes('--check')) {
   const raw = await readStdin();
   const expectations = deriveExpectations();
+  // NO INPUT IS NOT EVIDENCE. An empty stdin means the query never ran — a
+  // failed psql, a missing URL, a broken pipe. Reading it as "every function is
+  // absent" turns a plumbing fault into ten fabricated findings, which is how
+  // the first run of this step failed. Exit 2: something is wrong with the
+  // CHECK, not necessarily with the database.
+  if (!raw.trim()) {
+    console.error('live-definition-witness: nothing arrived on stdin — the live query did not run. Not reporting anything as absent.');
+    process.exit(2);
+  }
   let rows;
   try {
-    rows = JSON.parse(raw || '[]');
+    rows = JSON.parse(raw);
   } catch {
     console.error('live-definition-witness: could not parse the live rows on stdin.');
+    process.exit(2);
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    console.error(`live-definition-witness: the live query returned no rows at all, but ${expectations.length} function(s) were expected. Treating that as a query fault, not as an empty database.`);
     process.exit(2);
   }
   const live = {};

@@ -94,15 +94,16 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
-          NAMES="$(node scripts/live-definition-witness.mjs --names)"
-          echo "checking live definitions for: $NAMES"
-          psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -v names="$NAMES" -c "
-            select coalesce(json_agg(json_build_object('name', p.proname, 'def', pg_get_functiondef(p.oid))), '[]'::json)
-            from pg_proc p
-            join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public'
-              and p.proname = any(string_to_array(:'names', ' '));
-          " | node scripts/live-definition-witness.mjs --check
+          # The query is BUILT by the witness, names inlined. psql does not
+          # interpolate :'vars' inside -c, so the first version of this step
+          # sent the placeholder to the server, got nothing back, and reported
+          # all ten functions "absent" — a false alarm, which is a broken gate
+          # exactly as surely as a silent one. No substitution step, no fault.
+          node scripts/live-definition-witness.mjs --sql > "$RUNNER_TEMP/witness.sql"
+          psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/witness.sql" > "$RUNNER_TEMP/witness.json"
+          # Empty output means the query never ran; --check exits 2 rather than
+          # inventing findings out of a plumbing fault.
+          node scripts/live-definition-witness.mjs --check < "$RUNNER_TEMP/witness.json"
 
       - name: Dispatch the isolation proofs (all features, one matrix)
         if: success()
