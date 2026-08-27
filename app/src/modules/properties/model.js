@@ -284,3 +284,54 @@ export function canPostToBooks(record = {}) {
   if (!(Number(record.amount) > 0)) return { ok: false, reason: 'no-amount' };
   return { ok: true, reason: '' };
 }
+
+// ---------------------------------------------------------------------------
+// WHO ARE YOU? (Darrell, 2026-08-26: "Ask who they are landlord tenant or
+// applicant... others?... Options to see inventory and rented or available")
+//
+// The door used to have one thing to say to someone with no door assigned —
+// "a landlord invites you" — which is a dead end for the person most likely to
+// open a property app first: someone looking for a place. These are the real
+// answers, and each routes somewhere that actually exists.
+// ---------------------------------------------------------------------------
+export const WHO_OPTIONS = Object.freeze([
+  Object.freeze({ id: 'applicant', label: 'Looking for a place', blurb: 'See what is available and apply.', needsAccount: false, goes: 'vacancies' }),
+  Object.freeze({ id: 'tenant', label: 'I live here', blurb: 'Your unit, work orders, messages, and payment history.', needsAccount: true, goes: 'sign-in' }),
+  Object.freeze({ id: 'household', label: 'I live here with my family', blurb: 'The same door as the person on the lease.', needsAccount: true, goes: 'sign-in' }),
+  Object.freeze({ id: 'field_worker', label: 'I do the work (1099)', blurb: 'Your jobs, the property history, and two-tap documentation.', needsAccount: true, goes: 'sign-in' }),
+  Object.freeze({ id: 'manager', label: 'I manage properties', blurb: 'The work board, dispatch, rent, and the whole record.', needsAccount: true, goes: 'sign-in' }),
+  Object.freeze({ id: 'landlord', label: 'I own properties', blurb: 'Run your doors here, or bring your own portfolio.', needsAccount: true, goes: 'sign-in' }),
+]);
+
+/** The one thing a visitor with no account can do without signing in. */
+export function whoCanBrowse() {
+  return WHO_OPTIONS.filter((w) => !w.needsAccount).map((w) => w.id);
+}
+
+/**
+ * The inventory, split the way a person asks about it: what is rented, what is
+ * available. REAL rows only — a door whose tenancy the caller cannot see is
+ * counted as `unknown`, never assumed empty, because "available" is a claim
+ * that brings strangers to an address (DR-0076).
+ */
+export function inventory(doors = [], tenancies = [], vacancies = []) {
+  const activeRefs = new Set(
+    tenancies.filter((t) => t && t.status === 'active').map((t) => t.rental_ref || t.rentalRef)
+  );
+  const listedIds = new Set(vacancies.map((v) => v.id));
+  const rented = [];
+  const available = [];
+  const unknown = [];
+  for (const d of doors) {
+    const ref = d.slug || d.rental_ref || d.id;
+    if (activeRefs.has(ref)) rented.push(d);
+    else if (listedIds.has(d.id) || d.listed_at) available.push(d);
+    else unknown.push(d);
+  }
+  return {
+    rented, available, unknown,
+    counts: { rented: rented.length, available: available.length, unknown: unknown.length, total: doors.length },
+    // Said plainly on the surface rather than hidden: not-listed is not vacant.
+    unknownMeans: 'Not listed publicly. A unit is only shown as available when the landlord lists it — an empty unit is never advertised automatically.',
+  };
+}

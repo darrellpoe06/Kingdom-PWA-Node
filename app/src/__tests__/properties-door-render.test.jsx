@@ -28,7 +28,14 @@ vi.mock('../lib/supabase.js', () => ({
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
       signOut: async () => ({}),
     },
+    // The signed-out door asks for listed vacancies; two listed, so the
+    // "nothing available" copy and the listing copy are both exercised.
+    rpc: async (name) => (name === 'public_vacancies'
+      ? { data: [{ id: 'v1', label: 'Maple Street', unit: 'Unit 2', city: 'Davenport', state: 'IA', property_type: 'duplex', rent: 950, note: 'Available Sept 1' }], error: null }
+      : { data: null, error: null }),
   },
+  phoneLoginEmail: (p) => (String(p || '').replace(/\D+/g, '').length >= 10 ? `1${String(p).replace(/\D+/g, '')}@phone.poetech.us` : ''),
+  normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
 }));
 
 import PropertiesDoor from '../components/PropertiesDoor.jsx';
@@ -43,24 +50,59 @@ async function mount() {
   await act(async () => { await Promise.resolve(); });
 }
 
+const click = async (re) => {
+  const el = [...container.querySelectorAll('button')].find((b) => re.test(b.textContent));
+  expect(el, `no button matching ${re}`).toBeTruthy();
+  await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  await act(async () => { await Promise.resolve(); });
+};
+
 describe('the signed-out door', () => {
   it('carries the Poe Properties name, not PoeTech', async () => {
     await mount();
     expect(container.querySelector('h1').textContent).toBe('Poe Properties');
   });
 
-  it('asks for the EMAIL the landlord invited — the identity the claim actually matches', async () => {
+  it('ASKS who you are before demanding a sign-in', async () => {
     await mount();
-    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
-    expect(labels.some((l) => /email/i.test(l)), `email field missing; saw: ${labels.join(', ')}`).toBe(true);
-    // The phone+PIN way stays REACHABLE (DR-0172 — not everyone has email), it
-    // just does not lead here.
+    expect(container.textContent).toMatch(/Who are you\?/i);
     const text = container.textContent;
-    expect(/phone number \+ (a )?PIN/i.test(text)).toBe(true);
+    for (const label of ['Looking for a place', 'I live here', 'I do the work', 'I manage properties', 'I own properties']) {
+      expect(text, `"${label}" is not offered`).toContain(label);
+    }
+    // No sign-in form until a person says which one they are.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
   });
 
-  it('tells the person what the email is FOR, so a mismatch is not a mystery', async () => {
+  it('says out loud which choice needs no account', async () => {
     await mount();
-    expect(container.textContent).toMatch(/email address your landlord used to invite you/i);
+    expect(container.textContent).toMatch(/No account needed/i);
+  });
+
+  it('an APPLICANT sees the listed units with no sign-in at all', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/Available now/i);
+    expect(container.textContent).toMatch(/Maple Street/);
+    expect(container.textContent).toMatch(/Davenport/);
+    expect(container.textContent).toMatch(/\$950\/mo/);
+    // Still no sign-in demanded of someone just looking.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
+  });
+
+  it('never publishes the street address to someone with no account', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/address is given by a person, not published here/i);
+  });
+
+  it('a TENANT gets the sign-in, and it names BOTH identities the invite accepts', async () => {
+    await mount();
+    await click(/Your unit, work orders/i);
+    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
+    expect(labels.some((l) => /email/i.test(l)), `email field missing; saw: ${labels.join(', ')}`).toBe(true);
+    expect(container.textContent).toMatch(/email address .*or the cell phone number.*invite you/is);
+    // The phone+PIN way stays REACHABLE (DR-0172 — not everyone has email).
+    expect(/phone number \+ (a )?PIN/i.test(container.textContent)).toBe(true);
   });
 });
