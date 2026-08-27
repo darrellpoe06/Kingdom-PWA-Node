@@ -91,6 +91,8 @@ const MANAGER_TABS = [
   TAB('history', 'History', 'The whole relationship record, notes included.'),
   TAB('timeline', 'Door history', 'This door across every tenancy it has held — move-ins, move-outs, and the turn between.'),
   TAB('rooms', 'Rooms', 'The rooms in this unit and their pictures. Add or remove one without a code change.'),
+  TAB('gallery', 'Pictures', 'This property\u2019s photographs. Listing shots are the only kind a stranger can see.'),
+  TAB('files', 'Files', 'The signed lease, permits, insurance, receipts \u2014 the papers this door already has.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),

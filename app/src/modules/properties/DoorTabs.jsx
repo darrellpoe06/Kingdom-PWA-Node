@@ -17,6 +17,7 @@
 //   claims and what the list shows cannot disagree.
 // =============================================================================
 import React, { useMemo, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
 import {
   liveRooms, archivedRooms, buildRoom, seedRooms, archiveRoom, restoreRoom,
@@ -24,6 +25,8 @@ import {
 } from './rooms.js';
 import { paymentLedger, gaps, discrepancies, accuracy, totals } from './payments.js';
 import { buildEdit } from './staging.js';
+import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
+import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 
 const ACCENT = '#2F5D50';
 
@@ -400,6 +403,7 @@ export function DoorsBoard({
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editingDoor, setEditingDoor] = useState(null);
+  const [qrFor, setQrFor] = useState(null);
   // Two views, because they answer different questions: the GRID is for
   // looking at the properties (an applicant, or the landlord picking which one
   // to photograph next), the LIST is for working them (status, rent, actions
@@ -588,6 +592,9 @@ export function DoorsBoard({
               )}
               {canManage && !x.rented && (
                 <div className="flex flex-wrap gap-1">
+                  <Btn onClick={() => setQrFor(qrFor === x.rental.id ? null : x.rental.id)} disabled={busy}>
+                    {qrFor === x.rental.id ? 'Hide code' : 'QR to apply'}
+                  </Btn>
                   <Btn onClick={() => onListing?.(x.rental, !x.listed)} disabled={busy}>
                     {x.listed ? 'Stop advertising' : 'Advertise'}
                   </Btn>
@@ -597,6 +604,7 @@ export function DoorsBoard({
                 </div>
               )}
             </div>
+            {qrFor === x.rental.id && <DoorQR rental={x.rental} label={x.label} />}
             {editingDoor === x.rental.id && (
               <EditRental
                 rental={x.rental} busy={busy}
@@ -848,6 +856,411 @@ function EditRental({ rental, onSave, busy }) {
           {edit.changed ? 'Save the change' : 'Nothing changed'}
         </Btn>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The card that goes in the window. Darrell, 2026-08-27: "Have a person scan a
+ * qr code to apply for an open spot."
+ *
+ * It encodes a rental id and nothing else — see apply-link.js for why a printed
+ * code must never carry a token. The address is shown to the LANDLORD here so
+ * he knows which card he is printing; the code itself does not carry it.
+ */
+function DoorQR({ rental, label }) {
+  const [copied, setCopied] = useState(false);
+  const url = applyUrl(rental.id);
+  const unitLabel = [rental.unit, rental.city].filter(Boolean).join(', ');
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { setCopied(false); }
+  };
+  return (
+    <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="bg-white p-2 border border-[#E8E4DC]">
+          <QRCodeSVG value={url} size={148} level="M" marginSize={2} />
+        </div>
+        <div className="min-w-[12rem] flex-1">
+          <p className="text-[0.875rem] text-[#1A1815] leading-relaxed">{cardCaption(unitLabel || label)}</p>
+          <p className="text-[0.75rem] text-[#5A5751] break-all mt-1">{applyUrlDisplay(rental.id)}</p>
+          <p className="text-[0.75rem] text-[#6B665E] leading-relaxed mt-1">
+            Print this and put it in the window. It opens the application for this unit with no
+            account. If the unit is not advertised, or someone is living in it, the code says so
+            instead — a card left up too long tells the truth rather than taking an application for
+            somewhere gone.
+          </p>
+          <div className="mt-2">
+            <Btn onClick={copy}>{copied ? 'Copied' : 'Copy the link'}</Btn>
+          </div>
+          <span aria-live="polite" className="sr-only">{copied ? 'Link copied' : ''}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const PHOTO_KINDS = Object.freeze([
+  'listing', 'move-in-condition', 'move-out-condition', 'turn',
+  'work-order-before', 'work-order-after', 'damage', 'inspection', 'document-scan',
+]);
+
+export const DOCUMENT_KINDS = Object.freeze([
+  'lease', 'addendum', 'rules', 'notice', 'receipt', 'inspection',
+  'insurance', 'w9', 'invoice', 'permit', 'correspondence', 'id-verification', 'other',
+]);
+
+/** Roughly what a data URL costs in the row, for an honest size warning. */
+export function dataUrlBytes(dataUrl = '') {
+  const i = String(dataUrl).indexOf(',');
+  if (i === -1) return 0;
+  return Math.round((String(dataUrl).length - i - 1) * 0.75);
+}
+
+/**
+ * The property's pictures — the shape Darrell pointed at ("like MooreDivahs App
+ * kind of"): an upload row, then a grid of cards, each editable in place
+ * without re-uploading.
+ *
+ * The images are compressed data URLs, NOT the showcase bucket. That bucket is
+ * public (getPublicUrl), and these are the insides of people's homes — a public
+ * URL would walk straight past every RLS policy on property_photos. A data URL
+ * lives in the row and inherits its policies for free. The cost is real and
+ * bounded: ~80-250KB per photo after compression (C13).
+ *
+ * "Remove" archives. There is no DELETE grant, because a condition set exists
+ * to settle an argument that can arrive long after somebody decided the picture
+ * was clutter.
+ */
+export function GalleryTab({
+  door, rooms = [], photos = [], canManage = false, busy = false, onAdd, onPatch,
+}) {
+  const [f, setF] = useState({ caption: '', kind: 'listing', roomId: '' });
+  const [pending, setPending] = useState(null);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState(null);
+  const live = useMemo(() => liveRooms(rooms), [rooms]);
+  const shown = useMemo(() => photos.filter((p) => !p.archived_at), [photos]);
+
+  const pick = async (file) => {
+    setError('');
+    if (!file) { setPending(null); return; }
+    if (!isLikelyImageFile(file)) { setError('That does not look like an image.'); return; }
+    try {
+      const dataUrl = await compressImageFile(file);
+      setPending({ dataUrl, bytes: dataUrlBytes(dataUrl), name: file.name });
+    } catch (e) {
+      // image.js rejects with a real Error, so this says what actually happened
+      // rather than "unknown error" (the 2026-07-07 report class).
+      setError(e.message || 'The image could not be read.');
+      setPending(null);
+    }
+  };
+
+  const submit = () => {
+    if (!pending) { setError('Choose a picture first.'); return; }
+    onAdd?.({
+      instance_id: door?.instance_id,
+      rental_ref: door?.id,
+      room_id: f.roomId || null,
+      kind: f.kind,
+      caption: f.caption.trim(),
+      storage_path: pending.dataUrl,
+      taken_at: null,       // unknown unless a scanner read it from the EXIF
+    });
+    setPending(null);
+    setF({ caption: '', kind: 'listing', roomId: '' });
+  };
+
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+  const roomName = (id) => rooms.find((r) => r.id === id)?.name || null;
+
+  return (
+    <>
+      {canManage && (
+        <Card title="Add a picture">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="sm:col-span-2"><span className={lbl}>Picture</span>
+              <input type="file" accept="image/*" className="text-[0.8125rem]" onChange={(e) => pick(e.target.files?.[0] || null)} />
+            </label>
+            <label className="sm:col-span-2"><span className={lbl}>Caption</span>
+              <input type="text" className={field} value={f.caption} onChange={(e) => setF((p) => ({ ...p, caption: e.target.value }))} placeholder="What this shows" />
+            </label>
+            <label><span className={lbl}>What is it</span>
+              <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
+                {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+              </select>
+            </label>
+            <label><span className={lbl}>Room</span>
+              <select className={field} value={f.roomId} onChange={(e) => setF((p) => ({ ...p, roomId: e.target.value }))}>
+                <option value="">Not a specific room</option>
+                {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </label>
+          </div>
+          {pending && (
+            <p className="text-[0.8125rem] text-[#6B665E] mt-2">
+              {pending.name} — about {Math.round(pending.bytes / 1024)}KB after compression.
+            </p>
+          )}
+          {f.kind === 'listing' && (
+            <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed mt-1">
+              A <strong>listing</strong> picture is the only kind a stranger can ever see, and only while
+              this door is advertised and free. Everything else stays inside the app.
+            </p>
+          )}
+          {error && <p className="text-[0.8125rem] text-[#8C2F2F] mt-2">{error}</p>}
+          <div className="mt-2">
+            <Btn tone="primary" onClick={submit} disabled={busy || !pending}>Add to the gallery</Btn>
+          </div>
+        </Card>
+      )}
+
+      <Card title={`Pictures (${shown.length})`}>
+        {shown.length === 0 ? (
+          <Empty>No pictures on this property yet.</Empty>
+        ) : (
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {shown.map((p) => (
+              <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
+                <img src={p.storage_path} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                {editing === p.id ? (
+                  <PhotoEditor
+                    photo={p} rooms={live} busy={busy}
+                    onSave={(patch) => { onPatch?.(p.id, patch); setEditing(null); }}
+                  />
+                ) : (
+                  <>
+                    <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug">{p.caption || <em className="text-[#6B665E]">No caption</em>}</div>
+                    <div className="text-[0.6875rem] text-[#6B665E]">
+                      {p.kind.replace(/-/g, ' ')}{roomName(p.room_id) ? ` · ${roomName(p.room_id)}` : ''}
+                    </div>
+                    {canManage && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <Btn onClick={() => setEditing(p.id)} disabled={busy}>Edit</Btn>
+                        <Btn
+                          disabled={busy}
+                          onClick={() => {
+                            if (typeof window !== 'undefined'
+                              && !window.confirm('Remove this from the gallery? It stays on the property’s record — nothing is deleted.')) return;
+                            onPatch?.(p.id, { archived_at: new Date().toISOString() });
+                          }}
+                        >Remove</Btn>
+                      </div>
+                    )}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+/** Correct what a picture SAYS. The picture itself is frozen by a trigger (0154). */
+function PhotoEditor({ photo, rooms, onSave, busy }) {
+  const [f, setF] = useState({ caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' });
+  const edit = useMemo(() => buildEdit(
+    { caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' },
+    f,
+    [{ key: 'caption', label: 'Caption' }, { key: 'kind', label: 'Kind' }, { key: 'room_id', label: 'Room' }],
+  ), [photo, f]);
+  const field = 'w-full border border-[#E8E4DC] px-1 py-1 text-[0.75rem] mt-1';
+  return (
+    <div className="mt-1">
+      <input type="text" className={field} value={f.caption} onChange={(e) => setF((p) => ({ ...p, caption: e.target.value }))} placeholder="Caption" />
+      <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
+        {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+      </select>
+      <select className={field} value={f.room_id} onChange={(e) => setF((p) => ({ ...p, room_id: e.target.value }))}>
+        <option value="">Not a specific room</option>
+        {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+      </select>
+      <p className="text-[0.625rem] text-[#6B665E] mt-1">The picture itself never changes — add a new one instead.</p>
+      <div className="mt-1">
+        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch)}>Save</Btn>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The papers. Darrell, 2026-08-27: "add a location for uploading documents and
+ * images like or other workflows."
+ *
+ * Kept separate from the generated-documents tab, which BUILDS a lease from the
+ * door's records; this one HOLDS the ones that already exist — the signed lease,
+ * a permit, an insurance certificate, a receipt, correspondence.
+ *
+ * Same storage decision as the gallery and for the same reason: a data URL in
+ * the row inherits the row's RLS, and a tenant's lease is not something to put
+ * behind a public URL. A PDF does not compress the way a photo does, so the
+ * size is stated plainly before it is saved rather than discovered later.
+ */
+export const MAX_DOCUMENT_BYTES = 3 * 1024 * 1024;
+
+export function FilesTab({
+  door, tenancies = [], documents = [], canManage = false, busy = false, onAdd, onPatch,
+}) {
+  const [f, setF] = useState({ title: '', kind: 'lease', note: '', tenancyId: '', effectiveOn: '' });
+  const [pending, setPending] = useState(null);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState(null);
+  const shown = useMemo(() => documents.filter((d) => !d.archived_at), [documents]);
+
+  const pick = (file) => {
+    setError('');
+    if (!file) { setPending(null); return; }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      setError(`That file is ${Math.round(file.size / 1024 / 1024)}MB. The limit here is ${MAX_DOCUMENT_BYTES / 1024 / 1024}MB — a document lives in the record itself, so a very large scan would slow every read of this door.`);
+      setPending(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => setPending({ dataUrl: e.target.result, bytes: file.size, name: file.name, type: file.type || '' });
+    reader.onerror = () => { setError('The file could not be read from storage.'); setPending(null); };
+    reader.readAsDataURL(file);
+  };
+
+  const submit = () => {
+    if (!pending) { setError('Choose a file first.'); return; }
+    const title = f.title.trim() || pending.name;
+    onAdd?.({
+      instance_id: door?.instance_id,
+      rental_ref: door?.id,
+      tenancy_id: f.tenancyId || null,
+      kind: f.kind,
+      title,
+      note: f.note.trim(),
+      storage_path: pending.dataUrl,
+      mime_type: pending.type,
+      byte_size: pending.bytes,
+      effective_on: f.effectiveOn || null,
+    });
+    setPending(null);
+    setF({ title: '', kind: 'lease', note: '', tenancyId: '', effectiveOn: '' });
+  };
+
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+  const who = (id) => tenancies.find((t) => t.id === id);
+
+  return (
+    <>
+      {canManage && (
+        <Card title="Add a document">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="sm:col-span-2"><span className={lbl}>File</span>
+              <input type="file" accept="application/pdf,image/*,.doc,.docx,.txt" className="text-[0.8125rem]" onChange={(e) => pick(e.target.files?.[0] || null)} />
+            </label>
+            <label><span className={lbl}>Title</span>
+              <input type="text" className={field} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} placeholder="Defaults to the file name" />
+            </label>
+            <label><span className={lbl}>What is it</span>
+              <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
+                {DOCUMENT_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+              </select>
+            </label>
+            <label><span className={lbl}>Whose</span>
+              <select className={field} value={f.tenancyId} onChange={(e) => setF((p) => ({ ...p, tenancyId: e.target.value }))}>
+                {/* A door-level paper is management-only; a tenancy's paper
+                    reaches that household, which is how a tenant reads their
+                    own lease. The choice decides who can see it, so it says so. */}
+                <option value="">The property (only management sees it)</option>
+                {tenancies.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.tenant_name || 'Household not named'}{t.status === 'active' ? '' : ' (past)'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label><span className={lbl}>Effective</span>
+              <input type="date" className={field} value={f.effectiveOn} onChange={(e) => setF((p) => ({ ...p, effectiveOn: e.target.value }))} />
+            </label>
+            <label className="sm:col-span-2"><span className={lbl}>Note</span>
+              <input type="text" className={field} value={f.note} onChange={(e) => setF((p) => ({ ...p, note: e.target.value }))} />
+            </label>
+          </div>
+          {pending && (
+            <p className="text-[0.8125rem] text-[#6B665E] mt-2">
+              {pending.name} — {Math.round(pending.bytes / 1024)}KB.
+              {f.tenancyId ? ` ${who(f.tenancyId)?.tenant_name || 'That household'} will be able to read this.` : ' Only management will see this.'}
+            </p>
+          )}
+          {error && <p className="text-[0.8125rem] text-[#8C2F2F] leading-relaxed mt-2">{error}</p>}
+          <div className="mt-2"><Btn tone="primary" onClick={submit} disabled={busy || !pending}>Save the document</Btn></div>
+        </Card>
+      )}
+
+      <Card title={`Documents (${shown.length})`}>
+        {shown.length === 0 ? (
+          <Empty>No documents on this property yet.</Empty>
+        ) : (
+          <ul className="space-y-2">
+            {shown.map((d) => (
+              <li key={d.id} className="border-b border-[#F0EDE6] pb-2 last:border-0">
+                {editing === d.id ? (
+                  <DocumentEditor document={d} busy={busy} onSave={(patch) => { onPatch?.(d.id, patch); setEditing(null); }} />
+                ) : (
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div className="min-w-[12rem] flex-1">
+                      <a href={d.storage_path} download={d.title} className="text-[0.875rem] text-[#1A1815] underline">{d.title}</a>
+                      <div className="text-[0.6875rem] text-[#6B665E]">
+                        {d.kind.replace(/-/g, ' ')}
+                        {d.effective_on ? ` · effective ${d.effective_on}` : ''}
+                        {d.byte_size ? ` · ${Math.round(d.byte_size / 1024)}KB` : ''}
+                        {d.tenancy_id ? ` · ${who(d.tenancy_id)?.tenant_name || 'a household'}` : ' · the property'}
+                      </div>
+                      {d.note && <div className="text-[0.75rem] text-[#5A5751]">{d.note}</div>}
+                    </div>
+                    {canManage && (
+                      <div className="flex flex-wrap gap-1">
+                        <Btn onClick={() => setEditing(d.id)} disabled={busy}>Edit</Btn>
+                        <Btn
+                          disabled={busy}
+                          onClick={() => {
+                            if (typeof window !== 'undefined'
+                              && !window.confirm(`Remove "${d.title}"? It stays on the property’s record — nothing is deleted.`)) return;
+                            onPatch?.(d.id, { archived_at: new Date().toISOString() });
+                          }}
+                        >Remove</Btn>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+function DocumentEditor({ document: doc, onSave, busy }) {
+  const [f, setF] = useState({ title: doc.title, kind: doc.kind, note: doc.note || '', effective_on: doc.effective_on || '' });
+  const edit = useMemo(() => buildEdit(doc, f, [
+    { key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' },
+    { key: 'note', label: 'Note' }, { key: 'effective_on', label: 'Effective' },
+  ]), [doc, f]);
+  const field = 'w-full border border-[#E8E4DC] px-2 py-1 text-[0.8125rem] mb-1';
+  return (
+    <div>
+      <input type="text" className={field} value={f.title} onChange={(e) => setF((p) => ({ ...p, title: e.target.value }))} />
+      <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
+        {DOCUMENT_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+      </select>
+      <input type="date" className={field} value={f.effective_on} onChange={(e) => setF((p) => ({ ...p, effective_on: e.target.value }))} />
+      <input type="text" className={field} value={f.note} onChange={(e) => setF((p) => ({ ...p, note: e.target.value }))} placeholder="Note" />
+      <p className="text-[0.6875rem] text-[#6B665E]">The file itself never changes — upload a new one instead.</p>
+      <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch)}>Save</Btn>
     </div>
   );
 }

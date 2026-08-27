@@ -505,3 +505,38 @@ export async function patchPhoto(id, patch, client = supabase) {
     return ok({ photo: data });
   } catch (e) { return no('unexpected', e); }
 }
+
+/** The papers on a door and its tenancies — leases, notices, permits, receipts. */
+export async function loadDocuments(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ documents: [] });
+  try {
+    const { data, error } = await client
+      .from('property_documents')
+      .select('*')
+      .eq('rental_ref', rentalRef)
+      .is('archived_at', null)
+      .order('uploaded_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ documents: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function addDocument(row, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('property_documents')
+      .insert({ ...row, uploaded_by: uid }).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ document: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Correct a document's description, or archive it. The file itself is not replaceable. */
+export async function patchDocument(id, patch, client = supabase) {
+  if (!id) return no('no-document');
+  try {
+    const { data, error } = await client.from('property_documents').update(patch).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ document: data });
+  } catch (e) { return no('unexpected', e); }
+}

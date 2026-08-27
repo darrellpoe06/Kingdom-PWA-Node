@@ -31,10 +31,11 @@ import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../.
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
-import { TimelineTab, RoomsTab, DoorsBoard } from './DoorTabs.jsx';
+import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
+  addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
 } from './cloud.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
@@ -145,7 +146,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Handing the slug to the uuid columns matched nothing, so Rooms and Photos
   // were silently empty on every door. Resolve the rentals row once, then give
   // each loader the key its own column actually holds.
-  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [] });
+  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [] });
   const activeRental = useMemo(
     () => rentals.find((r) => r.slug && r.slug === activeDoor?.rental_ref)
       || rentals.find((r) => r.id === activeId)
@@ -155,14 +156,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalId = activeRental?.id || null;          // uuid — rooms, photos
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
-    if (!rentalId && !rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [] }); return; }
-    const [rm, ph, tn] = await Promise.all([
-      loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef),
+    if (!rentalId && !rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [], documents: [] }); return; }
+    const [rm, ph, tn, dc] = await Promise.all([
+      loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
     ]);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
       photos: ph.ok ? ph.photos : [],
       tenancies: tn.ok ? tn.tenancies : [],
+      documents: dc.ok ? dc.documents : [],
     });
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
@@ -394,6 +396,24 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             <TimelineTab
               tenancies={doorData.tenancies} events={history} photos={doorData.photos}
               rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
+            />
+          );
+          case 'gallery': return (
+            <GalleryTab
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { const r = await addPhoto(row); say(r.ok ? 'Added.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+              onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+            />
+          );
+          case 'files': return (
+            <FilesTab
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              tenancies={doorData.tenancies} documents={doorData.documents} busy={Boolean(busy)}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { const r = await addDocument(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+              onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
           );
           case 'rooms': return (

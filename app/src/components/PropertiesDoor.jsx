@@ -14,12 +14,13 @@
 // second copy of the logic and no second store, so both faces are always on the
 // same rows (Darrell: "keeping both with latest Synced data").
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import supabase from '../lib/supabase.js';
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
+import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 
@@ -86,7 +87,15 @@ export default function PropertiesDoor() {
  * place) is served immediately from the listed vacancies.
  */
 function SignedOutDoor() {
-  const [who, setWho] = useState(null);
+  // A QR on a vacant unit lands here with ?apply=<rental id>. Someone who
+  // scanned a code at a property has already answered "who are you" — they are
+  // asking about that unit — so the who-picker is skipped rather than made into
+  // a toll gate in front of the thing they came for.
+  const scanned = useMemo(
+    () => (typeof window === 'undefined' ? null : readApplyTarget(window.location.search)),
+    [],
+  );
+  const [who, setWho] = useState(scanned ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
 
@@ -96,6 +105,15 @@ function SignedOutDoor() {
     loadPublicVacancies().then((r) => { if (on) setVacancies(r.ok ? r.vacancies : []); });
     return () => { on = false; };
   }, [who, vacancies]);
+
+  // The vacancies list is the authority on whether a scanned card is still
+  // good: public_vacancies already refuses a door that is unadvertised or
+  // occupied, so a card left in a window after the unit was taken degrades to
+  // the truth instead of opening an application for something gone.
+  const scan = useMemo(
+    () => resolveScan(scanned, vacancies || []),
+    [scanned, vacancies],
+  );
 
   const chosen = WHO_OPTIONS.find((w) => w.id === who) || null;
   const back = () => { setWho(null); setWantsAuth(false); };
@@ -129,7 +147,12 @@ function SignedOutDoor() {
     return (
       <div className="bg-white border border-[#E8E4DC] p-4">
         <button type="button" onClick={() => setWho(null)} className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] mb-2">← Back</button>
-        <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>Available now</h2>
+        <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>
+          {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}` : 'Available now'}
+        </h2>
+        {scanned && vacancies !== null && !scan.matched && (
+          <p className="text-xs text-[#5A5751] mb-2" style={serif}>{scan.reason}</p>
+        )}
         {vacancies === null && <p className="text-xs text-[#5A5751]" style={serif}>Checking…</p>}
         {vacancies !== null && vacancies.length === 0 && (
           <p className="text-xs text-[#5A5751]" style={serif}>
@@ -145,14 +168,23 @@ function SignedOutDoor() {
               {[v.city, v.state].filter(Boolean).join(', ')}
               {v.property_type ? ` · ${v.property_type}` : ''}
               {v.rent ? ` · $${Number(v.rent).toFixed(0)}/mo` : ''}
+              {Number(v.bedrooms) > 0 ? ` · ${v.bedrooms} bed` : ''}
+              {Number(v.bathrooms) > 0 ? ` / ${v.bathrooms} bath` : ''}
             </div>
+            {(v.offering === 'short-term' || v.offering === 'both') && (
+              <div className="text-xs" style={{ ...serif, color: brand.accent }}>
+                {v.offering === 'both' ? 'Lease or short stay' : 'Short stay'}
+                {v.nightly_rate ? ` · $${Number(v.nightly_rate).toFixed(0)}/night` : ''}
+                {v.min_stay_nights ? ` · ${v.min_stay_nights} night minimum` : ''}
+              </div>
+            )}
             {v.note && <div className="text-xs text-[#5A5751]" style={serif}>{v.note}</div>}
           </div>
         ))}
         <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
           The exact address is given by a person, not published here.
         </p>
-        <ApplyForm vacancies={vacancies || []} />
+        <ApplyForm vacancies={vacancies || []} preselect={scan.matched ? scan.unit.id : ''} />
       </div>
     );
   }
@@ -191,10 +223,13 @@ function SignedOutDoor() {
  * SSN is never even asked for here. Submitting needs no sign-in; an account is
  * OFFERED afterward, never required, because the application is the point.
  */
-function ApplyForm({ vacancies }) {
+function ApplyForm({ vacancies, preselect = '' }) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState({});
-  const [unit, setUnit] = useState('');
+  // A scan already said which unit. Preselecting it is the whole point of the
+  // code — otherwise the person picks their own door out of a list they did not
+  // need to see.
+  const [unit, setUnit] = useState(preselect);
   const [sent, setSent] = useState(null);
   const set = (key) => (e) => setValues((p) => ({ ...p, [key]: e.target.value }));
 
