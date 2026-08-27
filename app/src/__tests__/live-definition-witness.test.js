@@ -193,3 +193,85 @@ describe('an overloaded function name', () => {
     expect(failures[0].reason).toContain('absent');
   });
 });
+
+// ---------------------------------------------------------------------------
+// The CLI, exercised as CI actually invokes it.
+// ---------------------------------------------------------------------------
+// The first real run of this step failed for a reason no unit test could see:
+// psql does not interpolate :'vars' inside -c, so the placeholder went to the
+// server verbatim, nothing came back, and the witness reported all ten
+// functions "absent". A false alarm is a broken gate exactly as surely as a
+// silent one — the same lesson as the /ssn/i sweep that matched className.
+describe('the CLI, as the lane invokes it', () => {
+  const { execFileSync } = require('node:child_process');
+  const SCRIPT = require('node:path').join(process.cwd(), '..', 'scripts', 'live-definition-witness.mjs');
+
+  const run = (args, input) => {
+    try {
+      return { code: 0, out: execFileSync('node', [SCRIPT, ...args], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }) };
+    } catch (e) {
+      return { code: e.status, out: `${e.stdout || ''}${e.stderr || ''}` };
+    }
+  };
+
+  it('builds a complete query with no psql variable left to interpolate', () => {
+    const { code, out } = run(['--sql']);
+    expect(code).toBe(0);
+    expect(out).not.toContain(":'");           // the bug, in one assertion
+    expect(out).toContain('pg_get_functiondef');
+    expect(out).toContain("'claim_property_access'");
+    expect(out).toContain("'set_member_role'");
+    expect(out.trim().endsWith(';')).toBe(true);
+  });
+
+  it('names in the built query are plain identifiers, never interpolated text', () => {
+    const { out } = run(['--sql']);
+    const names = [...out.matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((n) => n !== 'public' && n !== '[]');
+    expect(names.length).toBeGreaterThan(0);
+    for (const n of names) expect(n).toMatch(/^[a-z0-9_]+$/);
+  });
+
+  it('REFUSES empty stdin rather than reporting every function absent', () => {
+    const { code, out } = run(['--check'], '');
+    expect(code).toBe(2);                       // 2 = the check is broken, not the DB
+    expect(out).toMatch(/the live query did not run/);
+    expect(out).not.toMatch(/absent from the live database/);
+  });
+
+  it('REFUSES an empty row set for the same reason', () => {
+    const { code, out } = run(['--check'], '[]');
+    expect(code).toBe(2);
+    expect(out).toMatch(/query fault, not as an empty database/);
+  });
+
+  it('still refuses unparseable input', () => {
+    expect(run(['--check'], 'not json').code).toBe(2);
+  });
+
+  it('passes when the rows carry the newest definitions', () => {
+    const exps = deriveExpectations();
+    const rows = exps.map((e) => ({ name: e.name, def: `begin ${e.markers.join(' ')} end;` }));
+    const { code, out } = run(['--check'], JSON.stringify(rows));
+    expect(code).toBe(0);
+    expect(out).toMatch(/matches the newest migration for every one/);
+  });
+
+  it('FAILS with exit 1 — a real revert, distinct from a broken check', () => {
+    const exps = deriveExpectations();
+    const rows = exps.map((e) => ({
+      name: e.name,
+      def: e.name === 'claim_property_access' ? 'begin return null; end;' : `begin ${e.markers.join(' ')} end;`,
+    }));
+    const { code, out } = run(['--check'], JSON.stringify(rows));
+    expect(code).toBe(1);                       // 1 = the database is behind the repo
+    expect(out).toMatch(/claim_property_access/);
+    expect(out).toMatch(/my_identity_emails/);
+    expect(out).toMatch(/heal: delete from public\._schema_migrations/);
+  });
+
+  it('lists the names the query must fetch', () => {
+    const { code, out } = run(['--names']);
+    expect(code).toBe(0);
+    expect(out.trim().split(' ')).toEqual(expect.arrayContaining(['claim_property_access', 'set_member_role']));
+  });
+});

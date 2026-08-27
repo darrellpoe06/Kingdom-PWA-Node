@@ -109,6 +109,12 @@ jobs:
       # one (measured live 2026-08-27: the matrix had been reverting 0144's
       # set_member_role and 0151's claim_property_access on production).
       - run: node ../scripts/migration-replay-order-guard.mjs
+      # Widening a RETURNS TABLE with a plain CREATE OR REPLACE is refused by
+      # Postgres, and because db-migrate applies each file in its own
+      # transaction it rolls the WHOLE migration back (measured live
+      # 2026-08-27: 0153's two derived vacancy columns took property_rooms,
+      # property_photos and the rentals coordinates down with them).
+      - run: node ../scripts/migration-return-type-guard.mjs
 
       # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
       # new category button not working" report): window.prompt() is blocked /

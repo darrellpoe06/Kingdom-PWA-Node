@@ -435,3 +435,42 @@ describe('payment history, and how much of it is known', () => {
     expect(a.ratio).toBeNull();
   });
 });
+
+describe('the NAS contract — the two halves speak one vocabulary', () => {
+  // infra/nas-property-photos/exif_scan.py reads a real JPEG and emits exactly
+  // these key names. Verified end-to-end 2026-08-27: the scanner ran over a
+  // fixture library, and its exif.json fed straight into sortBatch below,
+  // filing 805-kitchen.jpg to the right door at 0m with the right timestamp.
+  // Pinned here so a rename on either side fails rather than silently filing
+  // nothing.
+  const FROM_THE_NAS = {
+    file: '805-kitchen.jpg',
+    exif: {
+      DateTimeOriginal: '2025:10:04 14:22:31',
+      Make: 'Poe',
+      GPSLatitude: [[40, 1], [7, 1], [30, 1]],
+      GPSLatitudeRef: 'N',
+      GPSLongitude: [[88, 1], [14, 1], [42, 1]],
+      GPSLongitudeRef: 'W',
+    },
+  };
+  const door = { id: 'p1', address: '805 North Prospect Avenue', unit: null, latitude: 40.1250, longitude: -88.2450 };
+
+  it('reads the scanner\'s rational-pair GPS form', () => {
+    const p = proposeFiling(FROM_THE_NAS.exif, [door]);
+    expect(p.confidence).toBe('high');
+    expect(p.rentalId).toBe('p1');
+    expect(p.meters).toBe(0);
+  });
+
+  it('reads the scanner\'s EXIF timestamp form', () => {
+    expect(readExifTaken(FROM_THE_NAS.exif)).toBe('2025-10-04T14:22:31.000Z');
+  });
+
+  it('routes the scanner\'s no-EXIF entry to a person rather than dropping it', () => {
+    const batch = sortBatch([FROM_THE_NAS, { file: 'no-exif.jpg', exif: {} }], [door]);
+    expect(batch.filed).toHaveLength(1);
+    expect(batch.needsAPerson).toHaveLength(1);
+    expect(batch.needsAPerson[0].proposal.reason).toMatch(/no GPS coordinate/);
+  });
+});
