@@ -395,10 +395,11 @@ export function RoomsTab({
  */
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
-  onPick, onStart, onListing, onEditTenancy, busy = false,
+  onPick, onStart, onListing, onEditTenancy, onEditRental, busy = false,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [editingDoor, setEditingDoor] = useState(null);
   // Two views, because they answer different questions: the GRID is for
   // looking at the properties (an applicant, or the landlord picking which one
   // to photograph next), the LIST is for working them (status, rent, actions
@@ -464,6 +465,7 @@ export function DoorsBoard({
       // "see the properties and their addresses" (Darrell).
       address: [r.address, r.unit].filter(Boolean).join(', '),
       where: [r.city, r.state].filter(Boolean).join(', '),
+      shortStay: r.offering === 'short-term' || r.offering === 'both',
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
     };
@@ -565,6 +567,7 @@ export function DoorsBoard({
                   {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
                   {x.where ? ` · ${x.where}` : ''}
                   {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                  {x.shortStay ? ` · short stay${x.rental.nightly_rate ? ` $${Number(x.rental.nightly_rate).toFixed(0)}/night` : ''}` : ''}
                 </div>
                 <div className="text-[0.75rem] text-[#6B665E]">
                   {x.rented
@@ -573,9 +576,14 @@ export function DoorsBoard({
                 </div>
               </button>
 
+              {canManage && (
+                <Btn onClick={() => setEditingDoor(editingDoor === x.rental.id ? null : x.rental.id)} disabled={busy}>
+                  {editingDoor === x.rental.id ? 'Close' : 'Edit door'}
+                </Btn>
+              )}
               {canManage && x.rented && (
                 <Btn onClick={() => setEditing(editing === x.tenancy.id ? null : x.tenancy.id)} disabled={busy}>
-                  {editing === x.tenancy.id ? 'Close' : 'Edit'}
+                  {editing === x.tenancy.id ? 'Close' : 'Edit tenant'}
                 </Btn>
               )}
               {canManage && !x.rented && (
@@ -589,6 +597,12 @@ export function DoorsBoard({
                 </div>
               )}
             </div>
+            {editingDoor === x.rental.id && (
+              <EditRental
+                rental={x.rental} busy={busy}
+                onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
+              />
+            )}
             {editing === x.tenancy?.id && x.tenancy && (
               <EditTenancy
                 tenancy={x.tenancy} busy={busy}
@@ -729,6 +743,106 @@ function EditTenancy({ tenancy, onSave, busy }) {
       {edit.changed && (
         <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed mt-2">{edit.summary}</p>
       )}
+      <div className="mt-2">
+        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch, edit.summary)}>
+          {edit.changed ? 'Save the change' : 'Nothing changed'}
+        </Btn>
+      </div>
+    </div>
+  );
+}
+
+/** What a door can be offered as. 'long-term' is the unstated default. */
+export const OFFERINGS = Object.freeze([
+  { key: 'long-term', label: 'Lease only' },
+  { key: 'short-term', label: 'Short stay only' },
+  { key: 'both', label: 'Lease or short stay' },
+]);
+
+/**
+ * Edit the DOOR itself — the unit label, the address, the rent, and what it is
+ * offered as.
+ *
+ * The unit label matters more than it looks. All four 805 North Prospect rows
+ * carry unit = NULL, so nothing in the data can tell which one a person calls
+ * Apt 2 — and Apt 2 is the one Darrell offers as a short stay. That is the
+ * single piece of this feature only he holds, so the app hands him the field
+ * instead of guessing, and every other door is untouched.
+ */
+function EditRental({ rental, onSave, busy }) {
+  const [f, setF] = useState({
+    address: rental.address || '',
+    unit: rental.unit || '',
+    city: rental.city || '',
+    state: rental.state || '',
+    monthly_rent: rental.monthly_rent ?? '',
+    offering: rental.offering || 'long-term',
+    nightly_rate: rental.nightly_rate ?? '',
+    min_stay_nights: rental.min_stay_nights ?? '',
+  });
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const shortStay = f.offering === 'short-term' || f.offering === 'both';
+
+  // Compare against the door as the FORM sees it: an unset offering displays as
+  // "Lease only", so treating it as a change would write a field the landlord
+  // never touched and light up Save the moment the editor opens.
+  const before = useMemo(() => ({ ...rental, offering: rental.offering || 'long-term' }), [rental]);
+  const edit = useMemo(() => buildEdit(before, {
+    ...f,
+    // The database refuses a nightly rate on a door that is not offered short —
+    // so clearing the offering clears the number rather than leaving one behind
+    // that would one day be shown to somebody.
+    nightly_rate: shortStay ? f.nightly_rate : '',
+    min_stay_nights: shortStay ? f.min_stay_nights : '',
+  }, [
+    { key: 'address', label: 'Address' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'city', label: 'City' },
+    { key: 'state', label: 'State' },
+    { key: 'monthly_rent', label: 'Rent', numeric: true },
+    { key: 'offering', label: 'Offered as' },
+    { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
+    { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
+  ]), [before, f, shortStay]);
+
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+
+  return (
+    <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label className="sm:col-span-2"><span className={lbl}>Address</span>
+          <input type="text" className={field} value={f.address} onChange={set('address')} />
+        </label>
+        <label><span className={lbl}>Unit</span>
+          <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
+        </label>
+        <label><span className={lbl}>Rent</span>
+          <input type="text" inputMode="decimal" className={field} value={f.monthly_rent} onChange={set('monthly_rent')} />
+        </label>
+        <label><span className={lbl}>City</span>
+          <input type="text" className={field} value={f.city} onChange={set('city')} />
+        </label>
+        <label><span className={lbl}>State</span>
+          <input type="text" className={field} value={f.state} onChange={set('state')} />
+        </label>
+        <label className="sm:col-span-2"><span className={lbl}>Offered as</span>
+          <select className={field} value={f.offering} onChange={set('offering')}>
+            {OFFERINGS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </label>
+        {shortStay && (
+          <>
+            <label><span className={lbl}>Nightly rate</span>
+              <input type="text" inputMode="decimal" className={field} value={f.nightly_rate} onChange={set('nightly_rate')} />
+            </label>
+            <label><span className={lbl}>Minimum stay (nights)</span>
+              <input type="text" inputMode="numeric" className={field} value={f.min_stay_nights} onChange={set('min_stay_nights')} />
+            </label>
+          </>
+        )}
+      </div>
+      {edit.changed && <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed mt-2">{edit.summary}</p>}
       <div className="mt-2">
         <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch, edit.summary)}>
           {edit.changed ? 'Save the change' : 'Nothing changed'}

@@ -188,7 +188,8 @@ describe('what a non-manager can do', () => {
     expect(txt(host)).toContain('1003 Koehn Dr');
     expect(byText(host, /Start a tenancy/)).toBeUndefined();
     expect(byText(host, /^Advertise$/)).toBeUndefined();
-    expect(byText(host, /^Edit$/)).toBeUndefined();
+    expect(byText(host, /Edit tenant/)).toBeUndefined();
+    expect(byText(host, /Edit door/)).toBeUndefined();
   });
 });
 
@@ -225,13 +226,13 @@ describe('starting a tenancy on an empty door', () => {
 describe('editing what is already there', () => {
   it('offers Edit on an occupied door', () => {
     const host = render(<DoorsBoard rentals={rentals} tenancies={[tenancy]} canManage onEditTenancy={() => {}} />);
-    expect(byText(host, /^Edit$/)).toBeTruthy();
+    expect(byText(host, /Edit tenant/)).toBeTruthy();
   });
 
   it('sends only what changed, with a sentence describing it', () => {
     const onEditTenancy = vi.fn();
     const host = render(<DoorsBoard rentals={rentals} tenancies={[tenancy]} canManage onEditTenancy={onEditTenancy} />);
-    click(byText(host, /^Edit$/));
+    click(byText(host, /Edit tenant/));
     const nameInput = [...host.querySelectorAll('input')].find((i) => i.value === '');
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -248,12 +249,92 @@ describe('editing what is already there', () => {
 
   it('will not save when nothing changed', () => {
     const host = render(<DoorsBoard rentals={rentals} tenancies={[tenancy]} canManage onEditTenancy={() => {}} />);
-    click(byText(host, /^Edit$/));
+    click(byText(host, /Edit tenant/));
     expect(byText(host, /Nothing changed/).disabled).toBe(true);
   });
 
   it('describes a numeric change without tripping on string-vs-number', () => {
     const e = buildEdit({ monthly_rent: '680.00' }, { monthly_rent: '680' }, [{ key: 'monthly_rent', label: 'Rent', numeric: true }]);
     expect(e.changed).toBe(false);
+  });
+});
+
+describe('what a door is offered as', () => {
+  // "you only need to create an account for lease or for a short term lease
+  // Airbnb... options" — and "only for Apt 2 at 805 N Prospect Ave".
+  const shortStay = { ...rentals[1], id: 'u-apt2', slug: 'prospect-805-2', unit: 'Apt 2', offering: 'short-term', nightly_rate: '95.00', min_stay_nights: 2 };
+
+  it('shows a short-stay door as one, with its nightly rate', () => {
+    const host = render(<DoorsBoard rentals={[shortStay]} tenancies={[]} canManage />);
+    expect(txt(host)).toMatch(/short stay \$95\/night/);
+  });
+
+  it('leaves every other door reading as a lease, with nothing added', () => {
+    const host = render(<DoorsBoard rentals={rentals} tenancies={[]} canManage />);
+    expect(txt(host)).not.toMatch(/short stay/);
+  });
+
+  it('offers the door editor on every door, rented or not', () => {
+    const host = render(<DoorsBoard rentals={rentals} tenancies={[tenancy]} canManage onEditRental={() => {}} />);
+    expect(buttons(host).filter((b) => /Edit door/.test(b.textContent))).toHaveLength(2);
+  });
+
+  it('does not light up Save, or write an offering, when nothing was touched', () => {
+    const host = render(<DoorsBoard rentals={[rentals[1]]} tenancies={[]} canManage onEditRental={() => {}} />);
+    click(byText(host, /Edit door/));
+    expect(byText(host, /Nothing changed/).disabled).toBe(true);
+  });
+
+  it('separates editing the DOOR from editing the TENANT', () => {
+    const host = render(<DoorsBoard rentals={rentals} tenancies={[tenancy]} canManage onEditRental={() => {}} onEditTenancy={() => {}} />);
+    expect(byText(host, /Edit tenant/)).toBeTruthy();
+    expect(byText(host, /Edit door/)).toBeTruthy();
+  });
+
+  it('lets the landlord label the unit — the one thing only he knows', () => {
+    const onEditRental = vi.fn();
+    const host = render(<DoorsBoard rentals={[rentals[1]]} tenancies={[]} canManage onEditRental={onEditRental} />);
+    click(byText(host, /Edit door/));
+    const unitInput = [...host.querySelectorAll('input')].find((i) => i.getAttribute('placeholder') === 'e.g. Apt 2');
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(unitInput, 'Apt 2');
+      unitInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    click(byText(host, /Save the change/));
+    // ONLY the unit — an untouched offering must not ride along.
+    expect(onEditRental.mock.calls[0][1]).toEqual({ unit: 'Apt 2' });
+    expect(onEditRental.mock.calls[0][2]).toMatch(/Unit: \(blank\) → Apt 2/);
+  });
+
+  it('asks for a nightly rate only once the door is offered short-term', () => {
+    const host = render(<DoorsBoard rentals={[rentals[1]]} tenancies={[]} canManage onEditRental={() => {}} />);
+    click(byText(host, /Edit door/));
+    expect(txt(host)).not.toMatch(/Nightly rate/);
+    const select = host.querySelector('select');
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+      setter.call(select, 'short-term');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(txt(host)).toMatch(/Nightly rate/);
+    expect(txt(host)).toMatch(/Minimum stay/);
+  });
+
+  it('clears a nightly rate when the door stops being offered short — the DB refuses that pair', () => {
+    const onEditRental = vi.fn();
+    const host = render(<DoorsBoard rentals={[shortStay]} tenancies={[]} canManage onEditRental={onEditRental} />);
+    click(byText(host, /Edit door/));
+    const select = host.querySelector('select');
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+      setter.call(select, 'long-term');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    click(byText(host, /Save the change/));
+    const patch = onEditRental.mock.calls[0][1];
+    expect(patch.offering).toBe('long-term');
+    expect(patch.nightly_rate).toBe(0);
+    expect(patch.min_stay_nights).toBe(0);
   });
 });

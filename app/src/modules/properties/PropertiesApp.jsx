@@ -311,6 +311,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     refresh();
   };
 
+  const editRental = async (id, patch, summary) => {
+    const res = await updateRental(id, patch, { summary });
+    say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
+    boot();
+  };
+
   const postRentToBooks = async (rentRow) => {
     const gate = canPostToBooks(rentRow);
     if (!gate.ok) { say(`Not posted: ${gate.reason}`); return; }
@@ -409,6 +415,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 onStart={startTenancy}
                 onListing={setListing}
                 onEditTenancy={editTenancy}
+                onEditRental={editRental}
               />
               <DoorsTab
                 doors={doors} staged={staged}
