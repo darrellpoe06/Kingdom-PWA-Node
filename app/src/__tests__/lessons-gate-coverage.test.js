@@ -67,3 +67,25 @@ describe('lessons-gate-coverage — every lesson names its gate or its why-no-ga
     });
   });
 });
+
+describe('the vocabulary knows the gate classes this repo actually has', () => {
+  // P42's class, hit again on 2026-08-27: the matcher knew -guard and -probe
+  // but not -witness, so a lesson citing live-definition-witness.mjs — a real
+  // gate, wired into db-migrate, proven-to-catch on production — read as
+  // uncited. A guard must know the exact strings its subject is written in.
+  it('credits a lesson that cites a -witness gate', () => {
+    const doc = '- **P96 — Ask the database, not the ledger.** Gate: `scripts/live-definition-witness.mjs`.';
+    expect(findUnguardedPrinciples(doc).some((g) => g.id === 'P96')).toBe(false);
+  });
+
+  it('still refuses a lesson that names no check at all', () => {
+    // The widening must not have turned the matcher into a rubber stamp.
+    const doc = '- **P95 — Something true but unguarded.** Nobody checks this anywhere.';
+    expect(findUnguardedPrinciples(doc).some((g) => g.id === 'P95')).toBe(true);
+  });
+
+  it('does not credit the bare word witness with no gate name attached', () => {
+    const doc = '- **P94 — A witness to the truth matters.** No machine check exists.';
+    expect(findUnguardedPrinciples(doc).some((g) => g.id === 'P94')).toBe(true);
+  });
+});

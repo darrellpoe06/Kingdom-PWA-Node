@@ -31,8 +31,13 @@ import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../.
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
-import { TimelineTab, RoomsTab } from './DoorTabs.jsx';
-import { loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies } from './cloud.js';
+import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
+import {
+  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
+  loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
+  addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
+} from './cloud.js';
+import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
@@ -98,6 +103,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // module never fetches them itself — the shell hands them in, so this surface
   // has no opinion about WHERE a record lives, only about not asserting it.
   const [staged, setStaged] = useState(() => records.map((r) => stageFromRecord(r)).filter(Boolean));
+  const [rentals, setRentals] = useState([]);
+  // Every photo this person may see, for the board's cover thumbnails. RLS
+  // scopes it, so a tenant's copy holds only their own tenancy's pictures.
+  const [doorPhotos, setDoorPhotos] = useState([]);
   const [notice, setNotice] = useState('');
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
@@ -106,10 +115,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     setLoading(true);
     const claimed = await claimPropertyAccess();
     setClaim(claimed);
-    const [d, g, h] = await Promise.all([loadMyDoors(), loadMyGrants(), loadMyHousehold()]);
+    const [d, g, h, r] = await Promise.all([
+      loadMyDoors(), loadMyGrants(), loadMyHousehold(), loadMyRentals(),
+    ]);
     setDoors(d.ok ? d.doors : []);
     setGrants(g.ok ? g.grants : []);
     setHousehold(h.ok ? h.memberships : []);
+    // The doors he OWNS, which outlive any tenancy on them. Reading a rentals
+    // row is itself proof of instance membership (rentals_select USING
+    // user_in_instance) — so this is also what tells us he is the landlord.
+    setRentals(r.ok ? r.rentals : []);
+    const ph = await loadAllPhotos();
+    setDoorPhotos(ph.ok ? ph.photos : []);
     setLoading(false);
   }, []);
   useEffect(() => { boot(); }, [boot]);
@@ -119,21 +136,37 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     [doors, activeId]
   );
 
-  // The DOOR's own records, which outlive any one tenancy. Keyed on rental_ref,
-  // not the tenancy id: that is the whole point of the chronology.
-  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [] });
-  const rentalRef = activeDoor?.rental_ref || null;
+  // The DOOR's own records, which outlive any one tenancy.
+  //
+  // TWO KEYS, AND THEY ARE NOT INTERCHANGEABLE (measured from the live catalog
+  // 2026-08-27, after passing the wrong one to both):
+  //   rental_tenancies.rental_ref  is TEXT  — the rentals SLUG
+  //   property_rooms.rental_ref    is UUID  — the rentals ID
+  //   property_photos.rental_ref   is UUID  — the rentals ID
+  // Handing the slug to the uuid columns matched nothing, so Rooms and Photos
+  // were silently empty on every door. Resolve the rentals row once, then give
+  // each loader the key its own column actually holds.
+  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [] });
+  const activeRental = useMemo(
+    () => rentals.find((r) => r.slug && r.slug === activeDoor?.rental_ref)
+      || rentals.find((r) => r.id === activeId)
+      || null,
+    [rentals, activeDoor, activeId],
+  );
+  const rentalId = activeRental?.id || null;          // uuid — rooms, photos
+  const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
-    if (!rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [] }); return; }
-    const [rm, ph, tn] = await Promise.all([
-      loadRooms(rentalRef), loadDoorPhotos(rentalRef), loadDoorTenancies(rentalRef),
+    if (!rentalId && !rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [], documents: [] }); return; }
+    const [rm, ph, tn, dc] = await Promise.all([
+      loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
     ]);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
       photos: ph.ok ? ph.photos : [],
       tenancies: tn.ok ? tn.tenancies : [],
+      documents: dc.ok ? dc.documents : [],
     });
-  }, [rentalRef]);
+  }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
 
   useEffect(() => {
@@ -150,13 +183,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (household.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
     if (grants.includes('request.manage') || grants.includes('rentroll.view')) return 'manager';
     if (grants.includes('docs.add') || grants.includes('property.history')) return 'field_worker';
+    // A LANDLORD IS A LANDLORD BEFORE HE HAS A TENANT (fixed 2026-08-27). This
+    // branch used to require `activeDoor`, i.e. an existing TENANCY — so an
+    // owner with 12 properties and no tenancy rows fell through to 'tenant' and
+    // met an empty screen built for somebody else. Being able to read `rentals`
+    // is the membership proof (RLS: user_in_instance), and it is true from the
+    // moment he owns a door, which is the moment he needs the app.
+    if (rentals.length > 0 && !grants.length && household.length === 0) return 'owner';
     if (activeDoor && !grants.length && household.length === 0) {
-      // Either the tenant of this door, or the landlord looking at their own
-      // portfolio. The tenancy's own tenant fields answer it without guessing.
       return surface === 'poetech' ? 'owner' : 'tenant';
     }
     return 'tenant';
-  }, [grants, household, activeDoor, surface]);
+  }, [grants, household, activeDoor, surface, rentals]);
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
   const activeTab = tab || face.tabs.find((t) => !t.locked)?.id || face.tabs[0]?.id || '';
@@ -224,6 +262,61 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (res.ok) setStaged((prev) => prev.filter((s) => s !== draft));
     say(res.ok ? `${built.row.tenant_name} is on the door now.` : `Not saved: ${res.reason}`);
     refresh();
+  };
+
+  // Put a tenant on a door. Whatever is known goes in; every field is editable
+  // afterwards (EDITABLE-EVERYWHERE), so a blank is never a reason to refuse.
+  const startTenancy = async (input) => {
+    const r = input?.rental;
+    const built = tenancyRowForDoor({
+      instanceId: r?.instance_id,
+      rentalRef: r?.slug,                 // TEXT — what rental_tenancies holds
+      propertyLabel: r?.display_name || r?.address,
+      unitLabel: r?.unit || null,
+      tenantName: input.tenantName,
+      tenantEmail: input.tenantEmail,
+      tenantPhone: input.tenantPhone,
+      leaseStart: input.leaseStart,
+      monthlyRent: input.monthlyRent,
+      subsidised: input.subsidised,
+    });
+    if (!built.ok) { say(`Not saved: ${built.reason}`); return; }
+    const res = await createTenancy(built.row);
+    if (!res.ok) { say(`Not saved: ${res.reason}`); return; }
+    // A door that is now occupied stops advertising itself — "occupied when
+    // they are" (Darrell), made structural instead of remembered.
+    if (r?.listed_at) await updateRental(r.id, { listed_at: null }, { summary: 'tenancy started; listing withdrawn' });
+    say(built.row.tenant_name
+      ? `${built.row.tenant_name} is on ${built.row.property_label}.`
+      : `Tenancy started on ${built.row.property_label}. Add the household name whenever you have it.`);
+    boot();
+    refresh();
+  };
+
+  // Advertise a door, or stop. The asking rent defaults to the door's own
+  // figure — real data, not a guess — and is editable on the door.
+  const setListing = async (rental, on) => {
+    const res = await updateRental(rental.id, {
+      listed_at: on ? new Date().toISOString() : null,
+      listed_rent: on ? (Number(rental.listed_rent) || Number(rental.monthly_rent) || 0) : rental.listed_rent,
+    }, { summary: on ? 'advertised' : 'listing withdrawn' });
+    say(res.ok
+      ? (on ? 'This door is advertised now.' : 'No longer advertised.')
+      : `Not saved: ${res.reason}`);
+    boot();
+  };
+
+  const editTenancy = async (id, patch, summary) => {
+    const res = await updateTenancy(id, patch, { summary, instanceId: activeDoor?.instance_id });
+    say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
+    boot();
+    refresh();
+  };
+
+  const editRental = async (id, patch, summary) => {
+    const res = await updateRental(id, patch, { summary });
+    say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
+    boot();
   };
 
   const postRentToBooks = async (rentRow) => {
@@ -305,9 +398,27 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
             />
           );
+          case 'gallery': return (
+            <GalleryTab
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { const r = await addPhoto(row); say(r.ok ? 'Added.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+              onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+            />
+          );
+          case 'files': return (
+            <FilesTab
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              tenancies={doorData.tenancies} documents={doorData.documents} busy={Boolean(busy)}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { const r = await addDocument(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+              onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+            />
+          );
           case 'rooms': return (
             <RoomsTab
-              door={{ id: rentalRef, instance_id: activeDoor?.instance_id }}
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               rooms={doorData.rooms} photos={doorData.photos} busy={busy}
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { await addRoom(row); loadDoorData(); }}
@@ -315,11 +426,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             />
           );
           case 'doors': return (
-            <DoorsTab
-              doors={doors} staged={staged}
-              onPick={(id) => { setActiveId(id); setTab('history'); }}
-              onConfirmDraft={confirmStaged}
-            />
+            <>
+              <DoorsBoard
+                rentals={rentals} tenancies={doors} busy={Boolean(busy)}
+                canManage={role === 'owner' || role === 'manager'}
+                onPick={(id) => { setActiveId(id); setTab('history'); }}
+                photos={doorPhotos}
+                onStart={startTenancy}
+                onListing={setListing}
+                onEditTenancy={editTenancy}
+                onEditRental={editRental}
+              />
+              <DoorsTab
+                doors={doors} staged={staged}
+                onPick={(id) => { setActiveId(id); setTab('history'); }}
+                onConfirmDraft={confirmStaged}
+              />
+            </>
           );
           case 'work': case 'jobs': case 'board':
             return (

@@ -387,3 +387,156 @@ export async function loadDoorTenancies(rentalRef, client = supabase) {
     return ok({ tenancies: data || [] });
   } catch (e) { return no('unexpected', e); }
 }
+
+/**
+ * The landlord's OWN doors — the `rentals` rows, not the tenancies on them.
+ *
+ * THE DEFECT THIS CLOSES (measured 2026-08-27): loadMyDoors reads
+ * rental_tenancies only, so a landlord with 12 properties and no tenancy rows
+ * yet opened the app to NOTHING — not even his own doors — and the role
+ * resolver, which needed a door to call him an owner, fell through and showed
+ * him a TENANT face. The first thing he saw of his own app was an empty screen
+ * meant for someone else.
+ *
+ * Reading a rentals row is itself proof of membership: the live policy is
+ * `rentals_select USING user_in_instance(instance_id)` (read from pg_policy,
+ * not assumed). RLS is the gate; this is the UI reflecting it (DR-0060).
+ */
+export async function loadMyRentals(client = supabase) {
+  try {
+    const { data, error } = await client
+      .from('rentals')
+      .select('id, slug, instance_id, address, unit, city, state, status, monthly_rent, tenant_name, display_name, property_type, listed_at, listed_rent, listed_note, notes')
+      .order('address', { ascending: true });
+    if (error) return no('read-failed', error);
+    return ok({ rentals: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Edit a tenancy, and leave a trace. EDITABLE-EVERYWHERE names Leases and
+ * Tenants explicitly — "a record without an Edit affordance is a bug, not a
+ * feature" — and IDENTITY-ROLES-AUDIT says every edit is attributable.
+ *
+ * There is no lifecycle_log table in this app, so the trace goes where the
+ * relationship record already lives: tenancy_notes, which is append-only and
+ * which management already reads in full. A note nobody can rewrite is a better
+ * audit trail than a column somebody can.
+ */
+export async function updateTenancy(id, patch, { summary = '', authorLabel = '', instanceId } = {}, client = supabase) {
+  if (!id) return no('no-tenancy');
+  if (!patch || Object.keys(patch).length === 0) return ok({ row: null, unchanged: true });
+  try {
+    const { data, error } = await client.from('rental_tenancies').update(patch).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    if (summary) {
+      // Best-effort: the edit itself already landed, so a failed note must not
+      // report the edit as failed — it is reported as an untraced edit instead.
+      const uid = await userId(client);
+      const { error: noteErr } = await client.from('tenancy_notes').insert({
+        instance_id: instanceId || data.instance_id,
+        tenancy_id: id,
+        author_user_id: uid,
+        author_role: 'landlord',
+        author_label: authorLabel || '',
+        body: `Edited — ${summary}`,
+      });
+      if (noteErr) return ok({ row: data, traced: false, traceError: noteErr.message });
+    }
+    return ok({ row: data, traced: Boolean(summary) });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Edit a door. The trace rides in the door's own notes, which is what it has. */
+export async function updateRental(id, patch, { summary = '' } = {}, client = supabase) {
+  if (!id) return no('no-rental');
+  if (!patch || Object.keys(patch).length === 0) return ok({ row: null, unchanged: true });
+  try {
+    const body = { ...patch };
+    if (summary) {
+      const { data: cur } = await client.from('rentals').select('notes').eq('id', id).single();
+      const stamp = new Date().toISOString().slice(0, 10);
+      body.notes = `${cur?.notes || ''}\n[${stamp}] Edited — ${summary}`.trim();
+    }
+    const { data, error } = await client.from('rentals').update(body).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ row: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Every photo this person may see, across all their doors — what the Properties
+ * board needs to show a cover thumbnail per property without a query per row.
+ * RLS does the scoping: a tenant gets their own tenancy's photos and nothing
+ * else, so this is safe to call from any face.
+ */
+export async function loadAllPhotos(client = supabase) {
+  try {
+    const { data, error } = await client
+      .from('property_photos')
+      .select('id, rental_ref, tenancy_id, room_id, kind, caption, storage_path, taken_at, uploaded_at, archived_at')
+      .is('archived_at', null)
+      .order('taken_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** File a photo against a door (and optionally a room / tenancy). */
+export async function addPhoto(row, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('property_photos')
+      .insert({ ...row, uploaded_by: uid }).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ photo: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Correct a photo's description, or archive it. The image itself is frozen by a
+ * trigger (0154) — this can only reach caption / room_id / kind / archived_at.
+ */
+export async function patchPhoto(id, patch, client = supabase) {
+  if (!id) return no('no-photo');
+  try {
+    const { data, error } = await client.from('property_photos').update(patch).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ photo: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The papers on a door and its tenancies — leases, notices, permits, receipts. */
+export async function loadDocuments(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ documents: [] });
+  try {
+    const { data, error } = await client
+      .from('property_documents')
+      .select('*')
+      .eq('rental_ref', rentalRef)
+      .is('archived_at', null)
+      .order('uploaded_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ documents: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function addDocument(row, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('property_documents')
+      .insert({ ...row, uploaded_by: uid }).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ document: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Correct a document's description, or archive it. The file itself is not replaceable. */
+export async function patchDocument(id, patch, client = supabase) {
+  if (!id) return no('no-document');
+  try {
+    const { data, error } = await client.from('property_documents').update(patch).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ document: data });
+  } catch (e) { return no('unexpected', e); }
+}

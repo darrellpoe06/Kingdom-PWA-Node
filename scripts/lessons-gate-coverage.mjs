@@ -26,7 +26,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LESSONS = join(ROOT, 'docs/00-foundations/_root/LESSONS-LEARNED.md');
 
 // A principle NAMES A GATE when its text cites a machine check.
-const GATE_CITED = /\b(proven-to-catch|guarded by|\.test\.|[a-z]+-guard\b|[a-z]+-probe\b|sw-nav-check|asset-guard|chrome-layout|boot-check|CI gate|a (?:deterministic |required )?gate|the gate\b|test_[a-z]|verify-boot|his-hand-guard|parity[- ]guard|tenancy-guard|contrast|legibility)\b/i;
+// `-witness` added 2026-08-27: live-definition-witness is a real gate class
+// this vocabulary could not spell, so a lesson citing it read as uncited. That
+// is P42 in a new costume — a guard must know the exact strings its subject is
+// written in, not the ones its author had in mind. It is a NAME SUFFIX of a
+// real script in this repo, not a loosening: the proven-to-catch test still
+// requires an uncited principle to fail.
+const GATE_CITED = /\b(proven-to-catch|guarded by|\.test\.|[a-z]+-guard\b|[a-z]+-probe\b|[a-z]+-witness\b|sw-nav-check|asset-guard|chrome-layout|boot-check|CI gate|a (?:deterministic |required )?gate|the gate\b|test_[a-z]|verify-boot|his-hand-guard|parity[- ]guard|tenancy-guard|contrast|legibility)\b/i;
 // A principle LAWFULLY has no gate when it declares the class as un-gateable and
 // names the human/discipline control instead (P29/P28 class — an unwritten
 // backlog no gate can see; the control is declaration-time discipline).
