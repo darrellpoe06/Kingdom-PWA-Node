@@ -36,6 +36,7 @@ import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
+  loadPublicVacancies,
 } from './cloud.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
@@ -107,6 +108,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Every photo this person may see, for the board's cover thumbnails. RLS
   // scopes it, so a tenant's copy holds only their own tenancy's pictures.
   const [doorPhotos, setDoorPhotos] = useState([]);
+  // The public listings anyone can see with no account (column-safe: no tenant
+  // names, no mortgage — cloud.js). Shown when this person holds neither a
+  // tenancy nor an owned door, so the front door is never a blank space.
+  const [vacancies, setVacancies] = useState([]);
   const [notice, setNotice] = useState('');
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
@@ -125,8 +130,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // row is itself proof of instance membership (rentals_select USING
     // user_in_instance) — so this is also what tells us he is the landlord.
     setRentals(r.ok ? r.rentals : []);
-    const ph = await loadAllPhotos();
+    const [ph, vac] = await Promise.all([loadAllPhotos(), loadPublicVacancies()]);
     setDoorPhotos(ph.ok ? ph.photos : []);
+    setVacancies(vac.ok ? vac.vacancies : []);
     setLoading(false);
   }, []);
   useEffect(() => { boot(); }, [boot]);
@@ -338,21 +344,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // ---- render --------------------------------------------------------------
   if (loading) return <div className="p-4 text-xs text-[#5A5751]" style={serif}>Opening your properties…</div>;
 
-  if (!doors.length) {
-    return (
-      <div className="p-1">
-        <Card title="Poe Properties">
-          <p className="text-sm text-[#1A1815] mb-2" style={serif}>
-            You are signed in, and there is no door assigned to you yet.
-          </p>
-          <Empty>
-            {claim && claim.ok === false && claim.reason === 'not-enabled-yet'
-              ? 'The invitation system is not switched on for this database yet. Nothing is missing on your end.'
-              : 'A landlord invites you by your email address or your cell phone number. When they do, open this app again and your place will be here — nothing to enter, nothing to set up.'}
-          </Empty>
-        </Card>
-      </div>
-    );
+  // The front door is NEVER a blank space (Darrell 2026-08-27: "No one, not even
+  // a non-user, should see an empty space"). A person with a tenancy drops into
+  // their door below. A LANDLORD with owned doors but no tenancy falls THROUGH to
+  // the tabbed view, where the Doors board shows his apartments (photos,
+  // availability) — the whole reason the app exists (d44484d fixed the role but
+  // this render still dead-ended him before his own doors). Everyone else — a
+  // prospective renter, a not-yet-invited visitor — sees the places to live.
+  if (!doors.length && !rentals.length) {
+    return <PlacesToLive vacancies={vacancies} claim={claim} />;
   }
 
   return (
@@ -504,6 +504,65 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 }
 
 // --- tabs -------------------------------------------------------------------
+
+// The front-door listing shown to anyone who holds neither a tenancy nor an
+// owned door — the "places to live," never a blank space (Darrell 2026-08-27).
+// Address, unit, rent, and availability only; the public RPC is column-safe (no
+// tenant name, no mortgage), so it is safe for a prospective renter and a
+// non-user alike, and the street address is handed over by a person, not here.
+function PlacesToLive({ vacancies = [], claim }) {
+  const notEnabled = claim && claim.ok === false && claim.reason === 'not-enabled-yet';
+  const rows = (Array.isArray(vacancies) ? vacancies : [])
+    .map((v) => {
+      const address = String(v.address || v.label || v.property_label || v.name || '').trim();
+      if (!address) return null;
+      const cityState = [v.city, v.state].map((s) => String(s || '').trim()).filter(Boolean).join(', ');
+      const rent = Number(v.monthly_rent ?? v.rent ?? v.listed_rent);
+      return {
+        id: String(v.id || v.rental_id || address),
+        label: [address, cityState].filter(Boolean).join(' · '),
+        unit: String(v.unit || v.unit_label || '').trim(),
+        rent: Number.isFinite(rent) && rent > 0 ? rent : null,
+        note: String(v.listed_note || v.note || v.blurb || '').trim(),
+      };
+    })
+    .filter(Boolean);
+  return (
+    <div className="p-1">
+      <Card title="Poe Properties — Places to Live">
+        {rows.length > 0 ? (
+          <>
+            <p className="text-sm text-[#1A1815] mb-2" style={serif}>
+              {rows.length} {rows.length === 1 ? 'place' : 'places'} available.
+            </p>
+            <ul className="divide-y divide-[#F0EDE6]">
+              {rows.map((r) => (
+                <li key={r.id} className="py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="text-sm text-[#1A1815]" style={serif}>{r.label}{r.unit ? ` · ${r.unit}` : ''}</div>
+                    <span className="text-[0.625rem] uppercase tracking-wider whitespace-nowrap" style={{ color: ACCENT }}>Available</span>
+                  </div>
+                  <div className="text-[0.625rem] text-[#8A867E]" style={serif}>{r.rent != null ? `$${r.rent.toFixed(0)}/mo` : 'Rent on request'}</div>
+                  {r.note && <p className="text-xs text-[#5A5751] mt-1" style={serif}>{r.note}</p>}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[0.625rem] text-[#8A867E] mt-2" style={serif}>The exact address is given by a person, not published here.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[#1A1815] mb-2" style={serif}>Places to live, coming to this door.</p>
+            <Empty>
+              {notEnabled
+                ? 'Listings turn on once this database is switched on. Nothing is missing on your end.'
+                : 'Openings are posted here as they come available. If a landlord invited you by your email or cell number, sign in and your place will be here.'}
+            </Empty>
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
 
 function DoorCard({ door }) {
   if (!door) return null;
