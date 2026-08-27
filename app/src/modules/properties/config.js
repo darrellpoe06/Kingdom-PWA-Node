@@ -85,6 +85,13 @@ export const LAUNCH_PLAN = Object.freeze([
     reReview: '2026-10-07',
   }),
   Object.freeze({
+    id: 'P6b', title: 'Co-living — rent by the room, per door',
+    state: 'gated',
+    detail: 'The dual operating model from the 2026-06-09 spec (DR-026…DR-030): a door runs whole-unit OR rent-by-the-room, chosen per property. Rooms carry the spec’s own economics ($1,000/room, utilities included, 1–2 people, waitlist), housemates reuse the existing unit layer, and smart-lock access is the access layer. The model and both binding lines are BUILT (modules/properties/coliving.js); what is gated is any real door switching.',
+    gate: 'Per-property legal / zoning / licensing checklist (DR-029) — a function that REFUSES the switch until zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law are each cleared and recorded by a named person. Real-estate questions route to counsel; the module records THAT it was cleared, never the determination.',
+    evidence: 'app/src/modules/properties/coliving.js',
+  }),
+  Object.freeze({
     id: 'P7', title: 'The app for OTHER landlords',
     state: 'planned',
     detail: 'A second landlord is a new config object on this engine (their own instance, their own doors). Tier C — a new external-facing product face is the Governor’s gate, not the agent’s.',
@@ -113,6 +120,8 @@ export const CONSTRAINTS = Object.freeze([
   Object.freeze({ id: 'C3', title: 'Money never moves in the app', detail: 'Rent is recorded, never charged or transferred. A balance edit changes a number and lands an audit row; it moves no money (DR-0094).' }),
   Object.freeze({ id: 'C4', title: 'Screening is legally regulated', detail: 'Application review does not ship without the fair-housing / FCRA guardrail and consistent, documented criteria (DR-0101 §7). Guidance to verify with a licensed professional — never legal advice.' }),
   Object.freeze({ id: 'C5', title: 'Two installed apps need disjoint scopes', detail: 'A device can only install Poe Properties beside PoeTech because the scopes do not overlap. Its manifest scope is /properties/ and a gate fails the build if that ever collides (DR-0258/DR-0261).' }),
+  Object.freeze({ id: 'C8', title: 'Rent-by-the-room is a different legal regime, per parcel', detail: 'Co-living frequently triggers zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law that differ from a single-family lease — and differ by parcel, not just by town. The module refuses the mode switch until each is cleared and recorded by a named person, and it records that a human cleared it rather than generating the legal determination. Not legal advice.' }),
+  Object.freeze({ id: 'C9', title: 'No surveillance inside a room, ever', detail: 'Smart locks and access logs live at the door. A camera, microphone or occupancy sensor inside a room cannot be configured at any level — the check refuses the config outright, so the line holds even if someone later wants it (DR-028).' }),
   Object.freeze({ id: 'C7', title: 'An invited person signs in with EMAIL — password or link', detail: 'Recognition matches the exact address the landlord invited, so the door leads with email rather than the phone+PIN way the congregation uses. Email + password works with no mail server at all; the magic-link path depends on the stack\u2019s SMTP and is rate-limited on the hosted plan (DR-0307 \u00a73 hit exactly that). A tenant with no email address cannot be invited today \u2014 named, not papered over.' }),
   Object.freeze({ id: 'C6', title: 'The rent history in the v2.2 lease spine still needs an auth hook', detail: 'Payments recorded on the tenancy spine reach the tenant today. The older leases/rent_payments portal (schema-v2.10) needs a Supabase dashboard toggle only the account owner can flip — named, not silently assumed.' }),
 ]);
