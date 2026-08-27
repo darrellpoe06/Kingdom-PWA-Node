@@ -31,6 +31,8 @@ import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../.
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
+import { TimelineTab, RoomsTab } from './DoorTabs.jsx';
+import { loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies } from './cloud.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
@@ -116,6 +118,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     () => doors.find((x) => x.id === activeId) || doors[0] || null,
     [doors, activeId]
   );
+
+  // The DOOR's own records, which outlive any one tenancy. Keyed on rental_ref,
+  // not the tenancy id: that is the whole point of the chronology.
+  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [] });
+  const rentalRef = activeDoor?.rental_ref || null;
+  const loadDoorData = useCallback(async () => {
+    if (!rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [] }); return; }
+    const [rm, ph, tn] = await Promise.all([
+      loadRooms(rentalRef), loadDoorPhotos(rentalRef), loadDoorTenancies(rentalRef),
+    ]);
+    setDoorData({
+      rooms: rm.ok ? rm.rooms : [],
+      photos: ph.ok ? ph.photos : [],
+      tenancies: tn.ok ? tn.tenancies : [],
+    });
+  }, [rentalRef]);
+  useEffect(() => { loadDoorData(); }, [loadDoorData]);
 
   useEffect(() => {
     if (!activeDoor) { setRecord({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }); return; }
@@ -280,6 +299,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={activeDoor} />;
+          case 'timeline': return (
+            <TimelineTab
+              tenancies={doorData.tenancies} events={history} photos={doorData.photos}
+              rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
+            />
+          );
+          case 'rooms': return (
+            <RoomsTab
+              door={{ id: rentalRef, instance_id: activeDoor?.instance_id }}
+              rooms={doorData.rooms} photos={doorData.photos} busy={busy}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { await addRoom(row); loadDoorData(); }}
+              onPatch={async (id, patch) => { await patchRoom(id, patch); loadDoorData(); }}
+            />
+          );
           case 'doors': return (
             <DoorsTab
               doors={doors} staged={staged}

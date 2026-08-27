@@ -52,7 +52,11 @@ const BASE = '/poetech-app';
 const DIST = args[0] || fileURLToPath(new URL('../app/dist', import.meta.url));
 const WIDTHS = [360, 768, 1440];
 const VIEWS = SWEEP
-  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin']
+  // 'properties' added 2026-08-27: the Poe Properties workspace is a face of
+  // its own (its own manifest scope, its own served page) and had NO layout
+  // instrument — the exact gap dimension 4 exists to close, found by running
+  // this review against a surface the sweep list had never heard of.
+  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties']
   : ['church'];
 
 if (!existsSync(join(DIST, 'index.html'))) {

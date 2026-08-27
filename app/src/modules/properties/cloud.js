@@ -327,3 +327,63 @@ export async function revokeInvite(id, client = supabase) {
     return error ? no('write-failed', error) : ok();
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// The door's rooms and its pictures (0153). Rooms are rows, so the app never
+// branches on a room name — it renders whatever the door has.
+// ---------------------------------------------------------------------------
+
+/** Every room on a door, archived ones included — the archived carry history. */
+export async function loadRooms(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ rooms: [] });
+  try {
+    const { data, error } = await client
+      .from('property_rooms').select('*').eq('rental_ref', rentalRef).order('sort_order');
+    if (error) return no('read-failed', error);
+    return ok({ rooms: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Add a room. The row is built and validated by rooms.js before it gets here. */
+export async function addRoom(row, client = supabase) {
+  try {
+    const { data, error } = await client.from('property_rooms').insert(row).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ room: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Archive or restore. There is no delete path — the photos outlive the room. */
+export async function patchRoom(id, patch, client = supabase) {
+  if (!id) return no('no-room');
+  try {
+    const { data, error } = await client.from('property_rooms').update(patch).eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ room: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * The door's photos. RLS decides what comes back — a tenant sees only their own
+ * tenancy's, and never the door-level turn between households.
+ */
+export async function loadDoorPhotos(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ photos: [] });
+  try {
+    const { data, error } = await client
+      .from('property_photos').select('*').eq('rental_ref', rentalRef).order('taken_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Every tenancy this door has held — the chapters of its chronology. */
+export async function loadDoorTenancies(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ tenancies: [] });
+  try {
+    const { data, error } = await client
+      .from('rental_tenancies').select('*').eq('rental_ref', rentalRef).order('lease_start', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ tenancies: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
