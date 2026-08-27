@@ -204,6 +204,21 @@ export async function markRentPosted(id, txId, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * Create the tenancy a landlord CONFIRMED from a staged record. Owner/admin or
+ * member only (0055's rental_tenancies_insert policy is the gate) — a delegated
+ * operator can never create a door's tenancy.
+ */
+export async function createTenancy(row, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('rental_tenancies')
+      .insert({ ...row, created_by: uid }).select().single();
+    if (error) return no('write-failed', error);
+    return ok({ row: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
 // --- the landlord side: invitations ----------------------------------------
 
 /**
