@@ -20,7 +20,8 @@ import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
-import { loadPublicVacancies } from '../modules/properties/cloud.js';
+import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
+import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -86,6 +87,7 @@ export default function PropertiesDoor() {
  */
 function SignedOutDoor() {
   const [who, setWho] = useState(null);
+  const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
 
   useEffect(() => {
@@ -96,6 +98,7 @@ function SignedOutDoor() {
   }, [who, vacancies]);
 
   const chosen = WHO_OPTIONS.find((w) => w.id === who) || null;
+  const back = () => { setWho(null); setWantsAuth(false); };
 
   if (!chosen) {
     return (
@@ -146,26 +149,137 @@ function SignedOutDoor() {
             {v.note && <div className="text-xs text-[#5A5751]" style={serif}>{v.note}</div>}
           </div>
         ))}
-        <p className="text-xs text-[#5A5751] mt-3" style={serif}>
-          To apply, reach out and we will send you the application. The exact address is given by a person, not published here.
+        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
+          The exact address is given by a person, not published here.
+        </p>
+        <ApplyForm vacancies={vacancies || []} />
+      </div>
+    );
+  }
+
+  // Signing in is a door you TAKE, not a gate you pass (Darrell: "only if they
+  // want or need to log in to the app"). So this says what is behind it and
+  // waits — the form appears when the person asks for it.
+  return (
+    <>
+      <div className="bg-white border border-[#E8E4DC] p-4 mb-3">
+        <button type="button" onClick={back} className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] mb-2">← Back</button>
+        <p className="text-sm text-[#1A1815] mb-1" style={serif}>{chosen.blurb}</p>
+        <p className="text-xs text-[#5A5751] mb-3" style={serif}>
+          Your place is tied to the email address <strong>or the cell phone number</strong> your landlord used to invite you — that
+          is how the app knows which one is yours. Nothing to set up.
+        </p>
+        {!wantsAuth && (
+          <button
+            type="button" onClick={() => setWantsAuth(true)}
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border bg-[#2F5D50] text-white border-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+          >Sign in / create a profile</button>
+        )}
+      </div>
+      {wantsAuth && (
+        <div className="mx-auto w-full sm:w-2/3 lg:w-1/3">
+          <PasswordAuth mode="signin" embedded startWith="email" onSignedIn={() => window.location.reload()} />
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * The application, filled by someone with NO account. Renders the family's own
+ * form (intake.js, read from their Drive) — app-collected fields only, so an
+ * SSN is never even asked for here. Submitting needs no sign-in; an account is
+ * OFFERED afterward, never required, because the application is the point.
+ */
+function ApplyForm({ vacancies }) {
+  const [open, setOpen] = useState(false);
+  const [values, setValues] = useState({});
+  const [unit, setUnit] = useState('');
+  const [sent, setSent] = useState(null);
+  const set = (key) => (e) => setValues((p) => ({ ...p, [key]: e.target.value }));
+
+  if (!open) {
+    return (
+      <button
+        type="button" onClick={() => setOpen(true)}
+        className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border bg-[#2F5D50] text-white border-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+      >Apply — no account needed</button>
+    );
+  }
+  if (sent) {
+    return (
+      <div className="border border-[#E8E4DC] p-3">
+        <p className="text-sm text-[#1A1815]" style={serif}>{sent}</p>
+        <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+          You do not need an account for us to read this. If you want one — to follow your application and, once you are approved,
+          to reach your unit — you can make one any time from this page.
         </p>
       </div>
     );
   }
 
+  const check = validateApplication(values);
+  const name = `${values['applicant.firstName'] || ''} ${values['applicant.lastName'] || ''}`.trim();
+
   return (
-    <>
-      <div className="bg-white border border-[#E8E4DC] p-4 mb-3">
-        <button type="button" onClick={() => setWho(null)} className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] mb-2">← Back</button>
-        <p className="text-sm text-[#1A1815] mb-1" style={serif}>{chosen.blurb}</p>
-        <p className="text-xs text-[#5A5751]" style={serif}>
-          Sign in with the email address <strong>or the cell phone number</strong> your landlord used to invite you.
-          That is how the app knows which place is yours — nothing to set up. First time here? Create a profile with the same one.
-        </p>
-      </div>
-      <div className="mx-auto w-full sm:w-2/3 lg:w-1/3">
-        <PasswordAuth mode="signin" embedded startWith="email" onSignedIn={() => window.location.reload()} />
-      </div>
-    </>
+    <div className="border border-[#E8E4DC] p-3">
+      <p className="text-xs text-[#5A5751] mb-2" style={serif}>
+        Every adult 18 or older fills out their own. We never ask for a Social Security number here — if screening needs one,
+        a person asks you directly.
+      </p>
+      {vacancies.length > 0 && (
+        <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label="Which unit"
+          className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white mb-2 w-full" style={serif}>
+          <option value="">Which unit are you applying for?</option>
+          {vacancies.map((v) => <option key={v.id} value={v.id}>{v.label}{v.unit ? ` · ${v.unit}` : ''}</option>)}
+        </select>
+      )}
+      {APPLICATION_SECTIONS.map((section) => {
+        const fields = section.fields.filter((f) => f.collect === 'app');
+        if (!fields.length) return null;
+        return (
+          <fieldset key={section.id} className="mb-3">
+            <legend className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: brand.accent }}>{section.title}</legend>
+            {section.note && <p className="text-xs text-[#5A5751] mb-1" style={serif}>{section.note}</p>}
+            {fields.map((f) => {
+              const key = `${section.id}.${f.id}`;
+              return (
+                <label key={key} className="block text-xs text-[#5A5751] mb-2" style={serif}>
+                  {f.label}{f.required ? ' *' : ''}
+                  {f.type === 'yesno' ? (
+                    <select value={values[key] || ''} onChange={set(key)} className="w-full text-sm border border-[#E8E4DC] px-2 py-2 bg-white">
+                      <option value="">—</option><option value="no">No</option><option value="yes">Yes</option>
+                    </select>
+                  ) : (
+                    <input
+                      value={values[key] || ''} onChange={set(key)}
+                      type={f.type === 'date' ? 'date' : f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : 'text'}
+                      className="w-full text-sm border border-[#E8E4DC] px-2 py-2"
+                    />
+                  )}
+                  {f.help && <span className="text-[0.625rem] text-[#8A867E]">{f.help}</span>}
+                </label>
+              );
+            })}
+          </fieldset>
+        );
+      })}
+      <button
+        type="button" disabled={!check.ok || !name}
+        onClick={async () => {
+          const res = await submitApplication({
+            rentalId: unit || null, name,
+            email: values['applicant.email'], phone: values['applicant.cellPhone'], answers: values,
+          });
+          setSent(res.ok
+            ? 'Your application is in. Someone will reach out about the next step.'
+            : `That did not send (${res.reason}). Nothing was lost — try again, or call us.`);
+        }}
+        className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border ${check.ok && name ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'opacity-40 border-[#E8E4DC]'}`}
+      >Send my application</button>
+      {!check.ok && check.missing.length > 0 && (
+        <p className="text-[0.625rem] text-[#8A867E] mt-1">Still needed: {check.missing.length} required field{check.missing.length === 1 ? '' : 's'}.</p>
+      )}
+    </div>
   );
 }

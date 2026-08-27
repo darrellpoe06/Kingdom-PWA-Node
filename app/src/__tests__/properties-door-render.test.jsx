@@ -96,13 +96,45 @@ describe('the signed-out door', () => {
     expect(container.textContent).toMatch(/address is given by a person, not published here/i);
   });
 
-  it('a TENANT gets the sign-in, and it names BOTH identities the invite accepts', async () => {
+  it('a TENANT is TOLD what is behind the door before any form appears', async () => {
     await mount();
     await click(/Your unit, work orders/i);
+    // "only if they want or need to log in" — no credential fields until asked.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
+    expect(container.textContent).toMatch(/email address .*or the cell phone number/is);
+    expect(container.textContent).toMatch(/Sign in \/ create a profile/i);
+  });
+
+  it('the sign-in form appears only when the person asks for it — and names both identities', async () => {
+    await mount();
+    await click(/Your unit, work orders/i);
+    await click(/Sign in \/ create a profile/i);
     const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
     expect(labels.some((l) => /email/i.test(l)), `email field missing; saw: ${labels.join(', ')}`).toBe(true);
-    expect(container.textContent).toMatch(/email address .*or the cell phone number.*invite you/is);
     // The phone+PIN way stays REACHABLE (DR-0172 — not everyone has email).
     expect(/phone number \+ (a )?PIN/i.test(container.textContent)).toBe(true);
+  });
+
+  it('an APPLICANT can apply with NO account, and is never asked for an SSN', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/Apply — no account needed/i);
+    await click(/Apply — no account needed/i);
+    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent).join(' | ');
+    expect(labels).toMatch(/Last name/i);
+    expect(labels).toMatch(/Cell phone/i);
+    expect(labels).toMatch(/evicted/i);                       // the real background questions
+    expect(/social security/i.test(labels), 'the public form asks for an SSN').toBe(false);
+    expect(/driver.s license/i.test(labels), 'the public form asks for a licence number').toBe(false);
+    expect(container.textContent).toMatch(/never ask for a Social Security number here/i);
+  });
+
+  it('the application will not send until the required fields are filled', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    await click(/Apply — no account needed/i);
+    const send = [...container.querySelectorAll('button')].find((b) => /Send my application/i.test(b.textContent));
+    expect(send.disabled).toBe(true);
+    expect(container.textContent).toMatch(/Still needed: \d+ required field/i);
   });
 });
