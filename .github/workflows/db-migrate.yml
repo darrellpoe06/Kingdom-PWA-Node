@@ -94,13 +94,24 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
+          # Strip whitespace from the secret before handing it to psql. The
+          # stored value carries a trailing newline, so a raw "$SUPABASE_DB_URL"
+          # asks for a database literally named "postgres\n" and psql answers
+          # FATAL: database "postgres\n" does not exist. scripts/db-migrate-apply.sh
+          # has done this since it was written (line 31) — the fix was already
+          # in this same lane and I did not reuse it, which is the P26 class.
+          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set; the witness cannot observe the database."
+            exit 2
+          fi
           # The query is BUILT by the witness, names inlined. psql does not
           # interpolate :'vars' inside -c, so the first version of this step
           # sent the placeholder to the server, got nothing back, and reported
           # all ten functions "absent" — a false alarm, which is a broken gate
           # exactly as surely as a silent one. No substitution step, no fault.
           node scripts/live-definition-witness.mjs --sql > "$RUNNER_TEMP/witness.sql"
-          psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/witness.sql" > "$RUNNER_TEMP/witness.json"
+          psql "$DBURL" -At -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/witness.sql" > "$RUNNER_TEMP/witness.json"
           # Empty output means the query never ran; --check exits 2 rather than
           # inventing findings out of a plumbing fault.
           node scripts/live-definition-witness.mjs --check < "$RUNNER_TEMP/witness.json"
