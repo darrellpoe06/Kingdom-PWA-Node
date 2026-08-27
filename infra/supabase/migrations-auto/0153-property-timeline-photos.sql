@@ -227,6 +227,15 @@ SELECT public.apply_assistant_scope_overlay();
 -- deliberately not among them. Any isolation leg that replays 0152 must now
 -- also list 0153 after it (migration-replay-order-guard enforces this).
 -- ---------------------------------------------------------------------------
+-- CREATE OR REPLACE cannot widen a RETURNS TABLE — Postgres refuses with
+-- "cannot change return type of existing function", and because each migration
+-- applies in its own transaction, that error rolled back this ENTIRE file on
+-- 2026-08-27 02:24 (property_rooms and property_photos never existed). The drop
+-- and the create sit in the same transaction, so there is no window where the
+-- vacancy RPC is missing; the grants below are re-issued because a drop takes
+-- them with it.
+DROP FUNCTION IF EXISTS public.public_vacancies();
+
 CREATE OR REPLACE FUNCTION public.public_vacancies()
 RETURNS TABLE (
   id           uuid,
