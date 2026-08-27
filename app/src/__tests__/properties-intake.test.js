@@ -145,3 +145,67 @@ describe('fair housing is a gate, not a paragraph (DR-0101 §7)', () => {
     }
   });
 });
+
+describe('the inventory answers "rented or available" without guessing', () => {
+  it('splits real doors by their REAL tenancy state', async () => {
+    const { inventory } = await import('../modules/properties/model.js');
+    const inv = inventory(
+      [{ id: 'a', slug: 'PROP-A' }, { id: 'b', slug: 'PROP-B', listed_at: '2026-08-01' }, { id: 'c', slug: 'PROP-C' }],
+      [{ rental_ref: 'PROP-A', status: 'active' }],
+      [{ id: 'b' }],
+    );
+    expect(inv.counts).toEqual({ rented: 1, available: 1, unknown: 1, total: 3 });
+  });
+
+  it('a door nobody listed is UNKNOWN, never "available"', async () => {
+    const { inventory } = await import('../modules/properties/model.js');
+    const inv = inventory([{ id: 'c', slug: 'PROP-C' }], [], []);
+    expect(inv.counts.available).toBe(0);
+    expect(inv.counts.unknown).toBe(1);
+    // Because "available" is a claim that brings strangers to an address.
+    expect(inv.unknownMeans).toMatch(/never advertised automatically/i);
+  });
+
+  it('an ended tenancy does not keep a door counted as rented', async () => {
+    const { inventory } = await import('../modules/properties/model.js');
+    const inv = inventory([{ id: 'a', slug: 'PROP-A' }], [{ rental_ref: 'PROP-A', status: 'ended' }], []);
+    expect(inv.counts.rented).toBe(0);
+  });
+});
+
+describe('the vacancy RPC can only ever return safe columns', () => {
+  it('names its columns explicitly and returns none of the family\'s money', async () => {
+    const sql = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0152-vacancies-and-no-account-applications.sql'), 'utf8');
+    const returns = /RETURNS TABLE \(([\s\S]*?)\)\nLANGUAGE/.exec(sql);
+    expect(returns, 'public_vacancies must declare an explicit column list').toBeTruthy();
+    for (const forbidden of ['purchase_price', 'mortgage_balance', 'mortgage_rate', 'current_market_value', 'reserves', 'tenant_name', 'address']) {
+      expect(returns[1].includes(forbidden), `public_vacancies exposes ${forbidden}`).toBe(false);
+    }
+  });
+
+  it('only shows a unit the landlord LISTED and that has no active tenancy', async () => {
+    const sql = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0152-vacancies-and-no-account-applications.sql'), 'utf8');
+    expect(sql).toMatch(/WHERE r\.listed_at IS NOT NULL/);
+    expect(sql).toMatch(/NOT EXISTS \(\s*SELECT 1 FROM rental_tenancies/);
+    expect(sql).not.toMatch(/CREATE POLICY[^;]*ON rentals[^;]*anon/i);   // rentals itself stays closed
+  });
+
+  it('an application can be filed by anyone but read by nobody outside the instance', async () => {
+    const sql = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0152-vacancies-and-no-account-applications.sql'), 'utf8');
+    expect(sql).toMatch(/rental_applications_public_insert ON rental_applications FOR INSERT TO anon, authenticated/);
+    expect(sql).toMatch(/rental_applications_read ON rental_applications FOR SELECT TO authenticated/);
+    expect(sql).not.toMatch(/rental_applications[\s\S]{0,200}FOR SELECT TO anon/);
+  });
+
+  it('the database itself refuses an SSN, not just the model', async () => {
+    const sql = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0152-vacancies-and-no-account-applications.sql'), 'utf8');
+    expect(sql).toMatch(/CONSTRAINT rental_applications_no_ssn CHECK/);
+    expect(sql).toMatch(/NOT \(answers \? 'applicant\.ssn'\)/);
+  });
+
+  it('a decision cannot be recorded without its reason', async () => {
+    const sql = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0152-vacancies-and-no-account-applications.sql'), 'utf8');
+    expect(sql).toMatch(/rental_applications_decision_has_reason CHECK/);
+    expect(sql).toMatch(/length\(trim\(decision_reason\)\) >= 10/);
+  });
+});

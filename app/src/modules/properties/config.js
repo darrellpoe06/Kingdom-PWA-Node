@@ -62,8 +62,8 @@ export const LAUNCH_PLAN = Object.freeze([
   Object.freeze({
     id: 'P3', title: 'The doors carry real tenancies',
     state: 'hand',
-    detail: 'The 12 rental doors are live in the app; rental_tenancies is empty. Each door needs its tenant name, email, lease dates, and rent — the landlord’s own records, typed once from the Doors tab.',
-    whoseHand: 'Darrell / Christina — but only for the CURRENT-STATE facts. The DR-0108 challenge was run 2026-08-26 rather than assumed: the agent CAN read the family\u2019s own records (a real 2022-23 lease PDF is in Drive; Gmail is connected), so sourcing and staging what exists is channel-drivable and is the next build. What no channel can supply is who lives where TODAY at what rent \u2014 that confirmation is the landlord\u2019s, and the agent will not invent it (DR-0076).',
+    detail: 'The 12 rental doors are live in the app; rental_tenancies is empty. The Doors tab now STAGES drafts from the family’s own records (name, term, and any rent the record actually states, each showing where it came from) — the landlord picks the door and confirms, and only then is a tenancy written.',
+    whoseHand: 'Darrell / Christina — the CONFIRMATION only. The DR-0108 challenge was run rather than assumed, and it removed most of this step: drafts are now read from the family\u2019s own records and staged with provenance (modules/properties/staging.js), so a door is a tap to confirm rather than a form to type. What no channel can supply is who lives where TODAY at what rent — that word is the landlord\u2019s, and nothing is written until they give it.',
     reReview: '2026-09-02',
   }),
   Object.freeze({
@@ -85,6 +85,13 @@ export const LAUNCH_PLAN = Object.freeze([
     reReview: '2026-10-07',
   }),
   Object.freeze({
+    id: 'P6b', title: 'Co-living — rent by the room, per door',
+    state: 'gated',
+    detail: 'The dual operating model from the 2026-06-09 spec (DR-026…DR-030): a door runs whole-unit OR rent-by-the-room, chosen per property. Rooms carry the spec’s own economics ($1,000/room, utilities included, 1–2 people, waitlist), housemates reuse the existing unit layer, and smart-lock access is the access layer. The model and both binding lines are BUILT (modules/properties/coliving.js); what is gated is any real door switching.',
+    gate: 'Per-property legal / zoning / licensing checklist (DR-029) — a function that REFUSES the switch until zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law are each cleared and recorded by a named person. Real-estate questions route to counsel; the module records THAT it was cleared, never the determination.',
+    evidence: 'app/src/modules/properties/coliving.js',
+  }),
+  Object.freeze({
     id: 'P7', title: 'The app for OTHER landlords',
     state: 'planned',
     detail: 'A second landlord is a new config object on this engine (their own instance, their own doors). Tier C — a new external-facing product face is the Governor’s gate, not the agent’s.',
@@ -103,7 +110,7 @@ export const OPPORTUNITIES = Object.freeze([
   Object.freeze({ id: 'O2', title: 'The relationship record builds itself', detail: 'Work orders, messages, notes, job documentation, payments, and notices merge into one chronological history per door. Nobody has to assemble a timeline later — responsiveness is judged on real timestamps.', reReview: '2026-10-14' }),
   Object.freeze({ id: 'O3', title: 'Rent flows into the books instead of a spreadsheet', detail: 'A confirmed payment posts once into the PoeTech books as rental income against the property. One river: the landlord’s books stay whole without re-typing what the tenant already reported.', reReview: '2026-10-14' }),
   Object.freeze({ id: 'O4', title: 'A product for other landlords', detail: 'The engine is landlord-agnostic: a second landlord is a config object plus their own instance. Property management sells on its own; the books, taxes, entities, and forecasting stay the reason to add PoeTech — a natural upgrade, not a bundle nobody asked for.', reReview: '2026-10-21' }),
-  Object.freeze({ id: 'O6', title: 'The tenancies can be STAGED from the family\u2019s own records', detail: 'The DR-0108 challenge found the agent is not blocked from the data it can reach: a real lease PDF sits in Drive and Gmail is connected, so leases and threads can be read and staged as draft tenancies for one-tap confirmation instead of twelve doors typed by hand. The landlord still confirms every row \u2014 staging is not asserting.', reReview: '2026-09-09' }),
+  Object.freeze({ id: 'O6', title: 'Tenancies stage themselves from the family\u2019s own records', detail: 'Built 2026-08-26 after the DR-0108 challenge removed a fake human step: leases and threads are read and proposed as draft tenancies carrying provenance for every value, so a door is one tap to confirm instead of a form to type. The guard rail is that staging PROPOSES and never asserts — an unconfirmed draft cannot be written, a value with no source is not emitted, and a field the record does not state stays blank and says so.', reReview: '2026-10-07' }),
   Object.freeze({ id: 'O5', title: 'The 1099 record and the work record become one', detail: 'The contractor list already lives in the books for taxes. When a worker documents jobs in the app, the year’s work and the year’s 1099 come from the same rows.', reReview: '2026-11-04' }),
 ]);
 
@@ -113,6 +120,8 @@ export const CONSTRAINTS = Object.freeze([
   Object.freeze({ id: 'C3', title: 'Money never moves in the app', detail: 'Rent is recorded, never charged or transferred. A balance edit changes a number and lands an audit row; it moves no money (DR-0094).' }),
   Object.freeze({ id: 'C4', title: 'Screening is legally regulated', detail: 'Application review does not ship without the fair-housing / FCRA guardrail and consistent, documented criteria (DR-0101 §7). Guidance to verify with a licensed professional — never legal advice.' }),
   Object.freeze({ id: 'C5', title: 'Two installed apps need disjoint scopes', detail: 'A device can only install Poe Properties beside PoeTech because the scopes do not overlap. Its manifest scope is /properties/ and a gate fails the build if that ever collides (DR-0258/DR-0261).' }),
+  Object.freeze({ id: 'C8', title: 'Rent-by-the-room is a different legal regime, per parcel', detail: 'Co-living frequently triggers zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law that differ from a single-family lease — and differ by parcel, not just by town. The module refuses the mode switch until each is cleared and recorded by a named person, and it records that a human cleared it rather than generating the legal determination. Not legal advice.' }),
+  Object.freeze({ id: 'C9', title: 'No surveillance inside a room, ever', detail: 'Smart locks and access logs live at the door. A camera, microphone or occupancy sensor inside a room cannot be configured at any level — the check refuses the config outright, so the line holds even if someone later wants it (DR-028).' }),
   Object.freeze({ id: 'C7', title: 'An invited person signs in with EMAIL — password or link', detail: 'Recognition matches the exact address the landlord invited, so the door leads with email rather than the phone+PIN way the congregation uses. Email + password works with no mail server at all; the magic-link path depends on the stack\u2019s SMTP and is rate-limited on the hosted plan (DR-0307 \u00a73 hit exactly that). A tenant with no email address cannot be invited today \u2014 named, not papered over.' }),
   Object.freeze({ id: 'C6', title: 'The rent history in the v2.2 lease spine still needs an auth hook', detail: 'Payments recorded on the tenancy spine reach the tenant today. The older leases/rent_payments portal (schema-v2.10) needs a Supabase dashboard toggle only the account owner can flip — named, not silently assumed.' }),
 ]);

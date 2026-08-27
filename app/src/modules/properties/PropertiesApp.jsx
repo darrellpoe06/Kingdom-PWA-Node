@@ -25,10 +25,11 @@ import {
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
-  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties,
+  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy,
 } from './cloud.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
+import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
@@ -80,7 +81,7 @@ const KIND_LABEL = {
  *                   Absent in the Poe Properties door: the money river runs
  *                   books-side by design (0150's posting trigger enforces it).
  */
-export default function PropertiesApp({ surface = 'poetech', books = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [] }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
@@ -90,6 +91,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
   const [tab, setTab] = useState('');
   const [busy, setBusy] = useState('');
+  // Drafts the caller read from the family's own records (Drive/Gmail). The
+  // module never fetches them itself — the shell hands them in, so this surface
+  // has no opinion about WHERE a record lives, only about not asserting it.
+  const [staged, setStaged] = useState(() => records.map((r) => stageFromRecord(r)).filter(Boolean));
   const [notice, setNotice] = useState('');
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
@@ -188,6 +193,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
     refresh();
   };
 
+  const confirmStaged = async (draft, rentalRef) => {
+    const door = doors.find((d) => (d.rental_ref || d.id) === rentalRef);
+    const built = tenancyRowFromDraft(confirmDraft(draft), {
+      instanceId: door?.instance_id || activeDoor?.instance_id,
+      rentalRef, propertyLabel: door?.property_label, unitLabel: door?.unit_label, confirmed: true,
+    });
+    if (!built.ok) { say(`Not saved: ${built.reason}`); return; }
+    const res = await createTenancy(built.row);
+    if (res.ok) setStaged((prev) => prev.filter((s) => s !== draft));
+    say(res.ok ? `${built.row.tenant_name} is on the door now.` : `Not saved: ${res.reason}`);
+    refresh();
+  };
+
   const postRentToBooks = async (rentRow) => {
     const gate = canPostToBooks(rentRow);
     if (!gate.ok) { say(`Not posted: ${gate.reason}`); return; }
@@ -261,7 +279,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={activeDoor} />;
-          case 'doors': return <DoorsTab doors={doors} onPick={(id) => { setActiveId(id); setTab('history'); }} />;
+          case 'doors': return (
+            <DoorsTab
+              doors={doors} staged={staged}
+              onPick={(id) => { setActiveId(id); setTab('history'); }}
+              onConfirmDraft={confirmStaged}
+            />
+          );
           case 'work': case 'jobs': case 'board':
             return (
               <WorkTab
@@ -335,8 +359,53 @@ function DoorCard({ door }) {
   );
 }
 
-function DoorsTab({ doors, onPick }) {
+/**
+ * Drafts read from the family's OWN records, waiting on a human. Every value
+ * shows where it came from, and nothing here has been written: confirming is
+ * what writes a tenancy (staging.js refuses an unconfirmed draft outright).
+ */
+function StagedDrafts({ staged, doors, onConfirm }) {
+  const [chosen, setChosen] = useState({});
+  if (!staged || !staged.length) return null;
   return (
+    <Card title={`From your records (${staged.length})`}>
+      <Empty>Read from your own files — nothing is saved until you confirm it, and a blank field means the record did not say.</Empty>
+      {staged.map((s, i) => (
+        <div key={`${s.draft.tenantName}-${i}`} className="border-b border-[#F0EDE6] py-2">
+          <div className="text-sm text-[#1A1815]" style={serif}>{s.draft.tenantName}</div>
+          <div className="text-xs text-[#5A5751]" style={serif}>
+            {s.draft.leaseStart || 'no start date'} → {s.draft.leaseEnd || 'no end date'}
+            {s.draft.monthlyRent ? ` · $${s.draft.monthlyRent}/mo` : ' · rent not stated'}
+          </div>
+          {s.missing.length > 0 && (
+            <div className="text-[0.625rem] text-[#8A867E]">Not in the record: {s.missing.join(', ')}</div>
+          )}
+          {s.notes.map((n, j) => (
+            <div key={j} className="text-[0.625rem] text-[#8A867E]">{n}</div>
+          ))}
+          <div className="flex flex-wrap items-center gap-1 mt-2">
+            <select
+              value={chosen[i] || ''} onChange={(e) => setChosen((p) => ({ ...p, [i]: e.target.value }))}
+              aria-label={`Which door is ${s.draft.tenantName}'s?`}
+              className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}
+            >
+              <option value="">Which door?</option>
+              {doors.map((d) => (
+                <option key={d.id} value={d.rental_ref || d.id}>{[d.property_label, d.unit_label].filter(Boolean).join(' · ') || d.rental_ref}</option>
+              ))}
+            </select>
+            <Btn tone="primary" disabled={!chosen[i]} onClick={() => onConfirm(s, chosen[i])}>Confirm</Btn>
+          </div>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+function DoorsTab({ doors, onPick, staged, onConfirmDraft }) {
+  return (
+    <>
+    <StagedDrafts staged={staged} doors={doors} onConfirm={onConfirmDraft} />
     <Card title={`Doors (${doors.length})`}>
       {doors.map((d) => (
         <button key={d.id} type="button" onClick={() => onPick(d.id)}
@@ -346,6 +415,7 @@ function DoorsTab({ doors, onPick }) {
         </button>
       ))}
     </Card>
+    </>
   );
 }
 

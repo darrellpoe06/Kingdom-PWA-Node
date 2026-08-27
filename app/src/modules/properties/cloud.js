@@ -20,6 +20,49 @@ import supabase, { phoneLoginEmail, normalizePhone } from '../../lib/supabase.js
 const ok = (extra = {}) => ({ ok: true, ...extra });
 const no = (reason, error) => ({ ok: false, reason, error: (error && error.message) || undefined });
 
+/**
+ * What anyone can see with NO account: the units the landlord has LISTED.
+ * Reads through public_vacancies(), which is column-explicit by design — it
+ * cannot return the family's mortgage balances or a current tenant's name even
+ * if a later change asked it to (0152). Never throws; empty is a real answer.
+ */
+export async function loadPublicVacancies(client = supabase) {
+  try {
+    const { data, error } = await client.rpc('public_vacancies');
+    if (error) {
+      const msg = error.message || String(error);
+      const reason = /function .*public_vacancies.* does not exist/i.test(msg) ? 'not-enabled-yet' : 'rpc-error';
+      return no(reason, error);
+    }
+    return ok({ vacancies: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Submit a rental application — with or without an account. The intake model
+ * refuses an SSN before this is called, and the database refuses one too
+ * (rental_applications_no_ssn); belt and suspenders on the one field that
+ * would change what this database is.
+ */
+export async function submitApplication({ instanceId, rentalId, name, email, phone, answers }, client = supabase) {
+  const payload = { ...(answers || {}) };
+  delete payload['applicant.ssn'];
+  delete payload['applicant.driversLicense'];
+  try {
+    const uid = await userId(client);
+    const { error } = await client.from('rental_applications').insert({
+      instance_id: instanceId || null,
+      rental_id: rentalId || null,
+      applicant_name: String(name || '').trim(),
+      applicant_email: String(email || '').trim() || null,
+      applicant_phone: String(phone || '').trim() || null,
+      answers: payload,
+      submitted_by: uid,
+    });
+    return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** Turn an invitation into access. Idempotent; safe to call on every sign-in. */
 export async function claimPropertyAccess(client = supabase) {
   try {
@@ -201,6 +244,21 @@ export async function markRentPosted(id, txId, client = supabase) {
     const { error } = await client.from('rent_records')
       .update({ posted_tx_id: txId, posted_at: new Date().toISOString(), posted_by: uid }).eq('id', id);
     return error ? no('write-refused', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Create the tenancy a landlord CONFIRMED from a staged record. Owner/admin or
+ * member only (0055's rental_tenancies_insert policy is the gate) — a delegated
+ * operator can never create a door's tenancy.
+ */
+export async function createTenancy(row, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('rental_tenancies')
+      .insert({ ...row, created_by: uid }).select().single();
+    if (error) return no('write-failed', error);
+    return ok({ row: data });
   } catch (e) { return no('unexpected', e); }
 }
 

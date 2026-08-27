@@ -28,7 +28,14 @@ vi.mock('../lib/supabase.js', () => ({
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
       signOut: async () => ({}),
     },
+    // The signed-out door asks for listed vacancies; two listed, so the
+    // "nothing available" copy and the listing copy are both exercised.
+    rpc: async (name) => (name === 'public_vacancies'
+      ? { data: [{ id: 'v1', label: 'Maple Street', unit: 'Unit 2', city: 'Davenport', state: 'IA', property_type: 'duplex', rent: 950, note: 'Available Sept 1' }], error: null }
+      : { data: null, error: null }),
   },
+  phoneLoginEmail: (p) => (String(p || '').replace(/\D+/g, '').length >= 10 ? `1${String(p).replace(/\D+/g, '')}@phone.poetech.us` : ''),
+  normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
 }));
 
 import PropertiesDoor from '../components/PropertiesDoor.jsx';
@@ -43,24 +50,91 @@ async function mount() {
   await act(async () => { await Promise.resolve(); });
 }
 
+const click = async (re) => {
+  const el = [...container.querySelectorAll('button')].find((b) => re.test(b.textContent));
+  expect(el, `no button matching ${re}`).toBeTruthy();
+  await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  await act(async () => { await Promise.resolve(); });
+};
+
 describe('the signed-out door', () => {
   it('carries the Poe Properties name, not PoeTech', async () => {
     await mount();
     expect(container.querySelector('h1').textContent).toBe('Poe Properties');
   });
 
-  it('asks for the EMAIL the landlord invited — the identity the claim actually matches', async () => {
+  it('ASKS who you are before demanding a sign-in', async () => {
     await mount();
-    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
-    expect(labels.some((l) => /email/i.test(l)), `email field missing; saw: ${labels.join(', ')}`).toBe(true);
-    // The phone+PIN way stays REACHABLE (DR-0172 — not everyone has email), it
-    // just does not lead here.
+    expect(container.textContent).toMatch(/Who are you\?/i);
     const text = container.textContent;
-    expect(/phone number \+ (a )?PIN/i.test(text)).toBe(true);
+    for (const label of ['Looking for a place', 'I live here', 'I do the work', 'I manage properties', 'I own properties']) {
+      expect(text, `"${label}" is not offered`).toContain(label);
+    }
+    // No sign-in form until a person says which one they are.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
   });
 
-  it('tells the person what the email is FOR, so a mismatch is not a mystery', async () => {
+  it('says out loud which choice needs no account', async () => {
     await mount();
-    expect(container.textContent).toMatch(/email address your landlord used to invite you/i);
+    expect(container.textContent).toMatch(/No account needed/i);
+  });
+
+  it('an APPLICANT sees the listed units with no sign-in at all', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/Available now/i);
+    expect(container.textContent).toMatch(/Maple Street/);
+    expect(container.textContent).toMatch(/Davenport/);
+    expect(container.textContent).toMatch(/\$950\/mo/);
+    // Still no sign-in demanded of someone just looking.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
+  });
+
+  it('never publishes the street address to someone with no account', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/address is given by a person, not published here/i);
+  });
+
+  it('a TENANT is TOLD what is behind the door before any form appears', async () => {
+    await mount();
+    await click(/Your unit, work orders/i);
+    // "only if they want or need to log in" — no credential fields until asked.
+    expect(container.querySelectorAll('input')).toHaveLength(0);
+    expect(container.textContent).toMatch(/email address .*or the cell phone number/is);
+    expect(container.textContent).toMatch(/Sign in \/ create a profile/i);
+  });
+
+  it('the sign-in form appears only when the person asks for it — and names both identities', async () => {
+    await mount();
+    await click(/Your unit, work orders/i);
+    await click(/Sign in \/ create a profile/i);
+    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent);
+    expect(labels.some((l) => /email/i.test(l)), `email field missing; saw: ${labels.join(', ')}`).toBe(true);
+    // The phone+PIN way stays REACHABLE (DR-0172 — not everyone has email).
+    expect(/phone number \+ (a )?PIN/i.test(container.textContent)).toBe(true);
+  });
+
+  it('an APPLICANT can apply with NO account, and is never asked for an SSN', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    expect(container.textContent).toMatch(/Apply — no account needed/i);
+    await click(/Apply — no account needed/i);
+    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent).join(' | ');
+    expect(labels).toMatch(/Last name/i);
+    expect(labels).toMatch(/Cell phone/i);
+    expect(labels).toMatch(/evicted/i);                       // the real background questions
+    expect(/social security/i.test(labels), 'the public form asks for an SSN').toBe(false);
+    expect(/driver.s license/i.test(labels), 'the public form asks for a licence number').toBe(false);
+    expect(container.textContent).toMatch(/never ask for a Social Security number here/i);
+  });
+
+  it('the application will not send until the required fields are filled', async () => {
+    await mount();
+    await click(/Looking for a place/i);
+    await click(/Apply — no account needed/i);
+    const send = [...container.querySelectorAll('button')].find((b) => /Send my application/i.test(b.textContent));
+    expect(send.disabled).toBe(true);
+    expect(container.textContent).toMatch(/Still needed: \d+ required field/i);
   });
 });
