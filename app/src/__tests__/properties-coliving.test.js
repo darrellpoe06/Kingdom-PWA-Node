@@ -52,6 +52,15 @@ describe('THE GATE — by-room is refused until a person clears every item (DR-0
     const r = setOperatingMode('by-room', { clearances: partial });
     expect(r.ok).toBe(false);
     expect(r.outstanding).toHaveLength(1);
+    // The gate and the outstanding list agree — the caller is told exactly
+    // which item still needs a person, not just that something does.
+    expect(canSwitchToByRoom(partial).ok).toBe(false);
+    expect(outstandingItems(partial).map((c) => c.id)).toEqual(r.outstanding);
+  });
+
+  it('the gate opens by itself once the last item is cleared', () => {
+    expect(outstandingItems(clearAll())).toHaveLength(0);
+    expect(canSwitchToByRoom(clearAll())).toEqual({ ok: true, reason: '', outstanding: [], message: '' });
   });
 
   it('allows the switch only when all six are cleared and recorded', () => {
