@@ -30,6 +30,7 @@ import {
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
+import { availableDocuments, buildDocument } from './documents.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
@@ -328,6 +329,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 ))}
               </Card>
             );
+          case 'documents':
+            return <DocumentsTab door={activeDoor} tenancy={activeDoor} />;
           case 'plan':
             return <PlanTab />;
           case 'people':
@@ -752,6 +755,54 @@ function PlanTab() {
           </div>
         ))}
       </Card>
+    </>
+  );
+}
+
+/**
+ * The paperwork, prefilled from THIS door's records (documents.js). Nothing is
+ * "generated" in the sense of invented: a field the records cannot fill shows
+ * as a named blank, a regulated document says which law governs it, and every
+ * draft leads with the counsel-review line until an attorney signs it off.
+ */
+function DocumentsTab({ door, tenancy }) {
+  const [openId, setOpenId] = useState(null);
+  const records = { door, tenancy };
+  const list = availableDocuments(records);
+  const open = openId ? buildDocument(openId, records) : null;
+  return (
+    <>
+      <Card title="Documents for this door">
+        <Empty>
+          Each one starts from what this door already knows. A blank means the record did not say it — never a guess.
+          Every draft goes to counsel before anyone signs it.
+        </Empty>
+        {list.map((d) => (
+          <div key={d.id} className="border-b border-[#F0EDE6] py-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-sm text-[#1A1815]" style={serif}>{d.title}</span>
+              {d.ready
+                ? <Btn onClick={() => setOpenId(openId === d.id ? null : d.id)}>{openId === d.id ? 'Close' : 'Open draft'}</Btn>
+                : <span className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">needs {String(d.reason).replace('missing-', '')}</span>}
+            </div>
+            <div className="text-xs text-[#5A5751]" style={serif}>{d.why}</div>
+            {d.regulated && <div className="text-[0.625rem] text-[#8A867E]">Regulated — {d.regulated}</div>}
+            {d.ready && d.blanks.length > 0 && (
+              <div className="text-[0.625rem] text-[#8A867E]">Still blank: {d.blanks.join(', ')}</div>
+            )}
+          </div>
+        ))}
+      </Card>
+      {open && open.ok && (
+        <Card title={open.title}>
+          <pre className="text-xs whitespace-pre-wrap text-[#1A1815]" style={serif}>{open.lines.join('\n')}</pre>
+        </Card>
+      )}
+      {open && !open.ok && (
+        <Card title="Not available for this door">
+          <Empty>{open.message || `This document needs a ${String(open.reason).replace('missing-', '')} first.`}</Empty>
+        </Card>
+      )}
     </>
   );
 }

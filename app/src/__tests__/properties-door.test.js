@@ -269,6 +269,13 @@ describe('the faces people actually meet', () => {
     expect(face.canPostToBooks).toBe(false);
   });
 
+  it('management gets the Documents tab — the paperwork lives in the app (DR-0065)', () => {
+    const mgr = resolveFace('manager', ['request.manage']);
+    expect(mgr.tabs.some((t) => t.id === 'documents')).toBe(true);
+    // Not the tenant's — a tenant reads what they are given, they do not draft it.
+    expect(resolveFace('tenant', []).tabs.some((t) => t.id === 'documents')).toBe(false);
+  });
+
   it('management sees the rollout, gates and constraints in the app itself (DR-0121)', () => {
     const mgr = resolveFace('manager', ['request.manage']);
     expect(mgr.tabs.some((t) => t.id === 'plan')).toBe(true);
