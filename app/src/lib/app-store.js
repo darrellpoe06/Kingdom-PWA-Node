@@ -2,8 +2,8 @@
 // app-store — the PoeTech family's OWN app store record (Darrell 2026-07-23)
 // =============================================================================
 // "Let's put the installation and instructions inside the PoeTech App build and
-// others so we all can do that like our own app store." The four apps of the
-// build family, each with BOTH install paths:
+// others so we all can do that like our own app store." The apps of the
+// build family (DR-0313 added Poe Properties as the fifth), each with BOTH install paths:
 //   · PWA — open the app's own link, Chrome menu → Install (the web path);
 //   · Android package — the real .apk the TWA lane builds (DR-0227: four
 //     packages, own task/icon/resume; immune to the shared-scope wall), served
@@ -44,6 +44,14 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us/tlc',
     apk: `${APK_DOOR_BASE}/tlc.apk`,
     packageId: 'us.poetech.tlc',
+  },
+  {
+    key: 'properties', name: 'Poe Properties', short: 'Poe Properties',
+    blurb: 'For tenants, their families, and the 1099 workers who keep the place running \u2014 report what is broken, follow it to done, and keep every message and date in one place.',
+    icon: '/properties-icon-192.png',
+    webUrl: 'https://poetech.us/properties',
+    apk: `${APK_DOOR_BASE}/properties.apk`,
+    packageId: 'us.poetech.properties',
   },
   {
     key: 'moore', name: 'Moore Divahs', short: 'Moore Divahs',

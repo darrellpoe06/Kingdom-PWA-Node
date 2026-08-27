@@ -15,7 +15,7 @@
 // Injectable client (`client = supabase`) so every path is testable with a fake.
 // Never throws: every function returns { ok, ... } with an honest reason.
 // =============================================================================
-import supabase from '../../lib/supabase.js';
+import supabase, { phoneLoginEmail, normalizePhone } from '../../lib/supabase.js';
 
 const ok = (extra = {}) => ({ ok: true, ...extra });
 const no = (reason, error) => ({ ok: false, reason, error: (error && error.message) || undefined });
@@ -206,13 +206,39 @@ export async function markRentPosted(id, txId, client = supabase) {
 
 // --- the landlord side: invitations ----------------------------------------
 
-/** Write an invitation. Owner/admin only (RLS enforces it). Grants nothing yet. */
-export async function inviteToProperties({ instanceId, email, roleLabel, tenancyId, scopeRef, capabilities, displayName, relationship }, client = supabase) {
+/**
+ * Write an invitation. Owner/admin only (RLS enforces it). Grants nothing yet.
+ *
+ * IDENTITY: an email OR a cell phone. A phone login is a real identity here —
+ * the app signs up the synthetic `<digits>@phone.poetech.us` address (DR-0172),
+ * so a phone invite carries that same address and the claim matches with no
+ * special case. The typed phone rides along in `invited_phone` for display, so
+ * the roster shows "(563) 650-2416" and never the synthetic string.
+ * The normalization is the ONE shared helper the phone+PIN signup uses — if the
+ * two ever disagreed, an invited person would sign in and be told they have no
+ * door (properties-door.test.js pins that they agree).
+ */
+export function inviteIdentity({ email, phone }) {
+  const typedPhone = String(phone || '').trim();
+  if (typedPhone) {
+    const synthetic = phoneLoginEmail(typedPhone);
+    if (!synthetic) return { ok: false, reason: 'bad-phone' };
+    return { ok: true, email: synthetic, phone: normalizePhone(typedPhone) };
+  }
+  const addr = String(email || '').trim().toLowerCase();
+  if (!addr.includes('@')) return { ok: false, reason: 'bad-email' };
+  return { ok: true, email: addr, phone: null };
+}
+
+export async function inviteToProperties({ instanceId, email, phone, roleLabel, tenancyId, scopeRef, capabilities, displayName, relationship }, client = supabase) {
+  const id = inviteIdentity({ email, phone });
+  if (!id.ok) return no(id.reason);
   try {
     const uid = await userId(client);
     const { data, error } = await client.from('property_access_invites').insert({
       instance_id: instanceId,
-      email: String(email || '').trim().toLowerCase(),
+      email: id.email,
+      invited_phone: id.phone,
       role_label: roleLabel,
       tenancy_id: tenancyId || null,
       scope_ref: scopeRef || null,

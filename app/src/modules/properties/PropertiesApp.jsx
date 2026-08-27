@@ -17,7 +17,6 @@
 // an empty spine says it is empty rather than showing a painted example.
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 import {
   resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
@@ -30,6 +29,8 @@ import {
 } from './cloud.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
+import { phoneLoginEmail } from '../../lib/supabase.js';
+import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -216,7 +217,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null }) {
           <Empty>
             {claim && claim.ok === false && claim.reason === 'not-enabled-yet'
               ? 'The invitation system is not switched on for this database yet. Nothing is missing on your end.'
-              : 'A landlord invites you by email. When they do, open this app again and your place will be here — nothing to enter, nothing to set up.'}
+              : 'A landlord invites you by your email address or your cell phone number. When they do, open this app again and your place will be here — nothing to enter, nothing to set up.'}
           </Empty>
         </Card>
       </div>
@@ -567,15 +568,39 @@ function RentTab({ rent, role, face, onReport, onConfirm, onPost, booksAvailable
 }
 
 function PeopleTab({ door, onInvite }) {
+  // Email OR cell phone (Darrell, 2026-08-26). Many tenants and 1099 workers
+  // have no email at all — that is the whole premise of the phone+PIN door
+  // (DR-0172), and an invite that only accepts email locks those people out of
+  // their own place.
+  const [by, setBy] = useState('phone');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [roleLabel, setRoleLabel] = useState('tenant');
   const [caps, setCaps] = useState([]);
   const ceiling = ROLE_CEILING[roleLabel] || [];
   const toggle = (c) => setCaps((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  const identified = by === 'phone' ? !!phoneLoginEmail(phone) : email.includes('@');
+  // The invitation still has to REACH them. No gateway sends it (DR-0313): the
+  // landlord's own messaging app does, with the door link already written.
+  const inviteText = `You've been added to ${door?.property_label || 'your place'} on Poe Properties. Open ${POE_PROPERTIES.shareUrl} and sign in with this number to see your unit, report anything broken, and message us.`;
   return (
     <Card title="Invite someone to this door">
-      <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="their email" aria-label="Their email"
-        className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
+      <div className="flex gap-1 mb-2">
+        <Btn tone={by === 'phone' ? 'primary' : 'ghost'} onClick={() => setBy('phone')}>By cell phone</Btn>
+        <Btn tone={by === 'email' ? 'primary' : 'ghost'} onClick={() => setBy('email')}>By email</Btn>
+      </div>
+      {by === 'phone' ? (
+        <>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" placeholder="(555) 555-5555" aria-label="Their cell phone"
+            className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-1" style={serif} />
+          <p className="text-xs text-[#5A5751] mb-2" style={serif}>
+            They sign in with this number and a 6-digit PIN they choose — no email needed. A phone is collected, not text-verified, so use a number you know is theirs.
+          </p>
+        </>
+      ) : (
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="their email" aria-label="Their email"
+          className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
+      )}
       <select value={roleLabel} onChange={(e) => { setRoleLabel(e.target.value); setCaps([]); }} aria-label="What they are"
         className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white mb-2" style={serif}>
         <option value="tenant">Tenant (the lease signer)</option>
@@ -593,10 +618,21 @@ function PeopleTab({ door, onInvite }) {
           ))}
         </div>
       )}
-      <Btn tone="primary" disabled={!email.includes('@') || !door}
-        onClick={() => { onInvite({ email, roleLabel, tenancyId: door.id, scopeRef: door.rental_ref, capabilities: caps }); setEmail(''); setCaps([]); }}>
-        Write the invitation
-      </Btn>
+      <div className="flex flex-wrap items-center gap-2">
+        <Btn tone="primary" disabled={!identified || !door}
+          onClick={() => {
+            onInvite({ email: by === 'email' ? email : '', phone: by === 'phone' ? phone : '', roleLabel, tenancyId: door.id, scopeRef: door.rental_ref, capabilities: caps });
+            setEmail(''); setPhone(''); setCaps([]);
+          }}>
+          Write the invitation
+        </Btn>
+        {by === 'phone' && (
+          <a
+            href={identified ? smsHref(phone, inviteText) : undefined}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border ${identified ? 'border-[#E8E4DC] text-[#1A1815]' : 'pointer-events-none opacity-40 border-[#E8E4DC]'}`}
+          >Text them the link</a>
+        )}
+      </div>
       <p className="text-xs text-[#5A5751] mt-2" style={serif}>
         The invitation grants nothing by itself. They get exactly what is checked here, only after they sign in to that same email address — and you can revoke any of it at any time.
       </p>

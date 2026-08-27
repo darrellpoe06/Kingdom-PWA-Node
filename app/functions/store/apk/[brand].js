@@ -11,10 +11,10 @@
 // whose mismatch strands Chrome at 100%), explicit APK content type and
 // attachment disposition. Our store, our shelf, our origin (DR-0227/0229).
 //
-// SSRF guard: only the four fixed brand names are ever fetched — the upstream
-// URL is built from an allowlist, never from user input.
+// SSRF guard: only the fixed brand names are ever fetched — the upstream URL is
+// built from an allowlist, never from user input. (DR-0313 added `properties`.)
 
-const BRANDS = Object.freeze(['poetech', 'lovecorner', 'tlc', 'moore']);
+const BRANDS = Object.freeze(['poetech', 'lovecorner', 'tlc', 'moore', 'properties']);
 const RELEASE_BASE = 'https://github.com/darrellpoe06/Kingdom-PWA-Node/releases/download/android-latest';
 
 export function brandFromParam(p) {
