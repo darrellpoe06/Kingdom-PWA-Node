@@ -76,6 +76,34 @@ jobs:
       # 2026-07-29 fix that was applied to one file is here generalized to the
       # class (gate-the-class, DR-0239): one dispatch, every proof runs, serial
       # against the prod DB (the 2026-07-01 ALTER PUBLICATION deadlock class).
+      # The ledger is a receipt, not an observation (2026-08-27, DR-0076 §1).
+      # Twice now the ledger read 'applied' while the LIVE function was an older
+      # definition — reverted after the fact by an isolation leg replaying an
+      # older chain. db-migrate can never heal that on its own: it skips any file
+      # whose checksum already reads 'applied', so the lie is self-sealing and
+      # the feature stays quietly dead. Nothing in the pipeline ever asked the
+      # database what it actually holds. This step asks.
+      #
+      # The expectations are DERIVED from the migration files (the tokens unique
+      # to the newest definition of each function), so there is no list to keep
+      # up to date. Runs after the apply, on the real database, and fails the
+      # run — a red db-migrate is the signal that production is behind the repo.
+      - name: Witness the LIVE definitions (not the ledger)
+        if: success()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          NAMES="$(node scripts/live-definition-witness.mjs --names)"
+          echo "checking live definitions for: $NAMES"
+          psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -v names="$NAMES" -c "
+            select coalesce(json_agg(json_build_object('name', p.proname, 'def', pg_get_functiondef(p.oid))), '[]'::json)
+            from pg_proc p
+            join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public'
+              and p.proname = any(string_to_array(:'names', ' '));
+          " | node scripts/live-definition-witness.mjs --check
+
       - name: Dispatch the isolation proofs (all features, one matrix)
         if: success()
         env:
