@@ -105,6 +105,11 @@ jobs:
       # dangling reference is otherwise invisible until a prod dispatch — this
       # makes it RED here. Proven-to-catch in rls-isolation-matrix-guard.test.js.
       - run: node ../scripts/rls-isolation-matrix-guard.mjs
+      # A replay must converge on the CURRENT definition, never restore an older
+      # one (measured live 2026-08-27: the matrix had been reverting 0144's
+      # set_member_role and 0151's claim_property_access on production).
+      - run: node ../scripts/migration-replay-order-guard.mjs
+
       # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
       # new category button not working" report): window.prompt() is blocked /
       # a no-op in the installed standalone PWA, so any input flow built on it

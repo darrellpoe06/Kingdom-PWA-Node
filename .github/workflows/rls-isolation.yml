@@ -45,10 +45,10 @@ jobs:
       matrix:
         include:
           - feature: tv-sharing
-            migrations: "0074-tv-circle-sharing.sql"
+            migrations: "0074-tv-circle-sharing.sql 0141-account-unification-person-links.sql"
             smokes: "0074-isolation-smoke.sql"
           - feature: delegated-pm
-            migrations: "0075-delegated-property-management.sql"
+            migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql"
             smokes: "0075-isolation-smoke.sql"
           # The Poe Properties App's own gate (DR-0313): the invite->claim seam,
           # the tenant's family arms, the field-worker ceiling, and the books-side
@@ -57,7 +57,7 @@ jobs:
             migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql 0152-vacancies-and-no-account-applications.sql"
             smokes: "0150-poe-properties-isolation-smoke.sql 0152-public-vacancy-smoke.sql"
           - feature: choir-claim
-            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0110-choir-claim-smoke.sql"
           # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
           # with new columns (classification, relationship), and CREATE OR
@@ -69,10 +69,10 @@ jobs:
           # holds across the shape change.
           - feature: role-control
             pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid);"
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
-            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
           - feature: viewer-readonly
             migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql"
@@ -98,7 +98,7 @@ jobs:
           # policy that stops excluding child/assistant, or narrows successor
           # read / member write, RAISEs -> the leg goes RED.
           - feature: books-role-wall
-            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
           # Added 2026-08-04 (DR-0271, Christina's assistant-rights request):
           # the ASSISTANT becomes grantable (invite/role/remove RPCs) and is
@@ -110,7 +110,7 @@ jobs:
           # (inquiries) read as ZERO rows for the assistant. Static shape proof
           # runs every merge in scripts/assistant-scope-guard.mjs.
           - feature: assistant-scope
-            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql"
+            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0130-assistant-scope-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
