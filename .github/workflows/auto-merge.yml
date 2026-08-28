@@ -297,3 +297,63 @@ jobs:
           else
             echo "main tip already deployed and no armed PRs; nothing to dispatch."
           fi
+
+      # THE ORDERING HOLE, CLOSED (2026-08-28, after the FIFTH miss — PR #1361).
+      # The two waits above are SEQUENTIAL steps in one job, so the migration
+      # poll always gets the FIRST window and the deploy poll a later, second
+      # one. Measured on run 33137488317:
+      #
+      #   migration poll   02:58:03 -> 03:04:30   (6m27s, gave up)
+      #   deploy poll      03:04:30 -> 03:06:56   (caught the merge)
+      #   the merge                   03:06:50
+      #
+      # So the deploy landed and the migration did not — the worst shape there
+      # is: #1361's new code went live against a database that never got its
+      # schema (a Systems tab with no tables, and a home-is-never-listed CHECK
+      # that did not exist). Both had to be dispatched by hand.
+      #
+      # This is the P26 class, twice over. The deploy step's own window was
+      # raised from 6 to 12 minutes in July, after PR #1093 taught that 6 no
+      # longer spans a real CI run — and the migration step, sixty lines up in
+      # the same file, was left at 6. The fix was already here.
+      #
+      # Raising the first window is the WRONG fix: it would delay the deploy
+      # step by up to twelve minutes on every sweep. Instead the migration
+      # question is asked ONCE MORE, after the deploy poll has resolved — by
+      # which time main's tip is settled, so no polling is needed. Between the
+      # two checks the whole span is covered, and migrate-freshness.yml (the
+      # 5-minute cron) is the outer net for the last merge in a quiet stretch,
+      # which no poll window in a PR-event workflow can ever reach.
+      #
+      # db-migrate is idempotent and single-flight, so a dispatch here that
+      # duplicates the earlier one is harmless by design.
+      - name: Re-check for a migration once the deploy wait has resolved (the ordering hole)
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+          if [ -z "$main_sha" ]; then
+            echo "::warning::could not read main's tip; the freshness cron covers this."
+            exit 0
+          fi
+          last_sha=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+          if [ "$main_sha" = "$last_sha" ]; then
+            echo "db-migrate already ran against main's tip ($main_sha); nothing to re-dispatch."
+            exit 0
+          fi
+          touched=$(gh api "repos/$REPO/commits/$main_sha" \
+            --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo "unknown")
+          if [ "$touched" = "true" ]; then
+            echo "main tip $main_sha carries a migration db-migrate has not run — dispatching."
+            gh workflow run db-migrate.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch db-migrate (migrate-freshness covers it)"
+          elif [ "$touched" = "unknown" ]; then
+            # Unknown freshness never reads as fresh (DR-0076 §8).
+            echo "::warning::could not tell whether main's tip carries a migration — leaving it to migrate-freshness."
+          else
+            echo "main tip $main_sha carries no migration change; nothing to apply."
+          fi
