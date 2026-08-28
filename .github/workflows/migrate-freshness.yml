@@ -55,14 +55,24 @@ name: Migration freshness (heal an unapplied migration)
 
 on:
   schedule:
-    # MEASURED, not assumed (2026-08-28). GitHub does NOT honour */5 on this
-    # repository, and the sibling below is the evidence: deploy-freshness.yml
-    # has carried this identical cron since 2026-07-06 and has fired 1,171
-    # scheduled times in 53 days — 22 a day, one every ~65 minutes on average,
-    # which is 7.7% of the 288/day a real */5 would produce. Observed gaps
-    # between consecutive fires: 8.6h and 11.3h. GitHub delays scheduled
-    # workflows under load and DROPS runs outright; the cron is a request, not
-    # a promise, and on a free public runner most of it is declined.
+    # MEASURED, not assumed (2026-08-28, corrected the same night). GitHub does
+    # NOT honour */5 on this repository. deploy-freshness.yml has carried this
+    # identical cron since 2026-07-06 and fired 1,171 times in 53 days — 7.7% of
+    # the 288/day a real */5 would produce.
+    #
+    # DO NOT REASON FROM THAT AVERAGE. It works out to one fire per ~65 minutes
+    # and that number is worse than useless: the fires are not spread evenly.
+    # The eleven most recent gaps, measured directly, run 0.5h, 0.7h, 0.8h, 1.1h,
+    # 1.7h, 1.7h, 1.9h, 3.4h, 5.4h, 8.6h, 11.3h — busy by day, long silences
+    # overnight. On the night this was written the SIBLING sat 6.7 hours without
+    # firing while it was being used as the working reference.
+    #
+    # I learned that the expensive way: I set "no scheduled run within 4 hours
+    # means it is broken" from the 65-minute mean, and at four hours had to walk
+    # it back — the workflow was fine and the threshold was invented from a
+    # statistic that does not describe the behaviour (DR-0076 section 4 again,
+    # one level up: measuring the wrong quantity is its own way of not
+    # measuring). The honest expectation for a first fire is up to ~12 hours.
     #
     # The interval stays at */5 because asking for less delivers less — there
     # is no setting that buys a tighter floor. What changes is the CLAIM: this
