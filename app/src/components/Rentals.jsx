@@ -14,6 +14,7 @@ import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
 import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfolio.js';
+import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
@@ -895,6 +896,18 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
   );
 }
 
+// The sub-tabs inside an opened property record. NOTES leads because that is
+// what people open a record for (Darrell, 2026-08-28: "Notes is the main reason
+// someone or a user hits edit on the Real Estate tab"). Counts read the same
+// arrays property-record-counts reads, so a tab label and its panel agree.
+const RECORD_TABS = [
+  { id: 'notes', label: 'Notes', count: (r) => (r.unitNotes || []).length + (r.conversationLog || []).length },
+  { id: 'work', label: 'Work', count: (r) => (r.maintenanceLog || []).length },
+  { id: 'photos', label: 'Photos', count: (r) => (r.photos || []).length },
+  { id: 'property', label: 'Property', count: (r) => (r.rooms || []).length + (r.equipment || []).length },
+  { id: 'tenancy', label: 'Tenancy', count: null },
+];
+
 function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
   // incident already pointed at it (if any) so we don't double-track.
@@ -1278,6 +1291,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // Stored on the rental record itself. All local, zero ongoing cost.
   const MAINT_CATEGORIES = ['roof','plumbing','hvac','electrical','appliance','exterior','interior','lawn','pest','flooring','windows','general','other'];
   const [openRecordsId, setOpenRecordsId] = useState(null); // which property's records are expanded
+  // Which sub-tab of the open record is showing. Notes first, always.
+  const [recTab, setRecTab] = useState('notes');
   const [showMaintForm, setShowMaintForm] = useState(false);
   const [showConvForm, setShowConvForm] = useState(false);
   // Round 10 — Maintenance entries carry an ITSM urgency band so the family
@@ -1300,6 +1315,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const openRecords = (r) => {
     const opening = r.id !== openRecordsId;
     setOpenRecordsId(opening ? r.id : null);
+    // Every open starts on Notes — a record remembering the tab you left it on
+    // means the next property opens somewhere you did not choose.
+    if (opening) setRecTab('notes');
     setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv());
     // 2026-06-12 auto-populate (Darrell: "the images are already there...
     // why should I [start it]"): when this device holds the bridge token,
@@ -1869,7 +1887,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
                     <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
-                      {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes · ${photoCountFor(r)} photos)`}
+                      {/* COUNTS WHAT THE OPEN RECORD ACTUALLY HOLDS (fixed 2026-08-28).
+                          This read "0 maint · 0 notes · 0 photos" on a property whose
+                          record held three unit notes: it counted conversationLog and
+                          called it "notes", which is also the name of the OTHER store
+                          that had them — and it ignored unitNotes, rooms and equipment
+                          entirely. recordSummary counts all six, names only what is
+                          there, and is the same function any other surface must use, so
+                          the card and the record cannot drift again. */}
+                      {openRecordsId === r.id ? '× Close records' : `📋 ${recordSummary(r, { photoOverride: photoCountFor(r) })}`}
                     </button>
                     {(r.maintenanceLog || []).length > 0 && (
                       <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -1975,8 +2001,48 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           photo story LEADS, the work-facing blocks follow, and
                           the valuation card closes the panel (mounted last,
                           below the conversations). */}
+                      {/* SUB-TABS INSIDE THE RECORD (Darrell, 2026-08-28:
+                          "the subtab features can be used here and that would have a
+                          better feel", and "should[n't] have to scroll unless you want
+                          more below").
+
+                          This panel had become a single stacked column ~1400px tall,
+                          with Unit notes — the thing people actually open a record FOR
+                          ("Notes is the main reason someone or a user hits edit on the
+                          Real Estate tab") — buried below photos, rooms, lease, tenants,
+                          rent and mechanical. Reordering the stack would only move the
+                          burial somewhere else. Sub-tabs mean nothing is buried: NOTES
+                          opens first, and the rest is one tap away instead of a scroll.
+
+                          This supersedes the 2026-07-08 order ("from the top images then
+                          room details") — that was the right call for a stack and this
+                          is no longer a stack. Recorded rather than quietly flipped. */}
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {RECORD_TABS.map((t) => {
+                          const n = t.count ? t.count(r) : 0;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setRecTab(t.id)}
+                              aria-pressed={recTab === t.id}
+                              className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                                recTab === t.id
+                                  ? 'bg-[#B85838] text-white border-[#B85838]'
+                                  : 'bg-transparent text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838] hover:text-[#1A1815]'}`}
+                            >
+                              {t.label}{n > 0 ? ` · ${n}` : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {recTab === 'photos' && (<>
                       <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
+                      </>)}
+                      {recTab === 'property' && (<>
                       <PropertyDetails rental={r} updateRental={updateRental} paid={paidPortfolio.byDoor[r.remoteUuid]} />
+                      </>)}
+                      {recTab === 'property' && (<>
                       {/* Restore a collapsed multi-unit building into separate
                           doors — the fix for 805 N Prospect showing as one door.
                           Opens the same inline split panel as the card button. */}
@@ -1987,11 +2053,15 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </button>
                         </div>
                       )}
+                      </>)}
                       {/* Per-unit MANAGEMENT: notes (property memory) + service
                           requests (assignable to the PM) + tenant/manager/owner
                           thread (draft->preview->approve-send). The app RUNS the
                           workflow per door, not just displays it. */}
+                      {recTab === 'notes' && (<>
                       <UnitManagement rental={r} updateRental={updateRental} />
+                      </>)}
+                      {recTab === 'work' && (<>
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -2118,7 +2188,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+                      </>)}
 
+                      {recTab === 'tenancy' && (<>
                       {/* TENANT TURNOVER + PAST TENANCIES (landlord records) */}
                       {!readOnly && (
                         <div className="mb-3 pb-3 border-b border-[#E8E4DC]">
@@ -2155,6 +2227,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         </div>
                       )}
 
+                      </>)}
+                      {recTab === 'photos' && (<>
                       {/* PHOTO IMPORT FROM CHAT — file the property's photos to rooms */}
                       {!readOnly && (
                         <div className="mb-3">
@@ -2278,6 +2352,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         </div>
                       )}
 
+                      </>)}
+                      {recTab === 'notes' && (<>
                       {/* CONVERSATION LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
@@ -2374,9 +2450,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+                      </>)}
+                      {recTab === 'property' && (<>
                       {/* PROPERTY DETAILS — valuation & characteristics, at the
                           bottom by design (the work story reads first). */}
                       <PropertyValuation rental={r} updateRental={updateRental} voiceOps={voiceOps} />
+                      </>)}
                     </div>
                   )}
                 </div>

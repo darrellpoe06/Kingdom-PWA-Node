@@ -169,6 +169,19 @@ describe('the freshness workflows state the cadence GitHub actually delivers', (
       expect(src).toMatch(/11\.3h/);       // the worst observed gap
     });
 
+    it(`${file} warns against reasoning from the AVERAGE`, () => {
+      // The average (one per ~65 min) is a real number and a misleading one:
+      // the fires cluster by day and go quiet overnight. I set a 4-hour "it is
+      // broken" threshold from that mean and had to walk it back — the sibling
+      // that WORKS was 6.7 hours silent at the moment I was using it as the
+      // reference. Measuring the wrong quantity is its own way of not measuring
+      // (DR-0076 §4), so the file has to carry the distribution, not the mean.
+      const src = read(file);
+      expect(src).toMatch(/gaps?[\s\S]{0,200}0\.5h/);   // the spread, spelled out
+      expect(src).toMatch(/6\.7 hours|6\.7h/);           // the silence actually observed
+      expect(src).toMatch(/not describe the behaviour|must not\s*\n?\s*#?\s*be reasoned from|worse than useless/);
+    });
+
     it(`${file} keeps asking for */5, because asking for less delivers less`, () => {
       expect(read(file)).toMatch(/cron: '\*\/5 \* \* \* \*'/);
     });

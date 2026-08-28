@@ -36,14 +36,17 @@ name: Deploy freshness (heal a missed deploy)
 
 on:
   schedule:
-    # The same measurement that corrected migrate-freshness applies here, and
-    # it was taken FROM this workflow (2026-08-28): 1,171 scheduled fires in
-    # the 53 days since 2026-07-06 — 22/day, one every ~65 minutes, 7.7% of
-    # the 288/day a literal */5 would give, with observed gaps of 8.6h and
-    # 11.3h. GitHub delays scheduled workflows under load and drops runs; the
-    # cron is a request, not a promise. Kept at */5 because asking for less
-    # delivers less. Read this as an hours-scale safety net, never a prompt
-    # one — the deploy's promptness comes from auto-merge's own dispatch.
+    # The measurement that corrected migrate-freshness was taken FROM this
+    # workflow (2026-08-28): 1,171 scheduled fires in the 53 days since
+    # 2026-07-06 — 7.7% of the 288/day a literal */5 would give.
+    #
+    # The AVERAGE (one per ~65 min) does not describe the behaviour and must not
+    # be reasoned from. The eleven most recent gaps: 0.5h, 0.7h, 0.8h, 1.1h,
+    # 1.7h, 1.7h, 1.9h, 3.4h, 5.4h, 8.6h, 11.3h — busy by day, long silences
+    # overnight; this workflow itself sat 6.7 hours without firing on the night
+    # the numbers were taken. Kept at */5 because asking for less delivers less.
+    # An hours-scale safety net, never a prompt one — the deploy's promptness
+    # comes from auto-merge's own dispatch.
     - cron: '*/5 * * * *' # a REQUEST for every 5 min; see the measurement above
   workflow_dispatch: {}
 
