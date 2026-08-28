@@ -35,6 +35,26 @@ import { ROOM_DEFAULTS, canSwitchToByRoom } from './coliving.js';
 import { FCRA_RIGHTS } from './intake.js';
 import { legalValue } from './jurisdictions.js';
 
+import { renderLease, leaseInForce, TEMPLATE_STATUS } from './lease-template.js';
+
+/**
+ * The house's standing lease terms. Only the ones with a genuinely safe default
+ * are filled; everything that is a DECISION — the late fee, pets, who pays which
+ * utility, whether renter's insurance is required — is left blank on purpose, so
+ * the draft asks rather than assumes. A lease that quietly invents a pet policy
+ * is worse than one with a blank in it.
+ */
+export const LEASE_TERMS = Object.freeze({
+  landlord: 'Poe Properties LLC',
+  rentDueDay: 'first',
+  guestDays: '14',
+  lateFee: null,
+  tenantUtilities: null,
+  landlordUtilities: null,
+  pets: null,
+  rentersInsurance: null,
+});
+
 export const COUNSEL_LINE =
   'DRAFT — a starting point built from Poe Properties’ own records and recorded practice. Route to counsel for legal-sufficiency review before it is given to anyone to sign. Not legal advice.';
 
@@ -133,20 +153,49 @@ export function buildDocument(id, records = {}) {
   lines.push(`POE PROPERTIES — ${spec.title.toUpperCase()}`, '');
 
   switch (id) {
-    case 'lease-whole-unit':
+    case 'lease-whole-unit': {
+      // THE ACTUAL CONTRACT (2026-08-28). This used to be ten lines — property,
+      // tenant, term, rent, deposit — which is a cover sheet, not something
+      // anybody can sign. Darrell: "I need usable documents... obviously... not
+      // just fake data... preloaded with the default contract we will use unless
+      // we update it." The body now comes from lease-template.js: the instance's
+      // own saved lease if it has one, the preloaded default otherwise.
+      //
+      // Statutory periods are NOT written into that template. They arrive here
+      // as legal() lookups that print a cited blank until a human verifies them
+      // for this door's state and city — so a draft says "confirm against 765
+      // ILCS 710" rather than a number recalled from nowhere.
+      const inForce = leaseInForce(records.leaseTemplate);
+      const values = { ...LEASE_TERMS, ...(records.leaseTerms || {}) };
+      const rendered = renderLease(inForce.template, {
+        value: (name) => {
+          switch (name) {
+            case 'property': return property;
+            case 'tenant': return tenancy.tenant_name;
+            case 'leaseStart': return dateOf(tenancy.lease_start);
+            case 'leaseEnd': return dateOf(tenancy.lease_end);
+            case 'rent': return money(tenancy.monthly_rent);
+            case 'deposit': return money(tenancy.deposit);
+            default: return values[name] ?? null;
+          }
+        },
+        legal: (id) => {
+          const v = legalValue(id, place);
+          return v.verified
+            ? { text: v.value, blank: null }
+            : { text: v.blank, blank: v.citation ? `${id} (${v.citation})` : id };
+        },
+      });
+      for (const b of rendered.blanks) blanks.push(b);
       lines.push(
-        `Property: ${line(property, 'property address')}`,
-        `Tenant: ${line(tenancy.tenant_name, 'tenant name')}`,
-        `Term: ${line(dateOf(tenancy.lease_start), 'lease start')} to ${line(dateOf(tenancy.lease_end), 'lease end')}`,
-        `Monthly rent: ${line(money(tenancy.monthly_rent), 'monthly rent')}, due on the first.`,
-        `Security deposit: ${line(money(tenancy.deposit), 'deposit')}`,
+        inForce.source === 'default'
+          ? `Template: PoeTech default ${inForce.version} \u2014 ${TEMPLATE_STATUS.note}`
+          : 'Template: this instance\u2019s own saved lease.',
         '',
-        `Disclosures this lease must carry: ${legal('lease-disclosures')}`,
-        '',
-        'Rent is paid to Poe Properties directly. The app records what was paid and when; it never moves money and never holds a card.',
-        'Repairs are reported through the Poe Properties app, where the tenant can watch the work order to done and read every message and date.',
+        ...rendered.lines,
       );
       break;
+    }
     case 'lease-by-room':
       lines.push(
         `House: ${line(property, 'house address')}`,

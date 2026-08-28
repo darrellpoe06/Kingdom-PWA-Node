@@ -45,10 +45,19 @@ describe('prepopulated from the real records', () => {
     expect(text).toContain('1003 Koehn · Unit 1');
     expect(text).toContain('Leonard Morris');
     expect(text).toContain('$950.00');
-    expect(text).toContain('2026-09-01 to 2027-08-31');
-    // The only blank left is the jurisdiction's required disclosures, which is
-    // a citation to confirm rather than a field the records could have filled.
-    expect(doc.blanks.every((b) => /lease-disclosures/.test(b))).toBe(true);
+    // The lease became a real contract on 2026-08-28 (lease-template.js), so the
+    // term reads as a sentence rather than a one-line summary: "begins on X and
+    // ends on Y". Both dates still come from the tenancy and nowhere else.
+    expect(text).toContain('2026-09-01');
+    expect(text).toContain('2027-08-31');
+    // Every remaining blank is either a statutory value to confirm against its
+    // citation, or a house DECISION the records genuinely do not hold (the late
+    // fee, pets, who pays which utility). None is a field the records could
+    // have filled and did not.
+    const decisions = /lateFee|pets|Utilities|rentersInsurance/;
+    const statutory = /deposit-|entry-notice|late-rent-cure|lease-disclosures/;
+    expect(doc.blanks.every((b) => statutory.test(b) || decisions.test(b)),
+      `unexpected blank: ${doc.blanks.join(' | ')}`).toBe(true);
   });
 
   it('a number changed on the record changes the document — there is no second copy', () => {
@@ -67,8 +76,9 @@ describe('prepopulated from the real records', () => {
 describe('what it does not know, it does not invent', () => {
   it('an unfilled field is a NAMED blank and is reported', () => {
     const doc = buildDocument('lease-whole-unit', { door, tenancy: { ...tenancy, lease_end: null, deposit: 0 } });
-    expect(doc.lines.join('\n')).toContain('[lease end]');
-    expect(doc.blanks).toContain('lease end');
+    // The merge field is named as the template names it.
+    expect(doc.lines.join('\n')).toContain('[leaseEnd]');
+    expect(doc.blanks).toContain('leaseEnd');
     expect(doc.blanks).toContain('deposit');
   });
 
