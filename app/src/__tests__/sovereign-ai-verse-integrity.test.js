@@ -474,3 +474,289 @@ describe('sov13 — the whole stack quotes its Word spine verbatim, Word first',
     expect(SOV13_FRAGMENTS['1 Corinthians 6:12'].includes('not be brought under the power of any')).toBe(true);
   });
 });
+
+// -----------------------------------------------------------------------------
+// SOV14 — "The Doom That Did Not Come" (the SaaSpocalypse; fear tested by the Word)
+// Spoken into the app by the Governor from a forwarded tech piece (The Daily
+// Upside, Salesforce earnings + the "SaaSpocalypse" called "nonsense"). Every
+// KJV line fetched verbatim from the repo corpus this session; a drift fails CI.
+// -----------------------------------------------------------------------------
+const SOV14_FRAGMENTS = {
+  '2 Timothy 1:7': 'For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.',
+  'Deuteronomy 18:22': 'if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken, but the prophet hath spoken it presumptuously: thou shalt not be afraid of him.',
+  'Ephesians 4:14': 'tossed to and fro, and carried about with every wind of doctrine',
+  'James 1:6': 'he that wavereth is like a wave of the sea driven with the wind and tossed',
+  'James 1:8': 'A double minded man is unstable in all his ways.',
+  '1 Thessalonians 5:21': 'Prove all things; hold fast that which is good.',
+  'Mark 2:27': 'The sabbath was made for man, and not man for the sabbath',
+  'Psalms 8:6': 'Thou madest him to have dominion over the works of thy hands',
+  'Philippians 4:5': 'Let your moderation be known unto all men.',
+  'Romans 12:3': 'to think soberly, according as God hath dealt to every man the measure of faith.',
+  'Proverbs 27:1': 'Boast not thyself of to morrow; for thou knowest not what a day may bring forth.',
+  'James 4:14': 'For what is your life? It is even a vapour',
+  'James 4:15': 'If the Lord will, we shall live, and do this, or that.',
+  'Proverbs 29:25': 'The fear of man bringeth a snare: but whoso putteth his trust in the LORD shall be safe.',
+  'Isaiah 41:10': 'Fear thou not; for I am with thee',
+  '1 John 4:18': 'perfect love casteth out fear',
+  'Matthew 7:24': 'built his house upon a rock',
+  'Proverbs 19:21': 'the counsel of the LORD, that shall stand.',
+  '1 Peter 5:8': 'Be sober, be vigilant',
+  'Psalms 24:1': 'and the fulness thereof',
+};
+
+const sov14 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov14-the-doom-that-did-not-come');
+
+describe('sov14 — the doom that did not come quotes its Word spine verbatim, Word first', () => {
+  it('the week exists and anchors on fear / the prophecy-test / the snare', () => {
+    expect(sov14).toBeTruthy();
+    expect(sov14.anchor.ref).toContain('2 Timothy 1:7');
+    expect(sov14.anchor.ref).toContain('Deuteronomy 18:22');
+    expect(sov14.anchor.ref).toContain('Proverbs 29:25');
+  });
+  it('every quoted fragment is letter-for-letter KJV in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV14_FRAGMENTS)) {
+      expect(sov14.lesson, `${ref} must be quoted letter-for-letter`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS: the register (no spirit of fear) is the first movement, before the headline', () => {
+    expect(sov14.lesson.indexOf('FIRST, SETTLE THE REGISTER')).toBe(0);
+    // The fear verse precedes the Salesforce headline in the lesson.
+    expect(sov14.lesson.indexOf('spirit of fear')).toBeLessThan(sov14.lesson.indexOf('Salesforce'));
+  });
+  it('the ten movements are marked FIRST through TENTH, in order', () => {
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov14.lesson.indexOf(m);
+      expect(at, `${m} present`).toBeGreaterThan(-1);
+      expect(at, `${m} in order`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('both tiers are held (DR-0100): established fact stated, forecast flagged as forecast', () => {
+    expect(sov14.lesson).toContain('established fact');
+    expect(sov14.lesson).toContain('forecast and opinion');
+    expect(sov14.lesson).toContain('material risk to many names');
+  });
+  it('the doom-prophecy is tested by fulfillment, and the fear is named as the real snare', () => {
+    expect(sov14.lesson).toContain('come to pass');
+    expect(sov14.lesson).toContain('THE FEAR ITSELF WAS THE REAL SNARE');
+    expect(sov14.lesson).toContain('the tool serving rather than devouring');
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('2Timothy', 1, 7)).toBe(SOV14_FRAGMENTS['2 Timothy 1:7']);
+    expect(verse('Deuteronomy', 18, 22)).toContain(SOV14_FRAGMENTS['Deuteronomy 18:22']);
+    expect(verse('Ephesians', 4, 14)).toContain(SOV14_FRAGMENTS['Ephesians 4:14']);
+    expect(verse('James', 1, 6)).toContain(SOV14_FRAGMENTS['James 1:6']);
+    expect(verse('James', 1, 8)).toBe(SOV14_FRAGMENTS['James 1:8']);
+    expect(verse('1Thessalonians', 5, 21)).toBe(SOV14_FRAGMENTS['1 Thessalonians 5:21']);
+    expect(verse('Mark', 2, 27)).toContain(SOV14_FRAGMENTS['Mark 2:27']);
+    expect(verse('Psalms', 8, 6)).toContain(SOV14_FRAGMENTS['Psalms 8:6']);
+    expect(verse('Philippians', 4, 5)).toContain(SOV14_FRAGMENTS['Philippians 4:5']);
+    expect(verse('Romans', 12, 3)).toContain(SOV14_FRAGMENTS['Romans 12:3']);
+    expect(verse('Proverbs', 27, 1)).toBe(SOV14_FRAGMENTS['Proverbs 27:1']);
+    expect(verse('James', 4, 14)).toContain(SOV14_FRAGMENTS['James 4:14']);
+    expect(verse('James', 4, 15)).toContain(SOV14_FRAGMENTS['James 4:15']);
+    expect(verse('Proverbs', 29, 25)).toBe(SOV14_FRAGMENTS['Proverbs 29:25']);
+    expect(verse('Isaiah', 41, 10)).toContain(SOV14_FRAGMENTS['Isaiah 41:10']);
+    expect(verse('1John', 4, 18)).toContain(SOV14_FRAGMENTS['1 John 4:18']);
+    expect(verse('Matthew', 7, 24)).toContain(SOV14_FRAGMENTS['Matthew 7:24']);
+    expect(verse('Proverbs', 19, 21)).toContain(SOV14_FRAGMENTS['Proverbs 19:21']);
+    expect(verse('1Peter', 5, 8)).toContain(SOV14_FRAGMENTS['1 Peter 5:8']);
+    expect(verse('Psalms', 24, 1)).toContain(SOV14_FRAGMENTS['Psalms 24:1']);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV14_FRAGMENTS['2 Timothy 1:7'].endsWith('and of a sound mind.')).toBe(true);
+    expect(SOV14_FRAGMENTS['Proverbs 29:25']).toBe('The fear of man bringeth a snare: but whoso putteth his trust in the LORD shall be safe.');
+    expect(SOV14_FRAGMENTS['1 Thessalonians 5:21']).toBe('Prove all things; hold fast that which is good.');
+  });
+});
+
+// -----------------------------------------------------------------------------
+// SOV15 — "Watch, Brake, and the City Without Walls" (the A.I.-cyberattack
+// warning; the messenger who profits; every nation brought into the Light).
+// Spoken into the app by the Governor from a forwarded tech piece (The Daily
+// Upside, the cybersecurity-coalition letter), enriched live by his own
+// questions (follow-the-money; the nations in the Light; the Titles; "be light,
+// not create light"). Every KJV line fetched verbatim from the repo corpus this
+// session; a drift fails CI.
+// -----------------------------------------------------------------------------
+const SOV15_FRAGMENTS = {
+  '1 Peter 5:8': 'Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour',
+  'Mark 13:37': 'And what I say unto you I say unto all, Watch.',
+  'Proverbs 18:17': 'He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.',
+  'John 10:12': 'But he that is an hireling, and not the shepherd, whose own the sheep are not, seeth the wolf coming, and leaveth the sheep, and fleeth',
+  'John 10:13': 'The hireling fleeth, because he is an hireling, and careth not for the sheep.',
+  'Isaiah 56:11': 'they all look to their own way, every one for his gain, from his quarter.',
+  'Acts 19:25': 'Sirs, ye know that by this craft we have our wealth.',
+  'Acts 19:27': 'not only this our craft is in danger to be set at nought',
+  '1 Timothy 6:10': 'For the love of money is the root of all evil',
+  '1 Thessalonians 5:21': 'Prove all things; hold fast that which is good.',
+  'Proverbs 22:3': 'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.',
+  'John 8:12': 'I am the light of the world',
+  'John 3:19': 'light is come into the world, and men loved darkness rather than light, because their deeds were evil',
+  'John 3:21': 'But he that doeth truth cometh to the light, that his deeds may be made manifest, that they are wrought in God.',
+  'Ephesians 5:13': 'But all things that are reproved are made manifest by the light: for whatsoever doth make manifest is light.',
+  'Luke 8:17': 'For nothing is secret, that shall not be made manifest',
+  'Acts 10:34': 'God is no respecter of persons',
+  'Acts 10:35': 'But in every nation he that feareth him, and worketh righteousness, is accepted with him.',
+  'Proverbs 14:34': 'Righteousness exalteth a nation: but sin is a reproach to any people.',
+  'Daniel 2:21': 'he removeth kings, and setteth up kings',
+  'Psalms 33:10': 'The LORD bringeth the counsel of the heathen to nought',
+  'Matthew 5:14': 'Ye are the light of the world. A city that is set on an hill cannot be hid.',
+  'John 1:8': 'was not that Light, but was sent to bear witness of that Light.',
+  'John 1:9': 'That was the true Light, which lighteth every man that cometh into the world',
+  '2 Corinthians 4:6': 'For God, who commanded the light to shine out of darkness, hath shined in our hearts',
+  'James 1:17': 'and cometh down from the Father of lights, with whom is no variableness, neither shadow of turning',
+  '1 Peter 2:25': 'are now returned unto the Shepherd and Bishop of your souls',
+  'Revelation 1:8': 'which is, and which was, and which is to come, the Almighty',
+  'Genesis 17:1': 'I am the Almighty God; walk before me, and be thou perfect',
+  '1 Timothy 1:17': 'Now unto the King eternal, immortal, invisible, the only wise God',
+  'Psalms 90:2': 'from everlasting to everlasting, thou art God',
+  'Luke 14:28': 'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+  'Ecclesiastes 10:10': 'If the iron be blunt, and he do not whet the edge, then must he put to more strength: but wisdom is profitable to direct.',
+  'Nehemiah 4:9': 'we made our prayer unto our God, and set a watch against them day and night',
+  'Nehemiah 4:17': 'every one with one of his hands wrought in the work, and with the other hand held a weapon',
+  'Proverbs 25:28': 'He that hath no rule over his own spirit is like a city that is broken down, and without walls.',
+  'Proverbs 16:32': 'he that ruleth his spirit than he that taketh a city.',
+  'Luke 12:39': 'he would have watched, and not have suffered his house to be broken through.',
+  'Ezekiel 33:6': 'if the watchman see the sword come, and blow not the trumpet, and the people be not warned',
+  '2 Corinthians 2:11': 'Lest Satan should get an advantage of us: for we are not ignorant of his devices.',
+  'Proverbs 4:23': 'Keep thy heart with all diligence; for out of it are the issues of life.',
+  'Matthew 26:41': 'Watch and pray, that ye enter not into temptation',
+  'Luke 11:21': 'When a strong man armed keepeth his palace, his goods are in peace',
+  'Psalms 127:1': 'except the LORD keep the city, the watchman waketh but in vain',
+  'James 4:17': 'Therefore to him that knoweth to do good, and doeth it not, to him it is sin.',
+  'Luke 12:47': 'prepared not himself, neither did according to his will, shall be beaten with many stripes.',
+  'John 9:41': 'If ye were blind, ye should have no sin: but now ye say, We see; therefore your sin remaineth.',
+  'Romans 5:13': 'sin is not imputed when there is no law',
+  'Matthew 24:12': 'And because iniquity shall abound, the love of many shall wax cold.',
+  'Romans 13:10': 'love is the fulfilling of the law',
+  'John 8:32': 'And ye shall know the truth, and the truth shall make you free.',
+  '2 Corinthians 3:17': 'where the Spirit of the Lord is, there is liberty.',
+  'James 1:25': 'the perfect law of liberty',
+  'Galatians 5:1': 'Stand fast therefore in the liberty wherewith Christ hath made us free',
+  'Leviticus 25:10': 'proclaim liberty throughout all the land unto all the inhabitants thereof',
+  'Isaiah 61:1': 'to proclaim liberty to the captives, and the opening of the prison to them that are bound',
+  'Romans 8:1': 'There is therefore now no condemnation to them which are in Christ Jesus',
+  'Romans 14:12': 'every one of us shall give account of himself to God',
+  'James 4:6': 'God resisteth the proud, but giveth grace unto the humble',
+  '1 Thessalonians 5:18': 'In every thing give thanks: for this is the will of God',
+  'Colossians 3:15': 'and be ye thankful',
+  '2 Corinthians 6:16': 'ye are the temple of the living God',
+  'John 1:12': 'to them gave he power to become the sons of God',
+  'Ephesians 1:4': 'hath chosen us in him before the foundation of the world',
+  'Revelation 21:3': 'the tabernacle of God is with men, and he will dwell with them, and they shall be his people',
+  'John 14:6': 'I am the way, the truth, and the life: no man cometh unto the Father, but by me',
+  'Acts 4:12': 'Neither is there salvation in any other',
+  '2 Corinthians 11:2': 'I have espoused you to one husband, that I may present you as a chaste virgin to Christ',
+  'Revelation 19:7': 'the marriage of the Lamb is come, and his wife hath made herself ready',
+  'Ephesians 5:27': 'a glorious church, not having spot, or wrinkle',
+};
+
+const sov15 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov15-watch-brake-and-the-city-without-walls');
+
+describe('sov15 — watch, brake, and the city without walls quotes its Word spine verbatim, Word first', () => {
+  it('the week exists and anchors on watch / the messenger who profits / the Light', () => {
+    expect(sov15).toBeTruthy();
+    expect(sov15.anchor.ref).toContain('1 Peter 5:8');
+    expect(sov15.anchor.ref).toContain('Proverbs 18:17');
+    expect(sov15.anchor.ref).toContain('John 8:12');
+  });
+  it('every quoted fragment is letter-for-letter KJV in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV15_FRAGMENTS)) {
+      expect(sov15.lesson, `${ref} must be quoted letter-for-letter`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS: watch is the first movement, before the headline', () => {
+    expect(sov15.lesson.indexOf('FIRST, SETTLE THE POSTURE')).toBe(0);
+    expect(sov15.lesson.indexOf('roaring lion')).toBeLessThan(sov15.lesson.indexOf('Daily Upside'));
+  });
+  it('the twelve movements are marked FIRST through TWELFTH, in order', () => {
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,', 'ELEVENTH,', 'TWELFTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov15.lesson.indexOf(m);
+      expect(at, `${m} present`).toBeGreaterThan(-1);
+      expect(at, `${m} in order`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('the messenger-who-profits discernment is present (follow the money, both tiers)', () => {
+    expect(sov15.lesson).toContain('WEIGH THE MESSENGER WHO PROFITS');
+    expect(sov15.lesson).toContain('where there');   // "where there's anxiety, there's money"
+    expect(sov15.lesson).toContain('HOLD BOTH TIERS');
+  });
+  it('every nation is brought into the one Light, under one standard (Truth is the Light, He is Eternal)', () => {
+    expect(sov15.lesson).toContain('BRING THE NATIONS INTO THE LIGHT');
+    expect(sov15.lesson).toContain('ONE standard covers every people');
+    // reflect, not create — Darrell's correction
+    expect(sov15.lesson).toContain('WE REFLECT THE LIGHT, WE DO NOT CREATE IT');
+    // the America application (informed conscience) and Light-and-Liberty threads
+    expect(sov15.lesson).toContain('to him that knoweth to do good');
+    expect(sov15.lesson).toContain('the most Light AND the most Liberty');
+    expect(sov15.lesson).toContain('NO CONDEMNATION');
+    expect(sov15.lesson).toContain('GRATEFUL and THANKFUL');
+    expect(sov15.lesson).toContain('all of time was designed to create: temples and children of Yahweh');
+    expect(sov15.lesson).toContain('there is only ONE Way');
+    expect(sov15.lesson).toContain('a Bride, a wife for the Lamb');
+  });
+  it('the unruled agent is a city without walls, and the watchman who slept is named', () => {
+    expect(sov15.lesson).toContain('broke free of controls');
+    expect(sov15.lesson).toContain('three-brakes rule');
+    expect(sov15.lesson).toContain('UNDETECTED for a week');
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('1Peter', 5, 8)).toContain(SOV15_FRAGMENTS['1 Peter 5:8']);
+    expect(verse('Mark', 13, 37)).toBe(SOV15_FRAGMENTS['Mark 13:37']);
+    expect(verse('Proverbs', 18, 17)).toBe(SOV15_FRAGMENTS['Proverbs 18:17']);
+    expect(verse('John', 10, 13)).toBe(SOV15_FRAGMENTS['John 10:13']);
+    expect(verse('Isaiah', 56, 11)).toContain(SOV15_FRAGMENTS['Isaiah 56:11']);
+    expect(verse('Acts', 19, 25)).toContain(SOV15_FRAGMENTS['Acts 19:25']);
+    expect(verse('Proverbs', 22, 3)).toBe(SOV15_FRAGMENTS['Proverbs 22:3']);
+    expect(verse('John', 8, 12)).toContain(SOV15_FRAGMENTS['John 8:12']);
+    expect(verse('Ephesians', 5, 13)).toBe(SOV15_FRAGMENTS['Ephesians 5:13']);
+    expect(verse('Acts', 10, 34)).toContain(SOV15_FRAGMENTS['Acts 10:34']);
+    expect(verse('Acts', 10, 35)).toBe(SOV15_FRAGMENTS['Acts 10:35']);
+    expect(verse('Proverbs', 14, 34)).toBe(SOV15_FRAGMENTS['Proverbs 14:34']);
+    expect(verse('Matthew', 5, 14)).toBe(SOV15_FRAGMENTS['Matthew 5:14']);
+    expect(verse('John', 1, 8)).toContain(SOV15_FRAGMENTS['John 1:8']);
+    expect(verse('2Corinthians', 4, 6)).toContain(SOV15_FRAGMENTS['2 Corinthians 4:6']);
+    expect(verse('1Peter', 2, 25)).toContain(SOV15_FRAGMENTS['1 Peter 2:25']);
+    expect(verse('Revelation', 1, 8)).toContain(SOV15_FRAGMENTS['Revelation 1:8']);
+    expect(verse('1Timothy', 1, 17)).toContain(SOV15_FRAGMENTS['1 Timothy 1:17']);
+    expect(verse('Proverbs', 25, 28)).toBe(SOV15_FRAGMENTS['Proverbs 25:28']);
+    expect(verse('Ezekiel', 33, 6)).toContain(SOV15_FRAGMENTS['Ezekiel 33:6']);
+    expect(verse('Luke', 11, 21)).toContain(SOV15_FRAGMENTS['Luke 11:21']);
+    expect(verse('Psalms', 127, 1)).toContain(SOV15_FRAGMENTS['Psalms 127:1']);
+    expect(verse('James', 4, 17)).toBe(SOV15_FRAGMENTS['James 4:17']);
+    expect(verse('John', 9, 41)).toContain(SOV15_FRAGMENTS['John 9:41']);
+    expect(verse('Matthew', 24, 12)).toBe(SOV15_FRAGMENTS['Matthew 24:12']);
+    expect(verse('John', 8, 32)).toBe(SOV15_FRAGMENTS['John 8:32']);
+    expect(verse('2Corinthians', 3, 17)).toContain(SOV15_FRAGMENTS['2 Corinthians 3:17']);
+    expect(verse('Galatians', 5, 1)).toContain(SOV15_FRAGMENTS['Galatians 5:1']);
+    expect(verse('Leviticus', 25, 10)).toContain(SOV15_FRAGMENTS['Leviticus 25:10']);
+    expect(verse('Isaiah', 61, 1)).toContain(SOV15_FRAGMENTS['Isaiah 61:1']);
+    expect(verse('Romans', 8, 1)).toContain(SOV15_FRAGMENTS['Romans 8:1']);
+    expect(verse('James', 4, 6)).toContain(SOV15_FRAGMENTS['James 4:6']);
+    expect(verse('Colossians', 3, 15)).toContain(SOV15_FRAGMENTS['Colossians 3:15']);
+    expect(verse('2Corinthians', 6, 16)).toContain(SOV15_FRAGMENTS['2 Corinthians 6:16']);
+    expect(verse('John', 1, 12)).toContain(SOV15_FRAGMENTS['John 1:12']);
+    expect(verse('Ephesians', 1, 4)).toContain(SOV15_FRAGMENTS['Ephesians 1:4']);
+    expect(verse('John', 14, 6)).toContain(SOV15_FRAGMENTS['John 14:6']);
+    expect(verse('Acts', 4, 12)).toContain(SOV15_FRAGMENTS['Acts 4:12']);
+    expect(verse('2Corinthians', 11, 2)).toContain(SOV15_FRAGMENTS['2 Corinthians 11:2']);
+    expect(verse('Revelation', 19, 7)).toContain(SOV15_FRAGMENTS['Revelation 19:7']);
+    expect(verse('Ephesians', 5, 27)).toContain(SOV15_FRAGMENTS['Ephesians 5:27']);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV15_FRAGMENTS['Proverbs 18:17']).toBe('He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.');
+    expect(SOV15_FRAGMENTS['Proverbs 14:34']).toBe('Righteousness exalteth a nation: but sin is a reproach to any people.');
+    expect(SOV15_FRAGMENTS['Matthew 5:14'].endsWith('cannot be hid.')).toBe(true);
+  });
+});
+
