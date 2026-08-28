@@ -26,6 +26,7 @@ import {
 import { paymentLedger, gaps, discrepancies, accuracy, totals } from './payments.js';
 import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
+import { isOwnHome } from './homes.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 
 const ACCENT = '#2F5D50';
@@ -39,6 +40,12 @@ export const COMING_WINDOW_DAYS = 90;
  * looking — someone is in it now, and it opens on a date.
  */
 export function statusWord(x) {
+  // OUR OWN HOME OUTRANKS EVERYTHING. It is not available, not advertised and
+  // not between tenants — it is where the family lives. Shipped without this
+  // branch on 2026-08-27, so 2111 Talans Dr read "AVAILABLE - no rent on
+  // record" on the live board with QR TO APPLY beside it, while the database
+  // had said status = 'owner-occupied' the whole time (Darrell, 2026-08-28).
+  if (x.ownHome) return 'Our home';
   if (x.comingSoon) return x.daysOut === 0 ? 'Opens today' : `Opens in ${x.daysOut}d`;
   if (x.rented) return 'Rented';
   return x.listed ? 'Advertised' : 'Available';
@@ -76,7 +83,7 @@ const KIND_WORDS = {
   'move-in': 'Moved in', 'move-out': 'Moved out', photo: 'Photo', document: 'Document',
   note: 'Note', 'property-note': 'Landlord note', message: 'Message', rent: 'Rent',
   'work-order': 'Work order', 'work-order-closed': 'Work order closed', 'job-doc': 'Job documented',
-  notice: 'Notice',
+  notice: 'Notice', system: 'Mechanical',
 };
 
 function EventRow({ e }) {
@@ -470,13 +477,25 @@ export function DoorsBoard({
       address: [r.address, r.unit].filter(Boolean).join(', '),
       where: [r.city, r.state].filter(Boolean).join(', '),
       shortStay: r.offering === 'short-term' || r.offering === 'both',
+      // Ours, not offered. The predicate is homes.js, which is the same
+      // sentence as public.rental_is_own_home() in 0156 — the database refuses
+      // to publish anything this is true for, so the two cannot drift.
+      ownHome: isOwnHome(r),
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
     };
   }), [rentals, activeByRef, coverByRental, photos]);
 
-  const rented = rows.filter((x) => x.rented).length;
-  const coming = rows.filter((x) => x.comingSoon).length;
+  // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
+  // not for renting... Real Estate keeps it just as our home and asset"
+  // (Darrell, 2026-08-28). Dropping the home from this component entirely would
+  // also drop its rooms, its photographs, its papers and its mechanical
+  // history, which is the opposite of what was asked — so it keeps a place of
+  // its own, below the doors, with none of the leasing machinery attached.
+  const doorRows = rows.filter((x) => !x.ownHome);
+  const homeRows = rows.filter((x) => x.ownHome);
+  const rented = doorRows.filter((x) => x.rented).length;
+  const coming = doorRows.filter((x) => x.comingSoon).length;
 
   if (rentals.length === 0) {
     return (
@@ -490,12 +509,21 @@ export function DoorsBoard({
   }
 
   return (
+    <>
+    {doorRows.length === 0 ? (
+      <Card title="Your doors">
+        <Empty>
+          Nothing here is rented out. Everything on this account is our own — it is below, with its
+          records intact.
+        </Empty>
+      </Card>
+    ) : (
     <Card
-      title={`Your doors (${rentals.length})`}
+      title={`Your doors (${doorRows.length})`}
       right={
         <span className="flex items-center gap-2">
           <span className="text-[0.6875rem] text-[#6B665E]">
-            {rented} rented · {rentals.length - rented} available{coming ? ` · ${coming} coming` : ''}
+            {rented} rented · {doorRows.length - rented} available{coming ? ` · ${coming} coming` : ''}
           </span>
           <span className="flex gap-1">
             <Btn tone={view === 'list' ? 'primary' : 'ghost'} onClick={() => pickView('list')}>List</Btn>
@@ -506,13 +534,18 @@ export function DoorsBoard({
     >
       {view === 'grid' && (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {rows.map((x) => (
+          {doorRows.map((x) => (
             <li key={x.rental.id} className="border border-[#E8E4DC] bg-white">
               <button
                 type="button"
-                onClick={() => x.tenancy && onPick?.(x.tenancy.id)}
-                disabled={!x.tenancy}
-                className={`w-full text-left ${x.tenancy ? '' : 'cursor-default'}`}
+                // A DOOR WITH NO TENANT IS STILL A DOOR. This used to be
+                // disabled unless a tenancy existed, and with zero tenancies on
+                // the account that made every one of the twelve unselectable —
+                // so Rooms, Pictures, Files and Door history had nothing to
+                // show anybody. The rentals ID resolves the door on its own
+                // (PropertiesApp resolves activeId against rentals.id).
+                onClick={() => onPick?.(x.tenancy?.id || x.rental.id)}
+                className="w-full text-left"
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                   {x.cover?.storage_path ? (
@@ -538,7 +571,7 @@ export function DoorsBoard({
       )}
       {view === 'list' && (
       <ul>
-        {rows.map((x) => (
+        {doorRows.map((x) => (
           <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               {/* The picture, so the board reads like a property list and not a
@@ -556,9 +589,8 @@ export function DoorsBoard({
               </div>
               <button
                 type="button"
-                onClick={() => x.tenancy && onPick?.(x.tenancy.id)}
-                disabled={!x.tenancy}
-                className={`text-left flex-1 min-w-[10rem] ${x.tenancy ? 'hover:underline' : 'cursor-default'}`}
+                onClick={() => onPick?.(x.tenancy?.id || x.rental.id)}
+                className="text-left flex-1 min-w-[10rem] hover:underline"
               >
                 <div className="text-[0.875rem] text-[#1A1815]">{x.label}</div>
                 {x.address && <div className="text-[0.75rem] text-[#5A5751]">{x.address}</div>}
@@ -627,6 +659,85 @@ export function DoorsBoard({
         ))}
       </ul>
       )}
+    </Card>
+    )}
+    {homeRows.length > 0 && (
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} />
+    )}
+    </>
+  );
+}
+
+/**
+ * Our own homes. Everything the board gives a rental door EXCEPT the machinery
+ * that offers it to somebody: no QR, no Advertise, no Start a tenancy, no
+ * "available", no asking rent.
+ *
+ * Darrell, 2026-08-28: "2111 Talans Dr. is not a rental location it is our own
+ * home only in books for our mortgage to be inside our books for showing
+ * payments etc... not in the Properties tab because it's not for renting...
+ * we still want to calculate the funds and other home ownership type things
+ * like keeping a mechanical history of the system's and issues like all our
+ * properties" — then: "Real Estate keeps it just as our home and asset."
+ *
+ * So the card says out loud where the money lives, because a person looking at
+ * a house on a properties screen and seeing no rent, no mortgage and no value
+ * would reasonably conclude the app had lost them.
+ */
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental }) {
+  const [editingDoor, setEditingDoor] = useState(null);
+  return (
+    <Card
+      title={`Our homes (${rows.length})`}
+      right={<span className="text-[0.6875rem] text-[#6B665E]">not for rent</span>}
+    >
+      <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed mb-2">
+        Where we live, not what we let. The mortgage, the payments and the asset value stay in
+        Real&nbsp;Estate; the rooms, pictures, papers and mechanical history are here, the same as
+        every other property.
+      </p>
+      <ul>
+        {rows.map((x) => (
+          <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
+                {x.cover?.storage_path ? (
+                  <img src={x.cover.storage_path} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => onPick?.(x.rental.id)}
+                className="text-left flex-1 min-w-[10rem] hover:underline"
+              >
+                <div className="text-[0.875rem] text-[#1A1815]">{x.label}</div>
+                {x.address && <div className="text-[0.75rem] text-[#5A5751]">{x.address}</div>}
+                <div className="text-[0.75rem] text-[#5A5751]">
+                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: ACCENT }}>
+                    {statusWord(x)}
+                  </span>
+                  {x.where ? ` · ${x.where}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                </div>
+                <div className="text-[0.75rem] text-[#6B665E]">Mortgage and payments in Real Estate · records here</div>
+              </button>
+              {canManage && (
+                <Btn onClick={() => setEditingDoor(editingDoor === x.rental.id ? null : x.rental.id)} disabled={busy}>
+                  {editingDoor === x.rental.id ? 'Close' : 'Edit home'}
+                </Btn>
+              )}
+            </div>
+            {editingDoor === x.rental.id && (
+              <EditRental
+                rental={x.rental} busy={busy}
+                onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
+              />
+            )}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

@@ -63,8 +63,23 @@ describe('the door', () => {
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
   });
 
-  it('answers 502 honestly when the release is unreachable or missing', async () => {
-    vi.stubGlobal('fetch', async () => new Response('nope', { status: 404 }));
+  it('says "not published yet", not "bad gateway", for an empty shelf', async () => {
+    // Measured 2026-08-28: properties.apk did not exist on the release, this
+    // door turned GitHub's 404 into a 502, and Cloudflare showed Darrell
+    // "Bad gateway · Host Error" — which reads as the whole site being down.
+    // A missing package is a missing package.
+    vi.stubGlobal('fetch', async () => new Response('Not Found', { status: 404 }));
+    vi.stubGlobal('caches', { default: noCache });
+    const res = await onRequestGet(ctx('properties.apk'));
+    expect(res.status).toBe(404);
+    const body = await res.text();
+    expect(body).toContain('properties');
+    expect(body).toMatch(/site is fine/i);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');   // never cache an empty shelf
+  });
+
+  it('answers 502 honestly when the release is unreachable or genuinely broken', async () => {
+    vi.stubGlobal('fetch', async () => new Response('server error', { status: 500 }));
     vi.stubGlobal('caches', { default: noCache });
     expect((await onRequestGet(ctx('tlc.apk'))).status).toBe(502);
     vi.stubGlobal('fetch', async () => { throw new Error('net down'); });
