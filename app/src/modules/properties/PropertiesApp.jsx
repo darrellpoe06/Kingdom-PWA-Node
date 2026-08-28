@@ -451,14 +451,17 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
    * Apply an arrangement the landlord made on the board. The model returns the
    * PATCHES — usually one row for "show first", two for a nudge — and this
    * writes exactly those. Nothing is reordered client-side and re-saved: the
-   * order lives in the database because the public storefront reads it too.
+   * order lives in the database (the showcase_order column) because the public
+   * storefront reads it too. Reordering is not an audit-worthy edit, so it
+   * writes NO note — otherwise every nudge stacked a "showcase order" line on
+   * the door's notes (Darrell 2026-08-28).
    */
   const arrangeDoor = async (intent) => {
     const { patches } = intent?.first
       ? showFirst(rentals, intent.first)
       : moveDoor(rentals, intent?.move, intent?.dir);
     if (!patches.length) return;
-    for (const p of patches) await updateRental(p.id, p.patch, { summary: 'showcase order' });
+    for (const p of patches) await updateRental(p.id, p.patch);
     boot();
   };
 

@@ -461,7 +461,11 @@ export async function updateRental(id, patch, { summary = '' } = {}, client = su
     if (summary) {
       const { data: cur } = await client.from('rentals').select('notes').eq('id', id).single();
       const stamp = new Date().toISOString().slice(0, 10);
-      body.notes = `${cur?.notes || ''}\n[${stamp}] Edited — ${summary}`.trim();
+      const line = `[${stamp}] Edited — ${summary}`;
+      // Don't stack: a repeated same-day, same-summary edit (e.g. a run of
+      // showcase-order nudges) must not append the identical audit line again.
+      const notes = (cur?.notes || '').trimEnd();
+      body.notes = notes.endsWith(line) ? notes : `${notes}\n${line}`.trim();
     }
     const { data, error } = await client.from('rentals').update(body).eq('id', id).select().single();
     if (error) return no('update-failed', error);
