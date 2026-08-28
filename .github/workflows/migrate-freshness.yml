@@ -1,0 +1,130 @@
+# Migration freshness — the SAFEGUARD that heals a migration main merged and
+# never applied. The sibling of deploy-freshness.yml, for the database.
+#
+# WHY THIS EXISTS (2026-08-28, measured, not theorised). auto-merge.yml already
+# dispatches db-migrate itself, because a GITHUB_TOKEN merge does not fire
+# push-triggered workflows (DR-0107 / LESSONS P25). But that dispatch runs in a
+# POLL WINDOW, and the window closes too early. Measured on run 33137488317,
+# the merge of PR #1361:
+#
+#   migration dispatch poll   02:58:03 -> 03:04:30   (6m27s, gave up)
+#   deploy dispatch poll      03:04:30 -> 03:06:56   (caught the merge)
+#   the merge itself                    03:06:50
+#
+# The two waits are SEQUENTIAL steps in one job, so the migration step always
+# gets the FIRST six minutes and the deploy step gets a later, second six. Any
+# PR whose CI outlasts the first window loses its migration dispatch while the
+# deploy still lands — which is the worst shape of all: the new code goes live
+# against a database that never got its schema. #1361 shipped a Systems tab and
+# a home-is-never-listed CHECK; both sat unapplied until dispatched by hand.
+#
+# auto-merge.yml now re-checks after the deploy step, which closes the ordering
+# hole. This file closes the one a poll window can never close: the LAST merge
+# in a quiet stretch has no following PR event at all, so nothing re-checks. The
+# only reliable answer GitHub allows after a GITHUB_TOKEN merge is a SCHEDULE —
+# exactly the reasoning that produced deploy-freshness, applied to the half of
+# the deploy that lives in Postgres.
+#
+# HOW IT DECIDES. It compares the migrations-auto directory at main's tip with
+# the same directory at the commit db-migrate last ran successfully against. Blob
+# SHAs, so an edit to an existing file counts as much as a new one. Same ⇒ no-op.
+# It never reads the database: db-migrate is idempotent and its own ledger is the
+# record, so the cheapest correct question here is "has the repo moved past what
+# the lane last applied?"
+#
+# THE THREE BRAKES (CLAUDE.md). Timer-driven, so it carries all three even
+# though it cannot run away (it dispatches at most ONE already-single-flight
+# migration run per fire; it spawns no Claude, no compute loop, no fan-out):
+#   1. BUDGET — three cheap API reads and at most one dispatch per run; the
+#               dispatched db-migrate is itself bounded and single-flight.
+#   2. LOCK   — concurrency: migrate-freshness here, AND db-migrate's own
+#               `concurrency: db-migrate` group. Migrations never stack, which
+#               is the constraint that matters: two DDL runs against one cloud
+#               database deadlock on shared catalogs (observed 2026-07-01).
+#   3. KILL   — SHIPS ACTIVE (DR-0110), same class as deploy-freshness and the
+#               auto-merge dispatches. Pause instantly with the repo variable
+#               MIGRATE_FRESHNESS_ENABLED='false', or disable it in the Actions
+#               UI. Unset => runs.
+#
+# PAUSE: GitHub -> Settings -> Secrets and variables -> Actions -> Variables ->
+# add MIGRATE_FRESHNESS_ENABLED = false (delete it, or set anything but 'false',
+# to resume).
+
+name: Migration freshness (heal an unapplied migration)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every 5 min (public repo — Actions minutes are free)
+  workflow_dispatch: {}
+
+# LOCK: single-instance. A new fire while one runs is queued, never stacked.
+concurrency:
+  group: migrate-freshness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # to dispatch db-migrate.yml
+
+jobs:
+  heal:
+    if: ${{ vars.MIGRATE_FRESHNESS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5   # BUDGET: a few API reads; anything longer is a fault.
+    steps:
+      - name: Apply main's migrations if the lane has fallen behind them
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha')
+          if [ -z "$main_sha" ]; then
+            echo "::error::could not read main's tip; nothing can be decided from silence."
+            exit 1
+          fi
+
+          # The commit db-migrate last ran SUCCESSFULLY against. A failed run is
+          # deliberately not counted: a red lane means production is behind the
+          # repo, and that is precisely when this should dispatch, not stand down.
+          last_sha=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+
+          if [ -z "$last_sha" ]; then
+            echo "db-migrate has no successful run on record — dispatching so there is one."
+            gh workflow run db-migrate.yml --repo "$REPO" --ref main
+            exit 0
+          fi
+
+          if [ "$main_sha" = "$last_sha" ]; then
+            echo "db-migrate last ran against main's tip ($main_sha) — nothing to heal."
+            exit 0
+          fi
+
+          # Blob SHAs of every file in the migrations directory, at both commits.
+          # An EDIT to an existing migration moves its blob SHA, so this catches
+          # a corrected file as surely as a new one.
+          dir_at() {
+            gh api "repos/$REPO/contents/infra/supabase/migrations-auto?ref=$1" \
+              --jq '[.[] | "\(.name):\(.sha)"] | sort | join(",")' 2>/dev/null || echo "UNREADABLE"
+          }
+          now=$(dir_at "$main_sha")
+          then_=$(dir_at "$last_sha")
+
+          if [ "$now" = "UNREADABLE" ] || [ "$then_" = "UNREADABLE" ]; then
+            # Never infer "all clear" from a failed read (DR-0076 §8): unknown
+            # freshness must not read as fresh. db-migrate is idempotent, so the
+            # safe answer to "I could not tell" is to run it.
+            echo "::warning::could not read the migrations directory at one of the commits — dispatching rather than assuming."
+            gh workflow run db-migrate.yml --repo "$REPO" --ref main
+            exit 0
+          fi
+
+          if [ "$now" = "$then_" ]; then
+            echo "main advanced ($last_sha -> $main_sha) but no migration changed — nothing to apply."
+            exit 0
+          fi
+
+          echo "main's migrations differ from what db-migrate last applied ($last_sha -> $main_sha) — dispatching."
+          gh workflow run db-migrate.yml --repo "$REPO" --ref main
