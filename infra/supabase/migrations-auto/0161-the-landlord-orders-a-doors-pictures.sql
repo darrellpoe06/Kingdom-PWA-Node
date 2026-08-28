@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0160 — the landlord orders a door's pictures, and picks the cover
+-- 0161 — the landlord orders a door's pictures, and picks the cover
 -- =============================================================================
 -- Darrell, 2026-08-28: "no way to reorder the images? does work..." — the doors
 -- board lets him arrange the shelf (0157, showcase_order) and it works; the

@@ -148,7 +148,7 @@ describe('the gallery, the loaders, and the database all honour the order', () =
   });
 
   it('the migration adds the column, grants UPDATE on it, and the public gallery orders by it', () => {
-    const m = read('../../infra/supabase/migrations-auto/0160-the-landlord-orders-a-doors-pictures.sql');
+    const m = read('../../infra/supabase/migrations-auto/0161-the-landlord-orders-a-doors-pictures.sql');
     expect(m).toMatch(/ADD COLUMN IF NOT EXISTS sort_order integer/);
     expect(m).toMatch(/GRANT UPDATE \(sort_order\) ON public\.property_photos TO authenticated/);
     expect(m).toMatch(/ORDER BY ph\.sort_order ASC NULLS LAST/);

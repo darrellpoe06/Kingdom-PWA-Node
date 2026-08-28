@@ -18,6 +18,10 @@ import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
 import CarryUpRecords from './CarryUpRecords.jsx';
+import {
+  LEVELS, LEVEL_LABEL, LEVEL_PLURAL, levelOf, splitTarget, refuseSplit,
+  defaultLabels, planSplit, describeSplit,
+} from '../lib/rentable-levels.js';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
 import RentLedger, { PaidBar } from './RentLedger.jsx';
@@ -901,6 +905,18 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
 // what people open a record for (Darrell, 2026-08-28: "Notes is the main reason
 // someone or a user hits edit on the Real Estate tab"). Counts read the same
 // arrays property-record-counts reads, so a tab label and its panel agree.
+
+// The labels one split would propose, for a level and a shape. Kept beside the
+// component (not inside it) so the panel and the confirm path derive labels the
+// same way and cannot drift apart.
+function splitLabels(base, level, count, bedsPerRoom) {
+  const plan = planSplit({ ...base, building: (base.building || base.address || base.name || 'x') }, {
+    level, count, bedsPerRoom,
+  });
+  if (plan.ok) return plan.children.map((c) => c.label);
+  return defaultLabels(level, Math.max(2, count || 2), base);
+}
+
 const RECORD_TABS = [
   { id: 'notes', label: 'Notes', count: (r) => (r.unitNotes || []).length + (r.conversationLog || []).length },
   { id: 'work', label: 'Work', count: (r) => (r.maintenanceLog || []).length },
@@ -1254,37 +1270,73 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // flow with an inline form — a door-count dropdown seeds editable Apt 1..N
   // labels, one tap creates the doors. { id, building, labels } or null.
   const [splitFor, setSplitFor] = useState(null);
+  // THE SPLIT IS THE SAME MOVE AT EVERY LEVEL (Darrell 2026-08-28: "all rooms
+  // should be able to do what I had to do"). A unit splits into rooms; a room
+  // splits into beds; a bed is the floor and says so. The labels the panel
+  // proposes are the ones he was typing by hand — "Room 1 - Bed A" — and every
+  // one stays editable before Save, exactly as before.
   const openSplit = (r) => {
     if (splitFor && splitFor.id === r.id) { setSplitFor(null); return; }
-    const n = Math.max(2, unitsOf(r));
+    const target = splitTarget(r);
+    if (!target) { alert(refuseSplit(r)); return; }
+    const n = Math.max(2, target === 'room' ? Math.max(2, unitsOf(r)) : 2);
     setSplitFor({
       id: r.id,
+      level: target,
+      bedsPerRoom: 1,
       building: (r.building || '').trim() || String(r.address || r.name || '').trim(),
-      labels: defaultUnitLabels(n),
+      labels: splitLabels(r, target, n, 1),
     });
   };
-  const setSplitCount = (n) => {
-    const count = Math.max(2, parseInt(n, 10) || 2);
-    setSplitFor((s) => s && ({ ...s, labels: defaultUnitLabels(count).map((d, i) => s.labels[i] ?? d) }));
-  };
+  // Every control on the panel re-proposes the labels for the new shape, but a
+  // label the landlord has already edited is HIS — re-deriving over the top of
+  // his typing is the thing that made him do this by hand in the first place.
+  const reshapeSplit = (patch) => setSplitFor((sp) => {
+    if (!sp) return sp;
+    const next = { ...sp, ...patch };
+    const base = rentals.find((x) => x.id === sp.id) || {};
+    const fresh = splitLabels(base, next.level, patch.count ?? sp.labels.length, next.bedsPerRoom);
+    const prior = splitLabels(base, sp.level, sp.labels.length, sp.bedsPerRoom);
+    next.labels = fresh.map((d, i) => (sp.labels[i] !== undefined && sp.labels[i] !== prior[i] ? sp.labels[i] : d));
+    return next;
+  });
+  const setSplitCount = (n) => reshapeSplit({ count: Math.max(2, parseInt(n, 10) || 2) });
   const confirmSplit = (base) => {
     if (!splitFor || splitFor.id !== base.id) return;
     const buildingName = splitFor.building.trim();
     const labels = splitFor.labels.map((s) => s.trim()).filter(Boolean);
     if (!buildingName || labels.length < 2) { alert('Give the building a name and at least two unit labels.'); return; }
-    // The existing door becomes the first unit under the building — it keeps
+    // The shape the panel is showing, so the level and room land on every door
+    // rather than only the labels. Its own labels are replaced by whatever the
+    // landlord typed — the plan decides the STRUCTURE, he decides the words.
+    const plan = planSplit({ ...base, building: buildingName }, {
+      level: splitFor.level,
+      count: splitFor.level === 'room' ? Math.ceil(labels.length / Math.max(1, splitFor.bedsPerRoom)) : labels.length,
+      bedsPerRoom: splitFor.bedsPerRoom,
+    });
+    const shape = (i) => (plan.ok && plan.children[i]) || { level: splitFor.level, roomLabel: null };
+
+    // The existing door becomes the first child under the building — it keeps
     // its tenant, rent, records, photos, and thread.
     updateRental(base.id, {
       building: buildingName,
       unitLabel: labels[0],
+      rentableLevel: shape(0).level,
+      roomLabel: shape(0).roomLabel || null,
       propertyType: base.propertyType && base.propertyType !== 'single-family' ? base.propertyType : 'multi-family',
       units: 1,
       name: base.address ? `${base.address} ${labels[0]}` : `${buildingName} ${labels[0]}`,
     });
-    // The remaining units become their own doors, sharing the building.
+    // The rest become their own doors, sharing the building — each carrying the
+    // level and room it was created as, so a second device can see the nesting.
     let n = 0;
     buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
-      () => `r-unit-${base.id}-${(++n)}`).forEach((d) => addRental(d));
+      () => `r-unit-${base.id}-${(++n)}`)
+      .forEach((d, i) => addRental({
+        ...d,
+        rentableLevel: shape(i + 1).level,
+        roomLabel: shape(i + 1).roomLabel || null,
+      }));
     setSplitFor(null);
   };
 
@@ -1903,11 +1955,24 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
                       </span>
                     )}
-                    {/* A card claiming multiple doors (or a multi type) that is NOT
-                        grouped under a building yet is the collapsed shape that
-                        loses per-unit records — surface the fix right on the card. */}
-                    {!(r.building || '').trim() && !isPersonalProp(r) && (unitsOf(r) > 1 || /multi|duplex/.test(r.propertyType || '')) && (
-                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">{splitFor?.id === r.id ? '× Cancel split' : '⌗ Split into doors'}</button>
+                    {/* WHO GETS THIS CONTROL (widened 2026-08-28). It used to
+                        require `!building && (units > 1 || multi-family)` — so
+                        it VANISHED the moment a door joined a building, which
+                        is every door the split itself creates. That is why
+                        Darrell's "Room 1- Bed B" offers no split, and why he
+                        said "all rooms should be able to do what I had to do":
+                        he could not reach the control from a room, so he made
+                        the beds by hand.
+
+                        Now any door that HAS something inside it to rent shows
+                        it — a unit splits into rooms, a room into beds. A bed
+                        is the floor and shows nothing, which is the truth
+                        rather than a disabled button. Our own home still never
+                        offers it. */}
+                    {!isPersonalProp(r) && splitTarget(r) && (
+                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                        {splitFor?.id === r.id ? '× Cancel split' : `⌗ Split into ${LEVEL_PLURAL[splitTarget(r)]}`}
+                      </button>
                     )}
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
                     <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
@@ -1917,15 +1982,40 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       old browser prompt() dialogs. */}
                   {splitFor && splitFor.id === r.id && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#5A6E3D] space-y-2">
-                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Split into separate doors</div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                        Split this {LEVEL_LABEL[levelOf(r)].toLowerCase()} into {LEVEL_PLURAL[splitFor.level]}
+                      </div>
                       <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                        This card becomes <strong>{splitFor.labels[0] || 'the first unit'}</strong> (keeping its tenant, rent, and records). The rest are created as their own doors at the same address — each with its own records, photos, and thread.
+                        This card becomes <strong>{splitFor.labels[0] || 'the first one'}</strong> (keeping its tenant, rent, and records). The rest are created as their own doors at the same address — each with its own records, photos, and thread.
                       </p>
+                      {/* WHAT IS BEING MADE (Darrell 2026-08-28). A unit splits
+                          into rooms; a room splits into beds. The panel used to
+                          offer "Apt 1..N" and nothing else, which is why he
+                          typed "Room 1 - Bed A" by hand. */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label htmlFor={`split-n-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Number of doors</label>
-                          <select id={`split-n-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.labels.length)} onChange={e => setSplitCount(e.target.value)}>
-                            {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n} doors</option>)}
+                          <label htmlFor={`split-lvl-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">What are you renting out?</label>
+                          <select id={`split-lvl-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={splitFor.level} onChange={e => reshapeSplit({ level: e.target.value, bedsPerRoom: 1 })}>
+                            {LEVELS.filter((l) => l !== 'unit' || levelOf(r) === 'unit').map(l => (
+                              <option key={l} value={l}>{LEVEL_PLURAL[l].replace(/^./, (c) => c.toUpperCase())}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {splitFor.level === 'room' && (
+                          <div>
+                            <label htmlFor={`split-b-per-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Beds in each room</label>
+                            <select id={`split-b-per-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.bedsPerRoom)} onChange={e => reshapeSplit({ bedsPerRoom: parseInt(e.target.value, 10) || 1 })}>
+                              <option value="1">The room itself (1 tenant per room)</option>
+                              {[2,3,4].map(n => <option key={n} value={n}>{n} beds — each rented separately</option>)}
+                            </select>
+                          </div>
+                        )}
+                        <div>
+                          <label htmlFor={`split-n-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">
+                            How many {splitFor.level === 'room' ? 'rooms' : LEVEL_PLURAL[splitFor.level]}?
+                          </label>
+                          <select id={`split-n-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.level === 'room' ? Math.ceil(splitFor.labels.length / Math.max(1, splitFor.bedsPerRoom)) : splitFor.labels.length)} onChange={e => setSplitCount(e.target.value)}>
+                            {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}
                           </select>
                         </div>
                         <div>
@@ -1938,6 +2028,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           <input key={i} aria-label={`Unit ${i + 1} label`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={label} onChange={e => setSplitFor(s => s && ({ ...s, labels: s.labels.map((l, j) => j === i ? e.target.value : l) }))} />
                         ))}
                       </div>
+                      <p className="text-[0.6875rem] text-[#5A6E3D]">
+                        {describeSplit(planSplit({ ...r, building: splitFor.building || r.address || r.name }, {
+                          level: splitFor.level,
+                          count: splitFor.level === 'room' ? Math.ceil(splitFor.labels.length / Math.max(1, splitFor.bedsPerRoom)) : splitFor.labels.length,
+                          bedsPerRoom: splitFor.bedsPerRoom,
+                        }))}
+                      </p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <button type="button" onClick={() => confirmSplit(r)} className="bg-[#5A6E3D] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Create {splitFor.labels.length} doors</button>
                         <button type="button" onClick={() => setSplitFor(null)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Cancel</button>
