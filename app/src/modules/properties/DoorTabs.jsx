@@ -28,6 +28,7 @@ import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
+import { photoOrder, movePhoto, makeCover } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 
 const ACCENT = '#2F5D50';
@@ -464,17 +465,26 @@ export function DoorsBoard({
     try { localStorage.setItem('poe-properties-view', v); } catch { /* private window, or site data blocked */ }
   };
 
-  // One cover per door: the newest LISTING shot if there is one, else the newest
-  // picture of any kind. Photos are keyed by the rentals ID (uuid), not the slug.
+  // One cover per door: the picture the landlord placed FIRST if he has arranged
+  // the gallery (0160, sort_order), else the newest LISTING shot, else the newest
+  // of any kind. Photos are keyed by the rentals ID (uuid), not the slug.
   const coverByRental = useMemo(() => {
     const m = new Map();
+    const so = (x) => (x.sort_order === null || x.sort_order === undefined ? null : Number(x.sort_order));
     for (const p of photos) {
       if (!p.rental_ref || p.archived_at) continue;
       const cur = m.get(p.rental_ref);
+      const ps = so(p);
+      const cs = cur ? so(cur) : null;
       const better = !cur
-        || (p.kind === 'listing' && cur.kind !== 'listing')
-        || (p.kind === 'listing' === (cur.kind === 'listing')
-            && Date.parse(p.taken_at || p.uploaded_at || 0) > Date.parse(cur.taken_at || cur.uploaded_at || 0));
+        // A placed picture is the cover over any unplaced one; the lowest placed wins.
+        || (ps !== null && cs === null)
+        || (ps !== null && cs !== null && ps < cs)
+        // Neither placed: the old rule — a listing shot, then the newest.
+        || (ps === null && cs === null && (
+          (p.kind === 'listing' && cur.kind !== 'listing')
+          || ((p.kind === 'listing') === (cur.kind === 'listing')
+              && Date.parse(p.taken_at || p.uploaded_at || 0) > Date.parse(cur.taken_at || cur.uploaded_at || 0))));
       if (better) m.set(p.rental_ref, p);
     }
     return m;
@@ -1151,7 +1161,18 @@ export function GalleryTab({
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
   const live = useMemo(() => liveRooms(rooms), [rooms]);
-  const shown = useMemo(() => photos.filter((p) => !p.archived_at), [photos]);
+  // In the landlord's arranged order (0160) — the first picture is the cover.
+  const shown = useMemo(() => photoOrder(photos.filter((p) => !p.archived_at)), [photos]);
+
+  // Reorder a picture: the pure model returns the patches, and this writes
+  // exactly those (one for "cover", two for a nudge) through the same onPatch
+  // that edits a caption. sort_order is not frozen by the 0154 trigger.
+  const arrange = (intent) => {
+    const { patches } = intent.cover
+      ? makeCover(shown, intent.cover)
+      : movePhoto(shown, intent.move, intent.dir);
+    for (const p of patches) onPatch?.(p.id, p.patch);
+  };
 
   const pick = async (file) => {
     setError('');
@@ -1233,9 +1254,14 @@ export function GalleryTab({
           <Empty>No pictures on this property yet.</Empty>
         ) : (
           <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {shown.map((p) => (
+            {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
-                <img src={p.storage_path} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                <div className="relative">
+                  <img src={p.storage_path} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                  {idx === 0 && (
+                    <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>
+                  )}
+                </div>
                 {editing === p.id ? (
                   <PhotoEditor
                     photo={p} rooms={live} busy={busy}
@@ -1248,17 +1274,26 @@ export function GalleryTab({
                       {p.kind.replace(/-/g, ' ')}{roomName(p.room_id) ? ` · ${roomName(p.room_id)}` : ''}
                     </div>
                     {canManage && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <Btn onClick={() => setEditing(p.id)} disabled={busy}>Edit</Btn>
-                        <Btn
-                          disabled={busy}
-                          onClick={() => {
-                            if (typeof window !== 'undefined'
-                              && !window.confirm('Remove this from the gallery? It stays on the property’s record — nothing is deleted.')) return;
-                            onPatch?.(p.id, { archived_at: new Date().toISOString() });
-                          }}
-                        >Remove</Btn>
-                      </div>
+                      <>
+                        {shown.length > 1 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                            <Btn onClick={() => arrange({ cover: p.id })} disabled={busy || idx === 0}>Cover</Btn>
+                            <Btn onClick={() => arrange({ move: p.id, dir: -1 })} disabled={busy || idx === 0} aria-label="Move earlier">←</Btn>
+                            <Btn onClick={() => arrange({ move: p.id, dir: 1 })} disabled={busy || idx === shown.length - 1} aria-label="Move later">→</Btn>
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <Btn onClick={() => setEditing(p.id)} disabled={busy}>Edit</Btn>
+                          <Btn
+                            disabled={busy}
+                            onClick={() => {
+                              if (typeof window !== 'undefined'
+                                && !window.confirm('Remove this from the gallery? It stays on the property’s record — nothing is deleted.')) return;
+                              onPatch?.(p.id, { archived_at: new Date().toISOString() });
+                            }}
+                          >Remove</Btn>
+                        </div>
+                      </>
                     )}
                   </>
                 )}

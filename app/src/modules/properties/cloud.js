@@ -376,7 +376,12 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ photos: [] });
   try {
     const { data, error } = await client
-      .from('property_photos').select('*').eq('rental_ref', rentalRef).order('taken_at', { ascending: false });
+      .from('property_photos').select('*').eq('rental_ref', rentalRef)
+      // The landlord's arrangement first (0160), newest as the tie-break for
+      // pictures he has not placed. photo-order.js reproduces this exactly so a
+      // reload cannot reorder what a nudge just moved.
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('taken_at', { ascending: false });
     if (error) return no('read-failed', error);
     return ok({ photos: data || [] });
   } catch (e) { return no('unexpected', e); }
@@ -488,8 +493,11 @@ export async function loadAllPhotos(client = supabase) {
   try {
     const { data, error } = await client
       .from('property_photos')
-      .select('id, rental_ref, tenancy_id, room_id, kind, caption, storage_path, taken_at, uploaded_at, archived_at')
+      .select('id, rental_ref, tenancy_id, room_id, kind, caption, storage_path, taken_at, uploaded_at, archived_at, sort_order')
       .is('archived_at', null)
+      // sort_order so the board's cover is the picture the landlord placed
+      // first, not merely the newest (0160). taken_at breaks a tie.
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('taken_at', { ascending: false });
     if (error) return no('read-failed', error);
     return ok({ photos: data || [] });
