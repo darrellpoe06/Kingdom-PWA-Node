@@ -148,78 +148,29 @@ jobs:
             fi
           done
 
-  heal:
-    name: dispatch deploy + migrations for main's tip (GITHUB_TOKEN push gap)
+  # SPLIT INTO TWO JOBS (2026-08-28, the SIXTH miss — PR #1370). These were one
+  # job with sequential steps, which coupled them in a way that could not be
+  # tuned out: the migration poll always got the FIRST window and the deploy
+  # poll only started when it expired. Every minute added to the migration
+  # window was a minute the DEPLOY dispatch was late — and the deploy is the
+  # uptime path, so the two goals were in direct competition inside one job.
+  # The "re-check after the deploy wait" step below exists ONLY to paper over
+  # that ordering; it stays as a settled-tip backstop, but it is no longer
+  # load-bearing.
+  #
+  # Separate jobs run in PARALLEL with independent concurrency groups, so each
+  # can poll its full window without delaying the other, and a slow migration
+  # never holds the site on a stale build.
+  heal-deploy:
+    name: dispatch deploy for main's tip (GITHUB_TOKEN push gap)
     runs-on: ubuntu-latest
-    # NON-cancelling (2026-07-19): the deploy/migrate wait-loops below MUST run to
-    # completion to win the merge race (the 2026-07-14 lesson); a newer enable-sweep
-    # must NEVER cancel an in-flight heal — that cancellation is exactly what left
-    # auto-merged commits undeployed during rapid successive merges. New runs QUEUE
-    # (single-instance), never stack. Runs independently of enable (no `needs`), so
-    # it heals main's tip whether or not this run also enabled a PR.
+    # NON-cancelling: the wait-loop MUST run to completion to win the merge race
+    # (the 2026-07-14 lesson). A newer enable-sweep must never cancel an
+    # in-flight heal. Runs independently of enable (no `needs`).
     concurrency:
-      group: auto-merge-heal
+      group: auto-merge-heal-deploy
       cancel-in-progress: false
     steps:
-      # db-migrate (push: main, paths: migrations) does NOT fire when auto-merge
-      # lands a migration, because the merge push is by GITHUB_TOKEN and GitHub
-      # suppresses push-triggered runs from the token (anti-recursion). That gap
-      # silently stopped migrations from reaching the cloud DB on 2026-06-16
-      # (it broke the Choir tab — grant fix 0024 never applied). workflow_dispatch
-      # by the token IS allowed (unlike push), so when main's tip commit touched
-      # a migration, dispatch db-migrate here. db-migrate is idempotent (applies
-      # all guarded SQL every run), so a redundant dispatch is harmless.
-      # WHY THE WAIT LOOP (2026-07-14, after 0102 was skipped): this step RACED
-      # the merge exactly like the deploy step below once did. The sweep fires on
-      # the green check_suite — the same moment native auto-merge squashes — so
-      # when a migration-bearing PR merged, this one-shot check ran a beat BEFORE
-      # the merge landed, saw main's tip was still the PREVIOUS (migration-free)
-      # commit, and skipped; the merge push itself fires no event (token-
-      # suppressed), so db-migrate never ran and migration 0102 (conference/
-      # funeral service_type) had to be dispatched by hand. Fix mirrors the deploy
-      # step: when the tip has no migration yet but ARMED PRs exist (a merge may
-      # be seconds away), poll for main to advance and dispatch the moment a
-      # migration lands on the tip. Gated on the last-dispatched sha so a migration
-      # tip triggers exactly ONE db-migrate; db-migrate is idempotent (applies all
-      # guarded SQL every run) so a redundant dispatch is harmless. 6-minute window
-      # spans a full CI run, same rationale as the deploy loop.
-      - name: Apply migrations if main's tip added one (closes the GITHUB_TOKEN push gap)
-        if: ${{ always() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          dispatched_for=""
-          migrate_if_tip_migration() {
-            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
-            [ -n "$main_sha" ] || return 1
-            [ "$main_sha" != "$dispatched_for" ] || return 1
-            touched=$(gh api "repos/$REPO/commits/$main_sha" \
-              --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo false)
-            if [ "$touched" = "true" ]; then
-              echo "main tip $main_sha touched a migration — dispatching db-migrate."
-              gh workflow run db-migrate.yml --repo "$REPO" --ref main \
-                || echo "::warning::could not dispatch db-migrate (it can be run manually)"
-              dispatched_for="$main_sha"
-              return 0
-            fi
-            return 1
-          }
-          if migrate_if_tip_migration; then exit 0; fi
-          armed=$(gh pr list --repo "$REPO" --state open --base main \
-            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
-          if [ "$armed" -gt 0 ]; then
-            echo "main tip has no migration, but $armed armed PR(s) may merge momentarily — polling up to 6 minutes."
-            for i in $(seq 1 24); do
-              sleep 15
-              if migrate_if_tip_migration; then exit 0; fi
-            done
-            echo "No migration landed within the wait; the next sweep covers it."
-          else
-            echo "main tip has no migration change and no armed PRs; nothing to apply."
-          fi
-
       # SAME GITHUB_TOKEN gap, for PRODUCTION DEPLOY (2026-07-06). deploy-
       # cloudflare-pages.yml fires on push:main — which GitHub SUPPRESSES for the
       # GITHUB_TOKEN merge push (anti-recursion), exactly like db-migrate above.
@@ -265,6 +216,35 @@ jobs:
       # superseded sweeps cancel). The 5-minute freshness cron remains the
       # outer net, but GitHub throttles busy-repo schedules to ~hourly in
       # practice — the poll here is the net that actually catches the merge.
+      # ONE HEAL USED TO SERVE EXACTLY ONE MERGE (2026-08-28, the SIXTH miss —
+      # PR #1370). Measured on runs 3381 / 3388:
+      #
+      #   heal 3381  13:50:13 -> 14:06:51   dispatched db-migrate, exited
+      #   heal 3388  14:01:39 -> 14:09:27   dispatched deploy 873, exited
+      #   #1370 merged            14:11:25   nothing was watching
+      #
+      # Neither the deploy nor the migration fired for that merge, and both had
+      # to be dispatched by hand — the site served a build older than main, and
+      # 0159 sat unapplied under code that expected it.
+      #
+      # TWO THINGS COMPOUND, and neither is visible from one run's log:
+      #   1. Both wait loops used to `exit 0` on their first dispatch. A heal
+      #      therefore covered the FIRST merge in its window and abandoned the
+      #      rest of the window it had already been granted.
+      #   2. Only ONE job may be PENDING in a concurrency group — GitHub cancels
+      #      the older pending one when a newer arrives. `cancel-in-progress:
+      #      false` protects the RUNNING heal and nothing else, so during a
+      #      burst every sweep in between is cancelled while queued (runs 3379,
+      #      3383, 3385, 3387 today, each cancelled within seconds).
+      #
+      # Together: in a burst, one heal serves one merge and every later merge is
+      # orphaned until a cron that this repo delivers ~7.7% of the time.
+      #
+      # The fix is (1) — keep polling for the rest of the window instead of
+      # exiting, so one heal covers every merge inside it. Cheap because both
+      # dispatches are sha-gated: a repeat for the same tip is a no-op. (2) is
+      # GitHub's scheduler and cannot be configured away; making each surviving
+      # heal cover more merges is what actually shrinks the exposure.
       - name: Deploy main's tip if it isn't the last-deployed commit (closes the GITHUB_TOKEN push gap for CF Pages)
         if: ${{ always() }}
         env:
@@ -272,30 +252,88 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          dispatched_for=""
           deploy_if_stale() {
             main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
             last_deployed=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?per_page=1" \
               --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
-            if [ -n "$main_sha" ] && [ "$main_sha" != "$last_deployed" ]; then
+            # `dispatched_for` (2026-08-28): the loop no longer exits after a
+            # dispatch, so it can come back around before the new run is listed.
+            # Without this it would dispatch the same tip twice and burn a CF
+            # Pages build for nothing.
+            if [ -n "$main_sha" ] && [ "$main_sha" != "$last_deployed" ] && [ "$main_sha" != "$dispatched_for" ]; then
               echo "main tip $main_sha not yet deployed (last deployed $last_deployed) — dispatching CF Pages deploy."
               gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
                 || echo "::warning::could not dispatch deploy (it can be run manually)"
+              dispatched_for="$main_sha"
               return 0
             fi
             return 1
           }
-          if deploy_if_stale; then exit 0; fi
+          # DO NOT EXIT ON THE FIRST DISPATCH — see the burst note above the
+          # step. `dispatched_for` makes a repeat for the same tip a no-op, so
+          # continuing to poll costs nothing and covers the NEXT merge too.
+          deploy_if_stale || true
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "main tip already deployed, but $armed armed PR(s) may merge momentarily — polling up to 12 minutes."
+            echo "$armed armed PR(s) may merge momentarily — polling up to 12 minutes."
             for i in $(seq 1 48); do
               sleep 15
-              if deploy_if_stale; then exit 0; fi
+              deploy_if_stale || true
             done
-            echo "No merge landed within the wait; the next sweep or the scheduled freshness check covers it."
+            echo "Poll window closed; the next sweep or the scheduled freshness check covers what is left."
           else
             echo "main tip already deployed and no armed PRs; nothing to dispatch."
+          fi
+
+  heal-migrate:
+    name: dispatch migrations for main's tip (GITHUB_TOKEN push gap)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: auto-merge-heal-migrate
+      cancel-in-progress: false
+    steps:
+      - name: Apply migrations if main's tip added one (closes the GITHUB_TOKEN push gap)
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          dispatched_for=""
+          migrate_if_tip_migration() {
+            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            [ -n "$main_sha" ] || return 1
+            [ "$main_sha" != "$dispatched_for" ] || return 1
+            touched=$(gh api "repos/$REPO/commits/$main_sha" \
+              --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo false)
+            if [ "$touched" = "true" ]; then
+              echo "main tip $main_sha touched a migration — dispatching db-migrate."
+              gh workflow run db-migrate.yml --repo "$REPO" --ref main \
+                || echo "::warning::could not dispatch db-migrate (it can be run manually)"
+              dispatched_for="$main_sha"
+              return 0
+            fi
+            return 1
+          }
+          # DO NOT EXIT ON THE FIRST DISPATCH (2026-08-28, the SIXTH miss —
+          # #1370). See the burst note on the deploy step below: one heal used
+          # to serve exactly one merge, and every merge that landed after its
+          # dispatch had nothing watching. `dispatched_for` already makes a
+          # repeat dispatch for the same tip a no-op, so polling on is free.
+          migrate_if_tip_migration || true
+          armed=$(gh pr list --repo "$REPO" --state open --base main \
+            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
+          if [ "$armed" -gt 0 ]; then
+            echo "$armed armed PR(s) may merge momentarily — polling up to 12 minutes."
+            for i in $(seq 1 48); do
+              sleep 15
+              migrate_if_tip_migration || true
+            done
+            echo "Poll window closed; the re-check step and migrate-freshness cover what is left."
+          else
+            echo "No armed PRs; nothing more to watch for."
           fi
 
       # THE ORDERING HOLE, CLOSED (2026-08-28, after the FIFTH miss — PR #1361).

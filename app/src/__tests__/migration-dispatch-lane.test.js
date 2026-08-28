@@ -34,15 +34,65 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     expect(src).toMatch(/gh workflow run db-migrate\.yml/);
   });
 
-  it('asks a SECOND time, after the deploy step (the ordering hole)', () => {
+  it('runs the deploy heal and the migration heal as SEPARATE, PARALLEL jobs', () => {
+    // SUPERSEDES the old ordering assertion (2026-08-28). That one pinned the
+    // migration step to come BEFORE the deploy step inside one job, which was
+    // the best available shape while they shared a job — and was itself the
+    // problem: sequential steps meant every minute of the migration window was
+    // a minute the DEPLOY dispatch was late, and the deploy is the uptime path.
+    // Separate jobs with independent concurrency groups remove the competition
+    // entirely, which is strictly stronger than any ordering between steps.
+    expect(src).toMatch(/^ {2}heal-deploy:/m);
+    expect(src).toMatch(/^ {2}heal-migrate:/m);
+    expect(src).toContain('group: auto-merge-heal-deploy');
+    expect(src).toContain('group: auto-merge-heal-migrate');
+    // Neither may depend on the other, or they are sequential again by another
+    // name. `needs` anywhere in the heal jobs re-couples them.
+    const healSection = src.slice(src.indexOf('  heal-deploy:'));
+    expect(healSection).not.toMatch(/^\s+needs:/m);
+  });
+
+  it('keeps the settled-tip re-check, after the migration poll', () => {
     const firstMigrate = src.indexOf('Apply migrations if main');
-    const deploy = src.indexOf("Deploy main's tip if it isn't the last-deployed commit");
     const recheck = src.indexOf('Re-check for a migration once the deploy wait has resolved');
     expect(firstMigrate).toBeGreaterThan(-1);
-    expect(deploy).toBeGreaterThan(firstMigrate);
-    // The whole point: the re-check must come AFTER the deploy wait, or it
-    // inherits the same too-early window it exists to compensate for.
-    expect(recheck).toBeGreaterThan(deploy);
+    expect(recheck).toBeGreaterThan(firstMigrate);
+  });
+
+  it('never exits a heal wait-loop on its first dispatch (the burst hole)', () => {
+    // THE SIXTH MISS (#1370, 2026-08-28). Both loops used to `exit 0` the
+    // moment they dispatched, so one heal covered the FIRST merge in its
+    // window and abandoned the rest of a window it had already been granted.
+    // With GitHub cancelling the older PENDING job in a concurrency group,
+    // every sweep in between was gone too — so in a burst, the second merge
+    // had nothing watching. Both the deploy and the migration for #1370 had to
+    // be dispatched by hand.
+    expect(src).toContain('deploy_if_stale || true');
+    expect(src).toContain('migrate_if_tip_migration || true');
+    expect(src).not.toMatch(/if deploy_if_stale; then exit 0; fi/);
+    expect(src).not.toMatch(/if migrate_if_tip_migration; then exit 0; fi/);
+  });
+
+  it('gates each dispatch on the sha it already fired for', () => {
+    // Polling on instead of exiting means a loop can come back around before
+    // its own dispatched run is listed. Without this gate that is a duplicate
+    // deploy every fifteen seconds, burning the CF Pages build budget.
+    const deployStep = src.slice(
+      src.indexOf("Deploy main's tip if it isn't the last-deployed commit"),
+      src.indexOf('  heal-migrate:'),
+    );
+    expect(deployStep).toContain('dispatched_for=""');
+    expect(deployStep).toMatch(/main_sha" != "\$dispatched_for/);
+    expect(deployStep).toContain('dispatched_for="$main_sha"');
+  });
+
+  it('gives both polls a window that spans a real CI run', () => {
+    // Measured 2026-08-28 on #1370: lint+vitest ran 14:01:42 -> 14:10:28, i.e.
+    // 8m46s. A 6-minute window cannot span that — which is how the migration
+    // poll kept expiring before the merge it was waiting for. 48 x 15s = 12m.
+    const loops = src.match(/for i in \$\(seq 1 (\d+)\); do/g) || [];
+    expect(loops.length).toBe(2);
+    for (const l of loops) expect(l).toContain('seq 1 48');
   });
 
   it('dispatches at least twice across the job', () => {
