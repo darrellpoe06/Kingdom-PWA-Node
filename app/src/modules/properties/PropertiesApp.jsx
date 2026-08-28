@@ -32,11 +32,15 @@ import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
+import { SystemsTab } from './SystemsTab.jsx';
+import { toTimelineEvents } from './systems.js';
+import { isOwnHome, offerRefusal } from './homes.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
+  loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent,
 } from './cloud.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
@@ -152,7 +156,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Handing the slug to the uuid columns matched nothing, so Rooms and Photos
   // were silently empty on every door. Resolve the rentals row once, then give
   // each loader the key its own column actually holds.
-  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [] });
+  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [] });
   const activeRental = useMemo(
     () => rentals.find((r) => r.slug && r.slug === activeDoor?.rental_ref)
       || rentals.find((r) => r.id === activeId)
@@ -162,15 +166,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalId = activeRental?.id || null;          // uuid — rooms, photos
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
-    if (!rentalId && !rentalRef) { setDoorData({ rooms: [], photos: [], tenancies: [], documents: [] }); return; }
-    const [rm, ph, tn, dc] = await Promise.all([
+    if (!rentalId && !rentalRef) {
+      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [] });
+      return;
+    }
+    const [rm, ph, tn, dc, sy, se] = await Promise.all([
       loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
+      loadSystems(rentalId), loadSystemEvents(rentalId),
     ]);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
       photos: ph.ok ? ph.photos : [],
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
+      systems: sy.ok ? sy.systems : [],
+      systemEvents: se.ok ? se.events : [],
     });
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
@@ -274,6 +284,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // afterwards (EDITABLE-EVERYWHERE), so a blank is never a reason to refuse.
   const startTenancy = async (input) => {
     const r = input?.rental;
+    // THE THIRD REFUSAL. The board does not offer this on a home, the database
+    // will not publish one (0156), and this is the layer between them — so a
+    // future caller that forgets the filter is told why instead of quietly
+    // putting a tenant in the family's own house.
+    if (isOwnHome(r)) { say(offerRefusal(r)); return; }
     const built = tenancyRowForDoor({
       instanceId: r?.instance_id,
       rentalRef: r?.slug,                 // TEXT — what rental_tenancies holds
@@ -302,6 +317,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Advertise a door, or stop. The asking rent defaults to the door's own
   // figure — real data, not a guess — and is editable on the door.
   const setListing = async (rental, on) => {
+    if (on && isOwnHome(rental)) { say(offerRefusal(rental)); return; }
     const res = await updateRental(rental.id, {
       listed_at: on ? new Date().toISOString() : null,
       listed_rent: on ? (Number(rental.listed_rent) || Number(rental.monthly_rent) || 0) : rental.listed_rent,
@@ -394,7 +410,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'door': return <DoorCard door={activeDoor} />;
           case 'timeline': return (
             <TimelineTab
-              tenancies={doorData.tenancies} events={history} photos={doorData.photos}
+              // The mechanical record joins the door's chronology rather than
+              // living off to one side: a furnace replaced between two tenants
+              // is part of the same story as the move-out photos around it.
+              tenancies={doorData.tenancies}
+              events={[...history, ...toTimelineEvents(doorData.systemEvents, doorData.systems)]}
+              photos={doorData.photos}
               rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
             />
           );
@@ -416,6 +437,20 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
           );
+          case 'systems': return (
+            <SystemsTab
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              systems={doorData.systems} events={doorData.systemEvents} rooms={doorData.rooms}
+              propertyType={activeRental?.property_type === 'multi-family' ? 'apartment'
+                : activeRental?.property_type === 'commercial' ? 'commercial' : 'house'}
+              busy={Boolean(busy)}
+              canManage={role === 'owner' || role === 'manager'}
+              onAdd={async (row) => { const r = await addSystem(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+              onPatch={async (id, patch) => { const r = await patchSystem(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+              onEvent={async (row) => { const r = await addSystemEvent(row); say(r.ok ? 'Recorded.' : `Not saved: ${r.reason}`); loadDoorData(); }}
+              onSeed={async (rows) => { for (const row of rows) await addSystem(row); say(`Added ${rows.length}.`); loadDoorData(); }}
+            />
+          );
           case 'rooms': return (
             <RoomsTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
@@ -430,7 +465,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               <DoorsBoard
                 rentals={rentals} tenancies={doors} busy={Boolean(busy)}
                 canManage={role === 'owner' || role === 'manager'}
-                onPick={(id) => { setActiveId(id); setTab('history'); }}
+                // A tenancy id opens the relationship record; a rentals id (a
+                // door with nobody in it, which is every door on this account
+                // today) opens the door's own chronology, which is the surface
+                // that actually has something to show for it.
+                onPick={(id) => { setActiveId(id); setTab(doors.some((d) => d.id === id) ? 'history' : 'timeline'); }}
                 photos={doorPhotos}
                 onStart={startTenancy}
                 onListing={setListing}

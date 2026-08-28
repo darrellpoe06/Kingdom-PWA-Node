@@ -540,3 +540,67 @@ export async function patchDocument(id, patch, client = supabase) {
     return ok({ document: data });
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// THE MECHANICAL HISTORY (0156). "keeping a mechanical history of the system's
+// and issues like all our properties" (Darrell, 2026-08-28) — so these read for
+// EVERY door, our own home included. Keyed by rentals.id (uuid), the same key
+// property_rooms and property_photos use, never the slug.
+// ---------------------------------------------------------------------------
+
+/** The equipment recorded at a door, installed and retired alike. */
+export async function loadSystems(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ systems: [] });
+  try {
+    const { data, error } = await client
+      .from('property_systems').select('*').eq('rental_ref', rentalRef).order('kind');
+    if (error) return no('read-failed', error);
+    return ok({ systems: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Everything that has happened to this door's systems, newest first. */
+export async function loadSystemEvents(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ events: [] });
+  try {
+    const { data, error } = await client
+      .from('property_system_events').select('*')
+      .eq('rental_ref', rentalRef).order('event_date', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ events: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Add a system. systems.js has already built and validated the row. */
+export async function addSystem(row, client = supabase) {
+  try {
+    const { data, error } = await client.from('property_systems').insert(row).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ system: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Correct a system, or retire it. There is no delete — its history outlives it. */
+export async function patchSystem(id, patch, client = supabase) {
+  if (!id) return no('no-system');
+  try {
+    const { data, error } = await client.from('property_systems')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', id).select().single();
+    if (error) return no('update-failed', error);
+    return ok({ system: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Record what happened. Append-only by design (0156 grants no UPDATE and no
+ * DELETE): an event is a date, and a date is corrected by recording what is
+ * true now, the way the rest of this schema treats evidence.
+ */
+export async function addSystemEvent(row, client = supabase) {
+  try {
+    const { data, error } = await client.from('property_system_events').insert(row).select().single();
+    if (error) return no('insert-failed', error);
+    return ok({ event: data });
+  } catch (e) { return no('unexpected', e); }
+}

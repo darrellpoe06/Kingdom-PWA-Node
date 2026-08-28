@@ -35,6 +35,22 @@ export async function onRequestGet(context) {
   try {
     upstream = await fetch(`${RELEASE_BASE}/${brand}.apk`, { redirect: 'follow' });
   } catch { return new Response('release unreachable', { status: 502 }); }
+
+  // AN EMPTY SHELF IS NOT AN OUTAGE. Measured 2026-08-28: Poe Properties was
+  // added to BRANDS and to the store, but the android-latest release still held
+  // only the four APKs built on 2026-07-24 — the lane had not been dispatched
+  // since. GitHub answered 404 for properties.apk, this door turned that into a
+  // 502, and Cloudflare rendered "Bad gateway · poetech.us · Host Error" on
+  // Darrell's phone. He read it, correctly, as the site being down. It was not:
+  // one shelf was empty. A missing package now says so in its own words, with
+  // the status that means it, so the next person diagnoses it in one look.
+  if (upstream.status === 404) {
+    return new Response(
+      `No Android package has been published for "${brand}" yet. The site is fine — this shelf is empty. `
+      + 'Open the app on the web in the meantime; the package appears here as soon as the build lane publishes it.',
+      { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } },
+    );
+  }
   if (!upstream.ok) return new Response(`release-${upstream.status}`, { status: 502 });
 
   // Buffer fully (the packages are ~1-2 MB): the response carries the exact

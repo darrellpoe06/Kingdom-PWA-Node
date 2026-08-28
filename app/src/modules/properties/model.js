@@ -93,6 +93,9 @@ const MANAGER_TABS = [
   TAB('rooms', 'Rooms', 'The rooms in this unit and their pictures. Add or remove one without a code change.'),
   TAB('gallery', 'Pictures', 'This property\u2019s photographs. Listing shots are the only kind a stranger can see.'),
   TAB('files', 'Files', 'The signed lease, permits, insurance, receipts \u2014 the papers this door already has.'),
+  // Every property, our own home included \u2014 "keeping a mechanical history of
+  // the system's and issues like all our properties" (Darrell, 2026-08-28).
+  TAB('systems', 'Systems', 'The furnace, the roof, the water heater \u2014 how old each one is and everything that has happened to it.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
