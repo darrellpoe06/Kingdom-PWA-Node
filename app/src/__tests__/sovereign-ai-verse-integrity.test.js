@@ -760,3 +760,103 @@ describe('sov15 — watch, brake, and the city without walls quotes its Word spi
   });
 });
 
+// -----------------------------------------------------------------------------
+// SOV16 — "Trust the Counsel You Can Actually Trust" (they distrust A.I. advice
+// and follow it anyway; whose counsel sets the path). Spoken into the app by the
+// Governor from a forwarded McKinsey piece on A.I.-powered shopping and consumer
+// trust, and sealed with his own declaration of Isaiah 54:17. Every KJV line
+// fetched verbatim from the repo corpus this session; a drift fails CI.
+// -----------------------------------------------------------------------------
+const SOV16_FRAGMENTS = {
+  'Psalms 1:1': 'Blessed is the man that walketh not in the counsel of the ungodly',
+  'Proverbs 3:5': 'Trust in the LORD with all thine heart; and lean not unto thine own understanding.',
+  'Proverbs 3:6': 'In all thy ways acknowledge him, and he shall direct thy paths.',
+  'James 1:6': 'he that wavereth is like a wave of the sea driven with the wind and tossed',
+  'James 1:8': 'A double minded man is unstable in all his ways.',
+  'Proverbs 14:12': 'There is a way which seemeth right unto a man, but the end thereof are the ways of death.',
+  'Psalms 118:8': 'It is better to trust in the LORD than to put confidence in man.',
+  'Jeremiah 17:5': 'Cursed be the man that trusteth in man',
+  'Jeremiah 17:7': 'Blessed is the man that trusteth in the LORD, and whose hope the LORD is.',
+  'Numbers 23:19': 'God is not a man, that he should lie',
+  'John 16:13': 'when he, the Spirit of truth, is come, he will guide you into all truth',
+  '1 Thessalonians 5:21': 'Prove all things; hold fast that which is good.',
+  'Acts 17:11': 'searched the scriptures daily, whether those things were so',
+  '1 John 4:1': 'believe not every spirit, but try the spirits whether they are of God',
+  'Isaiah 8:20': 'To the law and to the testimony: if they speak not according to this word, it is because there is no light in them.',
+  'James 1:22': 'be ye doers of the word, and not hearers only, deceiving your own selves',
+  '1 Corinthians 6:19': 'the temple of the Holy Ghost which is in you',
+  '1 Corinthians 6:20': 'therefore glorify God in your body',
+  '1 Timothy 4:8': 'bodily exercise profiteth little: but godliness is profitable unto all things',
+  '3 John 1:2': 'that thou mayest prosper and be in health, even as thy soul prospereth',
+  'Ecclesiastes 2:11': 'all was vanity and vexation of spirit, and there was no profit under the sun',
+  'Matthew 6:20': 'lay up for yourselves treasures in heaven',
+  'Matthew 6:21': 'For where your treasure is, there will your heart be also.',
+  'Psalms 16:11': 'in thy presence is fulness of joy; at thy right hand there are pleasures for evermore',
+  'Luke 16:10': 'He that is faithful in that which is least is faithful also in much',
+  'John 6:12': 'Gather up the fragments that remain, that nothing be lost',
+  'Proverbs 27:23': 'Be thou diligent to know the state of thy flocks, and look well to thy herds',
+  'Psalms 32:8': 'I will instruct thee and teach thee in the way which thou shalt go',
+  'Isaiah 54:17': 'No weapon that is formed against thee shall prosper; and every tongue that shall rise against thee in judgment thou shalt condemn.',
+};
+
+const sov16 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov16-trust-the-counsel-you-can-actually-trust');
+
+describe('sov16 — trust the counsel you can actually trust quotes its Word spine verbatim, Word first', () => {
+  it('the week exists and anchors on trust / the counsel that cannot lie / doing', () => {
+    expect(sov16).toBeTruthy();
+    expect(sov16.anchor.ref).toContain('Proverbs 3:5');
+    expect(sov16.anchor.ref).toContain('Psalms 118:8');
+    expect(sov16.anchor.ref).toContain('James 1:22');
+  });
+  it('every quoted fragment is letter-for-letter KJV in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV16_FRAGMENTS)) {
+      expect(sov16.lesson, `${ref} must be quoted letter-for-letter`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS: whose counsel sets the path is the first movement, before the headline', () => {
+    expect(sov16.lesson.indexOf('FIRST, SETTLE WHOSE COUNSEL SETS THE PATH')).toBe(0);
+    expect(sov16.lesson.indexOf('counsel of the ungodly')).toBeLessThan(sov16.lesson.indexOf('McKinsey'));
+  });
+  it('the ten movements are marked FIRST through TENTH, in order', () => {
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov16.lesson.indexOf(m);
+      expect(at, `${m} present`).toBeGreaterThan(-1);
+      expect(at, `${m} in order`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('the folly is named (distrust-yet-follow) and the trustworthy counsel is a Person who cannot lie', () => {
+    expect(sov16.lesson).toContain('SEEKING GUIDANCE FROM WHAT YOU DISTRUST');
+    expect(sov16.lesson).toContain('below 40%');
+    expect(sov16.lesson).toContain('God is not a man, that he should lie');
+  });
+  it('the Governor’s Isaiah 54:17 declaration seals the close', () => {
+    expect(sov16.lesson).toContain('No weapon that is formed against thee shall prosper');
+    expect(sov16.lesson).toContain('the heritage of the servants of the LORD');
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('Proverbs', 3, 5)).toBe(SOV16_FRAGMENTS['Proverbs 3:5']);
+    expect(verse('Psalms', 118, 8)).toBe(SOV16_FRAGMENTS['Psalms 118:8']);
+    expect(verse('Numbers', 23, 19)).toContain(SOV16_FRAGMENTS['Numbers 23:19']);
+    expect(verse('John', 16, 13)).toContain(SOV16_FRAGMENTS['John 16:13']);
+    expect(verse('Isaiah', 8, 20)).toBe(SOV16_FRAGMENTS['Isaiah 8:20']);
+    expect(verse('1Timothy', 4, 8)).toContain(SOV16_FRAGMENTS['1 Timothy 4:8']);
+    expect(verse('3John', 1, 2)).toContain(SOV16_FRAGMENTS['3 John 1:2']);
+    expect(verse('Ecclesiastes', 2, 11)).toContain(SOV16_FRAGMENTS['Ecclesiastes 2:11']);
+    expect(verse('Matthew', 6, 21)).toBe(SOV16_FRAGMENTS['Matthew 6:21']);
+    expect(verse('Psalms', 16, 11)).toContain(SOV16_FRAGMENTS['Psalms 16:11']);
+    expect(verse('Luke', 16, 10)).toContain(SOV16_FRAGMENTS['Luke 16:10']);
+    expect(verse('John', 6, 12)).toContain(SOV16_FRAGMENTS['John 6:12']);
+    expect(verse('Isaiah', 54, 17)).toContain(SOV16_FRAGMENTS['Isaiah 54:17']);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV16_FRAGMENTS['Psalms 118:8']).toBe('It is better to trust in the LORD than to put confidence in man.');
+    expect(SOV16_FRAGMENTS['Proverbs 3:5']).toBe('Trust in the LORD with all thine heart; and lean not unto thine own understanding.');
+    expect(SOV16_FRAGMENTS['Matthew 6:21']).toBe('For where your treasure is, there will your heart be also.');
+  });
+});
+
