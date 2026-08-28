@@ -29,7 +29,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const H = vi.hoisted(() => ({
   rentals: [], vacancies: [], doors: [], grants: [], household: [],
   rooms: [], photos: [], documents: [], systems: [], systemEvents: [],
-  record: null, tenancies: [],
+  record: null, tenancies: [], propertyNotes: [],
 }));
 
 vi.mock('../modules/properties/cloud.js', () => {
@@ -52,6 +52,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDocuments: async () => ({ ok: true, documents: H.documents }),
     loadSystems: async () => ({ ok: true, systems: H.systems }),
     loadSystemEvents: async () => ({ ok: true, events: H.systemEvents }),
+    loadDoorNotes: async () => ({ ok: true, notes: H.propertyNotes }),
     addSystem: noop, patchSystem: noop, addSystemEvent: noop,
     fileWorkOrder: noop, setWorkOrderStatus: noop, assignWorkOrder: noop,
     postMessage: noop, postNote: noop, postJobDoc: noop,
@@ -79,7 +80,7 @@ afterEach(() => {
   Object.assign(H, {
     rentals: [], vacancies: [], doors: [], grants: [], household: [],
     rooms: [], photos: [], documents: [], systems: [], systemEvents: [],
-    record: null, tenancies: [],
+    record: null, tenancies: [], propertyNotes: [],
   });
 });
 
@@ -174,6 +175,39 @@ describe('journey — the landlord, first open', () => {
       expect(text(), `the ${tabName} tab does not name the property it is showing`).toMatch(/You are in/i);
       expect(text()).toContain('1003 Koehn Dr');
     }
+  });
+
+  it('shows him the notes he typed in the Real Estate tab, on the door they belong to', async () => {
+    // THE DEAD PARAMETER. buildHistory has accepted `propertyNotes` since it
+    // was written and nothing ever passed one, while the Real Estate tab wrote
+    // to that exact table — four real rows, including the three on 1508
+    // Williamsburg. He typed them in one app and they were invisible in the
+    // other. This fails if the wiring is ever removed again.
+    H.rentals = [KOEHN, PROSPECT];
+    H.propertyNotes = [{
+      id: 'pn-1', rental_ref: 'r-1003koehn', body: 'Toilet backing up; she understands the charge',
+      kind: 'maintenance', note_date: '2026-07-06', created_at: '2026-07-06T18:54:48Z',
+    }];
+    await mount();
+    await tap(/1003 Koehn Dr, Danville/);
+    await tap(/^Door history$/);
+    expect(text()).toContain('Toilet backing up');
+    expect(text()).toMatch(/Landlord note/i);
+  });
+
+  it('shows those notes even when the door has never had a tenant', async () => {
+    // The record empties without a tenancy; a note about the BUILDING predates
+    // the tenant and outlives them, so it must not empty with it.
+    H.rentals = [PROSPECT];
+    H.doors = [];
+    H.propertyNotes = [{
+      id: 'pn-2', rental_ref: 'r-prospect-b', body: 'Jhazmine moved out and did not leave the keys',
+      kind: 'general', note_date: '2026-07-06', created_at: '2026-07-06T16:21:46Z',
+    }];
+    await mount();
+    await tap(/805 North Prospect Avenue/);
+    await tap(/^Door history$/);
+    expect(text()).toContain('did not leave the keys');
   });
 
   it('offers one tap back to the picker when he is lost', async () => {

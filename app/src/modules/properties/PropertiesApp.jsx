@@ -42,7 +42,7 @@ import {
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
-  loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent,
+  loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent, loadDoorNotes,
 } from './cloud.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
@@ -275,7 +275,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Handing the slug to the uuid columns matched nothing, so Rooms and Photos
   // were silently empty on every door. Resolve the rentals row once, then give
   // each loader the key its own column actually holds.
-  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [] });
+  const [doorData, setDoorData] = useState({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [] });
   const activeRental = useMemo(
     () => rentals.find((r) => r.slug && r.slug === activeDoor?.rental_ref)
       || rentals.find((r) => r.id === activeId)
@@ -286,12 +286,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
     if (!rentalId && !rentalRef) {
-      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [] });
+      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [] });
       return;
     }
-    const [rm, ph, tn, dc, sy, se] = await Promise.all([
+    // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
+    // RLS returns [] to anyone who is not owner/admin/member, so a tenant or a
+    // field worker gets nothing here without this file deciding anything.
+    const [rm, ph, tn, dc, sy, se, pn] = await Promise.all([
       loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
-      loadSystems(rentalId), loadSystemEvents(rentalId),
+      loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
     ]);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
@@ -300,6 +303,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
       systemEvents: se.ok ? se.events : [],
+      propertyNotes: pn.ok ? pn.notes : [],
     });
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
@@ -334,7 +338,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
   const activeTab = tab || face.tabs.find((t) => !t.locked)?.id || face.tabs[0]?.id || '';
 
-  const history = useMemo(() => newestFirst(buildHistory(record)), [record]);
+  // The door's own notes join the chronology, and they join it whether or not a
+  // TENANCY exists — a landlord's note about the building predates his tenant
+  // and outlives them. `record` empties when there is no active tenancy; the
+  // notes must not empty with it, which is why they are spread in here rather
+  // than loaded into `record`.
+  const history = useMemo(
+    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [] })),
+    [record, doorData.propertyNotes],
+  );
   const openWork = useMemo(
     () => (record.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
     [record.requests]

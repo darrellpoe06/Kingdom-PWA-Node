@@ -511,6 +511,39 @@ export async function patchPhoto(id, patch, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * THE LANDLORD'S OWN MEMORY OF THIS DOOR (property_notes, 0062).
+ *
+ * The dead-end this closes, measured 2026-08-28: buildHistory has accepted a
+ * `propertyNotes` argument since it was written and NOTHING has ever passed
+ * one. Meanwhile the Real Estate tab has been writing to that exact table —
+ * four rows are in it right now, including the three on 1508 Williamsburg.
+ * Darrell typed them in one app and they were invisible in the other, which is
+ * the whole of "need all data to be reflected in the apps".
+ *
+ * SLUG-KEYED, not UUID. property_notes.rental_ref is TEXT (the rentals slug),
+ * unlike property_rooms / property_photos / property_systems next door. Both
+ * are correct for their own table; passing the wrong one matches nothing and
+ * fails silently, which is exactly how Rooms and Photos were empty for weeks.
+ *
+ * A TENANT NEVER SEES THESE. 0062 grants read to owner/admin/member only, so
+ * this returns [] for a household member or a field worker without this file
+ * doing anything — RLS is the gate (DR-0060). "She said her toilet is backing
+ * up and understands she will have to pay if her kids put something down the
+ * toilet" is the landlord's private record, not a message to the household.
+ */
+export async function loadDoorNotes(rentalSlug, client = supabase) {
+  if (!rentalSlug) return ok({ notes: [] });
+  try {
+    const { data, error } = await client
+      .from('property_notes').select('*')
+      .eq('rental_ref', rentalSlug)
+      .order('created_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ notes: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** The papers on a door and its tenancies — leases, notices, permits, receipts. */
 export async function loadDocuments(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ documents: [] });
