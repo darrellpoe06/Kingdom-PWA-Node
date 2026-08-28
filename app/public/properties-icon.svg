@@ -1,12 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Poe Properties install mark (DR-0313) — built from the module's brand
-       record (accent #2F5D50). A door under a roof: the unit is the thing the
-       whole app is organized around, and a tenant recognizes it instantly.
-       Distinct from the PoeTech "P" so both installed apps are unmistakable. -->
-  <rect x="16" y="16" width="480" height="480" rx="96" fill="#FAF8F4" stroke="#2F5D50" stroke-width="20"/>
-  <path d="M256 118 L400 236 L400 250 L112 250 L112 236 Z" fill="#2F5D50"/>
-  <rect x="152" y="250" width="208" height="150" fill="none" stroke="#2F5D50" stroke-width="20"/>
-  <rect x="228" y="298" width="56" height="102" fill="#2F5D50"/>
-  <circle cx="272" cy="352" r="7" fill="#FAF8F4"/>
-  <text x="256" y="452" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="40" letter-spacing="6" fill="#1A1815">PROPERTIES</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- ==================================================================
+       Poe Properties install mark — the PoeTech mark's sibling, not a
+       stranger. Darrell, 2026-08-28: "Poe Properties App should look like
+       the PoeTech App just with two P's... PP... maybe overlapping or some
+       design... opportunities and constraints..."
+
+       SAME SKELETON AS icon.svg, deliberately: cream rounded square, dark
+       disc, serif letterform in cream, a thin ring. Read side by side in the
+       app drawer they are obviously one family.
+
+       THE ONE THING CHANGED IS THE ONE THING THAT MUST BE (DR-0227: four apps
+       SEPARATED on the phone, each unmistakable). Two P's instead of one, and
+       the ring is the properties green #2F5D50 instead of PoeTech's rust
+       #B85838. At 48px the ring colour is the fastest tell — you see which app
+       it is before you have read the letters.
+
+       THE OVERLAP IS DEPTH, NOT MUD. Two solid P's at this size collide into
+       an unreadable blob. The back P is the same cream at 45% and sits behind;
+       the front P is solid and crisses it. So the glyph still reads as a clean
+       P at a glance, with a second P behind it — which is what "PP" has to do
+       on a home screen where it is 48 pixels wide and seen for a tenth of a
+       second.
+       ================================================================== -->
+  <rect width="512" height="512" rx="96" fill="#FAF8F4"/>
+  <circle cx="256" cy="256" r="200" fill="#1A1815"/>
+  <!-- A real interlocking monogram, not two letters side by side. The FRONT P
+       carries a dark halo (paint-order: stroke, in the disc's own colour) so it
+       cuts a clean channel through the back P where they cross. That channel is
+       what makes the pair readable at 48px — an earlier attempt used a 45%
+       ghost for the back P and it read as a rendering fault, not a design. -->
+  <g font-family="Georgia, 'Fraunces', serif" font-size="200" font-weight="700" text-anchor="middle" fill="#FAF8F4">
+    <text x="208" y="328">P</text>
+    <text x="304" y="328" stroke="#1A1815" stroke-width="18" paint-order="stroke" stroke-linejoin="round">P</text>
+  </g>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#2F5D50" stroke-width="6"/>
 </svg>

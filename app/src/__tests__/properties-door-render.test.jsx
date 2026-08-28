@@ -13,6 +13,8 @@
 // Proven-to-catch: if the door ever stops asking for email first, this fails.
 // =============================================================================
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -36,6 +38,17 @@ vi.mock('../lib/supabase.js', () => ({
   },
   phoneLoginEmail: (p) => (String(p || '').replace(/\D+/g, '').length >= 10 ? `1${String(p).replace(/\D+/g, '')}@phone.poetech.us` : ''),
   normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
+  // The door now resolves its first session through the shared primitive
+  // instead of racing getSession() against a deadline (2026-08-28). The mock
+  // mirrors the real contract: emit the stored session at once, then reconcile.
+  readPersistedSession: () => null,
+  resolveInitialSession: (emit, io) => {
+    emit(io.readStored ? io.readStored() : null);
+    Promise.resolve(io.getSession())
+      .then((r) => { const sx = r && r.data ? r.data.session : undefined; if (sx !== undefined) emit(sx ?? null); })
+      .catch(() => {});
+  },
+  signOut: async () => ({}),
 }));
 
 import PropertiesDoor from '../components/PropertiesDoor.jsx';
@@ -136,5 +149,91 @@ describe('the signed-out door', () => {
     const send = [...container.querySelectorAll('button')].find((b) => /Send my application/i.test(b.textContent));
     expect(send.disabled).toBe(true);
     expect(container.textContent).toMatch(/Still needed: \d+ required field/i);
+  });
+});
+
+// =============================================================================
+// A TIMEOUT IS NOT A SIGN-OUT
+// =============================================================================
+// Darrell, 2026-08-28, with screenshots: "it also logged me out of PoeTech...
+// fix it". He had not been logged out. PoeTech was still signed in on the same
+// phone one minute earlier (build 7840BFB, "SIGNED IN AS (563) 650-2416").
+//
+// What happened: this door raced supabase.auth.getSession() against a 5-second
+// deadline and rendered SIGNED OUT when the deadline won. getSession() takes a
+// CROSS-TAB auth lock, so with the PoeTech app open in another tab the lock is
+// contended and the deadline wins routinely. A landlord with twelve doors was
+// shown "Who are you?" — the applicant picker built for a stranger.
+//
+// The deadline was right. The ANSWER was wrong: "I could not find out in time"
+// is not "there is no session" (DR-0076 §8), and here the unknown was rendered
+// as the most alarming value available — your account is gone.
+//
+// The fix reuses resolveInitialSession + readPersistedSession, which the
+// monolith already used for this exact hang (auth-boot-gate-hang). The fix was
+// in the repo and this door did not reuse it — the P26 class.
+describe('the door does not mistake a slow lock for a sign-out', () => {
+  const src = () => readFileSync(
+    join(process.cwd(), 'src/components/PropertiesDoor.jsx'), 'utf8',
+  );
+
+  it('no longer renders signed-out when getSession times out', () => {
+    const s = src();
+    // The old shape: race a deadline, then setSession(timedOut ? null : ...).
+    expect(s).not.toMatch(/timedOut\s*\?\s*null/);
+    expect(s).not.toMatch(/Promise\.race\(\[supabase\.auth\.getSession\(\)/);
+  });
+
+  it('reads the persisted session synchronously, which cannot hang', () => {
+    const s = src();
+    expect(s).toMatch(/resolveInitialSession\(/);
+    expect(s).toMatch(/readStored:\s*\(\)\s*=>\s*readPersistedSession\(\)/);
+    expect(s).toMatch(/getSession:\s*\(\)\s*=>\s*supabase\.auth\.getSession\(\)/);
+  });
+
+  it('signs out through the deliberate path, so it cannot be recovered back in', () => {
+    const s = src();
+    // supabase.auth.signOut() skips the deliberate-signout window, and the
+    // transient-logout guard can then "recover" the user straight back in.
+    // Strip comments first — this file EXPLAINS the wrong call by name, and a
+    // gate that reads its own prose as code is the kind that cries wolf.
+    const code = s.replace(/^\s*\/\/.*$/gm, '');
+    expect(code).not.toMatch(/supabase\.auth\.signOut\(\)/);
+    expect(code).toMatch(/signOut\(\)\.then/);
+  });
+
+  // ---------------------------------------------------------------------------
+  // "login to each separate and together etc... not dependent" (Darrell, same
+  // night). Both doors are one origin and therefore one Supabase session, so the
+  // old Sign out revoked it and took PoeTech down with it.
+  // ---------------------------------------------------------------------------
+  it('leaving Poe Properties does not revoke the shared session', () => {
+    const code = src().replace(/^\s*\/\/.*$/gm, '');
+    // The per-door button must not call the real sign-out.
+    const perDoor = code.slice(code.indexOf('Sign out of Poe Properties') - 600, code.indexOf('Sign out of Poe Properties'));
+    expect(perDoor).toMatch(/leaveDoor\(DOORS\.properties\)/);
+    expect(perDoor).not.toMatch(/signOut\(\)\.then/);
+  });
+
+  it('still offers a real sign-out, and it clears every door flag', () => {
+    const code = src().replace(/^\s*\/\/.*$/gm, '');
+    expect(code).toMatch(/enterAllDoors\(\);\s*signOut\(\)/);
+  });
+
+  it('tells someone who left that their PoeTech sign-in is untouched', () => {
+    // The alarming reading — "my account is gone" — is what the screenshots
+    // showed. A door you closed should say it closed.
+    expect(src()).toMatch(/only forgot you|still\s*\n?\s*active/);
+    expect(src()).toMatch(/Come back in/);
+  });
+
+  it('MooreDoor does not carry the same mistake', () => {
+    // Gate the CLASS, not the instance (DR-0239): the same five-second
+    // deadline-means-signed-out lived in the shop's door too.
+    const moore = readFileSync(join(process.cwd(), 'src/components/MooreDoor.jsx'), 'utf8')
+      .replace(/^\s*\/\/.*$/gm, '');
+    expect(moore).toMatch(/readPersistedSession\(\)/);
+    expect(moore).not.toMatch(/s\?\.timedOut \|\| !s\?\.data\?\.session/);
+    expect(moore).not.toMatch(/supabase\.auth\.signOut\(\)/);
   });
 });

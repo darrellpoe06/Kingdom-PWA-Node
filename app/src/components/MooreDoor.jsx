@@ -11,7 +11,7 @@
 // on the CRM from day one.
 // =============================================================================
 import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
-import supabase from '../lib/supabase.js';
+import supabase, { readPersistedSession, signOut } from '../lib/supabase.js';
 import { publicRpc } from '../lib/public-rpc.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 import { useTextSize } from '../lib/text-size.js';
@@ -493,7 +493,14 @@ function DoorAuth({ role, onRole }) {
     (async () => {
       const s = await Promise.race([supabase.auth.getSession(), deadline]);
       if (!on) return;
-      if (s?.timedOut || !s?.data?.session) { setChecking(false); onRole('signed-out'); return; }
+      // A TIMEOUT IS NOT A SIGN-OUT (fixed 2026-08-28 with the same bug in
+      // PropertiesDoor, found on Darrell's phone). getSession() takes a
+      // cross-tab auth lock, so with another PoeTech window open the deadline
+      // wins routinely — and treating that as "no session" signs a shop owner
+      // out of her own board. The persisted session is a synchronous storage
+      // read: no lock, no network, cannot hang. Ask it before concluding.
+      const live = s?.timedOut ? readPersistedSession() : (s?.data?.session || null);
+      if (!live) { setChecking(false); onRole('signed-out'); return; }
       const r = await Promise.race([
         supabase.rpc('my_business_role', { p_instance_slug: BIZ.instanceSlug }),
         deadline,
@@ -507,7 +514,7 @@ function DoorAuth({ role, onRole }) {
   }, [onRole]);
   if (checking) return null;
   if (role === 'owner' || role === 'admin') {
-    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. <button type="button" className="underline" onClick={() => supabase.auth.signOut().then(() => window.location.reload())}>Sign out</button></p>;
+    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. <button type="button" className="underline" onClick={() => signOut().then(() => window.location.reload())}>Sign out</button></p>;
   }
   // 'customer-view' = a real steward looking through the customer lens: render
   // exactly what a signed-in customer gets here (nothing) — the strip above the
