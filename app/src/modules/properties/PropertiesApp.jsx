@@ -35,6 +35,7 @@ import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorT
 import { SystemsTab } from './SystemsTab.jsx';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
+import { moveDoor, showFirst } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
@@ -434,6 +435,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   // Advertise a door, or stop. The asking rent defaults to the door's own
   // figure — real data, not a guess — and is editable on the door.
+  /**
+   * Apply an arrangement the landlord made on the board. The model returns the
+   * PATCHES — usually one row for "show first", two for a nudge — and this
+   * writes exactly those. Nothing is reordered client-side and re-saved: the
+   * order lives in the database because the public storefront reads it too.
+   */
+  const arrangeDoor = async (intent) => {
+    const { patches } = intent?.first
+      ? showFirst(rentals, intent.first)
+      : moveDoor(rentals, intent?.move, intent?.dir);
+    if (!patches.length) return;
+    for (const p of patches) await updateRental(p.id, p.patch, { summary: 'showcase order' });
+    boot();
+  };
+
   const setListing = async (rental, on) => {
     if (on && isOwnHome(rental)) { say(offerRefusal(rental)); return; }
     const res = await updateRental(rental.id, {
@@ -629,6 +645,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 onListing={setListing}
                 onEditTenancy={editTenancy}
                 onEditRental={editRental}
+                onArrange={arrangeDoor}
               />
               <DoorsTab
                 doors={doors} staged={staged}
