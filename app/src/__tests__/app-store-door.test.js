@@ -127,3 +127,62 @@ describe('the store records walk through the door', () => {
     }
   });
 });
+
+// =============================================================================
+// The shelf describes what is actually on it
+// =============================================================================
+// MEASURED 2026-08-28: the android-latest release notes read "the four family
+// apps" while the shelf held five (poetech, lovecorner, tlc, properties, moore).
+// Not a typo — a one-way door. The publish step runs
+// `gh release create ... --notes "..." || true`, so the notes are written ONCE
+// at first creation (2026-07-23) and every run since has silently skipped them.
+// A hardcoded count on a public page with no mechanism that could correct it.
+//
+// The `shelf` job now rewrites the notes from the release's OWN asset list, so
+// the sentence is a reading rather than a claim. These pin that so the
+// create-only version cannot come back.
+import { readFileSync as _rf } from 'node:fs';
+import { join as _join } from 'node:path';
+import { APP_STORE as _APP_STORE } from '../lib/app-store.js';
+
+const _wf = () => _rf(_join(process.cwd(), '..', '.github/workflows/android-package.yml'), 'utf8');
+
+describe('the release notes are derived, not typed', () => {
+  it('has a job that rewrites the notes after every brand uploads', () => {
+    const src = _wf();
+    expect(src).toMatch(/^ {2}shelf:/m);
+    expect(src).toMatch(/needs: build/);
+    expect(src).toMatch(/gh release edit android-latest/);
+  });
+
+  it('counts the assets rather than stating a number', () => {
+    const src = _wf();
+    const job = src.slice(src.indexOf('  shelf:'));
+    // The count and the names both come from the release's own asset list.
+    expect(job).toMatch(/\.assets\[\]\.name/);
+    expect(job).toMatch(/\.assets \| length/);
+    // And no literal count is written into the notes it publishes.
+    expect(job).not.toMatch(/the (four|five|six) family apps"/);
+  });
+
+  it('never claims a shelf it could not read', () => {
+    // An empty or unreadable asset list leaves the notes alone rather than
+    // publishing "the 0 family apps" (DR-0076 §8: unknown is not a value).
+    const job = _wf().slice(_wf().indexOf('  shelf:'));
+    expect(job).toMatch(/leaving the notes alone/);
+  });
+
+  it('corrects the notes even when a brand failed to build', () => {
+    // A partial run is exactly when a stale count is most misleading.
+    expect(_wf().slice(_wf().indexOf('  shelf:'))).toMatch(/if: always\(\)/);
+  });
+
+  // NOTE, recorded rather than quietly dropped: a test that the store's brands
+  // all appear in the build matrix ALREADY EXISTS above ("the Android lane
+  // builds a package for every app the store lists") and it PASSED throughout
+  // the outage. The properties brand was in the matrix with the right package
+  // id the whole time. The config was never wrong — the lane was simply never
+  // dispatched, and no config-conformance test can see that. The check that
+  // would have caught it has to compare the store against the SHELF, which
+  // needs the network; it lives in the `shelf` job below instead.
+});

@@ -21,11 +21,12 @@
 # auto-merge.yml now re-checks after the deploy step, which closes the ordering
 # hole. This file closes the one a poll window can never close: the LAST merge
 # in a quiet stretch has no following PR event at all, so nothing re-checks. The
-# only reliable answer GitHub allows after a GITHUB_TOKEN merge is a SCHEDULE —
+# only answer GitHub allows after a GITHUB_TOKEN merge is a SCHEDULE — an
+# HOURS-scale one in practice, see the measurement at the cron below —
 # exactly the reasoning that produced deploy-freshness, applied to the half of
 # the deploy that lives in Postgres.
 #
-# HOW IT DECIDES. It compares the migrations-auto directory at main's tip with
+# HOW IT DECIDES. On each fire it compares the migrations-auto directory at main's tip with
 # the same directory at the commit db-migrate last ran successfully against. Blob
 # SHAs, so an edit to an existing file counts as much as a new one. Same ⇒ no-op.
 # It never reads the database: db-migrate is idempotent and its own ledger is the
@@ -54,7 +55,29 @@ name: Migration freshness (heal an unapplied migration)
 
 on:
   schedule:
-    - cron: '*/5 * * * *' # every 5 min (public repo — Actions minutes are free)
+    # MEASURED, not assumed (2026-08-28). GitHub does NOT honour */5 on this
+    # repository, and the sibling below is the evidence: deploy-freshness.yml
+    # has carried this identical cron since 2026-07-06 and has fired 1,171
+    # scheduled times in 53 days — 22 a day, one every ~65 minutes on average,
+    # which is 7.7% of the 288/day a real */5 would produce. Observed gaps
+    # between consecutive fires: 8.6h and 11.3h. GitHub delays scheduled
+    # workflows under load and DROPS runs outright; the cron is a request, not
+    # a promise, and on a free public runner most of it is declined.
+    #
+    # The interval stays at */5 because asking for less delivers less — there
+    # is no setting that buys a tighter floor. What changes is the CLAIM: this
+    # is an hours-scale backstop, not a five-minute one. Anything that needs
+    # to happen promptly must not depend on it. That is why the primary net is
+    # the SYNCHRONOUS re-check inside auto-merge.yml, which runs in the same
+    # job as the merge it is checking and owes GitHub's scheduler nothing;
+    # this file only catches what that step structurally cannot see — the last
+    # merge in a quiet stretch, where no later PR event ever arrives.
+    #
+    # WORST-CASE EXPOSURE, stated plainly: a migration merged in a quiet
+    # stretch whose dispatch was also missed can sit unapplied for hours, not
+    # minutes. Better than forever, which is what it was before this file
+    # existed. Not the same as prompt.
+    - cron: '*/5 * * * *' # a REQUEST for every 5 min; see the measurement above
   workflow_dispatch: {}
 
 # LOCK: single-instance. A new fire while one runs is queued, never stacked.

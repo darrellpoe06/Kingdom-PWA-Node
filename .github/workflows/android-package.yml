@@ -345,3 +345,85 @@ jobs:
             twa-build/*.aab
           retention-days: 30
           if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # The shelf describes what is ACTUALLY on it.
+  #
+  # Measured 2026-08-28: the release notes read "the four family apps" while the
+  # shelf held five. Not a typo — a structural one-way door. The publish step
+  # above runs `gh release create ... --notes "..." || true`, so the notes are
+  # written ONCE, the first time the release is created (2026-07-23), and every
+  # run since has silently skipped them. The count was frozen at whatever was
+  # true in July, on a public page, with no mechanism that could ever correct it.
+  #
+  # This job runs after every brand has uploaded and rewrites the notes from the
+  # release's OWN asset list — so the sentence is not a claim anybody maintains,
+  # it is a reading of the shelf. Adding a sixth app updates it by itself, and a
+  # brand whose build FAILED is absent from the list rather than counted, which
+  # is the honest answer to "what can I install right now?" (DR-0076 §4).
+  #
+  # `if: always()` so a partial run still corrects the notes to what actually
+  # shipped; the count would otherwise stay stale precisely when it matters most.
+  shelf:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Describe the shelf from the shelf, and prove nothing is missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          names=$(gh api "repos/$REPO/releases/tags/android-latest" \
+                    --jq '[.assets[].name | sub("\\.apk$";"")] | sort | join(", ")')
+          count=$(gh api "repos/$REPO/releases/tags/android-latest" --jq '.assets | length')
+          if [ -z "$count" ] || [ "$count" = "0" ]; then
+            echo "::warning::the release lists no assets — leaving the notes alone rather than claiming an empty shelf."
+            exit 0
+          fi
+          word=$(case "$count" in
+            1) echo one;; 2) echo two;; 3) echo three;; 4) echo four;;
+            5) echo five;; 6) echo six;; 7) echo seven;; 8) echo eight;;
+            *) echo "$count";; esac)
+          gh release edit android-latest \
+            --title "PoeTech App Store — Android apps (latest)" \
+            --notes "Rolling latest builds of the $word family apps: $names. Installed from the in-app PoeTech App Store. This description is written from the release's own asset list on every build, so it cannot fall behind what is actually here."
+          echo "shelf notes now describe $count package(s): $names"
+
+          # THE CHECK THAT WOULD HAVE CAUGHT THE 2026-08-28 OUTAGE.
+          #
+          # A conformance test that every store brand appears in the build matrix
+          # already existed, and it PASSED throughout: `properties` was in the
+          # matrix with the right package id the whole time. The config was never
+          # wrong — the lane was simply never dispatched, so no package was ever
+          # built, /store/apk/properties.apk 404'd, and the phone showed a
+          # Cloudflare "Bad gateway". No test of the config can see that.
+          #
+          # This can, because it asks the SHELF rather than the source: every app
+          # the store offers must have a package a person can actually install.
+          # Missing one FAILS the run — a store that lists what it cannot deliver
+          # is the defect, and a green build that leaves one missing is the lie.
+          # Normalise to a strictly comma-delimited list first, so the match
+          # below can require BOTH delimiters. Without that, a future brand key
+          # that is a substring of another ("moore" inside "mooredivahs") would
+          # match loosely and the gate would quietly pass on a missing package —
+          # a gate that cannot be wrong about the thing it guards is the point.
+          csv=",$(printf '%s' "$names" | tr -d ' '),"
+          missing=""
+          for key in $(grep -oP "^\s+key: '\K[a-z]+" app/src/lib/app-store.js); do
+            case "$csv" in
+              *",$key,"*) ;;
+              *) missing="$missing $key" ;;
+            esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the PoeTech App Store offers these apps with NO package on the shelf:$missing"
+            echo "Anyone tapping their Download button gets a 404 from /store/apk/. Re-run this lane."
+            exit 1
+          fi
+          echo "every app the store offers has a package on the shelf."
