@@ -126,3 +126,68 @@ describe('undoing an arrangement', () => {
     expect(apply(shelf, patches).every((r) => r.showcase_order === null)).toBe(true);
   });
 });
+
+// =============================================================================
+// The controls exist on the board — the gap in my own delivery
+// =============================================================================
+// I shipped showcase.js, migration 0157 and these tests, told Darrell "you order
+// the shelf", and never wired a single button into DoorsBoard. The model was
+// right and there was no way to reach it. A capability with no control is not a
+// capability, and no test I had written would have noticed.
+import { readFileSync as _rf } from 'node:fs';
+import { join as _join } from 'node:path';
+
+const board = () => _rf(_join(process.cwd(), 'src/modules/properties/DoorTabs.jsx'), 'utf8');
+const appjs = () => _rf(_join(process.cwd(), 'src/modules/properties/PropertiesApp.jsx'), 'utf8');
+
+describe('the landlord can actually reach the arrangement', () => {
+  it('sorts the board by his arrangement, not by insertion order', () => {
+    expect(board()).toMatch(/shelfOrder\(rentals\)/);
+  });
+
+  it('renders move controls from ONE component, so grid and list cannot drift', () => {
+    const s = board();
+    expect(s).toMatch(/function ArrangeControls/);
+    // Used twice: once in the grid, once in the list.
+    expect((s.match(/<ArrangeControls/g) || []).length).toBe(2);
+  });
+
+  it('offers show-first, not just one-step nudges', () => {
+    // Turnover wants the unit at the front now, not after six taps.
+    expect(board()).toMatch(/onArrange\(dir === 0 \? \{ first: id \}/);
+  });
+
+  it('hides the controls when there is nothing to arrange', () => {
+    expect(board()).toMatch(/total < 2\) return null/);
+  });
+
+  it('is wired to a handler that writes only the patches the model returned', () => {
+    const s = appjs();
+    expect(s).toMatch(/const arrangeDoor = async/);
+    expect(s).toMatch(/showFirst\(rentals, intent\.first\)/);
+    expect(s).toMatch(/moveDoor\(rentals, intent\?\.move, intent\?\.dir\)/);
+    expect(s).toMatch(/onArrange=\{arrangeDoor\}/);
+  });
+});
+
+describe('the door editor carries the controls he asked for', () => {
+  it('lets him change what a door is CALLED', () => {
+    // "change name and what the words say" — the name is his, not a label
+    // derived from the street.
+    expect(board()).toMatch(/key: 'display_name', label: 'Name'/);
+  });
+
+  it('lets him set who may see the street, per door', () => {
+    const s = board();
+    expect(s).toMatch(/key: 'address_visibility'/);
+    expect(s).toMatch(/Shared when someone applies/);
+    expect(s).toMatch(/Shown to anyone browsing/);
+  });
+
+  it('defaults an unset door to WITHHELD in the form too', () => {
+    // The form must not display "public" for a door whose column is NULL — the
+    // database treats NULL as after-application, and the editor has to agree or
+    // saving without touching it would flip the door open.
+    expect(board()).toMatch(/rental\.address_visibility \|\| 'after-application'/);
+  });
+});

@@ -97,6 +97,17 @@ export function VacancyCard({ unit }) {
           </div>
         )}
         {unit.note && <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">{unit.note}</p>}
+        {/* SAY WHICH IT IS (0158). Until 2026-08-28 every card printed "the exact
+            address is given by a person, not published here" while the label
+            above it WAS the street — display_name is the address on all twelve
+            doors. A card now states the truth about itself: shown, or held
+            until you ask. Neither sentence is decoration; one of them is always
+            a claim the database is enforcing. */}
+        {unit.addressShown === false && (
+          <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">
+            Address shared when you apply — nothing to sign up for.
+          </p>
+        )}
         <a
           href={applyUrl(unit.rentalId)}
           className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border"

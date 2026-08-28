@@ -268,6 +268,15 @@ describe('editing what is already there', () => {
   });
 });
 
+// The door editor now has TWO selects — "Offered as" and, since 0158, "Address
+// on the public shelf". querySelector('select') used to be unambiguous and is
+// not any more, so these pick the offering one by the options it carries. A
+// test that depends on there being exactly one of something breaks the day
+// somebody adds a second for a good reason.
+const offeringSelect = (host) =>
+  [...host.querySelectorAll('select')].find((el) =>
+    [...el.options].some((o) => o.value === 'short-term'));
+
 describe('what a door is offered as', () => {
   // "you only need to create an account for lease or for a short term lease
   // Airbnb... options" — and "only for Apt 2 at 805 N Prospect Ave".
@@ -320,7 +329,7 @@ describe('what a door is offered as', () => {
     const host = render(<DoorsBoard rentals={[rentals[1]]} tenancies={[]} canManage onEditRental={() => {}} />);
     click(byText(host, /Edit door/));
     expect(txt(host)).not.toMatch(/Nightly rate/);
-    const select = host.querySelector('select');
+    const select = offeringSelect(host);
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
       setter.call(select, 'short-term');
@@ -334,7 +343,7 @@ describe('what a door is offered as', () => {
     const onEditRental = vi.fn();
     const host = render(<DoorsBoard rentals={[shortStay]} tenancies={[]} canManage onEditRental={onEditRental} />);
     click(byText(host, /Edit door/));
-    const select = host.querySelector('select');
+    const select = offeringSelect(host);
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
       setter.call(select, 'long-term');

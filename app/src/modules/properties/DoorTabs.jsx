@@ -27,6 +27,7 @@ import { paymentLedger, gaps, discrepancies, accuracy, totals } from './payments
 import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
+import { shelfOrder } from './showcase.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 
 const ACCENT = '#2F5D50';
@@ -403,9 +404,43 @@ export function RoomsTab({
  * A door with no tenancy is not a problem to hide; it is the next piece of work,
  * so it is listed as loudly as an occupied one.
  */
+/**
+ * Move this square. Darrell, 2026-08-28: "Users should be able move the squares
+ * to fit whatever Apt or home to showcase those at the time because of the
+ * turnover of that property so people can see it first."
+ *
+ * Buttons rather than drag: HTML5 drag does not fire on touch at all, and a
+ * long-press drag inside a scrolling grid fights the scroll — you reach for the
+ * card and the page moves. These work one-handed, with a keyboard, and with a
+ * screen reader. "First" is the turnover case in one tap instead of six.
+ *
+ * Rendered in both the grid and the list from ONE component, so the two views
+ * cannot drift apart the way the card summary and the record did.
+ */
+function ArrangeControls({ id, index, total, onArrange, busy }) {
+  if (!onArrange || total < 2) return null;
+  const Nudge = ({ dir, label, disabled }) => (
+    <button
+      type="button"
+      disabled={busy || disabled}
+      onClick={(e) => { e.stopPropagation(); onArrange(dir === 0 ? { first: id } : { move: id, dir }); }}
+      aria-label={label}
+      title={label}
+      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#E8E4DC] bg-white text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] disabled:opacity-30"
+    >{dir === 0 ? 'First' : dir < 0 ? '\u2190' : '\u2192'}</button>
+  );
+  return (
+    <span className="flex items-center gap-1">
+      <Nudge dir={-1} label="Move this property earlier" disabled={index === 0} />
+      <Nudge dir={1} label="Move this property later" disabled={index === total - 1} />
+      <Nudge dir={0} label="Show this property first" disabled={index === 0} />
+    </span>
+  );
+}
+
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
-  onPick, onStart, onListing, onEditTenancy, onEditRental, busy = false,
+  onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -454,7 +489,13 @@ export function DoorsBoard({
     return m;
   }, [tenancies]);
 
-  const rows = useMemo(() => rentals.map((r) => {
+  // THE LANDLORD'S OWN ARRANGEMENT (0157). "Users should be able move the
+  // squares to fit whatever Apt or home to showcase those at the time because
+  // of the turnover" (Darrell, 2026-08-28). shelfOrder is the same function the
+  // public storefront sorts by, so what he arranges here is what a renter sees.
+  const arranged = useMemo(() => shelfOrder(rentals), [rentals]);
+
+  const rows = useMemo(() => arranged.map((r) => {
     const tenancy = activeByRef.get(r.slug) || null;
     // What it rents for: the tenancy's actual rent if occupied, otherwise the
     // asking rent, otherwise the door's own figure. Never invented — a door
@@ -489,7 +530,7 @@ export function DoorsBoard({
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
     };
-  }), [rentals, activeByRef, coverByRental, photos]);
+  }), [arranged, activeByRef, coverByRental, photos]);
 
   // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
   // not for renting... Real Estate keeps it just as our home and asset"
@@ -539,7 +580,7 @@ export function DoorsBoard({
     >
       {view === 'grid' && (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {doorRows.map((x) => (
+          {doorRows.map((x, i) => (
             <li key={x.rental.id} className="border border-[#E8E4DC] bg-white">
               <button
                 type="button"
@@ -570,13 +611,29 @@ export function DoorsBoard({
                   </div>
                 </div>
               </button>
+              {canManage && (
+                <div className="px-2 pb-2 flex flex-wrap items-center gap-1">
+                  <ArrangeControls id={x.rental.id} index={i} total={rows.length} onArrange={onArrange} busy={busy} />
+                  <Btn onClick={() => setEditingDoor(editingDoor === x.rental.id ? null : x.rental.id)} disabled={busy}>
+                    {editingDoor === x.rental.id ? 'Close' : 'Edit'}
+                  </Btn>
+                </div>
+              )}
+              {editingDoor === x.rental.id && (
+                <div className="px-2 pb-2">
+                  <EditRental
+                    rental={x.rental} busy={busy}
+                    onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>
       )}
       {view === 'list' && (
       <ul>
-        {doorRows.map((x) => (
+        {doorRows.map((x, i) => (
           <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               {/* The picture, so the board reads like a property list and not a
@@ -617,6 +674,9 @@ export function DoorsBoard({
                 </div>
               </button>
 
+              {canManage && (
+                <ArrangeControls id={x.rental.id} index={i} total={rows.length} onArrange={onArrange} busy={busy} />
+              )}
               {canManage && (
                 <Btn onClick={() => setEditingDoor(editingDoor === x.rental.id ? null : x.rental.id)} disabled={busy}>
                   {editingDoor === x.rental.id ? 'Close' : 'Edit door'}
@@ -903,6 +963,10 @@ function EditRental({ rental, onSave, busy }) {
     offering: rental.offering || 'long-term',
     nightly_rate: rental.nightly_rate ?? '',
     min_stay_nights: rental.min_stay_nights ?? '',
+    // Unset means WITHHELD (0158) — the safe reading is the default, so a door
+    // nobody has thought about does not publish its street.
+    address_visibility: rental.address_visibility || 'after-application',
+    display_name: rental.display_name || '',
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const shortStay = f.offering === 'short-term' || f.offering === 'both';
@@ -910,7 +974,12 @@ function EditRental({ rental, onSave, busy }) {
   // Compare against the door as the FORM sees it: an unset offering displays as
   // "Lease only", so treating it as a change would write a field the landlord
   // never touched and light up Save the moment the editor opens.
-  const before = useMemo(() => ({ ...rental, offering: rental.offering || 'long-term' }), [rental]);
+  const before = useMemo(() => ({
+    ...rental,
+    offering: rental.offering || 'long-term',
+    address_visibility: rental.address_visibility || 'after-application',
+    display_name: rental.display_name || '',
+  }), [rental]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
     // The database refuses a nightly rate on a door that is not offered short —
@@ -919,6 +988,7 @@ function EditRental({ rental, onSave, busy }) {
     nightly_rate: shortStay ? f.nightly_rate : '',
     min_stay_nights: shortStay ? f.min_stay_nights : '',
   }, [
+    { key: 'display_name', label: 'Name' },
     { key: 'address', label: 'Address' },
     { key: 'unit', label: 'Unit' },
     { key: 'city', label: 'City' },
@@ -927,6 +997,7 @@ function EditRental({ rental, onSave, busy }) {
     { key: 'offering', label: 'Offered as' },
     { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
     { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
+    { key: 'address_visibility', label: 'Address on the public shelf' },
   ]), [before, f, shortStay]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
@@ -935,8 +1006,28 @@ function EditRental({ rental, onSave, busy }) {
   return (
     <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {/* NAME. "change name and what the words say" (Darrell, 2026-08-28) —
+            what a door is CALLED is his, not a label derived from its street. */}
+        <label className="sm:col-span-2"><span className={lbl}>Name</span>
+          <input type="text" className={field} value={f.display_name} onChange={set('display_name')} placeholder="What this door is called" />
+        </label>
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
           <input type="text" className={field} value={f.address} onChange={set('address')} />
+        </label>
+        {/* WHO MAY SEE THE STREET (0158). Measured 2026-08-28: the public
+            listing had been publishing display_name — which IS the address on
+            all twelve doors — under a sentence promising it was not. This is
+            the control, per door, so it is never my decision again. */}
+        <label className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
+          <select className={field} value={f.address_visibility} onChange={set('address_visibility')}>
+            <option value="after-application">Shared when someone applies</option>
+            <option value="public">Shown to anyone browsing</option>
+          </select>
+          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug">
+            {f.address_visibility === 'public'
+              ? 'The street shows on the open shelf, to anyone, with no account.'
+              : 'Browsers see the size, kind, town and rent \u2014 the street is handed over when they apply.'}
+          </span>
         </label>
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />

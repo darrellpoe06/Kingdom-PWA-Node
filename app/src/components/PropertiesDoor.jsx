@@ -248,6 +248,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   offering: String(v.offering || 'long-term'),
                   nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
                   note: String(v.note || '').trim(),
+                  addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
                 }}
               />
             ))}
