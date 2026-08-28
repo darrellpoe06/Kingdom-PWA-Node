@@ -15,7 +15,7 @@ const UUID = '22222222-2222-2222-2222-222222222222';
 
 // A fake PostgREST that records every insert and can be told what a door
 // already holds — the two behaviors this module's correctness turns on.
-function fakeClient({ existing = {}, failOn = null, readFailOn = null } = {}) {
+function fakeClient({ existing = {}, failOn = null, readFailOn = null, readError = null } = {}) {
   const inserted = {};
   const client = {
     inserted,
@@ -26,7 +26,7 @@ function fakeClient({ existing = {}, failOn = null, readFailOn = null } = {}) {
         select() { return q; },
         eq() { return q; },
         not() {
-          if (readFailOn === table) return Promise.resolve({ data: null, error: { message: 'read blew up' } });
+          if (readFailOn === table) return Promise.resolve({ data: null, error: readError || { message: 'read blew up' } });
           return Promise.resolve({ data: (existing[table] || []).map((id) => ({ legacy_id: id })), error: null });
         },
         insert(rows) {
@@ -147,6 +147,39 @@ describe('a failure is named, never swallowed', () => {
     expect(client.inserted.property_notes).toHaveLength(1);
     expect(client.inserted.property_rooms).toBeUndefined();
     expect(res.plan.deferred.join(' ')).toContain('has synced');
+  });
+});
+
+describe('the window between a deploy and its migration is named, not dumped raw', () => {
+  // legacy_id arrives with 0159. The lane deploys and migrates on the same
+  // merge but not in a guaranteed order, so there is a real window where every
+  // read is a 400 for an unknown column. That is a database catching up, not a
+  // broken record, and the landlord gets a sentence he can act on.
+  const missing = {
+    message: "column property_rooms.legacy_id does not exist",
+    code: '42703',
+  };
+
+  it('says the database has not caught up, rather than quoting PostgREST', async () => {
+    const client = fakeClient({ readFailOn: 'property_rooms', readError: missing });
+    const res = await carryUpRecords(door(), { client });
+    expect(res.failed.join(' ')).toContain('has not caught up with this release yet');
+    expect(res.failed.join(' ')).not.toContain('42703');
+  });
+
+  it('still carries the tables that ARE ready', async () => {
+    const client = fakeClient({ readFailOn: 'property_rooms', readError: missing });
+    const res = await carryUpRecords(door(), { client });
+    expect(client.inserted.property_rooms).toBeUndefined();
+    expect(client.inserted.property_notes).toHaveLength(1);
+    expect(res.carried).toBe(3);
+  });
+
+  it('does not mistake an ordinary read failure for a missing column', async () => {
+    const client = fakeClient({ readFailOn: 'property_rooms' });
+    const res = await carryUpRecords(door(), { client });
+    expect(res.failed.join(' ')).toContain('could not check what is already filed');
+    expect(res.failed.join(' ')).not.toContain('has not caught up');
   });
 });
 

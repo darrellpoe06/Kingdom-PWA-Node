@@ -32,6 +32,18 @@ const no = (reason, error) => ({ ok: false, reason, error: (error && error.messa
 // Which table each part of a plan lands in, and which key column identifies its
 // door. property_notes is slug-keyed; the rest are UUID-keyed. Getting this
 // backwards writes rows nothing will ever read again, so it is stated once.
+// legacy_id arrives with migration 0159. Between a deploy landing and that
+// migration applying — the lane does both on merge, but not in a guaranteed
+// order — every one of these reads is a 400 for an unknown column. That is a
+// database still catching up, not a broken record, and the landlord must be
+// told the difference: "the database has not caught up yet, try again shortly"
+// is actionable; a raw PostgREST string about column property_rooms.legacy_id
+// is not.
+const isMissingColumn = (error) => {
+  const msg = String((error && (error.message || error.code)) || '');
+  return /legacy_id/.test(msg) && /(does not exist|could not find|unknown column|schema cache)/i.test(msg);
+};
+
 const TARGETS = Object.freeze([
   { part: 'notes',   table: 'property_notes',         keyed: 'slug' },
   { part: 'rooms',   table: 'property_rooms',         keyed: 'uuid' },
@@ -47,7 +59,7 @@ const TARGETS = Object.freeze([
 async function existingLegacyIds(table, rentalRef, client) {
   const { data, error } = await client
     .from(table).select('legacy_id').eq('rental_ref', rentalRef).not('legacy_id', 'is', null);
-  if (error) return { ok: false, error };
+  if (error) return { ok: false, error, missing: isMissingColumn(error) };
   return { ok: true, ids: new Set((data || []).map((r) => r.legacy_id).filter(Boolean)) };
 }
 
@@ -119,7 +131,12 @@ export async function carryUpRecords(rental, {
       if (!ref) { failed.push(`${table}: this property has no server id yet`); continue; }
 
       const seen = await existingLegacyIds(table, ref, client);
-      if (!seen.ok) { failed.push(`${table}: could not check what is already filed (${seen.error.message})`); continue; }
+      if (!seen.ok) {
+        failed.push(seen.missing
+          ? `${table}: the database has not caught up with this release yet — try again shortly`
+          : `${table}: could not check what is already filed (${seen.error.message})`);
+        continue;
+      }
 
       const fresh = rows.filter((r) => !r.legacy_id || !seen.ids.has(r.legacy_id));
       if (!fresh.length) continue;
