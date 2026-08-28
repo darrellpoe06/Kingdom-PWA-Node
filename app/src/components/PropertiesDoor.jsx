@@ -15,10 +15,11 @@
 // same rows (Darrell: "keeping both with latest Synced data").
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
-import supabase from '../lib/supabase.js';
+import supabase, { resolveInitialSession, readPersistedSession, signOut } from '../lib/supabase.js';
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
+import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
@@ -32,19 +33,49 @@ export default function PropertiesDoor() {
 
   useEffect(() => {
     let on = true;
-    // Hard deadline (the DoorAuth precedent): getSession() can wait on a
-    // cross-tab auth lock a wedged window holds. A door that cannot answer in
-    // time renders SIGNED OUT — the honest state that always shows a way in,
-    // never a blank screen.
-    const deadline = new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 5000));
-    (async () => {
-      const s = await Promise.race([supabase.auth.getSession(), deadline]);
-      if (!on) return;
-      setSession(s?.timedOut ? null : (s?.data?.session || null));
-    })().catch(() => { if (on) setSession(null); });
+    // A TIMEOUT IS NOT A SIGN-OUT (fixed 2026-08-28, from Darrell's screenshots).
+    //
+    // This door used to race getSession() against a 5s deadline and render
+    // SIGNED OUT if the deadline won. getSession() takes a CROSS-TAB auth lock,
+    // so with the PoeTech app open in another tab the lock is contended and the
+    // deadline wins routinely — and a signed-in landlord with twelve doors was
+    // shown "Who are you?", the applicant picker built for a stranger. He read
+    // it, correctly, as having been logged out.
+    //
+    // The deadline was right; the ANSWER was wrong. "I could not find out in
+    // time" is not "there is no session" (DR-0076 §8 — unknown is never a
+    // value), and here the unknown was rendered as the most alarming possible
+    // value: your account is gone.
+    //
+    // resolveInitialSession is the primitive the monolith already used for this
+    // exact hang (readPersistedSession + reconcile; see auth-boot-gate-hang
+    // tests). It reads the persisted session SYNCHRONOUSLY from localStorage —
+    // no lock, no network, cannot hang — emits it at once, then reconciles with
+    // getSession() when it eventually resolves. The fix was already in the repo
+    // and this door did not reuse it, which is the P26 class.
+    //
+    // Showing the app optimistically is safe: RLS is the real gate (DR-0060), so
+    // a stale token reads nothing and the auth listener corrects within a beat.
+    // The failure it removes is the opposite and far worse — a landlord being
+    // told he is a stranger to his own property records.
+    resolveInitialSession(
+      (s) => { if (on) setSession(s ?? null); },
+      { getSession: () => supabase.auth.getSession(), readStored: () => readPersistedSession() },
+    );
+    setLeft(doorSession(DOORS.properties, { any: true }).left);
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => { if (on) setSession(s || null); });
     return () => { on = false; sub?.subscription?.unsubscribe?.(); };
   }, []);
+
+  // LEAVING THIS DOOR LEAVES THIS DOOR (Darrell, 2026-08-28: "login to each
+  // separate and together etc... not dependent"). Both apps are one origin and
+  // therefore one Supabase session, so the old Sign out revoked it and threw him
+  // out of PoeTech too. The separation is at the door, not the token — copying
+  // the session into a second storage key would race supabase's rotating
+  // refresh token and cause random logouts, which is the disease, not the cure.
+  const [left, setLeft] = useState(() => false);
+  const view = doorSession(DOORS.properties, session || null);
+  const shown = left ? null : view.session;
 
   return (
     <div className="min-h-screen" style={{ background: brand.background }}>
@@ -53,12 +84,24 @@ export default function PropertiesDoor() {
           <h1 className="text-lg font-semibold" style={{ ...serif, color: brand.accent }}>{brand.label}</h1>
           <p className="text-xs text-[#5A5751]" style={serif}>{brand.tagline}</p>
         </div>
-        {session && (
-          <button
-            type="button"
-            className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751]"
-            onClick={() => supabase.auth.signOut().then(() => window.location.reload())}
-          >Sign out</button>
+        {shown && (
+          <span className="flex items-center gap-3">
+            <button
+              type="button"
+              className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751]"
+              // Leaves THIS door only. Never calls supabase.auth.signOut(), so
+              // the PoeTech app on the same phone keeps its sign-in.
+              onClick={() => { leaveDoor(DOORS.properties); setLeft(true); }}
+            >Sign out of Poe Properties</button>
+            <button
+              type="button"
+              className="text-[0.625rem] uppercase tracking-wider underline text-[#8A867E]"
+              // The real one. signOut() from lib/supabase (not
+              // supabase.auth.signOut) opens the deliberate-sign-out window, so
+              // the transient-logout guard does not "recover" it back in.
+              onClick={() => { enterAllDoors(); signOut().then(() => window.location.reload()); }}
+            >everywhere</button>
+          </span>
         )}
       </header>
 
@@ -66,8 +109,13 @@ export default function PropertiesDoor() {
         {session === undefined && (
           <p className="text-xs text-[#5A5751] p-2" style={serif}>Checking your sign-in…</p>
         )}
-        {session === null && <SignedOutDoor />}
-        {session && <PropertiesApp surface="door" />}
+        {session !== undefined && !shown && (
+          <SignedOutDoor
+            left={left}
+            onReturn={() => { enterDoor(DOORS.properties); setLeft(false); }}
+          />
+        )}
+        {shown && <PropertiesApp surface="door" />}
       </main>
 
       <footer className="px-4 py-6 text-center">
@@ -86,7 +134,7 @@ export default function PropertiesDoor() {
  * place. Now it asks, and the one answer that needs no account (looking for a
  * place) is served immediately from the listed vacancies.
  */
-function SignedOutDoor() {
+function SignedOutDoor({ left = false, onReturn } = {}) {
   // A QR on a vacant unit lands here with ?apply=<rental id>. Someone who
   // scanned a code at a property has already answered "who are you" — they are
   // asking about that unit — so the who-picker is skipped rather than made into
@@ -121,6 +169,24 @@ function SignedOutDoor() {
   if (!chosen) {
     return (
       <div className="bg-white border border-[#E8E4DC] p-4">
+        {/* You LEFT this door — you were not thrown out of it, and your PoeTech
+            sign-in is untouched. Saying so is the difference between a door you
+            closed and an account that vanished; the second reading is what the
+            2026-08-28 screenshots showed and it is alarming for no reason. */}
+        {left && (
+          <div className="mb-3 border-l-2 pl-3" style={{ borderColor: brand.accent }}>
+            <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+              You signed out of Poe Properties on this device. Your PoeTech sign-in is still
+              active — this door only forgot you.
+            </p>
+            <button
+              type="button"
+              className="mt-1 text-[0.625rem] uppercase tracking-wider underline"
+              style={{ color: brand.accent }}
+              onClick={() => onReturn?.()}
+            >Come back in</button>
+          </div>
+        )}
         <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>Who are you?</h2>
         <p className="text-xs text-[#5A5751] mb-3" style={serif}>
           Pick the one that fits. Only the first needs no account.

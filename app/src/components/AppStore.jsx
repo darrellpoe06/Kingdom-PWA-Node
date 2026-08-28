@@ -58,6 +58,22 @@ export default function AppStore() {
                 {open === a.key ? '− Hide steps' : '? How to install'}
               </button>
             </div>
+            {/* THE ONE STEP EVERYONE HITS, SAID BEFORE THEY HIT IT.
+                Darrell, 2026-08-28: "I tried to download the Poe Properties App
+                from the app store inside PoeTech App and it won't install."
+                Play Protect blocked it with a big "Got it" button that CANCELS
+                and a small "Install anyway" that does not look like a button.
+                The guidance for exactly this was already written (app-store.js
+                INSTALL_STEPS) — and it was folded behind "How to install",
+                which nobody opens BEFORE tapping download. A warning that only
+                appears after you have already been stopped is not guidance.
+                So it sits on the card, unfolded, next to the button it is about. */}
+            <p className="mt-2 text-[0.6875rem] leading-snug text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="font-semibold text-[#B85838]">If Android says it blocked the app:</span>{' '}
+              that is expected — our apps come from our own store, not Google&rsquo;s. Tap{' '}
+              <strong>More details</strong>, then <strong>Install anyway</strong>. The big{' '}
+              <strong>Got it</strong> button cancels the install.
+            </p>
             {open === a.key && (
               <div className="mt-2 text-[0.6875rem] text-[#1A1815] space-y-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 <div>

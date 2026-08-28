@@ -1,8 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Maskable variant: full-bleed brand green so Android's adaptive mask never
-       clips into background; the mark is held inside the 80% safe zone. -->
-  <rect width="512" height="512" fill="#2F5D50"/>
-  <path d="M256 138 L384 244 L384 258 L128 258 L128 244 Z" fill="#FAF8F4"/>
-  <rect x="164" y="258" width="184" height="132" fill="none" stroke="#FAF8F4" stroke-width="20"/>
-  <rect x="232" y="300" width="48" height="90" fill="#FAF8F4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable variant, mirroring icon-maskable.svg exactly: full-bleed dark so
+       Android's adaptive mask never clips into a background, the PP held well
+       inside the 80% safe zone, and the ring pulled to r=160 so the mask cannot
+       crop it. Green ring = Poe Properties; rust = PoeTech. -->
+  <rect width="512" height="512" fill="#1A1815"/>
+  <g font-family="Georgia, 'Fraunces', serif" font-size="180" font-weight="700" text-anchor="middle" fill="#FAF8F4">
+    <text x="214" y="322">P</text>
+    <text x="298" y="322" stroke="#1A1815" stroke-width="18" paint-order="stroke" stroke-linejoin="round">P</text>
+  </g>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#2F5D50" stroke-width="6"/>
 </svg>
