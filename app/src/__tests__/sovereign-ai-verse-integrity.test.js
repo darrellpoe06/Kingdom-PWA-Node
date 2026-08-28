@@ -384,3 +384,93 @@ describe('sov12 — the engineering disaster quotes its whole spine verbatim, Wo
     }
   });
 });
+
+// =============================================================================
+// sov13 — The Whole Stack (Nvidia/Hugging Face consolidation, captured 2026-08-28)
+// Word first (the true Owner), the headline carried AS REPORTED (DR-0076), and
+// the Revelation trajectory named soberly (the DIRECTION, never a claim about a
+// deal). Every quoted fragment pinned letter-for-letter to the KJV corpus.
+// =============================================================================
+const SOV13_FRAGMENTS = {
+  'Colossians 1:17': 'and by him all things consist',
+  'Matthew 6:24': 'No man can serve two masters: for either he will hate the one, and love the other; or else he will hold to the one, and despise the other. Ye cannot serve God and mammon.',
+  'Psalms 146:3': 'Put not your trust in princes, nor in the son of man, in whom there is no help.',
+  'Jeremiah 17:5': 'Cursed be the man that trusteth in man, and maketh flesh his arm, and whose heart departeth from the LORD.',
+  'Jeremiah 17:7': 'Blessed is the man that trusteth in the LORD, and whose hope the LORD is.',
+  'Proverbs 22:7': 'The rich ruleth over the poor, and the borrower is servant to the lender.',
+  'Genesis 47:19': 'buy us and our land for bread, and we and our land will be servants unto Pharaoh',
+  'Genesis 47:20': 'And Joseph bought all the land of Egypt for Pharaoh',
+  '1 Corinthians 6:12': 'All things are lawful unto me, but all things are not expedient: all things are lawful for me, but I will not be brought under the power of any.',
+  'Revelation 13:17': 'no man might buy or sell, save he that had the mark, or the name of the beast',
+  'Luke 14:28': 'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+  'Deuteronomy 8:17': 'And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth.',
+  'Deuteronomy 8:18': 'for it is he that giveth thee power to get wealth',
+  'Proverbs 18:10': 'The name of the LORD is a strong tower: the righteous runneth into it, and is safe.',
+  'Proverbs 11:1': 'A false balance is abomination to the LORD: but a just weight is his delight.',
+  'Psalms 24:1': 'and the fulness thereof; the world, and they that dwell therein.',
+};
+
+const sov13 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov13-the-whole-stack');
+
+describe('sov13 — the whole stack quotes its Word spine verbatim, Word first', () => {
+  it('the week exists and anchors on the ownership + master texts', () => {
+    expect(sov13).toBeTruthy();
+    expect(sov13.anchor.ref).toContain('Psalms 24:1');
+    expect(sov13.anchor.ref).toContain('Matthew 6:24');
+    expect(sov13.anchor.ref).toContain('1 Corinthians 6:12');
+  });
+  it('every quoted fragment is letter-for-letter KJV in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV13_FRAGMENTS)) {
+      expect(sov13.lesson, `${ref} must be quoted letter-for-letter`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS: the true Owner is the first movement, before the headline', () => {
+    expect(sov13.lesson.indexOf('FIRST, SETTLE WHO ACTUALLY OWNS EVERYTHING')).toBe(0);
+    // The ownership verse precedes the Nvidia headline in the lesson.
+    expect(sov13.lesson.indexOf('The earth is the LORD')).toBeLessThan(sov13.lesson.indexOf('Nvidia'));
+  });
+  it('the ten movements are marked FIRST through TENTH, in order', () => {
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov13.lesson.indexOf(m);
+      expect(at, `${m} present`).toBeGreaterThan(-1);
+      expect(at, `${m} in order`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('the headline is carried AS REPORTED, not as fact (DR-0076 provenance honesty)', () => {
+    expect(sov13.lesson).toContain('AS REPORTED');
+    expect(sov13.lesson).toContain('$12.9 billion');
+    expect(sov13.lesson).toContain('neither company has confirmed');
+  });
+  it('the Revelation trajectory is named soberly — a direction, never a claim about a deal', () => {
+    expect(sov13.lesson).toContain('We do NOT identify any business deal with that end');
+    expect(sov13.lesson).toContain('the DIRECTION');
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('Colossians', 1, 17)).toContain(SOV13_FRAGMENTS['Colossians 1:17']);
+    expect(verse('Matthew', 6, 24)).toBe(SOV13_FRAGMENTS['Matthew 6:24']);
+    expect(verse('Psalms', 146, 3)).toBe(SOV13_FRAGMENTS['Psalms 146:3']);
+    expect(verse('Jeremiah', 17, 5)).toContain(SOV13_FRAGMENTS['Jeremiah 17:5']);
+    expect(verse('Jeremiah', 17, 7)).toBe(SOV13_FRAGMENTS['Jeremiah 17:7']);
+    expect(verse('Proverbs', 22, 7)).toBe(SOV13_FRAGMENTS['Proverbs 22:7']);
+    expect(verse('Genesis', 47, 19)).toContain(SOV13_FRAGMENTS['Genesis 47:19']);
+    expect(verse('Genesis', 47, 20)).toContain(SOV13_FRAGMENTS['Genesis 47:20']);
+    expect(verse('1Corinthians', 6, 12)).toBe(SOV13_FRAGMENTS['1 Corinthians 6:12']);
+    expect(verse('Revelation', 13, 17)).toContain(SOV13_FRAGMENTS['Revelation 13:17']);
+    expect(verse('Luke', 14, 28)).toBe(SOV13_FRAGMENTS['Luke 14:28']);
+    expect(verse('Deuteronomy', 8, 17)).toBe(SOV13_FRAGMENTS['Deuteronomy 8:17']);
+    expect(verse('Deuteronomy', 8, 18)).toContain(SOV13_FRAGMENTS['Deuteronomy 8:18']);
+    expect(verse('Proverbs', 18, 10)).toBe(SOV13_FRAGMENTS['Proverbs 18:10']);
+    expect(verse('Proverbs', 11, 1)).toBe(SOV13_FRAGMENTS['Proverbs 11:1']);
+    expect(verse('Psalms', 24, 1)).toContain(SOV13_FRAGMENTS['Psalms 24:1']);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV13_FRAGMENTS['Matthew 6:24'].endsWith('Ye cannot serve God and mammon.')).toBe(true);
+    expect(SOV13_FRAGMENTS['Proverbs 22:7']).toBe('The rich ruleth over the poor, and the borrower is servant to the lender.');
+    expect(SOV13_FRAGMENTS['1 Corinthians 6:12'].includes('not be brought under the power of any')).toBe(true);
+  });
+});
