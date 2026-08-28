@@ -12,6 +12,65 @@
 // =============================================================================
 
 export const THEME_CSS = `
+
+/* ===================================================================
+   FORM CONTROLS — every theme paints them, or the browser will
+   ===================================================================
+   THE BUG (Darrell, screenshot 2026-08-28, rose theme): the Properties
+   edit form rendered dark charcoal boxes with dark text — NAME, ADDRESS,
+   UNIT, CITY, STATE all illegible.
+
+   THE CAUSE, and it was never in the component. index.css declares
+   "color-scheme: light dark" at :root, which tells the browser the app
+   handles both — so on a phone whose OS is in dark mode the browser
+   paints every UNSTYLED form control with its DARK user-agent
+   background, while the app's own dark ink is inherited on top. Dark on
+   dark. Until now MIDNIGHT was the only theme that painted inputs at
+   all; cream, white, slate, sapphire and rose painted none of them, so
+   all five broke the same way on the same phone.
+
+   MEASURED: 27 form controls across the app carry a border and no
+   background token — 8 in the properties module, 19 elsewhere. Patching
+   each className would fix today's 27 and leave the 28th broken.
+
+   SO THE THEME PAINTS THEM. Two layers:
+
+   1. "color-scheme" is stated per theme instead of "light dark", which
+      removes the guesswork at the source — the UA default now matches
+      the theme the app is actually showing. (Declaring ANY value still
+      opts out of Android's Force Dark, which is why index.css set it.)
+
+   2. The controls are painted explicitly from custom properties, so the
+      result does not depend on a UA default at all.
+
+   WHY CUSTOM PROPERTIES AND NOT "[data-theme="x"] input". That selector
+   scores (0,1,1) and would beat a plain "bg-white" utility (0,1,0) —
+   silently overriding every control that DOES choose its own colour. A
+   bare element selector scores (0,0,1), so any explicit Tailwind class
+   still wins, and the theme only swaps what the variable holds. The
+   default is the floor, never the ceiling.
+
+   Checkboxes, radios, ranges, colour swatches, file pickers and button
+   inputs are excluded: painting their background is what breaks their
+   native appearance (BooksAccounts.jsx:223 is a styled range). */
+:root{
+  --form-surface:#FAF8F4; --form-ink:#1A1815; --form-line:#E8E4DC; --form-hint:#6B665E;
+  color-scheme:light;
+}
+[data-theme="white"]{--form-surface:#FFFFFF;--form-ink:#1D1D1F;--form-line:#C6C6C8;--form-hint:#636366;color-scheme:light}
+[data-theme="slate"]{--form-surface:#FFFFFF;--form-ink:#1B1D1F;--form-line:#DDE3EC;--form-hint:#4A5260;color-scheme:light}
+[data-theme="sapphire"]{--form-surface:#FFFFFF;--form-ink:#1E3A8A;--form-line:#BFDBFE;--form-hint:#1D4ED8;color-scheme:light}
+[data-theme="rose"]{--form-surface:#FFFFFF;--form-ink:#831843;--form-line:#FBCFE8;--form-hint:#9D174D;color-scheme:light}
+[data-theme="midnight"]{--form-surface:#0A0A0A;--form-ink:#E5E5E5;--form-line:#2A2A2A;--form-hint:#7C7C7C;color-scheme:dark}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
+select,
+textarea{
+  background-color:var(--form-surface);
+  color:var(--form-ink);
+  border-color:var(--form-line);
+}
+input::placeholder,textarea::placeholder{color:var(--form-hint)}
 /* ===================================================================
    THEME: WHITE · "Snow" — iOS-feel light surface (no brand affiliation)
    Design DNA borrowed from iOS / macOS conventions:
@@ -190,7 +249,9 @@ export const THEME_CSS = `
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
 [data-theme="midnight"] input,[data-theme="midnight"] textarea,[data-theme="midnight"] select{color:#E5E5E5;background-color:#0A0A0A!important;border-color:#2A2A2A!important}
-[data-theme="midnight"] input::placeholder,[data-theme="midnight"] textarea::placeholder{color:#666666}
+/* #666666 measured 3.45:1 on the #0A0A0A field — below AA. #7C7C7C is 4.74:1
+   and still reads as a hint rather than as typed text (2026-08-28). */
+[data-theme="midnight"] input::placeholder,[data-theme="midnight"] textarea::placeholder{color:#7C7C7C}
 `;
 
 // The theme swatch registry (was inline in the monolith header). Key order is

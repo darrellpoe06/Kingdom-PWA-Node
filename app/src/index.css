@@ -15,7 +15,18 @@
    browser the app manages its own theming (midnight + cream, switched in JS)
    and to stop force-darkening. */
 :root {
-  color-scheme: light dark;
+  /* AMENDED 2026-08-28. This said `light dark`, which opted out of Force Dark
+     (the point above) but ALSO told the browser to pick a user-agent palette
+     from the OS setting — so on a dark-mode phone every form control with no
+     background of its own got the DARK UA background under the app's dark ink.
+     Darrell hit it on the rose theme: the Properties edit form rendered as
+     charcoal boxes with unreadable text.
+
+     Each theme now declares its own `color-scheme` (and paints form controls
+     explicitly) in lib/theme-css.js, which loads after this file. `light` here
+     is the floor for a shell that never injects the theme layer; it still
+     declares a value, so the Force Dark opt-out above is intact. */
+  color-scheme: light;
 }
 
 /* ===========================================================================
