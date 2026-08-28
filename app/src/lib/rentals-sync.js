@@ -40,6 +40,10 @@ export function toRemotePropertyType(t) {
   return PROPERTY_TYPES.has(t) ? t : 'single-family';
 }
 
+// What a door rents (0160). The database CHECK allows these three or NULL;
+// this set keeps anything else from being sent in the first place.
+const RENTABLE_LEVELS = new Set(['unit', 'room', 'bed']);
+
 const LOCAL_STATUSES = new Set([
   'paying', 'late', 'vacant', 'rehab', 'for-sale', 'sold',
   'owner-occupied', 'seasonal', 'unrented',
@@ -89,6 +93,18 @@ export const rentalsSync = createTableSync({
       mortgage_payment:     Number(item.mortgage?.monthlyPI) || 0,
       mortgage_escrow:      Number(item.mortgage?.escrow) || 0,
       notes:                item.notes ?? null,
+      // THE STRUCTURE SYNCS NOW (0160). `unit` has existed on this table the
+      // whole time and toRow never wrote it; `building` and the room/level were
+      // device-local with no columns at all. So a multi-unit building looked
+      // like unrelated doors on a second device, and Apt 4's two beds lost every
+      // trace of being beds that share a room. Measured 2026-08-28.
+      unit:                 item.unitLabel || null,
+      building_label:       item.building || null,
+      room_label:           item.roomLabel || null,
+      // NULL, never a guess. An unset level means nobody has said yet, and the
+      // app infers from the label; writing 'unit' here would turn that honest
+      // silence into a claim about twelve doors (DR-0076 §8).
+      rentable_level:       RENTABLE_LEVELS.has(item.rentableLevel) ? item.rentableLevel : null,
     };
   },
 
@@ -118,6 +134,10 @@ export const rentalsSync = createTableSync({
         estimated: false,
       },
       notes:          row.notes ?? '',
+      unitLabel:      row.unit ?? '',
+      building:       row.building_label ?? '',
+      roomLabel:      row.room_label ?? '',
+      rentableLevel:  RENTABLE_LEVELS.has(row.rentable_level) ? row.rentable_level : '',
       updatedAt:      row.updated_at,
       createdAt:      row.created_at,
     };
@@ -134,6 +154,12 @@ const SYNCED_FIELDS = [
   'estimatedValue', 'status', 'propertyType', 'rent', 'actual',
   'tenantName', 'entityId',
 ];
+
+// Structure fields (0160): they overlay from remote like the rest, EXCEPT that
+// a blank remote value never erases a local one — the twelve doors that predate
+// these columns hold their labels locally and must not be flattened by a row
+// that simply has not been written yet. Same discipline as FILL_FIELDS.
+const STRUCTURE_FIELDS = ['unitLabel', 'building', 'roomLabel', 'rentableLevel'];
 
 // Location fields fill in from remote but a blank remote value never
 // erases locally-typed detail.
@@ -177,6 +203,7 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       const next = { ...local, remoteUuid: remote.remoteUuid, updatedAt: remote.updatedAt };
       for (const f of SYNCED_FIELDS) next[f] = remote[f];
       for (const f of FILL_FIELDS) if (remote[f]) next[f] = remote[f];
+      for (const f of STRUCTURE_FIELDS) if (remote[f]) next[f] = remote[f];
       // The whole mortgage object syncs now (v2.13 added rate / P&I /
       // escrow columns); only the local 'estimated' flag is preserved.
       next.mortgage = local.mortgage
