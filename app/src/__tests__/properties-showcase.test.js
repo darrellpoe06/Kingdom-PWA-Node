@@ -168,6 +168,67 @@ describe('the landlord can actually reach the arrangement', () => {
     expect(s).toMatch(/moveDoor\(rentals, intent\?\.move, intent\?\.dir\)/);
     expect(s).toMatch(/onArrange=\{arrangeDoor\}/);
   });
+
+  it('reordering writes NO audit note — the order lives in showcase_order, not the notes', () => {
+    // The bug Darrell caught 2026-08-28: every nudge appended a dated
+    // "Edited — showcase order" line, stacking junk on the door's notes.
+    const s = appjs();
+    expect(s).not.toMatch(/summary: 'showcase order'/);
+    expect(s).toMatch(/for \(const p of patches\) await updateRental\(p\.id, p\.patch\);/);
+  });
+});
+
+// =============================================================================
+// updateRental never stacks the same edit twice — the note-pollution fix
+// =============================================================================
+import { updateRental } from '../modules/properties/cloud.js';
+
+// A minimal chainable stand-in for the supabase client: it hands back the
+// stored notes on select, and captures the body written on update.
+function fakeClient(currentNotes) {
+  const captured = {};
+  const client = {
+    from() { return client; },
+    select() { return client; },
+    eq() { return client; },
+    update(body) { captured.body = body; return client; },
+    single() {
+      // The select() path resolves to the current notes; the update() path
+      // resolves to the written row. We distinguish by whether a body was set.
+      return Promise.resolve(
+        captured.body
+          ? { data: { id: 'x', notes: captured.body.notes }, error: null }
+          : { data: { notes: currentNotes }, error: null },
+      );
+    },
+  };
+  return { client, captured };
+}
+
+describe('updateRental — the audit note does not stack', () => {
+  it('appends a summary line the first time', async () => {
+    const { client, captured } = fakeClient('Sourced from chat.');
+    await updateRental('x', { monthly_rent: 900 }, { summary: 'advertised' }, client);
+    expect(captured.body.notes).toContain('Sourced from chat.');
+    expect(captured.body.notes).toContain('Edited — advertised');
+  });
+
+  it('does NOT append again when the tail already carries the same-day, same-summary line', async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const already = `Sourced from chat.\n[${stamp}] Edited — showcase order`;
+    const { client, captured } = fakeClient(already);
+    await updateRental('x', { showcase_order: 5 }, { summary: 'showcase order' }, client);
+    // The notes are unchanged — one line, not two.
+    const occurrences = (captured.body.notes.match(/Edited — showcase order/g) || []).length;
+    expect(occurrences).toBe(1);
+    expect(captured.body.notes).toBe(already.trimEnd());
+  });
+
+  it('writes no note at all when no summary is given (a plain reorder patch)', async () => {
+    const { client, captured } = fakeClient('Sourced from chat.');
+    await updateRental('x', { showcase_order: 5 }, {}, client);
+    expect(captured.body).not.toHaveProperty('notes');
+  });
 });
 
 describe('the door editor carries the controls he asked for', () => {
