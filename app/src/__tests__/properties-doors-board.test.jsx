@@ -17,12 +17,21 @@
 // Every personal name below is invented; no tenant name belongs in a repo.
 // =============================================================================
 import React, { act } from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { DoorsBoard, statusWord, COMING_WINDOW_DAYS } from '../modules/properties/DoorTabs.jsx';
 import { tenancyRowForDoor, buildEdit } from '../modules/properties/staging.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// The board's default view became GRID on 2026-08-28 (Darrell: "I like the grid
+// look as the default"). The stored preference still wins, so these tests pin
+// the view they are actually about instead of inheriting whichever is default —
+// a test that silently depends on a default is a test that breaks when somebody
+// changes one for a good reason.
+beforeEach(() => {
+  try { localStorage.setItem('poe-properties-view', 'list'); } catch { /* ignore */ }
+});
 
 let mounted = [];
 afterEach(() => {

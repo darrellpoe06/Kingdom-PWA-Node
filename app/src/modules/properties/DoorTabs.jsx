@@ -416,8 +416,13 @@ export function DoorsBoard({
   // to photograph next), the LIST is for working them (status, rent, actions
   // legible in one column). Remembered per device — a preference, not state
   // anyone else should inherit, and a throw here must never blank the board.
+  // GRID IS THE DEFAULT (Darrell, 2026-08-28: "I like the grid look as the
+  // default"). A property list is a thing you look AT before it is a thing you
+  // work: the pictures are how you tell 1508 HH from 1513 HH at a glance. The
+  // stored preference still wins for anyone who chose list — changing the
+  // default must not overrule a choice somebody already made.
   const [view, setView] = useState(() => {
-    try { return localStorage.getItem('poe-properties-view') === 'grid' ? 'grid' : 'list'; } catch { return 'list'; }
+    try { return localStorage.getItem('poe-properties-view') === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
   });
   const pickView = (v) => {
     setView(v);

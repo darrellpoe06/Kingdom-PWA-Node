@@ -12,7 +12,7 @@
 // before it is saved.
 // =============================================================================
 import React, { act } from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import {
   applyUrl, applyUrlDisplay, readApplyTarget, resolveScan, cardCaption, APPLY_PARAM,
@@ -22,6 +22,14 @@ import {
 } from '../modules/properties/DoorTabs.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+// The board's QR / Advertise / Start-a-tenancy controls live in the LIST view.
+// The default became grid on 2026-08-28 (Darrell: "I like the grid look as the
+// default"), so pin the view this suite is actually exercising rather than
+// inheriting whichever is current.
+beforeEach(() => {
+  try { localStorage.setItem('poe-properties-view', 'list'); } catch { /* ignore */ }
+});
 
 let mounted = [];
 afterEach(() => {

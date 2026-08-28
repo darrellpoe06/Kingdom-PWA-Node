@@ -35,6 +35,7 @@ import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorT
 import { SystemsTab } from './SystemsTab.jsx';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
+import { VacancyCard } from './Storefront.jsx';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
@@ -47,6 +48,123 @@ import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
+
+/**
+ * The tabs whose content belongs to ONE property. Everything here reads the
+ * selected door, so every one of them owes the reader its name.
+ */
+const DOOR_SCOPED = new Set([
+  'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread',
+]);
+
+/**
+ * The property you are in, with its details and what each tab actually holds
+ * for it. Darrell, 2026-08-28: "I want to see the details of that property
+ * after the initial selection... the other tabs should populate information
+ * about the property I selected... make sense?"
+ *
+ * It made sense, and both halves were real. The tabs DID read the selected
+ * door — they simply never said which, and never showed that they had anything.
+ * So this is not decoration: the counts are read from the SAME doorData the
+ * tabs render, so a number here that disagrees with the tab beneath it is
+ * impossible. A door with three rooms and no pictures says exactly that, and
+ * tapping the count is how you get there.
+ *
+ * Deliberately in ONE place above every door-scoped tab rather than a heading
+ * inside each: in the same spot every time, it becomes something you stop
+ * having to look for.
+ */
+function DoorContext({ rental, tenancy, data = {}, onChange, onGo, tabs = [], activeTab, canPick = true }) {
+  const label = rental?.display_name || rental?.address || tenancy?.property_label || null;
+  const where = rental
+    ? [rental.address, rental.unit, rental.city, rental.state].filter(Boolean).join(', ')
+    : [tenancy?.property_label, tenancy?.unit_label].filter(Boolean).join(' \u00b7 ');
+
+  if (!label) {
+    return (
+      <div className="border-l-2 border-[#B8860B] bg-white px-3 py-2 mb-3">
+        <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+          <strong>No property selected.</strong> What is below is not empty \u2014 it is not pointed at
+          anything yet.
+          {canPick && ' Choose a door and this page fills in.'}
+        </p>
+        {canPick && (
+          <button
+            type="button"
+            onClick={onChange}
+            className="mt-1 text-[0.625rem] uppercase tracking-wider underline"
+            style={{ color: ACCENT }}
+          >Pick a property</button>
+        )}
+      </div>
+    );
+  }
+
+  const live = (data.rooms || []).filter((r) => !r.archived_at);
+  const shots = (data.photos || []).filter((p) => !p.archived_at);
+  const papers = (data.documents || []).filter((d) => !d.archived_at);
+  const kit = (data.systems || []).filter((x) => !x.archived_at);
+  const active = (data.tenancies || []).find((t) => t.status === 'active') || tenancy || null;
+
+  // Counted from the rows the tabs themselves render, never stored beside them.
+  const counts = [
+    { id: 'rooms', n: live.length, one: 'room', many: 'rooms' },
+    { id: 'gallery', n: shots.length, one: 'picture', many: 'pictures' },
+    { id: 'files', n: papers.length, one: 'file', many: 'files' },
+    { id: 'systems', n: kit.length, one: 'system', many: 'systems' },
+  ].filter((c) => tabs.some((t) => t.id === c.id && !t.locked));
+
+  const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
+  const facts = [
+    rental?.property_type ? String(rental.property_type).replace(/-/g, ' ') : null,
+    active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
+    rent > 0 ? `$${rent.toFixed(0)}/mo` : 'no rent on record',
+  ].filter(Boolean);
+
+  return (
+    <div className="border-l-2 bg-white px-3 py-2 mb-3" style={{ borderColor: ACCENT }}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="min-w-0">
+          <span className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#8A867E] block">You are in</span>
+          <span className="text-[0.9375rem] text-[#1A1815]">{label}</span>
+          {where && where !== label && (
+            <span className="text-[0.75rem] text-[#5A5751] block leading-snug">{where}</span>
+          )}
+        </span>
+        {canPick && (
+          <button
+            type="button"
+            onClick={onChange}
+            className="text-[0.625rem] uppercase tracking-wider underline shrink-0"
+            style={{ color: ACCENT }}
+          >Change property</button>
+        )}
+      </div>
+
+      <div className="text-[0.75rem] text-[#5A5751] mt-1">{facts.join(' \u00b7 ')}</div>
+
+      {counts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {counts.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onGo?.(c.id)}
+              className={`text-[0.6875rem] px-2 py-1 border ${
+                activeTab === c.id ? 'bg-[#2F5D50] text-white border-[#2F5D50]'
+                  : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'}`}
+            >
+              {/* Zero is said out loud. "no pictures" is a fact about this
+                  property; a hidden chip reads as a broken tab. */}
+              {c.n === 0 ? `no ${c.many}` : `${c.n} ${c.n === 1 ? c.one : c.many}`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const serif = { fontFamily: '"Fraunces", serif' };
 
 const Btn = ({ children, onClick, tone = 'ghost', disabled, ...rest }) => (
@@ -367,7 +485,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // availability) — the whole reason the app exists (d44484d fixed the role but
   // this render still dead-ended him before his own doors). Everyone else — a
   // prospective renter, a not-yet-invited visitor — sees the places to live.
-  if (!doors.length && !rentals.length) {
+  // ...AND SO DOES A MANAGER OR A WORKER WHOSE FIRST DOOR IS NOT ASSIGNED YET.
+  // Found by walking the app as each account type (2026-08-28): someone holding
+  // real capability grants — request.manage, docs.add — with no tenancy row yet
+  // fell through to the prospective-renter card and was told "sign in and your
+  // place will be here". They ARE signed in, and they are not looking for a
+  // place; they are staff waiting on an assignment. Being handed a renter's
+  // greeting is the same dead-end the landlord hit on d44484d, one role over:
+  // the render asked what rows they HAVE instead of what they may DO.
+  if (!doors.length && !rentals.length && !grants.length) {
     return <PlacesToLive vacancies={vacancies} claim={claim} />;
   }
 
@@ -400,6 +526,34 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           </Btn>
         ))}
       </div>
+
+      {/* WHICH PROPERTY AM I IN? (Darrell, 2026-08-28: "I can't see which
+          property I'm in after selecting a door... it doesn't tie into the
+          other tabs or maybe it does.")
+
+          It DID tie in — Rooms, Pictures, Files, Systems and Door history have
+          been reading the selected door all along. Nothing on screen ever said
+          so, which is the same failure either way: a surface that is right and
+          cannot be trusted is not usable. Worse, with nothing named, a landlord
+          with eleven doors cannot tell whether he is filing a photograph to
+          1003 Koehn or to 805 Prospect — and a wrongly-filed condition photo is
+          exactly the evidence a deposit argument turns on.
+
+          So every door-scoped tab now carries the door's name, and says plainly
+          when none is chosen instead of rendering an empty surface that looks
+          like a property with no rooms. */}
+      {DOOR_SCOPED.has(activeTab) && (
+        <DoorContext
+          rental={activeRental}
+          tenancy={activeDoor}
+          data={doorData}
+          onChange={() => setTab('doors')}
+          onGo={(id) => setTab(id)}
+          tabs={face.tabs}
+          activeTab={activeTab}
+          canPick={face.tabs.some((t) => t.id === 'doors')}
+        />
+      )}
 
       {(() => {
         const current = face.tabs.find((t) => t.id === activeTab);
@@ -549,44 +703,66 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 // Address, unit, rent, and availability only; the public RPC is column-safe (no
 // tenant name, no mortgage), so it is safe for a prospective renter and a
 // non-user alike, and the street address is handed over by a person, not here.
-function PlacesToLive({ vacancies = [], claim }) {
+function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
+  // ==========================================================================
+  // THE STOREFRONT. Darrell, 2026-08-28: "It should have the Apartments shown
+  // in the Properties Tab... like the MooreDivahs App has except this is places
+  // to live... without an account!!!!!!!!!"
+  //
+  // So: a browsable catalogue with PICTURES, the way a shop shows its goods —
+  // not the text list this was. Someone looking for a place should be able to
+  // look at the place.
+  //
+  // WITHOUT AN ACCOUNT IS THE WHOLE POINT and nothing here weakens it. Every
+  // row comes from public_vacancies(), which anon may execute and which returns
+  // no street address, no tenant, no mortgage. The photographs come from
+  // public_vacancy_photos() (0154), which returns ONLY kind='listing' and only
+  // for a door that is advertised and free — a move-out condition set of
+  // somebody's home cannot come through it whatever it is asked for. Applying
+  // still needs no account either (0152). The account is for taking the place,
+  // never for looking at it.
+  // ==========================================================================
   const notEnabled = claim && claim.ok === false && claim.reason === 'not-enabled-yet';
   const rows = (Array.isArray(vacancies) ? vacancies : [])
     .map((v) => {
       const address = String(v.address || v.label || v.property_label || v.name || '').trim();
       if (!address) return null;
-      const cityState = [v.city, v.state].map((s) => String(s || '').trim()).filter(Boolean).join(', ');
+      const cityState = [v.city, v.state].map((x) => String(x || '').trim()).filter(Boolean).join(', ');
       const rent = Number(v.monthly_rent ?? v.rent ?? v.listed_rent);
+      const beds = Number(v.bedrooms);
+      const baths = Number(v.bathrooms);
+      const nightly = Number(v.nightly_rate);
       return {
         id: String(v.id || v.rental_id || address),
-        label: [address, cityState].filter(Boolean).join(' · '),
+        rentalId: v.id || null,
+        label: address,
+        where: cityState,
         unit: String(v.unit || v.unit_label || '').trim(),
         rent: Number.isFinite(rent) && rent > 0 ? rent : null,
+        beds: Number.isFinite(beds) && beds > 0 ? beds : null,
+        baths: Number.isFinite(baths) && baths > 0 ? baths : null,
+        offering: String(v.offering || 'long-term'),
+        nightly: Number.isFinite(nightly) && nightly > 0 ? nightly : null,
         note: String(v.listed_note || v.note || v.blurb || '').trim(),
       };
     })
     .filter(Boolean);
+
   return (
     <div className="p-1">
       <Card title="Poe Properties — Places to Live">
         {rows.length > 0 ? (
           <>
-            <p className="text-sm text-[#1A1815] mb-2" style={serif}>
-              {rows.length} {rows.length === 1 ? 'place' : 'places'} available.
+            <p className="text-sm text-[#1A1815] mb-1" style={serif}>
+              {rows.length} {rows.length === 1 ? 'place' : 'places'} available. No account needed to look.
             </p>
-            <ul className="divide-y divide-[#F0EDE6]">
-              {rows.map((r) => (
-                <li key={r.id} className="py-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="text-sm text-[#1A1815]" style={serif}>{r.label}{r.unit ? ` · ${r.unit}` : ''}</div>
-                    <span className="text-[0.625rem] uppercase tracking-wider whitespace-nowrap" style={{ color: ACCENT }}>Available</span>
-                  </div>
-                  <div className="text-[0.625rem] text-[#8A867E]" style={serif}>{r.rent != null ? `$${r.rent.toFixed(0)}/mo` : 'Rent on request'}</div>
-                  {r.note && <p className="text-xs text-[#5A5751] mt-1" style={serif}>{r.note}</p>}
-                </li>
-              ))}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+              {rows.map((r) => <VacancyCard key={r.id} unit={r} />)}
             </ul>
-            <p className="text-[0.625rem] text-[#8A867E] mt-2" style={serif}>The exact address is given by a person, not published here.</p>
+            <p className="text-[0.625rem] text-[#8A867E] mt-3" style={serif}>
+              The exact address is given by a person, not published here.
+            </p>
+            <SignInInvite onSignIn={onSignIn} />
           </>
         ) : (
           <>
@@ -596,12 +772,45 @@ function PlacesToLive({ vacancies = [], claim }) {
                 ? 'Listings turn on once this database is switched on. Nothing is missing on your end.'
                 : 'Openings are posted here as they come available. If a landlord invited you by your email or cell number, sign in and your place will be here.'}
             </Empty>
+            <SignInInvite onSignIn={onSignIn} />
           </>
         )}
       </Card>
     </div>
   );
 }
+
+/**
+ * "login to create an account... so a login button so they know they can... no
+ * need just to look through the possibilities" (Darrell, 2026-08-28).
+ *
+ * Two things at once, and the order matters. Looking is free and stays free —
+ * nothing above this line asked anybody who they were. But a person who has
+ * decided they want one of these places should not have to guess whether an
+ * account is even possible; an invisible option is the same as no option. So
+ * the way in is on the page, plainly, and plainly OPTIONAL.
+ *
+ * Renders nothing at all when there is no sign-in handler (inside PoeTech the
+ * reader is already signed in, and a login button there is just noise).
+ */
+function SignInInvite({ onSignIn }) {
+  if (!onSignIn) return null;
+  return (
+    <div className="mt-3 border-t border-[#F0EDE6] pt-3">
+      <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={serif}>
+        <strong>Looking is free — no account needed.</strong> You only need one to apply for a lease
+        or a short stay, or to see your own place if you already live in one of ours.
+      </p>
+      <button
+        type="button"
+        onClick={onSignIn}
+        className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white"
+        style={{ borderColor: ACCENT, color: ACCENT }}
+      >Sign in or create an account</button>
+    </div>
+  );
+}
+
 
 function DoorCard({ door }) {
   if (!door) return null;

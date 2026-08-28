@@ -604,3 +604,24 @@ export async function addSystemEvent(row, client = supabase) {
     return ok({ event: data });
   } catch (e) { return no('unexpected', e); }
 }
+
+/**
+ * The LISTING photographs for one advertised unit — the only photos a stranger
+ * may ever see. public_vacancy_photos (0154) is SECURITY DEFINER and refuses on
+ * its own for a door that is unadvertised or occupied, and it returns only
+ * kind='listing': a move-out condition set of somebody's home can never leak
+ * through it, whatever this function is asked for. anon holds EXECUTE, so this
+ * needs no account — which is the point (Darrell: "without an account!!!").
+ */
+export async function loadVacancyPhotos(rentalId, client = supabase) {
+  if (!rentalId) return ok({ photos: [] });
+  try {
+    const { data, error } = await client.rpc('public_vacancy_photos', { p_rental: rentalId });
+    if (error) {
+      const msg = error.message || String(error);
+      const reason = /function .*public_vacancy_photos.* does not exist/i.test(msg) ? 'not-enabled-yet' : 'rpc-error';
+      return no(reason, error);
+    }
+    return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
