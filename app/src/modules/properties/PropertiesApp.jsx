@@ -44,6 +44,7 @@ import {
   loadPublicVacancies,
   loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent, loadDoorNotes,
 } from './cloud.js';
+import { announceRentalChange } from '../../lib/rental-write.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
@@ -487,6 +488,17 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const editRental = async (id, patch, summary) => {
     const res = await updateRental(id, patch, { summary });
     say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
+    // TELL THE OTHER TAB (2026-08-28). Darrell: "I edited the addresses in
+    // property and they did not update Real Estate.... fix it! perpetually."
+    // This tab writes the Postgres row; the Real Estate tab reads its own
+    // device list and had no way to hear that anything happened, so the same
+    // door showed two different addresses depending on which tab you opened.
+    // Announced only on a REAL success — telling the other tab about a write
+    // that did not land is how the two stores would drift the other way.
+    if (res.ok) {
+      const door = rentals.find((r) => r.id === id);
+      announceRentalChange({ slug: door?.slug || null, uuid: id, patch });
+    }
     boot();
   };
 
