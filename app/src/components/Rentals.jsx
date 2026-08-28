@@ -17,6 +17,7 @@ import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfoli
 import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
+import CarryUpRecords from './CarryUpRecords.jsx';
 import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
 import RentLedger, { PaidBar } from './RentLedger.jsx';
@@ -2036,6 +2037,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           );
                         })}
                       </div>
+                      {/* Above the tabs' content, not inside one of them: what
+                          is stranded on this device is true of the WHOLE record,
+                          not of Notes or Work in particular, and a landlord who
+                          only ever opens Notes would never find it filed under
+                          Property. Renders nothing when there is nothing to
+                          carry, which is the normal case once a door is up. */}
+                      <CarryUpRecords rental={r} />
                       {recTab === 'photos' && (<>
                       <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
                       </>)}

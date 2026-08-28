@@ -239,7 +239,12 @@ export function buildSystemEvent({
 } = {}) {
   const clean = norm(summary);
   if (!clean) throw new Error('Say what happened — an event with no summary is a date nobody can read later.');
-  if (!instanceId || !systemRef || !rentalRef) throw new Error('An event belongs to a system on a property.');
+  // A system is OPTIONAL, a door is not (0159 relaxed system_ref to nullable).
+  // The Real Estate maintenance log's own categories include general, lawn and
+  // pest — work on the property that belongs to no machine. Demanding a system
+  // here would force the rescue to drop those entries or invent equipment that
+  // never existed, and both are lies about the record.
+  if (!instanceId || !rentalRef) throw new Error('An event belongs to a property.');
   const when = dateOrNull(eventDate);
   if (!when) throw new Error('An event needs the date it happened, as YYYY-MM-DD.');
   const k = String(kind || 'note');
@@ -248,7 +253,7 @@ export function buildSystemEvent({
   if (money !== null && money < 0) throw new Error('A cost cannot be negative.');
   return {
     instance_id: instanceId,
-    system_ref: systemRef,
+    system_ref: systemRef || null,
     rental_ref: rentalRef,
     request_id: requestId || null,
     kind: k,
