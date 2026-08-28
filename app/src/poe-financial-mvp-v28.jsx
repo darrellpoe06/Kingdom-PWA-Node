@@ -90,7 +90,9 @@ import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './li
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
-import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
+import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
+import { useRentalBridge } from './lib/use-rental-bridge.js';
+import { localPatchToCloud } from './lib/rental-write.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
 import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
@@ -3080,28 +3082,7 @@ export default function PoeFinancialSystem() {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
-        const patch = {};
-        if (updates.name !== undefined)           patch.display_name = updates.name;
-        if (updates.address !== undefined)        patch.address = updates.address;
-        if (updates.city !== undefined)           patch.city = updates.city || null;
-        if (updates.state !== undefined)          patch.state = updates.state || null;
-        if (updates.zip !== undefined)            patch.zip = updates.zip || null;
-        if (updates.tenantName !== undefined)     patch.tenant_name = updates.tenantName || null;
-        if (updates.entityId !== undefined)       patch.entity_slug = updates.entityId || null;
-        if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
-        if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
-        if (updates.rent !== undefined)           patch.monthly_rent = parseFloat(updates.rent) || 0;
-        if (updates.actual !== undefined)         patch.rent_actual = parseFloat(updates.actual) || 0;
-        if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
-        if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
-        if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
-        if (updates.mortgage !== undefined) {
-          patch.mortgage_balance = parseFloat(updates.mortgage?.balance) || 0;
-          patch.mortgage_rate    = parseFloat(updates.mortgage?.rate) || 0;
-          patch.mortgage_payment = parseFloat(updates.mortgage?.monthlyPI) || 0;
-          patch.mortgage_escrow  = parseFloat(updates.mortgage?.escrow) || 0;
-        }
-        if (updates.notes !== undefined)          patch.notes = updates.notes;
+        const patch = localPatchToCloud(updates);
         // Device-local edits (rooms, equipment, logs, lease/tenant/market
         // sub-objects) produce an empty patch — skip the network round-trip.
         if (Object.keys(patch).length) {
@@ -3110,6 +3091,12 @@ export default function PoeFinancialSystem() {
       }
     }
   };
+  // The Properties tab writes the Postgres row; this list is the device's own
+  // copy. useRentalBridge carries an edit from there to here so one door does
+  // not show two addresses (2026-08-28). Module, not inline: DR-0078 routes
+  // interdependence through core, and this file is budget-frozen.
+  useRentalBridge(setData);
+
   const deleteRental = (id) => {
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
