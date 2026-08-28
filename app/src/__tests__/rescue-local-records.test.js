@@ -297,6 +297,61 @@ describe('planRescue tells the truth about what it cannot carry', () => {
   });
 });
 
+describe('a record already carried up stops counting as device-only', () => {
+  // THE DEFECT: the first version of this counted from localStorage alone, so
+  // after a successful carry the strip went right on saying "1 room on this
+  // device only". The upload deduped correctly server-side, so pressing again
+  // was harmless — but a surface that reports work as undone after doing it is
+  // lying to the person reading it.
+  const rental = door({
+    conversationLog: [{ id: 'cv-1', date: '2026-07-06', summary: 'Called about the heat' }],
+    rooms: [{ id: 'rm-1', name: 'Kitchen' }, { id: 'rm-2', name: 'Bathroom' }],
+    equipment: [{ id: 'eq-1', category: 'Furnace' }],
+    maintenanceLog: [{ id: 'mt-1', date: '2026-05-02', description: 'Fixed sink' }],
+  });
+
+  it('drops every part that the server already holds under its device id', () => {
+    const plan = planRescue(rental, {
+      instanceId: INSTANCE,
+      rentalUuid: UUID,
+      carried: {
+        notes: new Set(['cv-1']),
+        rooms: new Set(['rm-1', 'rm-2']),
+        systems: new Set(['eq-1']),
+        events: new Set(['mt-1']),
+      },
+    });
+    expect(plan.total).toBe(0);
+    expect(describePlan(plan)).toBe('Everything in this record is already on the server.');
+  });
+
+  it('still offers the half that has not been carried', () => {
+    const plan = planRescue(rental, {
+      instanceId: INSTANCE,
+      rentalUuid: UUID,
+      carried: { rooms: new Set(['rm-1']) },
+    });
+    expect(plan.rooms).toHaveLength(1);
+    expect(plan.rooms[0].name).toBe('Bathroom');
+    expect(plan.systems).toHaveLength(1);
+  });
+
+  it('accepts a plain array as readily as a Set, and an absent part as none', () => {
+    const plan = planRescue(rental, {
+      instanceId: INSTANCE, rentalUuid: UUID, carried: { rooms: ['rm-1', 'rm-2'] },
+    });
+    expect(plan.rooms).toHaveLength(0);
+    expect(plan.events).toHaveLength(1);
+  });
+
+  it('over-offers rather than under-offers when the check came back empty', () => {
+    // A failed read yields empty sets. Showing a carried record as still local
+    // is a harmless second press; hiding a genuinely stranded one is the harm.
+    const plan = planRescue(rental, { instanceId: INSTANCE, rentalUuid: UUID, carried: {} });
+    expect(plan.total).toBe(5);
+  });
+});
+
 describe('the sentence on the button says what will happen', () => {
   it('counts each kind of record in plain words', () => {
     const rental = door({

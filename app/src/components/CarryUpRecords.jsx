@@ -20,14 +20,15 @@
 // nothing local is rewritten. This copies UP. If the upload fails halfway, the
 // phone still holds everything it held a second earlier.
 // =============================================================================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { planRescue, describePlan } from '../lib/rescue-local-records.js';
-import { carryUpRecords, describeResult } from '../lib/rescue-upload.js';
+import { carryUpRecords, describeResult, loadCarriedLegacyIds } from '../lib/rescue-upload.js';
 import { loadPropertyNotes, getSessionUser } from '../lib/relationships-sync.js';
 
 export default function CarryUpRecords({ rental }) {
   const [signedIn, setSignedIn] = useState(false);
   const [cloudNotes, setCloudNotes] = useState([]);
+  const [carried, setCarried] = useState({});
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -42,24 +43,45 @@ export default function CarryUpRecords({ rental }) {
   // which over-offers rather than under-offers — the legacy_id check in
   // rescue-upload is the real guard against a duplicate, and it runs server-side
   // against what is actually filed.
+  const slug = rental?.id || null;
+  const uuid = rental?.remoteUuid || null;
+
+  const readServer = useCallback(async () => {
+    if (!signedIn || !slug) return { notes: [], carried: {} };
+    const [notes, ids] = await Promise.all([
+      loadPropertyNotes(slug),
+      loadCarriedLegacyIds(slug, uuid),
+    ]);
+    return { notes: notes && notes.ok ? (notes.data || []) : [], carried: ids || {} };
+  }, [signedIn, slug, uuid]);
+
   useEffect(() => {
     let cancelled = false;
-    if (!signedIn || !rental?.id) { setCloudNotes([]); return; }
-    loadPropertyNotes(rental.id).then((res) => {
-      if (!cancelled && res && res.ok) setCloudNotes(res.data || []);
+    if (!signedIn || !slug) { setCloudNotes([]); setCarried({}); return; }
+    readServer().then((r) => {
+      if (cancelled) return;
+      setCloudNotes(r.notes);
+      setCarried(r.carried);
     });
     return () => { cancelled = true; };
-  }, [signedIn, rental?.id]);
+  }, [signedIn, slug, readServer]);
 
   const plan = useMemo(() => planRescue(rental, {
     instanceId: 'pending',              // the real one is resolved at upload time
-    rentalUuid: rental?.remoteUuid || null,
+    rentalUuid: uuid,
     existingNotes: cloudNotes,
-  }), [rental, cloudNotes]);
+    carried,                            // so a carried record stops counting as local
+  }), [rental, uuid, cloudNotes, carried]);
 
   // Nothing on this device only → nothing to say. The quiet case is the common
   // one and it should cost the landlord no screen space.
-  if (!plan.ok || (!plan.total && !plan.deferred.length)) return null;
+  //
+  // UNLESS HE JUST PRESSED IT. A test caught this: after a successful carry the
+  // plan is empty, so the strip disappeared — taking the confirmation with it.
+  // He presses a button, the whole panel vanishes, and nothing tells him
+  // whether his records went anywhere. The result outlives the plan that
+  // produced it; the strip closes itself the next time the record is opened.
+  if (!result && (!plan.ok || (!plan.total && !plan.deferred.length))) return null;
 
   const run = async () => {
     setBusy(true);
@@ -69,11 +91,12 @@ export default function CarryUpRecords({ rental }) {
         existingNotes: cloudNotes,
       });
       setResult(res);
-      // Re-read so a second press sees what the first one filed.
-      if (signedIn && rental?.id) {
-        const fresh = await loadPropertyNotes(rental.id);
-        if (fresh && fresh.ok) setCloudNotes(fresh.data || []);
-      }
+      // Re-read so the strip reflects what just landed — otherwise it goes on
+      // reporting carried records as device-only, which is the defect this
+      // whole re-read exists to prevent.
+      const fresh = await readServer();
+      setCloudNotes(fresh.notes);
+      setCarried(fresh.carried);
     } catch (e) {
       setResult({ ok: false, reason: 'unexpected', carried: 0, error: e });
     } finally { setBusy(false); }

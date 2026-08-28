@@ -11,16 +11,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 
-const { loadPropertyNotes, getSessionUser, carryUpRecords } = vi.hoisted(() => ({
+const { loadPropertyNotes, getSessionUser, carryUpRecords, loadCarriedLegacyIds } = vi.hoisted(() => ({
   loadPropertyNotes: vi.fn(),
   getSessionUser: vi.fn(),
   carryUpRecords: vi.fn(),
+  loadCarriedLegacyIds: vi.fn(),
 }));
 
 vi.mock('../lib/relationships-sync.js', () => ({ loadPropertyNotes, getSessionUser }));
 vi.mock('../lib/rescue-upload.js', async () => {
   const real = await vi.importActual('../lib/rescue-upload.js');
-  return { ...real, carryUpRecords };
+  return { ...real, carryUpRecords, loadCarriedLegacyIds };
 });
 
 import CarryUpRecords from '../components/CarryUpRecords.jsx';
@@ -40,6 +41,7 @@ const button = () => Array.from(host.querySelectorAll('button'))
 beforeEach(() => {
   vi.clearAllMocks();
   loadPropertyNotes.mockResolvedValue({ ok: true, data: [] });
+  loadCarriedLegacyIds.mockResolvedValue({});
   getSessionUser.mockResolvedValue({ id: 'user-1' });
   carryUpRecords.mockResolvedValue({
     ok: true, reason: 'carried', carried: 3, written: {}, failed: [],
@@ -121,6 +123,34 @@ describe('the strip names the count before anything is pressed', () => {
     await render(stranded);
     expect(text()).not.toContain('1 note');
     expect(text()).toContain('1 room');
+  });
+});
+
+describe('the strip stops claiming a carried record is still local', () => {
+  const stranded = {
+    id: 'r-1508williamsburg', name: '1508 Williamsburg', remoteUuid: UUID,
+    rooms: [{ id: 'rm-1', name: 'Kitchen' }],
+    maintenanceLog: [{ id: 'mt-1', date: '2026-05-02', description: 'Mowed' }],
+  };
+
+  it('disappears entirely once the server holds everything under its device id', async () => {
+    loadCarriedLegacyIds.mockResolvedValue({
+      rooms: new Set(['rm-1']), events: new Set(['mt-1']),
+    });
+    await render(stranded);
+    expect(text()).toBe('');
+  });
+
+  it('re-reads after the press, so the count reflects what just landed', async () => {
+    let call = 0;
+    loadCarriedLegacyIds.mockImplementation(async () => (
+      ++call > 1 ? { rooms: new Set(['rm-1']), events: new Set(['mt-1']) } : {}
+    ));
+    await render(stranded);
+    expect(text()).toContain('1 room');
+    await act(async () => { button().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(text()).not.toContain('1 room');
+    expect(text()).toContain('Carried 3 records');
   });
 });
 

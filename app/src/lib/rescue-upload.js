@@ -52,6 +52,35 @@ async function existingLegacyIds(table, rentalRef, client) {
 }
 
 /**
+ * What this door has ALREADY had carried up, keyed by the device id it came
+ * from — one set per part of a plan.
+ *
+ * THE DEFECT THIS CLOSES, in code I shipped an hour earlier: the strip counted
+ * what was device-local from the localStorage object alone, so after a
+ * successful carry it went right on saying "1 room on this device only". The
+ * upload deduped correctly server-side, so pressing again was harmless — but a
+ * surface that reports work as undone after doing it is lying to the person
+ * reading it, and he would press it again looking for the number to move.
+ *
+ * A failed read yields an EMPTY set for that part, which over-offers rather
+ * than under-offers: the strip may show a record as still local when it is not,
+ * and the upload's own legacy_id check still refuses to duplicate it. The other
+ * way round would hide a genuinely stranded record, which is the harm.
+ */
+export async function loadCarriedLegacyIds(rentalSlug, rentalUuid, client = supabase) {
+  const out = { notes: new Set(), rooms: new Set(), systems: new Set(), events: new Set() };
+  await Promise.all(TARGETS.map(async ({ part, table, keyed }) => {
+    const ref = keyed === 'slug' ? rentalSlug : rentalUuid;
+    if (!ref) return;
+    try {
+      const seen = await existingLegacyIds(table, ref, client);
+      if (seen.ok) out[part] = seen.ids;
+    } catch { /* an unreadable table means "offer it"; the upload still dedupes */ }
+  }));
+  return out;
+}
+
+/**
  * Carry one door's device-local records up to the server.
  *
  * Returns per-table counts and, when something failed, WHICH table and why —

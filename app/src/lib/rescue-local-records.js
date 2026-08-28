@@ -271,7 +271,7 @@ export function maintenanceToEvent(entry = {}, { instanceId, rentalUuid, authorL
 // Nothing is sent until a caller takes this and does the I/O.
 // -----------------------------------------------------------------------------
 export function planRescue(rental, {
-  instanceId, rentalUuid, existingNotes = [], authorLabel = '',
+  instanceId, rentalUuid, existingNotes = [], authorLabel = '', carried = {},
 } = {}) {
   if (!rental || typeof rental !== 'object') {
     return { ok: false, reason: 'no-rental', notes: [], rooms: [], systems: [], events: [], skipped: [], deferred: [], total: 0 };
@@ -281,6 +281,21 @@ export function planRescue(rental, {
   if (!rentalSlug) {
     return { ok: false, reason: 'no-slug', notes: [], rooms: [], systems: [], events: [], skipped: [], deferred: [], total: 0 };
   }
+
+  // What the server already holds, by the device id it was carried under.
+  // WHY THIS EXISTS: without it the strip keeps saying "1 room on this device
+  // only" forever after a successful carry — the upload dedupes server-side, so
+  // pressing again is harmless, but a surface that reports work as undone after
+  // doing it is lying to the person reading it, and he would press it again and
+  // again looking for the number to change.
+  const already = (part) => {
+    const v = carried && carried[part];
+    return v instanceof Set ? v : new Set(Array.isArray(v) ? v : []);
+  };
+  const notCarried = (part) => {
+    const set = already(part);
+    return (r) => !(r.legacy_id && set.has(r.legacy_id));
+  };
 
   const skipped = [];
   const deferred = [];
@@ -293,11 +308,13 @@ export function planRescue(rental, {
   // --- notes: conversations, plus any unit note that never reached the cloud
   const seen = new Set((existingNotes || []).map(noteFingerprint));
   const noteRows = [];
+  const notesCarried = already('notes');
   for (const row of keep(
     (Array.isArray(rental.conversationLog) ? rental.conversationLog : [])
       .map((e) => conversationToNote(e, { rentalSlug, unitLabel })),
     'conversation',
   )) {
+    if (row.legacy_id && notesCarried.has(row.legacy_id)) continue;
     if (seen.has(noteFingerprint(row))) continue;
     seen.add(noteFingerprint(row));
     noteRows.push(row);
@@ -307,6 +324,7 @@ export function planRescue(rental, {
       .map((e) => unitNoteToRow(e, { rentalSlug, unitLabel })),
     'note',
   )) {
+    if (row.legacy_id && notesCarried.has(row.legacy_id)) continue;
     if (seen.has(noteFingerprint(row))) continue;  // already on the server
     seen.add(noteFingerprint(row));
     noteRows.push(row);
@@ -323,17 +341,17 @@ export function planRescue(rental, {
     roomRows = keep(
       rooms.map((e, i) => roomToRow(e, { instanceId, rentalUuid, sortOrder: (i + 1) * 10 })),
       'room',
-    );
+    ).filter(notCarried('rooms'));
     systemRows = keep(
       (Array.isArray(rental.equipment) ? rental.equipment : [])
         .map((e) => equipmentToRow(e, { instanceId, rentalUuid })),
       'equipment',
-    );
+    ).filter(notCarried('systems'));
     eventRows = keep(
       (Array.isArray(rental.maintenanceLog) ? rental.maintenanceLog : [])
         .map((e) => maintenanceToEvent(e, { instanceId, rentalUuid, authorLabel })),
       'maintenance entry',
-    );
+    ).filter(notCarried('events'));
 
     // Photographs are the one thing this cannot carry. property_photos wants a
     // storage_path; these are data URLs sitting in localStorage. That is a file
