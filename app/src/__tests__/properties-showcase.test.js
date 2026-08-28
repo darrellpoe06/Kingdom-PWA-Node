@@ -169,6 +169,16 @@ describe('the landlord can actually reach the arrangement', () => {
     expect(s).toMatch(/onArrange=\{arrangeDoor\}/);
   });
 
+  it('loads showcase_order with the doors — or "Show first" writes to a column the board never sees', () => {
+    // The bug Darrell hit 2026-08-28: First did nothing because loadMyRentals
+    // selected an explicit column list WITHOUT showcase_order, so every door
+    // read as unplaced and the reload never carried the new position back.
+    const cloud = _rf(_join(process.cwd(), 'src/modules/properties/cloud.js'), 'utf8');
+    const sel = cloud.slice(cloud.indexOf('export async function loadMyRentals'));
+    const firstSelect = sel.slice(sel.indexOf('.select('), sel.indexOf('.order('));
+    expect(firstSelect).toMatch(/showcase_order/);
+  });
+
   it('reordering writes NO audit note — the order lives in showcase_order, not the notes', () => {
     // The bug Darrell caught 2026-08-28: every nudge appended a dated
     // "Edited — showcase order" line, stacking junk on the door's notes.
