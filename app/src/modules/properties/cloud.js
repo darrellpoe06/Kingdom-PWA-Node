@@ -50,7 +50,12 @@ export async function submitApplication({ instanceId, rentalId, name, email, pho
   delete payload['applicant.driversLicense'];
   try {
     const uid = await userId(client);
-    const { error } = await client.from('rental_applications').insert({
+    // The id comes BACK (0158). The applicant has no account, so there is no
+    // identity to check later — but the row they just created is proof they are
+    // the person who asked, and it is what unlocks the street address they were
+    // not shown while browsing. Returned to them by their own insert and to
+    // nobody else: 0152 grants no SELECT on this table.
+    const { data, error } = await client.from('rental_applications').insert({
       instance_id: instanceId || null,
       rental_id: rentalId || null,
       applicant_name: String(name || '').trim(),
@@ -58,8 +63,8 @@ export async function submitApplication({ instanceId, rentalId, name, email, pho
       applicant_phone: String(phone || '').trim() || null,
       answers: payload,
       submitted_by: uid,
-    });
-    return error ? no('write-failed', error) : ok();
+    }).select('id').single();
+    return error ? no('write-failed', error) : ok({ applicationId: data?.id || null });
   } catch (e) { return no('unexpected', e); }
 }
 
@@ -623,5 +628,30 @@ export async function loadVacancyPhotos(rentalId, client = supabase) {
       return no(reason, error);
     }
     return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * The street address of the place someone just applied for (0158).
+ *
+ * Darrell, 2026-08-28: "we may or may not want the addresses to show on the
+ * Properties tab until they submit a request for an application to rent then
+ * show." This is the "then show".
+ *
+ * Keyed by the application id, which the applicant receives from their own
+ * insert and which nobody can read back out of the table. A wrong or stale id
+ * returns nothing rather than an error, so guessing reveals nothing.
+ */
+export async function loadVacancyAddress(applicationId, client = supabase) {
+  if (!applicationId) return ok({ address: null });
+  try {
+    const { data, error } = await client.rpc('vacancy_address_for_applicant', { p_application: applicationId });
+    if (error) {
+      const msg = error.message || String(error);
+      const reason = /function .*vacancy_address_for_applicant.* does not exist/i.test(msg) ? 'not-enabled-yet' : 'rpc-error';
+      return no(reason, error);
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    return ok({ address: row || null });
   } catch (e) { return no('unexpected', e); }
 }

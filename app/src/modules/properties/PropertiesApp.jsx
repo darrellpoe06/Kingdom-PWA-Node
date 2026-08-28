@@ -744,6 +744,10 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
         offering: String(v.offering || 'long-term'),
         nightly: Number.isFinite(nightly) && nightly > 0 ? nightly : null,
         note: String(v.listed_note || v.note || v.blurb || '').trim(),
+        // Undefined (an older RPC) reads as SHOWN, because that is what the old
+        // behaviour actually was — claiming a door is protected when the
+        // database has not been migrated yet would be the same lie in reverse.
+        addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
       };
     })
     .filter(Boolean);
@@ -759,8 +763,11 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
               {rows.map((r) => <VacancyCard key={r.id} unit={r} />)}
             </ul>
+            {/* The blanket claim is gone. It was false on every door (display_name
+                IS the street), and it is now a per-card fact the database
+                enforces, printed on the cards that actually hold it back. */}
             <p className="text-[0.625rem] text-[#8A867E] mt-3" style={serif}>
-              The exact address is given by a person, not published here.
+              Each card says whether its address is shown or shared when you apply.
             </p>
             <SignInInvite onSignIn={onSignIn} />
           </>
