@@ -137,3 +137,47 @@ describe('the two nets do not depend on the same failure mode', () => {
     // already asked twice.
   });
 });
+
+// =============================================================================
+// The cron is a REQUEST, not a promise — and the file has to say so
+// =============================================================================
+// MEASURED 2026-08-28, from deploy-freshness.yml's own run history: it has
+// carried an identical `*/5` cron since 2026-07-06 and fired 1,171 scheduled
+// times in 53 days. That is 22/day — one every ~65 minutes — against the 288/day
+// a literal */5 would produce: GitHub delivers 7.7% of the schedule. Observed
+// gaps between consecutive fires: 8.6h and 11.3h.
+//
+// migrate-freshness shipped hours earlier describing itself as running "every
+// 5 minutes". That was my claim, not the system's behaviour, on a file whose
+// entire job is to bound how long a migration can sit unapplied — so the
+// documented worst case was off by two orders of magnitude. DR-0076 §4:
+// measure, don't claim. These pin the corrected wording so the comfortable
+// version cannot come back on the next edit.
+describe('the freshness workflows state the cadence GitHub actually delivers', () => {
+  for (const file of ['migrate-freshness.yml', 'deploy-freshness.yml']) {
+    it(`${file} does not promise a five-minute cadence`, () => {
+      const src = read(file);
+      // The bare "# every 5 min" gloss is exactly the claim that was wrong.
+      expect(src).not.toMatch(/#\s*every 5 min\s*\(/);
+      expect(src).toMatch(/a REQUEST for every 5 min/);
+    });
+
+    it(`${file} carries the measurement that corrects it`, () => {
+      const src = read(file);
+      expect(src).toMatch(/1,171/);        // the observed fire count
+      expect(src).toMatch(/7\.7%/);        // the delivery rate
+      expect(src).toMatch(/11\.3h/);       // the worst observed gap
+    });
+
+    it(`${file} keeps asking for */5, because asking for less delivers less`, () => {
+      expect(read(file)).toMatch(/cron: '\*\/5 \* \* \* \*'/);
+    });
+  }
+
+  it('migrate-freshness names its real worst case in hours, not minutes', () => {
+    const src = read('migrate-freshness.yml');
+    expect(src).toMatch(/hours, not\s*\n?\s*#\s*minutes|hours, not minutes/);
+    // And it must not let the reader think this is the prompt mechanism.
+    expect(src).toMatch(/primary net is\s*\n?\s*#\s*the SYNCHRONOUS re-check|SYNCHRONOUS re-check/);
+  });
+});
