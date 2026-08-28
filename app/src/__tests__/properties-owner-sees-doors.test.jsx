@@ -30,6 +30,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadMyHousehold: async () => ({ ok: true, memberships: [] }),
     loadMyRentals: async () => ({ ok: true, rentals: H.rentals }),
     loadPublicVacancies: async () => ({ ok: true, vacancies: H.vacancies }),
+    loadVacancyPhotos: async () => ({ ok: true, photos: H.listingPhotos || [] }),
     loadAllPhotos: async () => ({ ok: true, photos: [] }),
     loadDoorRecord: async () => ({ ok: false }),
     loadRooms: async () => ({ ok: true, rooms: [] }),

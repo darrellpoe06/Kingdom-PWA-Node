@@ -23,6 +23,7 @@ import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
+import { VacancyCard } from '../modules/properties/Storefront.jsx';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 
 const { brand } = POE_PROPERTIES;
@@ -225,28 +226,33 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             Nothing is listed right now. Only units the landlord has listed appear here — an empty unit is never advertised automatically.
           </p>
         )}
-        {(vacancies || []).map((v) => (
-          <div key={v.id} className="border-b border-[#F0EDE6] py-2">
-            <div className="text-sm text-[#1A1815]" style={serif}>
-              {v.label}{v.unit ? ` · ${v.unit}` : ''}
-            </div>
-            <div className="text-xs text-[#5A5751]" style={serif}>
-              {[v.city, v.state].filter(Boolean).join(', ')}
-              {v.property_type ? ` · ${v.property_type}` : ''}
-              {v.rent ? ` · $${Number(v.rent).toFixed(0)}/mo` : ''}
-              {Number(v.bedrooms) > 0 ? ` · ${v.bedrooms} bed` : ''}
-              {Number(v.bathrooms) > 0 ? ` / ${v.bathrooms} bath` : ''}
-            </div>
-            {(v.offering === 'short-term' || v.offering === 'both') && (
-              <div className="text-xs" style={{ ...serif, color: brand.accent }}>
-                {v.offering === 'both' ? 'Lease or short stay' : 'Short stay'}
-                {v.nightly_rate ? ` · $${Number(v.nightly_rate).toFixed(0)}/night` : ''}
-                {v.min_stay_nights ? ` · ${v.min_stay_nights} night minimum` : ''}
-              </div>
-            )}
-            {v.note && <div className="text-xs text-[#5A5751]" style={serif}>{v.note}</div>}
-          </div>
-        ))}
+        {/* THE SAME SHELF THE PoeTech TAB SHOWS. One storefront, both doors
+            (Storefront.jsx) — a renter sees the same cards whichever way they
+            arrived, with the unit's own listing photographs, and there is no
+            second copy of the layout to drift. "like the MooreDivahs App has
+            except this is places to live... without an account" (Darrell). */}
+        {(vacancies || []).length > 0 && (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            {(vacancies || []).map((v) => (
+              <VacancyCard
+                key={v.id}
+                unit={{
+                  id: String(v.id),
+                  rentalId: v.id,
+                  label: String(v.label || '').trim(),
+                  where: [v.city, v.state].filter(Boolean).join(', '),
+                  unit: String(v.unit || '').trim(),
+                  rent: Number(v.rent) > 0 ? Number(v.rent) : null,
+                  beds: Number(v.bedrooms) > 0 ? Number(v.bedrooms) : null,
+                  baths: Number(v.bathrooms) > 0 ? Number(v.bathrooms) : null,
+                  offering: String(v.offering || 'long-term'),
+                  nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
+                  note: String(v.note || '').trim(),
+                }}
+              />
+            ))}
+          </ul>
+        )}
         <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
           The exact address is given by a person, not published here.
         </p>
