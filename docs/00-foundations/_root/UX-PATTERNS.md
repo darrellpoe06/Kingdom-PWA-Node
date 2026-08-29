@@ -185,6 +185,61 @@ The three sanctioned forms of screen movement, in order of preference:
 
 **The one-line test for any new surface:** *"When this opens, does the content come to the finger — or does the screen fly to the content?"* If the screen flies, it is the DR-0274 class.
 
+## Pattern 2f: The form inherits the standard — plural pickers, no dead-end dropdowns, a refusal that explains itself (PoeTech Standard)
+
+**Darrell, 2026-08-28**, on the Properties picture form: *"review what we have
+built before building... we have multiple pictures upload etc... options to add
+options to dropdowns... all these features need to be applied as we build
+without needing to keep saying it.... our standards are higher than this build...
+we have intuitive SaaS."*
+
+**Why this pattern exists at all.** The standards below were ALREADY MET in five
+or six places each. They had never been written down. So a review of every Way
+in this repo — done honestly and in full — would still not have found them, and
+the sixth implementation shipped without them. A standard that lives only in
+implementations is not a standard; it is a coincidence that keeps holding until
+it doesn't. Writing it here, and gating it, is the difference.
+
+### 2f.1 — A picker for something PLURAL accepts many
+
+Photographing a property, a room, or a piece of damage is a plural act. A picker
+whose subject is naturally plural carries `multiple`, compresses and QUEUES each
+file with its own name and size, NAMES and skips a bad file rather than failing
+the batch, and lets the person remove one from the queue before anything is
+written.
+
+Reference: `LifeGallery.jsx`, `FeedbackCenter.jsx`, `ChurchObservation.jsx`,
+`Rentals.jsx` (room + maintenance photos), `DoorTabs.jsx` (`GalleryTab`).
+
+SINGULAR IS A DECISION, NOT A DEFAULT. One receipt belongs to one transaction;
+one recipe has one photo. Those are named in the guard's `SINGULAR_BY_DESIGN`
+list WITH the reason — the list is the argument.
+
+### 2f.2 — A dropdown never leaves a person with nowhere to go
+
+If a select can be legitimately empty, it offers the way to fill it IN PLACE.
+The Room picker on a door with no rooms offered exactly one choice ("Not a
+specific room") and no way to make one without abandoning the pictures already
+chosen. It now offers `+ Add a room…`, which opens a box in the same form,
+creates the room through the SAME builder and table the Rooms tab uses (one way
+to make a room, reachable from two places), and selects it.
+
+The empty state also SAYS it is empty ("No rooms yet — …") rather than looking
+like a considered single option.
+
+### 2f.3 — A disabled control says what it is waiting for
+
+A greyed button with no sentence beside it is the app refusing without
+explaining itself. Every disabled primary action carries the condition in plain
+words: "Choose at least one picture to enable this."
+
+### The gate
+
+`app/src/__tests__/ui-standards-guard.test.js` reads the real components and
+fails the build on all three. Written BEFORE the fix and observed failing on all
+three real defects — proven-to-catch (DR-0076 §3), not a green light that has
+never been red. Governed by **DR-0314**.
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
