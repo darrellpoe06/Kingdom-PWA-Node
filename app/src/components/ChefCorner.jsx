@@ -34,6 +34,7 @@ import { describeIngredient } from '../lib/recipe-units.js';
 import { importRecipeFromImage } from '../lib/recipe-photo-import.js';
 import { POE_FAMILY_RECIPES } from '../lib/chefs-corner-recipes.js';
 import { costRecipe, foodCostMargin } from '../lib/recipe-costing.js';
+import { confirmThen } from '../lib/confirm-action.js';
 
 // Kitchen Inventory is homed INSIDE Chef's Corner (recipes + inventory together).
 // It is a sibling feature module mounted by a DYNAMIC import — a runtime mount,
@@ -554,7 +555,7 @@ function DetailView({ recipe, editable, onBack, onDelete }) {
           {recipe.dateAdded && <span className={`text-[0.625rem] uppercase tracking-wider ${T_MUTE}`}>Added {recipe.dateAdded}</span>}
         </div>
         {onDelete && editable && (
-          <button onClick={onDelete} className={`text-xs px-3 py-2 border ${BD_ACCENT} ${T_ACCENT} ${FOCUS}`}>
+          <button onClick={confirmThen('Delete this recipe? Its notes and photo go with it.', onDelete)} className={`text-xs px-3 py-2 border ${BD_ACCENT} ${T_ACCENT} ${FOCUS}`}>
             Delete recipe
           </button>
         )}

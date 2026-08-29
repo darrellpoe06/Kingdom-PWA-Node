@@ -185,6 +185,169 @@ The three sanctioned forms of screen movement, in order of preference:
 
 **The one-line test for any new surface:** *"When this opens, does the content come to the finger — or does the screen fly to the content?"* If the screen flies, it is the DR-0274 class.
 
+## Pattern 2f: The form inherits the standard — plural pickers, no dead-end dropdowns, a refusal that explains itself (PoeTech Standard)
+
+**Darrell, 2026-08-28**, on the Properties picture form: *"review what we have
+built before building... we have multiple pictures upload etc... options to add
+options to dropdowns... all these features need to be applied as we build
+without needing to keep saying it.... our standards are higher than this build...
+we have intuitive SaaS."*
+
+**Why this pattern exists at all.** The standards below were ALREADY MET in five
+or six places each. They had never been written down. So a review of every Way
+in this repo — done honestly and in full — would still not have found them, and
+the sixth implementation shipped without them. A standard that lives only in
+implementations is not a standard; it is a coincidence that keeps holding until
+it doesn't. Writing it here, and gating it, is the difference.
+
+### 2f.1 — A picker for something PLURAL accepts many
+
+Photographing a property, a room, or a piece of damage is a plural act. A picker
+whose subject is naturally plural carries `multiple`, compresses and QUEUES each
+file with its own name and size, NAMES and skips a bad file rather than failing
+the batch, and lets the person remove one from the queue before anything is
+written.
+
+Reference: `LifeGallery.jsx`, `FeedbackCenter.jsx`, `ChurchObservation.jsx`,
+`Rentals.jsx` (room + maintenance photos), `DoorTabs.jsx` (`GalleryTab`).
+
+SINGULAR IS A DECISION, NOT A DEFAULT. One receipt belongs to one transaction;
+one recipe has one photo. Those are named in the guard's `SINGULAR_BY_DESIGN`
+list WITH the reason — the list is the argument.
+
+### 2f.2 — A dropdown never leaves a person with nowhere to go
+
+If a select can be legitimately empty, it offers the way to fill it IN PLACE.
+The Room picker on a door with no rooms offered exactly one choice ("Not a
+specific room") and no way to make one without abandoning the pictures already
+chosen. It now offers `+ Add a room…`, which opens a box in the same form,
+creates the room through the SAME builder and table the Rooms tab uses (one way
+to make a room, reachable from two places), and selects it.
+
+The empty state also SAYS it is empty ("No rooms yet — …") rather than looking
+like a considered single option.
+
+### 2f.3 — A disabled control says what it is waiting for
+
+A greyed button with no sentence beside it is the app refusing without
+explaining itself. Every disabled primary action carries the condition in plain
+words: "Choose at least one picture to enable this."
+
+### The gate
+
+`app/src/__tests__/ui-standards-guard.test.js` reads the real components and
+fails the build on all three. Written BEFORE the fix and observed failing on all
+three real defects — proven-to-catch (DR-0076 §3), not a green light that has
+never been red. Governed by **DR-0314**.
+
+## Pattern 2g: The rest of the standard set — reach, hit, name, and confirm (PoeTech Standard)
+
+**Darrell, 2026-08-28:** *"build the rest of the UI standard set now."*
+
+Every rule here was **MEASURED in the real component tree before it was written
+down** (DR-0314). None is a preference; each is something this codebase already
+does in the overwhelming majority of places, which is what makes it a standard
+rather than an opinion.
+
+| Standard | Already kept | Gaps found | Gate |
+|---|---|---|---|
+| A control shows **focus** | 2,817 uses across 152 of 218 files | 226 real (93 of the first freeze's 326 were buttons styled through focus-carrying constants — never owed) | ratchet |
+| A **touch target** clears the floor | 225 uses of `min-h-[36px]`, 74 files | 69 under 36px | ratchet |
+| A glyph-only button has an **aria-label** | every one | 0 | HARD, locked at zero |
+| A **destructive** action confirms | 66 `confirm()` across 35 files | 6 found unguarded 2026-08-29, all fixed same-day | HARD, via `confirmThen` |
+
+### 2g.1 — A keyboard can see where it is
+
+Every styled `<button>` carries `focus:outline` (or `focus-visible:`). A control
+with no `className` is styled by a wrapper and is not judged; `sr-only` and
+`hidden` controls cannot show a ring by definition. 326 gaps existed when this
+was written and are FROZEN in `scripts/ui-standards-baseline.json` — that list
+may **shrink, never grow**.
+
+### 2g.2 — A thumb can hit it — the 44-vs-36 conflict, RESOLVED by the law itself
+
+**The accessibility checklist in this very document (below) has said 44x44 since
+it was written. The code does not meet it.** Measured 2026-08-28 across every
+declared height:
+
+    36px  225      44px   47      40px  24
+    32px   54      48px   10      34px   7      28px  5
+
+The conflict was recorded 2026-08-28 as an open wound. Darrell then directed the
+question be settled by RESEARCH, not by preference — *"the US government has
+laws that fine those who dont comply"* — and the research (2026-08-29, DR-0315)
+dissolves it, because **44 and 24 were never the same kind of number**:
+
+- **24×24 CSS px** is the LEGAL floor — WCAG 2.2 success criterion **2.5.8
+  Target Size (Minimum), Level AA**. This is the tier the enforceable rules
+  bind to: the DOJ's ADA Title II final rule (28 CFR Part 35, Apr 2024) sets
+  WCAG 2.1 AA for state/local governments (deadlines extended Apr 2026 to
+  **Apr 26 2027 / Apr 26 2028** by entity size); Title III courts and DOJ
+  settlements use WCAG 2.1/2.2 **AA** as the de facto standard for private
+  entities (3,117 federal web-accessibility suits in 2025, +27%); the EU's
+  EAA (in force Jun 2025) binds to the same AA tier.
+- **44×44** is WCAG **2.5.5 Target Size (Enhanced), Level AAA** — plus the
+  Apple HIG 44pt / Android 48dp platform guidance. No law requires AAA.
+- **36px, the house floor, sits ABOVE every legal AA requirement** — 1.5× the
+  24px criterion. The doc's 44 line was an AAA aim written as if it were the
+  compliance bar; the code was never out of compliance on this criterion.
+
+So: **24 is the law's floor · 36 is the enforced house floor · 44 stays the
+AAA aim.** The gate stays at 36 — enforcing above the legal requirement — and
+the house target posture is **WCAG 2.2 AA** across the board (the standard the
+University of Illinois holds its whole campus to, with automated scans plus
+manual evaluation — the same shape as this repo's gates plus DR-0104 live
+review).
+
+**re-review: 2026-10-01** — walk the 54 controls at 32px and the 7 at 34px up to
+36 at least (they exceed the law but sit under the house floor), and decide
+with measurement whether 44 is reachable for the touch-first surfaces. The
+WCAG 2.2 AA criteria this repo does NOT yet gate are inventoried in DR-0315
+with their own dates.
+
+### 2g.3 — A glyph is not a label
+
+A button whose entire content is `×` or an emoji carries `aria-label`. This one
+had **zero** offenders, so it is HARD-gated rather than baselined: the cheapest
+moment to make a standard permanent is before the first regression, and a
+baseline entry can never be added for a hard kind.
+
+### 2g.4 — A destructive action confirms — GRADUATED from Way to hard gate
+
+Delete, Remove and Archive confirm before they destroy (66 `confirm()` guards
+across 35 files). On 2026-08-28 this was recorded as **not statically
+gateable** — 37 of 68 destructive buttons confirm in a PARENT via a prop
+callback no scan resolves — with the note that a new instrument would graduate
+it. Darrell answered *"solutions?!!!"* and the solution existed within a day
+(DR-0315, per DR-0131 — fix the ONE primitive):
+
+**`lib/confirm-action.js` exports `confirmThen(message, action)`.** When
+destruction routes through one named function, "does it confirm?" stops being a
+question about somebody's parent component and becomes a question about one
+import — which a scan CAN answer. The gate flags a `<button>` wired to a
+delete/destroy/erase handler in a file that carries neither a `confirm(` nor
+the `confirm-action` import. The parent-confirm limit still stands for what it
+was: files that confirm anywhere pass at the file level, stated plainly.
+
+**The gate found six live unguarded destructions the day it ran** — recipe
+(cloud row included), song idea (cloud), budget goal (cloud), and calendar
+event / recurring / incident — every one deleting records with no question
+asked. All six were fixed the same day with `confirmThen`, which is why this
+kind is **HARD at zero** rather than ratcheted: there was nothing left to
+baseline. `REVERSIBLE_BY_DESIGN` names the one exemption with its reason
+(BibleReader's `eraseSpan` un-highlights a selection; nothing is destroyed).
+`remove`-verb handlers are deliberately out of scope — they overwhelmingly mean
+"take this row out of the draft form", and a guard firing on benign edits is
+how a guard gets deleted.
+
+### The gate
+
+`scripts/ui-standards-guard.mjs` + `app/src/__tests__/ui-standards-set.test.js`.
+Proven-to-catch on synthetic input for all four gated kinds BEFORE the real
+tree is asserted clean — and destructive-confirm was proven on six REAL
+defects, which it caught and whose fixes it verified the day it was written. `node scripts/ui-standards-guard.mjs` prints regressions,
+tracked debt, and **healed** — the number that should fall over time (DR-0075).
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
@@ -248,7 +411,7 @@ These apply to every pattern above:
 - Audio playback has visual transcript fallback
 - Reduced motion mode respected (no auto-animation)
 - Screen reader semantics correct (proper headings, ARIA where needed)
-- Touch targets minimum 44×44pt on mobile
+- Touch targets minimum 44×44pt on mobile — **the AAA AIM (WCAG 2.5.5), not the legal bar. The law binds at WCAG 2.2 AA's 24×24 (SC 2.5.8); the enforced house floor is 36px, above every legal requirement. Lineage, citations and re-review date in Pattern 2g.2 / DR-0315.**
 ## Religion AND Relationship in This Standard
 **Religion-side:** Disciplined consistency. Every scripture component renders the same way. Every play button works the same way. Every progressive disclosure follows the same pattern.
 **Relationship-side:** The user is met where they are — at their reading speed, in their primary translation, with the depth they want available but not forced. The product breathes with the user, not against them.

@@ -1154,12 +1154,13 @@ export function dataUrlBytes(dataUrl = '') {
  * was clutter.
  */
 export function GalleryTab({
-  door, rooms = [], photos = [], canManage = false, busy = false, onAdd, onPatch,
+  door, rooms = [], photos = [], canManage = false, busy = false, onAdd, onPatch, onAddRoom,
 }) {
   const [f, setF] = useState({ caption: '', kind: 'listing', roomId: '' });
-  const [pending, setPending] = useState(null);
+  const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
+  const [newRoom, setNewRoom] = useState('');
   const live = useMemo(() => liveRooms(rooms), [rooms]);
   // In the landlord's arranged order (0160) — the first picture is the cover.
   const shown = useMemo(() => photoOrder(photos.filter((p) => !p.archived_at)), [photos]);
@@ -1174,33 +1175,60 @@ export function GalleryTab({
     for (const p of patches) onPatch?.(p.id, p.patch);
   };
 
-  const pick = async (file) => {
+  // MANY AT ONCE (2026-08-28). Darrell: "we have multiple pictures upload etc...
+  // all these features need to be applied as we build without needing to keep
+  // saying it." He was right and the proof was already in the repo — five other
+  // image pickers we shipped carry `multiple`, and this one, the newest, took a
+  // single file. Photographing an apartment is a plural act; making him repeat
+  // the whole form per picture was never a considered decision, just an omission.
+  //
+  // Each file is compressed and queued with its own name, one bad file is named
+  // and skipped rather than killing the batch, and the queue is reviewable and
+  // removable BEFORE anything is written.
+  const pick = async (fileList) => {
     setError('');
-    if (!file) { setPending(null); return; }
-    if (!isLikelyImageFile(file)) { setError('That does not look like an image.'); return; }
-    try {
-      const dataUrl = await compressImageFile(file);
-      setPending({ dataUrl, bytes: dataUrlBytes(dataUrl), name: file.name });
-    } catch (e) {
-      // image.js rejects with a real Error, so this says what actually happened
-      // rather than "unknown error" (the 2026-07-07 report class).
-      setError(e.message || 'The image could not be read.');
-      setPending(null);
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const added = [];
+    const refused = [];
+    for (const file of files) {
+      if (!isLikelyImageFile(file)) { refused.push(`${file.name} (not an image)`); continue; }
+      try {
+        const dataUrl = await compressImageFile(file);
+        added.push({
+          key: `${file.name}-${added.length}-${Date.now()}`,
+          dataUrl, bytes: dataUrlBytes(dataUrl), name: file.name,
+        });
+      } catch (e) {
+        // image.js rejects with a real Error, so this says what actually
+        // happened rather than "unknown error" (the 2026-07-07 report class).
+        refused.push(`${file.name} (${e.message || 'could not be read'})`);
+      }
     }
+    setPending((q) => [...q, ...added]);
+    if (refused.length) setError(`Skipped ${refused.length}: ${refused.join(', ')}`);
   };
 
+  const drop = (key) => setPending((q) => q.filter((x) => x.key !== key));
+
   const submit = () => {
-    if (!pending) { setError('Choose a picture first.'); return; }
-    onAdd?.({
-      instance_id: door?.instance_id,
-      rental_ref: door?.id,
-      room_id: f.roomId || null,
-      kind: f.kind,
-      caption: f.caption.trim(),
-      storage_path: pending.dataUrl,
-      taken_at: null,       // unknown unless a scanner read it from the EXIF
+    if (!pending.length) { setError('Choose at least one picture first.'); return; }
+    // The caption is the CAPTION OF THE SET when several land together — the
+    // honest reading of one box above many files. A single picture behaves
+    // exactly as it did before.
+    const caption = f.caption.trim();
+    pending.forEach((pic, i) => {
+      onAdd?.({
+        instance_id: door?.instance_id,
+        rental_ref: door?.id,
+        room_id: f.roomId || null,
+        kind: f.kind,
+        caption: caption && pending.length > 1 ? `${caption} (${i + 1} of ${pending.length})` : caption,
+        storage_path: pic.dataUrl,
+        taken_at: null,     // unknown unless a scanner read it from the EXIF
+      });
     });
-    setPending(null);
+    setPending([]);
     setF({ caption: '', kind: 'listing', roomId: '' });
   };
 
@@ -1213,8 +1241,9 @@ export function GalleryTab({
       {canManage && (
         <Card title="Add a picture">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="sm:col-span-2"><span className={lbl}>Picture</span>
-              <input type="file" accept="image/*" className="text-[0.8125rem]" onChange={(e) => pick(e.target.files?.[0] || null)} />
+            <label className="sm:col-span-2"><span className={lbl}>Pictures</span>
+              <input type="file" accept="image/*" multiple className="text-[0.8125rem]" onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
+              <span className="block text-[0.75rem] text-[#6B665E] mt-1">Pick as many as you like — they queue up below.</span>
             </label>
             <label className="sm:col-span-2"><span className={lbl}>Caption</span>
               <input type="text" className={field} value={f.caption} onChange={(e) => setF((p) => ({ ...p, caption: e.target.value }))} placeholder="What this shows" />
@@ -1224,17 +1253,66 @@ export function GalleryTab({
                 {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
               </select>
             </label>
+            {/* A DROPDOWN NEVER DEAD-ENDS (2026-08-28). On a door with no rooms
+                this offered exactly one choice — "Not a specific room" — with no
+                way to make one without abandoning the pictures already queued.
+                Choosing "Add a room" opens a box right here; the room is created
+                and selected without leaving the form. */}
             <label><span className={lbl}>Room</span>
-              <select className={field} value={f.roomId} onChange={(e) => setF((p) => ({ ...p, roomId: e.target.value }))}>
-                <option value="">Not a specific room</option>
+              <select
+                className={field}
+                value={f.roomId}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '__add__') { setNewRoom(' '); return; }
+                  setNewRoom('');
+                  setF((p) => ({ ...p, roomId: v }));
+                }}
+              >
+                <option value="">{live.length ? 'Not a specific room' : 'No rooms yet — not a specific room'}</option>
                 {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {onAddRoom && <option value="__add__">+ Add a room…</option>}
               </select>
             </label>
+            {newRoom !== '' && onAddRoom && (
+              <label className="sm:col-span-2"><span className={lbl}>New room</span>
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    type="text" className={`${field} flex-1`} autoFocus
+                    value={newRoom.trim()} placeholder="Kitchen, Bedroom 1, Porch…"
+                    onChange={(e) => setNewRoom(e.target.value || ' ')}
+                  />
+                  <Btn
+                    tone="primary" disabled={busy || !newRoom.trim()}
+                    onClick={async () => {
+                      const name = newRoom.trim();
+                      if (!name) return;
+                      const created = await onAddRoom(name);
+                      // Select it the moment it exists, so the picture he already
+                      // queued lands in the room he just made.
+                      if (created?.id) setF((p) => ({ ...p, roomId: created.id }));
+                      setNewRoom('');
+                    }}
+                  >Add room</Btn>
+                  <Btn onClick={() => setNewRoom('')}>Cancel</Btn>
+                </div>
+              </label>
+            )}
           </div>
-          {pending && (
-            <p className="text-[0.8125rem] text-[#6B665E] mt-2">
-              {pending.name} — about {Math.round(pending.bytes / 1024)}KB after compression.
-            </p>
+          {pending.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {pending.map((pic) => (
+                <li key={pic.key} className="flex items-center gap-2 text-[0.8125rem] text-[#6B665E]">
+                  <img src={pic.dataUrl} alt="" className="h-10 w-10 object-cover border border-[#E8E4DC]" />
+                  <span className="flex-1 leading-snug">{pic.name} — about {Math.round(pic.bytes / 1024)}KB</span>
+                  <button
+                    type="button" onClick={() => drop(pic.key)}
+                    aria-label={`Remove ${pic.name}`}
+                    className="text-[0.75rem] uppercase tracking-wider text-[#8C2F2F] px-2 py-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                  >Remove</button>
+                </li>
+              ))}
+            </ul>
           )}
           {f.kind === 'listing' && (
             <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed mt-1">
@@ -1243,8 +1321,15 @@ export function GalleryTab({
             </p>
           )}
           {error && <p className="text-[0.8125rem] text-[#8C2F2F] mt-2">{error}</p>}
-          <div className="mt-2">
-            <Btn tone="primary" onClick={submit} disabled={busy || !pending}>Add to the gallery</Btn>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <Btn tone="primary" onClick={submit} disabled={busy || !pending.length}>
+              {pending.length > 1 ? `Add ${pending.length} to the gallery` : 'Add to the gallery'}
+            </Btn>
+            {/* A DISABLED CONTROL SAYS WHY. A greyed button with no sentence
+                beside it is the app refusing without explaining itself. */}
+            {!pending.length && (
+              <span className="text-[0.8125rem] text-[#6B665E]">Choose at least one picture to enable this.</span>
+            )}
           </div>
         </Card>
       )}
