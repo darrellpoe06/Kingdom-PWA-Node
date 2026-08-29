@@ -230,6 +230,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
     _bgTimer: null,   // background keep-playing ticker
     _bgVis: null,     // the visibilitychange listener while reading
     _bgStalls: 0,     // consecutive hidden ticks with no audio at all
+    _wasHidden: false, // the page has been hidden since the last foreground recovery
 
     _clearWatch() {
       if (this._watch != null && typeof clearTimeout === 'function') {
@@ -256,6 +257,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
     _kickBackground() {
       if (this.status !== 'playing') return;
       if (!this.doc || this.doc.hidden !== true) { this._bgStalls = 0; return; }
+      this._wasHidden = true; // remember we went off-screen — recover on return
       let paused = false; let speaking = false; let pending = false;
       try { paused = !!this.synth.paused; speaking = !!this.synth.speaking; pending = !!this.synth.pending; } catch (_) { /* ignore */ }
       if (paused) { try { this.synth.resume(); } catch (_) { /* ignore */ } }
@@ -264,11 +266,40 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       if (this._bgStalls >= 2) { this._bgStalls = 0; this._restartCurrent(); }
     },
 
+    // -----------------------------------------------------------------------
+    // RETURN FROM BACKGROUND (Darrell 2026-08-29: "the lessons lose their place
+    // and start from the beginning when the cellphone screen goes off"). Android
+    // suspends the SPEECH ENGINE while the screen is off even with the silent
+    // audio session holding the page alive, so a device-voice segment gets
+    // dropped. Coming back on-screen, if we are still 'playing' but nothing is
+    // producing audio, re-speak the CURRENT segment — position held, never the
+    // top. Only across a real hidden->visible transition (via visibilitychange),
+    // so the steady-state ticker still never touches a VISIBLE read. A user
+    // pause is never overridden (gated on status === 'playing').
+    // -----------------------------------------------------------------------
+    _recoverForeground() {
+      if (this.status !== 'playing') return;
+      if (this.doc && this.doc.hidden === true) return; // not actually visible yet
+      const wasHidden = this._wasHidden;
+      this._wasHidden = false;
+      this._bgStalls = 0;
+      if (!wasHidden) return; // only recover across an off-screen -> on-screen return
+      let speaking = false; let pending = false;
+      try { speaking = !!this.synth.speaking; pending = !!this.synth.pending; } catch (_) { /* ignore */ }
+      if (speaking || pending) return; // audio survived — leave it alone
+      try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+      this._restartCurrent(); // resume from the held segment, not the beginning
+    },
+
     _armBackground() {
       if (this._bgTimer != null || !this.doc) return;
       this._bgStalls = 0;
+      this._wasHidden = this.doc.hidden === true;
       if (typeof this.doc.addEventListener === 'function') {
-        this._bgVis = () => this._kickBackground();
+        this._bgVis = () => {
+          if (this.doc && this.doc.hidden === true) this._kickBackground();
+          else this._recoverForeground();
+        };
         try { this.doc.addEventListener('visibilitychange', this._bgVis); } catch (_) { this._bgVis = null; }
       }
       if (typeof setInterval === 'function') {
@@ -286,6 +317,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       }
       this._bgVis = null;
       this._bgStalls = 0;
+      this._wasHidden = false;
     },
 
     _emit() {
@@ -369,6 +401,13 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
           let isSpeaking = false;
           try { isSpeaking = !!this.synth.speaking; } catch (_) { /* ignore */ }
           if (isSpeaking) return; // it did start; we just never got an onstart event
+          // OFF-SCREEN is not a failure. While the page is hidden the OS suspends
+          // the synth, so a silent start is expected — never declare failure and
+          // never reset the position here (that was the "lost its place and
+          // started over when the screen went off" bug, Darrell 2026-08-29). Hold
+          // the current segment; the ticker retries while hidden and
+          // _recoverForeground re-speaks it on return.
+          if (this.doc && this.doc.hidden === true) { this._clearWatch(); return; }
           if (!this._retried) {
             this._retried = true;
             try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
