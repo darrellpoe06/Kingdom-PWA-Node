@@ -240,6 +240,85 @@ fails the build on all three. Written BEFORE the fix and observed failing on all
 three real defects — proven-to-catch (DR-0076 §3), not a green light that has
 never been red. Governed by **DR-0314**.
 
+## Pattern 2g: The rest of the standard set — reach, hit, name, and confirm (PoeTech Standard)
+
+**Darrell, 2026-08-28:** *"build the rest of the UI standard set now."*
+
+Every rule here was **MEASURED in the real component tree before it was written
+down** (DR-0314). None is a preference; each is something this codebase already
+does in the overwhelming majority of places, which is what makes it a standard
+rather than an opinion.
+
+| Standard | Already kept | Gaps found | Gate |
+|---|---|---|---|
+| A control shows **focus** | 2,817 uses across 152 of 218 files | 326 | ratchet |
+| A **touch target** clears the floor | 225 uses of `min-h-[36px]`, 74 files | 69 under 36px | ratchet |
+| A glyph-only button has an **aria-label** | every one | 0 | HARD, locked at zero |
+| A **destructive** action confirms | 66 `confirm()` across 35 files | see below | Way only |
+
+### 2g.1 — A keyboard can see where it is
+
+Every styled `<button>` carries `focus:outline` (or `focus-visible:`). A control
+with no `className` is styled by a wrapper and is not judged; `sr-only` and
+`hidden` controls cannot show a ring by definition. 326 gaps existed when this
+was written and are FROZEN in `scripts/ui-standards-baseline.json` — that list
+may **shrink, never grow**.
+
+### 2g.2 — A thumb can hit it — and a CONFLICT this pattern refuses to hide
+
+**The accessibility checklist in this very document (below) has said 44x44 since
+it was written. The code does not meet it.** Measured 2026-08-28 across every
+declared height:
+
+    36px  225      44px   47      40px  24
+    32px   54      48px   10      34px   7      28px  5
+
+So 36px is the practiced FLOOR, not the documented AIM, and the two have been
+apart for a long time without anybody saying so.
+
+The gate is set at the floor: an explicit `min-h-[NNpx]` **below 36px** is a
+regression and fails. It is deliberately NOT set at 44, because a gate that
+fails 279 existing controls is reverted in a day and then protects nothing.
+
+**Lowering the documented standard to 36 to make the doc match the code was the
+other option and is refused.** That is making the Ways lie to fit reality, which
+is the exact inversion of what the Ways are for. 44 stays the aim; 36 is what is
+enforced today; the distance between them is written here rather than resolved
+by quietly deleting the harder number.
+
+**re-review: 2026-10-01** — walk the 54 controls at 32px and the 7 at 34px up to
+36 at least, and decide with measurement whether 44 is reachable for the
+touch-first surfaces (the boards, the record forms) or whether the aim itself
+should be restated per surface.
+
+### 2g.3 — A glyph is not a label
+
+A button whose entire content is `×` or an emoji carries `aria-label`. This one
+had **zero** offenders, so it is HARD-gated rather than baselined: the cheapest
+moment to make a standard permanent is before the first regression, and a
+baseline entry can never be added for a hard kind.
+
+### 2g.4 — A destructive action confirms — and why this one is NOT gated
+
+Delete, Remove and Archive confirm before they destroy. This is a real standard
+(66 `confirm()` guards across 35 files) and it is deliberately **not statically
+gateable**: 37 of the 68 destructive buttons call a prop callback — `onDelete`,
+`onRemove` — whose confirm lives in the PARENT component. No static scan
+resolves that, and a guard reporting 37 false positives is precisely how a guard
+gets deleted.
+
+So this one is a Way a reviewer checks. It is **not statically gateable**, and
+that limit is stated rather than papered over with a number that lies (DR-0076
+§8: unknown never reads as verified). If a runtime instrument ever makes it
+measurable, it graduates to a gate.
+
+### The gate
+
+`scripts/ui-standards-guard.mjs` + `app/src/__tests__/ui-standards-set.test.js`.
+Proven-to-catch on synthetic input for all three gated kinds BEFORE the real
+tree is asserted clean. `node scripts/ui-standards-guard.mjs` prints regressions,
+tracked debt, and **healed** — the number that should fall over time (DR-0075).
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
@@ -303,7 +382,7 @@ These apply to every pattern above:
 - Audio playback has visual transcript fallback
 - Reduced motion mode respected (no auto-animation)
 - Screen reader semantics correct (proper headings, ARIA where needed)
-- Touch targets minimum 44×44pt on mobile
+- Touch targets minimum 44×44pt on mobile — **the AIM. The enforced floor today is 36px; 279 controls sit between the two. Measured and recorded in Pattern 2g.2 with a re-review date rather than silently lowered.**
 ## Religion AND Relationship in This Standard
 **Religion-side:** Disciplined consistency. Every scripture component renders the same way. Every play button works the same way. Every progressive disclosure follows the same pattern.
 **Relationship-side:** The user is met where they are — at their reading speed, in their primary translation, with the depth they want available but not forced. The product breathes with the user, not against them.
