@@ -22,6 +22,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import SectionBoundary from './SectionBoundary.jsx';
 import { subscribeMembers } from '../lib/choir-sync.js';
+import { confirmThen } from '../lib/confirm-action.js';
 import {
   subscribeSongIdeas, subscribeSongComments, subscribeSongVotes, subscribeSongLeads,
   addSongIdea, addSongIdeaList, setIdeaStatus, deleteSongIdea,
@@ -235,7 +236,7 @@ function SongCard({ idea, comments, vote, leads, members, canEdit, onVote, onCom
             {idea.status !== 'final' && <button type="button" onClick={() => onStatus('final')} className={`${BTN} bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815]`}>★ Mark final</button>}
             {idea.status !== 'idea' && <button type="button" onClick={() => onStatus('idea')} className={`${BTN} border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`}>To candidates</button>}
             {idea.status !== 'pool' && <button type="button" onClick={() => onStatus('pool')} className={`${BTN} border border-[#5A5751] text-[#5A5751] hover:text-[#1A1815]`}>↩ To pool</button>}
-            <button type="button" onClick={onDelete} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
+            <button type="button" onClick={confirmThen('Remove this song idea? Its votes and comments go with it.', onDelete)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
           </div>
         )}
       </div>

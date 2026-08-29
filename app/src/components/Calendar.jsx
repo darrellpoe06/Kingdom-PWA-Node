@@ -8,6 +8,7 @@
 // module imports core only — never the shell (module-boundary law).
 // =============================================================================
 import React, { useState } from 'react';
+import { confirmThen } from '../lib/confirm-action.js';
 import { SectionTitle } from './shared.jsx';
 import { DateField } from './Projects.jsx';
 import { fmt, MONTHS_ABBR } from '../lib/format.js';
@@ -120,7 +121,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
                   <button type="button" onClick={() => editingRecurId === r.id ? cancelEditRecur() : startEditRecur(r)} aria-expanded={editingRecurId === r.id} aria-label={editingRecurId === r.id ? `Cancel edit for ${r.name}` : `Edit ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingRecurId === r.id ? '× Cancel' : '✎ Edit'}</button>
-                  <button type="button" onClick={() => deleteRecurring(r.id)} aria-label={`Delete ${r.name}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                  <button type="button" onClick={confirmThen(`Delete "${r.name}" and its schedule?`, () => deleteRecurring(r.id))} aria-label={`Delete ${r.name}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                 </div>
               </div>
               {/* r22 — Inline quick-edit per IN-PLACE-FIRST.md + IDENTITY-ROLES-AUDIT.md. */}
@@ -208,7 +209,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div className="text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(inc.amount)}</div>
-                  <button type="button" onClick={() => deleteIncident(inc.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                  <button type="button" onClick={confirmThen('Delete this incident and its record?', () => deleteIncident(inc.id))} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                 </div>
               </div>
             </div>
@@ -306,7 +307,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                   <div className="flex items-baseline gap-1.5 shrink-0">
                     <button type="button" onClick={() => completeEvent(e.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✓ Done</button>
                     <button type="button" onClick={() => editingEventId === e.id ? cancelEditEvent() : startEditEvent(e)} aria-expanded={editingEventId === e.id} aria-label={editingEventId === e.id ? `Cancel edit for ${e.title}` : `Edit ${e.title}`} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-2 py-1.5 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingEventId === e.id ? '× Cancel' : '✎ Edit'}</button>
-                    <button type="button" onClick={() => deleteEvent(e.id)} aria-label={`Delete ${e.title}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                    <button type="button" onClick={confirmThen(`Delete "${e.title}"?`, () => deleteEvent(e.id))} aria-label={`Delete ${e.title}`} className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                   </div>
                 </div>
                 {/* r22 — Inline event quick-edit. */}

@@ -75,14 +75,30 @@ export const fileId = (abs) => relative(SRC, abs).split(sep).join('/');
 
 const BUTTON = /<button\b[^>]*>/gs;
 
+/**
+ * The constants in this file whose VALUE carries focus styling. A button whose
+ * className interpolates one of these has a ring the literal tag cannot show —
+ * two of the 2026-08-28 baseline entries turned out to be exactly this shape,
+ * which made them recorded debt that was never owed.
+ */
+function focusConstants(src) {
+  const names = [];
+  for (const m of src.matchAll(/const\s+(\w+)\s*=\s*(['"`])((?:(?!\2).)*)\2/g)) {
+    if (m[3].includes('focus:outline') || m[3].includes('focus-visible:')) names.push(m[1]);
+  }
+  return names;
+}
+
 /** A control a keyboard can reach must SHOW where it is. */
 export function scanFocusRing(src, id) {
   const out = [];
+  const ringNames = focusConstants(src);
   for (const m of src.matchAll(BUTTON)) {
     const tag = m[0];
     if (!tag.includes('className=')) continue;          // unstyled: not ours to judge
     if (/\bsr-only\b|\bhidden\b/.test(tag)) continue;    // not visible, cannot show a ring
     if (tag.includes('focus:outline') || tag.includes('focus-visible:')) continue;
+    if (ringNames.some((n) => tag.includes('${' + n + '}'))) continue;
     out.push({
       kind: 'focus-ring', file: id,
       detail: squash(tag),
@@ -123,20 +139,63 @@ export function scanIconLabel(src, id) {
   return out;
 }
 
+/**
+ * A destroying button asks first — and this became gateable the day the
+ * destruction got ONE primitive to route through (lib/confirm-action.js).
+ *
+ * The scan is deliberately file-level: a file whose destructive button
+ * confirms in a PARENT already carries no `confirm(` of its own, and resolving
+ * prop callbacks statically is impossible — the limit Pattern 2g.4 recorded.
+ * What IS resolvable: a file that wires a delete/destroy/erase handler to a
+ * button while containing neither a confirm() nor the confirm-action import
+ * has no confirmation anywhere a reader can find, and every one of the six
+ * such files measured on 2026-08-29 turned out to have none anywhere at all.
+ *
+ * Verbs are the HIGH-PRECISION set on purpose. `remove` is excluded: it
+ * overwhelmingly means "take this row out of the draft form", and a guard
+ * firing on benign edits is how a guard gets deleted.
+ */
+export const REVERSIBLE_BY_DESIGN = Object.freeze({
+  'components/BibleReader.jsx::eraseSpan':
+    'un-highlights the current selection; re-highlighting restores it — nothing is destroyed',
+});
+
+export function scanDestructiveConfirm(src, id) {
+  const out = [];
+  if (src.includes('confirm(') || src.includes('confirm-action')) return out;
+  const exempt = Object.keys(REVERSIBLE_BY_DESIGN)
+    .filter((k) => k.startsWith(`${id}::`))
+    .map((k) => k.slice(id.length + 2));
+  for (const m of src.matchAll(/<button\b[^>]*onClick=\{(?:onDelete\b|[^}]*\b(?:delete|destroy|erase)\w*)/gi)) {
+    if (exempt.some((h) => m[0].includes(h))) continue;
+    out.push({
+      kind: 'destructive-confirm', file: id,
+      detail: squash(m[0]),
+      why: 'a destroying button must ask first; wrap the handler in confirmThen() from lib/confirm-action.js',
+    });
+  }
+  return out;
+}
+
 const squash = (s) => s.replace(/\s+/g, ' ').trim().slice(0, 120);
 
 /** Line-independent, so a baseline entry survives edits above it. */
 export const signature = (v) => `${v.kind}|${v.file}|${v.detail}`;
 
 // A hard gate stays at zero; a ratchet freezes what exists and blocks growth.
-export const HARD = new Set(['icon-label']);
+// destructive-confirm is HARD because its six real gaps were FIXED on the day
+// it was measured (DR-0315) — zero debt means nothing to baseline.
+export const HARD = new Set(['icon-label', 'destructive-confirm']);
 
 export function scan(files = listFiles()) {
   const all = [];
   for (const abs of files) {
     const src = readFileSync(abs, 'utf8');
     const id = fileId(abs);
-    all.push(...scanFocusRing(src, id), ...scanTouchTarget(src, id), ...scanIconLabel(src, id));
+    all.push(
+      ...scanFocusRing(src, id), ...scanTouchTarget(src, id),
+      ...scanIconLabel(src, id), ...scanDestructiveConfirm(src, id),
+    );
   }
   return all;
 }

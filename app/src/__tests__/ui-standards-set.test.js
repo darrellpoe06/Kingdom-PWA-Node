@@ -30,6 +30,7 @@ import { join } from 'node:path';
 import {
   MIN_TOUCH_PX, HARD, signature, scan, evaluate, loadBaseline,
   scanFocusRing, scanTouchTarget, scanIconLabel, listFiles,
+  scanDestructiveConfirm, REVERSIBLE_BY_DESIGN,
 } from '../../../scripts/ui-standards-guard.mjs';
 
 describe('each check finds the thing it is named for', () => {
@@ -64,6 +65,52 @@ describe('each check finds the thing it is named for', () => {
     expect(scanIconLabel('<button className="p">×</button>', 'x')).toHaveLength(1);
     expect(scanIconLabel('<button aria-label="Close" className="p">×</button>', 'x')).toHaveLength(0);
     expect(scanIconLabel('<button className="p">Save</button>', 'x')).toHaveLength(0);
+  });
+
+  it('sees a focus ring carried by a file constant — 93 baseline entries were never owed', () => {
+    // DR-0315: <button className={`p ${FOCUS}`}> where FOCUS holds the outline
+    // classes. The literal tag shows no ring; the constant does. Flagging these
+    // put 93 already-compliant buttons into the first frozen baseline.
+    const src = "const FOCUS = 'focus:outline focus:outline-2';\n"
+      + '<button className={`px-2 ${FOCUS}`}>Save</button>';
+    expect(scanFocusRing(src, 'x.jsx')).toHaveLength(0);
+    // A constant with NO focus classes still fails — resolution, not amnesty.
+    const bare = "const STYLE = 'px-2 border';\n"
+      + '<button className={`p ${STYLE}`}>Save</button>';
+    expect(scanFocusRing(bare, 'x.jsx')).toHaveLength(1);
+  });
+
+  it('flags a destroying button in a file with no confirm anywhere', () => {
+    const v = scanDestructiveConfirm('<button onClick={() => deleteThing(id)}>Delete</button>', 'x.jsx');
+    expect(v).toHaveLength(1);
+    expect(v[0].kind).toBe('destructive-confirm');
+    expect(v[0].why).toMatch(/confirmThen/);
+  });
+
+  it('catches the onDelete prop shape — the one that destroyed a recipe silently', () => {
+    expect(scanDestructiveConfirm('<button onClick={onDelete}>Delete recipe</button>', 'x.jsx'))
+      .toHaveLength(1);
+  });
+
+  it('passes a file that confirms, by either door', () => {
+    expect(scanDestructiveConfirm(
+      'const go = () => { if (!window.confirm("?")) return; };\n<button onClick={() => deleteThing()}>D</button>', 'x.jsx',
+    )).toHaveLength(0);
+    expect(scanDestructiveConfirm(
+      "import { confirmThen } from '../lib/confirm-action.js';\n<button onClick={confirmThen('?', () => deleteThing())}>D</button>", 'x.jsx',
+    )).toHaveLength(0);
+  });
+
+  it('leaves remove-verb handlers alone — draft-row removal is editing, not destruction', () => {
+    expect(scanDestructiveConfirm('<button onClick={() => removeLine(i)}>×</button>', 'x.jsx'))
+      .toHaveLength(0);
+  });
+
+  it('honors the named reversible exemption, in its file only', () => {
+    const tag = '<button type="button" onClick={eraseSpan}>Clear</button>';
+    expect(REVERSIBLE_BY_DESIGN['components/BibleReader.jsx::eraseSpan']).toMatch(/re-highlighting/);
+    expect(scanDestructiveConfirm(tag, 'components/BibleReader.jsx')).toHaveLength(0);
+    expect(scanDestructiveConfirm(tag, 'components/Other.jsx')).toHaveLength(1);
   });
 });
 
@@ -122,6 +169,14 @@ describe('the REAL component tree holds the standard', () => {
     expect(HARD.has('icon-label')).toBe(true);
   });
 
+  it('keeps destructive-confirm at ZERO — six real gaps were fixed the day it was measured', () => {
+    // DR-0315: recipe, song idea, budget goal, calendar event/recurring/
+    // incident — all destroyed records (cloud rows included) with no question
+    // asked, all found by this scan's first run, all now through confirmThen.
+    expect(scan().filter((v) => v.kind === 'destructive-confirm')).toEqual([]);
+    expect(HARD.has('destructive-confirm')).toBe(true);
+  });
+
   it('the baseline holds only ratcheted kinds — a hard kind can never be in it', () => {
     const b = loadBaseline();
     const hardInBaseline = (b.allowed || []).filter((s) => HARD.has(s.split('|')[0]));
@@ -141,20 +196,32 @@ describe('the Way says what the gate cannot', () => {
     join(process.cwd(), '../docs/00-foundations/_root/UX-PATTERNS.md'), 'utf8',
   );
 
-  it('records the destructive-confirm standard that is NOT statically gateable', () => {
-    // 37 of 68 destructive buttons call a prop callback (onDelete/onRemove)
-    // whose confirm lives in a parent. No static scan resolves that, and a
-    // guard with 37 false positives is how a guard gets deleted. Naming the
-    // limit in the Ways is the honest instrument — DR-0076 §8.
+  it('records that destructive-confirm GRADUATED from Way to gate via the primitive', () => {
+    // The 2026-08-28 record said "not statically gateable" and promised
+    // graduation if an instrument appeared. DR-0315 built the instrument
+    // (confirmThen — one door for destruction), so the Way must now say BOTH:
+    // the old limit for parent-confirmed code, and the graduation.
     const s = ways();
     expect(s).toMatch(/Pattern 2g/);
-    expect(s).toMatch(/destructive/i);
-    expect(s).toMatch(/not statically gateable|cannot be gated/i);
+    expect(s).toMatch(/GRADUATED/);
+    expect(s).toMatch(/confirmThen/);
+    expect(s).toMatch(/not statically\s+gateable/i); // the history stays told
   });
 
-  it('names the three gated standards with their measured numbers', () => {
+  it('states the touch-target lineage the law research settled — 24 legal, 36 house, 44 aim', () => {
+    // DR-0315: WCAG 2.2 SC 2.5.8 (Level AA, the tier laws bind to) is 24×24;
+    // 44×44 is SC 2.5.5 (AAA) + platform guidance. The Ways must carry the
+    // tiers so the next reader does not re-fight the settled conflict.
     const s = ways();
-    for (const token of ['focus', 'touch target', 'aria-label']) {
+    expect(s).toMatch(/2\.5\.8/);
+    expect(s).toMatch(/2\.5\.5/);
+    expect(s).toMatch(/24/);
+    expect(s).toMatch(/WCAG 2\.2 AA/);
+  });
+
+  it('names the four gated standards with their measured numbers', () => {
+    const s = ways();
+    for (const token of ['focus', 'touch target', 'aria-label', 'confirmThen']) {
       expect(s.toLowerCase()).toContain(token.toLowerCase());
     }
   });

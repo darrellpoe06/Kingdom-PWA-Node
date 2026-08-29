@@ -251,10 +251,10 @@ rather than an opinion.
 
 | Standard | Already kept | Gaps found | Gate |
 |---|---|---|---|
-| A control shows **focus** | 2,817 uses across 152 of 218 files | 326 | ratchet |
+| A control shows **focus** | 2,817 uses across 152 of 218 files | 226 real (93 of the first freeze's 326 were buttons styled through focus-carrying constants — never owed) | ratchet |
 | A **touch target** clears the floor | 225 uses of `min-h-[36px]`, 74 files | 69 under 36px | ratchet |
 | A glyph-only button has an **aria-label** | every one | 0 | HARD, locked at zero |
-| A **destructive** action confirms | 66 `confirm()` across 35 files | see below | Way only |
+| A **destructive** action confirms | 66 `confirm()` across 35 files | 6 found unguarded 2026-08-29, all fixed same-day | HARD, via `confirmThen` |
 
 ### 2g.1 — A keyboard can see where it is
 
@@ -264,7 +264,7 @@ with no `className` is styled by a wrapper and is not judged; `sr-only` and
 was written and are FROZEN in `scripts/ui-standards-baseline.json` — that list
 may **shrink, never grow**.
 
-### 2g.2 — A thumb can hit it — and a CONFLICT this pattern refuses to hide
+### 2g.2 — A thumb can hit it — the 44-vs-36 conflict, RESOLVED by the law itself
 
 **The accessibility checklist in this very document (below) has said 44x44 since
 it was written. The code does not meet it.** Measured 2026-08-28 across every
@@ -273,23 +273,37 @@ declared height:
     36px  225      44px   47      40px  24
     32px   54      48px   10      34px   7      28px  5
 
-So 36px is the practiced FLOOR, not the documented AIM, and the two have been
-apart for a long time without anybody saying so.
+The conflict was recorded 2026-08-28 as an open wound. Darrell then directed the
+question be settled by RESEARCH, not by preference — *"the US government has
+laws that fine those who dont comply"* — and the research (2026-08-29, DR-0315)
+dissolves it, because **44 and 24 were never the same kind of number**:
 
-The gate is set at the floor: an explicit `min-h-[NNpx]` **below 36px** is a
-regression and fails. It is deliberately NOT set at 44, because a gate that
-fails 279 existing controls is reverted in a day and then protects nothing.
+- **24×24 CSS px** is the LEGAL floor — WCAG 2.2 success criterion **2.5.8
+  Target Size (Minimum), Level AA**. This is the tier the enforceable rules
+  bind to: the DOJ's ADA Title II final rule (28 CFR Part 35, Apr 2024) sets
+  WCAG 2.1 AA for state/local governments (deadlines extended Apr 2026 to
+  **Apr 26 2027 / Apr 26 2028** by entity size); Title III courts and DOJ
+  settlements use WCAG 2.1/2.2 **AA** as the de facto standard for private
+  entities (3,117 federal web-accessibility suits in 2025, +27%); the EU's
+  EAA (in force Jun 2025) binds to the same AA tier.
+- **44×44** is WCAG **2.5.5 Target Size (Enhanced), Level AAA** — plus the
+  Apple HIG 44pt / Android 48dp platform guidance. No law requires AAA.
+- **36px, the house floor, sits ABOVE every legal AA requirement** — 1.5× the
+  24px criterion. The doc's 44 line was an AAA aim written as if it were the
+  compliance bar; the code was never out of compliance on this criterion.
 
-**Lowering the documented standard to 36 to make the doc match the code was the
-other option and is refused.** That is making the Ways lie to fit reality, which
-is the exact inversion of what the Ways are for. 44 stays the aim; 36 is what is
-enforced today; the distance between them is written here rather than resolved
-by quietly deleting the harder number.
+So: **24 is the law's floor · 36 is the enforced house floor · 44 stays the
+AAA aim.** The gate stays at 36 — enforcing above the legal requirement — and
+the house target posture is **WCAG 2.2 AA** across the board (the standard the
+University of Illinois holds its whole campus to, with automated scans plus
+manual evaluation — the same shape as this repo's gates plus DR-0104 live
+review).
 
 **re-review: 2026-10-01** — walk the 54 controls at 32px and the 7 at 34px up to
-36 at least, and decide with measurement whether 44 is reachable for the
-touch-first surfaces (the boards, the record forms) or whether the aim itself
-should be restated per surface.
+36 at least (they exceed the law but sit under the house floor), and decide
+with measurement whether 44 is reachable for the touch-first surfaces. The
+WCAG 2.2 AA criteria this repo does NOT yet gate are inventoried in DR-0315
+with their own dates.
 
 ### 2g.3 — A glyph is not a label
 
@@ -298,25 +312,40 @@ had **zero** offenders, so it is HARD-gated rather than baselined: the cheapest
 moment to make a standard permanent is before the first regression, and a
 baseline entry can never be added for a hard kind.
 
-### 2g.4 — A destructive action confirms — and why this one is NOT gated
+### 2g.4 — A destructive action confirms — GRADUATED from Way to hard gate
 
-Delete, Remove and Archive confirm before they destroy. This is a real standard
-(66 `confirm()` guards across 35 files) and it is deliberately **not statically
-gateable**: 37 of the 68 destructive buttons call a prop callback — `onDelete`,
-`onRemove` — whose confirm lives in the PARENT component. No static scan
-resolves that, and a guard reporting 37 false positives is precisely how a guard
-gets deleted.
+Delete, Remove and Archive confirm before they destroy (66 `confirm()` guards
+across 35 files). On 2026-08-28 this was recorded as **not statically
+gateable** — 37 of 68 destructive buttons confirm in a PARENT via a prop
+callback no scan resolves — with the note that a new instrument would graduate
+it. Darrell answered *"solutions?!!!"* and the solution existed within a day
+(DR-0315, per DR-0131 — fix the ONE primitive):
 
-So this one is a Way a reviewer checks. It is **not statically gateable**, and
-that limit is stated rather than papered over with a number that lies (DR-0076
-§8: unknown never reads as verified). If a runtime instrument ever makes it
-measurable, it graduates to a gate.
+**`lib/confirm-action.js` exports `confirmThen(message, action)`.** When
+destruction routes through one named function, "does it confirm?" stops being a
+question about somebody's parent component and becomes a question about one
+import — which a scan CAN answer. The gate flags a `<button>` wired to a
+delete/destroy/erase handler in a file that carries neither a `confirm(` nor
+the `confirm-action` import. The parent-confirm limit still stands for what it
+was: files that confirm anywhere pass at the file level, stated plainly.
+
+**The gate found six live unguarded destructions the day it ran** — recipe
+(cloud row included), song idea (cloud), budget goal (cloud), and calendar
+event / recurring / incident — every one deleting records with no question
+asked. All six were fixed the same day with `confirmThen`, which is why this
+kind is **HARD at zero** rather than ratcheted: there was nothing left to
+baseline. `REVERSIBLE_BY_DESIGN` names the one exemption with its reason
+(BibleReader's `eraseSpan` un-highlights a selection; nothing is destroyed).
+`remove`-verb handlers are deliberately out of scope — they overwhelmingly mean
+"take this row out of the draft form", and a guard firing on benign edits is
+how a guard gets deleted.
 
 ### The gate
 
 `scripts/ui-standards-guard.mjs` + `app/src/__tests__/ui-standards-set.test.js`.
-Proven-to-catch on synthetic input for all three gated kinds BEFORE the real
-tree is asserted clean. `node scripts/ui-standards-guard.mjs` prints regressions,
+Proven-to-catch on synthetic input for all four gated kinds BEFORE the real
+tree is asserted clean — and destructive-confirm was proven on six REAL
+defects, which it caught and whose fixes it verified the day it was written. `node scripts/ui-standards-guard.mjs` prints regressions,
 tracked debt, and **healed** — the number that should fall over time (DR-0075).
 
 ## Pattern 3: Progressive Disclosure
@@ -382,7 +411,7 @@ These apply to every pattern above:
 - Audio playback has visual transcript fallback
 - Reduced motion mode respected (no auto-animation)
 - Screen reader semantics correct (proper headings, ARIA where needed)
-- Touch targets minimum 44×44pt on mobile — **the AIM. The enforced floor today is 36px; 279 controls sit between the two. Measured and recorded in Pattern 2g.2 with a re-review date rather than silently lowered.**
+- Touch targets minimum 44×44pt on mobile — **the AAA AIM (WCAG 2.5.5), not the legal bar. The law binds at WCAG 2.2 AA's 24×24 (SC 2.5.8); the enforced house floor is 36px, above every legal requirement. Lineage, citations and re-review date in Pattern 2g.2 / DR-0315.**
 ## Religion AND Relationship in This Standard
 **Religion-side:** Disciplined consistency. Every scripture component renders the same way. Every play button works the same way. Every progressive disclosure follows the same pattern.
 **Relationship-side:** The user is met where they are — at their reading speed, in their primary translation, with the depth they want available but not forced. The product breathes with the user, not against them.
