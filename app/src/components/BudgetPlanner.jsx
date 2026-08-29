@@ -23,6 +23,7 @@ import HelpButton from './HelpButton.jsx';
 import { deriveDebts } from '../lib/financial-engineering.js';
 import { buildGuidance, freeMonthlyForScope } from '../lib/budget-engine.js';
 import { goalsSync } from '../lib/goals-sync.js';
+import { confirmThen } from '../lib/confirm-action.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -393,7 +394,7 @@ export default function BudgetPlanner({ data, currentDate, scope = 'consolidated
                     <div className="text-sm font-semibold text-[#1A1815]">{g.name}</div>
                     <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border ${GOOD}`}>Reached</span>
                   </div>
-                  <button onClick={() => deleteGoal(g.id)} className="mt-2 px-3 py-1.5 text-[0.6875rem] text-[#991B1B] border border-[#E8E4DC] min-h-[36px]">Delete</button>
+                  <button onClick={confirmThen(`Delete the goal "${g.name}"?`, () => deleteGoal(g.id))} className="mt-2 px-3 py-1.5 text-[0.6875rem] text-[#991B1B] border border-[#E8E4DC] min-h-[36px]">Delete</button>
                 </div>
               );
             }

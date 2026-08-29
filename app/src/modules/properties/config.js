@@ -117,7 +117,14 @@ export const OPPORTUNITIES = Object.freeze([
 ]);
 
 export const CONSTRAINTS = Object.freeze([
-  Object.freeze({ id: 'C1', title: 'Nobody can be invited until the doors carry tenancies', detail: 'rental_tenancies is empty on the live database (measured 2026-08-26). The invite seam is built; the tenant records are the landlord’s to enter.' }),
+  // A CONSTRAINT THAT STATES A MEASUREMENT CARRIES ITS DATE AND ITS RE-CHECK
+  // (2026-08-28). Darrell: "why do we have static data?... App surfaces are
+  // supposed to be latest truth." He is right about this row: it asserts the
+  // state of a live table in prose. It was true when measured and nothing in
+  // the app would ever notice if it stopped being true — the same class DR-0139
+  // closed for the opportunity-library and rentals counts. validateLaunchPlan
+  // now REFUSES a constraint that claims a measurement without both fields.
+  Object.freeze({ id: 'C1', title: 'Nobody can be invited until the doors carry tenancies', detail: 'rental_tenancies is empty on the live database. The invite seam is built; the tenant records are the landlord’s to enter.', measuredOn: '2026-08-28', reReview: '2026-09-28' }),
   Object.freeze({ id: 'C2', title: 'Access needs a verified email on both sides', detail: 'A person is recognized only when the landlord invited their exact address AND they sign in to it. A tenant with no email address cannot be given a login — that is the security property, not a bug.' }),
   Object.freeze({ id: 'C3', title: 'Money never moves in the app', detail: 'Rent is recorded, never charged or transferred. A balance edit changes a number and lands an audit row; it moves no money (DR-0094).' }),
   Object.freeze({ id: 'C4', title: 'Screening is legally regulated', detail: 'Application review does not ship without the fair-housing / FCRA guardrail and consistent, documented criteria (DR-0101 §7). Guidance to verify with a licensed professional — never legal advice.' }),
@@ -156,5 +163,18 @@ export function validateLaunchPlan(plan = LAUNCH_PLAN) {
     if (!['built', 'gated', 'hand', 'planned'].includes(p.state)) problems.push(`${p.id}: unknown state "${p.state}"`);
   }
   for (const o of OPPORTUNITIES) if (!o.reReview) problems.push(`${o.id}: opportunity with no re-review date`);
+  // A CONSTRAINT THAT ASSERTS A MEASUREMENT MUST SAY WHEN, AND WHEN TO LOOK
+  // AGAIN. A row reading "X is empty on the live database" is a fact with a
+  // shelf life; frozen in prose it becomes a confident lie the moment it
+  // changes, and no surface would notice. Same discipline the opportunities
+  // already carry (DR-0075 re-review dates, DR-0076 §8 unknown never reads as
+  // verified). Prose with no measurement claim is unaffected — C2..C9 state
+  // properties of the system, not readings of it.
+  for (const c of CONSTRAINTS) {
+    const claimsMeasurement = /\b(measured|is empty|live database|currently|as of)\b/i.test(c.detail || '');
+    if (!claimsMeasurement) continue;
+    if (!c.measuredOn) problems.push(`${c.id}: states a measurement with no measuredOn date`);
+    if (!c.reReview) problems.push(`${c.id}: states a measurement with no re-review date`);
+  }
   return { ok: problems.length === 0, problems };
 }
