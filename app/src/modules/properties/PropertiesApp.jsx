@@ -45,6 +45,7 @@ import {
   loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent, loadDoorNotes,
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
+import { buildRoom } from './rooms.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
@@ -623,6 +624,22 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { const r = await addPhoto(row); say(r.ok ? 'Added.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
               onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+              // A room can be made from INSIDE the picture form, so a dropdown
+              // with nothing in it is never a dead end (2026-08-28). Same
+              // builder and same table as the Rooms tab — one way to make a
+              // room, reachable from two places.
+              onAddRoom={async (name) => {
+                try {
+                  const row = buildRoom({
+                    instanceId: activeRental?.instance_id || activeDoor?.instance_id,
+                    rentalRef: rentalId, name,
+                  }, doorData.rooms);
+                  const r = await addRoom(row);
+                  say(r.ok ? 'Room added.' : `Not saved: ${r.reason}`);
+                  loadDoorData();
+                  return r.ok ? r.room : null;
+                } catch (e) { say(e.message); return null; }
+              }}
             />
           );
           case 'files': return (
