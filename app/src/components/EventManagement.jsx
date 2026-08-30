@@ -27,7 +27,10 @@ import {
   revenueSummary, formatPrice, mediaExpectedLabels, hasCueSheet,
   subscribeBookings, updateBooking, toggleResponsibility, deleteBooking,
   fetchBookingMessages, sendBookingMessage, fetchMyVenueRequests,
+  subscribeRateCard, isCommercialBooking, bookingQuote,
 } from '../lib/venue-rental.js';
+import { mergeRateCard, finalPaymentDueDate, finalPaymentOverdue } from '../lib/venue-commercial-rates.js';
+import { RateCardPanel, CommercialQuoteBuilder, usd } from './CommercialRateCard.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const STATUS_LABEL = {
@@ -176,7 +179,7 @@ function CorrespondenceThread({ bookingId, viewerIsStaff }) {
 }
 
 // --- One booking card (staff) ------------------------------------------------
-function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
+function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete, rateCard }) {
   const [priceDraft, setPriceDraft] = useState(booking.quotedPrice ?? '');
   const [open, setOpen] = useState(OPEN_STATUSES.has(booking.status));
   const [busy, setBusy] = useState(false);
@@ -187,6 +190,14 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
   const prog = responsibilityProgress(booking);
   const space = findSpace(booking.spaceId);
   const campus = findCampus(booking.campus);
+  // A commercial booking is priced by the team's rate card, never by hand. The
+  // quote is RECOMPUTED here on every render, so a rate the team changes
+  // reprices the booking instead of leaving a stale number on the screen.
+  const commercial = isCommercialBooking(booking);
+  const quote = commercial ? bookingQuote(booking, rateCard) : null;
+  const balanceDue = commercial ? finalPaymentDueDate(booking.eventDate, rateCard) : null;
+  const balanceOverdue = commercial && OPEN_STATUSES.has(booking.status)
+    && finalPaymentOverdue(booking.eventDate, rateCard);
 
   const act = async (patch) => {
     setBusy(true);
@@ -246,6 +257,30 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Commercial bookings carry money and a clock, so both are visible without
+          opening the card: what the church earns, what it is only holding, and
+          when the balance is due. */}
+      {commercial && quote && (
+        <div className="mt-2 border-l-4 border-[#1A1815] bg-[#FAF8F4] px-3 py-2">
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+            Commercial quote{rateCard.status !== 'approved' ? ' · proposed rates' : ''}
+          </p>
+          <p className="text-xs text-[#1A1815] mt-0.5" style={serif}>
+            {usd(quote.eventCharges)} event charges · {quote.hours} hr · {quote.soundPeople} sound · {quote.securityPeople} security
+            {quote.refundableDeposit > 0 && <span className="text-[#5A5751]"> · {usd(quote.refundableDeposit)} deposit held (not income)</span>}
+          </p>
+          <p className={`text-[0.6875rem] mt-0.5 ${balanceOverdue ? 'text-[#7A1F1F] font-semibold' : 'text-[#5A5751]'}`} style={serif}>
+            {usd(quote.schedule.atSigning)} at signing · {usd(quote.schedule.thirtyDaysBefore)} {balanceDue ? `by ${balanceDue}` : 'before the event'}
+            {balanceOverdue ? ' — that date has passed: the balance is due in full now.' : ''}
+          </p>
+        </div>
+      )}
+      {commercial && !quote && (
+        <p className="text-[0.6875rem] text-[#B85838] mt-2 font-semibold" style={serif}>
+          Commercial event — not quoted yet. Open Manage to price it from the team’s rate card.
+        </p>
       )}
 
       {booking.notes && <p className="text-xs text-[#5A5751] mt-2 italic" style={serif}>“{booking.notes}”</p>}
@@ -312,7 +347,17 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
             </div>
           </div>
 
-          {/* Revenue line — real staff-entered price */}
+          {/* Revenue line. A COMMERCIAL booking is priced by the team's rate card
+              (the builder writes both the quote inputs and the event charges);
+              every other event type keeps the hand-entered price it always had,
+              because a funeral or a church gathering has no rate card. */}
+          {commercial ? (
+            <CommercialQuoteBuilder
+              booking={booking}
+              card={rateCard}
+              onSave={(patch) => onUpdate(booking.id, patch)}
+            />
+          ) : (
           <div>
             <label htmlFor={`price-${booking.id}`} className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold block mb-1">Quoted price ({campus?.tier || 'standard'} rate)</label>
             <div className="flex items-center gap-2">
@@ -329,6 +374,7 @@ function BookingCard({ booking, allBookings, onUpdate, onToggle, onDelete }) {
               <span className="text-[0.6875rem] text-[#5A5751]">counts as income once scheduled</span>
             </div>
           </div>
+          )}
 
           <div>
             <button type="button" disabled={busy} onClick={() => { if (typeof window !== 'undefined' && window.confirm('Delete this booking? This cannot be undone.')) onDelete(booking.id); }} className="text-[0.6875rem] text-[#7A1F1F] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
@@ -344,11 +390,16 @@ function StaffConsole() {
   const [bookings, setBookings] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  // The team's live rate card (0162). Before it loads — and for a staff member
+  // whose instance has never edited it — this is Christina's committed proposal,
+  // merged, so the surface always has a complete card and says which it is.
+  const [rateCard, setRateCard] = useState(() => mergeRateCard(null));
 
   useEffect(() => {
     const unsub = subscribeBookings((rows) => { setBookings(rows); setLoaded(true); });
     return unsub;
   }, []);
+  useEffect(() => subscribeRateCard((card) => setRateCard(card)), []);
 
   const onUpdate = async (id, patch) => { await updateBooking(id, patch); };
   const onToggle = async (booking, key) => { await toggleResponsibility(booking, key); };
@@ -413,7 +464,7 @@ function StaffConsole() {
                 <section className="mb-6">
                   <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Requests to review</h3>
                   <div className="space-y-3">
-                    {open.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}
+                    {open.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} rateCard={rateCard} />)}
                   </div>
                 </section>
               ),
@@ -427,7 +478,7 @@ function StaffConsole() {
                   <h3 className="text-sm font-semibold text-[#1A1815] mb-2" style={serif}>Booking calendar</h3>
                   {scheduled.length === 0
                     ? <p className="text-sm text-[#5A5751]" style={serif}>No scheduled bookings yet. Approve a request from the Requests tab, or log one from the Log-a-booking tab.</p>
-                    : <div className="space-y-3">{scheduled.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>}
+                    : <div className="space-y-3">{scheduled.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} rateCard={rateCard} />)}</div>}
                 </section>
               ),
             },
@@ -437,10 +488,26 @@ function StaffConsole() {
               render: () => (
                 <section className="mb-6">
                   <h3 className="text-sm font-semibold text-[#5A5751] mb-2" style={serif}>Declined / cancelled ({closed.length})</h3>
-                  <div className="space-y-3">{closed.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} />)}</div>
+                  <div className="space-y-3">{closed.map((b) => <BookingCard key={b.id} booking={b} allBookings={bookings} onUpdate={onUpdate} onToggle={onToggle} onDelete={onDelete} rateCard={rateCard} />)}</div>
                 </section>
               ),
             } : null,
+            {
+              id: 'rate-card',
+              label: rateCard.status === 'approved' ? 'Rate card' : 'Rate card (proposed)',
+              icon: 'pencil',
+              // Christina 2026-08-30: the rates are DEFAULTS for the team to work,
+              // and the app is where that discussion belongs.
+              render: () => (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#1A1815] mb-1" style={serif}>Commercial event rate card</h3>
+                  <p className="text-xs text-[#5A5751] mb-3" style={serif}>
+                    What the church charges when someone rents a space to make money. Staff only — no requester ever sees a price here.
+                  </p>
+                  <RateCardPanel card={rateCard} />
+                </section>
+              ),
+            },
             {
               id: 'log',
               label: 'Log a booking',
