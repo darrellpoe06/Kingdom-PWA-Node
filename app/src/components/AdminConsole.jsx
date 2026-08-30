@@ -43,6 +43,7 @@ import SectionTabs from './SectionTabs.jsx';
 import OpsBoard from './OpsBoard.jsx';
 import DbHealth from './DbHealth.jsx';
 import LlmHealth from './LlmHealth.jsx';
+import LoopHealth from './LoopHealth.jsx';
 import WorkflowStatus from './WorkflowStatus.jsx';
 import NetworkStatus from './NetworkStatus.jsx';
 import {
@@ -129,6 +130,14 @@ export default function AdminConsole({
   backendReachable = false,
   isPublicHost = true,
   onResetSeed = null,
+  // The loop-health feed. `data` was already handed to this console by the shell
+  // and sat unread; it is the same object Projects passes as `loopData`, so the
+  // Systems panel now assesses the REAL loops instead of defaulting to an empty
+  // object (which would paint every loop "never updated" — a false problem
+  // state, DR-0076). onLoopDecision/financialDocAt come from the shell too.
+  data = {},
+  onLoopDecision = null,
+  financialDocAt = null,
 }) {
   const [roleState, setRoleState] = useState({ status: 'idle', role: null, error: null });
   const [members, setMembers] = useState({ status: 'idle', list: [], myRole: null, error: null });
@@ -609,7 +618,8 @@ export default function AdminConsole({
       // THE LIVE SYSTEMS LOOK, from Admin (Darrell 2026-07-30). Each panel below
       // self-fetches real state at runtime (reality-traced live, DR-0076): the
       // delivery lane + uptime (OpsBoard), the database (DbHealth), the sovereign
-      // local LLM / Ari's brain (LlmHealth), the sovereign pipelines
+      // local LLM / Ari's brain (LlmHealth), whether the app is still LOOPING
+      // (LoopHealth), the sovereign pipelines
       // (WorkflowStatus), and this device's network (NetworkStatus). Rendered
       // lazily on open. This is the operations view that used to live scattered
       // across other tabs — now one place the steward reaches from Admin.
@@ -623,6 +633,7 @@ export default function AdminConsole({
           <OpsBoard />
           <DbHealth />
           <LlmHealth />
+          <LoopHealth data={data} decisions={data.loopDecisions || {}} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
           <WorkflowStatus />
           <NetworkStatus />
         </div>
