@@ -16,7 +16,7 @@
 // shipped Bible. Where a speaker is not verified, the words render plain — never
 // attributed by guess. The set is small and TRUE, and it grows verse by verified
 // verse. Verbatim quotes keep their source capitalization inside the quote
-// (DR-0076 honest edge) — e.g. the KJV's own "Satan".
+// (DR-0076 honest edge) — e.g. the KJV's own "satan".
 // =============================================================================
 
 // The voices palette. `css` is spread onto the spoken text; every color clears
@@ -98,10 +98,10 @@ export const VOICE_QUOTES = [
   { ref: 'Matthew 4:6', voice: 'adversary', quote: 'If thou be the Son of God, cast thyself down: for it is written, He shall give his angels charge concerning thee: and in their hands they shall bear thee up, lest at any time thou dash thy foot against a stone.' },
   { ref: 'Matthew 4:7', voice: 'jesus', quote: 'It is written again, Thou shalt not tempt the Lord thy God.' },
   { ref: 'Matthew 4:9', voice: 'adversary', quote: 'All these things will I give thee, if thou wilt fall down and worship me.' },
-  { ref: 'Matthew 4:10', voice: 'jesus', quote: 'Get thee hence, Satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
+  { ref: 'Matthew 4:10', voice: 'jesus', quote: 'Get thee hence, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
   // The great I AM saying (John 14) and the Luke parallel of the Temptation.
   { ref: 'John 14:6', voice: 'jesus', quote: 'I am the way, the truth, and the life: no man cometh unto the Father, but by me.' },
-  { ref: 'Luke 4:8', voice: 'jesus', quote: 'Get thee behind me, Satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
+  { ref: 'Luke 4:8', voice: 'jesus', quote: 'Get thee behind me, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
   // The WOMEN heard as women (Darrell 2026-07-10: "it actually sounds like a man
   // or woman based on who is speaking"). Every quote fetched verbatim from the
   // shipped KJV before landing here (DR-0076).

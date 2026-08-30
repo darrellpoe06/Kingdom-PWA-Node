@@ -790,7 +790,7 @@ export const GUARDING_THE_HOUSE = {
     { ref: 'Proverbs 6:11', fragment: 'So shall thy poverty come as one that travelleth, and thy want as an armed man', note: 'THE WORD DOES NOT SOFTEN IT — poverty from ungoverned ways arrives like an armed robber, on a schedule; "the drunkard and the glutton shall come to poverty" (Proverbs 23:21). Saying it plainly at the kitchen table is not cruelty — under-claiming a real oncoming harm is its own falsehood.' },
   ],
   theAbigailDoctrine: [
-    { ref: '1 Samuel 25:17', fragment: 'for he is such a son of Belial, that a man cannot speak to him', note: 'THE WORD’S CASE STUDY: a competent spouse married to ways that refused governing — the accountability gate, verbatim, three thousand years ago, with "evil determined against all his household."' },
+    { ref: '1 Samuel 25:17', fragment: 'for he is such a son of belial, that a man cannot speak to him', note: 'THE WORD’S CASE STUDY: a competent spouse married to ways that refused governing — the accountability gate, verbatim, three thousand years ago, with "evil determined against all his household."' },
     { ref: '1 Samuel 25:18', fragment: 'Then Abigail made haste', note: 'SHE ACTED — real assets, within her own stewardship, WITHOUT waiting for Nabal’s agreement, to save the very house he endangered —' },
     { ref: '1 Samuel 25:33', fragment: 'blessed be thy advice, and blessed be thou', note: '— and the Word’s verdict on her is BLESSING. The doctrine: protective action inside one’s God-given stewardship is faithfulness to the house, not rebellion against the spouse.' },
   ],
