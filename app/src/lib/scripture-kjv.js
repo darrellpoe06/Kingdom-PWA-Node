@@ -260,7 +260,7 @@ export const KJV = {
   "1 Samuel 17:33": "And Saul said to David, Thou art not able to go against this Philistine to fight with him: for thou art but a youth, and he a man of war from his youth.",
   "2 Chronicles 34:3": "For in the eighth year of his reign, while he was yet young, he began to seek after the God of David his father: and in the twelfth year he began to purge Judah and Jerusalem from the high places, and the groves, and the carved images, and the molten images.",
   "Hosea 4:6": "My people are destroyed for lack of knowledge: because thou hast rejected knowledge, I will also reject thee, that thou shalt be no priest to me: seeing thou hast forgotten the law of thy God, I will also forget thy children.",
-  "2 Corinthians 2:11": "Lest Satan should get an advantage of us: for we are not ignorant of his devices.",
+  "2 Corinthians 2:11": "Lest satan should get an advantage of us: for we are not ignorant of his devices.",
   "Daniel 11:32": "And such as do wickedly against the covenant shall he corrupt by flatteries: but the people that do know their God shall be strong, and do exploits.",
   "1 John 2:14": "I have written unto you, fathers, because ye have known him that is from the beginning. I have written unto you, young men, because ye are strong, and the word of God abideth in you, and ye have overcome the wicked one.",
   "Ephesians 6:11-12": "Put on the whole armour of God, that ye may be able to stand against the wiles of the devil. For we wrestle not against flesh and blood, but against principalities, against powers, against the rulers of the darkness of this world, against spiritual wickedness in high places.",

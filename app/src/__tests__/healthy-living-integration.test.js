@@ -60,7 +60,7 @@ const INTEGRATION_QUOTES = [
   { ref: '1 Peter 5:10', book: '1Peter', ch: 5, v: 10, fragments: ['after that ye have suffered a while, make you perfect, stablish, strengthen, settle you'] },
   { ref: 'Job 1:12', book: 'Job', ch: 1, v: 12, fragments: ['Behold, all that he hath is in thy power; only upon himself put not forth thine hand'] },
   { ref: 'Job 2:6', book: 'Job', ch: 2, v: 6, fragments: ['Behold, he is in thine hand; but save his life'] },
-  { ref: 'Luke 22:31', book: 'Luke', ch: 22, v: 31, fragments: ['Simon, Simon, behold, Satan hath desired to have you, that he may sift you as wheat'] },
+  { ref: 'Luke 22:31', book: 'Luke', ch: 22, v: 31, fragments: ['Simon, Simon, behold, satan hath desired to have you, that he may sift you as wheat'] },
   { ref: 'Luke 22:32', book: 'Luke', ch: 22, v: 32, fragments: ['But I have prayed for thee, that thy faith fail not'] },
   { ref: 'Hosea 4:6', book: 'Hosea', ch: 4, v: 6, fragments: ['My people are destroyed for lack of knowledge'] },
   { ref: 'Genesis 2:17', book: 'Genesis', ch: 2, v: 17, fragments: ['in the day that thou eatest thereof thou shalt surely die'] },
@@ -149,7 +149,7 @@ describe('every lesson closes as a WHOLE, at every level', () => {
   });
 
   it('the adversary is never capitalized in our own voice (Typographic Theology)', () => {
-    // Quotation is exempt: the KJV's own "Satan" inside a quoted verse is
+    // Quotation is exempt: the KJV's own "satan" inside a quoted verse is
     // reproduced exactly. What is checked here is OUR prose.
     const ours = HIS_WILL_AND_THE_WAY_THROUGH.split('"').filter((_, i) => i % 2 === 0).join(' ');
     expect(ours).not.toMatch(/\bSatan\b/);
