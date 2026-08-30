@@ -12,7 +12,7 @@
 //   variant="panel"  — prominent labeled card for the reading-heavy areas
 //                       (The Word, Learn, Conference) and the About/Settings page.
 import React from 'react';
-import { useTextSize } from '../lib/text-size.js';
+import { useTextSize, DEFAULT_TEXT_SIZE } from '../lib/text-size.js';
 
 export default function TextSizeControl({ variant = 'header', className = '' }) {
   const [active, setSize, steps] = useTextSize();
@@ -88,6 +88,50 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
         <div className="text-xs font-semibold text-[#B85838] whitespace-nowrap">{current ? current.name : ''}</div>
       </div>
       {buttons}
+    </div>
+  );
+}
+
+
+// =============================================================================
+// TextSizeEscapeHatch — the way OUT of big text survives the header hideaway
+// =============================================================================
+// Darrell, 2026-08-30, at Big Print 44 on his phone: "large font block the
+// ability to change it afterwards after selecting it...!!!!!!!!??????"
+//
+// MEASURED, not guessed (chrome-layout-probe, 360px + 412px, Big Print and
+// Largest): with the header EXPANDED, five text-size controls render and all
+// five are fully on screen — the DR-0276 escape hatch works. With the header
+// COLLAPSED, the count is ZERO. The header hideaway unmounts the whole comfort
+// row (account, voice, FONT, theme), so the escape hatch was not merely pushed
+// off screen — it did not exist in the DOM. The only control left was the
+// collapse chevron, which looks like a chevron, not like the way back to
+// normal text.
+//
+// DR-0276 rule 3 says text-size controls are chrome so "big text is ALWAYS
+// reversible." The hideaway broke that word: reversible only from a state the
+// reader may have left. This restores it without taking the hideaway away —
+// Darrell built that for dashboard room and it stays.
+//
+// Renders NOTHING at Normal: at 1x there is no trap, so a reader who tucked
+// the top bar away for room gets exactly the clean surface they asked for.
+// Above Normal it renders inside the .ts-safe-sticky header carrying
+// .ts-escape-hatch, so the existing index.css rules take over at the sizes
+// that actually trap (sticky at Larger; a fixed bottom bar at Largest and Big
+// Print) — no new layout mechanism, the proven one is reused.
+export function TextSizeEscapeHatch({ collapsed }) {
+  const [active] = useTextSize();
+  // Only when the header is tucked away AND the reader is above Normal.
+  if (!collapsed || active === DEFAULT_TEXT_SIZE) return null;
+  return (
+    <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
+      {/* Plain words, not an icon: the reader who needs this is the reader who
+          could not find it. Fixed px (like the control's own labels) so the
+          way out never compounds with the setting it undoes. */}
+      <span className="text-[#5A5751] font-semibold whitespace-nowrap" style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}>
+        Text size
+      </span>
+      <TextSizeControl variant="header" />
     </div>
   );
 }
