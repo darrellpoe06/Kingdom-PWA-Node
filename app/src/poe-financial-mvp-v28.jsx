@@ -5105,6 +5105,8 @@ ${THEME_CSS}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}
             data={data}
+            onLoopDecision={onLoopDecision}
+            financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
             isPublicHost={isPublicHost()}
             onResetSeed={resetToSeed}
           />
