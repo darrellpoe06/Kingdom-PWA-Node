@@ -20,8 +20,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
 const start = src.indexOf("id: 'll106-wise-as-serpents-harmless-as-doves-know-the-enemy-deny-the-flesh-and-the-one-way'");
-// Bound the slice to THIS module only — the next lesson's id (a later lesson quotes
-// "Satan himself…" from 2 Cor 11:14, which must not bleed into L106's low-naming check).
+// Bound the slice to THIS module only — a later lesson quotes "Satan himself…"
+// (2 Cor 11:14), which must not bleed into L106's low-naming check.
 const nextId = src.indexOf("id: 'll", start + 10);
 const l = src.slice(start, nextId === -1 ? start + 120000 : nextId);
 
