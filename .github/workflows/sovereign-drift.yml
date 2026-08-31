@@ -50,18 +50,60 @@ jobs:
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
 
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+               -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+
+          # REACHABILITY FIRST, and NEVER swallow the reason (the 2026-08-31 fix
+          # to this file's own first run): the original piped stderr to
+          # /dev/null, so when the very first dispatch failed in one second the
+          # witness could say only "NOT MEASURED" — honest, but blind, which
+          # makes it useless for acting on. A witness has to report WHY.
+          # MagicDNS is also not always resolvable the instant tailscaled comes
+          # up, so a single immediate attempt can fail on timing alone.
+          probe=""; err=""
+          for attempt in 1 2 3; do
+            if err=$($SSH "echo READY" 2>&1); then probe="$err"; break; fi
+            sleep 5
+          done
+          if [ "$probe" != "READY" ]; then
+            rm -f /tmp/nas_key
+            note "## Sovereign migration drift — NOT MEASURED"
+            note ""
+            note "The NAS was not reachable over the tailnet after 3 attempts. Last error:"
+            note ""
+            note '```'
+            note "$err"
+            note '```'
+            note ""
+            note "An unmeasured dimension is never reported as healthy (DR-0076)."
+            echo "::error::NAS unreachable — sovereign drift is UNKNOWN, not zero"
+            exit 1
+          fi
+
           # SELECT only. `docker exec` runs psql inside the stack's own db
-          # container, so no port or password ever leaves the NAS.
-          LEDGER=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
-            dpoe@poetech.tail5a2f35.ts.net \
-            "sudo -n docker exec supabase-db psql -U supabase_admin -d postgres -tAc \
-             \"select filename from public._schema_migrations order by filename\"" 2>/dev/null) || LEDGER=""
+          # container, so no port or password ever leaves the NAS. Try without
+          # sudo first (dpoe may be in the docker group); fall back to sudo -n,
+          # which is the channel the deploy workflow already uses.
+          Q="select filename from public._schema_migrations order by filename"
+          LEDGER=""; dberr=""
+          for runner in "docker" "sudo -n docker"; do
+            if out=$($SSH "$runner exec supabase-db psql -U supabase_admin -d postgres -tAc \"$Q\"" 2>&1); then
+              LEDGER="$out"; break
+            fi
+            dberr="$out"
+          done
           rm -f /tmp/nas_key
 
           if [ -z "$LEDGER" ]; then
             note "## Sovereign migration drift — NOT MEASURED"
             note ""
-            note "The sovereign ledger could not be read (NAS unreachable, or \`public._schema_migrations\` does not exist there)."
+            note "The NAS answered, but the ledger query did not. Last error:"
+            note ""
+            note '```'
+            note "$dberr"
+            note '```'
+            note ""
+            note "Either \`public._schema_migrations\` does not exist on the sovereign database — which would itself mean NO migration ledger was ever replayed there — or the db container/credentials differ from \`supabase-db\` / \`supabase_admin\`."
             note "An unmeasured dimension is never reported as healthy (DR-0076)."
             echo "::error::sovereign ledger unreadable — drift is UNKNOWN, not zero"
             exit 1
