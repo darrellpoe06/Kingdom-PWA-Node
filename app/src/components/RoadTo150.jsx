@@ -26,6 +26,7 @@ import React, { useState, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { confirmThen } from '../lib/confirm-action.js';
+import { parseFoodLine, resolveFromLibrary, unknownCount } from '../lib/food-parse.js';
 import {
   MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
@@ -191,6 +192,7 @@ export default function RoadTo150({
   addWaterEntry = null,
   deleteWaterEntry = null,
   foodEntries = [],
+  foodLibrary = [],
   addFoodEntry = null,
   deleteFoodEntry = null,
   today = null,
@@ -218,6 +220,8 @@ export default function RoadTo150({
   // One draft per meal so opening Dinner does not clear a half-typed Lunch item.
   const [draft, setDraft] = useState({});
   const foodDay = useMemo(() => dayFoodTotals(foodEntries, todayKey), [foodEntries, todayKey]);
+  // The quick-add sentence and its parsed rows, held until confirmed.
+  const [quick, setQuick] = useState({ meal: 'morning', line: '', rows: null });
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -393,6 +397,31 @@ export default function RoadTo150({
 
   const num = (v, unit) => (v.recorded === 0 ? '—' : `${round1(v.total)}${unit}${v.complete ? '' : '*'}`);
 
+  // Parse the sentence, fill in what we ALREADY KNOW from the person's own
+  // confirmed foods, and show the rest as blanks to complete. Nothing is logged
+  // until they press Add — and an unknown stays blank rather than guessing.
+  const parseQuick = () => {
+    const items = parseFoodLine(quick.line);
+    if (!items.length) return;
+    setQuick((q) => ({ ...q, rows: resolveFromLibrary(items, foodLibrary) }));
+  };
+  const setQuickRow = (idx, field, value) =>
+    setQuick((q) => ({ ...q, rows: q.rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)) }));
+  const addAllQuick = () => {
+    if (!addFoodEntry || !quick.rows) return;
+    for (const r of quick.rows) {
+      if (!r.name) continue;
+      addFoodEntry({
+        day: todayKey, meal: quick.meal, name: r.name, serving: r.serving || '',
+        calories: r.calories === '' || r.calories == null ? null : Number(r.calories),
+        proteinG: r.proteinG === '' || r.proteinG == null ? null : Number(r.proteinG),
+        source: r.source || 'entered',
+        eatenAt: new Date().toISOString(),
+      });
+    }
+    setQuick({ meal: quick.meal, line: '', rows: null });
+  };
+
   const foodTab = () => (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-food-h">
@@ -412,6 +441,74 @@ export default function RoadTo150({
         </p>
         {!addFoodEntry && (
           <p className="text-xs text-[#B85838] mt-2" style={serif}>Sign in to log food.</p>
+        )}
+      </section>
+
+      <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-quick-h">
+        <h3 id="r150-quick-h" className="text-lg" style={display}>Say what you ate</h3>
+        <p className="text-xs text-[#5A5751] mt-1 mb-3" style={serif}>
+          Write it the way you would say it — “a 6 inch turkey sandwich with white bread, mayo
+          tomatoes, pickles onions olives hot peppers avocado spread”. Each food becomes its own
+          line. Anything you have logged before fills in its own calories and protein; anything
+          new stays blank for you to fill once, and is remembered after that.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {MEALS.map((m) => (
+            <button key={m.id} type="button" onClick={() => setQuick((q) => ({ ...q, meal: m.id }))}
+                    aria-pressed={quick.meal === m.id}
+                    className={`px-3 py-2 border-2 border-[#1A1815] text-sm transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${quick.meal === m.id ? 'bg-[#1A1815] text-white' : 'hover:bg-[#E8E4DC]'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <label htmlFor="r150-quick-line" className="sr-only">What you ate, in your own words</label>
+        <textarea id="r150-quick-line" rows={2} value={quick.line}
+                  onChange={(e) => setQuick((q) => ({ ...q, line: e.target.value, rows: null }))}
+                  placeholder="a 6 inch turkey sandwich with white bread, mayo tomatoes, pickles"
+                  className="w-full border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+        <button type="button" onClick={parseQuick} disabled={!quick.line.trim()}
+                className="mt-2 w-full px-4 py-2 border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Break it into foods
+        </button>
+
+        {quick.rows && (
+          <div className="mt-4">
+            <div className="text-xs text-[#5A5751] mb-2" style={serif}>
+              {quick.rows.length} food{quick.rows.length === 1 ? '' : 's'} found
+              {unknownCount(quick.rows) > 0
+                ? ` · ${unknownCount(quick.rows)} still need a number — leave blank if you don't know`
+                : ' · all filled in from what you logged before'}
+            </div>
+            <ul className="divide-y divide-[#E8E4DC]">
+              {quick.rows.map((r, idx) => (
+                <li key={`${r.name}-${idx}`} className="py-2">
+                  <div className="text-sm text-[#1A1815]" style={serif}>
+                    {r.name}
+                    {r.serving ? <span className="text-[#5A5751]"> · {r.serving}</span> : null}
+                    {r.source === 'remembered' && (
+                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">remembered</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <label htmlFor={`r150-q-cal-${idx}`} className="sr-only">Calories for {r.name}</label>
+                    <input id={`r150-q-cal-${idx}`} type="number" min="0" step="1" inputMode="numeric"
+                           value={r.calories ?? ''} placeholder="Calories"
+                           onChange={(e) => setQuickRow(idx, 'calories', e.target.value)}
+                           className="border-2 border-[#1A1815] px-2 py-1 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                    <label htmlFor={`r150-q-pro-${idx}`} className="sr-only">Protein grams for {r.name}</label>
+                    <input id={`r150-q-pro-${idx}`} type="number" min="0" step="0.1" inputMode="decimal"
+                           value={r.proteinG ?? ''} placeholder="Protein g"
+                           onChange={(e) => setQuickRow(idx, 'proteinG', e.target.value)}
+                           className="border-2 border-[#1A1815] px-2 py-1 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={addAllQuick} disabled={!addFoodEntry}
+                    className="mt-3 w-full px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Add all {quick.rows.length} to {(MEALS.find((m) => m.id === quick.meal) || {}).label}
+            </button>
+          </div>
         )}
       </section>
 
