@@ -9,6 +9,12 @@
       "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
     },
     {
+      "name": "ops-runner",
+      "install": "infra/nas-sme-pipeline/ops_runner_install.sh",
+      "enabled": true,
+      "description": "Drain the app's operations queue (DR-0088 ops_commands) on the ALREADY-ARMED services-sync clock. Measured 2026-08-31: the queue's last row was 2026-07-06 and a zero-effect probe (unknown job, which the runner marks 'skipped' without executing) sat 'queued' with started_at NULL past a 60s poll -- the runner was dead for eight weeks. The cause was already written down in this file's own transcript-trickle note: 'ops-runner.py, which is installed by nothing.' DR-0088 shipped it inactive and armed by hand as a DSM boot task, and a hand-placed daemon does not survive a reboot; every other service here self-deploys, this one was never registered. The fix is NO daemon: --once per cycle, so there is nothing to outlive a reboot and nothing to re-arm (DR-0236/DR-0247). Latency moves from ~1 min to <=15 min, which is invisible for the two whitelisted jobs and is the whole distance between 'usually nothing' and 'every time.' Brakes unchanged (3/cycle budget, subprocess timeout, single-instance lock) plus the cycle timeout above; the runner's human-cleared pause becomes TIME-DECAYED so it can no longer stop the lane permanently and silently (DR-0248, the transcript-trickle precedent). Witness: ops-queue-health.yml probes the queue from OUTSIDE the NAS and files an incident when a command sits queued."
+    },
+    {
       "name": "agent-consumer",
       "install": "infra/nas-agent/install.sh",
       "enabled": true,
@@ -42,7 +48,7 @@
       "name": "funnel",
       "install": "infra/nas-loops/loops/funnel-watchdog.sh",
       "enabled": true,
-      "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) \u2014 the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1)."
+      "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) — the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1)."
     },
     {
       "name": "choir-dates",

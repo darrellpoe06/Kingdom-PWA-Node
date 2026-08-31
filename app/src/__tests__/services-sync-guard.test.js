@@ -342,3 +342,73 @@ describe('transcript-trickle dependency is user-independent', () => {
     expect(src).toMatch(/exit 1/);
   });
 });
+
+// A CLAIMED WITNESS MUST EXIST (2026-08-31).
+// ===========================================================================
+// Writing the ops-runner service entry, I typed "Witness: ops-queue-health.yml
+// probes the queue from OUTSIDE the NAS" into its description BEFORE that
+// workflow existed — a false claim, in a committed artifact, in the house
+// voice, about the one property this manifest cannot verify for itself. It
+// would have read as reviewed precisely because it looked right.
+//
+// That is the same shape as the failure the ops-runner entry documents: the
+// transcript-trickle note said its stop-path routed through "ops-runner.py,
+// which nothing installs" — a documented path to a thing that was not there.
+// A description in this file is load-bearing (it is what a future session
+// reads to decide whether a lane is watched), so a witness named here is a
+// promise the repo must keep.
+export function witnessProblems(doc, fileExists) {
+  const problems = [];
+  for (const svc of (doc && doc.services) || []) {
+    const desc = String((svc && svc.description) || '');
+    // "Witness: harvest-health.yml probes ..." — take the first .yml token after
+    // the marker, which is how every existing entry writes it.
+    const m = desc.match(/Witness:\s*([A-Za-z0-9._-]+\.ya?ml)/i);
+    if (!m) continue;
+    const wf = `.github/workflows/${m[1]}`;
+    if (!fileExists(wf)) problems.push(`${svc.name}:witness-not-found:${m[1]}`);
+  }
+  return problems;
+}
+
+describe('a claimed witness exists (the 2026-08-31 near-miss, made mechanical)', () => {
+  const services = () => JSON.parse(readFileSync(join(LOOPS_DIR, 'services.json'), 'utf-8'));
+  const onDisk = (rel) => existsSync(join(ROOT, rel));
+
+  it('PROVEN-TO-CATCH: a description naming a workflow that does not exist fails', () => {
+    const doc = { services: [{ name: 'x', enabled: true, description: 'Witness: not-a-real-witness.yml probes it.' }] };
+    expect(witnessProblems(doc, onDisk)).toEqual(['x:witness-not-found:not-a-real-witness.yml']);
+  });
+
+  it('a description that claims no witness is not this gate\'s business', () => {
+    expect(witnessProblems({ services: [{ name: 'y', enabled: true, description: 'no claim here' }] }, onDisk)).toEqual([]);
+  });
+
+  it('the REAL manifest keeps every witness it names', () => {
+    expect(witnessProblems(services(), onDisk)).toEqual([]);
+  });
+
+  it('the ops queue names its witness, and that witness is scheduled (not dispatch-only)', () => {
+    const ops = services().services.find((s) => s.name === 'ops-runner');
+    expect(ops, 'ops-runner must be registered — a hand-placed daemon is what died').toBeTruthy();
+    expect(ops.enabled).toBe(true);
+    expect(ops.description).toMatch(/Witness:\s*ops-queue-health\.yml/i);
+    const wf = readFileSync(join(ROOT, '.github/workflows/ops-queue-health.yml'), 'utf-8');
+    expect(wf).toMatch(/^\s*schedule:/m);
+    expect(wf).toMatch(/cron:/);
+    // it must live OUTSIDE the NAS's failure domain, like harvest-health
+    expect(wf).toMatch(/runs-on:\s*ubuntu-latest/);
+    // and never report "cannot measure" as healthy
+    expect(wf).toMatch(/never\s+reported\s+as\s+healthy|Unknown is NEVER/i);
+  });
+
+  it('the ops-runner installer rides the armed clock rather than re-arming a daemon', () => {
+    const src = readFileSync(join(ROOT, 'infra/nas-sme-pipeline/ops_runner_install.sh'), 'utf-8');
+    expect(src, 'must drain one bounded cycle, not spawn a survivor').toMatch(/--once/);
+    expect(src, 'a --loop daemon is the thing that died').not.toMatch(/python3 .*--loop/);
+    // the human-cleared pause is what could stop the lane silently forever
+    expect(src).toMatch(/PAUSE_DECAY/);
+    // a missing credential is a polite no-op, not a red cycle every 15 minutes
+    expect(src).toMatch(/no credential/i);
+  });
+});
