@@ -28,6 +28,7 @@ import SectionTabs from './SectionTabs.jsx';
 import { confirmThen } from '../lib/confirm-action.js';
 import { parseFoodLine, resolveFromLibrary, unknownCount } from '../lib/food-parse.js';
 import { fillUnknowns } from '../lib/food-lookup.js';
+import { JUICE_RECIPES, juiceServingOptions, juiceServing } from '../lib/juice-recipes.js';
 import {
   MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
@@ -224,6 +225,7 @@ export default function RoadTo150({
   // The quick-add sentence and its parsed rows, held until confirmed.
   const [quick, setQuick] = useState({ meal: 'morning', line: '', rows: null });
   const [looking, setLooking] = useState(false);
+  const [customJuiceOz, setCustomJuiceOz] = useState('');
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -437,6 +439,19 @@ export default function RoadTo150({
     setQuick({ meal: quick.meal, line: '', rows: null });
   };
 
+  // ONE TAP for the usual. The serving's nutrition is computed at the moment of
+  // logging and STORED ON THE ENTRY, so editing the recipe later cannot rewrite
+  // what was already eaten -- his explicit requirement, held structurally.
+  const logJuice = (recipe, oz) => {
+    const serving = juiceServing(oz, recipe);
+    if (!serving || !addFoodEntry) return;
+    addFoodEntry({
+      day: todayKey, meal: quick.meal, name: serving.name, serving: serving.serving,
+      calories: serving.calories, proteinG: serving.proteinG,
+      source: 'recipe', eatenAt: new Date().toISOString(),
+    });
+  };
+
   const foodTab = () => (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-food-h">
@@ -458,6 +473,65 @@ export default function RoadTo150({
           <p className="text-xs text-[#B85838] mt-2" style={serif}>Sign in to log food.</p>
         )}
       </section>
+
+      {JUICE_RECIPES.map((recipe) => {
+        const opts = juiceServingOptions(recipe);
+        const dflt = opts.find((o) => o.isDefault) || opts[0];
+        return (
+          <section key={recipe.id} className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby={`r150-fav-${recipe.id}`}>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Favorites</div>
+            <h3 id={`r150-fav-${recipe.id}`} className="text-lg" style={display}>{recipe.name}</h3>
+            <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+              {recipe.estimateNote} Logging to <strong>{(MEALS.find((m) => m.id === quick.meal) || {}).label}</strong>.
+            </p>
+
+            {dflt && (
+              <button type="button" onClick={() => logJuice(recipe, dflt.oz)} disabled={!addFoodEntry}
+                      className="mt-3 w-full px-4 py-3 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Add {dflt.oz} oz · {dflt.calories} cal · ~{dflt.proteinG}g
+              </button>
+            )}
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {opts.filter((o) => !o.isDefault).map((o) => (
+                <button key={o.oz} type="button" onClick={() => logJuice(recipe, o.oz)} disabled={!addFoodEntry}
+                        className="px-3 py-2 border-2 border-[#1A1815] text-sm hover:bg-[#1A1815] hover:text-white disabled:opacity-40 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        aria-label={`Add ${o.oz} ounces, ${o.calories} calories`}>
+                  {o.oz} oz
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <label htmlFor={`r150-juice-custom-${recipe.id}`} className="sr-only">Custom ounces</label>
+              <input id={`r150-juice-custom-${recipe.id}`} type="number" min="1" step="1" inputMode="numeric"
+                     value={customJuiceOz} onChange={(e) => setCustomJuiceOz(e.target.value)}
+                     placeholder="Custom oz"
+                     className="flex-1 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <button type="button" disabled={!addFoodEntry || !juiceServing(customJuiceOz, recipe)}
+                      onClick={() => { logJuice(recipe, Number(customJuiceOz)); setCustomJuiceOz(''); }}
+                      className="px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Add
+              </button>
+            </div>
+            {juiceServing(customJuiceOz, recipe) && (
+              <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+                {customJuiceOz} oz ≈ {juiceServing(customJuiceOz, recipe).calories} cal ·
+                ~{juiceServing(customJuiceOz, recipe).proteinG}g protein
+              </p>
+            )}
+
+            <details className="mt-3">
+              <summary className="text-xs text-[#5A5751] cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>
+                What's in it · {recipe.batchOz} oz batch
+              </summary>
+              <ul className="mt-2 text-xs text-[#5A5751] list-disc pl-5 space-y-0.5" style={serif}>
+                {recipe.ingredients.map((ing) => <li key={ing}>{ing}</li>)}
+              </ul>
+            </details>
+          </section>
+        );
+      })}
 
       <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-quick-h">
         <h3 id="r150-quick-h" className="text-lg" style={display}>Say what you ate</h3>
