@@ -1,0 +1,178 @@
+# Sovereign migration drift — READ-ONLY witness (DR-0317)
+#
+# WHY THIS EXISTS. On 2026-08-31, while verifying that migration 0163 had
+# actually reached the database, the ledger was measured in the wrong place and
+# the real gap surfaced: `db-migrate.yml` applies every migration through the
+# `SUPABASE_DB_URL` secret, which still names the HOSTED project — while the app
+# has read the SOVEREIGN stack since REPOINT-ARMED landed on 2026-08-19. MEASURED
+# that day: 0163's `moore_showcase_read` policy exists on the hosted database,
+# and the hosted `_schema_migrations` ledger carries 176 rows with 0163 newest,
+# applied 13:38:51Z. Nothing replays migrations to the sovereign side —
+# `replay_migrations.sh` is invoked only by `install.sh`, a one-time path. So a
+# merged migration lands on a database the app no longer reads, and CI stays
+# green either way. Same shape as the blob gap this DR opened with: the repoint
+# moved one thing, left another behind, and nothing watched.
+#
+# This workflow ONLY OBSERVES. It runs SELECTs against the sovereign ledger and
+# prints the difference against the repo's own migration files. It applies
+# nothing, writes nothing, and heals nothing — closing the gap is a decision
+# about where migrations should land, and that is Darrell's to make with the
+# real number in front of him rather than a guess.
+#
+# Dispatch-only, so it is NOT the timer-driven class the three-brakes rule
+# governs (P10/P11/P12): no schedule, no self-trigger, it exits when it has
+# counted. Unknown never reads as healthy (DR-0076) — if the NAS cannot be
+# reached, this FAILS loudly rather than reporting "no drift".
+name: Sovereign migration drift (read-only)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: count what the sovereign database is missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the sovereign ledger and diff it against the repo
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+
+          # LogLevel=ERROR matters for correctness, not tidiness: a fresh runner
+          # has an empty known_hosts, so ssh prints "Warning: Permanently added
+          # ..." on its FIRST connection. Merged into the output it (a) broke an
+          # exact "$probe" = READY test even though the probe succeeded, and
+          # (b) would have injected that warning line into the ledger list as a
+          # phantom migration filename, silently corrupting the diff this whole
+          # workflow exists to produce. Both were live in c8a4fef.
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+               -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
+
+          # REACHABILITY FIRST, and NEVER swallow the reason (the 2026-08-31 fix
+          # to this file's own first run): the original piped stderr to
+          # /dev/null, so when the very first dispatch failed in one second the
+          # witness could say only "NOT MEASURED" — honest, but blind, which
+          # makes it useless for acting on. A witness has to report WHY.
+          # MagicDNS is also not always resolvable the instant tailscaled comes
+          # up, so a single immediate attempt can fail on timing alone.
+          # Match on CONTAINS, never equality: any banner or warning the remote
+          # host prints would otherwise read as a failed probe on a live link.
+          probe=""; err=""
+          for attempt in 1 2 3; do
+            err=$($SSH "echo READY" 2>&1) || true
+            case "$err" in *READY*) probe="READY"; break;; esac
+            sleep 5
+          done
+          if [ "$probe" != "READY" ]; then
+            rm -f /tmp/nas_key
+            note "## Sovereign migration drift — NOT MEASURED"
+            note ""
+            note "The NAS was not reachable over the tailnet after 3 attempts. Last error:"
+            note ""
+            note '```'
+            note "$err"
+            note '```'
+            note ""
+            note "An unmeasured dimension is never reported as healthy (DR-0076)."
+            echo "::error::NAS unreachable — sovereign drift is UNKNOWN, not zero"
+            exit 1
+          fi
+
+          # SELECT only. `docker exec` runs psql inside the stack's own db
+          # container, so no port or password ever leaves the NAS. Try without
+          # sudo first (dpoe may be in the docker group); fall back to sudo -n,
+          # which is the channel the deploy workflow already uses.
+          # The remote work rides `bash -s` over stdin rather than a quoted
+          # one-liner: the password and the SQL would otherwise cross three
+          # quoting layers (local shell, ssh, remote shell) and one mistake
+          # there is a silently wrong result, not an error.
+          #
+          # DSM does not put docker on the PATH — `sudo: docker: command not
+          # found` is what run 33402087727 actually hit. This is the idiom the
+          # repo's own sovereign scripts already use
+          # (infra/nas-supabase/reset_phone_pin.sh:36), together with their
+          # PGPASSWORD-from-.env connection, rather than a new invention.
+          cat > /tmp/remote.sh <<'REMOTE'
+          set -u
+          ENV_FILE=/volume1/docker/supabase/.env
+          PW=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
+          [ -n "$PW" ] || PW=$(sudo -n sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
+          [ -n "$PW" ] || { echo "could not read POSTGRES_PASSWORD from $ENV_FILE" >&2; exit 3; }
+          DOCKER=$(command -v docker 2>/dev/null || true)
+          if [ -z "$DOCKER" ]; then
+            for c in /usr/local/bin/docker /usr/bin/docker; do
+              [ -x "$c" ] && DOCKER="$c" && break
+            done
+          fi
+          [ -n "$DOCKER" ] || { echo "docker binary not found (checked PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
+          Q="select filename from public._schema_migrations order by filename"
+          "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e1 && exit 0
+          sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e2 && exit 0
+          cat /tmp/e1 /tmp/e2 >&2
+          exit 5
+          REMOTE
+          # The heredoc is indented to match this YAML block; strip that indent
+          # so the remote shell receives a clean script.
+          sed -i 's/^          //' /tmp/remote.sh
+
+          # stderr to a FILE, never into the value: the ledger variable must
+          # carry migration filenames and nothing else, or the diff lies.
+          LEDGER=$($SSH "bash -s" < /tmp/remote.sh 2>/tmp/dberr) || LEDGER=""
+          dberr=$(cat /tmp/dberr 2>/dev/null)
+          rm -f /tmp/nas_key
+
+          if [ -z "$LEDGER" ]; then
+            note "## Sovereign migration drift — NOT MEASURED"
+            note ""
+            note "The NAS answered, but the ledger query did not. Last error:"
+            note ""
+            note '```'
+            note "$dberr"
+            note '```'
+            note ""
+            note "Either \`public._schema_migrations\` does not exist on the sovereign database — which would itself mean NO migration ledger was ever replayed there — or the db container/credentials differ from \`supabase-db\` / \`supabase_admin\`."
+            note "An unmeasured dimension is never reported as healthy (DR-0076)."
+            echo "::error::sovereign ledger unreadable — drift is UNKNOWN, not zero"
+            exit 1
+          fi
+
+          printf '%s\n' "$LEDGER" | sed '/^$/d' | sort > /tmp/sovereign.txt
+          ls infra/supabase/migrations-auto/*.sql | xargs -n1 basename | sort > /tmp/repo.txt
+
+          repo_n=$(wc -l < /tmp/repo.txt)
+          sov_n=$(wc -l < /tmp/sovereign.txt)
+          missing=$(comm -23 /tmp/repo.txt /tmp/sovereign.txt)
+          missing_n=$(printf '%s\n' "$missing" | sed '/^$/d' | wc -l)
+
+          note "## Sovereign migration drift — $(date -u +%FT%TZ)"
+          note ""
+          note "- migrations in the repo: **$repo_n**"
+          note "- applied on the sovereign database: **$sov_n**"
+          note "- **missing from the database the app actually reads: $missing_n**"
+          note ""
+          if [ "$missing_n" -gt 0 ]; then
+            note "<details><summary>the $missing_n missing migrations</summary>"
+            note ""
+            printf '%s\n' "$missing" | sed '/^$/d' | while read -r m; do note "- \`$m\`"; done
+            note ""
+            note "</details>"
+            note ""
+            note "Each one is a schema change that merged green and never reached the live database."
+            echo "::warning::$missing_n migrations are missing from the sovereign database (DR-0317)"
+          else
+            note "**No drift.** Every repo migration is present on the sovereign database."
+          fi
