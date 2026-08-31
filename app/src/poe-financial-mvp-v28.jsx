@@ -4294,7 +4294,7 @@ ${THEME_CSS}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
-                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="heart" /> Road to 150</>]] : []),
+                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="chart" /> Road to 150</>]] : []),
                 // Games — the family games hub ("our games"). Open to everyone
                 // (the children most of all); the first game walks an African
                 // American life journey, measured by Yahweh. Persistence is
