@@ -58,6 +58,32 @@ came across; the pictures did not because the pictures did not.
 watched the surface it broke.** A named NOT-done is only honest if something
 observes what it costs — for twelve days, nothing did.
 
+## The second surface, found by asking who else reads across the gap
+
+The gallery was the reported symptom. It was not the only one. Measured against
+the hosted project (the sovereign baseline was dumped from it 2026-08-19, so it
+is representative):
+
+| bucket | public | objects | bytes | surface |
+|---|---|---|---|---|
+| `church-team-documents` | no | **322** | 40 MB | Christina's team library — `choir_team_documents` holds **184 rows, every one a Storage path**, none external, none a data URL |
+| `sermon-documents` | no | **121** | 3.7 MB | BG's sermon `.docx`, owner/admin only |
+| `moore-showcase` | yes | **12** | 28 MB | Shay's gallery (the reported break) |
+
+455 objects — exactly the count `cutover_sync.py` names. **The two private
+buckets have been just as broken as the gallery since 2026-08-19, and nobody
+reported it.** `openDocument()` (`app/src/lib/choir-sync.js:1069`) mints a
+signed URL through the repointed client; the sovereign backend holds neither
+the bucket nor the file, so every one of those 184 documents has failed to
+open for twelve days.
+
+**A private bucket cannot be bridged the way the public one was.** A signed URL
+must be minted by the backend that HOLDS the file, and the user's session is now
+a sovereign JWT that the hosted project's RLS (`user_in_choir(auth.uid())`,
+0022) will never accept. An anon-key client against the hosted origin is
+unauthenticated and is refused, correctly. For the private buckets, copying the
+bytes is not the preferred fix — it is the only one.
+
 ## Decision
 
 1. **Public blobs resolve where they actually live, until they move.**
@@ -69,10 +95,26 @@ observes what it costs — for twelve days, nothing did.
    Everything else stays sovereign. **Deleting that one workflow line is the
    whole retirement** — images follow the sovereign backend with no code
    change. **re-review: 2026-09-30.**
-2. **A named NOT-done gets a witness, not just a note.** The blob copy is the
-   real close of this gap and remains open (DR-0307 follow-up). It is carried
-   here with a date rather than left as a comment in a Python header that no
-   surface reads. **re-review: 2026-09-30.**
+2. **The blob copy is BUILT, not deferred again.**
+   `infra/nas-supabase/storage_sync.py` copies all 455 objects hosted →
+   sovereign, following the proven `cutover_sync.py` shape: the object list
+   comes from `storage.objects` over the already-provisioned `AGENT_DB_URL`
+   (no new credential to list), only the private-object *download* needs the
+   hosted service key. Idempotent and resumable — an object already present at
+   the same size is skipped, so an interrupted run is re-run rather than
+   restarted; uploads set `x-upsert`. Parity is measured per bucket and a
+   bucket that copied ZERO can never read as GO. Its pure logic is gated in CI
+   (`storage blob-copy selftest`) and was observed failing on two real defects
+   before it was trusted: a name encoded as one component (which would 404
+   every one of Christina's files, whose names carry spaces and `+`), and a
+   parity check blind to an empty bucket.
+   **It is not the three-brakes class** (P10/P11/P12): a hand-dispatched
+   one-shot migration with no schedule and no self-trigger, not a timer-driven
+   loop that spawns work.
+   **The one thing it still needs is a value only Darrell holds** — the hosted
+   project's `service_role` key, for reading private objects. That is a DR-0089
+   carve-out (#2), and it is the whole remaining ask: two lines in
+   `agent.env`, then one command. **re-review: 2026-09-30.**
 3. **The bucket states its read intent explicitly.** 0092 created
    `moore-showcase` with a steward INSERT policy and **no SELECT policy** —
    reads work only because `bucket.public = true` makes `/object/public`
@@ -105,6 +147,12 @@ declares a class of data out of scope, the surfaces that read that class are
 enumerated in the same delivery and each one gets a bridge, a witness, or a
 dated re-review — never silence.
 
+The specific lesson this time: **the reported symptom was the loudest surface,
+not the only one.** The gallery is on the front screen, so it got noticed in
+twelve days. The church's document library is behind a sign-in and got noticed
+in zero. When a gap is found, the question is never "what broke?" but "who else
+reads across this gap?" — answered by measurement, not by memory.
+
 Related: DR-0125 (the site has its own witness), DR-0298 (show-me-on-the-live-site
-is a workflow, not a claim). The blob copy is the durable close; this record is
-what keeps it from going quiet again.
+is a workflow, not a claim), DR-0111 (do the work — the second surface was found
+and fixed in the same session rather than raised as a question).
