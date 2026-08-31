@@ -163,6 +163,49 @@ export const foodEntriesSync = createTableSync({
   idOf(item) { return item.id; },
 });
 
+// ── The REMEMBERED food library (0166) ───────────────────────────────────────
+// One row per food the person has confirmed. Every value here is one they
+// entered and accepted, so it needs no network and is the most trustworthy
+// source the app has. A lookup may PROPOSE; only confirming writes here.
+export const foodLibrarySync = createTableSync({
+  localKey: 'foodLibrary',
+  remoteTable: 'food_library',
+
+  toRow(item, { tenantId, userId }) {
+    return {
+      instance_id: tenantId,
+      created_by:  userId,
+      slug:        item.id,
+      name:        item.name || '',
+      name_key:    item.nameKey || String(item.name || '').toLowerCase().trim(),
+      serving:     item.serving || '',
+      calories:    item.calories == null || item.calories === '' ? null : Number(item.calories),
+      protein_g:   item.proteinG == null || item.proteinG === '' ? null : Number(item.proteinG),
+      source:      item.source || 'entered',
+      times_used:  Number(item.timesUsed) || 1,
+      last_used_at: item.lastUsedAt || new Date().toISOString(),
+    };
+  },
+
+  fromRow(row) {
+    return {
+      id:         row.slug || `fl-remote-${row.id}`,
+      remoteUuid: row.id,
+      name:       row.name || '',
+      nameKey:    row.name_key || '',
+      serving:    row.serving || '',
+      calories:   row.calories == null ? null : Number(row.calories),
+      proteinG:   row.protein_g == null ? null : Number(row.protein_g),
+      source:     row.source || 'entered',
+      timesUsed:  Number(row.times_used) || 1,
+      lastUsedAt: row.last_used_at,
+      createdAt:  row.created_at,
+    };
+  },
+
+  idOf(item) { return item.id; },
+});
+
 // healthRails — the three Road to 150 sync rails as ONE entry for the shell's
 // pull pipeline. The shell is frozen at a hard line budget, and registering
 // three tables inline cost three lines plus a comment; this hands back the
@@ -179,5 +222,6 @@ export function healthRails(latest, keep) {
     { ...pick('weightEntries'),  sync: weightEntriesSync },
     { ...pick('waterEntries'),   sync: waterEntriesSync },
     { ...pick('foodEntries'),    sync: foodEntriesSync },
+    { ...pick('foodLibrary'),    sync: foodLibrarySync },
   ];
 }
