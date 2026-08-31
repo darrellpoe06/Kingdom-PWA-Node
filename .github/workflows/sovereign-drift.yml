@@ -50,8 +50,15 @@ jobs:
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
 
+          # LogLevel=ERROR matters for correctness, not tidiness: a fresh runner
+          # has an empty known_hosts, so ssh prints "Warning: Permanently added
+          # ..." on its FIRST connection. Merged into the output it (a) broke an
+          # exact "$probe" = READY test even though the probe succeeded, and
+          # (b) would have injected that warning line into the ledger list as a
+          # phantom migration filename, silently corrupting the diff this whole
+          # workflow exists to produce. Both were live in c8a4fef.
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
-               -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+               -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
 
           # REACHABILITY FIRST, and NEVER swallow the reason (the 2026-08-31 fix
           # to this file's own first run): the original piped stderr to
@@ -60,9 +67,12 @@ jobs:
           # makes it useless for acting on. A witness has to report WHY.
           # MagicDNS is also not always resolvable the instant tailscaled comes
           # up, so a single immediate attempt can fail on timing alone.
+          # Match on CONTAINS, never equality: any banner or warning the remote
+          # host prints would otherwise read as a failed probe on a live link.
           probe=""; err=""
           for attempt in 1 2 3; do
-            if err=$($SSH "echo READY" 2>&1); then probe="$err"; break; fi
+            err=$($SSH "echo READY" 2>&1) || true
+            case "$err" in *READY*) probe="READY"; break;; esac
             sleep 5
           done
           if [ "$probe" != "READY" ]; then
@@ -84,14 +94,45 @@ jobs:
           # container, so no port or password ever leaves the NAS. Try without
           # sudo first (dpoe may be in the docker group); fall back to sudo -n,
           # which is the channel the deploy workflow already uses.
+          # The remote work rides `bash -s` over stdin rather than a quoted
+          # one-liner: the password and the SQL would otherwise cross three
+          # quoting layers (local shell, ssh, remote shell) and one mistake
+          # there is a silently wrong result, not an error.
+          #
+          # DSM does not put docker on the PATH — `sudo: docker: command not
+          # found` is what run 33402087727 actually hit. This is the idiom the
+          # repo's own sovereign scripts already use
+          # (infra/nas-supabase/reset_phone_pin.sh:36), together with their
+          # PGPASSWORD-from-.env connection, rather than a new invention.
+          cat > /tmp/remote.sh <<'REMOTE'
+          set -u
+          ENV_FILE=/volume1/docker/supabase/.env
+          PW=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
+          [ -n "$PW" ] || PW=$(sudo -n sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
+          [ -n "$PW" ] || { echo "could not read POSTGRES_PASSWORD from $ENV_FILE" >&2; exit 3; }
+          DOCKER=$(command -v docker 2>/dev/null || true)
+          if [ -z "$DOCKER" ]; then
+            for c in /usr/local/bin/docker /usr/bin/docker; do
+              [ -x "$c" ] && DOCKER="$c" && break
+            done
+          fi
+          [ -n "$DOCKER" ] || { echo "docker binary not found (checked PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
           Q="select filename from public._schema_migrations order by filename"
-          LEDGER=""; dberr=""
-          for runner in "docker" "sudo -n docker"; do
-            if out=$($SSH "$runner exec supabase-db psql -U supabase_admin -d postgres -tAc \"$Q\"" 2>&1); then
-              LEDGER="$out"; break
-            fi
-            dberr="$out"
-          done
+          "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e1 && exit 0
+          sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e2 && exit 0
+          cat /tmp/e1 /tmp/e2 >&2
+          exit 5
+          REMOTE
+          # The heredoc is indented to match this YAML block; strip that indent
+          # so the remote shell receives a clean script.
+          sed -i 's/^          //' /tmp/remote.sh
+
+          # stderr to a FILE, never into the value: the ledger variable must
+          # carry migration filenames and nothing else, or the diff lies.
+          LEDGER=$($SSH "bash -s" < /tmp/remote.sh 2>/tmp/dberr) || LEDGER=""
+          dberr=$(cat /tmp/dberr 2>/dev/null)
           rm -f /tmp/nas_key
 
           if [ -z "$LEDGER" ]; then
