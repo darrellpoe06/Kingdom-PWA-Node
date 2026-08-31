@@ -418,13 +418,37 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (!continuing) setRunInfo({ label: t.label });
     let el = null;
     if (typeof document !== 'undefined') {
-      el = t.elementId ? document.getElementById(t.elementId) : null;
-      if (!el && t.owner) el = document.getElementById(`learn-lesson-${t.owner}`);
+      // PREPARE CAN RENDER THE ELEMENT, NOT ONLY EXPAND IT — SO RE-RESOLVE.
+      //
+      // Darrell 2026-08-31, from the presenter console: "it doesn't follow the
+      // text as it reads."
+      //
+      // The element was resolved ONCE, before prepare() ran. That holds for a
+      // surface whose reading element is already mounted and prepare() merely
+      // expands its stages (Learn). It is wrong for a surface whose reading is
+      // not in the DOM at all until prepare() shows it — the presenter's class
+      // mirror can be collapsed, and a collapsed mirror means getElementById
+      // returned null, prepare() then mounted it, and nothing ever looked
+      // again. `el` stayed null, so the mapped path was skipped and the read
+      // fell through to page-level sentence alignment: it spoke correctly and
+      // highlighted nothing, which is precisely the reported defect.
+      //
+      // Settling on a null element also measures nothing (textContent of null),
+      // so with requireChange it could only spin out its tries — one more
+      // reason the first resolve has to be allowed a second look.
+      const resolveEl = () => (t.elementId ? document.getElementById(t.elementId) : null)
+        || (t.owner ? document.getElementById(`learn-lesson-${t.owner}`) : null);
+      el = resolveEl();
       if (t.prepare) {
         try { t.prepare(true); preparedRef.current = t; } catch (_) { /* never blocks the read */ }
+        // Give the surface a frame to mount what it just revealed, then look
+        // again before settling — otherwise we settle on nothing.
+        if (!el) { await afterRender(); el = resolveEl(); }
         // requireChange: we just asked for more of the piece — do not accept
         // "nothing has happened yet" as "it is done".
         await settled(el, { requireChange: true }); // the whole piece is rendered before anything is mapped
+        // prepare() may have replaced the node rather than grown it.
+        el = resolveEl() || el;
       }
       if (el) { revealForReading(el); await settled(el); }
     }
@@ -547,7 +571,25 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const statusLabel = isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready';
 
   return (
-    <div className="tts-controls fixed bottom-4 right-4 z-40 print:hidden flex flex-col items-end gap-2">
+    // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
+    //
+    // Darrell 2026-08-31, from the live presenter console: "we dont have control
+    // over the voice... the controls dont show on the screen to even have a
+    // chance of adjustment."
+    //
+    // This control sat at z-40 while Presenter.jsx paints its console at
+    // zIndex 60 and its on-screen presenting mode at zIndex 70. So on exactly
+    // the surface that offers a "Read it aloud" button, pressing it started a
+    // reading whose voice, speed, pause and stop controls were painted
+    // UNDERNEATH the overlay — audible, and unreachable. A speaker standing in
+    // front of a room could start the reader and then could not adjust or stop
+    // it.
+    //
+    // 80 is the deliberate slot: above the presenting overlays (60/70) so the
+    // reader stays reachable wherever it can be started, and still below the
+    // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
+    // must keep covering it.
+    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
       {scrollTopBtn}
       {supported && (isOpen && minimized && isReading ? (
         /* THE READING PILL (DR-0265): while the voice is reading, the full card
