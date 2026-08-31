@@ -258,3 +258,41 @@ describe('weigh-in list handling', () => {
     expect(latestWeighIn(null)).toBeNull();
   });
 });
+
+// =============================================================================
+// canSeeHealthTab — the DOOR, not the data
+// =============================================================================
+// Regression pin. The first cut of the nav entry was ungated: on merge, every
+// signed-in user -- church members, COLG, self-serve -- would have found a
+// "Road to 150" weight-loss tab in their nav that was not theirs. RLS (0162)
+// scopes the ROWS and never had this problem; the tab was the leak.
+//
+// The surfaces.js registry ALSO claimed `gate: 'family/governor'` while the
+// render applied none, so the registry was documenting a gate that did not
+// exist -- the "looks reviewed but isn't" class DR-0076 exists to stop.
+import { canSeeHealthTab } from '../lib/health-program.js';
+
+describe('canSeeHealthTab — the tab is earned by real state', () => {
+  it('CLOSES for a signed-in non-steward with no program (the original bug)', () => {
+    expect(canSeeHealthTab(false, [])).toBe(false);
+    expect(canSeeHealthTab(false, null)).toBe(false);
+    expect(canSeeHealthTab(false, undefined)).toBe(false);
+  });
+
+  it('opens for a steward, who can start a program', () => {
+    expect(canSeeHealthTab(true, [])).toBe(true);
+  });
+
+  it('opens for a non-steward actually enrolled — the admin-programs future', () => {
+    expect(canSeeHealthTab(false, [{ id: 'p1' }])).toBe(true);
+    expect(canSeeHealthTab(false, [{ id: 'p1', active: true }])).toBe(true);
+  });
+
+  it('stays closed when the only program is retired', () => {
+    expect(canSeeHealthTab(false, [{ id: 'p1', active: false }])).toBe(false);
+  });
+
+  it('ignores malformed rows rather than opening on them', () => {
+    expect(canSeeHealthTab(false, [null, undefined])).toBe(false);
+  });
+});

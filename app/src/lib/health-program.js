@@ -274,3 +274,22 @@ export function round1(n) {
 function clamp(n, lo, hi) {
   return Math.min(hi, Math.max(lo, n));
 }
+
+// canSeeHealthTab — should the nav show the program tab at all?
+//
+// The DOOR, not the data. 0162 already scopes every row to created_by =
+// auth.uid(), so no one can read another person's weigh-ins. That is not the
+// same question as whether the tab belongs in their nav: an ungated entry puts
+// "Road to 150" in front of every signed-in user -- church members, COLG,
+// self-serve -- as a weight-loss tab that is not theirs and never will be.
+//
+// So the tab is EARNED BY REAL STATE, the same enrollment the surface itself
+// renders (DR-0061 -- a surface is a live view of real state, and its entry
+// point should be too): a steward, who can start a program, or anyone actually
+// enrolled in one. That generalises unchanged to the brief's admin-creates-
+// programs-for-other-users future -- their tab appears when their program does,
+// with no gate to rewrite.
+export function canSeeHealthTab(isSteward, programs) {
+  if (isSteward) return true;
+  return (programs || []).some((p) => p && p.active !== false);
+}

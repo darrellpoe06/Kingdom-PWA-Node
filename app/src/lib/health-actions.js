@@ -50,3 +50,7 @@ export function makeHealthActions(railCrud, getData, syncs) {
     deleteWaterEntry: waters.remove,
   };
 }
+
+// Re-exported so the frozen shell reaches every health helper through one
+// import line (the budget guard holds it at exactly 5331 lines).
+export { canSeeHealthTab } from './health-program.js';

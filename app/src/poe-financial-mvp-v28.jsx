@@ -89,7 +89,7 @@ import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from '.
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
 import { healthProgramsSync, weightEntriesSync, waterEntriesSync } from './lib/health-sync.js';
-import { makeHealthActions } from './lib/health-actions.js';
+import { makeHealthActions, canSeeHealthTab } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
@@ -4290,7 +4290,7 @@ ${THEME_CSS}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
-                ['health', <><UiIcon name="heart" /> Road to 150</>],
+                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="heart" /> Road to 150</>]] : []),
                 // Games — the family games hub ("our games"). Open to everyone
                 // (the children most of all); the first game walks an African
                 // American life journey, measured by Yahweh. Persistence is
