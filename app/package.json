@@ -20,7 +20,7 @@
     "verify": "npm run lint && vitest run"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.106.1",
+    "@supabase/supabase-js": "^2.112.4",
     "libsodium-wrappers": "^0.8.4",
     "node-forge": "^1.4.0",
     "qrcode.react": "^4.2.0",
@@ -32,13 +32,13 @@
     "@eslint/js": "^10.0.1",
     "@twemoji/svg": "^15.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^10.4.0",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^10.9.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.6.0",
+    "globals": "^17.11.0",
     "jsdom": "^25.0.1",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.26",
     "tailwindcss": "^3.4.14",
     "vite": "^5.4.10",
     "vitest": "^2.1.5"
