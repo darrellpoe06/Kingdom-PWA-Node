@@ -277,7 +277,7 @@ function clamp(n, lo, hi) {
 
 // canSeeHealthTab — should the nav show the program tab at all?
 //
-// The DOOR, not the data. 0162 already scopes every row to created_by =
+// The DOOR, not the data. 0164 already scopes every row to created_by =
 // auth.uid(), so no one can read another person's weigh-ins. That is not the
 // same question as whether the tab belongs in their nav: an ungated entry puts
 // "Road to 150" in front of every signed-in user -- church members, COLG,

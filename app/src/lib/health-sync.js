@@ -4,7 +4,7 @@
 // Three flat-table rails in the goals-sync / forecast-sync shape: every local
 // field maps to a column, `slug` carries the stable local id, and the surface
 // owns the subscription directly so no monolith data-pipeline change is needed.
-// Backed by migration 0162.
+// Backed by migration 0164.
 //
 // PLANNED DATA IS NOT HERE, ON PURPOSE. The 26 weekly targets, the 64 oz goal
 // and the meal/walk/strength plan are program CONTENT (lib/road-to-150-program.js)
@@ -18,7 +18,7 @@
 // to 150 roadmap." Freezing the roadmap AS ENROLLED means a later edit to the
 // repo template cannot silently rewrite someone's history.
 //
-// PRIVACY: these rows are owner-only at the database (0162 RLS scopes every one
+// PRIVACY: these rows are owner-only at the database (0164 RLS scopes every one
 // to created_by = auth.uid()). A family member cannot read another's weigh-ins,
 // and neither can an instance admin. The client never widens that.
 import { createTableSync } from './table-sync.js';
@@ -121,3 +121,21 @@ export const waterEntriesSync = createTableSync({
     };
   },
 });
+
+// healthRails — the three Road to 150 sync rails as ONE entry for the shell's
+// pull pipeline. The shell is frozen at a hard line budget, and registering
+// three tables inline cost three lines plus a comment; this hands back the
+// same array so the mount is a single spread. Behaviour is identical -- the
+// filters are applied by the caller exactly as before.
+//
+// OWNER-SCOPED, never pooled family-wide: unlike the other rails these rows are
+// one person's body-weight and water log. 0164 RLS scopes every row to
+// created_by = auth.uid(); this list only decides what gets PULLED.
+export function healthRails(latest, keep) {
+  const pick = (key) => ({ sync: null, key, localList: (latest[key] || []).filter(keep) });
+  return [
+    { ...pick('healthPrograms'), sync: healthProgramsSync },
+    { ...pick('weightEntries'),  sync: weightEntriesSync },
+    { ...pick('waterEntries'),   sync: waterEntriesSync },
+  ];
+}

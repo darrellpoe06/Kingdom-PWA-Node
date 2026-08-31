@@ -54,3 +54,4 @@ export function makeHealthActions(railCrud, getData, syncs) {
 // Re-exported so the frozen shell reaches every health helper through one
 // import line (the budget guard holds it at exactly 5331 lines).
 export { canSeeHealthTab } from './health-program.js';
+export { healthProgramsSync, weightEntriesSync, waterEntriesSync, healthRails } from './health-sync.js';

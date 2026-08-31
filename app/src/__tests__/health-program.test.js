@@ -264,7 +264,7 @@ describe('weigh-in list handling', () => {
 // =============================================================================
 // Regression pin. The first cut of the nav entry was ungated: on merge, every
 // signed-in user -- church members, COLG, self-serve -- would have found a
-// "Road to 150" weight-loss tab in their nav that was not theirs. RLS (0162)
+// "Road to 150" weight-loss tab in their nav that was not theirs. RLS (0164)
 // scopes the ROWS and never had this problem; the tab was the leak.
 //
 // The surfaces.js registry ALSO claimed `gate: 'family/governor'` while the

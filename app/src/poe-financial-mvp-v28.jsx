@@ -88,8 +88,7 @@ import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
-import { healthProgramsSync, weightEntriesSync, waterEntriesSync } from './lib/health-sync.js';
-import { makeHealthActions, canSeeHealthTab } from './lib/health-actions.js';
+import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, healthRails } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
@@ -2106,10 +2105,7 @@ export default function PoeFinancialSystem() {
         // three ship as content; this carries everything added afterward), pooled
         // to the family instance the same proven way so a recipe opens on any device.
         { sync: recipesSync,      key: 'recipes',      localList: (latest.recipes || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteRecipes },
-        // Road to 150 (0162) — OWNER-scoped rows (never pooled family-wide); RLS is the wall.
-        { sync: healthProgramsSync, key: 'healthPrograms', localList: (latest.healthPrograms || []).filter(notDemoRow).filter(notSeedRow) },
-        { sync: weightEntriesSync,  key: 'weightEntries',  localList: (latest.weightEntries || []).filter(notDemoRow).filter(notSeedRow) },
-        { sync: waterEntriesSync,   key: 'waterEntries',   localList: (latest.waterEntries || []).filter(notDemoRow).filter(notSeedRow) },
+        ...healthRails(latest, (r) => notDemoRow(r) && notSeedRow(r)),
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
         // pooled to the family instance the same proven way.
@@ -2849,9 +2845,7 @@ export default function PoeFinancialSystem() {
   const updateGameSave = gameSavesCrud.update;
   const deleteGameSave = gameSavesCrud.remove;
 
-  // Road to 150 (0162) — write paths live in lib/health-actions.js (shell frozen).
   const { startHealthProgram, addWeightEntry, addWaterEntry, deleteWaterEntry } = makeHealthActions(railCrud, () => data, { healthProgramsSync, weightEntriesSync, waterEntriesSync });
-
   // 0077 — the subscriptions audit is family money state (doc rail).
   const subscriptionsCrud = railCrud(subscriptionsSync, 'subscriptions', 'subscriptions-sync');
   const addSubscription = (item) => { subscriptionsCrud.add({ ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }); };
