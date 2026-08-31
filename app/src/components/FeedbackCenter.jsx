@@ -119,6 +119,7 @@ export const FEEDBACK_AREAS = [
     ['scribe', 'Scribe · record workflows on screen + meetings (consent-gated)'],
     ['library', 'Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
+    ['health', 'Road to 150 · health program (dashboard · weight + graph · water)'],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
     ['tvtime', 'TV Time · the friend-group show tracker + discussion (track · talk · laugh together · watch it through The Way)'],
     ['advocacy', 'Advocacy · the Case File (dated documentation of situations with institutions · evidence tiers · escalation ladder · context pack)'],

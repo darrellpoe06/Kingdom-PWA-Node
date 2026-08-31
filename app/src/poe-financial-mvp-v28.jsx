@@ -88,6 +88,7 @@ import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
+import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, healthRails } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
@@ -150,7 +151,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
+  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
   EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, FamilyPlan, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -921,7 +922,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant'];
+    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2104,6 +2105,7 @@ export default function PoeFinancialSystem() {
         // three ship as content; this carries everything added afterward), pooled
         // to the family instance the same proven way so a recipe opens on any device.
         { sync: recipesSync,      key: 'recipes',      localList: (latest.recipes || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteRecipes },
+        ...healthRails(latest, (r) => notDemoRow(r) && notSeedRow(r)),
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
         // pooled to the family instance the same proven way.
@@ -2843,6 +2845,7 @@ export default function PoeFinancialSystem() {
   const updateGameSave = gameSavesCrud.update;
   const deleteGameSave = gameSavesCrud.remove;
 
+  const { startHealthProgram, addWeightEntry, addWaterEntry, deleteWaterEntry } = makeHealthActions(railCrud, () => data, { healthProgramsSync, weightEntriesSync, waterEntriesSync });
   // 0077 — the subscriptions audit is family money state (doc rail).
   const subscriptionsCrud = railCrud(subscriptionsSync, 'subscriptions', 'subscriptions-sync');
   const addSubscription = (item) => { subscriptionsCrud.add({ ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }); };
@@ -4291,6 +4294,7 @@ ${THEME_CSS}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="heart" /> Road to 150</>]] : []),
                 // Games — the family games hub ("our games"). Open to everyone
                 // (the children most of all); the first game walks an African
                 // American life journey, measured by Yahweh. Persistence is
@@ -4809,6 +4813,7 @@ ${THEME_CSS}
             Recipes by Chef Mario (canonical content) + every recipe the family
             adds (persisted, instance-scoped). Own SectionBoundary so a thrown
             error degrades just this surface. */}
+        {view === 'health' && <SectionBoundary name="Road to 150"><RoadTo150 program={(data.healthPrograms || []).find((p) => p.active !== false) || null} weightEntries={data.weightEntries || []} waterEntries={data.waterEntries || []} addWeightEntry={addWeightEntry} addWaterEntry={addWaterEntry} deleteWaterEntry={deleteWaterEntry} startProgram={startHealthProgram} /></SectionBoundary>}
         {view === 'recipes' && (
           <SectionBoundary name="Chef's Corner">
             <ChefCorner
