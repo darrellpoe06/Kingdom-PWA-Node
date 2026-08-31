@@ -127,3 +127,48 @@ export function searchLessons(index, query, limit = 40) {
   scored.sort((a, b) => (b.rank - a.rank) || (a.i - b.i));
   return scored.slice(0, limit).map((s) => s.e);
 }
+
+// BROWSING NEEDS NO COURSE AND NO QUERY.
+// ===========================================================================
+// Christina, 2026-08-31, on the live Learn tab: "How do I get to the rest of
+// the lessons?" — looking at eight weeks of one course with 401 mounted.
+// Darrell, tracing it: "you must choose a course first to get to the lists
+// lessons unless you type a name etc.. how can this be better?"
+//
+// That was the shape of the catalog, and it is exactly one line above: the
+// finder answers a QUESTION, so a blank box returned nothing, and the only
+// other door was a 22-option course dropdown. Both doors demand you already
+// know something — a word to type, or which course holds the lesson. A reader
+// who knows neither (the reader this platform is FOR) had no way in at all.
+//
+// So the blank state stops being a wall and becomes the shelf: every lesson in
+// the app, grouped under its course, in catalog order. Typing then NARROWS what
+// is already visible instead of summoning it out of nothing. Search stays
+// exactly as it was — this is the state before anyone types.
+//
+// Grouping is derived from the index rows themselves (never a hand-kept list,
+// DR-0121), and course order follows first appearance so the catalog's own
+// order is what a reader sees. Pure; no DOM, no React.
+//
+// @param {Array} index - rows from buildLessonIndex
+// @returns {Array<{courseKey, courseTitle, deep, lessons: Array}>}
+export function browseLessons(index) {
+  const rows = Array.isArray(index) ? index.filter((r) => r && r.lessonId) : [];
+  const groups = [];
+  const byKey = new Map();
+  for (const r of rows) {
+    let g = byKey.get(r.courseKey);
+    if (!g) {
+      g = { courseKey: r.courseKey, courseTitle: r.courseTitle, deep: !!r.deep, lessons: [] };
+      byKey.set(r.courseKey, g);
+      groups.push(g);
+    }
+    g.lessons.push(r);
+  }
+  return groups;
+}
+
+/** How many lessons a browse result holds, across every course. */
+export function browseCount(groups) {
+  return (Array.isArray(groups) ? groups : []).reduce((t, g) => t + ((g && g.lessons && g.lessons.length) || 0), 0);
+}

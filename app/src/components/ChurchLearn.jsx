@@ -80,10 +80,12 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons } from '../lib/learn-organize.js';
+import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
+import UiIcon from './UiIcon.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -1028,6 +1030,15 @@ function CourseView({
   onBecomeHelper = null,
   helped = false,
   resumeLessonId = null, // "Pick up where you left off" target — opens + scrolls to this lesson
+  // TWO ARRIVALS, TWO STATES — and they must match the door the reader used.
+  // Resume (and a deep link) lands IN the lesson with its guide already open,
+  // which DR-0262/DR-0264 decided deliberately: a returning reader is mid-study.
+  // BROWSING is a different arrival — it is the same act as tapping a title in
+  // the list, which opens the lesson's space showing the scannable card with
+  // "Start this lesson" still to press. Before this flag the finder (and the new
+  // shelf) forced every arrival into the resume state, so a browsed lesson
+  // skipped the very affordance Darrell named as the convenient one.
+  resumeOpenGuide = true,
   onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
@@ -1143,14 +1154,18 @@ function CourseView({
     if (!resumeLessonId || !schedule.some((m) => m.id === resumeLessonId)) return undefined;
     lastFocusRef.current = resumeLessonId;
     setFocusId(resumeLessonId);
-    setOpenTutorId(resumeLessonId);
+    if (resumeOpenGuide) setOpenTutorId(resumeLessonId);
+    // DR-0262 — the place survives in BOTH directions. openLesson() records it;
+    // this cross-course door (the finder, the shelf, Resume) did not, so a
+    // lesson reached that way was one a reader could lose again on reload.
+    savePlace({ lessonId: resumeLessonId });
     recordUse(resumeLessonId);
     setRecentTick((t) => t + 1);
     const t = setTimeout(() => {
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
     return () => clearTimeout(t);
-  }, [resumeLessonId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resumeLessonId, resumeOpenGuide]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const prog = courseProgressSummary(progress);
   const canSendInterest = !!onSendInterest;
@@ -2065,6 +2080,7 @@ export default function ChurchLearn({
   const [savedPlace, setSavedPlace] = useState(() => getPlace());
   // The lesson CourseView should open + scroll to after a resume tap.
   const [resumeLessonId, setResumeLessonId] = useState(null);
+  const [resumeOpenGuide, setResumeOpenGuide] = useState(true);
 
   // The youth A.I. course, assembled from this component's existing flat props so
   // nothing about its wiring changes — it just becomes one entry in the picker.
@@ -2154,6 +2170,7 @@ export default function ChurchLearn({
     if (deepLink.lessonId && (target.schedule || []).some((m) => m.id === deepLink.lessonId)) {
       // The same real path a "Resume →" tap drives: the lesson's own space,
       // guide open, scrolled to the top.
+      setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
     }
   }, [deepLink]);
@@ -2172,6 +2189,7 @@ export default function ChurchLearn({
   const showResume = !!placeLesson && !(activeKey === savedPlace.courseKey && resumeLessonId === savedPlace.lessonId);
   const resumeNow = () => {
     setActiveKey(savedPlace.courseKey);
+    setResumeOpenGuide(true);
     setResumeLessonId(savedPlace.lessonId);
     setSavedPlace(null);
   };
@@ -2294,7 +2312,7 @@ export default function ChurchLearn({
                       <li key={`${h.courseKey}:${h.lessonId}`}>
                         <button
                           type="button"
-                          onClick={() => { setActiveKey(h.courseKey); setResumeLessonId(h.lessonId); setLessonQuery(''); }}
+                          onClick={() => { setActiveKey(h.courseKey); setResumeOpenGuide(false); setResumeLessonId(h.lessonId); setLessonQuery(''); }}
                           className="w-full text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                         >
                           <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{h.title}</span>
@@ -2308,7 +2326,54 @@ export default function ChurchLearn({
                 ) : (
                   <p className="mt-2 text-xs text-[#5A5751]">No lesson matches “{lessonQuery.trim()}” yet — try fewer words, or a verse reference like “Romans 8”.</p>
                 )
-              ) : null}
+              ) : (
+                /* THE BLANK STATE IS THE SHELF, NOT A WALL.
+                   Christina could not reach the other 393 lessons because an
+                   empty box showed nothing and the only other door was a
+                   22-option course dropdown — both of which ask you to already
+                   know a word or a course. Every lesson in the app now sits
+                   here, under its course, before anyone types; typing NARROWS
+                   this list rather than summoning it. Bounded height so the
+                   shelf never buries the course below it, and the whole thing
+                   derives from the mounted catalog (DR-0121). */
+                (() => {
+                  const groups = browseLessons(buildLessonIndex(courses));
+                  const total = browseCount(groups);
+                  if (!total) return null;
+                  return (
+                    <div className="mt-2 border border-[#E8E4DC]" data-testid="lesson-browse-all">
+                      <p className="px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4] border-b border-[#E8E4DC]">
+                        Or just browse — all {total} lessons, every course
+                      </p>
+                      <div className="max-h-[55vh] overflow-y-auto">
+                        {groups.map((g) => (
+                          <section key={g.courseKey} aria-label={g.courseTitle}>
+                            <h4 className="sticky top-0 px-3 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#1A1815] bg-[#FAF8F4] border-b border-[#E8E4DC] font-semibold">
+                              {g.courseTitle} · {g.lessons.length}
+                            </h4>
+                            <ul className="divide-y divide-[#E8E4DC]">
+                              {g.lessons.map((h) => (
+                                <li key={`${h.courseKey}:${h.lessonId}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setActiveKey(h.courseKey); setResumeOpenGuide(false); setResumeLessonId(h.lessonId); }}
+                                    className="w-full text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                                  >
+                                    <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{h.title}</span>
+                                    <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                                      {h.unitLabel}{h.ref ? ` · ${h.ref}` : ''}
+                                    </span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
             </div>
           );
         })()}
@@ -2355,6 +2420,62 @@ export default function ChurchLearn({
         )}
       </div>
 
+      {/* ONE PLACE TO LOOK — THE LESSONS BAR.
+          ==================================================================
+          Christina, 2026-08-31, on the live Learn tab: "How do I get to the
+          rest of the lessons?" Darrell, agreeing: "the locations for everything
+          are not obvious... make them obvious or even a location on the screen
+          that is THE place to look... we have that but the user needs to pay
+          close attention to the words... we need the subconscious to also think
+          it's easy."
+
+          The affordances already existed — a lesson finder over every course
+          and a grouped course picker. Both sit ABOVE the schedule and SCROLL
+          AWAY. Christina was looking at eight weeks of one course with 112
+          lessons mounted and nothing on screen saying either of those things
+          was true. Reading her screenshot: the picker was perhaps a
+          finger-flick above the fold, and therefore gone.
+
+          So this is not a new control. It is the SAME two controls, made
+          permanent and given a fixed address, and it deliberately reuses the
+          shape, border, position and z-index of the in-lesson bar below
+          (data-testid="lesson-space-bar"): the app teaches ONE landmark, in one
+          place, and a reader who learns it once inside a lesson already knows
+          it in the catalog. That is the subconscious half of the ask — the
+          answer is where it always is, so nobody has to read carefully to find
+          it.
+
+          The count is the other half. Seeing "112 lessons · 19 courses" while
+          eight weeks are on screen is what makes the question answer itself: it
+          says plainly there is more, and the button beside it says where. Both
+          numbers derive from the mounted catalog, never typed (DR-0121). */}
+      {courses.length > 1 && !lessonFocus && (
+        <div
+          className="sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap"
+          data-testid="lessons-bar"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof document === 'undefined') return;
+              const box = document.getElementById('learn-lesson-find');
+              if (!box) return;
+              try { box.scrollIntoView({ block: 'center', behavior: motionBehavior() }); } catch (_) { /* older engines */ }
+              try { box.focus({ preventScroll: true }); } catch (_) { box.focus(); }
+            }}
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            <UiIcon name="bookOpen" /> All {unitLabels(active.meta).noun}s
+          </button>
+          <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+            {active.meta.title}
+          </span>
+          <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons · {courses.length} courses
+          </span>
+        </div>
+      )}
+
       {/* WORD-FIRST (DR-0127): every knowledge space opens with Yahweh's
           knowledge/perspective when we have it — derived from the course's own
           declared lead or its first Scripture anchor, never invented. A course
@@ -2391,6 +2512,7 @@ export default function ChurchLearn({
         onBecomeHelper={onBecomeHelper}
         helped={!!helped[active.key]}
         resumeLessonId={resumeLessonId}
+        resumeOpenGuide={resumeOpenGuide}
         onFocusChange={setLessonFocus}
       />
     </section>
