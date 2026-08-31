@@ -88,7 +88,7 @@ import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
-import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, healthRails } from './lib/health-actions.js';
+import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, healthRails } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
@@ -2845,7 +2845,7 @@ export default function PoeFinancialSystem() {
   const updateGameSave = gameSavesCrud.update;
   const deleteGameSave = gameSavesCrud.remove;
 
-  const { startHealthProgram, addWeightEntry, addWaterEntry, deleteWaterEntry } = makeHealthActions(railCrud, () => data, { healthProgramsSync, weightEntriesSync, waterEntriesSync });
+  const { startHealthProgram, addWeightEntry, addWaterEntry, deleteWaterEntry, addFoodEntry, deleteFoodEntry } = makeHealthActions(railCrud, () => data, { healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync });
   // 0077 — the subscriptions audit is family money state (doc rail).
   const subscriptionsCrud = railCrud(subscriptionsSync, 'subscriptions', 'subscriptions-sync');
   const addSubscription = (item) => { subscriptionsCrud.add({ ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }); };
@@ -4813,7 +4813,7 @@ ${THEME_CSS}
             Recipes by Chef Mario (canonical content) + every recipe the family
             adds (persisted, instance-scoped). Own SectionBoundary so a thrown
             error degrades just this surface. */}
-        {view === 'health' && <SectionBoundary name="Road to 150"><RoadTo150 program={(data.healthPrograms || []).find((p) => p.active !== false) || null} weightEntries={data.weightEntries || []} waterEntries={data.waterEntries || []} addWeightEntry={addWeightEntry} addWaterEntry={addWaterEntry} deleteWaterEntry={deleteWaterEntry} startProgram={startHealthProgram} /></SectionBoundary>}
+        {view === 'health' && <SectionBoundary name="Road to 150"><RoadTo150 program={(data.healthPrograms || []).find((p) => p.active !== false) || null} weightEntries={data.weightEntries || []} waterEntries={data.waterEntries || []} foodEntries={data.foodEntries || []} addFoodEntry={addFoodEntry} deleteFoodEntry={deleteFoodEntry} addWeightEntry={addWeightEntry} addWaterEntry={addWaterEntry} deleteWaterEntry={deleteWaterEntry} startProgram={startHealthProgram} /></SectionBoundary>}
         {view === 'recipes' && (
           <SectionBoundary name="Chef's Corner">
             <ChefCorner

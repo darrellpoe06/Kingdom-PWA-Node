@@ -27,6 +27,7 @@ import { KpiDot } from './KpiDot.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { confirmThen } from '../lib/confirm-action.js';
 import {
+  MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
 } from '../lib/health-program.js';
 import { ROAD_TO_150, startProgram, pdfPending } from '../lib/road-to-150-program.js';
@@ -189,6 +190,9 @@ export default function RoadTo150({
   addWeightEntry = null,
   addWaterEntry = null,
   deleteWaterEntry = null,
+  foodEntries = [],
+  addFoodEntry = null,
+  deleteFoodEntry = null,
   today = null,
 }) {
   const todayKey = today || toDayKey(new Date());
@@ -211,6 +215,9 @@ export default function RoadTo150({
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [weighIn, setWeighIn] = useState('');
   const [customOz, setCustomOz] = useState('');
+  // One draft per meal so opening Dinner does not clear a half-typed Lunch item.
+  const [draft, setDraft] = useState({});
+  const foodDay = useMemo(() => dayFoodTotals(foodEntries, todayKey), [foodEntries, todayKey]);
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -361,6 +368,128 @@ export default function RoadTo150({
 
   // ── water ──────────────────────────────────────────────────────────────────
   const todaysWater = (waterEntries || []).filter((e) => e.day === todayKey);
+  // ── FOOD ───────────────────────────────────────────────────────────────────
+  // ACTUALS ONLY. The planned meal is not here because its source PDF is not in
+  // the repo — but what was actually eaten never depended on that plan, so this
+  // logs regardless. When the plan lands it renders BESIDE these rows.
+  const addFood = (mealId) => {
+    const d = draft[mealId] || {};
+    const name = (d.name || '').trim();
+    if (!addFoodEntry || !name) return;
+    addFoodEntry({
+      day: todayKey,
+      meal: mealId,
+      name,
+      serving: (d.serving || '').trim(),
+      // Blank stays NULL, never 0 — "not recorded" must not read as a real zero.
+      calories: d.calories === '' || d.calories == null ? null : Number(d.calories),
+      proteinG: d.protein === '' || d.protein == null ? null : Number(d.protein),
+      eatenAt: new Date().toISOString(),
+    });
+    setDraft((prev) => ({ ...prev, [mealId]: {} }));
+  };
+  const setField = (mealId, field, value) =>
+    setDraft((prev) => ({ ...prev, [mealId]: { ...(prev[mealId] || {}), [field]: value } }));
+
+  const num = (v, unit) => (v.recorded === 0 ? '—' : `${round1(v.total)}${unit}${v.complete ? '' : '*'}`);
+
+  const foodTab = () => (
+    <div className="space-y-4">
+      <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-food-h">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 id="r150-food-h" className="text-lg" style={display}>What I ate today</h3>
+          <div className="text-sm text-[#1A1815]" style={serif}>
+            <strong>{num(foodDay.calories, ' cal')}</strong>
+            <span className="text-[#5A5751]"> · </span>
+            <strong>{num(foodDay.protein, 'g protein')}</strong>
+            <span className="text-[#5A5751] text-xs"> · {foodDay.items} item{foodDay.items === 1 ? '' : 's'}</span>
+          </div>
+        </div>
+        <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+          These are your ACTUAL entries — nothing here is a target. Calories and protein are
+          optional: leave them blank and the item still logs, and the total says how many
+          entries carried a number rather than counting a blank as zero.
+        </p>
+        {!addFoodEntry && (
+          <p className="text-xs text-[#B85838] mt-2" style={serif}>Sign in to log food.</p>
+        )}
+      </section>
+
+      {MEALS.map((m) => {
+        const rowsFor = foodForMeal(foodEntries, todayKey, m.id);
+        const t = mealTotals(foodEntries, todayKey, m.id);
+        const d = draft[m.id] || {};
+        return (
+          <section key={m.id} className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby={`r150-meal-${m.id}`}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 id={`r150-meal-${m.id}`} className="text-lg" style={display}>{m.label}</h3>
+              <span className="text-xs text-[#5A5751]" style={serif}>
+                {rowsFor.length === 0 ? 'nothing logged' : `${num(t.calories, ' cal')} · ${num(t.protein, 'g')}`}
+              </span>
+            </div>
+
+            {rowsFor.length > 0 && (
+              <ul className="divide-y divide-[#E8E4DC] mt-2">
+                {rowsFor.map((e) => (
+                  <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-sm" style={serif}>
+                    <span className="text-[#1A1815]">
+                      {e.name}
+                      {e.serving ? <span className="text-[#5A5751]"> · {e.serving}</span> : null}
+                      <span className="block text-xs text-[#5A5751]">
+                        {e.calories == null ? 'calories not recorded' : `${round1(e.calories)} cal`}
+                        {' · '}
+                        {e.proteinG == null ? 'protein not recorded' : `${round1(e.proteinG)}g protein`}
+                      </span>
+                    </span>
+                    {deleteFoodEntry && (
+                      <button type="button"
+                              onClick={confirmThen(`Remove ${e.name} from ${m.label.toLowerCase()}?`, () => deleteFoodEntry(e.id))}
+                              className="text-[#B85838] underline underline-offset-2 text-xs shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-label={`Remove ${e.name}`}>
+                        Remove
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <label htmlFor={`r150-${m.id}-name`} className="sr-only">Food eaten at {m.label}</label>
+              <input id={`r150-${m.id}-name`} type="text" value={d.name || ''} placeholder="Food"
+                     onChange={(e) => setField(m.id, 'name', e.target.value)}
+                     className="col-span-2 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <label htmlFor={`r150-${m.id}-serving`} className="sr-only">Serving size</label>
+              <input id={`r150-${m.id}-serving`} type="text" value={d.serving || ''} placeholder="Serving (6 oz)"
+                     onChange={(e) => setField(m.id, 'serving', e.target.value)}
+                     className="col-span-2 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <label htmlFor={`r150-${m.id}-cal`} className="sr-only">Calories (optional)</label>
+              <input id={`r150-${m.id}-cal`} type="number" min="0" step="1" inputMode="numeric"
+                     value={d.calories || ''} placeholder="Calories"
+                     onChange={(e) => setField(m.id, 'calories', e.target.value)}
+                     className="border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <label htmlFor={`r150-${m.id}-pro`} className="sr-only">Protein in grams (optional)</label>
+              <input id={`r150-${m.id}-pro`} type="number" min="0" step="0.1" inputMode="decimal"
+                     value={d.protein || ''} placeholder="Protein g"
+                     onChange={(e) => setField(m.id, 'protein', e.target.value)}
+                     className="border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+            </div>
+            <button type="button" disabled={!addFoodEntry || !(d.name || '').trim()}
+                    onClick={() => addFood(m.id)}
+                    className="mt-2 w-full px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Add to {m.label}
+            </button>
+          </section>
+        );
+      })}
+
+      <p className="text-xs text-[#5A5751]" style={serif}>
+        * a total marked with an asterisk is missing at least one item's number — it is the sum
+        of what you recorded, not a complete day.
+      </p>
+    </div>
+  );
+
   const waterTab = () => (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-water-h">
@@ -457,6 +586,7 @@ export default function RoadTo150({
     { id: 'dashboard', label: 'Dashboard', icon: 'home', render: dashboard },
     { id: 'weight', label: 'Weight', icon: 'chart', render: weight },
     { id: 'water', label: 'Water', icon: 'heart', render: waterTab },
+    { id: 'food', label: 'Food', icon: 'chefHat', render: foodTab },
     { id: 'plan', label: 'Plan', icon: 'book', render: plan },
   ];
 

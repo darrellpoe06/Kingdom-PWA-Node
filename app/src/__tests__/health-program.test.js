@@ -296,3 +296,96 @@ describe('canSeeHealthTab — the tab is earned by real state', () => {
     expect(canSeeHealthTab(false, [null, undefined])).toBe(false);
   });
 });
+
+// =============================================================================
+// ACTUAL FOOD — the log that never needed the PDF
+// =============================================================================
+// Darrell, 2026-08-31, on the shipped tab: "I can't put my food in here and I
+// need to." The meal PLAN legitimately waits on a source PDF; the LOG never
+// did. These pin the two properties that make the log trustworthy:
+//   1. a blank calorie/protein is NOT zero — it is absent, and the total says so
+//   2. totals are DERIVED from items, so removing one cannot leave a stale total
+import {
+  MEALS, isMealId, foodForDay, foodForMeal, foodTotals, mealTotals, dayFoodTotals,
+} from '../lib/health-program.js';
+
+const D = '2026-09-01';
+const rows = [
+  { id: 'a', day: D, meal: 'lunch',   name: 'Salmon',   calories: 280, proteinG: 39,  eatenAt: '2026-09-01T12:00:00Z' },
+  { id: 'b', day: D, meal: 'lunch',   name: 'Broccoli', calories: 55,  proteinG: 3.7, eatenAt: '2026-09-01T12:01:00Z' },
+  { id: 'c', day: D, meal: 'lunch',   name: 'Mystery',  calories: null, proteinG: null, eatenAt: '2026-09-01T12:02:00Z' },
+  { id: 'd', day: D, meal: 'morning', name: 'Eggs',     calories: 140, proteinG: 12,  eatenAt: '2026-09-01T07:00:00Z' },
+  { id: 'e', day: '2026-09-02', meal: 'dinner', name: 'Chicken', calories: 300, proteinG: 55, eatenAt: '2026-09-02T18:00:00Z' },
+];
+
+describe('the four meals of the program day', () => {
+  it('are the brief’s four, in the order the day is eaten', () => {
+    expect(MEALS.map((m) => m.id)).toEqual(['morning', 'lunch', 'snack', 'dinner']);
+  });
+  it('rejects an unknown meal rather than inventing one', () => {
+    expect(isMealId('lunch')).toBe(true);
+    expect(isMealId('brunch')).toBe(false);
+    expect(isMealId(null)).toBe(false);
+  });
+});
+
+describe('food is scoped to its day and meal', () => {
+  it('returns only that day, oldest first', () => {
+    expect(foodForDay(rows, D).map((r) => r.id)).toEqual(['d', 'a', 'b', 'c']);
+  });
+  it('returns only that meal', () => {
+    expect(foodForMeal(rows, D, 'lunch').map((r) => r.id)).toEqual(['a', 'b', 'c']);
+  });
+  it('is empty for a day with nothing logged, never a crash', () => {
+    expect(foodForDay(rows, '2030-01-01')).toEqual([]);
+    expect(foodForDay(null, D)).toEqual([]);
+    expect(foodForMeal(undefined, D, 'snack')).toEqual([]);
+  });
+});
+
+describe('a blank number is ABSENT, never zero (the honesty rule)', () => {
+  it('sums only what was recorded and flags the gap', () => {
+    const t = mealTotals(rows, D, 'lunch');
+    expect(t.items).toBe(3);
+    expect(t.calories.total).toBe(335);      // 280 + 55, NOT 335+0
+    expect(t.calories.recorded).toBe(2);
+    expect(t.calories.missing).toBe(1);
+    expect(t.calories.complete).toBe(false); // the surface renders an asterisk
+  });
+  it('marks a fully-recorded meal complete', () => {
+    const t = mealTotals(rows, D, 'morning');
+    expect(t.calories.total).toBe(140);
+    expect(t.calories.complete).toBe(true);
+  });
+  it('PROVEN-TO-CATCH: an all-blank meal totals nothing and admits it', () => {
+    const blank = [{ id: 'x', day: D, meal: 'snack', name: 'Almonds', calories: null, proteinG: null }];
+    const t = foodTotals(blank);
+    expect(t.calories.recorded).toBe(0);   // surface shows "—", never "0 cal"
+    expect(t.calories.total).toBe(0);
+    expect(t.calories.complete).toBe(false);
+  });
+  it('ignores a non-numeric value rather than coercing it', () => {
+    const junk = [{ id: 'y', day: D, meal: 'snack', name: 'Guess', calories: 'lots', proteinG: '' }];
+    expect(foodTotals(junk).calories.recorded).toBe(0);
+    expect(foodTotals(junk).protein.recorded).toBe(0);
+  });
+});
+
+describe('day totals are derived from the items, never stored', () => {
+  it('sums every meal and breaks down by meal', () => {
+    const day = dayFoodTotals(rows, D);
+    expect(day.items).toBe(4);
+    expect(day.calories.total).toBe(475);   // 140 + 280 + 55
+    expect(day.protein.total).toBe(54.7);
+    expect(day.byMeal.find((m) => m.id === 'lunch').items).toBe(3);
+    expect(day.byMeal.find((m) => m.id === 'snack').items).toBe(0);
+  });
+  it('a removed item changes the total immediately — no stale sum', () => {
+    const after = dayFoodTotals(rows.filter((r) => r.id !== 'a'), D);
+    expect(after.calories.total).toBe(195);  // 475 - 280
+    expect(after.items).toBe(3);
+  });
+  it('every meal appears in the breakdown even when empty', () => {
+    expect(dayFoodTotals([], D).byMeal.map((m) => m.id)).toEqual(['morning', 'lunch', 'snack', 'dinner']);
+  });
+});

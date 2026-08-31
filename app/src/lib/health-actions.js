@@ -20,14 +20,26 @@
  * @param getData   () => the live data object, for the same-day weigh-in lookup
  */
 export function makeHealthActions(railCrud, getData, syncs) {
-  const { healthProgramsSync, weightEntriesSync, waterEntriesSync } = syncs;
+  const { healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync } = syncs;
 
   const programs = railCrud(healthProgramsSync, 'healthPrograms', 'health-programs-sync');
   const weights = railCrud(weightEntriesSync, 'weightEntries', 'weight-entries-sync');
   const waters = railCrud(waterEntriesSync, 'waterEntries', 'water-entries-sync');
+  const foods = railCrud(foodEntriesSync, 'foodEntries', 'food-entries-sync');
 
   return {
     startHealthProgram: (item) => programs.add({ ...item, id: `hp-${Date.now()}` }),
+
+    // ACTUAL food. One row per ITEM, so removing one does not rewrite the rest
+    // and a meal total is always derived from its items rather than stored.
+    // Nothing here writes a planned value -- there is no planned food to write.
+    addFoodEntry: (item) => foods.add({
+      ...item,
+      id: `fd-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: new Date().toISOString(),
+    }),
+    updateFoodEntry: foods.update,
+    deleteFoodEntry: foods.remove,
 
     // One weigh-in per day: re-weighing the same day CORRECTS that day rather
     // than stacking a second reading the graph would have to choose between.
@@ -54,4 +66,4 @@ export function makeHealthActions(railCrud, getData, syncs) {
 // Re-exported so the frozen shell reaches every health helper through one
 // import line (the budget guard holds it at exactly 5331 lines).
 export { canSeeHealthTab } from './health-program.js';
-export { healthProgramsSync, weightEntriesSync, waterEntriesSync, healthRails } from './health-sync.js';
+export { healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, healthRails } from './health-sync.js';
