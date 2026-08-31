@@ -142,14 +142,57 @@ describe('water', () => {
   });
 });
 
-describe('the un-imported plan says so rather than showing an empty day', () => {
-  it('names the missing PDF instead of rendering a blank meal list', async () => {
+// SUPERSEDED BEHAVIOUR, deliberately rewritten rather than deleted. This block
+// used to assert the Plan tab said "not imported yet". It said that because I
+// was waiting on a file named "Road to 150 - Complete Tracking Plan" while the
+// plan's real content sat in the document his wife had already written. Darrell,
+// 2026-08-31: "you create a tracking plan based on the pdf my wife gave you."
+// The tab now shows the real plan; what it must STILL refuse to do is invent the
+// per-food nutrition she never wrote, and that is what these now pin.
+describe('the plan shows what her document actually said', () => {
+  it('renders his strength round exercise for exercise, in his phrasing', async () => {
     await render({ program: ENROLLED, today: '2026-09-13' });
     await openTab('plan');
     const t = text();
-    expect(t).toMatch(/not imported yet/i);
-    expect(t).toMatch(/Road to 150 - Complete Tracking Plan/);
-    expect(t).not.toMatch(/Rest day|Recovery Day/i);
+    expect(t).toMatch(/10 chair squats/i);
+    expect(t).toMatch(/10 knee raises each leg/i);
+    expect(t).toMatch(/8 bird dogs each side/i);
+    expect(t).toMatch(/2 rounds/i);
+  });
+
+  it('renders the walk and the planned daily totals he stated', async () => {
+    await render({ program: ENROLLED, today: '2026-09-13' });
+    await openTab('plan');
+    const t = text();
+    expect(t).toMatch(/28 minutes/i);
+    expect(t).toMatch(/2\.5 mph/i);
+    expect(t).toMatch(/1604/);      // planned calories
+    expect(t).toMatch(/141\.7/);    // planned protein
+  });
+
+  it('lists the nineteen program foods', async () => {
+    await render({ program: ENROLLED, today: '2026-09-13' });
+    await openTab('plan');
+    const t = text();
+    expect(t).toMatch(/Homemade juice/i);
+    expect(t).toMatch(/Orgain plant protein/i);
+    expect(t).toMatch(/Small baked potato/i);
+    expect(t).toMatch(/Dressing/i);
+  });
+
+  it('PROVEN-TO-CATCH: an unrecorded actual reads "not recorded", never 0', async () => {
+    await render({ program: ENROLLED, today: '2026-09-13' });
+    await openTab('plan');
+    const t = text();
+    // Nothing logged for this day — the planned figure shows, the actual does not
+    // masquerade as a real zero.
+    expect(t).toMatch(/not recorded/i);
+  });
+
+  it('still says plainly what the document never contained', async () => {
+    await render({ program: ENROLLED, today: '2026-09-13' });
+    await openTab('plan');
+    expect(text()).toMatch(/never written down|not invented/i);
   });
 });
 
