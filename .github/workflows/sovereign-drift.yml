@@ -50,8 +50,15 @@ jobs:
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
 
+          # LogLevel=ERROR matters for correctness, not tidiness: a fresh runner
+          # has an empty known_hosts, so ssh prints "Warning: Permanently added
+          # ..." on its FIRST connection. Merged into the output it (a) broke an
+          # exact "$probe" = READY test even though the probe succeeded, and
+          # (b) would have injected that warning line into the ledger list as a
+          # phantom migration filename, silently corrupting the diff this whole
+          # workflow exists to produce. Both were live in c8a4fef.
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
-               -o BatchMode=yes dpoe@poetech.tail5a2f35.ts.net"
+               -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
 
           # REACHABILITY FIRST, and NEVER swallow the reason (the 2026-08-31 fix
           # to this file's own first run): the original piped stderr to
@@ -60,9 +67,12 @@ jobs:
           # makes it useless for acting on. A witness has to report WHY.
           # MagicDNS is also not always resolvable the instant tailscaled comes
           # up, so a single immediate attempt can fail on timing alone.
+          # Match on CONTAINS, never equality: any banner or warning the remote
+          # host prints would otherwise read as a failed probe on a live link.
           probe=""; err=""
           for attempt in 1 2 3; do
-            if err=$($SSH "echo READY" 2>&1); then probe="$err"; break; fi
+            err=$($SSH "echo READY" 2>&1) || true
+            case "$err" in *READY*) probe="READY"; break;; esac
             sleep 5
           done
           if [ "$probe" != "READY" ]; then
@@ -84,13 +94,15 @@ jobs:
           # container, so no port or password ever leaves the NAS. Try without
           # sudo first (dpoe may be in the docker group); fall back to sudo -n,
           # which is the channel the deploy workflow already uses.
+          # stderr goes to a FILE, never into the value: the ledger variable must
+          # carry migration filenames and nothing else, or the diff lies.
           Q="select filename from public._schema_migrations order by filename"
           LEDGER=""; dberr=""
           for runner in "docker" "sudo -n docker"; do
-            if out=$($SSH "$runner exec supabase-db psql -U supabase_admin -d postgres -tAc \"$Q\"" 2>&1); then
-              LEDGER="$out"; break
+            if out=$($SSH "$runner exec supabase-db psql -U supabase_admin -d postgres -tAc \"$Q\"" 2>/tmp/dberr); then
+              if [ -n "$out" ]; then LEDGER="$out"; break; fi
             fi
-            dberr="$out"
+            dberr=$(cat /tmp/dberr 2>/dev/null)
           done
           rm -f /tmp/nas_key
 
