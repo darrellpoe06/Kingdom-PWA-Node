@@ -1,138 +1,199 @@
 {
-  "generatedAt": "2026-08-03",
+  "generatedAt": "2026-08-31",
   "channel": "https://www.youtube.com/@thelovecorner",
   "tabs": {
-    "videos": 341,
-    "streams": 517
+    "videos": 347,
+    "streams": 521
   },
-  "total": 858,
-  "dated": 183,
-  "undated": 675,
+  "total": 868,
+  "dated": 320,
+  "undated": 548,
   "videos": [
+    {
+      "videoId": "0lZ_vkDAWw0",
+      "serviceDate": "2026-08-26",
+      "title": "THERE'S ALWAYS ANOTHER WAY",
+      "dateSource": "title"
+    },
+    {
+      "videoId": "mWn5kmlAyS4",
+      "serviceDate": "2026-08-15",
+      "title": "Vacellia P. Clark 8/15/2026 Part 2 Pastor Darryl Cox",
+      "dateSource": "title"
+    },
+    {
+      "videoId": "Pq-dGWmaO9g",
+      "serviceDate": "2026-08-19",
+      "title": "NOT TODAY SAINTS, NOT TODAY - TODAY IS THE LORD'S DAY",
+      "dateSource": "title"
+    },
+    {
+      "videoId": "RAl6xX32Ilw",
+      "serviceDate": "2026-08-15",
+      "title": "Vacellia P. Clark Celebration  of Life Part 1  8/15/2026",
+      "dateSource": "title"
+    },
+    {
+      "videoId": "jZCcyUM39NU",
+      "serviceDate": "2026-08-12",
+      "title": "YOU CAN'T QUIT NOW - SOMEBODY'S GOT TO GET SAVED!",
+      "dateSource": "title"
+    },
+    {
+      "videoId": "rnwdPTToJHQ",
+      "serviceDate": "2026-08-05",
+      "title": "OBEDIENCE LEADS TO BLESSING!",
+      "dateSource": "title"
+    },
     {
       "videoId": "5oZTqJsXxzo",
       "serviceDate": "2026-07-29",
-      "title": "7 - 29 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study \"GOD IS NOT THROUGH WITH ME YET!"
+      "title": "7 - 29 - 2026 Bishop Lloyd E. Gwin Wednesday Bible Study \"GOD IS NOT THROUGH WITH ME YET!",
+      "dateSource": "title"
     },
     {
       "videoId": "7UlevIOhB80",
       "serviceDate": "2026-07-22",
-      "title": "Reposition For Purpose!"
+      "title": "Reposition For Purpose!",
+      "dateSource": "title"
     },
     {
       "videoId": "xc0TpCNbJfM",
       "serviceDate": "2026-07-08",
-      "title": "7 - 8 - 26 Pastor Ken McCray   \"Don't Let Your Struggle Distract You from Your Double !'"
+      "title": "7 - 8 - 26 Pastor Ken McCray   \"Don't Let Your Struggle Distract You from Your Double !'",
+      "dateSource": "title"
     },
     {
       "videoId": "tiWIUWodpMg",
       "serviceDate": "2026-07-01",
-      "title": "DON'T LET ANY STRUGGLE DISTRACT YOU FROM YOUR DOUBLE!"
+      "title": "DON'T LET ANY STRUGGLE DISTRACT YOU FROM YOUR DOUBLE!",
+      "dateSource": "title"
     },
     {
       "videoId": "BQC4nYa33vo",
       "serviceDate": "2026-06-24",
-      "title": "ALL FATHERS MATTER!"
+      "title": "ALL FATHERS MATTER!",
+      "dateSource": "title"
     },
     {
       "videoId": "h-_zeNPRlxw",
       "serviceDate": "2026-06-17",
-      "title": "ARE YOU SALTY?"
+      "title": "ARE YOU SALTY?",
+      "dateSource": "title"
     },
     {
       "videoId": "_f0sVWTrNgw",
       "serviceDate": "2026-06-10",
-      "title": "LET GO AND LET GOD HELP YOU"
+      "title": "LET GO AND LET GOD HELP YOU",
+      "dateSource": "title"
     },
     {
       "videoId": "Nj-63jW1WY4",
       "serviceDate": "2026-06-03",
-      "title": "THANK YOU FOR THE REMINDER!"
+      "title": "THANK YOU FOR THE REMINDER!",
+      "dateSource": "title"
     },
     {
       "videoId": "I_uiVEuU9hI",
       "serviceDate": "2026-05-27",
-      "title": "GOD IS AFTER YOUR EAR TO MAKE HIS PURPOSE CLEAR!"
+      "title": "GOD IS AFTER YOUR EAR TO MAKE HIS PURPOSE CLEAR!",
+      "dateSource": "title"
     },
     {
       "videoId": "Du-BLBHO8tE",
       "serviceDate": "2026-05-20",
-      "title": "5- 20 - 2026 Bishop Lloyd E.Gwin Wednesday Bible Study \"YOU WERE BUILT TO WIN!'"
+      "title": "5- 20 - 2026 Bishop Lloyd E.Gwin Wednesday Bible Study \"YOU WERE BUILT TO WIN!'",
+      "dateSource": "title"
     },
     {
       "videoId": "Npp9dkt1XC0",
       "serviceDate": "2026-05-13",
-      "title": "I'll Never Give Up!"
+      "title": "I'll Never Give Up!",
+      "dateSource": "title"
     },
     {
       "videoId": "ol5wKnBINpU",
       "serviceDate": "2026-05-06",
-      "title": "NEED ANSWERS, WATCH GOD TURN IT AROUND!"
+      "title": "NEED ANSWERS, WATCH GOD TURN IT AROUND!",
+      "dateSource": "title"
     },
     {
       "videoId": "uQ00hIf2YsM",
       "serviceDate": "2026-04-29",
-      "title": "HELP OTHERS AND TRUST GOD TO HELP YOU"
+      "title": "HELP OTHERS AND TRUST GOD TO HELP YOU",
+      "dateSource": "title"
     },
     {
       "videoId": "BHbsKQ-3_x0",
       "serviceDate": "2026-04-22",
-      "title": "UNLOCK YOUR NEXT CHAPTER!"
+      "title": "UNLOCK YOUR NEXT CHAPTER!",
+      "dateSource": "title"
     },
     {
       "videoId": "y6rzUGleflI",
       "serviceDate": "2026-04-18",
-      "title": "Roline Brumfield Homegoing Service  4 - 18 - 2026"
+      "title": "Roline Brumfield Homegoing Service  4 - 18 - 2026",
+      "dateSource": "title"
     },
     {
       "videoId": "JkpwSoeeX5w",
       "serviceDate": "2026-04-15",
-      "title": "4 -15 -26 Bishop Lloyd E. Gwin Wednesday Bible Study  \"IF HE CAN GET UP, I CAN TOO!"
+      "title": "4 -15 -26 Bishop Lloyd E. Gwin Wednesday Bible Study  \"IF HE CAN GET UP, I CAN TOO!",
+      "dateSource": "title"
     },
     {
       "videoId": "xLhOOy1smtM",
       "serviceDate": "2026-04-08",
-      "title": "WATCH GOD TURN IT AROUND!"
+      "title": "WATCH GOD TURN IT AROUND!",
+      "dateSource": "title"
     },
     {
       "videoId": "kg_XhmgxYXo",
       "serviceDate": "2026-04-01",
-      "title": "THE KING IS STILL HERE!"
+      "title": "THE KING IS STILL HERE!",
+      "dateSource": "title"
     },
     {
       "videoId": "cbEGBYks-Ms",
       "serviceDate": "2026-03-25",
-      "title": "IF YOU WANT SOMETHING YOU NEVER HAD, DO SOMETHING YOU NEVER DONE"
+      "title": "IF YOU WANT SOMETHING YOU NEVER HAD, DO SOMETHING YOU NEVER DONE",
+      "dateSource": "title"
     },
     {
       "videoId": "16javnubkyU",
       "serviceDate": "2026-03-18",
-      "title": "GOD IS PREPARING YOU FOR YOUR DESTINY"
+      "title": "GOD IS PREPARING YOU FOR YOUR DESTINY",
+      "dateSource": "title"
     },
     {
       "videoId": "8Ap0rvmU9dA",
       "serviceDate": "2026-03-11",
-      "title": "3 - 11- 26 Bishop Lloyd E. Gwin Wednesday Bible Study \"ONLY MOVE WHEN HE MOVES!"
+      "title": "3 - 11- 26 Bishop Lloyd E. Gwin Wednesday Bible Study \"ONLY MOVE WHEN HE MOVES!",
+      "dateSource": "title"
     },
     {
       "videoId": "AyiDcYOnkRs",
       "serviceDate": "2026-03-04",
-      "title": "3- 4- 2026 Bishop Lloyd E. Gwin Wednesday Bible Study \" YOU CAN'T MARCH, IF YOU DON'T MOVE!'"
+      "title": "3- 4- 2026 Bishop Lloyd E. Gwin Wednesday Bible Study \" YOU CAN'T MARCH, IF YOU DON'T MOVE!'",
+      "dateSource": "title"
     },
     {
       "videoId": "34tdYenmT-A",
       "serviceDate": "2026-02-25",
-      "title": "2- 25 - 26 Bishop Lloyd E. Gwin Wednesday Bible Study \" NOW IS THE TIME!"
+      "title": "2- 25 - 26 Bishop Lloyd E. Gwin Wednesday Bible Study \" NOW IS THE TIME!",
+      "dateSource": "title"
     },
     {
       "videoId": "zWgMNShU5as",
       "serviceDate": "2026-02-18",
-      "title": "I LOVE YOU ... I SEE YOU!"
+      "title": "I LOVE YOU ... I SEE YOU!",
+      "dateSource": "title"
     },
     {
       "videoId": "gu6Oa67VpmI",
       "serviceDate": "2026-02-11",
-      "title": "I WANT TO LOVE LIKE HIM!"
+      "title": "I WANT TO LOVE LIKE HIM!",
+      "dateSource": "title"
     },
     {
       "videoId": "E_zLS--BgXk",
@@ -142,112 +203,134 @@
     {
       "videoId": "GzCdILHckwQ",
       "serviceDate": "2026-02-04",
-      "title": "You Will Make It To The Other Side"
+      "title": "You Will Make It To The Other Side",
+      "dateSource": "title"
     },
     {
       "videoId": "SxS0xrZHWxw",
       "serviceDate": "2026-01-28",
-      "title": "DON'T GIVE IN UNTIL YOU WIN!"
+      "title": "DON'T GIVE IN UNTIL YOU WIN!",
+      "dateSource": "title"
     },
     {
       "videoId": "fGgEm6Mhk8g",
       "serviceDate": "2026-01-21",
-      "title": "YOU'RE GOT TO HELP SOMEBODY!"
+      "title": "YOU'RE GOT TO HELP SOMEBODY!",
+      "dateSource": "title"
     },
     {
       "videoId": "rHd2QpBctfE",
       "serviceDate": "2026-01-14",
-      "title": "FAITH, THE FINAL FRONTIER!"
+      "title": "FAITH, THE FINAL FRONTIER!",
+      "dateSource": "title"
     },
     {
       "videoId": "6j0ToFoBNxw",
       "serviceDate": "2026-01-07",
-      "title": "JESUS CAN FIX IT!"
+      "title": "JESUS CAN FIX IT!",
+      "dateSource": "title"
     },
     {
       "videoId": "7lBdy6xjdQg",
       "serviceDate": "2025-12-24",
-      "title": "We're on Assignment!"
+      "title": "We're on Assignment!",
+      "dateSource": "title"
     },
     {
       "videoId": "76fT-J4AKec",
       "serviceDate": "2025-12-17",
-      "title": "YOU'RE GOING TO HAVE TO CLIMB FOR THIS ONE!"
+      "title": "YOU'RE GOING TO HAVE TO CLIMB FOR THIS ONE!",
+      "dateSource": "title"
     },
     {
       "videoId": "ZxKOhlajHpU",
       "serviceDate": "2025-12-10",
-      "title": "GET OFF THE FENCE!"
+      "title": "GET OFF THE FENCE!",
+      "dateSource": "title"
     },
     {
       "videoId": "HMqG4aQMBR4",
       "serviceDate": "2025-12-03",
-      "title": "DON'T SETTLE FOR BETTER - WHEN YOU CAN HAVE THE BEST!"
+      "title": "DON'T SETTLE FOR BETTER - WHEN YOU CAN HAVE THE BEST!",
+      "dateSource": "title"
     },
     {
       "videoId": "hghmd8HLNHg",
       "serviceDate": "2025-11-26",
-      "title": "REMEMBERING THE  GOODNESS OF GOD"
+      "title": "REMEMBERING THE  GOODNESS OF GOD",
+      "dateSource": "title"
     },
     {
       "videoId": "wdptLNDt9Hs",
       "serviceDate": "2025-11-19",
-      "title": "I BUILD MY LIFE WITH THE WORD OF GOD!"
+      "title": "I BUILD MY LIFE WITH THE WORD OF GOD!",
+      "dateSource": "title"
     },
     {
       "videoId": "RTuZZN-i0dg",
       "serviceDate": "2025-11-12",
-      "title": "SHOUT- THE VICTORY BELONGS TO GOD"
+      "title": "SHOUT- THE VICTORY BELONGS TO GOD",
+      "dateSource": "title"
     },
     {
       "videoId": "Mfp79c7RuTE",
       "serviceDate": "2025-11-05",
-      "title": "11- 5- 25 Bishop Lloyd Gwin Wednesday Bible Study \" IT'S KNOW SECRET WHAT GOD CAN DO!'"
+      "title": "11- 5- 25 Bishop Lloyd Gwin Wednesday Bible Study \" IT'S KNOW SECRET WHAT GOD CAN DO!'",
+      "dateSource": "title"
     },
     {
       "videoId": "pLRg9sY8_V8",
       "serviceDate": "2025-08-13",
-      "title": "FOLLOW ME AS I FOLLOW CHRIST!"
+      "title": "FOLLOW ME AS I FOLLOW CHRIST!",
+      "dateSource": "title"
     },
     {
       "videoId": "3uTCLb1e_SM",
       "serviceDate": "2025-08-06",
-      "title": "DARE TO TRY AND DON'T GIVE UP!"
+      "title": "DARE TO TRY AND DON'T GIVE UP!",
+      "dateSource": "title"
     },
     {
       "videoId": "SDkCaxKzjkU",
       "serviceDate": "2025-07-30",
-      "title": "SEEK GOD FIRST AND FINISH THE RACE!"
+      "title": "SEEK GOD FIRST AND FINISH THE RACE!",
+      "dateSource": "title"
     },
     {
       "videoId": "rq6M6K9Pe3w",
       "serviceDate": "2025-07-23",
-      "title": "JUST DO IT!"
+      "title": "JUST DO IT!",
+      "dateSource": "title"
     },
     {
       "videoId": "pfXKXFN5-3g",
       "serviceDate": "2025-07-16",
-      "title": "ATTACK ALL ENEMIES AS YOU LEVEL UP"
+      "title": "ATTACK ALL ENEMIES AS YOU LEVEL UP",
+      "dateSource": "title"
     },
     {
       "videoId": "EmbWeBVGfbY",
       "serviceDate": "2025-07-02",
-      "title": "Mixed Company!"
+      "title": "Mixed Company!",
+      "dateSource": "title"
     },
     {
       "videoId": "962M48q8W2o",
       "serviceDate": "2025-06-25",
-      "title": "It's Your Winning Season"
+      "title": "It's Your Winning Season",
+      "dateSource": "title"
     },
     {
       "videoId": "RTMEQjm7x84",
       "serviceDate": "2025-06-18",
-      "title": "6 -18 - 2025 BISHOP LLOYD GWIN! WEDNESDAY BIBLE STUDY! GET READY AND STAY READY - A STORM IS COMING!"
+      "title": "6 -18 - 2025 BISHOP LLOYD GWIN! WEDNESDAY BIBLE STUDY! GET READY AND STAY READY - A STORM IS COMING!",
+      "dateSource": "title"
     },
     {
       "videoId": "av4Rxx0CHMo",
       "serviceDate": "2025-06-11",
-      "title": "CHILDREN CAN HELP!"
+      "title": "CHILDREN CAN HELP!",
+      "dateSource": "title"
     },
     {
       "videoId": "NfB661pfEpU",
@@ -257,82 +340,98 @@
     {
       "videoId": "CNtfOJku9yE",
       "serviceDate": "2025-06-04",
-      "title": "I'M HIS FOREVER!"
+      "title": "I'M HIS FOREVER!",
+      "dateSource": "title"
     },
     {
       "videoId": "_WsYVC72YaY",
       "serviceDate": "2025-05-28",
-      "title": "5 - 28 - 2025 Bishop Lloyd E. Gwin  Wednesday Bible Study \"KEEP THE FIRE BURNING!"
+      "title": "5 - 28 - 2025 Bishop Lloyd E. Gwin  Wednesday Bible Study \"KEEP THE FIRE BURNING!",
+      "dateSource": "title"
     },
     {
       "videoId": "Wda9oYfM7P8",
       "serviceDate": "2025-05-21",
-      "title": "A FRESH START"
+      "title": "A FRESH START",
+      "dateSource": "title"
     },
     {
       "videoId": "fL_3U7FG91E",
       "serviceDate": "2025-05-14",
-      "title": "God Sees You!"
+      "title": "God Sees You!",
+      "dateSource": "title"
     },
     {
       "videoId": "_vb8ucnwi1g",
       "serviceDate": "2025-05-07",
-      "title": "HE'S WORKING IT OUT FOR OUR GOOD"
+      "title": "HE'S WORKING IT OUT FOR OUR GOOD",
+      "dateSource": "title"
     },
     {
       "videoId": "YAUsHgaoAR8",
       "serviceDate": "2025-04-30",
-      "title": "DON'T BE AFRAID-IT'S GOING TO BE ALRIGHT"
+      "title": "DON'T BE AFRAID-IT'S GOING TO BE ALRIGHT",
+      "dateSource": "title"
     },
     {
       "videoId": "v8VbUay8Lmc",
       "serviceDate": "2025-04-23",
-      "title": "I KNOW WHO I AM IN GOD"
+      "title": "I KNOW WHO I AM IN GOD",
+      "dateSource": "title"
     },
     {
       "videoId": "ElzaP_DbeJs",
       "serviceDate": "2025-04-16",
-      "title": "PATIENT IS A VIRTUE"
+      "title": "PATIENT IS A VIRTUE",
+      "dateSource": "title"
     },
     {
       "videoId": "3-vMut7cjgM",
       "serviceDate": "2025-04-09",
-      "title": "GOD IS IN CONTROL"
+      "title": "GOD IS IN CONTROL",
+      "dateSource": "title"
     },
     {
       "videoId": "-qV5lWL1YJA",
       "serviceDate": "2025-04-02",
-      "title": "JESUS LOVES ME!"
+      "title": "JESUS LOVES ME!",
+      "dateSource": "title"
     },
     {
       "videoId": "7EB28PcGCs4",
       "serviceDate": "2025-03-26",
-      "title": "3 26 25 Bishop Lloyd Gwin Wednesday Bible Study \"  YOU CAN'T SET THERE, YOU GOT TO DO SOMETHING!"
+      "title": "3 26 25 Bishop Lloyd Gwin Wednesday Bible Study \"  YOU CAN'T SET THERE, YOU GOT TO DO SOMETHING!",
+      "dateSource": "title"
     },
     {
       "videoId": "-0KdLHtM4Ns",
       "serviceDate": "2025-03-19",
-      "title": "IT'S TIME TO CLEAN UP"
+      "title": "IT'S TIME TO CLEAN UP",
+      "dateSource": "title"
     },
     {
       "videoId": "p93gbKvUBwg",
       "serviceDate": "2025-03-12",
-      "title": "YOU ARE SOUGHT OUT TO BE SAVED"
+      "title": "YOU ARE SOUGHT OUT TO BE SAVED",
+      "dateSource": "title"
     },
     {
       "videoId": "QwM9QBXqMPc",
       "serviceDate": "2025-03-05",
-      "title": "SOMEBODY IS GOING TO GET SAVED"
+      "title": "SOMEBODY IS GOING TO GET SAVED",
+      "dateSource": "title"
     },
     {
       "videoId": "yAMBLbi0MqQ",
       "serviceDate": "2025-02-26",
-      "title": "MY IF ONLY HAS BEEN SETTLED!"
+      "title": "MY IF ONLY HAS BEEN SETTLED!",
+      "dateSource": "title"
     },
     {
       "videoId": "PkEBTRKP_es",
       "serviceDate": "2025-02-19",
-      "title": "2-19-25 Sister Jasmine Johnson  Setting Up The Moment"
+      "title": "2-19-25 Sister Jasmine Johnson  Setting Up The Moment",
+      "dateSource": "title"
     },
     {
       "videoId": "WLBArj2wZEo",
@@ -342,172 +441,206 @@
     {
       "videoId": "Kl46PEdEwBE",
       "serviceDate": "2025-02-05",
-      "title": "Keep Working Your Change Is Going To Come!"
+      "title": "Keep Working Your Change Is Going To Come!",
+      "dateSource": "title"
     },
     {
       "videoId": "4czeGi4AFNY",
       "serviceDate": "2025-01-29",
-      "title": "New Expectation New Attitude!"
+      "title": "New Expectation New Attitude!",
+      "dateSource": "title"
     },
     {
       "videoId": "_TuidCXY7wI",
       "serviceDate": "2025-01-22",
-      "title": "Do The Right Thing"
+      "title": "Do The Right Thing",
+      "dateSource": "title"
     },
     {
       "videoId": "MMEEXwUgwbE",
       "serviceDate": "2025-01-15",
-      "title": "NEW YEAR ,NEW ME!"
+      "title": "NEW YEAR ,NEW ME!",
+      "dateSource": "title"
     },
     {
       "videoId": "o6g0yoI7a7Y",
       "serviceDate": "2025-01-08",
-      "title": "New Year! New Praise!"
+      "title": "New Year! New Praise!",
+      "dateSource": "title"
     },
     {
       "videoId": "jYrx9DrTAsk",
       "serviceDate": "2024-12-24",
-      "title": "PUT THE  MESS TO REST"
+      "title": "PUT THE  MESS TO REST",
+      "dateSource": "title"
     },
     {
       "videoId": "8YbYUhEBETk",
       "serviceDate": "2024-12-18",
-      "title": "BUILD ON A SOLID FOUNDATION"
+      "title": "BUILD ON A SOLID FOUNDATION",
+      "dateSource": "title"
     },
     {
       "videoId": "y6SXdTavUvI",
       "serviceDate": "2024-12-11",
-      "title": "Restore Me!"
+      "title": "Restore Me!",
+      "dateSource": "title"
     },
     {
       "videoId": "8U681UpohQM",
       "serviceDate": "2024-12-04",
-      "title": "Before  You Leave Home!"
+      "title": "Before  You Leave Home!",
+      "dateSource": "title"
     },
     {
       "videoId": "AgBDQ99zfHE",
       "serviceDate": "2024-11-27",
-      "title": "GIVE GOD A LOUD PRAISE!"
+      "title": "GIVE GOD A LOUD PRAISE!",
+      "dateSource": "title"
     },
     {
       "videoId": "AzYDFtQoxM8",
       "serviceDate": "2024-11-20",
-      "title": "IT IS RESET TIME!"
+      "title": "IT IS RESET TIME!",
+      "dateSource": "title"
     },
     {
       "videoId": "d_BPAZEgqSo",
       "serviceDate": "2024-11-13",
-      "title": "GET READY TO SHOUT"
+      "title": "GET READY TO SHOUT",
+      "dateSource": "title"
     },
     {
       "videoId": "VLoMrlpzObw",
       "serviceDate": "2024-11-06",
-      "title": "GOD IS COUNTING ON US AND WE CAN COUNT ON HIM!"
+      "title": "GOD IS COUNTING ON US AND WE CAN COUNT ON HIM!",
+      "dateSource": "title"
     },
     {
       "videoId": "uYkixcW7crI",
       "serviceDate": "2024-10-30",
-      "title": "Ship Wrecked"
+      "title": "Ship Wrecked",
+      "dateSource": "title"
     },
     {
       "videoId": "4ltGtcUIJvM",
       "serviceDate": "2024-10-23",
-      "title": "He Is Counting On Us"
+      "title": "He Is Counting On Us",
+      "dateSource": "title"
     },
     {
       "videoId": "E7ReoB72O7Q",
       "serviceDate": "2024-10-16",
-      "title": "I AM PREFERED!"
+      "title": "I AM PREFERED!",
+      "dateSource": "title"
     },
     {
       "videoId": "XNGd0lcTpw0",
       "serviceDate": "2024-10-09",
-      "title": "Endurance"
+      "title": "Endurance",
+      "dateSource": "title"
     },
     {
       "videoId": "Zg6jBQA0ATM",
       "serviceDate": "2024-10-02",
-      "title": "GIVE IT UP!"
+      "title": "GIVE IT UP!",
+      "dateSource": "title"
     },
     {
       "videoId": "ga4UuIMczpc",
       "serviceDate": "2024-09-25",
-      "title": "9 - 25 - 24 Bishop Lloyd E. Gwin  Wednesday Bible Study  \"BLESSED AND HIGHLY FAVORED!'"
+      "title": "9 - 25 - 24 Bishop Lloyd E. Gwin  Wednesday Bible Study  \"BLESSED AND HIGHLY FAVORED!'",
+      "dateSource": "title"
     },
     {
       "videoId": "3rcOBlNX06k",
       "serviceDate": "2024-09-18",
-      "title": "You can always Come Home"
+      "title": "You can always Come Home",
+      "dateSource": "title"
     },
     {
       "videoId": "KN-a-wSslyc",
       "serviceDate": "2024-09-11",
-      "title": "9 11 2024 Sister Jasmine Johnson Wednesday Bible Study"
+      "title": "9 11 2024 Sister Jasmine Johnson Wednesday Bible Study",
+      "dateSource": "title"
     },
     {
       "videoId": "nJZB-IyR08w",
       "serviceDate": "2024-09-04",
-      "title": "WE"
+      "title": "WE",
+      "dateSource": "title"
     },
     {
       "videoId": "X4rNsAdnWCs",
       "serviceDate": "2024-09-01",
-      "title": "We've Got Work To Do!"
+      "title": "We've Got Work To Do!",
+      "dateSource": "title"
     },
     {
       "videoId": "PRaoeIU0zNs",
       "serviceDate": "2024-08-28",
-      "title": "RESTORATION"
+      "title": "RESTORATION",
+      "dateSource": "title"
     },
     {
       "videoId": "raQFlzm5cAY",
       "serviceDate": "2024-08-21",
-      "title": "8 -21- 2024 Bishop Lloyd Gwin Wednesday Bible Study \" IT'S  ONLY TEMPERORY!"
+      "title": "8 -21- 2024 Bishop Lloyd Gwin Wednesday Bible Study \" IT'S  ONLY TEMPERORY!",
+      "dateSource": "title"
     },
     {
       "videoId": "WZvpLiusbyQ",
       "serviceDate": "2024-08-14",
-      "title": "It's Never To Late!"
+      "title": "It's Never To Late!",
+      "dateSource": "title"
     },
     {
       "videoId": "jNyt0iYjZZ4",
       "serviceDate": "2024-08-07",
-      "title": "Anything Jesus Touches He Changes!"
+      "title": "Anything Jesus Touches He Changes!",
+      "dateSource": "title"
     },
     {
       "videoId": "K4aApPpCIPU",
       "serviceDate": "2024-07-31",
-      "title": "7 31 24 Bishop Lloyd Gwin Wednesday Bible Study  Don't Ever  Give Up!"
+      "title": "7 31 24 Bishop Lloyd Gwin Wednesday Bible Study  Don't Ever  Give Up!",
+      "dateSource": "title"
     },
     {
       "videoId": "8NWmw9KERCE",
       "serviceDate": "2024-07-21",
-      "title": "WAIT ON GOD!"
+      "title": "WAIT ON GOD!",
+      "dateSource": "title"
     },
     {
       "videoId": "6U3gawNK7Yg",
       "serviceDate": "2024-07-17",
-      "title": "LIVING FOR CHRIST"
+      "title": "LIVING FOR CHRIST",
+      "dateSource": "title"
     },
     {
       "videoId": "UTPGRuoQER0",
       "serviceDate": "2024-07-03",
-      "title": "There Is No God Like Our God"
+      "title": "There Is No God Like Our God",
+      "dateSource": "title"
     },
     {
       "videoId": "gyRig7MQMx8",
       "serviceDate": "2024-06-23",
-      "title": "Save Your House"
+      "title": "Save Your House",
+      "dateSource": "title"
     },
     {
       "videoId": "AwDrGx8CyE0",
       "serviceDate": "2024-06-26",
-      "title": "SAVE YOUR HOUSE!!!"
+      "title": "SAVE YOUR HOUSE!!!",
+      "dateSource": "title"
     },
     {
       "videoId": "F0U6bvcDJbY",
       "serviceDate": "2024-06-19",
-      "title": "Watch Him Deliver You"
+      "title": "Watch Him Deliver You",
+      "dateSource": "title"
     },
     {
       "videoId": "hHHyHzxWzZs",
@@ -517,7 +650,8 @@
     {
       "videoId": "EA7Rz9zheEE",
       "serviceDate": "2024-06-12",
-      "title": "You Never Know Who Is Watching"
+      "title": "You Never Know Who Is Watching",
+      "dateSource": "title"
     },
     {
       "videoId": "z-jgI4gc2vc",
@@ -527,7 +661,8 @@
     {
       "videoId": "TN1h3p5yU68",
       "serviceDate": "2024-06-05",
-      "title": "GOD IS ALWAYS THERE"
+      "title": "GOD IS ALWAYS THERE",
+      "dateSource": "title"
     },
     {
       "videoId": "P9bXH6dJfZY",
@@ -537,137 +672,164 @@
     {
       "videoId": "VvpAQ-VjRQs",
       "serviceDate": "2024-05-29",
-      "title": "I Knew It Would Happen"
+      "title": "I Knew It Would Happen",
+      "dateSource": "title"
     },
     {
       "videoId": "PPNUWAXZbbs",
       "serviceDate": "2024-05-22",
-      "title": "Watch God Do What Only He Can Do!"
+      "title": "Watch God Do What Only He Can Do!",
+      "dateSource": "title"
     },
     {
       "videoId": "WYXr99gkkdg",
       "serviceDate": "2024-05-15",
-      "title": "God didn't being me this far to leave Me"
+      "title": "God didn't being me this far to leave Me",
+      "dateSource": "title"
     },
     {
       "videoId": "WgFW0LX8PCI",
       "serviceDate": "2024-05-12",
-      "title": "GOD DIDN'T BRING ME THIS FAR TO LEAVE ME"
+      "title": "GOD DIDN'T BRING ME THIS FAR TO LEAVE ME",
+      "dateSource": "title"
     },
     {
       "videoId": "JGeycYaO8vI",
       "serviceDate": "2024-05-08",
-      "title": "A Blessing from God"
+      "title": "A Blessing from God",
+      "dateSource": "title"
     },
     {
       "videoId": "IQdi2Woq-fE",
       "serviceDate": "2024-05-01",
-      "title": "Deliver Us From HOW!"
+      "title": "Deliver Us From HOW!",
+      "dateSource": "title"
     },
     {
       "videoId": "FrVT5-_Lsy4",
       "serviceDate": "2024-04-24",
-      "title": "4 24 24 Message Give God Your Best and Then Trust Him To Do The Rest"
+      "title": "4 24 24 Message Give God Your Best and Then Trust Him To Do The Rest",
+      "dateSource": "title"
     },
     {
       "videoId": "Km8v4MRfeLk",
       "serviceDate": "2024-04-21",
-      "title": "4-21-2024 Bishop Gwin Give God Your Best and Then Trust Him To Do The Rest"
+      "title": "4-21-2024 Bishop Gwin Give God Your Best and Then Trust Him To Do The Rest",
+      "dateSource": "title"
     },
     {
       "videoId": "3znlzLX0mII",
       "serviceDate": "2024-04-17",
-      "title": "Stand Strong"
+      "title": "Stand Strong",
+      "dateSource": "title"
     },
     {
       "videoId": "Zcn4ADVsGdM",
       "serviceDate": "2024-04-07",
-      "title": "Everything Is Not A Good Thing"
+      "title": "Everything Is Not A Good Thing",
+      "dateSource": "title"
     },
     {
       "videoId": "zQ2zNw9vFBU",
       "serviceDate": "2024-04-10",
-      "title": "4 10 24 Wednesday Bible Study Everything Is Not A Good Thing"
+      "title": "4 10 24 Wednesday Bible Study Everything Is Not A Good Thing",
+      "dateSource": "title"
     },
     {
       "videoId": "xqZi6AUegPw",
       "serviceDate": "2024-04-03",
-      "title": "4 3 24 Wednesday Bible Study GOD LOVES ME !"
+      "title": "4 3 24 Wednesday Bible Study GOD LOVES ME !",
+      "dateSource": "title"
     },
     {
       "videoId": "GjhJu1e8OVI",
       "serviceDate": "2024-03-31",
-      "title": "3/31/24 Easter 2024 \"GOD LOVES ME"
+      "title": "3/31/24 Easter 2024 \"GOD LOVES ME",
+      "dateSource": "title"
     },
     {
       "videoId": "QrE-3k2DHmc",
       "serviceDate": "2024-03-24",
-      "title": "3 24 24 DO WHAT HE TELLS YOU TO DO"
+      "title": "3 24 24 DO WHAT HE TELLS YOU TO DO",
+      "dateSource": "title"
     },
     {
       "videoId": "H5ve4V2Ay_s",
       "serviceDate": "2024-03-27",
-      "title": "DO WHAT HE TELLS YOU TO DO"
+      "title": "DO WHAT HE TELLS YOU TO DO",
+      "dateSource": "title"
     },
     {
       "videoId": "ThF_ZLJPKTM",
       "serviceDate": "2024-03-20",
-      "title": "3 20 2024 Wednesday Bible Study  GROW UP IN GOD"
+      "title": "3 20 2024 Wednesday Bible Study  GROW UP IN GOD",
+      "dateSource": "title"
     },
     {
       "videoId": "wrmM6JUq9mg",
       "serviceDate": "2024-03-17",
-      "title": "3 17 2024  Bishop Gwin  GROW UP IN GOD"
+      "title": "3 17 2024  Bishop Gwin  GROW UP IN GOD",
+      "dateSource": "title"
     },
     {
       "videoId": "YWYr7byxiXw",
       "serviceDate": "2024-03-03",
-      "title": "We've Been Chosen"
+      "title": "We've Been Chosen",
+      "dateSource": "title"
     },
     {
       "videoId": "mCXmnCAjUog",
       "serviceDate": "2024-03-13",
-      "title": "PETER AND THE CHURCH  SHEPHERDS AND SHEEP!"
+      "title": "PETER AND THE CHURCH  SHEPHERDS AND SHEEP!",
+      "dateSource": "title"
     },
     {
       "videoId": "_3xrEw8YUTU",
       "serviceDate": "2024-02-28",
-      "title": "2/28/2024 Black History Month Jasmine Johnson"
+      "title": "2/28/2024 Black History Month Jasmine Johnson",
+      "dateSource": "title"
     },
     {
       "videoId": "raBon8_qol0",
       "serviceDate": "2024-03-06",
-      "title": "We've Been Chosen"
+      "title": "We've Been Chosen",
+      "dateSource": "title"
     },
     {
       "videoId": "ZU9BlxfB7NQ",
       "serviceDate": "2024-02-28",
-      "title": "The Best Is Yet To Come"
+      "title": "The Best Is Yet To Come",
+      "dateSource": "title"
     },
     {
       "videoId": "4-3pcua7x3s",
       "serviceDate": "2024-02-21",
-      "title": "Know The Past, Shape The Future"
+      "title": "Know The Past, Shape The Future",
+      "dateSource": "title"
     },
     {
       "videoId": "SwOPeeLGQqw",
       "serviceDate": "2024-02-14",
-      "title": "2/14/2024  Wednesday Bible Study  THANK YOU FOR LETTING THE LORD USE YOU"
+      "title": "2/14/2024  Wednesday Bible Study  THANK YOU FOR LETTING THE LORD USE YOU",
+      "dateSource": "title"
     },
     {
       "videoId": "D_V5IKs0byc",
       "serviceDate": "2024-02-07",
-      "title": "Your Victory is Guaranteed"
+      "title": "Your Victory is Guaranteed",
+      "dateSource": "title"
     },
     {
       "videoId": "kP8vj9sAL8g",
       "serviceDate": "2024-01-31",
-      "title": "WHEN IT HAPPEN"
+      "title": "WHEN IT HAPPEN",
+      "dateSource": "title"
     },
     {
       "videoId": "Y41SOaCKO1g",
       "serviceDate": "2024-01-24",
-      "title": "It's Never To Late To Change"
+      "title": "It's Never To Late To Change",
+      "dateSource": "title"
     },
     {
       "videoId": "wUrCvx_ALH4",
@@ -677,22 +839,26 @@
     {
       "videoId": "l68G7MxnYG4",
       "serviceDate": "2024-01-10",
-      "title": "1 10 2024 Wednesday Bible Study  Lord You Can Expect More In 2024"
+      "title": "1 10 2024 Wednesday Bible Study  Lord You Can Expect More In 2024",
+      "dateSource": "title"
     },
     {
       "videoId": "GTg8nVB-sr8",
       "serviceDate": "2024-01-03",
-      "title": "01 03 24 Wednesday Bible Study  Bishop Gwin There Is No god  Like Our God!"
+      "title": "01 03 24 Wednesday Bible Study  Bishop Gwin There Is No god  Like Our God!",
+      "dateSource": "title"
     },
     {
       "videoId": "k9c2RXw6GWU",
       "serviceDate": "2023-12-27",
-      "title": "12 27 2023 Wednesday Bible Study  Bishop Gwin  Where He Leads Us We Will Follow"
+      "title": "12 27 2023 Wednesday Bible Study  Bishop Gwin  Where He Leads Us We Will Follow",
+      "dateSource": "title"
     },
     {
       "videoId": "Sry2w3AwigE",
       "serviceDate": "2023-12-20",
-      "title": "12 20 2023 Bible Study AP Harden"
+      "title": "12 20 2023 Bible Study AP Harden",
+      "dateSource": "title"
     },
     {
       "videoId": "viDwLAYDG1s",
@@ -702,47 +868,56 @@
     {
       "videoId": "OrYCG59pw88",
       "serviceDate": "2023-12-06",
-      "title": "12 6 23 Bible Study We Have To Go For The Kingdom To Grow"
+      "title": "12 6 23 Bible Study We Have To Go For The Kingdom To Grow",
+      "dateSource": "title"
     },
     {
       "videoId": "gHC6OJBOJp8",
-      "serviceDate": null,
-      "title": "Wednesday Bible Study 11 29 23 I'm On The Lord Side"
+      "serviceDate": "2023-11-29",
+      "title": "Wednesday Bible Study 11 29 23 I'm On The Lord Side",
+      "dateSource": "title"
     },
     {
       "videoId": "WvP2BmJt3Ow",
-      "serviceDate": null,
-      "title": "Bible Study 11 15 23"
+      "serviceDate": "2023-11-15",
+      "title": "Bible Study 11 15 23",
+      "dateSource": "title"
     },
     {
       "videoId": "kQB0p0rVZ-U",
-      "serviceDate": null,
-      "title": "Bible Study 11.8.2023"
+      "serviceDate": "2023-11-08",
+      "title": "Bible Study 11.8.2023",
+      "dateSource": "title"
     },
     {
       "videoId": "WwhLwrZlNNs",
-      "serviceDate": null,
-      "title": "Bible Study 11.1.2023"
+      "serviceDate": "2023-11-01",
+      "title": "Bible Study 11.1.2023",
+      "dateSource": "title"
     },
     {
       "videoId": "ln8wU-gsDRQ",
-      "serviceDate": null,
-      "title": "Bible Study 10.25.23 Senior Assistant Pastor James Harding"
+      "serviceDate": "2023-10-25",
+      "title": "Bible Study 10.25.23 Senior Assistant Pastor James Harding",
+      "dateSource": "title"
     },
     {
       "videoId": "2FAKO6mtfgo",
-      "serviceDate": null,
-      "title": "Bible Study 10.18.23"
+      "serviceDate": "2023-10-18",
+      "title": "Bible Study 10.18.23",
+      "dateSource": "title"
     },
     {
       "videoId": "_WDvzXwBXTo",
-      "serviceDate": null,
-      "title": "Bible Study 10.11.23"
+      "serviceDate": "2023-10-11",
+      "title": "Bible Study 10.11.23",
+      "dateSource": "title"
     },
     {
       "videoId": "-h1sS71ZtHw",
-      "serviceDate": null,
-      "title": "Bible Study 10.4.23"
+      "serviceDate": "2023-10-04",
+      "title": "Bible Study 10.4.23",
+      "dateSource": "title"
     },
     {
       "videoId": "ydzdfJGMsQg",
@@ -751,33 +926,39 @@
     },
     {
       "videoId": "gSjpuRgPWKc",
-      "serviceDate": null,
-      "title": "Bible  Study 9.27.23"
+      "serviceDate": "2023-09-27",
+      "title": "Bible  Study 9.27.23",
+      "dateSource": "title"
     },
     {
       "videoId": "a8HcKwPEltA",
-      "serviceDate": null,
-      "title": "Bible Study 9.20.23"
+      "serviceDate": "2023-09-20",
+      "title": "Bible Study 9.20.23",
+      "dateSource": "title"
     },
     {
       "videoId": "23jUK_oNwb0",
-      "serviceDate": null,
-      "title": "Bible Study 9.13.23"
+      "serviceDate": "2023-09-13",
+      "title": "Bible Study 9.13.23",
+      "dateSource": "title"
     },
     {
       "videoId": "x3Pje3USR74",
-      "serviceDate": null,
-      "title": "Bible Study  9.6.23"
+      "serviceDate": "2023-09-06",
+      "title": "Bible Study  9.6.23",
+      "dateSource": "title"
     },
     {
       "videoId": "rqxiuN-ZSZA",
-      "serviceDate": null,
-      "title": "Bible Study 8.30.23"
+      "serviceDate": "2023-08-30",
+      "title": "Bible Study 8.30.23",
+      "dateSource": "title"
     },
     {
       "videoId": "o_TmQGoh45A",
-      "serviceDate": null,
-      "title": "Bible Study 8. 16.23 - Assistant Pastor Evelyn Moore"
+      "serviceDate": "2023-08-16",
+      "title": "Bible Study 8. 16.23 - Assistant Pastor Evelyn Moore",
+      "dateSource": "title"
     },
     {
       "videoId": "A0QIEGZJM4w",
@@ -791,8 +972,9 @@
     },
     {
       "videoId": "vx64BVOYqpQ",
-      "serviceDate": null,
-      "title": "Bible Study 4.26. 23"
+      "serviceDate": "2023-04-26",
+      "title": "Bible Study 4.26. 23",
+      "dateSource": "title"
     },
     {
       "videoId": "_YO1izcRRxE",
@@ -806,13 +988,15 @@
     },
     {
       "videoId": "SWby3KhGhTA",
-      "serviceDate": null,
-      "title": "Bible Study 2.1.23"
+      "serviceDate": "2023-02-01",
+      "title": "Bible Study 2.1.23",
+      "dateSource": "title"
     },
     {
       "videoId": "xes1Nq_etBg",
-      "serviceDate": null,
-      "title": "Bible Study 1.4.23"
+      "serviceDate": "2023-01-04",
+      "title": "Bible Study 1.4.23",
+      "dateSource": "title"
     },
     {
       "videoId": "YtmL_4gA__s",
@@ -831,8 +1015,9 @@
     },
     {
       "videoId": "Q4YR7oxfG0E",
-      "serviceDate": null,
-      "title": "Bible Study 10.19.22"
+      "serviceDate": "2022-10-19",
+      "title": "Bible Study 10.19.22",
+      "dateSource": "title"
     },
     {
       "videoId": "Yyvd5S3XACo",
@@ -841,8 +1026,9 @@
     },
     {
       "videoId": "1aWdKNytyzY",
-      "serviceDate": null,
-      "title": "Bible Study 5.4.22"
+      "serviceDate": "2022-05-04",
+      "title": "Bible Study 5.4.22",
+      "dateSource": "title"
     },
     {
       "videoId": "S2BYJwfxcPU",
@@ -851,8 +1037,9 @@
     },
     {
       "videoId": "jweq6yFJd-g",
-      "serviceDate": null,
-      "title": "Bible Study 2.9.22 -  (Guest Speaker -Dr. Adkisson)"
+      "serviceDate": "2022-02-09",
+      "title": "Bible Study 2.9.22 -  (Guest Speaker -Dr. Adkisson)",
+      "dateSource": "title"
     },
     {
       "videoId": "6YNy6o4jTpY",
@@ -891,8 +1078,9 @@
     },
     {
       "videoId": "XhMbhQ1sM6Q",
-      "serviceDate": null,
-      "title": "Reflections - Bible Study 4.1.20"
+      "serviceDate": "2020-04-01",
+      "title": "Reflections - Bible Study 4.1.20",
+      "dateSource": "title"
     },
     {
       "videoId": "UJTFeExcgEU",
@@ -1076,8 +1264,9 @@
     },
     {
       "videoId": "3cELZkeS-6U",
-      "serviceDate": null,
-      "title": "God Is Not Through Blessing You"
+      "serviceDate": "2019-07-07",
+      "title": "God Is Not Through Blessing You",
+      "dateSource": "upload"
     },
     {
       "videoId": "eHw9bj_uwEI",
@@ -1715,6 +1904,26 @@
       "title": "Paint The Church Orange ~ Promo 2014"
     },
     {
+      "videoId": "oUStjow51y0",
+      "serviceDate": null,
+      "title": "Equipped To Win. - Pastor Ken McCray"
+    },
+    {
+      "videoId": "8h0hpl6D67E",
+      "serviceDate": null,
+      "title": "The Love Corner: There's Always Another Way.  - Bishop Llyod E. Gwin"
+    },
+    {
+      "videoId": "CzCQOGeYgzE",
+      "serviceDate": null,
+      "title": "The Love Corner: Not Today Satan, Today is the LORD's Day! - Bishop Lloyd E. Gwin"
+    },
+    {
+      "videoId": "7qKTjbPqKSI",
+      "serviceDate": null,
+      "title": "The Love Corner: You Can't Quit Now, Somebody's Got To Get Saved. - Bishop Lloyd E. Gwin"
+    },
+    {
       "videoId": "pxe4fSvOFN0",
       "serviceDate": null,
       "title": "Obedience to God Now Brings Blessings to Your Future - Pastor Ken McCray"
@@ -2197,7 +2406,8 @@
     {
       "videoId": "OfeBdclRzY8",
       "serviceDate": "2025-03-16",
-      "title": "It's Time To Clean Up!"
+      "title": "It's Time To Clean Up!",
+      "dateSource": "title"
     },
     {
       "videoId": "2EfSj5vE4I8",
@@ -2207,47 +2417,56 @@
     {
       "videoId": "DXmU8Iwq83g",
       "serviceDate": "2025-03-02",
-      "title": "Somebody's Going To Get Saved!"
+      "title": "Somebody's Going To Get Saved!",
+      "dateSource": "title"
     },
     {
       "videoId": "K_LIWUCjo6A",
       "serviceDate": "2025-02-23",
-      "title": "My 'If Only' Has Been Settled"
+      "title": "My 'If Only' Has Been Settled",
+      "dateSource": "title"
     },
     {
       "videoId": "0Rcuob1rXaM",
       "serviceDate": "2025-02-16",
-      "title": "Defining Moment"
+      "title": "Defining Moment",
+      "dateSource": "title"
     },
     {
       "videoId": "jKmwOpSmDs0",
       "serviceDate": "2025-02-09",
-      "title": "I'll Let Nothing Separate Me From The Love of God!"
+      "title": "I'll Let Nothing Separate Me From The Love of God!",
+      "dateSource": "title"
     },
     {
       "videoId": "yIXsx97_APg",
       "serviceDate": "2025-02-02",
-      "title": "Keep Working - Your Change Is Going To Come!"
+      "title": "Keep Working - Your Change Is Going To Come!",
+      "dateSource": "title"
     },
     {
       "videoId": "CXCDVztSoYg",
       "serviceDate": "2025-01-26",
-      "title": "New Expectation! New Attitude!"
+      "title": "New Expectation! New Attitude!",
+      "dateSource": "title"
     },
     {
       "videoId": "v3pfkFnniTE",
       "serviceDate": "2025-01-19",
-      "title": "Do The Right Thing!"
+      "title": "Do The Right Thing!",
+      "dateSource": "title"
     },
     {
       "videoId": "S5rAK7pPu1c",
       "serviceDate": "2025-01-12",
-      "title": "New Year! New Me!"
+      "title": "New Year! New Me!",
+      "dateSource": "title"
     },
     {
       "videoId": "C49rEamrxWI",
       "serviceDate": "2025-01-05",
-      "title": "New Year! New Praise!"
+      "title": "New Year! New Praise!",
+      "dateSource": "title"
     },
     {
       "videoId": "bYcHzXeGfeo",
@@ -2302,22 +2521,26 @@
     {
       "videoId": "2nT5sIj2Qck",
       "serviceDate": "2024-10-27",
-      "title": "Ship Wrecked"
+      "title": "Ship Wrecked",
+      "dateSource": "title"
     },
     {
       "videoId": "5rzj_SPF5Nw",
       "serviceDate": "2024-10-20",
-      "title": "He's Counting On Us!"
+      "title": "He's Counting On Us!",
+      "dateSource": "title"
     },
     {
       "videoId": "ZT8Jz8Iyrd8",
       "serviceDate": "2024-10-13",
-      "title": "I Am Preferred!"
+      "title": "I Am Preferred!",
+      "dateSource": "title"
     },
     {
       "videoId": "hz6DChow5Qo",
       "serviceDate": "2024-10-06",
-      "title": "The Love Corner - Brother Bradley Chatman (10/06/2024)"
+      "title": "The Love Corner - Brother Bradley Chatman (10/06/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "vJtWOGXaisk",
@@ -2327,52 +2550,62 @@
     {
       "videoId": "t6t45TE0eqs",
       "serviceDate": "2024-09-29",
-      "title": "Give It Up!"
+      "title": "Give It Up!",
+      "dateSource": "title"
     },
     {
       "videoId": "c1FM1nfXaOc",
       "serviceDate": "2024-09-22",
-      "title": "I'm Blessed and Highly Favored"
+      "title": "I'm Blessed and Highly Favored",
+      "dateSource": "title"
     },
     {
       "videoId": "3UDLFhL-1H4",
       "serviceDate": "2024-09-15",
-      "title": "You Can Always Come Back Home!"
+      "title": "You Can Always Come Back Home!",
+      "dateSource": "title"
     },
     {
       "videoId": "9-3vzDqjjBk",
       "serviceDate": "2024-09-08",
-      "title": "The Love Corner - Brother Clifton Reed (9/08/2024)"
+      "title": "The Love Corner - Brother Clifton Reed (9/08/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "YcDTOTpKLoU",
       "serviceDate": "2024-08-25",
-      "title": "Restoration"
+      "title": "Restoration",
+      "dateSource": "title"
     },
     {
       "videoId": "Gx0ou6GIEPc",
       "serviceDate": "2024-08-18",
-      "title": "PRAISE THE LORD!"
+      "title": "PRAISE THE LORD!",
+      "dateSource": "title"
     },
     {
       "videoId": "An2beqt9yVw",
       "serviceDate": "2024-08-11",
-      "title": "It's Never Too Late!"
+      "title": "It's Never Too Late!",
+      "dateSource": "title"
     },
     {
       "videoId": "cOwRZ9Ao8Uo",
       "serviceDate": "2024-08-04",
-      "title": "Anything Jesus Touches, He Changes!"
+      "title": "Anything Jesus Touches, He Changes!",
+      "dateSource": "title"
     },
     {
       "videoId": "g8-6zY1mKC4",
       "serviceDate": "2024-07-28",
-      "title": "Don't Ever Give Up"
+      "title": "Don't Ever Give Up",
+      "dateSource": "title"
     },
     {
       "videoId": "CfVESSDVgKU",
       "serviceDate": "2024-07-21",
-      "title": "Wait On God"
+      "title": "Wait On God",
+      "dateSource": "title"
     },
     {
       "videoId": "m_sBrVqRWnw",
@@ -2382,92 +2615,110 @@
     {
       "videoId": "-fQMPPOglZI",
       "serviceDate": "2024-07-11",
-      "title": "TLC - Power Praise & Worship Service - Sr. Bishop Lloyd E. Gwin (7/11/2024)"
+      "title": "TLC - Power Praise & Worship Service - Sr. Bishop Lloyd E. Gwin (7/11/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "AVRJRv-Debc",
       "serviceDate": "2024-07-11",
-      "title": "TLC - Mid-Day Praise & Worship Service-Vice Bishop Connie Bansa & Eldress Melisia Bansa (7/11/2024)"
+      "title": "TLC - Mid-Day Praise & Worship Service-Vice Bishop Connie Bansa & Eldress Melisia Bansa (7/11/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "0Yy16k9i28k",
       "serviceDate": "2024-07-11",
-      "title": "TLC - Combating Racism's Attack On The Spirit Of Black Children (K-12) (7/11/2024)"
+      "title": "TLC - Combating Racism's Attack On The Spirit Of Black Children (K-12) (7/11/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "jgTUw8jdp4M",
       "serviceDate": "2024-07-11",
-      "title": "TLC -Housing Authority, Apostle Tiffany L. Robinson (7/11/2024)"
+      "title": "TLC -Housing Authority, Apostle Tiffany L. Robinson (7/11/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "3Oo3Gj3P8_8",
       "serviceDate": "2024-07-11",
-      "title": "TLC -Women's Health Talk , Dr. Beverly Johnson (7/11/2024)"
+      "title": "TLC -Women's Health Talk , Dr. Beverly Johnson (7/11/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "a3W84z9w6yM",
       "serviceDate": "2024-07-10",
-      "title": "TLC - Power Praise & Worship Service - Vice Bishop Chester Trail (7/10/2024)"
+      "title": "TLC - Power Praise & Worship Service - Vice Bishop Chester Trail (7/10/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "bDyoj5tK9y0",
       "serviceDate": "2024-07-10",
-      "title": "TLC - Mid-Day Praise & Worship Service - Eldress Kiva Jones & Minister Issac Bobo (7/10/2024)"
+      "title": "TLC - Mid-Day Praise & Worship Service - Eldress Kiva Jones & Minister Issac Bobo (7/10/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "Xej0FzmeLIU",
       "serviceDate": "2024-07-10",
-      "title": "TLC - Heaven & Christian Education - Overseer Dr. Tyrone Ellis & AP Shawn Simms (7/10/2024)"
+      "title": "TLC - Heaven & Christian Education - Overseer Dr. Tyrone Ellis & AP Shawn Simms (7/10/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "ip2VEk6dkcM",
       "serviceDate": "2024-07-10",
-      "title": "Don't Get Burned & Not Get Learned"
+      "title": "Don't Get Burned & Not Get Learned",
+      "dateSource": "title"
     },
     {
       "videoId": "LPsW7V79EyI",
       "serviceDate": "2024-07-10",
-      "title": "Being Your Best Self"
+      "title": "Being Your Best Self",
+      "dateSource": "title"
     },
     {
       "videoId": "i1wS8xeXsyk",
       "serviceDate": "2024-07-09",
-      "title": "The Love Corner - Power Praise & Worship - Overseer Ronald Bolden II  (7/09/2024)"
+      "title": "The Love Corner - Power Praise & Worship - Overseer Ronald Bolden II  (7/09/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "SyStRRNYo3E",
       "serviceDate": "2024-07-09",
-      "title": "The Love Corner - Mid-Day Praise & Worship - Elder Brandon Davis & Elder Carl Edmond  (7/09/2024)"
+      "title": "The Love Corner - Mid-Day Praise & Worship - Elder Brandon Davis & Elder Carl Edmond  (7/09/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "A2Ipuc0WncE",
       "serviceDate": "2024-07-09",
-      "title": "The Love Corner - The Ministry Of Worship - AP Thomas McClain (7/09/2024)"
+      "title": "The Love Corner - The Ministry Of Worship - AP Thomas McClain (7/09/2024)",
+      "dateSource": "title"
     },
     {
       "videoId": "DTxXgEua2EE",
       "serviceDate": "2024-07-09",
-      "title": "Biblical Wisdom For Life's Stressors"
+      "title": "Biblical Wisdom For Life's Stressors",
+      "dateSource": "title"
     },
     {
       "videoId": "wwxoC3DnJsk",
       "serviceDate": "2024-07-09",
-      "title": "Laughter Is Good For The Soul"
+      "title": "Laughter Is Good For The Soul",
+      "dateSource": "title"
     },
     {
       "videoId": "BwkMLkDmtws",
       "serviceDate": "2024-07-07",
-      "title": "I Set You Up To Set You Free"
+      "title": "I Set You Up To Set You Free",
+      "dateSource": "title"
     },
     {
       "videoId": "jWIw9nYy4ow",
       "serviceDate": "2024-06-30",
-      "title": "There Is No God Like Our God"
+      "title": "There Is No God Like Our God",
+      "dateSource": "title"
     },
     {
       "videoId": "i0q6WEEoHFE",
       "serviceDate": "2024-06-23",
-      "title": "Save Your House"
+      "title": "Save Your House",
+      "dateSource": "title"
     },
     {
       "videoId": "KtgsGdvFasg",
@@ -2477,52 +2728,62 @@
     {
       "videoId": "KhwKGS-gH6k",
       "serviceDate": "2024-06-09",
-      "title": "The Love Corner - 6/09/24 -Our children Sunday & Minister Julius Freeman"
+      "title": "The Love Corner - 6/09/24 -Our children Sunday & Minister Julius Freeman",
+      "dateSource": "title"
     },
     {
       "videoId": "CBx5KgZt4MQ",
       "serviceDate": "2024-06-02",
-      "title": "God Is Always There!"
+      "title": "God Is Always There!",
+      "dateSource": "title"
     },
     {
       "videoId": "KB2TfxbvMdg",
       "serviceDate": "2024-05-26",
-      "title": "The Love Corner - Julius Freeman (5/26/24)"
+      "title": "The Love Corner - Julius Freeman (5/26/24)",
+      "dateSource": "title"
     },
     {
       "videoId": "fUR400md5HU",
       "serviceDate": "2024-05-19",
-      "title": "Watch God Do What Only He Can Do"
+      "title": "Watch God Do What Only He Can Do",
+      "dateSource": "title"
     },
     {
       "videoId": "33cJdjoP2r4",
       "serviceDate": "2024-05-12",
-      "title": "God Didn't Bring Me This Far To Leave Me"
+      "title": "God Didn't Bring Me This Far To Leave Me",
+      "dateSource": "title"
     },
     {
       "videoId": "SWLLgeP5KKU",
       "serviceDate": "2024-05-05",
-      "title": "The Love Corner - Bishop Chester Trail (5/05/24)"
+      "title": "The Love Corner - Bishop Chester Trail (5/05/24)",
+      "dateSource": "title"
     },
     {
       "videoId": "YPZuhSnjuNc",
       "serviceDate": "2024-04-28",
-      "title": "The Love Corner - Brother Clifton Reed (4/28/24)"
+      "title": "The Love Corner - Brother Clifton Reed (4/28/24)",
+      "dateSource": "title"
     },
     {
       "videoId": "CixQZnUCmm4",
       "serviceDate": "2024-04-21",
-      "title": "The Love Corner -  (4/21/24)"
+      "title": "The Love Corner -  (4/21/24)",
+      "dateSource": "title"
     },
     {
       "videoId": "992Nuii5I00",
       "serviceDate": "2024-04-14",
-      "title": "The Love Corner - Julius Freeman (4/14/24)"
+      "title": "The Love Corner - Julius Freeman (4/14/24)",
+      "dateSource": "title"
     },
     {
       "videoId": "bTPNhzQqkCM",
       "serviceDate": "2024-04-07",
-      "title": "Everything Is Not A Good Thing"
+      "title": "Everything Is Not A Good Thing",
+      "dateSource": "title"
     },
     {
       "videoId": "C3ulmIoRVjw",
@@ -2681,8 +2942,9 @@
     },
     {
       "videoId": "YSUqWPC1ne4",
-      "serviceDate": null,
-      "title": "Bible Study 8.23.23"
+      "serviceDate": "2023-08-23",
+      "title": "Bible Study 8.23.23",
+      "dateSource": "title"
     },
     {
       "videoId": "68n_GXoni5o",
@@ -2706,8 +2968,9 @@
     },
     {
       "videoId": "SLk8d35lw_0",
-      "serviceDate": null,
-      "title": "Bible Study 7.26.23"
+      "serviceDate": "2023-07-26",
+      "title": "Bible Study 7.26.23",
+      "dateSource": "title"
     },
     {
       "videoId": "wo7rtnQ1kiw",
@@ -2716,13 +2979,15 @@
     },
     {
       "videoId": "knmLW-AJkfo",
-      "serviceDate": null,
-      "title": "Bible Study 6.21.23"
+      "serviceDate": "2023-06-21",
+      "title": "Bible Study 6.21.23",
+      "dateSource": "title"
     },
     {
       "videoId": "lpWmnh8w9yQ",
-      "serviceDate": null,
-      "title": "Bible Study 6.14. 23"
+      "serviceDate": "2023-06-14",
+      "title": "Bible Study 6.14. 23",
+      "dateSource": "title"
     },
     {
       "videoId": "RtihgJZs7Is",
@@ -2731,8 +2996,9 @@
     },
     {
       "videoId": "oWhv1sgnDxc",
-      "serviceDate": null,
-      "title": "Bible Study 6.7.23"
+      "serviceDate": "2023-06-07",
+      "title": "Bible Study 6.7.23",
+      "dateSource": "title"
     },
     {
       "videoId": "2TvY_PWlkL4",
@@ -2741,8 +3007,9 @@
     },
     {
       "videoId": "EsRQLqy0JTM",
-      "serviceDate": null,
-      "title": "Bible Study 5.31.23"
+      "serviceDate": "2023-05-31",
+      "title": "Bible Study 5.31.23",
+      "dateSource": "title"
     },
     {
       "videoId": "Lgadtb0Cmlc",
@@ -2751,8 +3018,9 @@
     },
     {
       "videoId": "sBppgjh_cSs",
-      "serviceDate": null,
-      "title": "Bible Study 5.24.23"
+      "serviceDate": "2023-05-24",
+      "title": "Bible Study 5.24.23",
+      "dateSource": "title"
     },
     {
       "videoId": "lX4m2uyALsU",
@@ -2761,8 +3029,9 @@
     },
     {
       "videoId": "5GTDdJw-wnY",
-      "serviceDate": null,
-      "title": "Bible Study 5.17.23"
+      "serviceDate": "2023-05-17",
+      "title": "Bible Study 5.17.23",
+      "dateSource": "title"
     },
     {
       "videoId": "gFIl2wdvbNk",
@@ -2771,8 +3040,9 @@
     },
     {
       "videoId": "9QPnWNbGpf0",
-      "serviceDate": null,
-      "title": "Bible Study 5.10.23"
+      "serviceDate": "2023-05-10",
+      "title": "Bible Study 5.10.23",
+      "dateSource": "title"
     },
     {
       "videoId": "PnH1-vefOGk",
@@ -2781,8 +3051,9 @@
     },
     {
       "videoId": "JPd5e3Zf_N0",
-      "serviceDate": null,
-      "title": "Bible Study 5.3.23"
+      "serviceDate": "2023-05-03",
+      "title": "Bible Study 5.3.23",
+      "dateSource": "title"
     },
     {
       "videoId": "EjyNOX5HXiw",
@@ -2796,8 +3067,9 @@
     },
     {
       "videoId": "LdZIRScI6eA",
-      "serviceDate": null,
-      "title": "Bible Study 4.12.23"
+      "serviceDate": "2023-04-12",
+      "title": "Bible Study 4.12.23",
+      "dateSource": "title"
     },
     {
       "videoId": "HOg_M6jzvkA",
@@ -2806,8 +3078,9 @@
     },
     {
       "videoId": "Uob4methL70",
-      "serviceDate": null,
-      "title": "Bible Study 4.5.23"
+      "serviceDate": "2023-04-05",
+      "title": "Bible Study 4.5.23",
+      "dateSource": "title"
     },
     {
       "videoId": "UI_yMsQkb0g",
@@ -2821,8 +3094,9 @@
     },
     {
       "videoId": "sKjWwgdT_2M",
-      "serviceDate": null,
-      "title": "Bible Study 3.22.23"
+      "serviceDate": "2023-03-22",
+      "title": "Bible Study 3.22.23",
+      "dateSource": "title"
     },
     {
       "videoId": "1qCAHU5u3Ss",
@@ -2831,8 +3105,9 @@
     },
     {
       "videoId": "891fw46-w4w",
-      "serviceDate": null,
-      "title": "Bible Study 3.15.23"
+      "serviceDate": "2023-03-15",
+      "title": "Bible Study 3.15.23",
+      "dateSource": "title"
     },
     {
       "videoId": "IqmBwLJrI3M",
@@ -2841,13 +3116,15 @@
     },
     {
       "videoId": "YbAy5uP0ehI",
-      "serviceDate": null,
-      "title": "Bible Study 3.8.23"
+      "serviceDate": "2023-03-08",
+      "title": "Bible Study 3.8.23",
+      "dateSource": "title"
     },
     {
       "videoId": "Wt2bFakBkAk",
-      "serviceDate": null,
-      "title": "Bible Study 3.1.23"
+      "serviceDate": "2023-03-01",
+      "title": "Bible Study 3.1.23",
+      "dateSource": "title"
     },
     {
       "videoId": "iJNDlvcIy8c",
@@ -2856,8 +3133,9 @@
     },
     {
       "videoId": "AXA06F4x45I",
-      "serviceDate": null,
-      "title": "Bible Study 2.22.23 - Assistant Pastor James Harden"
+      "serviceDate": "2023-02-22",
+      "title": "Bible Study 2.22.23 - Assistant Pastor James Harden",
+      "dateSource": "title"
     },
     {
       "videoId": "SiSQRLjSL1U",
@@ -2871,8 +3149,9 @@
     },
     {
       "videoId": "jo8rdRkGgxE",
-      "serviceDate": null,
-      "title": "Bible Study 2.8.23"
+      "serviceDate": "2023-02-08",
+      "title": "Bible Study 2.8.23",
+      "dateSource": "title"
     },
     {
       "videoId": "-WomRPhWLQ8",
@@ -2881,8 +3160,9 @@
     },
     {
       "videoId": "Js6RU0yEdHw",
-      "serviceDate": null,
-      "title": "Bible Study 1.25.23"
+      "serviceDate": "2023-01-25",
+      "title": "Bible Study 1.25.23",
+      "dateSource": "title"
     },
     {
       "videoId": "YnA8V3nfHzo",
@@ -2891,8 +3171,9 @@
     },
     {
       "videoId": "9m2O2vxU9iA",
-      "serviceDate": null,
-      "title": "Bible Study 1.18.23"
+      "serviceDate": "2023-01-18",
+      "title": "Bible Study 1.18.23",
+      "dateSource": "title"
     },
     {
       "videoId": "MLIZqlKzdvk",
@@ -2901,8 +3182,9 @@
     },
     {
       "videoId": "xE_UxE9HMQw",
-      "serviceDate": null,
-      "title": "Bible Study 1.11.23"
+      "serviceDate": "2023-01-11",
+      "title": "Bible Study 1.11.23",
+      "dateSource": "title"
     },
     {
       "videoId": "f6oaRq4WDkc",
@@ -2921,8 +3203,9 @@
     },
     {
       "videoId": "LwiCeppmyq4",
-      "serviceDate": null,
-      "title": "Bible Study 12.21.22"
+      "serviceDate": "2022-12-21",
+      "title": "Bible Study 12.21.22",
+      "dateSource": "title"
     },
     {
       "videoId": "14Bt2twzJ24",
@@ -2931,13 +3214,15 @@
     },
     {
       "videoId": "zumwKW9WgM0",
-      "serviceDate": null,
-      "title": "Bible Study 12.14.22"
+      "serviceDate": "2022-12-14",
+      "title": "Bible Study 12.14.22",
+      "dateSource": "title"
     },
     {
       "videoId": "ImE877kigoE",
-      "serviceDate": null,
-      "title": "Bible Study 12.7.22"
+      "serviceDate": "2022-12-07",
+      "title": "Bible Study 12.7.22",
+      "dateSource": "title"
     },
     {
       "videoId": "QUwPB0UmHPY",
@@ -2946,8 +3231,9 @@
     },
     {
       "videoId": "pU11SfefjHw",
-      "serviceDate": null,
-      "title": "Bible Study 11.30.22"
+      "serviceDate": "2022-11-30",
+      "title": "Bible Study 11.30.22",
+      "dateSource": "title"
     },
     {
       "videoId": "b3xfICbbfIQ",
@@ -2956,8 +3242,9 @@
     },
     {
       "videoId": "9OJes_yIHzw",
-      "serviceDate": null,
-      "title": "Bible Study 11.16.22"
+      "serviceDate": "2022-11-16",
+      "title": "Bible Study 11.16.22",
+      "dateSource": "title"
     },
     {
       "videoId": "nZTQVQpD79E",
@@ -2966,8 +3253,9 @@
     },
     {
       "videoId": "bq-LNcwf--E",
-      "serviceDate": null,
-      "title": "Bible Study 11.9.22"
+      "serviceDate": "2022-11-09",
+      "title": "Bible Study 11.9.22",
+      "dateSource": "title"
     },
     {
       "videoId": "fF88fZnxKYo",
@@ -2976,8 +3264,9 @@
     },
     {
       "videoId": "qLIABQ9xg1k",
-      "serviceDate": null,
-      "title": "Bible Study  11.2.22"
+      "serviceDate": "2022-11-02",
+      "title": "Bible Study  11.2.22",
+      "dateSource": "title"
     },
     {
       "videoId": "W4lM36Hgkbg",
@@ -2986,8 +3275,9 @@
     },
     {
       "videoId": "WIVigqD3gpY",
-      "serviceDate": null,
-      "title": "Bible Study 10.26.22"
+      "serviceDate": "2022-10-26",
+      "title": "Bible Study 10.26.22",
+      "dateSource": "title"
     },
     {
       "videoId": "xcW2HE9LKeA",
@@ -2996,8 +3286,9 @@
     },
     {
       "videoId": "4vZE0O4zxuE",
-      "serviceDate": null,
-      "title": "Bible Study 10.12.22"
+      "serviceDate": "2022-10-12",
+      "title": "Bible Study 10.12.22",
+      "dateSource": "title"
     },
     {
       "videoId": "r6N1jScqRq8",
@@ -3006,8 +3297,9 @@
     },
     {
       "videoId": "qZQHv-gvBqM",
-      "serviceDate": null,
-      "title": "Bible Study 10.5.22"
+      "serviceDate": "2022-10-05",
+      "title": "Bible Study 10.5.22",
+      "dateSource": "title"
     },
     {
       "videoId": "raU9zejexxQ",
@@ -3016,8 +3308,9 @@
     },
     {
       "videoId": "r-ezaim0Q7U",
-      "serviceDate": null,
-      "title": "Bible Study 9.28.22"
+      "serviceDate": "2022-09-28",
+      "title": "Bible Study 9.28.22",
+      "dateSource": "title"
     },
     {
       "videoId": "-ty3wRBgVa0",
@@ -3026,8 +3319,9 @@
     },
     {
       "videoId": "H94P-_r4oGM",
-      "serviceDate": null,
-      "title": "Bible Study 9.21.22"
+      "serviceDate": "2022-09-21",
+      "title": "Bible Study 9.21.22",
+      "dateSource": "title"
     },
     {
       "videoId": "DfUQbkY5H4Q",
@@ -3036,8 +3330,9 @@
     },
     {
       "videoId": "_SmuzpsiGVE",
-      "serviceDate": null,
-      "title": "Bible Study 9.14.22"
+      "serviceDate": "2022-09-14",
+      "title": "Bible Study 9.14.22",
+      "dateSource": "title"
     },
     {
       "videoId": "Sph6ChQHaPE",
@@ -3046,8 +3341,9 @@
     },
     {
       "videoId": "s_pzdijWhP4",
-      "serviceDate": null,
-      "title": "Bible  Study 9.7.22"
+      "serviceDate": "2022-09-07",
+      "title": "Bible  Study 9.7.22",
+      "dateSource": "title"
     },
     {
       "videoId": "udvwuTXGmeg",
@@ -3056,8 +3352,9 @@
     },
     {
       "videoId": "J3cRIggHWgU",
-      "serviceDate": null,
-      "title": "Bible Study 8.31.22"
+      "serviceDate": "2022-08-31",
+      "title": "Bible Study 8.31.22",
+      "dateSource": "title"
     },
     {
       "videoId": "19RVyv7SBWQ",
@@ -3066,8 +3363,9 @@
     },
     {
       "videoId": "7wCkdUfEjh0",
-      "serviceDate": null,
-      "title": "Bible Study 8.24.22"
+      "serviceDate": "2022-08-24",
+      "title": "Bible Study 8.24.22",
+      "dateSource": "title"
     },
     {
       "videoId": "eejJq_3Jsq0",
@@ -3076,8 +3374,9 @@
     },
     {
       "videoId": "aEOvaoJceX0",
-      "serviceDate": null,
-      "title": "Bible 8.17.22"
+      "serviceDate": "2022-08-17",
+      "title": "Bible 8.17.22",
+      "dateSource": "title"
     },
     {
       "videoId": "KoeKkzjKVCk",
@@ -3086,8 +3385,9 @@
     },
     {
       "videoId": "OZ1njqDs8cM",
-      "serviceDate": null,
-      "title": "Bible Study 8.10.22"
+      "serviceDate": "2022-08-10",
+      "title": "Bible Study 8.10.22",
+      "dateSource": "title"
     },
     {
       "videoId": "jqUhm9sZ6d4",
@@ -3096,8 +3396,9 @@
     },
     {
       "videoId": "tV5nG8rFp-Q",
-      "serviceDate": null,
-      "title": "Bible Study 8.3.22"
+      "serviceDate": "2022-08-03",
+      "title": "Bible Study 8.3.22",
+      "dateSource": "title"
     },
     {
       "videoId": "jBQ1RWpIyhs",
@@ -3106,8 +3407,9 @@
     },
     {
       "videoId": "rLUVpCKw9jI",
-      "serviceDate": null,
-      "title": "Bible Study 7.27.22"
+      "serviceDate": "2022-07-27",
+      "title": "Bible Study 7.27.22",
+      "dateSource": "title"
     },
     {
       "videoId": "2dcDWJr9beg",
@@ -3116,8 +3418,9 @@
     },
     {
       "videoId": "YhbKAyNmdAY",
-      "serviceDate": null,
-      "title": "Bible Study 7.20.22"
+      "serviceDate": "2022-07-20",
+      "title": "Bible Study 7.20.22",
+      "dateSource": "title"
     },
     {
       "videoId": "hCE9jqgYpzs",
@@ -3126,8 +3429,9 @@
     },
     {
       "videoId": "E-5tHdyQOeM",
-      "serviceDate": null,
-      "title": "Bible Study 7.13.22"
+      "serviceDate": "2022-07-13",
+      "title": "Bible Study 7.13.22",
+      "dateSource": "title"
     },
     {
       "videoId": "KeHI6zdUsKM",
@@ -3136,8 +3440,9 @@
     },
     {
       "videoId": "vOuoRJ4i9cM",
-      "serviceDate": null,
-      "title": "Bible Study 7.6.22"
+      "serviceDate": "2022-07-06",
+      "title": "Bible Study 7.6.22",
+      "dateSource": "title"
     },
     {
       "videoId": "ui8jxDCCEQU",
@@ -3146,8 +3451,9 @@
     },
     {
       "videoId": "UJhT6yrbdt8",
-      "serviceDate": null,
-      "title": "Bible Study 6.29.22"
+      "serviceDate": "2022-06-29",
+      "title": "Bible Study 6.29.22",
+      "dateSource": "title"
     },
     {
       "videoId": "G6o9HCTUxPA",
@@ -3156,8 +3462,9 @@
     },
     {
       "videoId": "p5Q2dYZLja4",
-      "serviceDate": null,
-      "title": "Bible Study 6.22.22"
+      "serviceDate": "2022-06-22",
+      "title": "Bible Study 6.22.22",
+      "dateSource": "title"
     },
     {
       "videoId": "TitXQWVucdw",
@@ -3166,8 +3473,9 @@
     },
     {
       "videoId": "WJm5-Ay21w0",
-      "serviceDate": null,
-      "title": "Bible Study 6.15.22"
+      "serviceDate": "2022-06-15",
+      "title": "Bible Study 6.15.22",
+      "dateSource": "title"
     },
     {
       "videoId": "Vd4Gj8tFNdo",
@@ -3176,8 +3484,9 @@
     },
     {
       "videoId": "cUHzIbshzj0",
-      "serviceDate": null,
-      "title": "Bible Study 6.8.22"
+      "serviceDate": "2022-06-08",
+      "title": "Bible Study 6.8.22",
+      "dateSource": "title"
     },
     {
       "videoId": "v0YT-XVO5kI",
@@ -3186,8 +3495,9 @@
     },
     {
       "videoId": "kqenBdCjOp8",
-      "serviceDate": null,
-      "title": "Bible Study 6.1.22"
+      "serviceDate": "2022-06-01",
+      "title": "Bible Study 6.1.22",
+      "dateSource": "title"
     },
     {
       "videoId": "ZKIH0QSVSs0",
@@ -3196,8 +3506,9 @@
     },
     {
       "videoId": "UK6VfCEJCLQ",
-      "serviceDate": null,
-      "title": "Bible Study 5.25.22"
+      "serviceDate": "2022-05-25",
+      "title": "Bible Study 5.25.22",
+      "dateSource": "title"
     },
     {
       "videoId": "hmZkUBnVCFQ",
@@ -3206,13 +3517,15 @@
     },
     {
       "videoId": "dBh_Nm9uPpQ",
-      "serviceDate": null,
-      "title": "Bible Study 5.18.22"
+      "serviceDate": "2022-05-18",
+      "title": "Bible Study 5.18.22",
+      "dateSource": "title"
     },
     {
       "videoId": "vaVrRZlpqSI",
-      "serviceDate": null,
-      "title": "Bible Study 5.11.22"
+      "serviceDate": "2022-05-11",
+      "title": "Bible Study 5.11.22",
+      "dateSource": "title"
     },
     {
       "videoId": "EM8oM11xTAk",
@@ -3221,8 +3534,9 @@
     },
     {
       "videoId": "fZyqJQnF144",
-      "serviceDate": null,
-      "title": "Bible Study 4.27.22"
+      "serviceDate": "2022-04-27",
+      "title": "Bible Study 4.27.22",
+      "dateSource": "title"
     },
     {
       "videoId": "-IUa3TNMZxI",
@@ -3231,8 +3545,9 @@
     },
     {
       "videoId": "1EdvHd1uMIE",
-      "serviceDate": null,
-      "title": "Bible Study 4.20.22"
+      "serviceDate": "2022-04-20",
+      "title": "Bible Study 4.20.22",
+      "dateSource": "title"
     },
     {
       "videoId": "rbJoOMdGYxQ",
@@ -3246,8 +3561,9 @@
     },
     {
       "videoId": "jW8eAR4TdK4",
-      "serviceDate": null,
-      "title": "Bible Study 4.14.22"
+      "serviceDate": "2022-04-14",
+      "title": "Bible Study 4.14.22",
+      "dateSource": "title"
     },
     {
       "videoId": "9I3JsQczqkk",
@@ -3256,8 +3572,9 @@
     },
     {
       "videoId": "gnC7AB2JLo8",
-      "serviceDate": null,
-      "title": "Bible Study 4.6.22"
+      "serviceDate": "2022-04-06",
+      "title": "Bible Study 4.6.22",
+      "dateSource": "title"
     },
     {
       "videoId": "jp3_mXNRN80",
@@ -3266,8 +3583,9 @@
     },
     {
       "videoId": "5w5YfZ-iC8Y",
-      "serviceDate": null,
-      "title": "Bible Study 3.30.22"
+      "serviceDate": "2022-03-30",
+      "title": "Bible Study 3.30.22",
+      "dateSource": "title"
     },
     {
       "videoId": "j9qNX1i0DJ4",
@@ -3281,8 +3599,9 @@
     },
     {
       "videoId": "trmQi1KwG9Y",
-      "serviceDate": null,
-      "title": "Bible Study 3.16.22"
+      "serviceDate": "2022-03-16",
+      "title": "Bible Study 3.16.22",
+      "dateSource": "title"
     },
     {
       "videoId": "cedAA8WWhV8",
@@ -3291,8 +3610,9 @@
     },
     {
       "videoId": "a-fkZFxuO_o",
-      "serviceDate": null,
-      "title": "Bible Study 3.9.22"
+      "serviceDate": "2022-03-09",
+      "title": "Bible Study 3.9.22",
+      "dateSource": "title"
     },
     {
       "videoId": "XeNzaju_Lkc",
@@ -3301,8 +3621,9 @@
     },
     {
       "videoId": "6MML3UpE7gc",
-      "serviceDate": null,
-      "title": "Bible Study 3.2.22"
+      "serviceDate": "2022-03-02",
+      "title": "Bible Study 3.2.22",
+      "dateSource": "title"
     },
     {
       "videoId": "-Rcx6yttHGY",
@@ -3311,8 +3632,9 @@
     },
     {
       "videoId": "jZNs9SVjwJA",
-      "serviceDate": null,
-      "title": "Bible Study 2.23.22"
+      "serviceDate": "2022-02-23",
+      "title": "Bible Study 2.23.22",
+      "dateSource": "title"
     },
     {
       "videoId": "JXSBGG1gx44",
@@ -3321,8 +3643,9 @@
     },
     {
       "videoId": "5cs9MSK9b5I",
-      "serviceDate": null,
-      "title": "Bible Study 2.16.22"
+      "serviceDate": "2022-02-16",
+      "title": "Bible Study 2.16.22",
+      "dateSource": "title"
     },
     {
       "videoId": "pWJOHslKocA",
@@ -3341,8 +3664,9 @@
     },
     {
       "videoId": "dnQd2UEXWv0",
-      "serviceDate": null,
-      "title": "Bible Study 1.26.22"
+      "serviceDate": "2022-01-26",
+      "title": "Bible Study 1.26.22",
+      "dateSource": "title"
     },
     {
       "videoId": "vBtITQmeeBk",
@@ -3351,8 +3675,9 @@
     },
     {
       "videoId": "Gr5mAnKUiwI",
-      "serviceDate": null,
-      "title": "Bible Study 1.19.22"
+      "serviceDate": "2022-01-19",
+      "title": "Bible Study 1.19.22",
+      "dateSource": "title"
     },
     {
       "videoId": "gZTQ8S9-zYI",
@@ -3361,8 +3686,9 @@
     },
     {
       "videoId": "0fB6sPE0e68",
-      "serviceDate": null,
-      "title": "Bible Study 1.12.22"
+      "serviceDate": "2022-01-12",
+      "title": "Bible Study 1.12.22",
+      "dateSource": "title"
     },
     {
       "videoId": "0ZefTD2UGfs",
@@ -3371,8 +3697,9 @@
     },
     {
       "videoId": "pz21hsPHHzA",
-      "serviceDate": null,
-      "title": "Bible Study 1.5.22"
+      "serviceDate": "2022-01-05",
+      "title": "Bible Study 1.5.22",
+      "dateSource": "title"
     },
     {
       "videoId": "TV3L_Db7n0k",
@@ -3381,8 +3708,9 @@
     },
     {
       "videoId": "1SOxBjrCxvg",
-      "serviceDate": null,
-      "title": "Bible Study 12.29.21"
+      "serviceDate": "2021-12-29",
+      "title": "Bible Study 12.29.21",
+      "dateSource": "title"
     },
     {
       "videoId": "rIBRQ9929Io",
@@ -3391,8 +3719,9 @@
     },
     {
       "videoId": "QrfJrJGiBZY",
-      "serviceDate": null,
-      "title": "Bible Study 12.22.21"
+      "serviceDate": "2021-12-22",
+      "title": "Bible Study 12.22.21",
+      "dateSource": "title"
     },
     {
       "videoId": "lr9PObcsuLg",
@@ -3401,8 +3730,9 @@
     },
     {
       "videoId": "NxphsJkDNlw",
-      "serviceDate": null,
-      "title": "Bible Study 12.15.21"
+      "serviceDate": "2021-12-15",
+      "title": "Bible Study 12.15.21",
+      "dateSource": "title"
     },
     {
       "videoId": "2z9e75Uh19w",
@@ -3411,8 +3741,9 @@
     },
     {
       "videoId": "pTvHdZ0K3d8",
-      "serviceDate": null,
-      "title": "Bible Study 12.8.21"
+      "serviceDate": "2021-12-08",
+      "title": "Bible Study 12.8.21",
+      "dateSource": "title"
     },
     {
       "videoId": "u2VUR5fQRJE",
@@ -3421,8 +3752,9 @@
     },
     {
       "videoId": "2wzXmR1-ZuY",
-      "serviceDate": null,
-      "title": "Bible Study 12.1.21"
+      "serviceDate": "2021-12-01",
+      "title": "Bible Study 12.1.21",
+      "dateSource": "title"
     },
     {
       "videoId": "LjkB-Qo8AmE",
@@ -3431,8 +3763,9 @@
     },
     {
       "videoId": "9DS2y5lhtks",
-      "serviceDate": null,
-      "title": "Bible Study 11.24.21"
+      "serviceDate": "2021-11-24",
+      "title": "Bible Study 11.24.21",
+      "dateSource": "title"
     },
     {
       "videoId": "soJF7hGEYHY",
@@ -3441,8 +3774,9 @@
     },
     {
       "videoId": "6HcMO_2D7bg",
-      "serviceDate": null,
-      "title": "Bible Study 11.17.21"
+      "serviceDate": "2021-11-17",
+      "title": "Bible Study 11.17.21",
+      "dateSource": "title"
     },
     {
       "videoId": "u6FFT041144",
@@ -3451,8 +3785,9 @@
     },
     {
       "videoId": "yGlTlZVPuyM",
-      "serviceDate": null,
-      "title": "Bible Study 11.10.21"
+      "serviceDate": "2021-11-10",
+      "title": "Bible Study 11.10.21",
+      "dateSource": "title"
     },
     {
       "videoId": "qfcw1_atD2U",
@@ -3461,8 +3796,9 @@
     },
     {
       "videoId": "OM3VJhD2dkE",
-      "serviceDate": null,
-      "title": "Bible Study 10.27.21"
+      "serviceDate": "2021-10-27",
+      "title": "Bible Study 10.27.21",
+      "dateSource": "title"
     },
     {
       "videoId": "zhNN_bE7VAM",
@@ -3471,8 +3807,9 @@
     },
     {
       "videoId": "pckkIe0-4ms",
-      "serviceDate": null,
-      "title": "Bible Study 10.20.21"
+      "serviceDate": "2021-10-20",
+      "title": "Bible Study 10.20.21",
+      "dateSource": "title"
     },
     {
       "videoId": "0L1EmjOD3FU",
@@ -3481,8 +3818,9 @@
     },
     {
       "videoId": "o-Pcen8psrI",
-      "serviceDate": null,
-      "title": "Bible Study 10.13.21"
+      "serviceDate": "2021-10-13",
+      "title": "Bible Study 10.13.21",
+      "dateSource": "title"
     },
     {
       "videoId": "BNpWqASNKLk",
@@ -3491,8 +3829,9 @@
     },
     {
       "videoId": "uaxLO_ruo7o",
-      "serviceDate": null,
-      "title": "Bible Study 10.6.21"
+      "serviceDate": "2021-10-06",
+      "title": "Bible Study 10.6.21",
+      "dateSource": "title"
     },
     {
       "videoId": "RLI5aE4UmDE",
@@ -3501,8 +3840,9 @@
     },
     {
       "videoId": "m1cqe7U0EBg",
-      "serviceDate": null,
-      "title": "Bible Study 9.29.21"
+      "serviceDate": "2021-09-29",
+      "title": "Bible Study 9.29.21",
+      "dateSource": "title"
     },
     {
       "videoId": "9eqYZ4Ls1m8",
@@ -3511,8 +3851,9 @@
     },
     {
       "videoId": "g_j2zIjpcfo",
-      "serviceDate": null,
-      "title": "Bible Study 9.22.21"
+      "serviceDate": "2021-09-22",
+      "title": "Bible Study 9.22.21",
+      "dateSource": "title"
     },
     {
       "videoId": "v7x68FSLh6w",
@@ -3521,8 +3862,9 @@
     },
     {
       "videoId": "u87z6zY0ydY",
-      "serviceDate": null,
-      "title": "Bible Study 9.15.21"
+      "serviceDate": "2021-09-15",
+      "title": "Bible Study 9.15.21",
+      "dateSource": "title"
     },
     {
       "videoId": "JMc51K-y9o8",
@@ -3541,8 +3883,9 @@
     },
     {
       "videoId": "dXy-ZEkzR08",
-      "serviceDate": null,
-      "title": "Bible Study 9.1.21"
+      "serviceDate": "2021-09-01",
+      "title": "Bible Study 9.1.21",
+      "dateSource": "title"
     },
     {
       "videoId": "vH3MjL1yFk8",
@@ -3551,8 +3894,9 @@
     },
     {
       "videoId": "6xfpY6HeFU0",
-      "serviceDate": null,
-      "title": "Bible Study 8.25.21"
+      "serviceDate": "2021-08-25",
+      "title": "Bible Study 8.25.21",
+      "dateSource": "title"
     },
     {
       "videoId": "5aUy9-QftUM",
@@ -3561,8 +3905,9 @@
     },
     {
       "videoId": "2hN2ojJ3798",
-      "serviceDate": null,
-      "title": "Bible Study 8.18.21"
+      "serviceDate": "2021-08-18",
+      "title": "Bible Study 8.18.21",
+      "dateSource": "title"
     },
     {
       "videoId": "EBrHXqOl5kI",
@@ -3571,8 +3916,9 @@
     },
     {
       "videoId": "HGKvnP71nsY",
-      "serviceDate": null,
-      "title": "Bible Study 8.11.21"
+      "serviceDate": "2021-08-11",
+      "title": "Bible Study 8.11.21",
+      "dateSource": "title"
     },
     {
       "videoId": "zEpbL6b1bcY",
@@ -3581,8 +3927,9 @@
     },
     {
       "videoId": "jImw5x0R3GU",
-      "serviceDate": null,
-      "title": "Bible Study 8.4.21"
+      "serviceDate": "2021-08-04",
+      "title": "Bible Study 8.4.21",
+      "dateSource": "title"
     },
     {
       "videoId": "fBnUJ9-fcWg",
@@ -3591,8 +3938,9 @@
     },
     {
       "videoId": "B0WupfXoPkE",
-      "serviceDate": null,
-      "title": "Bible Study 7.28.21"
+      "serviceDate": "2021-07-28",
+      "title": "Bible Study 7.28.21",
+      "dateSource": "title"
     },
     {
       "videoId": "H57kRozJ4aE",
@@ -3601,8 +3949,9 @@
     },
     {
       "videoId": "pA5Tv12NNWw",
-      "serviceDate": null,
-      "title": "Bible Study 7.21.21"
+      "serviceDate": "2021-07-21",
+      "title": "Bible Study 7.21.21",
+      "dateSource": "title"
     },
     {
       "videoId": "Q1P_SOP_kFc",
@@ -3611,8 +3960,9 @@
     },
     {
       "videoId": "gHEPnI-gx8U",
-      "serviceDate": null,
-      "title": "Bible Study 7.14.21"
+      "serviceDate": "2021-07-14",
+      "title": "Bible Study 7.14.21",
+      "dateSource": "title"
     },
     {
       "videoId": "WIEQyXFzmzQ",
@@ -3621,8 +3971,9 @@
     },
     {
       "videoId": "y1hsm-16qbA",
-      "serviceDate": null,
-      "title": "Bible Study 7.7.21"
+      "serviceDate": "2021-07-07",
+      "title": "Bible Study 7.7.21",
+      "dateSource": "title"
     },
     {
       "videoId": "lTn478Dj5n8",
@@ -3631,8 +3982,9 @@
     },
     {
       "videoId": "V8exnYPyVMM",
-      "serviceDate": null,
-      "title": "Bible Study 6.30.21"
+      "serviceDate": "2021-06-30",
+      "title": "Bible Study 6.30.21",
+      "dateSource": "title"
     },
     {
       "videoId": "blMn4QvPcwc",
@@ -3641,8 +3993,9 @@
     },
     {
       "videoId": "4gSDTcbiSV0",
-      "serviceDate": null,
-      "title": "Bible Study 6.23.21"
+      "serviceDate": "2021-06-23",
+      "title": "Bible Study 6.23.21",
+      "dateSource": "title"
     },
     {
       "videoId": "H9Y4diE3tu0",
@@ -3651,8 +4004,9 @@
     },
     {
       "videoId": "23-s-ouPi5M",
-      "serviceDate": null,
-      "title": "Bible Study 6.16.21"
+      "serviceDate": "2021-06-16",
+      "title": "Bible Study 6.16.21",
+      "dateSource": "title"
     },
     {
       "videoId": "-UgBADIDX6U",
@@ -3661,8 +4015,9 @@
     },
     {
       "videoId": "vAn3jKuJV2Y",
-      "serviceDate": null,
-      "title": "Bible Study 6.9.21"
+      "serviceDate": "2021-06-09",
+      "title": "Bible Study 6.9.21",
+      "dateSource": "title"
     },
     {
       "videoId": "lTWUNtOJfFE",
@@ -3676,8 +4031,9 @@
     },
     {
       "videoId": "LfSt8IR4AqA",
-      "serviceDate": null,
-      "title": "Bible Study 5.26.21"
+      "serviceDate": "2021-05-26",
+      "title": "Bible Study 5.26.21",
+      "dateSource": "title"
     },
     {
       "videoId": "FiY0BD221nw",
@@ -3691,8 +4047,9 @@
     },
     {
       "videoId": "NneGZuR8Lek",
-      "serviceDate": null,
-      "title": "Bible Study 5.12.21"
+      "serviceDate": "2021-05-12",
+      "title": "Bible Study 5.12.21",
+      "dateSource": "title"
     },
     {
       "videoId": "oaSKDFIZw6A",
@@ -3701,8 +4058,9 @@
     },
     {
       "videoId": "VRGuXOJIZ9A",
-      "serviceDate": null,
-      "title": "Bible Study 5.5.21"
+      "serviceDate": "2021-05-05",
+      "title": "Bible Study 5.5.21",
+      "dateSource": "title"
     },
     {
       "videoId": "aHVDhHhcViM",
@@ -3741,8 +4099,9 @@
     },
     {
       "videoId": "2SksjwA-JRw",
-      "serviceDate": null,
-      "title": "Bible Study 3.31.21"
+      "serviceDate": "2021-03-31",
+      "title": "Bible Study 3.31.21",
+      "dateSource": "title"
     },
     {
       "videoId": "FjrxxzBNlJo",
@@ -3751,8 +4110,9 @@
     },
     {
       "videoId": "bq9wGZ83AWY",
-      "serviceDate": null,
-      "title": "Bible Study 3.24.21"
+      "serviceDate": "2021-03-24",
+      "title": "Bible Study 3.24.21",
+      "dateSource": "title"
     },
     {
       "videoId": "pkg9lPrSRoA",
@@ -3761,8 +4121,9 @@
     },
     {
       "videoId": "zHsk-Dpzi7g",
-      "serviceDate": null,
-      "title": "Bible Study 3.17.21"
+      "serviceDate": "2021-03-17",
+      "title": "Bible Study 3.17.21",
+      "dateSource": "title"
     },
     {
       "videoId": "B6XaeLw66mo",
@@ -3771,8 +4132,9 @@
     },
     {
       "videoId": "wX641k80CrE",
-      "serviceDate": null,
-      "title": "Bible Study 3.10.21"
+      "serviceDate": "2021-03-10",
+      "title": "Bible Study 3.10.21",
+      "dateSource": "title"
     },
     {
       "videoId": "ZYRjqW8B3kQ",
@@ -3781,8 +4143,9 @@
     },
     {
       "videoId": "tacCxI4ylv0",
-      "serviceDate": null,
-      "title": "Bible Study 2.24.21"
+      "serviceDate": "2021-02-24",
+      "title": "Bible Study 2.24.21",
+      "dateSource": "title"
     },
     {
       "videoId": "NVJxYZmUkjA",
@@ -3791,8 +4154,9 @@
     },
     {
       "videoId": "0g3s5akVsBI",
-      "serviceDate": null,
-      "title": "Bible Study 2.17.21"
+      "serviceDate": "2021-02-17",
+      "title": "Bible Study 2.17.21",
+      "dateSource": "title"
     },
     {
       "videoId": "cupy-y3iTnw",
@@ -3801,8 +4165,9 @@
     },
     {
       "videoId": "GclJmXF3F6E",
-      "serviceDate": null,
-      "title": "Bible Study 2.10.21"
+      "serviceDate": "2021-02-10",
+      "title": "Bible Study 2.10.21",
+      "dateSource": "title"
     },
     {
       "videoId": "MDl7n7XLkaY",
@@ -3811,8 +4176,9 @@
     },
     {
       "videoId": "KMc0y2ClDZU",
-      "serviceDate": null,
-      "title": "Bible Study 2.3.21"
+      "serviceDate": "2021-02-03",
+      "title": "Bible Study 2.3.21",
+      "dateSource": "title"
     },
     {
       "videoId": "RuQLNgMkanI",
@@ -3821,8 +4187,9 @@
     },
     {
       "videoId": "HuHDe0EA0rI",
-      "serviceDate": null,
-      "title": "Bible Study 1.27.21"
+      "serviceDate": "2021-01-27",
+      "title": "Bible Study 1.27.21",
+      "dateSource": "title"
     },
     {
       "videoId": "sqxDrbOlRIY",
@@ -3831,8 +4198,9 @@
     },
     {
       "videoId": "7Kn2315gNmQ",
-      "serviceDate": null,
-      "title": "Bible Study 1.20.21"
+      "serviceDate": "2021-01-20",
+      "title": "Bible Study 1.20.21",
+      "dateSource": "title"
     },
     {
       "videoId": "-PAA2pcUEIQ",
@@ -3841,8 +4209,9 @@
     },
     {
       "videoId": "llXjWXGxpQA",
-      "serviceDate": null,
-      "title": "Bible Study 1.13.21"
+      "serviceDate": "2021-01-13",
+      "title": "Bible Study 1.13.21",
+      "dateSource": "title"
     },
     {
       "videoId": "fVRKJ7ak6Fk",
@@ -3851,8 +4220,9 @@
     },
     {
       "videoId": "irZqmeu4PeU",
-      "serviceDate": null,
-      "title": "Bible Study 1.6.21"
+      "serviceDate": "2021-01-06",
+      "title": "Bible Study 1.6.21",
+      "dateSource": "title"
     },
     {
       "videoId": "aQegifm9AtY",
