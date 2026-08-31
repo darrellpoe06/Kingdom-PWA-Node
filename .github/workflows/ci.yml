@@ -168,6 +168,17 @@ jobs:
       - name: choir-dates drainer selftest
         working-directory: infra/church-media-golive
         run: python3 choir_dates_sync.py --selftest
+      # Blob-copy selftest (DR-0317): the pure URL/skip/parity logic behind the
+      # hosted -> sovereign storage copy. The repoint moved the rows on
+      # 2026-08-19 and left 455 objects behind, breaking Shay's gallery and
+      # Christina's 322 team documents silently for twelve days. Proven-to-catch:
+      # fails if an object name's structural slash is collapsed, if a space or
+      # '+' in a real name stops being encoded, if an identical object stops
+      # being skipped (a re-run must stay cheap), or if a bucket that copied
+      # ZERO objects is ever allowed to read as parity GO.
+      - name: storage blob-copy selftest
+        working-directory: infra/nas-supabase
+        run: python3 storage_sync.py --selftest
       # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
       # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
       # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR

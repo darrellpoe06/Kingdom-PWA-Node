@@ -254,6 +254,43 @@ jobs:
             echo "::warning::backend probe skipped — secrets unset, so this run does NOT prove the backend is usable"
           fi
 
+          # 8. THE BLOBS HAVE AN EYE NOW (DR-0317). Every dimension above
+          # watches the shell, the bundle, or auth — so when the 2026-08-19
+          # repoint moved the rows and left 455 storage objects behind, the
+          # gallery was broken on the front screen for twelve days and every
+          # probe stayed green. Storage was the one thing nothing looked at.
+          # This walks the app's real read: ask the public RPC for a live
+          # image_path (never a hardcoded name that rots), then fetch that
+          # object at BOTH origins — the hosted one the bridge points at today,
+          # and the sovereign one it returns to once storage_sync.py reports GO.
+          # OBSERVE-ONLY, like the /sb transport line above: it reports, it does
+          # not add_fail. A witness that cries wolf gets deleted; the incident
+          # arm follows once the blob copy has landed and both codes are known
+          # good. Unknown never reads as healthy (DR-0076) — an unmeasured
+          # dimension says so.
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
+            piece=$(curl -sS --max-time 20 -X POST \
+              -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+              -H 'Content-Type: application/json' \
+              -d '{"p_instance_slug":"moore-divahs"}' \
+              "${SB_URL%/}/rest/v1/rpc/moore_showcase" 2>/dev/null \
+              | grep -o '"image_path":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+            if [ -n "$piece" ]; then
+              G_HOSTED=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                "${SB_URL%/}/storage/v1/object/public/moore-showcase/$piece" 2>/dev/null) || G_HOSTED="000"
+              G_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                "https://poetech.us/sb/storage/v1/object/public/moore-showcase/$piece" 2>/dev/null) || G_SOV="000"
+              note "- \`GET storage/.../moore-showcase/$piece\` -> hosted **${G_HOSTED:-000}** | sovereign **${G_SOV:-000}** (observe-only; sovereign turns 200 when the blob copy lands)"
+              if [ "$G_HOSTED" != "200" ] && [ "$G_SOV" != "200" ]; then
+                echo "::warning::gallery image resolves at NEITHER origin — the blob gap has reopened (DR-0317)"
+              fi
+            else
+              note "- gallery blob probe: **NOT MEASURED** (the showcase RPC returned no image_path)"
+            fi
+          else
+            note "- gallery blob probe: **NOT MEASURED** (backend secrets unset)"
+          fi
+
           echo "backend_code=$BACKEND_CODE" >> "$GITHUB_OUTPUT"
           echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
           echo "stale=$stale" >> "$GITHUB_OUTPUT"

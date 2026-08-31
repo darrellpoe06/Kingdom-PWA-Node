@@ -1,0 +1,95 @@
+# Sovereign migration drift — READ-ONLY witness (DR-0317)
+#
+# WHY THIS EXISTS. On 2026-08-31, while verifying that migration 0163 had
+# actually reached the database, the ledger was measured in the wrong place and
+# the real gap surfaced: `db-migrate.yml` applies every migration through the
+# `SUPABASE_DB_URL` secret, which still names the HOSTED project — while the app
+# has read the SOVEREIGN stack since REPOINT-ARMED landed on 2026-08-19. MEASURED
+# that day: 0163's `moore_showcase_read` policy exists on the hosted database,
+# and the hosted `_schema_migrations` ledger carries 176 rows with 0163 newest,
+# applied 13:38:51Z. Nothing replays migrations to the sovereign side —
+# `replay_migrations.sh` is invoked only by `install.sh`, a one-time path. So a
+# merged migration lands on a database the app no longer reads, and CI stays
+# green either way. Same shape as the blob gap this DR opened with: the repoint
+# moved one thing, left another behind, and nothing watched.
+#
+# This workflow ONLY OBSERVES. It runs SELECTs against the sovereign ledger and
+# prints the difference against the repo's own migration files. It applies
+# nothing, writes nothing, and heals nothing — closing the gap is a decision
+# about where migrations should land, and that is Darrell's to make with the
+# real number in front of him rather than a guess.
+#
+# Dispatch-only, so it is NOT the timer-driven class the three-brakes rule
+# governs (P10/P11/P12): no schedule, no self-trigger, it exits when it has
+# counted. Unknown never reads as healthy (DR-0076) — if the NAS cannot be
+# reached, this FAILS loudly rather than reporting "no drift".
+name: Sovereign migration drift (read-only)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: count what the sovereign database is missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the sovereign ledger and diff it against the repo
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+
+          # SELECT only. `docker exec` runs psql inside the stack's own db
+          # container, so no port or password ever leaves the NAS.
+          LEDGER=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n docker exec supabase-db psql -U supabase_admin -d postgres -tAc \
+             \"select filename from public._schema_migrations order by filename\"" 2>/dev/null) || LEDGER=""
+          rm -f /tmp/nas_key
+
+          if [ -z "$LEDGER" ]; then
+            note "## Sovereign migration drift — NOT MEASURED"
+            note ""
+            note "The sovereign ledger could not be read (NAS unreachable, or \`public._schema_migrations\` does not exist there)."
+            note "An unmeasured dimension is never reported as healthy (DR-0076)."
+            echo "::error::sovereign ledger unreadable — drift is UNKNOWN, not zero"
+            exit 1
+          fi
+
+          printf '%s\n' "$LEDGER" | sed '/^$/d' | sort > /tmp/sovereign.txt
+          ls infra/supabase/migrations-auto/*.sql | xargs -n1 basename | sort > /tmp/repo.txt
+
+          repo_n=$(wc -l < /tmp/repo.txt)
+          sov_n=$(wc -l < /tmp/sovereign.txt)
+          missing=$(comm -23 /tmp/repo.txt /tmp/sovereign.txt)
+          missing_n=$(printf '%s\n' "$missing" | sed '/^$/d' | wc -l)
+
+          note "## Sovereign migration drift — $(date -u +%FT%TZ)"
+          note ""
+          note "- migrations in the repo: **$repo_n**"
+          note "- applied on the sovereign database: **$sov_n**"
+          note "- **missing from the database the app actually reads: $missing_n**"
+          note ""
+          if [ "$missing_n" -gt 0 ]; then
+            note "<details><summary>the $missing_n missing migrations</summary>"
+            note ""
+            printf '%s\n' "$missing" | sed '/^$/d' | while read -r m; do note "- \`$m\`"; done
+            note ""
+            note "</details>"
+            note ""
+            note "Each one is a schema change that merged green and never reached the live database."
+            echo "::warning::$missing_n migrations are missing from the sovereign database (DR-0317)"
+          else
+            note "**No drift.** Every repo migration is present on the sovereign database."
+          fi

@@ -106,3 +106,42 @@ never checked is the theater this repo keeps catching.
   it is not optional for the family's data.
 - **A witness.** No probe watches this stack yet. It gets one before anything
   depends on it.
+
+## Copying the blobs (storage_sync.py)
+
+The cutover moved the rows and deliberately left the files behind. That gap
+broke every Storage read from 2026-08-19 until it is closed — measured: 455
+objects across three buckets (`church-team-documents` 322, `sermon-documents`
+121, `moore-showcase` 12). See DR-0317.
+
+`storage_sync.py` runs ON THE NAS (it reaches kong at `127.0.0.1:8800` and
+reads `/volume1/...`). It lists objects from the hosted DB over the existing
+`AGENT_DB_URL`, so the only credential it still needs is the hosted project's
+`service_role` key — required to read PRIVATE objects, and the one value the
+agent cannot obtain for itself.
+
+**One-time: add two lines to `/volume1/docker/poetech/agent.env`**
+
+    HOSTED_SB_URL=https://mjjlevhdufpaplypnqrv.supabase.co
+    HOSTED_SERVICE_ROLE_KEY=<the hosted project's service_role key>
+
+The key is at Supabase dashboard -> Project Settings -> API -> `service_role`.
+It is a server-side secret: it belongs in `agent.env` on the NAS and must never
+reach the browser bundle or a repo secret used at build time.
+
+**Then, from the NAS:**
+
+    cd /volume1/docker/poetech/repo/infra/nas-supabase
+    python3 storage_sync.py --dry-run            # counts only, writes nothing
+    python3 storage_sync.py --bucket=moore-showcase   # smallest bucket first
+    python3 storage_sync.py                      # all 455, resumable
+
+Re-running is cheap and safe: an object already present at the same size is
+skipped, so an interrupted run is re-run, never restarted. The run ends in
+`verdict GO` only when every bucket is whole and nothing failed.
+
+**When it reports GO:** delete the `VITE_PUBLIC_STORAGE_URL` line from
+`.github/workflows/deploy-cloudflare-pages.yml` and dispatch the deploy. That
+retires the bridge and returns the images to the sovereign backend.
+
+    python3 storage_sync.py --selftest           # pure logic, no network
