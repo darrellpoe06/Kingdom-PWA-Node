@@ -389,3 +389,108 @@ describe('day totals are derived from the items, never stored', () => {
     expect(dayFoodTotals([], D).byMeal.map((m) => m.id)).toEqual(['morning', 'lunch', 'snack', 'dinner']);
   });
 });
+
+// =============================================================================
+// THE WEEK — averages over days that HAVE data, never over seven
+// =============================================================================
+// Darrell's actual question: "so she has metrics to use when she wants to adjust
+// her behavior based on data." A day total cannot answer "am I doing something
+// different"; the week can. The property that makes it honest is the divisor —
+// dividing a partly-logged week by 7 reports absence as restraint.
+import { weekDays, weeklyNutrition, weeklyWater, weeklyWeight, weekSummary, weekOverWeek }
+  from '../lib/health-program.js';
+
+const PROG = {
+  startDate: '2026-09-01', startWeightLb: 202, weeks: 26, waterGoalOz: 64,
+  weeklyTargets: [{ week: 1, targetWeightLb: 200 }, { week: 2, targetWeightLb: 198 }],
+};
+const FOOD = [
+  { day: '2026-09-01', meal: 'lunch', calories: 600, proteinG: 40 },
+  { day: '2026-09-02', meal: 'lunch', calories: 800, proteinG: 50 },
+  { day: '2026-09-08', meal: 'lunch', calories: 500, proteinG: 60 },
+];
+const WATER = [{ day: '2026-09-01', oz: 64 }, { day: '2026-09-02', oz: 40 }, { day: '2026-09-08', oz: 70 }];
+const WEIGHT = [{ day: '2026-09-03', weightLb: 200.4 }, { day: '2026-09-10', weightLb: 198.9 }];
+
+describe('a program week is seven real days', () => {
+  it('runs from the start date', () => {
+    const d = weekDays(PROG, 1);
+    expect(d.length).toBe(7);
+    expect(d[0]).toBe('2026-09-01');
+    expect(d[6]).toBe('2026-09-07');
+  });
+  it('is empty for an unstarted program rather than guessing', () => {
+    expect(weekDays({ ...PROG, startDate: null }, 1)).toEqual([]);
+  });
+});
+
+describe('PROVEN-TO-CATCH: averages divide by DAYS LOGGED, not by seven', () => {
+  it('two logged days average their own total, not a seventh of it', () => {
+    const n = weeklyNutrition(PROG, FOOD, 1);
+    expect(n.calories.total).toBe(1400);
+    expect(n.calories.average).toBe(700);     // 1400/2 — NOT 1400/7 = 200
+    expect(n.calories.daysLogged).toBe(2);
+    expect(n.daysWithFood).toBe(2);
+  });
+  it('reports nothing rather than 0 for a week with no food', () => {
+    const n = weeklyNutrition(PROG, [], 1);
+    expect(n.calories.average).toBeNull();
+    expect(n.calories.daysLogged).toBe(0);
+  });
+  it('water averages only days with entries, and counts goal days', () => {
+    const w = weeklyWater(PROG, WATER, 1);
+    expect(w.average).toBe(52);               // (64+40)/2
+    expect(w.daysLogged).toBe(2);
+    expect(w.daysGoalMet).toBe(1);            // only the 64 oz day
+  });
+});
+
+describe('weight for a week is never invented', () => {
+  it('carries target, actual and both running losses', () => {
+    const w = weeklyWeight(PROG, WEIGHT, 1);
+    expect(w.targetWeightLb).toBe(200);
+    expect(w.actualWeightLb).toBe(200.4);
+    expect(w.targetRunningLossLb).toBe(2);    // 202 - 200
+    expect(w.actualRunningLossLb).toBe(1.6);  // 202 - 200.4
+    expect(w.fromTargetLb).toBe(0.4);         // a signed distance, not a verdict
+  });
+  it('week-over-week change needs both weeks', () => {
+    expect(weeklyWeight(PROG, WEIGHT, 1).actualWeeklyChangeLb).toBeNull();
+    expect(weeklyWeight(PROG, WEIGHT, 2).actualWeeklyChangeLb).toBe(1.5); // 200.4 -> 198.9
+  });
+  it('an unweighed week is null, never the target standing in', () => {
+    const w = weeklyWeight(PROG, [], 1);
+    expect(w.actualWeightLb).toBeNull();
+    expect(w.actualRunningLossLb).toBeNull();
+    expect(w.fromTargetLb).toBeNull();
+    expect(w.targetWeightLb).toBe(200);       // the plan is still known
+  });
+});
+
+describe('this week against last', () => {
+  const data = { foodEntries: FOOD, waterEntries: WATER, weightEntries: WEIGHT };
+
+  it('summarises a week in one object', () => {
+    const s = weekSummary(PROG, data, 1);
+    expect(s.week).toBe(1);
+    expect(s.range.from).toBe('2026-09-01');
+    expect(s.nutrition.calories.average).toBe(700);
+  });
+  it('compares week 2 to week 1', () => {
+    const c = weekOverWeek(PROG, data, 2).change;
+    expect(c.caloriesPerDay).toBe(-200);      // 500 vs 700
+    expect(c.proteinPerDay).toBe(15);         // 60 vs 45
+    expect(c.weightLb).toBe(-1.5);            // 198.9 vs 200.4
+  });
+  it('week 1 has nothing to compare against', () => {
+    expect(weekOverWeek(PROG, data, 1).previous).toBeNull();
+    expect(weekOverWeek(PROG, data, 1).change).toBeNull();
+  });
+  it('PROVEN-TO-CATCH: a missing side is NULL, not 0 — "no idea" is not "no change"', () => {
+    const sparse = { foodEntries: [FOOD[0]], waterEntries: [], weightEntries: [] };
+    const c = weekOverWeek(PROG, sparse, 2).change;
+    expect(c.caloriesPerDay).toBeNull();
+    expect(c.waterPerDay).toBeNull();
+    expect(c.weightLb).toBeNull();
+  });
+});
