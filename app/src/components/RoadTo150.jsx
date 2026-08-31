@@ -27,6 +27,7 @@ import { KpiDot } from './KpiDot.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { confirmThen } from '../lib/confirm-action.js';
 import { parseFoodLine, resolveFromLibrary, unknownCount } from '../lib/food-parse.js';
+import { fillUnknowns } from '../lib/food-lookup.js';
 import {
   MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
@@ -222,6 +223,7 @@ export default function RoadTo150({
   const foodDay = useMemo(() => dayFoodTotals(foodEntries, todayKey), [foodEntries, todayKey]);
   // The quick-add sentence and its parsed rows, held until confirmed.
   const [quick, setQuick] = useState({ meal: 'morning', line: '', rows: null });
+  const [looking, setLooking] = useState(false);
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -405,6 +407,19 @@ export default function RoadTo150({
     if (!items.length) return;
     setQuick((q) => ({ ...q, rows: resolveFromLibrary(items, foodLibrary) }));
   };
+  // Ask the database only for what is still unknown. His own remembered values
+  // are never overwritten, and a failed lookup leaves the row blank with a
+  // reason rather than filling in something plausible.
+  const lookUpUnknowns = async () => {
+    if (!quick.rows || looking) return;
+    setLooking(true);
+    try {
+      const filled = await fillUnknowns(quick.rows);
+      setQuick((q) => ({ ...q, rows: filled }));
+    } finally {
+      setLooking(false);
+    }
+  };
   const setQuickRow = (idx, field, value) =>
     setQuick((q) => ({ ...q, rows: q.rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)) }));
   const addAllQuick = () => {
@@ -450,7 +465,9 @@ export default function RoadTo150({
           Write it the way you would say it — “a 6 inch turkey sandwich with white bread, mayo
           tomatoes, pickles onions olives hot peppers avocado spread”. Each food becomes its own
           line. Anything you have logged before fills in its own calories and protein; anything
-          new stays blank for you to fill once, and is remembered after that.
+          new stays blank for you to fill once, and is remembered after that. Looked-up
+          numbers come from Open Food Facts and are <strong>per 100 g</strong> — check them
+          against your actual portion before adding; nothing is scaled to a guessed size.
         </p>
         <div className="flex flex-wrap gap-2 mb-2">
           {MEALS.map((m) => (
@@ -476,17 +493,30 @@ export default function RoadTo150({
             <div className="text-xs text-[#5A5751] mb-2" style={serif}>
               {quick.rows.length} food{quick.rows.length === 1 ? '' : 's'} found
               {unknownCount(quick.rows) > 0
-                ? ` · ${unknownCount(quick.rows)} still need a number — leave blank if you don't know`
-                : ' · all filled in from what you logged before'}
+                ? ` · ${unknownCount(quick.rows)} still need a number`
+                : ' · all filled in'}
             </div>
+            {unknownCount(quick.rows) > 0 && (
+              <button type="button" onClick={lookUpUnknowns} disabled={looking}
+                      className="w-full mb-2 px-4 py-2 border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                {looking ? 'Looking up…' : `Look up the ${unknownCount(quick.rows)} I don't know`}
+              </button>
+            )}
             <ul className="divide-y divide-[#E8E4DC]">
               {quick.rows.map((r, idx) => (
                 <li key={`${r.name}-${idx}`} className="py-2">
                   <div className="text-sm text-[#1A1815]" style={serif}>
                     {r.name}
                     {r.serving ? <span className="text-[#5A5751]"> · {r.serving}</span> : null}
-                    {r.source === 'remembered' && (
-                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">remembered</span>
+                    {r.source && (
+                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                        {r.source === 'remembered' ? 'remembered' : `${r.source}${r.per ? ` · per ${r.per}` : ''}`}
+                      </span>
+                    )}
+                    {r.lookupFailed && (
+                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#B85838]">
+                        not found — type it
+                      </span>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-1">
