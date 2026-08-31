@@ -369,3 +369,146 @@ export function dayFoodTotals(entries, dayKey) {
     })),
   };
 }
+
+// =============================================================================
+// THE WEEK — what turns a log into a decision
+// =============================================================================
+// Darrell, asking the real question: "so she has metrics to use when she wants
+// to adjust her behavior based on data."
+//
+// A day's total answers "what did I eat today". It cannot answer "am I eating
+// differently than last week", and that second question is the one behaviour
+// actually turns on. Everything below aggregates the SAME actual rows the day
+// view reads -- no new capture, no new storage, just the span widened.
+//
+// AVERAGES ARE OVER DAYS THAT HAVE DATA, and the count rides along. Dividing a
+// week's calories by 7 when only 3 days were logged reports a number that looks
+// like restraint and is really absence -- the exact way an honest log becomes a
+// lie. `daysLogged` is returned beside every average so the surface can say
+// "3 of 7 days" rather than quietly implying a full week.
+
+/** Every dayKey in a program week, Monday-of-week-1 style (1-based). */
+export function weekDays(program, week) {
+  const range = weekRange(program, week);
+  if (!range) return [];
+  const out = [];
+  for (let i = 0; i < 7; i += 1) {
+    const d = addDays(range.from, i);
+    if (d) out.push(d);
+  }
+  return out;
+}
+
+// Average a per-day figure across only the days that recorded one.
+function averageOverLoggedDays(values) {
+  const real = (values || []).filter((v) => v != null && Number.isFinite(Number(v)));
+  if (!real.length) return { average: null, daysLogged: 0, total: 0 };
+  const total = real.reduce((a, b) => a + Number(b), 0);
+  return {
+    average: Math.round((total / real.length) * 10) / 10,
+    daysLogged: real.length,
+    total: Math.round(total * 10) / 10,
+  };
+}
+
+/**
+ * One week's ACTUAL nutrition: average daily calories and protein, over the days
+ * that were actually logged. A day with food rows but no numbers counts as a
+ * logged day with no figure -- it is absence of data, not a zero-calorie day.
+ */
+export function weeklyNutrition(program, foodEntries, week) {
+  const days = weekDays(program, week);
+  const perDayCal = [];
+  const perDayPro = [];
+  for (const day of days) {
+    const t = dayFoodTotals(foodEntries, day);
+    if (!t.items) continue;                       // nothing logged that day at all
+    perDayCal.push(t.calories.recorded ? t.calories.total : null);
+    perDayPro.push(t.protein.recorded ? t.protein.total : null);
+  }
+  return {
+    week,
+    days: days.length,
+    daysWithFood: perDayCal.length,
+    calories: averageOverLoggedDays(perDayCal),
+    protein: averageOverLoggedDays(perDayPro),
+  };
+}
+
+/** One week's ACTUAL water: average daily ounces over the days with entries. */
+export function weeklyWater(program, waterEntries, week) {
+  const days = weekDays(program, week);
+  const perDay = [];
+  for (const day of days) {
+    const oz = (waterEntries || [])
+      .filter((e) => e && e.day === day && Number.isFinite(Number(e.oz)))
+      .reduce((a, e) => a + Number(e.oz), 0);
+    const any = (waterEntries || []).some((e) => e && e.day === day);
+    if (any) perDay.push(oz);
+  }
+  const avg = averageOverLoggedDays(perDay);
+  const goal = Number(program?.waterGoalOz) || 0;
+  return {
+    week,
+    ...avg,
+    goalOz: goal || null,
+    daysGoalMet: goal ? perDay.filter((oz) => oz >= goal).length : null,
+  };
+}
+
+/**
+ * A week's weight picture: this week's target, the actual weigh-in, and both
+ * running losses. Every field is null when unrecorded -- never 0, never the
+ * target standing in for a reading.
+ */
+export function weeklyWeight(program, weightEntries, week) {
+  const target = targetWeightFor(program, week);
+  const entry = weighInForWeek(program, weightEntries, week);
+  const actual = entry ? Number(entry.weightLb) : null;
+  const prev = week > 1 ? weighInForWeek(program, weightEntries, week - 1) : null;
+  const prevWeight = prev ? Number(prev.weightLb) : null;
+  const start = Number(program?.startWeightLb);
+  return {
+    week,
+    targetWeightLb: target,
+    actualWeightLb: actual,
+    targetRunningLossLb: targetRunningLoss(program, week),
+    actualRunningLossLb: (actual != null && Number.isFinite(start)) ? round1(start - actual) : null,
+    actualWeeklyChangeLb: (actual != null && prevWeight != null) ? round1(prevWeight - actual) : null,
+    // Neutral by construction: a signed distance, never a verdict.
+    fromTargetLb: (actual != null && target != null) ? round1(actual - target) : null,
+  };
+}
+
+/** The whole week in one object — what the review screen reads. */
+export function weekSummary(program, { foodEntries = [], waterEntries = [], weightEntries = [] } = {}, week) {
+  const range = weekRange(program, week);
+  return {
+    week,
+    range,
+    weight: weeklyWeight(program, weightEntries, week),
+    nutrition: weeklyNutrition(program, foodEntries, week),
+    water: weeklyWater(program, waterEntries, week),
+  };
+}
+
+/**
+ * This week against last — the comparison that answers "am I doing something
+ * different". Returns null deltas rather than 0 when either side is unlogged;
+ * a delta of 0 must mean "the same", not "I have no idea".
+ */
+export function weekOverWeek(program, data, week) {
+  const now = weekSummary(program, data, week);
+  const prev = week > 1 ? weekSummary(program, data, week - 1) : null;
+  const delta = (a, b) => (a == null || b == null ? null : Math.round((a - b) * 10) / 10);
+  return {
+    current: now,
+    previous: prev,
+    change: prev ? {
+      caloriesPerDay: delta(now.nutrition.calories.average, prev.nutrition.calories.average),
+      proteinPerDay: delta(now.nutrition.protein.average, prev.nutrition.protein.average),
+      waterPerDay: delta(now.water.average, prev.water.average),
+      weightLb: delta(now.weight.actualWeightLb, prev.weight.actualWeightLb),
+    } : null,
+  };
+}

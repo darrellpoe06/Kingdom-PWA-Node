@@ -31,7 +31,7 @@ import { fillUnknowns } from '../lib/food-lookup.js';
 import { JUICE_RECIPES, juiceServingOptions, juiceServing } from '../lib/juice-recipes.js';
 import { PLANNED_WALK, PLANNED_STRENGTH, PROGRAM_PANTRY, pantryWithKnown, plannedVsActual, strengthChecklist } from '../lib/road-to-150-plan.js';
 import {
-  MEALS, foodForMeal, mealTotals, dayFoodTotals,
+  MEALS, foodForMeal, mealTotals, dayFoodTotals, weekOverWeek,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
 } from '../lib/health-program.js';
 import { ROAD_TO_150, startProgram, pdfPending } from '../lib/road-to-150-program.js';
@@ -455,6 +455,103 @@ export default function RoadTo150({
       calories: serving.calories, proteinG: serving.proteinG,
       source: 'recipe', eatenAt: new Date().toISOString(),
     });
+  };
+
+  // ── THE WEEK ───────────────────────────────────────────────────────────────
+  // One day answers "what did I eat". Only the week answers "am I doing
+  // something different" — the question behaviour actually turns on.
+  const wow = useMemo(
+    () => (p.week ? weekOverWeek(program, { foodEntries, waterEntries, weightEntries }, p.week) : null),
+    [program, foodEntries, waterEntries, weightEntries, p.week],
+  );
+
+  // A change is only meaningful when BOTH weeks have data; null renders as "—".
+  const arrow = (n, unit, betterDown = true) => {
+    if (n == null) return <span className="text-[#5A5751]">—</span>;
+    if (n === 0) return <span className="text-[#5A5751]">no change</span>;
+    const good = betterDown ? n < 0 : n > 0;
+    return (
+      <span className={good ? 'text-[#15803D]' : 'text-[#B45309]'}>
+        {n > 0 ? '+' : ''}{round1(n)}{unit}
+      </span>
+    );
+  };
+
+  const weekTab = () => {
+    if (!started || !wow) {
+      return (
+        <section className="bg-white border-2 border-[#1A1815] p-4">
+          <h3 className="text-lg" style={display}>The week</h3>
+          <p className="text-sm text-[#5A5751] mt-1" style={serif}>
+            Start the program and log a few days — this fills in from what you actually record.
+          </p>
+        </section>
+      );
+    }
+    const c = wow.current;
+    const ch = wow.change;
+    const row = (label, value, sub) => (
+      <div className="flex items-baseline justify-between gap-3 py-2 border-b border-[#E8E4DC] last:border-0">
+        <span className="text-sm text-[#5A5751]" style={serif}>{label}</span>
+        <span className="text-sm text-[#1A1815] text-right" style={serif}>
+          {value}{sub ? <span className="block text-xs text-[#5A5751]">{sub}</span> : null}
+        </span>
+      </div>
+    );
+    const avg = (a, unit) => (a.average == null ? '—' : `${round1(a.average)}${unit}`);
+    const logged = (a) => (a.daysLogged ? `${a.daysLogged} of 7 days logged` : 'nothing logged yet');
+
+    return (
+      <div className="space-y-4">
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-week-h">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Week {c.week}</div>
+          <h3 id="r150-week-h" className="text-xl" style={display}>How this week is going</h3>
+          {c.range && (
+            <p className="text-xs text-[#5A5751] mt-1" style={serif}>{c.range.from} → {c.range.to}</p>
+          )}
+          <p className="text-xs text-[#5A5751] mt-2" style={serif}>
+            Averages count only the days you logged — never a week divided by seven, which would
+            make missing days look like restraint.
+          </p>
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-week-food-h">
+          <h3 id="r150-week-food-h" className="text-lg mb-1" style={display}>Food and water</h3>
+          {row('Average daily calories', avg(c.nutrition.calories, ' cal'), logged(c.nutrition.calories))}
+          {row('Average daily protein', avg(c.nutrition.protein, 'g'), logged(c.nutrition.protein))}
+          {row('Average daily water', c.water.average == null ? '—' : `${round1(c.water.average)} oz`,
+               c.water.goalOz ? `${c.water.daysGoalMet} of 7 days hit ${c.water.goalOz} oz` : null)}
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-week-weight-h">
+          <h3 id="r150-week-weight-h" className="text-lg mb-1" style={display}>Weight</h3>
+          {row("This week's target", c.weight.targetWeightLb == null ? '—' : `${c.weight.targetWeightLb} lb`)}
+          {row('Actual weigh-in', c.weight.actualWeightLb == null ? '— not weighed yet' : `${c.weight.actualWeightLb} lb`,
+               c.weight.fromTargetLb == null ? null
+                 : `${Math.abs(c.weight.fromTargetLb)} lb from this week's target`)}
+          {row('Target running loss', c.weight.targetRunningLossLb == null ? '—' : `${c.weight.targetRunningLossLb} lb`)}
+          {row('Actual running loss', c.weight.actualRunningLossLb == null ? '—' : `${c.weight.actualRunningLossLb} lb`)}
+          {row('Change this week', c.weight.actualWeeklyChangeLb == null ? '—' : `${round1(c.weight.actualWeeklyChangeLb)} lb`)}
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-week-vs-h">
+          <h3 id="r150-week-vs-h" className="text-lg" style={display}>Against last week</h3>
+          <p className="text-xs text-[#5A5751] mb-2" style={serif}>
+            {wow.previous
+              ? 'A dash means one of the two weeks has no data to compare — not that nothing changed.'
+              : 'Week 1 has nothing before it to compare against yet.'}
+          </p>
+          {ch ? (
+            <>
+              {row('Calories a day', arrow(ch.caloriesPerDay, ' cal'))}
+              {row('Protein a day', arrow(ch.proteinPerDay, 'g', false))}
+              {row('Water a day', arrow(ch.waterPerDay, ' oz', false))}
+              {row('Weight', arrow(ch.weightLb, ' lb'))}
+            </>
+          ) : null}
+        </section>
+      </div>
+    );
   };
 
   const foodTab = () => (
@@ -906,6 +1003,7 @@ export default function RoadTo150({
     { id: 'weight', label: 'Weight', icon: 'chart', render: weight },
     { id: 'water', label: 'Water', icon: 'heart', render: waterTab },
     { id: 'food', label: 'Food', icon: 'chefHat', render: foodTab },
+    { id: 'week', label: 'Week', icon: 'calendar', render: weekTab },
     { id: 'plan', label: 'Plan', icon: 'book', render: plan },
   ];
 
