@@ -26,6 +26,9 @@ import React, { useState, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { confirmThen } from '../lib/confirm-action.js';
+import { parseFoodLine, resolveFromLibrary, unknownCount } from '../lib/food-parse.js';
+import { fillUnknowns } from '../lib/food-lookup.js';
+import { JUICE_RECIPES, juiceServingOptions, juiceServing } from '../lib/juice-recipes.js';
 import {
   MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
@@ -191,6 +194,7 @@ export default function RoadTo150({
   addWaterEntry = null,
   deleteWaterEntry = null,
   foodEntries = [],
+  foodLibrary = [],
   addFoodEntry = null,
   deleteFoodEntry = null,
   today = null,
@@ -218,6 +222,10 @@ export default function RoadTo150({
   // One draft per meal so opening Dinner does not clear a half-typed Lunch item.
   const [draft, setDraft] = useState({});
   const foodDay = useMemo(() => dayFoodTotals(foodEntries, todayKey), [foodEntries, todayKey]);
+  // The quick-add sentence and its parsed rows, held until confirmed.
+  const [quick, setQuick] = useState({ meal: 'morning', line: '', rows: null });
+  const [looking, setLooking] = useState(false);
+  const [customJuiceOz, setCustomJuiceOz] = useState('');
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -393,6 +401,57 @@ export default function RoadTo150({
 
   const num = (v, unit) => (v.recorded === 0 ? '—' : `${round1(v.total)}${unit}${v.complete ? '' : '*'}`);
 
+  // Parse the sentence, fill in what we ALREADY KNOW from the person's own
+  // confirmed foods, and show the rest as blanks to complete. Nothing is logged
+  // until they press Add — and an unknown stays blank rather than guessing.
+  const parseQuick = () => {
+    const items = parseFoodLine(quick.line);
+    if (!items.length) return;
+    setQuick((q) => ({ ...q, rows: resolveFromLibrary(items, foodLibrary) }));
+  };
+  // Ask the database only for what is still unknown. His own remembered values
+  // are never overwritten, and a failed lookup leaves the row blank with a
+  // reason rather than filling in something plausible.
+  const lookUpUnknowns = async () => {
+    if (!quick.rows || looking) return;
+    setLooking(true);
+    try {
+      const filled = await fillUnknowns(quick.rows);
+      setQuick((q) => ({ ...q, rows: filled }));
+    } finally {
+      setLooking(false);
+    }
+  };
+  const setQuickRow = (idx, field, value) =>
+    setQuick((q) => ({ ...q, rows: q.rows.map((r, i) => (i === idx ? { ...r, [field]: value } : r)) }));
+  const addAllQuick = () => {
+    if (!addFoodEntry || !quick.rows) return;
+    for (const r of quick.rows) {
+      if (!r.name) continue;
+      addFoodEntry({
+        day: todayKey, meal: quick.meal, name: r.name, serving: r.serving || '',
+        calories: r.calories === '' || r.calories == null ? null : Number(r.calories),
+        proteinG: r.proteinG === '' || r.proteinG == null ? null : Number(r.proteinG),
+        source: r.source || 'entered',
+        eatenAt: new Date().toISOString(),
+      });
+    }
+    setQuick({ meal: quick.meal, line: '', rows: null });
+  };
+
+  // ONE TAP for the usual. The serving's nutrition is computed at the moment of
+  // logging and STORED ON THE ENTRY, so editing the recipe later cannot rewrite
+  // what was already eaten -- his explicit requirement, held structurally.
+  const logJuice = (recipe, oz) => {
+    const serving = juiceServing(oz, recipe);
+    if (!serving || !addFoodEntry) return;
+    addFoodEntry({
+      day: todayKey, meal: quick.meal, name: serving.name, serving: serving.serving,
+      calories: serving.calories, proteinG: serving.proteinG,
+      source: 'recipe', eatenAt: new Date().toISOString(),
+    });
+  };
+
   const foodTab = () => (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-food-h">
@@ -412,6 +471,148 @@ export default function RoadTo150({
         </p>
         {!addFoodEntry && (
           <p className="text-xs text-[#B85838] mt-2" style={serif}>Sign in to log food.</p>
+        )}
+      </section>
+
+      {JUICE_RECIPES.map((recipe) => {
+        const opts = juiceServingOptions(recipe);
+        const dflt = opts.find((o) => o.isDefault) || opts[0];
+        return (
+          <section key={recipe.id} className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby={`r150-fav-${recipe.id}`}>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Favorites</div>
+            <h3 id={`r150-fav-${recipe.id}`} className="text-lg" style={display}>{recipe.name}</h3>
+            <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+              {recipe.estimateNote} Logging to <strong>{(MEALS.find((m) => m.id === quick.meal) || {}).label}</strong>.
+            </p>
+
+            {dflt && (
+              <button type="button" onClick={() => logJuice(recipe, dflt.oz)} disabled={!addFoodEntry}
+                      className="mt-3 w-full px-4 py-3 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Add {dflt.oz} oz · {dflt.calories} cal · ~{dflt.proteinG}g
+              </button>
+            )}
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {opts.filter((o) => !o.isDefault).map((o) => (
+                <button key={o.oz} type="button" onClick={() => logJuice(recipe, o.oz)} disabled={!addFoodEntry}
+                        className="px-3 py-2 border-2 border-[#1A1815] text-sm hover:bg-[#1A1815] hover:text-white disabled:opacity-40 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        aria-label={`Add ${o.oz} ounces, ${o.calories} calories`}>
+                  {o.oz} oz
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 mt-2">
+              <label htmlFor={`r150-juice-custom-${recipe.id}`} className="sr-only">Custom ounces</label>
+              <input id={`r150-juice-custom-${recipe.id}`} type="number" min="1" step="1" inputMode="numeric"
+                     value={customJuiceOz} onChange={(e) => setCustomJuiceOz(e.target.value)}
+                     placeholder="Custom oz"
+                     className="flex-1 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <button type="button" disabled={!addFoodEntry || !juiceServing(customJuiceOz, recipe)}
+                      onClick={() => { logJuice(recipe, Number(customJuiceOz)); setCustomJuiceOz(''); }}
+                      className="px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Add
+              </button>
+            </div>
+            {juiceServing(customJuiceOz, recipe) && (
+              <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+                {customJuiceOz} oz ≈ {juiceServing(customJuiceOz, recipe).calories} cal ·
+                ~{juiceServing(customJuiceOz, recipe).proteinG}g protein
+              </p>
+            )}
+
+            <details className="mt-3">
+              <summary className="text-xs text-[#5A5751] cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]" style={serif}>
+                What's in it · {recipe.batchOz} oz batch
+              </summary>
+              <ul className="mt-2 text-xs text-[#5A5751] list-disc pl-5 space-y-0.5" style={serif}>
+                {recipe.ingredients.map((ing) => <li key={ing}>{ing}</li>)}
+              </ul>
+            </details>
+          </section>
+        );
+      })}
+
+      <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-quick-h">
+        <h3 id="r150-quick-h" className="text-lg" style={display}>Say what you ate</h3>
+        <p className="text-xs text-[#5A5751] mt-1 mb-3" style={serif}>
+          Write it the way you would say it — “a 6 inch turkey sandwich with white bread, mayo
+          tomatoes, pickles onions olives hot peppers avocado spread”. Each food becomes its own
+          line. Anything you have logged before fills in its own calories and protein; anything
+          new stays blank for you to fill once, and is remembered after that. Looked-up
+          numbers come from Open Food Facts and are <strong>per 100 g</strong> — check them
+          against your actual portion before adding; nothing is scaled to a guessed size.
+        </p>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {MEALS.map((m) => (
+            <button key={m.id} type="button" onClick={() => setQuick((q) => ({ ...q, meal: m.id }))}
+                    aria-pressed={quick.meal === m.id}
+                    className={`px-3 py-2 border-2 border-[#1A1815] text-sm transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${quick.meal === m.id ? 'bg-[#1A1815] text-white' : 'hover:bg-[#E8E4DC]'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <label htmlFor="r150-quick-line" className="sr-only">What you ate, in your own words</label>
+        <textarea id="r150-quick-line" rows={2} value={quick.line}
+                  onChange={(e) => setQuick((q) => ({ ...q, line: e.target.value, rows: null }))}
+                  placeholder="a 6 inch turkey sandwich with white bread, mayo tomatoes, pickles"
+                  className="w-full border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+        <button type="button" onClick={parseQuick} disabled={!quick.line.trim()}
+                className="mt-2 w-full px-4 py-2 border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Break it into foods
+        </button>
+
+        {quick.rows && (
+          <div className="mt-4">
+            <div className="text-xs text-[#5A5751] mb-2" style={serif}>
+              {quick.rows.length} food{quick.rows.length === 1 ? '' : 's'} found
+              {unknownCount(quick.rows) > 0
+                ? ` · ${unknownCount(quick.rows)} still need a number`
+                : ' · all filled in'}
+            </div>
+            {unknownCount(quick.rows) > 0 && (
+              <button type="button" onClick={lookUpUnknowns} disabled={looking}
+                      className="w-full mb-2 px-4 py-2 border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                {looking ? 'Looking up…' : `Look up the ${unknownCount(quick.rows)} I don't know`}
+              </button>
+            )}
+            <ul className="divide-y divide-[#E8E4DC]">
+              {quick.rows.map((r, idx) => (
+                <li key={`${r.name}-${idx}`} className="py-2">
+                  <div className="text-sm text-[#1A1815]" style={serif}>
+                    {r.name}
+                    {r.serving ? <span className="text-[#5A5751]"> · {r.serving}</span> : null}
+                    {r.source && (
+                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                        {r.source === 'remembered' ? 'remembered' : `${r.source}${r.per ? ` · per ${r.per}` : ''}`}
+                      </span>
+                    )}
+                    {r.lookupFailed && (
+                      <span className="ml-2 text-[0.625rem] uppercase tracking-wider text-[#B85838]">
+                        not found — type it
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <label htmlFor={`r150-q-cal-${idx}`} className="sr-only">Calories for {r.name}</label>
+                    <input id={`r150-q-cal-${idx}`} type="number" min="0" step="1" inputMode="numeric"
+                           value={r.calories ?? ''} placeholder="Calories"
+                           onChange={(e) => setQuickRow(idx, 'calories', e.target.value)}
+                           className="border-2 border-[#1A1815] px-2 py-1 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                    <label htmlFor={`r150-q-pro-${idx}`} className="sr-only">Protein grams for {r.name}</label>
+                    <input id={`r150-q-pro-${idx}`} type="number" min="0" step="0.1" inputMode="decimal"
+                           value={r.proteinG ?? ''} placeholder="Protein g"
+                           onChange={(e) => setQuickRow(idx, 'proteinG', e.target.value)}
+                           className="border-2 border-[#1A1815] px-2 py-1 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={addAllQuick} disabled={!addFoodEntry}
+                    className="mt-3 w-full px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Add all {quick.rows.length} to {(MEALS.find((m) => m.id === quick.meal) || {}).label}
+            </button>
+          </div>
         )}
       </section>
 
