@@ -41,7 +41,7 @@ export const VALID_VIEWS = [
   'opportunities', 'about', 'church', 'markets', 'notes', 'create', 'voice',
   'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
   'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
-  'forecast', 'cohorts', 'tlc-assistant',
+  'forecast', 'cohorts', 'tlc-assistant', 'health',
 ];
 
 // Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|...
