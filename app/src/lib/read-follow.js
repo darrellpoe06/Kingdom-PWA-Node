@@ -72,6 +72,32 @@ const SKIP_SELECTOR = [
 
 const isWs = (ch) => /\s/.test(ch);
 
+// Elements that put their content on its own line, so the text either side of
+// them is not one running word. Kept as a NAME list rather than a computed
+// style read: buildFollowMap must stay a pure DOM read that works in jsdom (no
+// layout) exactly as it does in a browser, and getComputedStyle would make the
+// map depend on whether CSS had loaded.
+// (The narrower BLOCK_TAGS regex further down serves paragraph JUMPS — the
+// units a reader skips between. This set is the wider question of where text
+// simply cannot run together, so it includes DIV, SECTION, BR and the list and
+// table containers too.)
+const BLOCK_BOUNDARY_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'BR', 'DD', 'DETAILS', 'DIV', 'DL', 'DT',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'HEADER', 'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'SUMMARY',
+  'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'UL',
+]);
+
+/** The nearest block-level ancestor of `el` within `root` (or root itself). */
+function closestBlock(el, root) {
+  let n = el;
+  while (n && n !== root) {
+    if (BLOCK_BOUNDARY_TAGS.has(n.tagName)) return n;
+    n = n.parentElement;
+  }
+  return root;
+}
+
 /**
  * Walk the container's visible text nodes and build the normalized text plus a
  * per-character map back to (node, offset). Normalization mirrors segmentText:
@@ -82,10 +108,45 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
   const chars = [];   // normalized characters
   const map = [];     // map[i] = { node, offset } for chars[i]
   let lastWasSpace = true; // leading whitespace never lands
+  let lastBlock = null;    // the block element the previous text node sat in
   const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const parent = node.parentElement;
     if (!parent || (parent.closest && parent.closest(SKIP_SELECTOR))) continue;
+
+    // A BLOCK BOUNDARY IS A WORD BOUNDARY.
+    //
+    // Darrell 2026-08-31, second report on the same surface: "The words in the
+    // system don't highlight the words as the reader reads."
+    //
+    // The walker concatenated the text of adjacent BLOCKS with nothing between
+    // them, because only whitespace INSIDE a text node was normalized and a
+    // block boundary carries no whitespace of its own. So a heading followed by
+    // a paragraph mapped to "Think on These ThingsWhatsoever things are true"
+    // — measured in real Chromium against this very function.
+    //
+    // That single missing space breaks the reader twice over. The engine speaks
+    // the run-on word, and — worse for following — segmentText only splits on
+    // . ! ?, so a heading with no terminal punctuation is welded onto the
+    // sentence after it. The "sentence" highlight then washes a heading plus
+    // half a paragraph, and every word offset inside that merged segment is
+    // measured from the wrong origin, so the word highlight lands off the word
+    // it is speaking. The page-read fallback never had this bug: it reads
+    // innerText, which inserts a line break between blocks.
+    //
+    // One space at the boundary restores both: real words for the engine, and a
+    // segmentation that matches what the fallback path has always produced.
+    const block = closestBlock(parent, root);
+    if (lastBlock && block !== lastBlock && !lastWasSpace) {
+      // Anchor the separator to the END of the text we just left, so a range
+      // that stops here stops at the real last character of that block.
+      const prev = map[map.length - 1];
+      chars.push(' ');
+      map.push({ node: prev.node, offset: prev.offset });
+      lastWasSpace = true;
+    }
+    lastBlock = block;
+
     const text = node.textContent || '';
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
