@@ -1,0 +1,156 @@
+# Ops-queue health — proves the app's operations queue still DRAINS, from outside the NAS.
+#
+# WHY THIS EXISTS (2026-08-31, measured). DR-0088 built the ops_commands queue so
+# "the user never opens a NAS shell to operate the system again": the app INSERTs
+# a command row, the NAS ops-runner polls outbound, executes a whitelisted job,
+# and streams the log back. It worked — four commands ran 2026-07-03 to
+# 2026-07-06. Then it stopped for EIGHT WEEKS and nothing rang.
+#
+# The queue was not unwatched, exactly: DR-0088 designed a witness in, and it is
+# real (app/src/lib/ops-commands.js runnerHint -> "Still queued — is the NAS
+# runner armed?"). But it is PASSIVE. It speaks only to a steward already looking
+# at the Harvest Ledger card, so a dead runner is a visible state that nobody is
+# in the room to see. That is the whole distance between the in-app hint and this
+# file, and it is the same lesson site-health.yml (DR-0125) and harvest-health.yml
+# learned: an instrument that waits to be looked at is not a witness.
+#
+# It lives OUTSIDE the NAS on a GitHub runner deliberately — the thing most
+# likely to be broken IS the NAS, so an alarm hosted there dies with it.
+#
+# WHAT IT MEASURES (one read-only query against prod Postgres — an OUTCOME
+# measure, not a mechanism check, so it catches the stall whatever the cause:
+# NAS off, services-sync red, credential gone, runner paused):
+#   1. STUCK  — the oldest command still 'queued', in minutes.
+#   2. DRAIN  — minutes since anything last reached a terminal state.
+# A command that sits queued past STALL_MINUTES means nothing is draining it.
+#
+# WHY MINUTES, NOT HOURS: since 2026-08-31 the runner rides the 15-minute
+# services-sync clock (infra/nas-sme-pipeline/ops_runner_install.sh) instead of a
+# hand-armed daemon. So four missed cycles is already unambiguous, and a steward
+# who taps a button should not wait a day to learn nothing is listening
+# (DR-0103 §3: match the watch to the change rate).
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — ONE read-only SQL query + at most one issue write per fire.
+#      Nothing is written to the product database; hard-capped at 5 minutes.
+#   2. LOCK   — concurrency group `ops-queue-health`, single-instance, never
+#      cancel-in-progress; a queued fire waits rather than stacking.
+#   3. KILL   — set repo variable OPS_QUEUE_HEALTH_ENABLED='false' (or disable in
+#      the Actions UI). Unset => runs. It ships ACTIVE, because a witness that
+#      waits to be armed is exactly the failure it exists to end (DR-0247), and
+#      because this instrument's own subject died of being ship-inactive.
+
+name: ops-queue-health
+
+on:
+  schedule:
+    - cron: '23 */2 * * *' # every 2 hours, off the top of the hour
+  workflow_dispatch: {}
+
+concurrency:
+  group: ops-queue-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling stall record
+
+jobs:
+  probe:
+    if: ${{ vars.OPS_QUEUE_HEALTH_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      # Minutes a command may sit queued before it counts as a stall. The runner
+      # drains on a 15-minute clock, so 60 is four missed cycles — past noise,
+      # far short of the eight weeks this instrument was born from.
+      STALL_MINUTES: '60'
+    steps:
+      - name: Measure the queue (read-only)
+        id: probe
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -uo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::warning::SUPABASE_DB_URL not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
+            echo "unknown=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Whitespace-stripped like the migrate lane (a trailing newline in the
+          # secret made psql ask for a database named "postgres\n" — DR-0145).
+          CLEAN_URL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
+          row=$(psql "$CLEAN_URL" -At -F '|' -c "
+            SELECT
+              COALESCE((SELECT round(extract(epoch FROM (now() - min(created_at)))/60)::int
+                        FROM ops_commands WHERE status = 'queued'), -1),
+              (SELECT count(*) FROM ops_commands WHERE status = 'queued'),
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(finished_at, updated_at, created_at))))/60)::int
+                        FROM ops_commands WHERE status IN ('done','failed','skipped')), -1);
+          ") || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
+
+          stuck_m=$(echo "$row" | cut -d'|' -f1)   # age of the OLDEST queued command
+          queued_n=$(echo "$row" | cut -d'|' -f2)  # how many are waiting
+          drain_m=$(echo "$row" | cut -d'|' -f3)   # minutes since anything finished
+
+          echo "stuck_m=$stuck_m"   >> "$GITHUB_OUTPUT"
+          echo "queued_n=$queued_n" >> "$GITHUB_OUTPUT"
+          echo "drain_m=$drain_m"   >> "$GITHUB_OUTPUT"
+
+          # AN EMPTY QUEUE IS NOT A HEALTHY QUEUE — IT IS AN UNTESTED ONE.
+          # Nothing queued means nothing is stuck, which is genuinely fine, but it
+          # is NOT evidence the runner lives. Reported as such rather than green,
+          # so this probe can never repeat the mistake it was built to catch
+          # (LESSONS P22: a green check that cannot fail is theatre).
+          if [ "$queued_n" -eq 0 ]; then
+            echo "state=idle" >> "$GITHUB_OUTPUT"
+            echo "Queue empty — nothing stuck. This is NOT proof the runner is alive."
+            exit 0
+          fi
+          if [ "$stuck_m" -ge "$STALL_MINUTES" ]; then
+            echo "state=stalled" >> "$GITHUB_OUTPUT"
+            echo "STALL: $queued_n queued, oldest ${stuck_m}m (>= ${STALL_MINUTES}m). Nothing is draining."
+            exit 0
+          fi
+          echo "state=draining" >> "$GITHUB_OUTPUT"
+          echo "Queue moving: $queued_n queued, oldest ${stuck_m}m, last drain ${drain_m}m ago."
+
+      - name: File or update the rolling incident
+        if: steps.probe.outputs.state == 'stalled' || steps.probe.outputs.unknown == 'true'
+        run: |
+          set -uo pipefail
+          TITLE="ops-queue-health: the operations queue is not draining"
+          if [ "${{ steps.probe.outputs.unknown }}" = "true" ]; then
+            BODY="ops-queue-health could not measure the queue (no DB URL, or the query failed). Unknown is never reported as healthy (DR-0076). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            BODY="**${{ steps.probe.outputs.queued_n }}** command(s) sitting in \`ops_commands\`; the oldest has waited **${{ steps.probe.outputs.stuck_m }} minutes** (threshold ${STALL_MINUTES}m). Last successful drain: ${{ steps.probe.outputs.drain_m }} minutes ago.
+
+          The NAS ops-runner drains this queue on the 15-minute services-sync clock (\`infra/nas-sme-pipeline/ops_runner_install.sh\`). Four missed cycles means nothing is listening — check services-sync on the NAS, the credential at \`/volume1/PoeTech/secrets/supabase.json\`, and \`out/.ops-runner-paused\` (which now self-clears after 6h).
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          NUM=$(gh issue list --repo "$REPO" --label incident --state open \
+                  --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --repo "$REPO" --body "$BODY"
+          else
+            gh issue create --repo "$REPO" --title "$TITLE" --label incident --body "$BODY"
+          fi
+
+      - name: Close the rolling incident on recovery
+        if: steps.probe.outputs.state == 'draining'
+        run: |
+          set -uo pipefail
+          TITLE="ops-queue-health: the operations queue is not draining"
+          NUM=$(gh issue list --repo "$REPO" --label incident --state open \
+                  --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$NUM" ]; then
+            gh issue comment "$NUM" --repo "$REPO" --body "Recovered: the queue is draining again (oldest queued ${{ steps.probe.outputs.stuck_m }}m, last drain ${{ steps.probe.outputs.drain_m }}m ago). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            gh issue close "$NUM" --repo "$REPO"
+          fi
+
+      - name: Fail the run so a stall is visible in the Actions list
+        if: steps.probe.outputs.state == 'stalled' || steps.probe.outputs.unknown == 'true'
+        run: exit 1
