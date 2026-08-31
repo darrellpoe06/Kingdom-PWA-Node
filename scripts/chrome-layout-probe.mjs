@@ -26,7 +26,10 @@
 // the top step) at phone/tablet widths and must hold two invariants:
 //   4. NO PAGE OVERFLOW at Big Print — the layout holds, nothing clips.
 //   5. THE ESCAPE HATCH IS REACHABLE — at least one text-size control is
-//      fully on screen at load, so big text is always reversible.
+//      fully on screen at load, so big text is always reversible. Asserted in
+//      BOTH header states (expanded AND collapsed via the header hideaway):
+//      "always reversible" means from every state the reader can actually be
+//      in, not only the one the probe happened to load.
 //
 // Proven-to-catch (DR-0076 §3, anti-theater): --selftest-break injects a CSS
 // override that forces the brand column to 10px (the pre-fix collapse) and
@@ -174,12 +177,26 @@ try {
       ? [{ name: 'tlc-door', path: '/?tlc=1' }]
       : [];
   const TS_WIDTHS = SELFTEST ? [360] : [360, 768];
+  // BOTH header states (added 2026-08-30, Darrell at Big Print on his phone:
+  // "large font block the ability to change it afterwards after selecting it").
+  // The header hideaway unmounts the whole comfort-controls row — text size
+  // included — so a reader who tucked the top bar away had NO size control in
+  // the DOM at all. Every earlier run of this pass loaded with the header
+  // EXPANDED, so the trap was invisible to the instrument that exists to catch
+  // exactly this. Measured before the fix: collapsed+bigprint@360 = 0 controls
+  // rendered. A state the user can reach is a state the probe must load in.
+  const TS_HEADER_STATES = SELFTEST ? [false] : [false, true];
   tsFailuresBefore = failures;
-  for (const v of TS_VIEWS) for (const width of TS_WIDTHS) {
+  for (const v of TS_VIEWS) for (const width of TS_WIDTHS) for (const collapsed of TS_HEADER_STATES) {
     const page = await browser.newPage({ viewport: { width, height: 740 } });
-    await page.addInitScript(() => {
-      try { localStorage.setItem('poe-text-size', 'bigprint'); } catch { /* private mode */ }
-    });
+    await page.addInitScript((hideHeader) => {
+      try {
+        localStorage.setItem('poe-text-size', 'bigprint');
+        // The header hideaway's own per-device key (lib/header-hideaway.js).
+        if (hideHeader) localStorage.setItem('poe-header-collapsed', '1');
+        else localStorage.removeItem('poe-header-collapsed');
+      } catch { /* private mode */ }
+    }, collapsed);
     await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('button', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
@@ -227,12 +244,13 @@ try {
       };
     });
     await page.close();
-    if (m.size !== 'bigprint') { fail(`textscale ${v.name}@${width}px: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
+    const where = `${v.name}@${width}px${collapsed ? ' [header collapsed]' : ''}`;
+    if (m.size !== 'bigprint') { fail(`textscale ${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
     const before = failures;
-    if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${v.name}@${width}px: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
-    if (!m.hatchCount) fail(`textscale ${v.name}@${width}px: no text-size control rendered — no way out of big text`);
-    else if (!m.reachable) fail(`textscale ${v.name}@${width}px: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
-    if (failures === before) console.log(`textscale ok  ${v.name}@${width}px — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
+    if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${where}: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
+    if (!m.hatchCount) fail(`textscale ${where}: no text-size control rendered — no way out of big text`);
+    else if (!m.reachable) fail(`textscale ${where}: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
+    if (failures === before) console.log(`textscale ok  ${where} — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
 } finally {
   await browser.close();

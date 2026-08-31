@@ -69,7 +69,7 @@ import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
-import TextSizeControl from './components/TextSizeControl.jsx';
+import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
@@ -4219,6 +4219,16 @@ ${THEME_CSS}
           </div>
         </div>
         )}
+        {/* The way OUT of big text survives the hideaway (Darrell 2026-08-30:
+            "large font block the ability to change it afterwards after
+            selecting it"). Collapsing the header unmounts the comfort row
+            above — font control included — so at Big Print a reader who had
+            tucked the top bar away had ZERO size controls in the DOM, measured
+            by chrome-layout-probe. This renders the stepper back, and ONLY when
+            the header is collapsed AND the reader is above Normal: at 1x there
+            is nothing to escape, so the tucked-away header stays as clean as
+            Darrell built it. DR-0276 rule 3 — always reversible. */}
+        <TextSizeEscapeHatch collapsed={headerCollapsed} />
         <nav className="border-t border-[#E8E4DC]">
           {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
               first, About anchors the right side of the primary group, then a

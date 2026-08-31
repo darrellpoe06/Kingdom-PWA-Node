@@ -23,6 +23,10 @@
 // and never public (the whole table is owner/admin-read). A staff-editable rate card
 // is a documented follow-up.
 import supabase from './supabase.js';
+import {
+  quoteCommercialEvent, quoteInputsFrom, mergeRateCard, validateRateCardPatch,
+  RATE_FIELD_KEYS, TERM_KEYS, RATE_CARD_STATUS_IDS,
+} from './venue-commercial-rates.js';
 
 // --- Catalog: the two campuses + their bookable spaces ------------------------
 // Bathrooms are intentionally NOT bookable spaces. Capacity is only asserted where
@@ -90,6 +94,11 @@ export const EVENT_TYPES = [
   { id: 'concert',    label: 'Concert / Musical' },
   { id: 'conference', label: 'Conference / Workshop' },
   { id: 'community', label: 'Community Event' },
+  // Christina (Director of Ministries, The Love Corner) 2026-08-30, with the
+  // Commercial Event Facility Rental Proposal: a commercial event is its own
+  // type because it carries its own rate card, its own staffing, and its own
+  // payment schedule — none of which apply to a funeral or a church gathering.
+  { id: 'commercial', label: 'Commercial Event (revenue-generating)' },
 ];
 export const EVENT_TYPE_IDS = EVENT_TYPES.map((t) => t.id);
 export function eventTypeLabel(id) {
@@ -155,6 +164,23 @@ const RESPONSIBILITY_TEMPLATES = {
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
     { key: 'scheduling',   label: 'Scheduling & coordination', team: 'Church Office' },
+  ],
+  // The commercial template is the proposal turned into work: every paid line
+  // and every contract term Christina named becomes a step somebody owns, so a
+  // commercial booking cannot reach event day with an unsigned contract, an
+  // unpaid balance, or unassigned security.
+  commercial: [
+    { key: 'contract',     label: 'Contract signed + 50% facility rental received', team: 'Church Office' },
+    { key: 'insurance',    label: 'Event liability insurance received (if required)', team: 'Church Office' },
+    { key: 'balance',      label: 'Balance paid in full 30 days before',  team: 'Church Office' },
+    { key: 'deposit',      label: 'Refundable damage deposit held',        team: 'Church Office' },
+    { key: 'sound',        label: 'Sound personnel assigned (2-4 typical)', team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'soundcheck',   label: 'Sound check scheduled',   team: 'Media Team' },
+    { key: 'security',     label: 'Security personnel assigned (5-10 typical)', team: 'Security' },
+    { key: 'setup',        label: 'Setup, load-in & load-out window',  team: 'Deacons' },
+    { key: 'cleaning',     label: 'Cleaning & post-event reset',       team: 'Custodial' },
+    { key: 'inspection',   label: 'Post-event inspection before deposit is returned', team: 'Church Office' },
   ],
   community: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
@@ -362,8 +388,18 @@ export function buildBookingRow(form = {}) {
     media_expected: buildMediaExpected(form.mediaExpected),
     music_link: String(form.musicLink ?? '').trim() || null,
     media_notes: String(form.mediaNotes ?? '').trim() || null,
+    quote_detail: buildQuoteDetail(form.quoteDetail),
     source: form.source || 'public-request',
   };
+}
+
+// Only the recognized quote INPUTS, only sane values — the stored shape stays
+// clean and the totals are always recomputed from the team's live rate card.
+function buildQuoteDetail(input) {
+  if (!input || typeof input !== 'object') return {};
+  const d = quoteInputsFrom(input);
+  // A quote with no hours is not a quote; store nothing rather than a zero.
+  return d.hours > 0 ? d : {};
 }
 
 // Only known category keys, only true values — the stored shape stays clean.
@@ -398,6 +434,7 @@ export function toBookingShape(row) {
     quotedPrice: row.quoted_price ?? null,
     responsibilities: (row.responsibilities && typeof row.responsibilities === 'object') ? row.responsibilities : {},
     notes: row.notes ?? null,
+    quoteDetail: (row.quote_detail && typeof row.quote_detail === 'object') ? row.quote_detail : {},
     mediaExpected: (row.media_expected && typeof row.media_expected === 'object') ? row.media_expected : {},
     musicLink: row.music_link ?? null,
     mediaNotes: row.media_notes ?? null,
@@ -496,6 +533,7 @@ export async function updateBooking(id, patch = {}) {
     row.quoted_price = (patch.quotedPrice === '' || patch.quotedPrice === null || !Number.isFinite(n) || n < 0) ? null : n;
   }
   if (patch.responsibilities !== undefined) row.responsibilities = patch.responsibilities || {};
+  if (patch.quoteDetail !== undefined) row.quote_detail = buildQuoteDetail(patch.quoteDetail);
   if (patch.notes !== undefined) row.notes = String(patch.notes ?? '').trim() || null;
   if (patch.eventDate !== undefined) row.event_date = String(patch.eventDate ?? '').trim() || null;
   if (patch.startTime !== undefined) row.start_time = String(patch.startTime ?? '').trim() || null;
@@ -601,4 +639,171 @@ export async function deleteBooking(id) {
   } catch (e) {
     return { ok: false, error: e };
   }
+}
+
+// =============================================================================
+// The commercial rate card (0162) — the team's numbers, not the code's
+// =============================================================================
+// Christina 2026-08-30: "this will need to be able to be updated based on what
+// the whole team and staff would like to see... a great opportunity for default
+// settings to be able to be discussed... inside the Love Corner App."
+//
+// So the committed proposal is the SEED and the team owns the live card. These
+// calls read and write venue_rate_cards (one row per instance, holding only
+// what the team changed) and venue_rate_card_notes (the discussion, append-only).
+// RLS is owner/admin in both directions — pricing is never public — so every
+// one of these is safe to call from any surface: a non-staff caller simply gets
+// nothing back, which renders as the committed defaults.
+
+function toRateCardRow(row) {
+  return {
+    id: row?.id ?? null,
+    values: (row?.values && typeof row.values === 'object') ? row.values : {},
+    terms: (row?.terms && typeof row.terms === 'object') ? row.terms : {},
+    definition: row?.definition ?? null,
+    status: RATE_CARD_STATUS_IDS.includes(row?.status) ? row.status : 'proposed',
+    updatedAt: row?.updated_at ?? null,
+    updatedByEmail: row?.updated_by_email ?? null,
+  };
+}
+
+// The live rate card, already merged over the committed defaults. A missing row
+// (never edited) or a non-staff caller both resolve to the defaults — the
+// surface always has a complete card to render, and says which it is.
+export async function fetchRateCard() {
+  try {
+    const { data, error } = await supabase.from('venue_rate_cards').select('*').limit(1).maybeSingle();
+    if (error) return { ok: false, error, card: mergeRateCard(null) };
+    return { ok: true, card: mergeRateCard(data ? toRateCardRow(data) : null), stored: data ? toRateCardRow(data) : null };
+  } catch (e) {
+    return { ok: false, error: e, card: mergeRateCard(null) };
+  }
+}
+
+// Live subscription — an edit by one staff member reaches every other device.
+export function subscribeRateCard(onChange) {
+  let channel = null;
+  let cancelled = false;
+  const load = async () => {
+    const { card, stored } = await fetchRateCard();
+    if (!cancelled) onChange(card, stored);
+  };
+  load();
+  try {
+    channel = supabase
+      .channel('venue_rate_cards-stream')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_rate_cards' }, () => { load(); })
+      .subscribe();
+  } catch { /* realtime optional; the initial load still ran */ }
+  return function unsubscribe() {
+    cancelled = true;
+    if (channel) { try { supabase.removeChannel(channel); } catch { /* noop */ } }
+  };
+}
+
+// Save the team's edits. Validation runs BEFORE the write, so a bad entry is
+// surfaced to the person typing instead of being silently coerced into a price.
+// Only changed keys are stored; a cleared field falls back to Christina's default.
+export async function saveRateCard(patch = {}) {
+  const { ok, values, errors } = validateRateCardPatch(patch);
+  if (!ok) return { ok: false, errors };
+
+  const row = { values };
+  if (patch.status !== undefined) {
+    if (!RATE_CARD_STATUS_IDS.includes(patch.status)) return { ok: false, error: 'bad-status' };
+    row.status = patch.status;
+  }
+  if (patch.terms !== undefined) {
+    const terms = {};
+    if (patch.terms && typeof patch.terms === 'object') {
+      for (const key of TERM_KEYS) {
+        const text = String(patch.terms[key] ?? '').trim();
+        if (text) terms[key] = text.slice(0, 4000);
+      }
+    }
+    row.terms = terms;
+  }
+  if (patch.definition !== undefined) {
+    row.definition = String(patch.definition ?? '').trim().slice(0, 4000) || null;
+  }
+
+  try {
+    // The instance is trigger-stamped, so the unique row is found by reading it
+    // first — an upsert on a client-supplied instance_id would be a forgeable key.
+    const { data: existing } = await supabase.from('venue_rate_cards').select('id').limit(1).maybeSingle();
+    const { error } = existing?.id
+      ? await supabase.from('venue_rate_cards').update(row).eq('id', existing.id)
+      : await supabase.from('venue_rate_cards').insert(row);
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// Reset every number back to Christina's committed proposal. Deliberately keeps
+// the discussion notes — the team's reasoning is not undone by resetting a rate.
+export async function resetRateCardToDefaults() {
+  return saveRateCard({ status: 'proposed', terms: {}, definition: '' });
+}
+
+// Only changed keys are ever written, so an empty `values` means the team is on
+// the defaults. Exposed for the surface's "as submitted / edited by the team" line.
+export { RATE_FIELD_KEYS };
+
+// --- The rate-card discussion (append-only, staff-only) ----------------------
+
+export async function fetchRateCardNotes() {
+  try {
+    const { data, error } = await supabase
+      .from('venue_rate_card_notes')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) return { ok: false, error, rows: [] };
+    return {
+      ok: true,
+      rows: (data || []).map((r) => ({
+        id: r.id,
+        author: r.author ?? null,
+        authorEmail: r.author_email ?? null,
+        body: r.body ?? '',
+        createdAt: r.created_at ?? null,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
+}
+
+export async function sendRateCardNote(body) {
+  const text = String(body ?? '').trim();
+  if (!text) return { ok: false, error: 'empty' };
+  try {
+    const { error } = await supabase.from('venue_rate_card_notes').insert({ body: text.slice(0, 4000) });
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// --- Booking <-> quote seam --------------------------------------------------
+
+// Is this booking priced by the commercial rate card?
+export function isCommercialBooking(booking) {
+  return booking?.eventType === 'commercial';
+}
+
+// Does this booking carry a saved quote? (Hours are the one required input.)
+export function hasQuote(booking) {
+  return Number(booking?.quoteDetail?.hours) > 0;
+}
+
+// The booking's quote, RECOMPUTED against the team's live rate card. Nothing is
+// read back from a stored total, so an approved rate change reprices every open
+// booking instead of leaving stale money on the screen. Returns null when the
+// booking has no saved quote inputs.
+export function bookingQuote(booking, card) {
+  if (!hasQuote(booking)) return null;
+  return quoteCommercialEvent(booking.quoteDetail, card);
 }

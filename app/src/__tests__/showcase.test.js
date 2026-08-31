@@ -2,22 +2,34 @@
 // showcase (0092) — pinned: steward-only writes, anon read via the definer
 // only, and the "whatever makes sense" sort (pinned favorites first, newest
 // next) that survives local pin toggles.
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const H = vi.hoisted(() => ({
+  bucket: {
+    getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://cdn/x.jpg' } })),
+    upload: vi.fn(async () => ({ error: null })),
+  },
+  image: {
+    isLikelyImageFile: vi.fn(() => true),
+    compressImageToFile: vi.fn(async () => ({ name: 'shot.jpg', type: 'image/jpeg', size: 180_000, compressed: true })),
+  },
+}));
 vi.mock('../lib/supabase.js', () => ({
   default: {
     rpc: vi.fn(async () => ({ data: [], error: null })),
-    storage: { from: vi.fn(() => ({ getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://cdn/x.jpg' } })), upload: vi.fn(async () => ({ error: null })) })) },
+    storage: { from: vi.fn(() => H.bucket) },
   },
 }));
-import { sortPieces, showcaseImageUrl, updatePiece, priceInputToCents } from '../lib/showcase.js';
+vi.mock('../lib/image.js', () => H.image);
+import { sortPieces, showcaseImageUrl, publicStorageOrigin, addPiece, updatePiece, priceInputToCents } from '../lib/showcase.js';
 import supabase from '../lib/supabase.js';
 
 const sql = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../../infra/supabase/migrations-auto/0092-moore-showcase.sql'), 'utf8');
 const sql94 = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../../infra/supabase/migrations-auto/0094-showcase-prices-and-edit.sql'), 'utf8');
+const sql163 = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../../infra/supabase/migrations-auto/0163-moore-showcase-read-policy.sql'), 'utf8');
 
 describe('the 0092 contract', () => {
   it('every write RPC checks steward membership; delete is owner/admin only', () => {
@@ -92,9 +104,81 @@ describe('sortPieces — pinned favorites first, then newest', () => {
 });
 
 describe('showcaseImageUrl', () => {
+  beforeEach(() => { H.bucket.getPublicUrl.mockClear(); });
+  afterEach(() => { vi.unstubAllEnvs(); });
+
   it('passes through absolute urls and resolves storage paths', () => {
     expect(showcaseImageUrl('https://x/y.jpg')).toBe('https://x/y.jpg');
     expect(showcaseImageUrl('moore-divahs/sp-1.jpg')).toBe('https://cdn/x.jpg');
     expect(showcaseImageUrl('')).toBeNull();
+  });
+
+  // PROVEN-TO-CATCH (DR-0076 3): this is the 2026-08-31 regression itself.
+  // The sovereign repoint moved the rows and left the blobs behind, so the
+  // client's own origin stopped being where the images LIVE. Without the
+  // bridge these cases resolve to the sovereign origin and 404.
+  it('resolves public blobs at the bridge origin when one is set, not the client origin', () => {
+    vi.stubEnv('VITE_PUBLIC_STORAGE_URL', 'https://hosted.supabase.co');
+    expect(showcaseImageUrl('moore-divahs/sp-mraxj9ky-vkwl.jpeg'))
+      .toBe('https://hosted.supabase.co/storage/v1/object/public/moore-showcase/moore-divahs/sp-mraxj9ky-vkwl.jpeg');
+    expect(H.bucket.getPublicUrl).not.toHaveBeenCalled();
+  });
+
+  it('the bridge tolerates a trailing slash, encodes each segment, and never swallows the bucket', () => {
+    vi.stubEnv('VITE_PUBLIC_STORAGE_URL', 'https://hosted.supabase.co/');
+    expect(showcaseImageUrl('moore-divahs/a b+c.jpg'))
+      .toBe('https://hosted.supabase.co/storage/v1/object/public/moore-showcase/moore-divahs/a%20b%2Bc.jpg');
+    // Structural slashes survive; the path is never collapsed into one segment.
+    expect(showcaseImageUrl('/moore-divahs/sp-1.jpg'))
+      .toBe('https://hosted.supabase.co/storage/v1/object/public/moore-showcase/moore-divahs/sp-1.jpg');
+  });
+
+  it('an absent or malformed bridge falls back to the client origin — never a relative src', () => {
+    expect(publicStorageOrigin()).toBeNull();
+    vi.stubEnv('VITE_PUBLIC_STORAGE_URL', '');
+    expect(showcaseImageUrl('moore-divahs/sp-1.jpg')).toBe('https://cdn/x.jpg');
+    vi.stubEnv('VITE_PUBLIC_STORAGE_URL', 'not-a-url');
+    expect(showcaseImageUrl('moore-divahs/sp-1.jpg')).toBe('https://cdn/x.jpg');
+  });
+});
+
+describe('addPiece bounds the bytes at upload (2026-08-31)', () => {
+  beforeEach(() => { H.bucket.upload.mockClear(); H.image.compressImageToFile.mockClear(); });
+
+  it('uploads the COMPRESSED file, not the 10MB original off her phone', async () => {
+    const original = { name: 'IMG_4417.HEIC', type: 'image/heic', size: 10_600_000 };
+    supabase.rpc.mockResolvedValueOnce({ data: null, error: null });
+    const r = await addPiece({ instanceSlug: 'moore-divahs', title: 'Tapestry clutch', file: original });
+    expect(r.ok).toBe(true);
+    expect(H.image.compressImageToFile).toHaveBeenCalledWith(original);
+    const [path, uploaded] = H.bucket.upload.mock.calls[0];
+    expect(uploaded.compressed).toBe(true);
+    expect(uploaded).not.toBe(original);
+    // The stored extension follows the file that was ACTUALLY uploaded.
+    expect(path).toMatch(/^moore-divahs\/sp-[a-z0-9-]+\.jpg$/);
+  });
+
+  it('a decoder that cannot read this device format still posts her piece', async () => {
+    const original = { name: 'IMG_4418.HEIC', type: 'image/heic', size: 9_000_000 };
+    H.image.compressImageToFile.mockRejectedValueOnce(new Error('the image could not be decoded on this device'));
+    supabase.rpc.mockResolvedValueOnce({ data: null, error: null });
+    const r = await addPiece({ instanceSlug: 'moore-divahs', title: 'Scrub cap', file: original });
+    expect(r.ok).toBe(true);
+    expect(H.bucket.upload.mock.calls[0][1]).toBe(original);
+  });
+});
+
+describe('the 0163 contract — the bucket read policy 0092 never wrote', () => {
+  it('states public read explicitly, so the bucket cannot fail closed and silent', () => {
+    // 0092 shipped an INSERT policy and relied on bucket.public for reads.
+    expect(sql).toMatch(/CREATE POLICY moore_showcase_write ON storage\.objects FOR INSERT/);
+    expect(sql).not.toMatch(/FOR SELECT[\s\S]{0,120}moore-showcase/);
+    // 0163 adds the SELECT policy, idempotently, and re-asserts the public flag.
+    expect(sql163).toMatch(/CREATE POLICY moore_showcase_read ON storage\.objects FOR SELECT TO anon, authenticated/);
+    expect(sql163).toMatch(/USING \(bucket_id = 'moore-showcase'\)/);
+    expect(sql163).toMatch(/WHEN duplicate_object THEN NULL/);
+    expect(sql163).toMatch(/UPDATE storage\.buckets SET public = true WHERE id = 'moore-showcase'/);
+    // Steward-only writes are untouched — no new write path sneaks in here.
+    expect(sql163).not.toMatch(/FOR (INSERT|UPDATE|DELETE)/);
   });
 });
