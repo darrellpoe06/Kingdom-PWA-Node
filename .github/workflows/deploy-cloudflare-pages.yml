@@ -122,6 +122,18 @@ jobs:
           # precedence; the hosted secrets remain the un-armed fallback.
           VITE_SUPABASE_URL: ${{ env.SOVEREIGN_SB_URL || secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
+          # THE BLOB BRIDGE (2026-08-31 — the Moore Divahs gallery regression).
+          # The repoint above moved the ROWS to the sovereign stack; it did NOT
+          # move the blobs — cutover_sync.py names the 3 buckets / 455 objects a
+          # recorded NOT-done. So from the 2026-08-19 arming on, every public
+          # bucket image resolved at a sovereign storage that has no such
+          # bucket: broken thumbnails on Shay's front screen, and NOTHING in the
+          # hosted project's logs because the app had stopped calling it.
+          # Public-bucket blobs therefore keep resolving at the origin that
+          # still HOLDS them while everything else stays sovereign. Un-armed
+          # builds get '' and behave exactly as before.
+          # DELETE THIS LINE the day the blob copy lands. re-review: 2026-09-30
+          VITE_PUBLIC_STORAGE_URL: ${{ env.SOVEREIGN_SB_URL && secrets.VITE_SUPABASE_URL || '' }}
           # VITE_N8N_BEARER intentionally NOT injected (2026-07-30 access
           # evaluation): a build-time var is inlined into the PUBLIC bundle, and
           # this one carried the NAS bearer gating the bank-PII webhook — any
