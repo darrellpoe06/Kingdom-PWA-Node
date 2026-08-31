@@ -29,6 +29,7 @@ import { confirmThen } from '../lib/confirm-action.js';
 import { parseFoodLine, resolveFromLibrary, unknownCount } from '../lib/food-parse.js';
 import { fillUnknowns } from '../lib/food-lookup.js';
 import { JUICE_RECIPES, juiceServingOptions, juiceServing } from '../lib/juice-recipes.js';
+import { PLANNED_WALK, PLANNED_STRENGTH, PROGRAM_PANTRY, pantryWithKnown, plannedVsActual, strengthChecklist } from '../lib/road-to-150-plan.js';
 import {
   MEALS, foodForMeal, mealTotals, dayFoodTotals,
   toDayKey, programProgress, deltaPhrase, waterProgress, roadmap, round1, weekForDay,
@@ -229,6 +230,7 @@ export default function RoadTo150({
   // '' = the default serving; 'custom' opens the ounces box. Mirrors his spec:
   // "6 oz / 8 / 12 / 16 / 18 - DEFAULT / 24 / 36 / Custom Ounces".
   const [juicePick, setJuicePick] = useState({});
+  const [doneEx, setDoneEx] = useState({});   // strength checkboxes for today
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -789,25 +791,115 @@ export default function RoadTo150({
   );
 
   // ── plan (phases 3/6/7 — honest about what is not imported) ────────────────
-  const plan = () => (
-    <div className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-      <h3 className="text-lg mb-2" style={display}>Meals, walking and strength</h3>
-      {pdfPending(program) ? (
-        <>
-          <p className="text-sm text-[#1A1815]" style={serif}>
-            Not imported yet. The daily meal plan, walking schedule and strength schedule come from
-            <strong> “Road to 150 - Complete Tracking Plan”</strong>, and that PDF is not in the repository.
+  // ── THE PLAN, from his own document ────────────────────────────────────────
+  // Every number below is his: the strength round exercise-for-exercise, the
+  // 28-minute walk, the nineteen foods in his order, and the planned daily
+  // totals. What he never wrote — per-food nutrition — is still not invented;
+  // the pantry names WHAT the program eats and each food's numbers arrive when
+  // she confirms them once.
+  const plan = () => {
+    const vs = plannedVsActual({
+      calories: foodDay.calories.recorded ? foodDay.calories.total : null,
+      proteinG: foodDay.protein.recorded ? foodDay.protein.total : null,
+      waterOz: water.actualOz,
+    });
+    const pantry = pantryWithKnown(foodLibrary);
+    const checklist = strengthChecklist();
+    const doneCount = checklist.filter((c) => doneEx[c.id]).length;
+    const row = (label, v, unit) => (
+      <div className="flex items-baseline justify-between py-1.5 border-b border-[#E8E4DC] text-sm" style={serif}>
+        <span className="text-[#5A5751]">{label}</span>
+        <span className="text-[#1A1815]">
+          <strong>{v.planned}{unit}</strong> planned
+          <span className="text-[#5A5751]"> · </span>
+          {v.recorded ? <>{v.actual}{unit} actual</> : <span className="text-[#5A5751]">— not recorded</span>}
+          {v.recorded && <span className="text-[#5A5751] text-xs"> ({v.gap > 0 ? '+' : ''}{v.gap})</span>}
+        </span>
+      </div>
+    );
+
+    return (
+      <div className="space-y-4">
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-planned-h">
+          <h3 id="r150-planned-h" className="text-lg" style={display}>Today: planned vs actual</h3>
+          <p className="text-xs text-[#5A5751] mt-1 mb-2" style={serif}>
+            Planned figures come from the program and never change when you log. A gap is
+            information, not a verdict.
           </p>
-          <p className="text-sm text-[#5A5751] mt-2" style={serif}>
-            Rather than show invented foods, calories, paces or exercises, this screen shows nothing —
-            a made-up plan would be worse than an empty one. Add the PDF and this fills in.
+          {row('Calories', vs.calories, '')}
+          {row('Protein', vs.protein, 'g')}
+          {row('Water', vs.water, ' oz')}
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-walk-h">
+          <h3 id="r150-walk-h" className="text-lg" style={display}>Walk</h3>
+          <p className="text-sm text-[#1A1815] mt-1" style={serif}>
+            <strong>{PLANNED_WALK.minutes} minutes</strong> at {PLANNED_WALK.mph} mph
           </p>
-        </>
-      ) : (
-        <p className="text-sm text-[#5A5751]" style={serif}>Imported.</p>
-      )}
-    </div>
-  );
+          <p className="text-xs text-[#5A5751]" style={serif}>
+            Estimated {PLANNED_WALK.estimatedCalories} calories — an estimate, as the plan says.
+          </p>
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-strength-h">
+          <div className="flex items-center justify-between gap-2">
+            <h3 id="r150-strength-h" className="text-lg" style={display}>Strength · {PLANNED_STRENGTH.rounds} rounds</h3>
+            <span className="text-xs text-[#5A5751]" style={serif}>{doneCount} of {checklist.length}</span>
+          </div>
+          {[...Array(PLANNED_STRENGTH.rounds)].map((_, i) => (
+            <div key={i} className="mt-3">
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751]">Round {i + 1}</div>
+              <ul className="mt-1">
+                {checklist.filter((c) => c.round === i + 1).map((c) => (
+                  <li key={c.id} className="py-1">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer" style={serif}>
+                      <input type="checkbox" checked={!!doneEx[c.id]}
+                             onChange={() => setDoneEx((d) => ({ ...d, [c.id]: !d[c.id] }))}
+                             className="w-5 h-5 border-2 border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                      <span className={doneEx[c.id] ? 'text-[#5A5751] line-through' : 'text-[#1A1815]'}>{c.label}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="text-xs text-[#5A5751] mt-3" style={serif}>
+            Ticks are for today's round only — they are not saved yet. Completed workouts get their
+            own history next.
+          </p>
+        </section>
+
+        <section className="bg-white border-2 border-[#1A1815] p-4" aria-labelledby="r150-pantry-h">
+          <h3 id="r150-pantry-h" className="text-lg" style={display}>The program's foods</h3>
+          <p className="text-xs text-[#5A5751] mt-1 mb-3" style={serif}>
+            The {PROGRAM_PANTRY.length} foods from the plan, in its order. Tap one to log it to{' '}
+            <strong>{(MEALS.find((m) => m.id === quick.meal) || {}).label}</strong>. A food you have
+            confirmed before carries its numbers; a new one logs by name and asks for them once.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {pantry.map((f) => (
+              <button key={f.name} type="button" disabled={!addFoodEntry}
+                      onClick={() => addFoodEntry({
+                        day: todayKey, meal: quick.meal, name: f.name, serving: f.serving || '',
+                        calories: f.calories, proteinG: f.proteinG,
+                        source: f.known ? 'remembered' : 'entered', eatenAt: new Date().toISOString(),
+                      })}
+                      className="px-3 py-2 border-2 border-[#1A1815] text-sm hover:bg-[#1A1815] hover:text-white disabled:opacity-40 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      aria-label={`Log ${f.name}`}>
+                {f.name}
+                {f.known && <span className="ml-1 text-[0.625rem] text-[#5A5751]">{f.calories}</span>}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <p className="text-xs text-[#5A5751]" style={serif}>
+          Still not in the plan: a per-food calorie table and a day-by-day 26-week meal
+          assignment — those were never written down, so they are not invented here.
+        </p>
+      </div>
+    );
+  };
 
   const sections = [
     { id: 'dashboard', label: 'Dashboard', icon: 'home', render: dashboard },
