@@ -122,6 +122,47 @@ export const waterEntriesSync = createTableSync({
   },
 });
 
+// ── ACTUAL food eaten (0165) ─────────────────────────────────────────────────
+// ACTUALS ONLY. There is no planned-meal table and no planned column here: the
+// meal plan is frozen repo content, so nothing on this rail can overwrite one.
+// calories/protein are NULLABLE on purpose -- "not recorded" must stay distinct
+// from "zero", or an un-entered value would read as a real 0-calorie food.
+export const foodEntriesSync = createTableSync({
+  localKey: 'foodEntries',
+  remoteTable: 'food_entries',
+
+  toRow(item, { tenantId, userId }) {
+    return {
+      instance_id: tenantId,
+      created_by:  userId,
+      slug:        item.id,
+      day:         item.day,
+      meal:        item.meal,
+      name:        item.name || '',
+      serving:     item.serving || '',
+      calories:    item.calories == null || item.calories === '' ? null : Number(item.calories),
+      protein_g:   item.proteinG == null || item.proteinG === '' ? null : Number(item.proteinG),
+    };
+  },
+
+  fromRow(row) {
+    return {
+      id:         row.slug || `fd-remote-${row.id}`,
+      remoteUuid: row.id,
+      day:        row.day,
+      meal:       row.meal,
+      name:       row.name || '',
+      serving:    row.serving || '',
+      calories:   row.calories == null ? null : Number(row.calories),
+      proteinG:   row.protein_g == null ? null : Number(row.protein_g),
+      eatenAt:    row.eaten_at,
+      createdAt:  row.created_at,
+    };
+  },
+
+  idOf(item) { return item.id; },
+});
+
 // healthRails — the three Road to 150 sync rails as ONE entry for the shell's
 // pull pipeline. The shell is frozen at a hard line budget, and registering
 // three tables inline cost three lines plus a comment; this hands back the
@@ -137,5 +178,6 @@ export function healthRails(latest, keep) {
     { ...pick('healthPrograms'), sync: healthProgramsSync },
     { ...pick('weightEntries'),  sync: weightEntriesSync },
     { ...pick('waterEntries'),   sync: waterEntriesSync },
+    { ...pick('foodEntries'),    sync: foodEntriesSync },
   ];
 }

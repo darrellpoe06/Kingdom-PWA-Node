@@ -293,3 +293,79 @@ export function canSeeHealthTab(isSteward, programs) {
   if (isSteward) return true;
   return (programs || []).some((p) => p && p.active !== false);
 }
+
+// =============================================================================
+// ACTUAL FOOD (0165) — pure helpers. Totals are DERIVED from the items, always.
+// =============================================================================
+// Darrell 2026-08-31: "I can't put my food in here and I need to." The meal PLAN
+// still comes from a PDF that is not in the repo, but what a person ACTUALLY ate
+// is their own input and never needed that plan. These helpers only ever read
+// actual rows; there is no planned-food argument anywhere in this file.
+
+/** The four meals of the program day, in the order the day is eaten. */
+export const MEALS = [
+  { id: 'morning', label: 'Morning' },
+  { id: 'lunch',   label: 'Lunch' },
+  { id: 'snack',   label: 'Snack' },
+  { id: 'dinner',  label: 'Dinner' },
+];
+
+export function isMealId(id) {
+  return MEALS.some((m) => m.id === id);
+}
+
+/** Every actual food row for one day, oldest first. */
+export function foodForDay(entries, dayKey) {
+  return (entries || [])
+    .filter((e) => e && e.day === dayKey)
+    .slice()
+    .sort((a, b) => String(a.eatenAt || a.createdAt || '').localeCompare(String(b.eatenAt || b.createdAt || '')));
+}
+
+/** One meal's rows for a day, in order. */
+export function foodForMeal(entries, dayKey, mealId) {
+  return foodForDay(entries, dayKey).filter((e) => e.meal === mealId);
+}
+
+// Sum a numeric field across rows, treating "not recorded" as ABSENT rather than
+// zero. `recorded` counts the rows that actually carried a number, so the
+// surface can say "3 of 5 items have calories" instead of quietly under-totalling
+// and presenting the result as if it were complete (DR-0076).
+function sumField(rows, field) {
+  let total = 0;
+  let recorded = 0;
+  let missing = 0;
+  for (const r of rows || []) {
+    const v = r ? r[field] : null;
+    if (v == null || v === '' || !Number.isFinite(Number(v))) { missing += 1; continue; }
+    total += Number(v);
+    recorded += 1;
+  }
+  return { total: Math.round(total * 10) / 10, recorded, missing, complete: missing === 0 };
+}
+
+/** Actual calories + protein for a set of food rows. Never a planned figure. */
+export function foodTotals(rows) {
+  return {
+    items: (rows || []).length,
+    calories: sumField(rows, 'calories'),
+    protein: sumField(rows, 'proteinG'),
+  };
+}
+
+/** Actual totals for one meal on one day. */
+export function mealTotals(entries, dayKey, mealId) {
+  return foodTotals(foodForMeal(entries, dayKey, mealId));
+}
+
+/** Actual totals for the whole day, plus a per-meal breakdown. */
+export function dayFoodTotals(entries, dayKey) {
+  const rows = foodForDay(entries, dayKey);
+  return {
+    ...foodTotals(rows),
+    byMeal: MEALS.map((m) => ({
+      ...m,
+      ...foodTotals(rows.filter((r) => r.meal === m.id)),
+    })),
+  };
+}
