@@ -203,6 +203,28 @@ export const PRIORITY = { CORE: 'core', SUPPLEMENTARY: 'supplementary' };
 
 const round1 = (x) => Math.round((Number(x) || 0) * 10) / 10;
 
+// A RUNTIME IS SAID IN THE UNIT A PERSON PLANS IN.
+//
+// Darrell 2026-08-31, looking at the presenter's fit line: "the total time needs
+// to be in the highest level like hours or minutes etc... not 5034 minutes."
+//
+// One lesson is minutes, and minutes are the right unit for it. But the WHOLE of
+// a 111-lesson series is 5034 of them, and "5034 min" is a number a reader has
+// to do arithmetic on before it means anything. Rolled up it is "83 hr 54 min" —
+// the same truth, in the unit a teacher actually schedules in.
+//
+// Hours are the ceiling on purpose: days would read "3 d 11 hr" for a course
+// nobody teaches in one sitting, which is less useful for planning than hours,
+// not more. Small values are untouched, so every per-section time still reads
+// exactly as it did.
+export function humanMinutes(min) {
+  const total = Math.max(0, Math.round(Number(min) || 0));
+  if (total < 60) return `${total} min`;
+  const hr = Math.floor(total / 60);
+  const rest = total - hr * 60;
+  return rest === 0 ? `${hr} hr` : `${hr} hr ${rest} min`;
+}
+
 // A sensible NON-uniform default weight when an author hasn't set estimatedMin:
 // deeper sections (more learner copy, more run-of-show steps, more discussion) need
 // more time. Bounded so one rich scene can't dominate. Deterministic + pure.
@@ -295,24 +317,24 @@ function sceneKey(scene, i) {
 }
 
 function fitSummary({ budget, counts, fits, overBudget, compressed, weighted }) {
-  const m = Math.round(budget);
+  const m = humanMinutes(budget);
   const { coreKept, suppKept, suppSkipped, atFloor } = counts;
   const byWeight = weighted ? ' the most essential material is protected;' : '';
   if (overBudget) {
-    return `Even the minimum times don’t fit ${m} min —${byWeight} ${coreKept} core section${coreKept === 1 ? '' : 's'} run below their floor to keep pace. Consider a little more time.`;
+    return `Even the minimum times don’t fit ${m} —${byWeight} ${coreKept} core section${coreKept === 1 ? '' : 's'} run below their floor to keep pace. Consider a little more time.`;
   }
   if (suppSkipped > 0) {
     const floored = atFloor > 0 ? ` (${atFloor} at their floor)` : '';
     const dropped = weighted ? `dropping ${suppSkipped} least-essential` : `skipping ${suppSkipped} supplementary`;
-    return `To fit ${m} min: ${coreKept} core + ${suppKept} supplementary timed by weight${floored}, ${dropped} so the core still lands.`;
+    return `To fit ${m}: ${coreKept} core + ${suppKept} supplementary timed by weight${floored}, ${dropped} so the core still lands.`;
   }
   if (compressed) {
     const floored = atFloor > 0 ? `, ${atFloor} held at their floor` : '';
     const tail = weighted ? 'the most essential material keeps the most time' : 'heavier sections stay heavier';
-    return `Reflowed into ${m} min — every section keeps its share of the time${floored}; ${tail}.`;
+    return `Reflowed into ${m} — every section keeps its share of the time${floored}; ${tail}.`;
   }
   const n = coreKept + suppKept;
-  return `All ${n} section${n === 1 ? '' : 's'} fit ${m} min — each runs to its own weight (heavier sections get more time).`;
+  return `All ${n} section${n === 1 ? '' : 's'} fit ${m} — each runs to its own weight (heavier sections get more time).`;
 }
 
 // The importance-weighted allocation weight: time given ∝ time-need × essentialness.
