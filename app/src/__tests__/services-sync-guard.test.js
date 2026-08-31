@@ -412,3 +412,73 @@ describe('a claimed witness exists (the 2026-08-31 near-miss, made mechanical)',
     expect(src).toMatch(/no credential/i);
   });
 });
+
+// EVERY NEW LANE ARRIVES WITH A WITNESS (the 2026-08-31 ways review).
+// ===========================================================================
+// The ops-runner died in July and nothing rang for eight weeks. The cause was
+// structural, not careless: services.json is where a NAS lane is declared, and
+// nothing about declaring one has ever required an answer to "what tells us
+// when this stops?" Two of ten entries name a witness; the other eight are
+// watched by nothing that speaks on its own.
+//
+// This is a RATCHET, not a retrofit. Writing eight probes tonight would be
+// inventing instruments for lanes whose real failure shapes nobody has
+// measured — the opposite of DR-0076. What it forbids is the class recurring:
+// a NEW service, or one newly enabled, must say what watches it. The recorded
+// eight are named debt, and the list may only shrink.
+//
+// Precedent: the consistency guard's frozen baseline and the age-band test's
+// LEGACY_NO_TEEN both work exactly this way — record the real number, forbid
+// growth, let it drain.
+const WITNESSLESS_LANES = [
+  'agent-consumer',   // selftest gates merge; no outside-the-NAS liveness probe
+  'supabase',         // installer proves /auth/v1/health at install time only
+  'mcp',              // mcp-health.yml exists but is dispatch-only by design
+  'scribe',
+  'property-photos',
+  'funnel',           // self-asserting: re-asserts the Funnel every cycle
+  'choir-dates',      // drains to a DONE marker, then no-ops forever
+  'ytzero',
+];
+
+describe('a new NAS lane cannot ship unwatched (ratchet)', () => {
+  const services = () => JSON.parse(readFileSync(join(LOOPS_DIR, 'services.json'), 'utf-8'));
+  const named = (svc) => /Witness:\s*[A-Za-z0-9._-]+\.ya?ml/i.test(String(svc.description || ''));
+
+  it('every enabled lane either names a witness or is recorded debt — nothing else', () => {
+    const debt = new Set(WITNESSLESS_LANES);
+    const unaccounted = services().services
+      .filter((s) => s.enabled && !named(s) && !debt.has(s.name))
+      .map((s) => s.name);
+    expect(
+      unaccounted,
+      `these lanes ship with no witness and are not recorded debt: ${unaccounted.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('the debt list may only shrink — no name in it is fictional', () => {
+    const live = new Set(services().services.map((s) => s.name));
+    const stale = WITNESSLESS_LANES.filter((n) => !live.has(n));
+    expect(stale, `recorded debt naming a lane that no longer exists: ${stale.join(', ')}`).toEqual([]);
+  });
+
+  it('a lane that GAINS a witness must leave the debt list', () => {
+    const fixed = services().services.filter((s) => WITNESSLESS_LANES.includes(s.name) && named(s)).map((s) => s.name);
+    expect(fixed, `these now name a witness — delete them from WITNESSLESS_LANES: ${fixed.join(', ')}`).toEqual([]);
+  });
+
+  it('records the real numbers, so the claim is never taken on trust', () => {
+    const all = services().services.filter((s) => s.enabled);
+    const watched = all.filter(named).map((s) => s.name);
+    expect(watched).toContain('ops-runner');
+    expect(watched).toContain('transcript-trickle');
+    expect(watched.length + WITNESSLESS_LANES.length).toBe(all.length);
+  });
+
+  it('PROVEN-TO-CATCH: a brand-new unwatched lane fails', () => {
+    const doc = { services: [{ name: 'brand-new-lane', enabled: true, description: 'does a thing' }] };
+    const debt = new Set(WITNESSLESS_LANES);
+    const unaccounted = doc.services.filter((s) => s.enabled && !named(s) && !debt.has(s.name)).map((s) => s.name);
+    expect(unaccounted).toEqual(['brand-new-lane']);
+  });
+});
