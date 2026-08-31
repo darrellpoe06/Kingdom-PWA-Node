@@ -59,3 +59,19 @@ export function fileToDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
+
+// compressImageToFile — the BLOB-STORE sibling of compressImageFile.
+// Same bounded re-encode, but it yields a real File for a bucket upload rather
+// than a data URL for a row. Written 2026-08-31 after the showcase audit found
+// the gallery serving its ORIGINALS: 10.6 MB and 7.3 MB for two cards in a
+// two-up grid rendered at ~180 CSS px, ~30 MB for twelve thumbnails. The
+// sovereign stack has no imgproxy (infra/nas-supabase/docker-compose.yml runs
+// no image-transform service), so a /render/image transform URL would break
+// the moment the blobs land there — bounding the bytes AT UPLOAD is the fix
+// that is true on both backends. 1600px keeps a piece crisp full-screen.
+export async function compressImageToFile(file, maxWidth = 1600, quality = 0.8) {
+  const dataUrl = await compressImageFile(file, maxWidth, quality);
+  const blob = await (await fetch(dataUrl)).blob();
+  const base = String(file?.name || 'image').replace(/\.[^.]+$/, '') || 'image';
+  return new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
+}
