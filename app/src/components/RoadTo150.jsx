@@ -226,6 +226,9 @@ export default function RoadTo150({
   const [quick, setQuick] = useState({ meal: 'morning', line: '', rows: null });
   const [looking, setLooking] = useState(false);
   const [customJuiceOz, setCustomJuiceOz] = useState('');
+  // '' = the default serving; 'custom' opens the ounces box. Mirrors his spec:
+  // "6 oz / 8 / 12 / 16 / 18 - DEFAULT / 24 / 36 / Custom Ounces".
+  const [juicePick, setJuicePick] = useState({});
 
   const selected = selectedWeek ? rows.find((r) => r.week === selectedWeek) : null;
 
@@ -492,33 +495,56 @@ export default function RoadTo150({
               </button>
             )}
 
-            <div className="flex flex-wrap gap-2 mt-2">
-              {opts.filter((o) => !o.isDefault).map((o) => (
-                <button key={o.oz} type="button" onClick={() => logJuice(recipe, o.oz)} disabled={!addFoodEntry}
-                        className="px-3 py-2 border-2 border-[#1A1815] text-sm hover:bg-[#1A1815] hover:text-white disabled:opacity-40 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        aria-label={`Add ${o.oz} ounces, ${o.calories} calories`}>
-                  {o.oz} oz
-                </button>
-              ))}
+            {/* A real dropdown, as asked: the serving list plus Custom Ounces.
+                The one-tap default above stays, so the usual 18 oz is still a
+                single tap and anything else is two. */}
+            <div className="mt-3">
+              <label htmlFor={`r150-juice-size-${recipe.id}`} className="block text-xs uppercase tracking-wider text-[#5A5751] mb-1">
+                Or pick a size
+              </label>
+              <div className="flex gap-2">
+                <select id={`r150-juice-size-${recipe.id}`}
+                        value={(juicePick[recipe.id] ?? '')}
+                        onChange={(e) => setJuicePick((prev) => ({ ...prev, [recipe.id]: e.target.value }))}
+                        className="flex-1 border-2 border-[#1A1815] px-3 py-2 text-base bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  {opts.map((o) => (
+                    <option key={o.oz} value={String(o.oz)}>
+                      {o.oz} oz · {o.calories} cal · ~{o.proteinG}g{o.isDefault ? ' — default' : ''}
+                    </option>
+                  ))}
+                  <option value="custom">Custom ounces…</option>
+                </select>
+                {(juicePick[recipe.id] ?? '') !== 'custom' && (
+                  <button type="button" disabled={!addFoodEntry}
+                          onClick={() => logJuice(recipe, Number(juicePick[recipe.id] || recipe.defaultServingOz))}
+                          className="px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    Add
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-2 mt-2">
-              <label htmlFor={`r150-juice-custom-${recipe.id}`} className="sr-only">Custom ounces</label>
-              <input id={`r150-juice-custom-${recipe.id}`} type="number" min="1" step="1" inputMode="numeric"
-                     value={customJuiceOz} onChange={(e) => setCustomJuiceOz(e.target.value)}
-                     placeholder="Custom oz"
-                     className="flex-1 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
-              <button type="button" disabled={!addFoodEntry || !juiceServing(customJuiceOz, recipe)}
-                      onClick={() => { logJuice(recipe, Number(customJuiceOz)); setCustomJuiceOz(''); }}
-                      className="px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
-                Add
-              </button>
-            </div>
-            {juiceServing(customJuiceOz, recipe) && (
-              <p className="text-xs text-[#5A5751] mt-1" style={serif}>
-                {customJuiceOz} oz ≈ {juiceServing(customJuiceOz, recipe).calories} cal ·
-                ~{juiceServing(customJuiceOz, recipe).proteinG}g protein
-              </p>
+            {(juicePick[recipe.id] ?? '') === 'custom' && (
+              <div className="mt-2">
+                <div className="flex gap-2">
+                  <label htmlFor={`r150-juice-custom-${recipe.id}`} className="sr-only">Custom ounces</label>
+                  <input id={`r150-juice-custom-${recipe.id}`} type="number" min="1" step="1" inputMode="numeric"
+                         value={customJuiceOz} onChange={(e) => setCustomJuiceOz(e.target.value)}
+                         placeholder="How many ounces?"
+                         className="flex-1 border-2 border-[#1A1815] px-3 py-2 text-base focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                  <button type="button" disabled={!addFoodEntry || !juiceServing(customJuiceOz, recipe)}
+                          onClick={() => { logJuice(recipe, Number(customJuiceOz)); setCustomJuiceOz(''); }}
+                          className="px-4 py-2 bg-[#1A1815] text-white border-2 border-[#1A1815] disabled:opacity-40 text-sm uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    Add
+                  </button>
+                </div>
+                {juiceServing(customJuiceOz, recipe) && (
+                  <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+                    {customJuiceOz} oz ≈ {juiceServing(customJuiceOz, recipe).calories} cal ·
+                    ~{juiceServing(customJuiceOz, recipe).proteinG}g protein · same 18.3 cal/oz as every preset
+                  </p>
+                )}
+              </div>
             )}
 
             <details className="mt-3">
