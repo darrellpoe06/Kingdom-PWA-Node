@@ -36,7 +36,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide, resolveAudienceLead, resolveAudiencePoints,
   PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE, ageHint,
-  PRIORITY, fitToBudget, makeScene,
+  PRIORITY, fitToBudget, makeScene, humanMinutes,
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
@@ -102,7 +102,7 @@ function RunOfShowPanel({ segments, budgetMin }) {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
         <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.8125rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
         <span style={{ fontSize: '0.75rem', color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
-          {reflowed ? `rescaled to ${Math.round(budgetMin)} min (full ${fit.fullMin})` : `${fit.fullMin} min total`}
+          {reflowed ? `rescaled to ${humanMinutes(budgetMin)} (full ${humanMinutes(fit.fullMin)})` : `${humanMinutes(fit.fullMin)} total`}
         </span>
       </div>
       {fit.plan.map((seg, i) => (
@@ -480,6 +480,18 @@ export default function Presenter({
   // notes (the no-leak law holds: what is read aloud is what is projected) — and
   // hands the reader a next() that advances the deck, so pressing play once
   // reads the whole message slide by slide with no hand on the screen.
+  // The mini mirror defaults OPEN on a wide screen (side console next to a
+  // projector) and CLOSED on a phone, where it is unreadable at 50% scale and
+  // only repeats the script (Darrell 2026-07-30 screenshot). One tap toggles.
+  const [showMirror, setShowMirror] = useState(() => {
+    try { return typeof window !== 'undefined' && window.innerWidth >= 900; } catch { return true; }
+  });
+  // Read without stale closures, and remember what the mirror was BEFORE a
+  // reading opened it, so stopping restores the speaker's own choice.
+  const showMirrorRef = useRef(showMirror);
+  showMirrorRef.current = showMirror;
+  const mirrorWasRef = useRef(null);
+
   useEffect(() => {
     if (!cur) return undefined;
     const aud = cur.audience || {};
@@ -493,7 +505,32 @@ export default function Presenter({
     setReadTarget(owner, {
       label: 'this part of the message',
       text: spoken,
+      // `presenter-slide` is rendered by BOTH views — the full-screen presenting
+      // mode and, since 2026-08-31, the console's class mirror — so the reader
+      // always has a real element to map and follow, whichever screen the
+      // speaker pressed play on. Only one of the two is mounted at a time.
       elementId: 'presenter-slide',
+      // FOLLOW-ALONG NEEDS THE READING ON SCREEN (Darrell 2026-08-31: "it
+      // doesn't follow the text as it reads"). In the console the mirror is
+      // collapsible — and on a phone it starts collapsed — so the element the
+      // reader maps may not exist when play is pressed. prepare(true) opens it;
+      // prepare(false) puts it back the way the speaker had it.
+      //
+      // The mirror is deliberately the target rather than the presenter's
+      // script block: it renders the SAME AudienceSlide the room sees, so the
+      // spoken words and the highlighted words are the same words by
+      // construction, and the no-leak law holds — the presenter-only notes are
+      // never read to the room.
+      prepare: (on) => {
+        if (on) {
+          if (mirrorWasRef.current === null) mirrorWasRef.current = showMirrorRef.current;
+          setShowMirror(true);
+          return;
+        }
+        const was = mirrorWasRef.current;
+        mirrorWasRef.current = null;
+        if (was !== null) setShowMirror(was);
+      },
       next: () => {
         if (idx >= last) return false;
         setIdx((i2) => Math.min(last, i2 + 1));
@@ -504,12 +541,6 @@ export default function Presenter({
   }, [cur, idx, age, presentableId, last]);
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
-  // The mini mirror defaults OPEN on a wide screen (side console next to a
-  // projector) and CLOSED on a phone, where it is unreadable at 50% scale and
-  // only repeats the script (Darrell 2026-07-30 screenshot). One tap toggles.
-  const [showMirror, setShowMirror] = useState(() => {
-    try { return typeof window !== 'undefined' && window.innerWidth >= 900; } catch { return true; }
-  });
 
   // --- budget + override + curriculum-edit handlers ---
   const applyBudget = useCallback((raw) => {
@@ -713,7 +744,7 @@ export default function Presenter({
               <button type="button" onClick={() => { applyBudget(0); setOverrides({}); }} style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px' }}>Full curriculum</button>
             )}
             <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
-              full = {fit.fullMin} min
+              full = {humanMinutes(fit.fullMin)}
             </span>
           </div>
           <p style={{ margin: '12px 0 0', fontSize: '0.875rem', lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
@@ -797,8 +828,14 @@ export default function Presenter({
           </div>
           {/* the real audience slide, miniaturized — a faithful mirror of the projector */}
           {showMirror && (
-            <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: '200%', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
+            // overflowY auto, not hidden: while the reader follows along it
+            // scrolls the spoken line into view, and a slide taller than 16:9
+            // used to be clipped with no way to reach the rest.
+            <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflowX: 'hidden', overflowY: 'auto', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
+              {/* height auto (was a fixed 200%) so the scrollable extent follows
+                  the real content; the 0.5 scale halves it back to the visual
+                  size, so the box still shows the slide at true 16:9 proportion. */}
+              <div id="presenter-slide" style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: 'auto', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
                 <AudienceSlide slide={previewSlide} />
               </div>
             </div>
