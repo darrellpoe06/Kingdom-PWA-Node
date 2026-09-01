@@ -1,0 +1,58 @@
+# Sovereign migration replay — hand-dispatched backfill for the database the app READS
+#
+# WHY THIS EXISTS. sovereign-drift.yml measured the gap for the first time on
+# 2026-09-01 (its four earlier dispatches all died before the query returned):
+# 179 migrations in the repo, 151 on the sovereign database, 28 missing. Every
+# one merged green and never reached the database the app actually reads.
+#
+# It was found by walking Darrell's Properties tab, which could not load at all.
+# 0150-0161 — the whole Poe Properties module — are among the 28, so
+# rental_tenancies does not exist on the sovereign database and rentals has no
+# showcase_order column. 0164-0166 (the Road-to-150 food log) are missing too.
+#
+# THIS IS THE BACKFILL, NOT THE FIX. The fix is in db-migrate.yml, which now
+# lands every merged migration on the sovereign database on the same trigger
+# that applies it to hosted — so the gap cannot reopen. This workflow exists for
+# the one-time catch-up, and afterwards as a hand-dispatched repair tool when
+# someone needs to force a re-check. Both call the SAME script
+# (scripts/sovereign-replay-over-tailnet.sh): two copies of that ssh block would
+# be two things to keep in step, and the gap being closed here was itself caused
+# by two halves drifting apart.
+#
+# Dispatch-only, so NOT the timer-driven three-brakes class (P10/P11/P12): no
+# schedule, no self-trigger, one hand-dispatched pass that exits when done — the
+# same shape DR-0317 established for storage_sync.py. Committing it does not run
+# it. The safety properties (idempotent, ledger-driven, stop-at-first-failure,
+# before/after counts) live in the shared script and are documented there.
+name: Sovereign migration replay (writes — dispatch only)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sovereign-replay
+  cancel-in-progress: false
+
+jobs:
+  replay:
+    name: apply the migrations the sovereign database is missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Replay onto the sovereign database
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/sovereign-replay-over-tailnet.sh
+
+      - name: Say how to confirm it independently
+        if: always()
+        run: echo "Re-run sovereign-drift.yml to confirm the remaining gap from the ledger itself, rather than taking this run's word for it (DR-0076)." >> "$GITHUB_STEP_SUMMARY"

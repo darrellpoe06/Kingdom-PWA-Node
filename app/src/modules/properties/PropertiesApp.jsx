@@ -48,7 +48,7 @@ import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
-import { boundedRead, deadlineIn } from '../../lib/bounded-read.js';
+import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
@@ -243,6 +243,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // one look IDENTICAL in the rows ([] either way) and must never look identical
   // on the page — see the render gate below (DR-0076).
   const [unreached, setUnreached] = useState(false);
+  // Which reads failed and what each one said, so the card can name the cause
+  // instead of guessing at it.
+  const [unreachedWhy, setUnreachedWhy] = useState([]);
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
   //    is safe on every open and is what turns "invited" into "recognized".
@@ -254,14 +257,27 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    rendered to tap, so nothing in the app could recover it (2026-09-01).
   const boot = useCallback(async () => {
     setLoading(true);
-    // ONE ceiling for the whole boot, spent down across all three stages, so the
-    // page resolves inside it however many round trips this grows to.
-    const left = deadlineIn();
-    const claimed = await boundedRead(claimPropertyAccess(), left());
+    // EACH STAGE GETS ITS OWN CEILING. The first version spent ONE 6s budget
+    // across all three stages, to avoid stacking 3 x 6s. That traded a slow
+    // freeze for something worse: STARVATION. claimPropertyAccess() runs first
+    // and drank from the same budget, so when it stalled ~5s on supabase-js's
+    // auth-lock acquire (lockAcquireTimeout is 5000ms in 2.106), the four spine
+    // reads inherited ~1s and reported 'not-reached' — reads that would have
+    // answered fine given room. Four identical 'not-reached' lines is that
+    // signature exactly, and it is what Darrell's card showed on 2026-09-01
+    // while site-health measured poetech.us/sb/auth/v1/health at 200 from the
+    // public internet in the same window. A bound must not become the thing
+    // that fails the read.
+    //
+    // The claim gets a SHORT ceiling of its own: it is an optional courtesy
+    // (turning "invited" into "recognized") and must never spend the reads'
+    // time. The reads then start from a full, untouched deadline.
+    const claimed = await boundedRead(claimPropertyAccess(), CLAIM_TIMEOUT_MS);
     setClaim(claimed);
+    const spine = deadlineIn();
     const [d, g, h, r] = await Promise.all([
-      boundedRead(loadMyDoors(), left()), boundedRead(loadMyGrants(), left()),
-      boundedRead(loadMyHousehold(), left()), boundedRead(loadMyRentals(), left()),
+      boundedRead(loadMyDoors(), spine()), boundedRead(loadMyGrants(), spine()),
+      boundedRead(loadMyHousehold(), spine()), boundedRead(loadMyRentals(), spine()),
     ]);
     setDoors(d.ok ? d.doors : []);
     setGrants(g.ok ? g.grants : []);
@@ -270,11 +286,29 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // row is itself proof of instance membership (rentals_select USING
     // user_in_instance) — so this is also what tells us he is the landlord.
     setRentals(r.ok ? r.rentals : []);
+    // Its own deadline too, for the same reason: the cover thumbnails and the
+    // public listings must not be starved by whatever the spine reads cost.
+    const extras = deadlineIn();
     const [ph, vac] = await Promise.all([
-      boundedRead(loadAllPhotos(), left()), boundedRead(loadPublicVacancies(), left()),
+      boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
     ]);
     setDoorPhotos(ph.ok ? ph.photos : []);
     setVacancies(vac.ok ? vac.vacancies : []);
+    // WHAT the database actually said, kept and shown. The first version of
+    // this card guessed a cause in its copy ("close your other tabs — a frozen
+    // tab holds the sign-in lock"). The guess was wrong, and because it read as
+    // confident advice it sent Darrell chasing tabs for 90 minutes while the
+    // real answer — 28 migrations, 0150-0161 among them, never replayed to the
+    // sovereign database, so rental_tenancies does not exist and rentals has no
+    // showcase_order column — was sitting in the error the read already
+    // returned and this surface threw away. A surface that invents a cause is
+    // worse than one that admits it does not know: show the reason, name the
+    // read, and let it be diagnosable (DR-0076 §8, provenance).
+    const failures = [
+      ['doors', d], ['grants', g], ['household', h], ['properties', r],
+    ].filter(([, x]) => !x.ok)
+     .map(([what, x]) => ({ what, reason: x.reason || 'unknown', detail: x.error || '' }));
+    setUnreachedWhy(failures);
     // The four spine reads decide WHICH face renders. `claim` is excluded on
     // purpose: claim_property_access legitimately answers 'not-enabled-yet'
     // before 0150 applies, and that is not a failure to reach anything.
@@ -574,11 +608,25 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             portfolio — it is a page that did not get an answer, so nothing below it
             would be true. Your records are untouched.
           </p>
-          <p className="mt-1 text-[0.75rem] text-[#5A5751] leading-relaxed">
-            This usually clears on its own. If it keeps happening, closing your other
-            poetech.us tabs is the fastest fix — a frozen tab can hold the sign-in
-            lock this page waits on.
-          </p>
+          {unreachedWhy.length > 0 ? (
+            <div className="mt-2">
+              <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-1">
+                What the database said, so this can be fixed rather than guessed at:
+              </p>
+              <ul className="text-[0.6875rem] text-[#5A5751] leading-relaxed font-mono">
+                {unreachedWhy.map((f) => (
+                  <li key={f.what}>
+                    <strong>{f.what}</strong>: {f.reason}{f.detail ? ` — ${f.detail}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-1 text-[0.75rem] text-[#5A5751] leading-relaxed">
+              The reads came back without saying why. Try again, and if it keeps
+              happening this needs looking at from the server side.
+            </p>
+          )}
           <button
             type="button"
             onClick={boot}
