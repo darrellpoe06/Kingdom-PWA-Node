@@ -1,39 +1,29 @@
-# Sovereign migration replay — land merged migrations on the database the app READS
+# Sovereign migration replay — hand-dispatched backfill for the database the app READS
 #
 # WHY THIS EXISTS. sovereign-drift.yml measured the gap for the first time on
 # 2026-09-01 (its four earlier dispatches all died before the query returned):
-# 179 migrations in the repo, 151 on the sovereign database, **28 missing** —
-# every one a schema change that merged green and never reached the database the
-# app actually reads.
+# 179 migrations in the repo, 151 on the sovereign database, 28 missing. Every
+# one merged green and never reached the database the app actually reads.
 #
 # It was found by walking Darrell's Properties tab, which could not load at all.
-# 0150-0161 — the whole Poe Properties module — are among the 28, so three of its
-# tables do not exist on the sovereign database and a fourth read names
-# rentals.showcase_order, a column 0157 adds and that database has never seen.
-# His 13 properties were sitting there behind a query it was correctly rejecting.
+# 0150-0161 — the whole Poe Properties module — are among the 28, so
+# rental_tenancies does not exist on the sovereign database and rentals has no
+# showcase_order column. 0164-0166 (the Road-to-150 food log) are missing too.
 #
-# The drift witness deliberately only OBSERVES; it says so in its own header,
-# because where migrations should LAND is a lane decision. This workflow is the
-# other half: it CLOSES the measured gap on the data that is already there,
-# using the repo's own replay path rather than a new invention (DR-0108 — use
-# what the team already proved). It does NOT change the lane: until
-# db-migrate.yml stops targeting the hosted SUPABASE_DB_URL, 0167 lands in the
-# same hole and this has to be run again.
-#
-# SAFE BY CONSTRUCTION, not by assertion:
-#   * replay_migrations.sh is idempotent and ledger-driven — a file already in
-#     public._schema_migrations is skipped, so a re-run is a no-op.
-#   * ON_ERROR_STOP=1, filename order, stop-at-first-failure: a migration that
-#     cannot apply NAMES ITSELF and nothing after it runs half-applied.
-#   * Every one of these files already applied cleanly to the hosted database
-#     through db-migrate.yml. This replays proven SQL, not new SQL.
-#   * The ledger is counted BEFORE and AFTER and both are printed, so the run
-#     reports what it actually changed instead of claiming it "worked"
-#     (DR-0076 — no claim without evidence).
+# THIS IS THE BACKFILL, NOT THE FIX. The fix is in db-migrate.yml, which now
+# lands every merged migration on the sovereign database on the same trigger
+# that applies it to hosted — so the gap cannot reopen. This workflow exists for
+# the one-time catch-up, and afterwards as a hand-dispatched repair tool when
+# someone needs to force a re-check. Both call the SAME script
+# (scripts/sovereign-replay-over-tailnet.sh): two copies of that ssh block would
+# be two things to keep in step, and the gap being closed here was itself caused
+# by two halves drifting apart.
 #
 # Dispatch-only, so NOT the timer-driven three-brakes class (P10/P11/P12): no
 # schedule, no self-trigger, one hand-dispatched pass that exits when done — the
-# same shape DR-0317 established for storage_sync.py.
+# same shape DR-0317 established for storage_sync.py. Committing it does not run
+# it. The safety properties (idempotent, ledger-driven, stop-at-first-failure,
+# before/after counts) live in the shared script and are documented there.
 name: Sovereign migration replay (writes — dispatch only)
 
 on:
@@ -58,114 +48,11 @@ jobs:
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
 
-      - name: Replay pending migrations onto the sovereign database
+      - name: Replay onto the sovereign database
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: |
-          set -uo pipefail
-          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
-          umask 077
-          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+        run: bash scripts/sovereign-replay-over-tailnet.sh
 
-          # LogLevel=ERROR is correctness, not tidiness: a fresh runner has an
-          # empty known_hosts, so ssh prints a "Warning: Permanently added ..."
-          # banner on its first connection that would otherwise be read as data.
-          # This is sovereign-drift.yml's proven idiom, reused rather than
-          # reinvented.
-          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
-
-          # Reachability first, and never swallow the reason. MagicDNS is not
-          # always resolvable the instant tailscaled comes up, so a single
-          # immediate attempt can fail on timing alone. Match on CONTAINS.
-          probe=""
-          err=""
-          for attempt in 1 2 3; do
-            err=$($SSH "echo READY" 2>&1) || true
-            case "$err" in *READY*) probe="READY"; break;; esac
-            sleep 5
-          done
-          if [ "$probe" != "READY" ]; then
-            rm -f /tmp/nas_key
-            note "## Sovereign replay - NOT RUN"
-            note ""
-            note "The NAS was not reachable over the tailnet after 3 attempts. Last error:"
-            note "    $err"
-            echo "::error::NAS unreachable - nothing was applied"
-            exit 1
-          fi
-
-          cat > /tmp/remote.sh <<'REMOTE'
-          set -u
-          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
-          ENV_FILE=/volume1/docker/supabase/.env
-
-          PW=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
-          [ -n "$PW" ] || PW=$(sudo -n sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
-          [ -n "$PW" ] || { echo "could not read POSTGRES_PASSWORD from $ENV_FILE" >&2; exit 3; }
-
-          DOCKER=$(command -v docker 2>/dev/null || true)
-          if [ -z "$DOCKER" ]; then
-            for c in /usr/local/bin/docker /usr/bin/docker; do
-              [ -x "$c" ] && DOCKER="$c" && break
-            done
-          fi
-          [ -n "$DOCKER" ] || { echo "docker binary not found (PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
-
-          count_ledger() {
-            Q="select count(*) from public._schema_migrations"
-            "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/dev/null && return 0
-            sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/dev/null
-          }
-
-          echo "LEDGER-BEFORE=$(count_ledger | tr -d '[:space:]')"
-
-          # The replay reads migration FILES from the NAS checkout, so it can
-          # only apply what that checkout actually holds. Pull first, and say
-          # which commit is being replayed from.
-          cd "$REPO" || { echo "repo not found at $REPO" >&2; exit 6; }
-          git pull --ff-only 2>&1 | tail -3
-          echo "REPO-HEAD=$(git rev-parse --short HEAD)"
-
-          echo "----- replay output -----"
-          sh "$REPO/infra/nas-supabase/replay_migrations.sh" 2>&1
-          rc=$?
-          echo "----- end replay (exit $rc) -----"
-
-          echo "LEDGER-AFTER=$(count_ledger | tr -d '[:space:]')"
-          exit $rc
-          REMOTE
-          sed -i 's/^          //' /tmp/remote.sh
-
-          OUT=$($SSH "bash -s" < /tmp/remote.sh 2>/tmp/replayerr)
-          rc=$?
-          rm -f /tmp/nas_key
-          errtxt=$(cat /tmp/replayerr 2>/dev/null)
-
-          before=$(printf '%s\n' "$OUT" | sed -n 's/^LEDGER-BEFORE=//p' | tail -1)
-          after=$(printf '%s\n' "$OUT" | sed -n 's/^LEDGER-AFTER=//p' | tail -1)
-          head=$(printf '%s\n' "$OUT" | sed -n 's/^REPO-HEAD=//p' | tail -1)
-
-          note "## Sovereign migration replay - $(date -u +%FT%TZ)"
-          note ""
-          note "- NAS checkout replayed from: ${head:-unknown}"
-          note "- ledger rows BEFORE: ${before:-unknown}"
-          note "- ledger rows AFTER: ${after:-unknown}"
-          note ""
-          note "### replay output"
-          printf '%s\n' "$OUT" | while IFS= read -r l; do note "    $l"; done
-
-          if [ -n "$errtxt" ]; then
-            note ""
-            note "### stderr"
-            printf '%s\n' "$errtxt" | while IFS= read -r l; do note "    $l"; done
-          fi
-
-          if [ "$rc" -ne 0 ]; then
-            note ""
-            note "The replay STOPPED at the first migration that could not apply. That file names itself in the output above, and nothing after it ran. The ledger numbers say exactly how far it got - this is the frontier, reported rather than rounded to zero (DR-0076)."
-            echo "::error::replay exited $rc - see the summary for the frontier"
-            exit 1
-          fi
-
-          note ""
-          note "Re-run sovereign-drift.yml to confirm the remaining gap independently."
+      - name: Say how to confirm it independently
+        if: always()
+        run: echo "Re-run sovereign-drift.yml to confirm the remaining gap from the ledger itself, rather than taking this run's word for it (DR-0076)." >> "$GITHUB_STEP_SUMMARY"
