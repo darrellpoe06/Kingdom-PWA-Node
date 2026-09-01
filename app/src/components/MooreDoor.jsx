@@ -10,7 +10,7 @@
 // capture carries source='moore-divahs-app' so the union's inbound is visible
 // on the CRM from day one.
 // =============================================================================
-import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import supabase, { readPersistedSession, signOut } from '../lib/supabase.js';
 import { publicRpc } from '../lib/public-rpc.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
@@ -36,7 +36,6 @@ import UiIcon from './UiIcon.jsx';
 import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
-import { TabScroll } from './shared.jsx';
 import { osmLink } from './AddressField.jsx';
 import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
 import { fetchMessages, sendMessage } from '../lib/business-messages.js';
@@ -236,24 +235,24 @@ function MyMessages() {
 }
 
 // ---- Gallery — her work greets everyone who enters (0092) -------------------
-function Gallery({ onInspired }) {
+// The READ lives here, one call, so the split grid below (a few pieces → the
+// order path → the rest) never fetches her showcase twice.
+function useShowcase() {
   const [state, setState] = useState({ phase: 'loading', pieces: [] });
   useEffect(() => {
     let on = true;
     fetchShowcase(BIZ.instanceSlug).then((r) => { if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) }); });
     return () => { on = false; };
   }, []);
-  if (state.phase === 'loading') return null;
-  if (state.pieces.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-[#B85838] p-4 text-center text-sm text-[#5A5751]" style={SERIF}>
-        The gallery is being curated — Shay&rsquo;s favorite pieces post here soon.
-      </p>
-    );
-  }
+  return state;
+}
+
+// Purely presentational: it renders the pieces it is handed and owns no state,
+// so the same grid serves both halves of the split.
+function GalleryGrid({ pieces, onInspired }) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      {state.pieces.map((p) => {
+      {pieces.map((p) => {
         const url = showcaseImageUrl(p.image_path);
         return (
           <figure key={p.slug} className="overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white">
@@ -278,19 +277,52 @@ function Gallery({ onInspired }) {
   );
 }
 
+// How many pieces greet a customer BEFORE the order path appears (Darrell
+// 2026-08-31: "move the ordering aspect to the top... maybe after the first 3
+// images/product spots so Shay's customers can see how to order"). He said 3;
+// the grid is 2-up, so 3 leaves an orphan card alone on its row — 4 is two
+// clean rows and the same beat: see her work, learn how to order, see more.
+const PIECES_BEFORE_ORDER = 4;
+
 function MooreTab() {
-  // One-click reorder: a tap on a past order pre-fills the inquiry note below
+  // One-click reorder: a tap on a past order pre-fills the inquiry note
   // (editable before sending — she quotes fresh; her flyer policies hold).
   const [reorderNote, setReorderNote] = useState('');
+  const { phase, pieces } = useShowcase();
+  const orderRef = useRef(null);
+  // Take her TO the form it just filled in. This used to scrollTo(top), which
+  // threw the customer to the top of the page — away from the very form the tap
+  // had prefilled. The order block is no longer at the bottom, so the honest
+  // move is to scroll to it by ref.
+  const scrollToOrder = () => {
+    try { orderRef.current?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); }
+    catch { /* no-op */ }
+  };
+  const onInspired = (p) => {
+    setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`);
+    scrollToOrder();
+  };
+  const firstPieces = pieces.slice(0, PIECES_BEFORE_ORDER);
+  const restPieces = pieces.slice(PIECES_BEFORE_ORDER);
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Her work</h2>
         <div className="mt-2">
-          <Gallery onInspired={(p) => { setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ } }} />
+          {phase === 'loading' ? null : pieces.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-[#B85838] p-4 text-center text-sm text-[#5A5751]" style={SERIF}>
+              The gallery is being curated — Shay&rsquo;s favorite pieces post here soon.
+            </p>
+          ) : (
+            <GalleryGrid pieces={firstPieces} onInspired={onInspired} />
+          )}
         </div>
       </div>
-      <div>
+      {/* The order path, moved up under her first pieces. Deliberately OUTSIDE
+          the gallery's conditional: an empty or still-loading showcase must
+          never take "how do I order?" off her page. scroll-mt keeps the heading
+          clear of the top edge when a tap scrolls us here. */}
+      <div ref={orderRef} className="scroll-mt-4">
         <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Custom work, made for you</h2>
         <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
           {['Custom clothing', 'Scrub caps', 'Custom shoes', 'Team & group apparel'].map((s) => (
@@ -301,9 +333,7 @@ function MooreTab() {
           Tell her what you want, send inspiration pictures, share your size — she quotes each piece
           (materials included), payment books it, and your piece is made within three weeks.
         </p>
-      </div>
-      <div>
-        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Start an order</h3>
+        <h3 className="mt-4 font-semibold text-[#1A1815]" style={SERIF}>Start an order</h3>
         <div className="mt-2">
           <ContactCaptureForm
             pipeline={BIZ.capturePipeline}
@@ -323,6 +353,12 @@ function MooreTab() {
           <li>{MOORE_POLICIES.madeWithLove}</li>
         </ul>
       </div>
+      {restPieces.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>More of her work</h2>
+          <div className="mt-2"><GalleryGrid pieces={restPieces} onInspired={onInspired} /></div>
+        </div>
+      )}
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
         <div className="mt-2"><PublicClasses /></div>
@@ -333,7 +369,7 @@ function MooreTab() {
       </div>
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
-        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ } }} /></div>
+        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); scrollToOrder(); }} /></div>
       </div>
     </div>
   );
@@ -541,6 +577,13 @@ export default function MooreDoor({ business = null }) {
   // Bind the registry row FIRST so every section below reads this business.
   BIZ = business || getBusiness('moore-divahs');
   const [tab, setTab] = useState('moore'); // Moore Divahs first, always
+  // The chooser now lives at the BOTTOM, so a tap must carry the reader up to
+  // the business they just picked — otherwise they land mid-page on a section
+  // they never scrolled to.
+  const selectTab = (id) => {
+    setTab(id);
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ }
+  };
   const [role, setRole] = useState('signed-out');
   // Comfort controls — the SAME theme + text-size the PoeTech app uses (shared
   // libs; the per-device choice follows the user between shells).
@@ -612,23 +655,50 @@ export default function MooreDoor({ business = null }) {
             </div>
           </Suspense>
         )}
-        <TabScroll className="mt-4 border-b border-[#E8E2D8]" label="Moore Divahs sections">
-          {BIZ.tabs.map((t) => (
+        {/* THE SIBLING BUSINESSES MOVED TO THE BOTTOM (Darrell 2026-08-31:
+            "keep Moore Divahs at the top... move the other business tabs to the
+            bottom of the page"). Her door now OPENS on her work instead of on a
+            four-way chooser — a customer arriving from her flyer or a DM should
+            meet scrub caps, not a menu of businesses she did not come for.
+            The constraint that comes with it: a chooser only at the bottom
+            would strand a reader who taps through to another business, so a
+            sibling tab keeps a back control at the top. Moore Divahs itself
+            never needs one — it is where the door already opens. */}
+        {tab !== 'moore' && (
+          <div className="mt-4 border-b border-[#E8E2D8] pb-3">
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors ${tab === t.id ? 'border-[#B85838] font-medium text-[#1A1815]' : 'border-transparent text-[#5A5751]'}`}
+              type="button"
+              onClick={() => selectTab('moore')}
+              className="rounded-lg border border-[#B85838] px-3 py-2 text-sm font-semibold text-[#B85838]"
             >
-              {t.label}
+              ← {BIZ.brand.label}
             </button>
-          ))}
-        </TabScroll>
+          </div>
+        )}
         <main className="mt-4">
           {tab === 'moore' && <MooreTab />}
           {tab === 'practice' && <PracticeTab />}
           {tab === 'church' && <ChurchTab />}
           {tab === 'poetech' && <PoeTechTab />}
         </main>
+        {/* Each sibling carries its own blurb (DOOR_TABS) — at the bottom there
+            is room to say what a business IS, which a one-word tab never did. */}
+        <nav className="mt-10 border-t border-[#E8E2D8] pt-5" aria-label="More from the family">
+          <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Also from the family</h2>
+          <div className="mt-3 grid gap-2">
+            {BIZ.tabs.filter((t) => t.id !== tab).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectTab(t.id)}
+                className="rounded-2xl border border-[#E8E2D8] bg-white p-3 text-left"
+              >
+                <span className="block text-sm font-semibold text-[#1A1815]" style={SERIF}>{t.label}</span>
+                <span className="mt-0.5 block text-xs text-[#5A5751]">{t.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
         <footer className="mt-10 text-center text-xs text-[#5A5751]">
           A family of businesses · Powered by PoeTech
         </footer>
