@@ -48,7 +48,7 @@ import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
-import { boundedRead, deadlineIn } from '../../lib/bounded-read.js';
+import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
@@ -257,14 +257,27 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   //    rendered to tap, so nothing in the app could recover it (2026-09-01).
   const boot = useCallback(async () => {
     setLoading(true);
-    // ONE ceiling for the whole boot, spent down across all three stages, so the
-    // page resolves inside it however many round trips this grows to.
-    const left = deadlineIn();
-    const claimed = await boundedRead(claimPropertyAccess(), left());
+    // EACH STAGE GETS ITS OWN CEILING. The first version spent ONE 6s budget
+    // across all three stages, to avoid stacking 3 x 6s. That traded a slow
+    // freeze for something worse: STARVATION. claimPropertyAccess() runs first
+    // and drank from the same budget, so when it stalled ~5s on supabase-js's
+    // auth-lock acquire (lockAcquireTimeout is 5000ms in 2.106), the four spine
+    // reads inherited ~1s and reported 'not-reached' — reads that would have
+    // answered fine given room. Four identical 'not-reached' lines is that
+    // signature exactly, and it is what Darrell's card showed on 2026-09-01
+    // while site-health measured poetech.us/sb/auth/v1/health at 200 from the
+    // public internet in the same window. A bound must not become the thing
+    // that fails the read.
+    //
+    // The claim gets a SHORT ceiling of its own: it is an optional courtesy
+    // (turning "invited" into "recognized") and must never spend the reads'
+    // time. The reads then start from a full, untouched deadline.
+    const claimed = await boundedRead(claimPropertyAccess(), CLAIM_TIMEOUT_MS);
     setClaim(claimed);
+    const spine = deadlineIn();
     const [d, g, h, r] = await Promise.all([
-      boundedRead(loadMyDoors(), left()), boundedRead(loadMyGrants(), left()),
-      boundedRead(loadMyHousehold(), left()), boundedRead(loadMyRentals(), left()),
+      boundedRead(loadMyDoors(), spine()), boundedRead(loadMyGrants(), spine()),
+      boundedRead(loadMyHousehold(), spine()), boundedRead(loadMyRentals(), spine()),
     ]);
     setDoors(d.ok ? d.doors : []);
     setGrants(g.ok ? g.grants : []);
@@ -273,8 +286,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // row is itself proof of instance membership (rentals_select USING
     // user_in_instance) — so this is also what tells us he is the landlord.
     setRentals(r.ok ? r.rentals : []);
+    // Its own deadline too, for the same reason: the cover thumbnails and the
+    // public listings must not be starved by whatever the spine reads cost.
+    const extras = deadlineIn();
     const [ph, vac] = await Promise.all([
-      boundedRead(loadAllPhotos(), left()), boundedRead(loadPublicVacancies(), left()),
+      boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
     ]);
     setDoorPhotos(ph.ok ? ph.photos : []);
     setVacancies(vac.ok ? vac.vacancies : []);

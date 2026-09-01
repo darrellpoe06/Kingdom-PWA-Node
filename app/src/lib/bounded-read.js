@@ -28,6 +28,16 @@
 // SNAPSHOT_TIMEOUT_MS in access-metrics-sync.js, for the reason stated there.
 export const READ_TIMEOUT_MS = 6000;
 
+// The ceiling for an OPTIONAL pre-read that must never spend the real reads'
+// time — e.g. properties' claimPropertyAccess(), a courtesy RPC that turns
+// "invited" into "recognized" and whose failure is not a failure to reach
+// anything. Deliberately shorter than READ_TIMEOUT_MS and deliberately its own
+// budget: when it shared one, a ~5s stall on supabase-js's auth-lock acquire
+// (lockAcquireTimeout is 5000ms in 2.106) left the reads ~1s and every one of
+// them reported 'not-reached' — reads that would have answered given room. A
+// bound must never become the thing that fails the read.
+export const OPTIONAL_TIMEOUT_MS = 2500;
+
 /**
  * One ceiling for a WHOLE sequence of reads, not one per read. A boot that makes
  * three sequential round trips stacks a per-call ceiling into 3 x 6s -- the ~18s
