@@ -116,6 +116,45 @@ jobs:
           # inventing findings out of a plumbing fault.
           node scripts/live-definition-witness.mjs --check < "$RUNNER_TEMP/witness.json"
 
+      # THE OTHER DATABASE — the one the app actually reads (DR-0317).
+      #
+      # Everything above this point applies to SUPABASE_DB_URL, which names the
+      # HOSTED project. The app has read the SOVEREIGN stack since REPOINT-ARMED
+      # landed 2026-08-19, and nothing replayed migrations there. So a migration
+      # merged green, this lane went green, the live-definition witness above
+      # went green — and the change had landed on a database the app no longer
+      # reads. CI could not see it because CI was only ever looking at hosted.
+      #
+      # MEASURED 2026-09-01 by sovereign-drift: 28 migrations missing from the
+      # live database. It surfaced as Darrell's Properties tab being unable to
+      # load at all — 0150-0161 were among the 28, so rental_tenancies did not
+      # exist and rentals had no showcase_order column. Also 0164-0166, the
+      # Road-to-150 food log. Twelve days, every gate green.
+      #
+      # This step closes it at the SOURCE rather than by remembering to run a
+      # backfill: the same merge that applies a migration to hosted now lands it
+      # on the sovereign database too, so the two can never diverge again.
+      #
+      # It rides the SAME RECORD the deploy rides — infra/nas-supabase/
+      # REPOINT-ARMED. One source of truth for "which database is live", so the
+      # migration lane and the deploy cannot disagree about it; reverting that
+      # file turns both back together.
+      #
+      # if: always() — a hosted failure must NOT leave the live database behind.
+      # The step reports its own before/after ledger and goes red on a real
+      # break, and the run's overall status still reflects both halves.
+      - name: Land the same migrations on the SOVEREIGN database (repoint armed only)
+        if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Replay onto the sovereign database
+        if: ${{ always() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/sovereign-replay-over-tailnet.sh
+
       - name: Dispatch the isolation proofs (all features, one matrix)
         if: success()
         env:

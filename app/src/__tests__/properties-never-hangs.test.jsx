@@ -45,15 +45,24 @@ vi.mock('../modules/properties/cloud.js', async (importOriginal) => {
       reason: 'read-failed',
       error: 'relation "public.rental_tenancies" does not exist',
     }));
+  // 'starve': the claim never answers, while the real reads answer after 4s —
+  // inside a read's OWN ceiling, hopeless inside the leftovers of a shared one.
+  const slow = (v) => () => (H.mode === 'starve'
+    ? new Promise((res) => setTimeout(() => res(v), 4000))
+    : answer());
+  const doorsRow = {
+    id: 'd1', rental_ref: 'r-1003koehn', property_label: '1003 Koehn Dr',
+    unit_label: '', status: 'active', tenant_name: 'Tenant', monthly_rent: 900,
+  };
   return {
     ...actual,
-    claimPropertyAccess: answer,
-    loadMyDoors: answer,
-    loadMyGrants: answer,
-    loadMyHousehold: answer,
-    loadMyRentals: answer,
-    loadAllPhotos: answer,
-    loadPublicVacancies: answer,
+    claimPropertyAccess: () => (H.mode === 'starve' ? new Promise(() => {}) : answer()),
+    loadMyDoors: slow({ ok: true, doors: [doorsRow] }),
+    loadMyGrants: slow({ ok: true, grants: [], byScope: {}, roleLabel: null }),
+    loadMyHousehold: slow({ ok: true, memberships: [] }),
+    loadMyRentals: slow({ ok: true, rentals: [] }),
+    loadAllPhotos: slow({ ok: true, photos: [] }),
+    loadPublicVacancies: slow({ ok: true, vacancies: [] }),
   };
 });
 
@@ -68,10 +77,11 @@ afterEach(() => {
   H.mode = 'hang';
 });
 
-// Ride past the shared boot deadline in steps, letting each stage's promise
-// continuation run in between.
+// Ride past every stage's ceiling in steps, letting each stage's promise
+// continuation run in between. Each stage now holds its OWN deadline (the
+// starvation fix), so the worst case is the sum of them, not one shared budget.
 async function settle() {
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 20; i++) {
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
   }
 }
@@ -122,6 +132,28 @@ describe('the Properties tab always resolves', () => {
 
     expect(container.textContent).not.toContain('Places to Live');
     expect(container.textContent).toContain('could not be reached');
+  });
+
+  it('a slow claim never starves the reads into a false "not-reached"', async () => {
+    // THE BOUND BECAME THE BUG. boot() first spent ONE 6s budget across all
+    // three stages. claimPropertyAccess() runs first, so when it stalled ~5s on
+    // supabase-js's auth-lock acquire (lockAcquireTimeout is 5000ms in 2.106),
+    // the four spine reads inherited ~1s and every one reported 'not-reached' —
+    // reads that would have answered fine. That is precisely the card Darrell
+    // saw on 2026-09-01 while site-health measured poetech.us/sb/auth/v1/health
+    // at 200 from the public internet in the same window.
+    //
+    // Here the claim hangs forever and the reads answer after 4s — comfortably
+    // inside a read's own ceiling, hopeless inside the leftovers of a shared one.
+    H.mode = 'starve';
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    await mount();
+    await settle();
+
+    // The doors arrived, so no error card and no renter storefront.
+    expect(container.textContent).not.toContain('could not be reached');
+    expect(container.textContent).not.toContain('Places to Live');
+    expect(container.textContent).toContain('Koehn');
   });
 
   it('names what the database actually said, and never invents a cause', async () => {
