@@ -48,6 +48,7 @@ import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
+import { boundedRead, deadlineIn } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
@@ -87,7 +88,7 @@ function DoorContext({ rental, tenancy, data = {}, onChange, onGo, tabs = [], ac
     return (
       <div className="border-l-2 border-[#B8860B] bg-white px-3 py-2 mb-3">
         <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
-          <strong>No property selected.</strong> What is below is not empty \u2014 it is not pointed at
+          <strong>No property selected.</strong> What is below is not empty — it is not pointed at
           anything yet.
           {canPick && ' Choose a door and this page fills in.'}
         </p>
@@ -238,15 +239,29 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // tenancy nor an owned door, so the front door is never a blank space.
   const [vacancies, setVacancies] = useState([]);
   const [notice, setNotice] = useState('');
+  // Did the spine reads actually come back? An empty portfolio and an unreachable
+  // one look IDENTICAL in the rows ([] either way) and must never look identical
+  // on the page — see the render gate below (DR-0076).
+  const [unreached, setUnreached] = useState(false);
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
   //    is safe on every open and is what turns "invited" into "recognized".
+  //
+  //    EVERY await here is BOUNDED (boundedRead). Unbounded, a single frozen
+  //    poetech.us tab holding supabase-js's cross-tab auth lock left this
+  //    function suspended forever with setLoading(false) unreachable, and the
+  //    tab sat on "Opening your properties..." until it was closed — nothing
+  //    rendered to tap, so nothing in the app could recover it (2026-09-01).
   const boot = useCallback(async () => {
     setLoading(true);
-    const claimed = await claimPropertyAccess();
+    // ONE ceiling for the whole boot, spent down across all three stages, so the
+    // page resolves inside it however many round trips this grows to.
+    const left = deadlineIn();
+    const claimed = await boundedRead(claimPropertyAccess(), left());
     setClaim(claimed);
     const [d, g, h, r] = await Promise.all([
-      loadMyDoors(), loadMyGrants(), loadMyHousehold(), loadMyRentals(),
+      boundedRead(loadMyDoors(), left()), boundedRead(loadMyGrants(), left()),
+      boundedRead(loadMyHousehold(), left()), boundedRead(loadMyRentals(), left()),
     ]);
     setDoors(d.ok ? d.doors : []);
     setGrants(g.ok ? g.grants : []);
@@ -255,9 +270,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // row is itself proof of instance membership (rentals_select USING
     // user_in_instance) — so this is also what tells us he is the landlord.
     setRentals(r.ok ? r.rentals : []);
-    const [ph, vac] = await Promise.all([loadAllPhotos(), loadPublicVacancies()]);
+    const [ph, vac] = await Promise.all([
+      boundedRead(loadAllPhotos(), left()), boundedRead(loadPublicVacancies(), left()),
+    ]);
     setDoorPhotos(ph.ok ? ph.photos : []);
     setVacancies(vac.ok ? vac.vacancies : []);
+    // The four spine reads decide WHICH face renders. `claim` is excluded on
+    // purpose: claim_property_access legitimately answers 'not-enabled-yet'
+    // before 0150 applies, and that is not a failure to reach anything.
+    setUnreached([d, g, h, r].some((x) => !x.ok));
     setLoading(false);
   }, []);
   useEffect(() => { boot(); }, [boot]);
@@ -537,6 +558,38 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // place; they are staff waiting on an assignment. Being handed a renter's
   // greeting is the same dead-end the landlord hit on d44484d, one role over:
   // the render asked what rows they HAVE instead of what they may DO.
+  // An unreachable portfolio is NOT an empty one, and must never be drawn as one.
+  // Without this gate a landlord whose reads timed out fell straight through to
+  // the prospective-renter card below and was told his own properties were a
+  // place he might like to live. The rows are [] in both cases; only `unreached`
+  // knows the difference, so only `unreached` can keep the page honest (DR-0076).
+  // Shown ONLY when there is genuinely nothing to draw — a partial failure still
+  // renders the real doors we did get, which beats an error page over real data.
+  if (unreached && !doors.length && !rentals.length && !grants.length) {
+    return (
+      <div className="p-4" style={serif}>
+        <div className="border-l-2 border-[#B8860B] bg-white px-3 py-2" role="status">
+          <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
+            <strong>Your properties could not be reached.</strong> This is not an empty
+            portfolio — it is a page that did not get an answer, so nothing below it
+            would be true. Your records are untouched.
+          </p>
+          <p className="mt-1 text-[0.75rem] text-[#5A5751] leading-relaxed">
+            This usually clears on its own. If it keeps happening, closing your other
+            poetech.us tabs is the fastest fix — a frozen tab can hold the sign-in
+            lock this page waits on.
+          </p>
+          <button
+            type="button"
+            onClick={boot}
+            className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+            style={{ color: ACCENT }}
+          >Try again</button>
+        </div>
+      </div>
+    );
+  }
+
   if (!doors.length && !rentals.length && !grants.length) {
     return <PlacesToLive vacancies={vacancies} claim={claim} />;
   }
