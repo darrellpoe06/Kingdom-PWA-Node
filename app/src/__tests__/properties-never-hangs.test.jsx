@@ -39,8 +39,12 @@ vi.mock('../lib/supabase.js', () => ({
 vi.mock('../modules/properties/cloud.js', async (importOriginal) => {
   const actual = await importOriginal();
   const answer = () => (H.mode === 'hang'
-    ? new Promise(() => {})                      // never settles — the frozen-tab lock
-    : Promise.resolve({ ok: false, reason: 'read-failed' }));
+    ? new Promise(() => {})                      // never settles
+    : Promise.resolve({
+      ok: false,
+      reason: 'read-failed',
+      error: 'relation "public.rental_tenancies" does not exist',
+    }));
   return {
     ...actual,
     claimPropertyAccess: answer,
@@ -118,5 +122,27 @@ describe('the Properties tab always resolves', () => {
 
     expect(container.textContent).not.toContain('Places to Live');
     expect(container.textContent).toContain('could not be reached');
+  });
+
+  it('names what the database actually said, and never invents a cause', async () => {
+    // The first version of this card asserted a cause in its copy — "closing
+    // your other poetech.us tabs is the fastest fix, a frozen tab can hold the
+    // sign-in lock". That guess was WRONG (the real cause was 28 migrations
+    // never replayed to the sovereign database), and because it read as
+    // confident advice it sent Darrell chasing browser tabs for 90 minutes
+    // while the true reason sat unread in the error the read already returned.
+    // A surface may say it does not know; it may not make something up.
+    H.mode = 'fail';
+    await mount();
+    for (let i = 0; i < 6; i++) await act(async () => { await Promise.resolve(); });
+
+    // The real reason is shown, attributed to the read it came from.
+    expect(container.textContent).toContain('rental_tenancies');
+    expect(container.textContent).toContain('read-failed');
+    expect(container.textContent).toContain('properties');
+
+    // ...and the invented cause is gone for good.
+    expect(container.textContent).not.toMatch(/frozen tab/i);
+    expect(container.textContent).not.toMatch(/closing your other/i);
   });
 });

@@ -243,6 +243,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // one look IDENTICAL in the rows ([] either way) and must never look identical
   // on the page — see the render gate below (DR-0076).
   const [unreached, setUnreached] = useState(false);
+  // Which reads failed and what each one said, so the card can name the cause
+  // instead of guessing at it.
+  const [unreachedWhy, setUnreachedWhy] = useState([]);
 
   // 1. Claim any waiting invitation, THEN read. Claiming is idempotent, so this
   //    is safe on every open and is what turns "invited" into "recognized".
@@ -275,6 +278,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     ]);
     setDoorPhotos(ph.ok ? ph.photos : []);
     setVacancies(vac.ok ? vac.vacancies : []);
+    // WHAT the database actually said, kept and shown. The first version of
+    // this card guessed a cause in its copy ("close your other tabs — a frozen
+    // tab holds the sign-in lock"). The guess was wrong, and because it read as
+    // confident advice it sent Darrell chasing tabs for 90 minutes while the
+    // real answer — 28 migrations, 0150-0161 among them, never replayed to the
+    // sovereign database, so rental_tenancies does not exist and rentals has no
+    // showcase_order column — was sitting in the error the read already
+    // returned and this surface threw away. A surface that invents a cause is
+    // worse than one that admits it does not know: show the reason, name the
+    // read, and let it be diagnosable (DR-0076 §8, provenance).
+    const failures = [
+      ['doors', d], ['grants', g], ['household', h], ['properties', r],
+    ].filter(([, x]) => !x.ok)
+     .map(([what, x]) => ({ what, reason: x.reason || 'unknown', detail: x.error || '' }));
+    setUnreachedWhy(failures);
     // The four spine reads decide WHICH face renders. `claim` is excluded on
     // purpose: claim_property_access legitimately answers 'not-enabled-yet'
     // before 0150 applies, and that is not a failure to reach anything.
@@ -574,11 +592,25 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             portfolio — it is a page that did not get an answer, so nothing below it
             would be true. Your records are untouched.
           </p>
-          <p className="mt-1 text-[0.75rem] text-[#5A5751] leading-relaxed">
-            This usually clears on its own. If it keeps happening, closing your other
-            poetech.us tabs is the fastest fix — a frozen tab can hold the sign-in
-            lock this page waits on.
-          </p>
+          {unreachedWhy.length > 0 ? (
+            <div className="mt-2">
+              <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-1">
+                What the database said, so this can be fixed rather than guessed at:
+              </p>
+              <ul className="text-[0.6875rem] text-[#5A5751] leading-relaxed font-mono">
+                {unreachedWhy.map((f) => (
+                  <li key={f.what}>
+                    <strong>{f.what}</strong>: {f.reason}{f.detail ? ` — ${f.detail}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-1 text-[0.75rem] text-[#5A5751] leading-relaxed">
+              The reads came back without saying why. Try again, and if it keeps
+              happening this needs looking at from the server side.
+            </p>
+          )}
           <button
             type="button"
             onClick={boot}
