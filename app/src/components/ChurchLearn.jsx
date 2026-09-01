@@ -2283,6 +2283,58 @@ export default function ChurchLearn({
           </div>
         )}
 
+        {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
+            with sorts and dropdowns") — 18 courses as a wall of buttons made the
+            reader scroll past everything; a grouped NATIVE select opens the
+            phone's own picker in one tap, with the Deep-Processing family in its
+            own group and a sort control. Groups + counts derive live from the
+            mounted courses (lib/learn-organize.js, DR-0121).
+
+            IT SITS FIRST, AND IT LOOKS LIKE A CONTROL (Darrell 2026-09-01, with
+            two screenshots of the live church door): "The courses drop-down
+            should be at the top.... obvious for users." It had drifted BELOW the
+            browse shelf, and that shelf is capped at 55vh — so on a phone the
+            picker was pushed a full screen under the fold and the reader met 401
+            lessons before ever seeing the way to pick one course. Two changes,
+            both about being SEEN: it renders before the finder, and its label is
+            a real heading instead of 10px of grey uppercase. Same control, same
+            derived groups — only the order and the weight changed. Order is
+            pinned by learn-course-picker-first.test.jsx. */}
+        {courses.length > 1 && !lessonFocus && (
+          <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
+            <div className="grow min-w-[14rem]">
+              <label htmlFor="learn-course-pick" className="block text-xs uppercase tracking-wider text-[#1A1815] font-semibold mb-1">Choose a course</label>
+              <select
+                id="learn-course-pick"
+                value={active.key}
+                onChange={(e) => setActiveKey(e.target.value)}
+                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
+              >
+                {organizeCourses(courses, courseSort).map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.courses.map((c) => (
+                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
+              <select
+                id="learn-course-sort"
+                value={courseSort}
+                onChange={(e) => setCourseSort(e.target.value)}
+                className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
+              >
+                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
             and review the available lessons... not obvious how to find a lesson
             unless you already know the course it is in") — one search box over
@@ -2378,46 +2430,6 @@ export default function ChurchLearn({
           );
         })()}
 
-        {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
-            with sorts and dropdowns") — 18 courses as a wall of buttons made the
-            reader scroll past everything; a grouped NATIVE select opens the
-            phone's own picker in one tap, with the Deep-Processing family in its
-            own group and a sort control. Groups + counts derive live from the
-            mounted courses (lib/learn-organize.js, DR-0121). */}
-        {courses.length > 1 && !lessonFocus && (
-          <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
-            <div className="grow min-w-[14rem]">
-              <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Choose a course</label>
-              <select
-                id="learn-course-pick"
-                value={active.key}
-                onChange={(e) => setActiveKey(e.target.value)}
-                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                style={{ fontFamily: '"Fraunces", serif' }}
-              >
-                {organizeCourses(courses, courseSort).map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.courses.map((c) => (
-                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
-              <select
-                id="learn-course-sort"
-                value={courseSort}
-                onChange={(e) => setCourseSort(e.target.value)}
-                className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                style={{ fontFamily: '"Fraunces", serif' }}
-              >
-                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
-              </select>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ONE PLACE TO LOOK — THE LESSONS BAR.
