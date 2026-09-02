@@ -1,4 +1,4 @@
-# Living Lesson L114 — Meek and Quiet Strength
+# Living Lesson L115 — Meek and Quiet Strength
 
 **Date:** 2026-09-02
 **Branch:** `claude/biblical-femininity-quiet-strength-4xsef8`
@@ -53,8 +53,8 @@ This teaching is routinely used to keep someone silent where she is not safe. Th
 
 | File | Change |
 | --- | --- |
-| `app/src/lib/living-lessons-class.js` | New module `ll114-meek-and-quiet-strength-…` appended to `LIVING_LESSONS_MODULES`: `bigIdea` (8 movements + THE WHOLE OF IT), `inApp` practice, `anchor` (1 Peter 3:4; Isaiah 30:15; Numbers 12:3), 7 `benefits`, `levels.child/teen/senior`, 6 quiz questions, facilitator (10 talking points, `howToRun`, 6 discussion prompts). `LIVING_LESSONS_META.weeks` 112 → 113 to match the real module count. |
-| `app/src/__tests__/living-lessons-l114-verses.test.js` | New gate, 78 assertions. |
+| `app/src/lib/living-lessons-class.js` | New module `ll115-meek-and-quiet-strength-…` appended to `LIVING_LESSONS_MODULES`: `bigIdea` (8 movements + THE WHOLE OF IT), `inApp` practice, `anchor` (1 Peter 3:4; Isaiah 30:15; Numbers 12:3), 7 `benefits`, `levels.child/teen/senior`, 6 quiz questions, facilitator (10 talking points, `howToRun`, 6 discussion prompts). `LIVING_LESSONS_META.weeks` 113 → 114 to match the real module count. |
+| `app/src/__tests__/living-lessons-l115-verses.test.js` | New gate, 78 assertions. |
 
 It rides the existing Learn engine — no new machinery, self-paced, age-branching and tutor wiring unchanged.
 
@@ -66,8 +66,16 @@ It rides the existing Learn engine — no new machinery, self-paced, age-branchi
 - **The gate caught a real content gap in authoring.** First run failed on the teen level: it lacked the meek-is-not-weak proof. Fixed in the **content** (Numbers 12:3 / Matthew 11:29 / John 2:15 added to the teen band), not by loosening the test.
 - **Typography.** Zero generic "God" and zero capitalized adversary names in our own authored voice (quoted Scripture untouched, per DR-0076 §bright-line); 25 uses of Yahweh.
 - **Child-level content screen.** Asserted free of the tent nail, the hammer, Jael, the strange woman, the marriage frame and deceit, while still teaching both words.
-- **Suites run:** `living-lessons-l114-verses` (78) + `living-lessons-age-appropriateness` (12) + `living-lessons-research-integrity` (2) — 92 passed. `npm run lint` clean.
+- **Suites run:** `living-lessons-l115-verses` (78) + `living-lessons-age-appropriateness` (12) + `living-lessons-research-integrity` (2) — 92 passed. `npm run lint` clean.
 
 ## Perpetual improvement (DR-0075)
 
 No parked items. One note for a future pass, no `re-review:` date needed because it is not a defect: the Greek behind *meek* (praus) and *quiet* (hesychios) is deliberately **not** asserted in the lesson — the repo's Strong's index is derived from `study-edition.js` word studies and carries no entry for 1 Peter 3:4, and DR-0076 forbids shipping a lexical claim on model memory. The lesson makes its case entirely from the KJV's own English usage, which is the stronger argument anyway. If a verified word study for 1 Peter 3:4 is ever added to the Study Edition, the lesson can cite it then.
+
+## Renumbered L114 → L115 (merge conflict with #1427)
+
+Shipped first as L114. While CI ran, PR #1427 merged its own **L114 — "What makes having you better?"** (covenant vs contract), captured the same day from a different clip Darrell brought in. Both appended at the end of `LIVING_LESSONS_MODULES` and both added a file named `living-lessons-l114-verses.test.js`, so main and this branch collided on an add/add plus a content conflict, and GitHub reported `mergeable_state: dirty`.
+
+Resolved by taking main whole and re-splicing this module after theirs: id `ll115-…`, test file `living-lessons-l115-verses.test.js`, `weeks` 113 → 114 (the real count, not a painted one). The facilitator `howToRun` recap was re-pointed from L113 to **L114** so it names the lesson that now actually precedes this one — a detail the merge would not have caught and that would have read wrong to a facilitator in the room.
+
+Both gates pass side by side after the resolution: L114 (67) + L115 (78) + L113 (69) + age-appropriateness (12) + research-integrity (2) = 228.
