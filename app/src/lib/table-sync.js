@@ -490,7 +490,12 @@ export function createTableSync(spec) {
           // while it was down — catch up with a fresh fetch.
           if (shouldResyncOnStatus(status, statusState) && !cancelled) refresh();
         });
-    })();
+    // Nothing awaits this IIFE, so anything it throws would surface as an
+    // UNHANDLED REJECTION rather than a handled failure — noise in CI and, in
+    // the browser, an error the surface never asked for. Sync is best-effort by
+    // contract (local-first; the courier is optional), so a failure here is
+    // logged and the surface keeps working on its device-local records.
+    })().catch((e) => { console.warn(`[table-sync] ${remoteTable} subscribe failed:`, e); });
     return function unsubscribe() {
       cancelled = true;
       debouncedRefresh.cancel();
