@@ -17,6 +17,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 // The chainable stub: from().select().order().limit() resolving to whatever the
 // test arms. Mocked BEFORE the component import so its module-level client is
 // this one.
+// The Plan tab renders the plan document AND the Legacy Provisions system
+// (DR-0320), so the stub must cover what the composed surface really touches:
+// the plan fetch, and the auth seam every table-sync consults before it syncs.
+// Signed out (session: null) is the honest default here — the provisions
+// surface then runs on its device-local records, exactly as it does offline.
 const armed = { data: [], error: null };
 vi.mock('../lib/supabase.js', () => ({
   default: {
@@ -27,6 +32,12 @@ vi.mock('../lib/supabase.js', () => ({
         }),
       }),
     }),
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    },
+    channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+    removeChannel: () => {},
   },
 }));
 

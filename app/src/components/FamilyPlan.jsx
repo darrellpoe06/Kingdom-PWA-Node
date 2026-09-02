@@ -13,6 +13,14 @@
 // that (DR-0076).
 import React, { useEffect, useState } from 'react';
 import supabase from '../lib/supabase.js';
+import LegacyProvisions from './LegacyProvisions.jsx';
+import { aboutFor } from '../lib/surface-help.js';
+
+// LIGHT inline self-explanation — declared centrally in surface-help.js so the
+// Help-freshness gate can verify the DEEP Help entry (help-content.js
+// 'books:plan') stays current with it. Two tiers: this stays short, Help carries
+// the depth (Darrell 2026-07-01).
+const PLAN_ABOUT = aboutFor('books:plan');
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -106,7 +114,7 @@ function PlanTable({ columns, rows, caption, totals }) {
   );
 }
 
-function FamilyPlan() {
+function PlanDocument() {
   const [state, setState] = useState({ loading: true, plan: null, title: '', updatedAt: null, error: null });
 
   useEffect(() => {
@@ -340,5 +348,46 @@ function FamilyPlan() {
   );
 }
 
-export { FamilyPlan };
+// The Plan tab carries BOTH: the written plan (whatever the newest family_plans
+// row holds) AND the Legacy Provisions system — the family trust's three
+// provisions as a working surface (Darrell 2026-09-02). The provisions render
+// whether or not a plan row exists, because PlanDocument's early returns are
+// about the DOCUMENT, and the trust system is not the document.
+function PlanAbout() {
+  const [open, setOpen] = useState(false);
+  if (!PLAN_ABOUT) return null;
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4]">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2 px-3 py-2 text-[0.625rem] text-[#5A5751] focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+        style={serif}
+      >
+        <span className="uppercase tracking-[0.2em]">About this{open ? '' : ' — what it is, where the data comes from, how it works'}</span>
+        <span className="ml-auto">{open ? '\u25BE' : '\u25B8'}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2 text-xs leading-relaxed text-[#1A1815]" style={serif}>
+          <p>{PLAN_ABOUT.what}</p>
+          <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">Source</span> — {PLAN_ABOUT.where}</p>
+          <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">How it works</span> — {PLAN_ABOUT.how}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FamilyPlan() {
+  return (
+    <div className="space-y-4">
+      <PlanAbout />
+      <PlanDocument />
+      <LegacyProvisions />
+    </div>
+  );
+}
+
+export { FamilyPlan, PlanDocument };
 export default FamilyPlan;
