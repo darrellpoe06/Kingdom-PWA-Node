@@ -35,6 +35,7 @@ import { DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW, buildDatasystemsSchedule, d
 import { SUCCESSION_META, SUCCESSION_SESSION_FLOW, buildSuccessionSchedule, successionProgressSummary, exportSuccessionCurriculumMarkdown, SUCCESSION_INTEREST_TAG, SUCCESSION_HELPER_TAG, SUCCESSION_TUTOR_META } from './succession-class.js';
 import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, exportEconCurriculumMarkdown, ECON_INTEREST_TAG, ECON_HELPER_TAG, ECON_TUTOR_META } from './economics-class.js';
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
+import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
@@ -203,6 +204,20 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want to take Handed Forward — the succession course for the next generation. We hand you the mission, not our path: know the God of your father, learn to read the real books, and build what we could not. Self-paced, at any age.',
       cta: 'I want to learn',
       sent: '✓ Sent — Darrell will see you’re in. We hand it forward.',
+    },
+  },
+  {
+    key: 'legacy-provisions', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...LEGACY_PROVISIONS_META, key: 'legacy-provisions', category: 'Kingdom Life & Stewardship' }, sessionFlow: LEGACY_PROVISIONS_SESSION_FLOW,
+    buildScheduleRows: () => buildLegacyProvisionsSchedule(null), progressSummary: (p) => legacyProvisionsProgressSummary(p),
+    exportMarkdown: () => exportLegacyProvisionsCurriculumMarkdown(null), downloadName: 'secure-the-legacy-provisions-curriculum.md',
+    interestTag: LEGACY_PROVISIONS_INTEREST_TAG, helperTag: LEGACY_PROVISIONS_HELPER_TAG, tutorCourseMeta: LEGACY_PROVISIONS_TUTOR_META,
+    interestText: (who) => `${LEGACY_PROVISIONS_INTEREST_TAG} ${who} wants help setting up the three provisions for their own house.`,
+    interestCopy: {
+      heading: 'Want the provisions for your own house?',
+      blurb: 'Tell Darrell you want to work the three provisions for your family — the constitution the trust points at, the spendthrift wall, and produce-before-you-take. The whole course is free and open right here; this is for a hand with your own. Teaching, not legal advice — your attorney drafts the instrument.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. Principles travel with the money, or the money leaves.',
     },
   },
   {

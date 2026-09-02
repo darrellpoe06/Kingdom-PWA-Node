@@ -164,6 +164,22 @@ export const HELP = {
     why: 'Reconstructing contractor pay in January is painful. Tracking it as you go makes tax season a lookup instead of a scramble.',
     section: 'money',
   },
+  'books:plan': {
+    title: 'Plan',
+    tag: 'The written family plan — and the three trust provisions that hold it.',
+    what: 'Plan carries two things. First, your family financial plan in plain words: the strategy, then every worksheet behind it — debts, the monthly budget, the cash plan, payoff checkpoints, the bill calendar. Second, the Legacy Provisions system: the family constitution your trust points at, the spendthrift review, and the produce-before-you-take ledger. Only your own family can see either one.',
+    how: [
+      'Read the plan top to bottom — the wording first, then the tables it rests on.',
+      'Open Constitution to read each article, and attest to the ones you have read. What nobody has attested shows as unattested.',
+      'Open The wall to answer the spendthrift review questions for your house. An unanswered question reads as unknown, never as protection.',
+      'Open Produce before you take to add each beneficiary and record what actually happened — contributions, distributions, exemptions. Leave the amount blank when nothing was costed.',
+      'Copy the constitution or the three provisions to take to your attorney, or to start your own house’s version.',
+    ],
+    why: 'Money handed down without principles handed down with it usually does not survive to the grandchildren. The plan says where you stand today; the provisions decide whether any of it reaches the generation after you. Every status here is computed from real records — an empty ledger says no record, never a passing score.',
+    when: 'Read the plan when you want the whole money picture in one place. Work the provisions when you are drafting or reviewing a trust, forming an heir, or deciding on a distribution.',
+    more: 'The full teaching is a free course in Church → Learn — “Secure the Legacy: The Provisions That Hold” — six self-paced lessons at any age, covering what each provision does and, just as important, what it does NOT do. This surface and that course are teaching and a family operating system, not legal advice: trust law is state-specific, a spendthrift clause is strong but not absolute, and a licensed estate attorney in your own state drafts and executes the instrument.',
+    section: 'money',
+  },
   'books:calendar': {
     title: 'Money Calendar',
     tag: 'Bills, income, and events laid out by date.',
