@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** B — a new free course in an existing catalog, a new system mounted inside an existing tab (zero shell lines), and one new table that auto-applies on merge (DR-0084). No front-door change, no money moves, no new identity claim.
-- **Scope:** `app/src/lib/legacy-provisions-course.js`, `lib/family-trust.js`, `lib/family-trust-store.js`, `lib/family-trust-sync.js`, `lib/learn-catalog.js` (registration), `lib/table-sync.js` (unhandled-rejection hardening), `components/LegacyProvisions.jsx`, `components/FamilyPlan.jsx` (mount), migration `0167` (`family_trust_records`), tests `legacy-provisions-course.test.js`, `family-trust.test.js`, `legacy-provisions-render.test.jsx`
+- **Scope:** `app/src/lib/legacy-provisions-course.js`, `lib/family-trust.js`, `lib/family-trust-store.js`, `lib/family-trust-sync.js`, `lib/learn-catalog.js` (registration), `lib/table-sync.js` (unhandled-rejection hardening), `components/LegacyProvisions.jsx`, `components/FamilyPlan.jsx` (mount + the light about), `lib/surface-help.js` + `lib/help-content.js` (`books:plan`), migration `0167` (`family_trust_records`), tests `legacy-provisions-course.test.js`, `family-trust.test.js`, `legacy-provisions-render.test.jsx`
 - **Date:** 2026-09-02
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076), NO-STATIC-DATA (DR-0121), REALITY-TRACE (DR-0061), APP-IS-PRIMARY (DR-0065), SPOKEN-TEACHINGS-ARE-BUILD-INPUT, COMMUNITY-FIRST-MISSION, WORD-FIRST (DR-0127 / DR-0282)
 
@@ -117,4 +117,27 @@ only this one.
 
 - The in-app **adopt** flow is copy-to-clipboard today (`adoptConstitution` exists and is tested; no UI writes another family's articles yet) — **re-review: 2026-10-02**.
 - The **beneficiary roster** is device-local and unioned with whoever the synced entries name; a roster row of its own would let a family name an heir before any entry exists — **re-review: 2026-10-02**.
-- A **Help** entry for the surface (`surface-help.js` / `help-content.js`) — the surface self-explains inline today — **re-review: 2026-09-16**.
+## The support layer, asked for in the same session
+
+Darrell, mid-build: *"also the support system for the PoeTech App?"* — and the
+Plan tab turned out to have **no Help entry at all**, before the provisions were
+added to it. So the two-tier support layer now covers it: a LIGHT inline "About
+this" on the surface (declared centrally in `surface-help.js` so the freshness
+gate can see it) and the DEEP entry in `help-content.js` under `books:plan`,
+reconciled by `help-freshness --sync`. That entry carries both halves of the tab
+— the written plan and the three provisions — the concrete steps for each
+section, the honest "an unanswered question reads as unknown, never as
+protection," and the pointer to the free course. Support for a family working
+these provisions is therefore three things that already exist and are wired:
+the Help entry, the course's Ari tutor (`LEGACY_PROVISIONS_TUTOR_META`, posture:
+never give legal advice), and the "I want help with mine" interest capture that
+reaches Darrell through the normal feedback pipe.
+
+The OTHER support system — the Governed Support Door (DR-0223, the audited
+break-glass grant) — is deliberately **not** extended here. `SUPPORTABLE_TYPES`
+in `support-access.js` names five non-PHI resource types and a family's trust
+ledger is not among them, so no specialist can break-glass into it, and the
+0114 RPC enforces that server-side regardless of the client. A family's
+constitution attestations, its distributions and its production standing stay
+inside the family. That is the correct default, and changing it would be its
+own decision.
