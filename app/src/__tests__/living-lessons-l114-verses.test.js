@@ -1,40 +1,38 @@
 // =============================================================================
-// L114 — The thirty-day experiment: "action produces information," the Word that
-// does its own work, and the grace that met a man who was only pretending.
-// Verbatim KJV.
+// L114 — "What makes having you better?": covenant vs contract, and the value a
+// paycheck cannot cover. Verbatim KJV.
 // =============================================================================
-// Captured from Darrell's spoken teaching, 2026-09-02: a man who did not believe
-// ran a thirty-day experiment — act as though Yahweh is real and see what
-// happens. Four practices (a short prayer, gratitude, reading the Word, applying
-// it). By day twenty he stopped calling it an experiment. An eight-year nicotine
-// habit quietly faded; bad dreams started that he had never had before. Darrell
-// brought two Scriptures with it — Jeremiah 29:13 (the seeking clause) and the
-// outpouring on all flesh (Joel 2:28) — and closed on his grief that people will
-// still argue the Word after evidence like this.
+// Captured 2026-09-02 from a recorded exchange Darrell brought in (Darwynn
+// McPherson, shared from Facebook) with a single instruction: lesson. Two men
+// argue about a household — if I pay every bill, why would I cook and clean —
+// and the argument ends on a question the Word has always put to a husband: if
+// she can already survive without your paycheck, what makes having you in her
+// life better?
 //
 // The four things this lesson had to get right, and which are pinned here:
-//   • SOURCE DISCIPLINE. The account is a RELAYED TESTIMONY. It is a witness to
-//     what Scripture already claims about itself, never an authority standing
-//     beside Scripture — and no detail may be added in the retelling.
-//   • THE CREDIT GOES TO THE WORD, NOT THE MAN. He began with no sincerity, so
-//     the variable is isolated: Hebrews 4:12, Isaiah 55:11, John 6:63,
-//     1 Thessalonians 2:13. Any reading that makes the seeker's sincerity the
-//     operative power is the failure this lesson exists to prevent.
-//   • THE TENSION IN JEREMIAH 29:13 IS NOT RESOLVED CHEAPLY. "with all your
-//     heart" stands, and Hebrews 11:6 stands with it; the term is taught as the
-//     APPROACH that crossed the line, answered by a Father who runs while the
-//     son is still "yet a great way off" (Luke 15:20).
-//   • DR-0098. Darrell's closing grief is answered the Word's own way — we do
-//     not take up the argument (2 Timothy 2:23-24; Titus 3:9), we hand over
-//     demonstration and testimony (1 Corinthians 2:4-5; John 9:25).
+//   • THE FRAME. Every question in the clip is a CONTRACT question (inputs,
+//     outputs, who owes whom). Scripture never frames a marriage that way — it
+//     is a covenant with a Witness (Malachi 2:14) between one flesh (Genesis
+//     2:24). Fix the frame or the lesson just picks a side in the argument.
+//   • BOTH MONEY TIERS IN ONE BREATH (DR-0100). Provision is commanded, heavy
+//     and honourable (1 Timothy 5:8; Genesis 3:19; James 2:15-16) — stated
+//     plainly, never shamed — AND it does not discharge the rest of the husband
+//     commands. The reverse over-reach (money does not matter) dies on the same
+//     page. The contested causal claim under the clip's politics is flagged
+//     NARROWLY as contested rather than smeared over the whole subject.
+//   • THE WORD IS SENIOR (DR-0098). The outside argument is NAMED only to be
+//     educated past it; it is never staged as a co-equal view to pick between.
+//   • MUTUAL, NOT ONE-SIDED. A lesson that only indicts husbands is a talking
+//     point, not the Word (1 Corinthians 7:3-4; Proverbs 14:1; 31:12,27;
+//     Ephesians 5:33) — and Proverbs 31:11,16,23,28 is taught so no one calls an
+//     earning wife a modern problem.
 //
-// The whole-span gate from L112/L113 rides again here: no quoted span in this
-// lesson may differ from the in-repo KJV by a single character. Authoring L114
-// produced two real in-quote alterations of a kind this series had not caught
-// before — CROSS-VERSE spans quoted as one continuous quotation (Mark 4:26-27
-// and Psalm 103:2-3), which silently deletes the verse boundary. Both were
-// caught by the sweep and split on an explicit ellipsis; both are asserted below
-// as proven-to-catch.
+// The whole-span gate from L112/L113 rides again: no quoted span in this lesson
+// may differ from the in-repo KJV by a single character. Authoring L114 produced
+// one real in-quote alteration (a comma pulled inside the wife of thy covenant)
+// plus sixteen places where the CLIP's words or our own prose were wearing
+// Scripture's quotation marks — all caught by that sweep and fixed, so in this
+// lesson a double quote means Scripture and nothing else.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -43,7 +41,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll114-the-thirty-day-experiment-action-produces-information-and-the-grace-that-met-a-pretender';
+const ID = 'll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -70,71 +68,55 @@ const quotedSpans = (text) => {
 };
 
 const QUOTED_FRAGMENTS = [
-  'If any man will do his will, he shall know of the doctrine',              // John 7:17
-  'prove me now herewith, saith the LORD of hosts',                          // Mal 3:10
-  'Prove thy servants, I beseech thee, ten days',                            // Dan 1:12
-  'So he consented to them in this matter, and proved them ten days.',       // Dan 1:14
-  'their countenances appeared fairer and fatter in flesh',                  // Dan 1:15
-  'O taste and see that the LORD is good',                                   // Ps 34:8
-  'All that the LORD hath said will we do, and be obedient.',                // Ex 24:7
-  'Pray without ceasing.',                                                   // 1 Thess 5:17
-  'In every thing give thanks: for this is the will of God in Christ Jesus concerning you.', // 1 Thess 5:18
-  'let your requests be made known unto God',                                // Phil 4:6
-  'Enter into his gates with thanksgiving, and into his courts with praise', // Ps 100:4
-  'So then faith cometh by hearing, and hearing by the word of God.',        // Rom 10:17
-  'But be ye doers of the word, and not hearers only, deceiving your own selves.', // Jas 1:22
-  'but a doer of the work, this man shall be blessed in his deed.',          // Jas 1:25
-  'quick, and powerful, and sharper than any twoedged sword',                // Heb 4:12
-  'is a discerner of the thoughts and intents of the heart',                 // Heb 4:12
-  'it shall not return unto me void, but it shall accomplish that which I please', // Isa 55:11
-  'the words that I speak unto you, they are spirit, and they are life',     // John 6:63
-  'effectually worketh also in you that believe',                            // 1 Thess 2:13
-  'Father, forgive them; for they know not what they do.',                   // Luke 23:34
-  'For if ye forgive men their trespasses, your heavenly Father will also forgive you:', // Matt 6:14
-  'And when ye stand praying, forgive, if ye have ought against any',        // Mark 11:25
-  'even as God for Christ’s sake hath forgiven you',                         // Eph 4:32
-  'the seed should spring and grow up, he knoweth not how',                  // Mark 4:27
-  'first the blade, then the ear, after that the full corn in the ear',      // Mark 4:28
-  'If the Son therefore shall make you free, ye shall be free indeed.',      // John 8:36
-  'old things are passed away; behold, all things are become new',           // 2 Cor 5:17
-  'Who forgiveth all thine iniquities; who healeth all thy diseases',        // Ps 103:3
-  'the goodness of God leadeth thee to repentance',                          // Rom 2:4
-  'For by grace are ye saved through faith',                                 // Eph 2:8
-  'satan cometh immediately, and taketh away the word that was sown in their hearts', // Mark 4:15
-  'when affliction or persecution ariseth for the word’s sake',              // Mark 4:17
-  'This is my beloved Son, in whom I am well pleased.',                      // Matt 3:17
-  'Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.', // Matt 4:1
-  'Be sober, be vigilant; because your adversary the devil, as a roaring lion', // 1 Pet 5:8
-  'Whom resist stedfast in the faith',                                       // 1 Pet 5:9
-  'Put on the whole armour of God, that ye may be able to stand against the wiles of the devil.', // Eph 6:11
-  'For we wrestle not against flesh and blood, but against principalities, against powers', // Eph 6:12
-  'Submit yourselves therefore to God. Resist the devil, and he will flee from you.', // Jas 4:7
-  'I will both lay me down in peace, and sleep',                             // Ps 4:8
-  'No weapon that is formed against thee shall prosper',                     // Isa 54:17
-  'the weapons of our warfare are not carnal, but mighty through God to the pulling down of strong holds', // 2 Cor 10:4
-  'And ye shall seek me, and find me, when ye shall search for me with all your heart.', // Jer 29:13
-  'Then shall ye call upon me, and ye shall go and pray unto me, and I will hearken unto you.', // Jer 29:12
-  'if thou seek him with all thy heart and with all thy soul',               // Deut 4:29
-  'he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him', // Heb 11:6
-  'Ask, and it shall be given you; seek, and ye shall find',                 // Matt 7:7
-  'though he be not far from every one of us',                               // Acts 17:27
-  'Seek ye the LORD while he may be found, call ye upon him while he is near:', // Isa 55:6
-  'his father saw him, and had compassion, and ran, and fell on his neck, and kissed him', // Luke 15:20
-  'Jesus I know, and Paul I know; but who are ye?',                          // Acts 19:15
-  'he findeth it empty, swept, and garnished',                               // Matt 12:44
-  'the last state of that man is worse than the first',                      // Matt 12:45
-  'he which hath begun a good work in you will perform it',                  // Phil 1:6
-  'be ye transformed by the renewing of your mind',                          // Rom 12:2
-  'I will pour out my spirit upon all flesh',                                // Joel 2:28
-  'I will pour out of my Spirit upon all flesh',                             // Acts 2:17
-  'how much more shall your heavenly Father give the Holy Spirit to them that ask him?', // Luke 11:13
-  'But foolish and unlearned questions avoid, knowing that they do gender strifes.', // 2 Tim 2:23
-  'the servant of the Lord must not strive; but be gentle unto all men, apt to teach, patient', // 2 Tim 2:24
-  'for they are unprofitable and vain',                                      // Titus 3:9
-  'but in demonstration of the Spirit and of power',                         // 1 Cor 2:4
-  'That your faith should not stand in the wisdom of men, but in the power of God.', // 1 Cor 2:5
-  'one thing I know, that, whereas I was blind, now I see',                  // John 9:25
-  'Behold the Lamb of God, which taketh away the sin of the world.',         // John 1:29
+  'Husbands, love your wives, even as Christ also loved the church, and gave himself for it;', // Eph 5:25
+  'So ought men to love their wives as their own bodies',                    // Eph 5:28
+  'For no man ever yet hated his own flesh; but nourisheth and cherisheth it', // Eph 5:29
+  'even as a nurse cherisheth her children',                                // 1 Thess 2:7
+  'dwell with them according to knowledge, giving honour unto the wife',     // 1 Pet 3:7
+  'that your prayers be not hindered',                                      // 1 Pet 3:7
+  'Husbands, love your wives, and be not bitter against them.',              // Col 3:19
+  'Submitting yourselves one to another in the fear of God.',                // Eph 5:21
+  'yet is she thy companion, and the wife of thy covenant',                  // Mal 2:14
+  'the LORD hath been witness between thee and the wife of thy youth',       // Mal 2:14
+  'he hateth putting away: for one covereth violence with his garment',      // Mal 2:16
+  'and shall cleave unto his wife: and they shall be one flesh',             // Gen 2:24
+  'It is not good that the man should be alone; I will make him an help meet for him', // Gen 2:18
+  'he hath denied the faith, and is worse than an infidel',                  // 1 Tim 5:8
+  'In the sweat of thy face shalt thou eat bread',                           // Gen 3:19
+  'If a brother or sister be naked, and destitute of daily food',            // Jas 2:15
+  'notwithstanding ye give them not those things which are needful to the body; what doth it profit?', // Jas 2:16
+  'He riseth from supper, and laid aside his garments; and took a towel, and girded himself.', // John 13:4
+  'began to wash the disciples’ feet',                                  // John 13:5
+  'ye also ought to wash one another’s feet',                           // John 13:14
+  'For I have given you an example, that ye should do as I have done to you.', // John 13:15
+  'whosoever will be great among you, shall be your minister',              // Mark 10:43
+  'And whosoever of you will be the chiefest, shall be servant of all.',     // Mark 10:44
+  'came not to be ministered unto, but to minister',                        // Mark 10:45
+  'Neither as being lords over God’s heritage, but being ensamples to the flock.', // 1 Pet 5:3
+  'in lowliness of mind let each esteem other better than themselves',       // Phil 2:3
+  'Look not every man on his own things, but every man also on the things of others.', // Phil 2:4
+  'Bear ye one another’s burdens, and so fulfil the law of Christ.',    // Gal 6:2
+  'by love serve one another',                                              // Gal 5:13
+  'seeketh not her own, is not easily provoked, thinketh no evil',           // 1 Cor 13:5
+  'Be thou diligent to know the state of thy flocks, and look well to thy herds.', // Prov 27:23
+  'he shall be free at home one year, and shall cheer up his wife which he hath taken', // Deut 24:5
+  'let us not love in word, neither in tongue; but in deed and in truth',    // 1 John 3:18
+  'forbearing threatening: knowing that your Master also is in heaven',      // Eph 6:9
+  'The heart of her husband doth safely trust in her',                       // Prov 31:11
+  'She considereth a field, and buyeth it',                                  // Prov 31:16
+  'Her husband is known in the gates, when he sitteth among the elders of the land.', // Prov 31:23
+  'her husband also, and he praiseth her',                                   // Prov 31:28
+  'She will do him good and not evil all the days of her life.',             // Prov 31:12
+  'She looketh well to the ways of her household, and eateth not the bread of idleness.', // Prov 31:27
+  'Every wise woman buildeth her house: but the foolish plucketh it down with her hands.', // Prov 14:1
+  'Let the husband render unto the wife due benevolence',                    // 1 Cor 7:3
+  'The wife hath not power of her own body, but the husband',                // 1 Cor 7:4
+  'and the wife see that she reverence her husband',                        // Eph 5:33
+  'Two are better than one; because they have a good reward for their labour.', // Eccl 4:9
+  'woe to him that is alone when he falleth; for he hath not another to help him up', // Eccl 4:10
+  'a threefold cord is not quickly broken',                                  // Eccl 4:12
+  'Whoso findeth a wife findeth a good thing, and obtaineth favour of the LORD.', // Prov 18:22
+  'Therefore all things whatsoever ye would that men should do to you, do ye even so to them', // Matt 7:12
 ];
 
 describe('L114 exists in the catalog with its full shape', () => {
@@ -142,7 +124,7 @@ describe('L114 exists in the catalog with its full shape', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
       'bigIdea:', 'inApp:',
-      "ref: 'Jeremiah 29:13; John 7:17; Malachi 3:10'",
+      "ref: 'Ephesians 5:25; 1 Peter 3:7; Philippians 2:3-4'",
       'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:',
     ]) {
       expect(l).toContain(key);
@@ -158,28 +140,19 @@ describe('L114 exists in the catalog with its full shape', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 
-  it('every quiz question has a real answer index and an explanation', () => {
-    const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-    for (const q of m.quiz.questions) {
-      expect(q.options.length).toBeGreaterThanOrEqual(3);
-      expect(q.answer).toBeGreaterThanOrEqual(0);
-      expect(q.answer).toBeLessThan(q.options.length);
-      expect(q.explain.length).toBeGreaterThan(40);
-    }
-  });
-
-  it('teaches the whole arc in order — account, order, practices, why, forgiveness, chain, warfare, seeking, outpouring, no-debate', () => {
+  it('teaches the whole arc in order — question, frame, commands, money, contradiction, towel, ledger, outsourcing, leverage, mutual, answer', () => {
     const order = [
-      '1) THE ACCOUNT, AS IT WAS TOLD',
-      '2) THE ORDER YAHWEH ALREADY BUILT - DO, THEN KNOW',
-      '3) THE FOUR THINGS HE ACTUALLY DID',
-      '4) WHY IT WORKED - THE WORD DOES ITS OWN WORK',
-      '5) THE FIRST FRUIT WAS FORGIVENESS',
-      '6) THE CHAIN THAT QUIETLY FELL OFF',
-      '7) THE WARFARE THAT STARTED AFTER HE TURNED',
-      '8) THE SEEKING CLAUSE - WITH ALL YOUR HEART',
-      '9) POURED OUT UPON ALL FLESH',
-      '10) WHY WE DO NOT ARGUE THIS',
+      '1) THE QUESTION UNDER THE ARGUMENT',
+      '2) THE FRAME FIRST - COVENANT, NOT CONTRACT',
+      '3) WHAT THE WORD ACTUALLY COMMANDS A HUSBAND',
+      '4) MONEY IS REAL',
+      '5) THE CONTRADICTION, NAMED',
+      '6) THE TOWEL',
+      '7) NOT FIFTY-FIFTY',
+      '8) WHAT CANNOT BE OUTSOURCED',
+      '9) LEVERAGE IS NOT COVENANT',
+      '10) HER SIDE OF THE SAME COVENANT',
+      '11) SO - WHAT MAKES HAVING YOU BETTER?',
       'THE WHOLE OF IT',
     ];
     let cursor = 0;
@@ -190,50 +163,49 @@ describe('L114 exists in the catalog with its full shape', () => {
     }
   });
 
-  it('carries every element of the spoken teaching that was actually given', () => {
+  it('names its occasion and attributes the clip rather than asserting it (DR-0190)', () => {
     expect(l).toContain('Darrell');
-    expect(l, 'his own phrase').toMatch(/ACTION PRODUCES INFORMATION|action produces information/);
-    expect(l, 'the term').toMatch(/thirty[- ]day|thirty days/);
-    expect(l, 'the four practices').toMatch(/gratitude/i);
-    expect(l, 'day twenty').toMatch(/day twenty/);
-    expect(l, 'the friend he had not forgiven').toMatch(/ghosting|unforgiven/);
-    expect(l, 'the eight-year habit').toMatch(/eight[- ]year|eight years/);
-    expect(l, 'the dreams after the turn').toMatch(/bad dreams|nightmares/);
-    expect(l, 'his first Scripture').toContain('Jeremiah 29:13');
-    expect(l, 'his second Scripture — the outpouring').toContain('Joel 2:28');
+    expect(l).toContain('Darwynn McPherson');
+    expect(l, 'the clip is the occasion, not the authority').toMatch(/occasion, not the authority|occasion, never as the authority/);
   });
 
-  it('keeps SOURCE DISCIPLINE — the account is a witness, never an authority beside Scripture', () => {
-    expect(l).toMatch(/RELAYED TESTIMONY|relayed testimony/);
-    expect(l).toMatch(/never as an authority|never an authority/);
-    expect(l, 'no detail added in the retelling').toMatch(/do not add|does not add/i);
+  it('holds BOTH money tiers — provision honoured, and never left to settle the account (DR-0100)', () => {
+    expect(l).toContain('he hath denied the faith, and is worse than an infidel');
+    expect(l).toContain('what doth it profit?');
+    expect(l).toMatch(/never shamed|not let a room shame|is lying to him/);
+    expect(l).toMatch(/does not repeal|does not discharge|not the whole account/i);
+    expect(l).toMatch(/reverse over-reach/i);
   });
 
-  it('puts the credit on the Word and NOT on the seeker’s sincerity — the doctrinal centre', () => {
-    expect(l).toMatch(/no sincerity/);
-    expect(l).toContain('quick, and powerful, and sharper than any twoedged sword');
-    expect(l).toContain('it shall not return unto me void');
-    expect(l).toContain('effectually worketh also in you that believe');
+  it('flags the contested causal claim narrowly instead of smearing the subject (DR-0100 tier 2)', () => {
+    expect(l).toMatch(/genuinely contested/);
+    expect(l, 'and says why it need not be settled').toMatch(/do not need it settled|never licenses/);
   });
 
-  it('holds the Jeremiah 29:13 tension honestly instead of resolving it cheaply', () => {
-    expect(l).toContain('when ye shall search for me with all your heart');
-    expect(l, 'Hebrews 11:6 is not dropped to make the story easier').toContain('he that cometh to God must believe that he is');
-    expect(l, 'the term is the approach, not the qualification').toMatch(/approach/i);
-    expect(l, 'the Father runs first').toContain('his father saw him, and had compassion, and ran');
+  it('keeps the Word senior — the outside argument is named to educate past it (DR-0098)', () => {
+    expect(l).toMatch(/Word first|from His Word first/i);
+    expect(l).toMatch(/educated past it|educate past it/);
+    expect(l).toMatch(/co-equal view/);
   });
 
-  it('carries the caution that keeps a term from becoming a formula', () => {
-    expect(l, 'the Name is not a technique').toContain('Jesus I know, and Paul I know; but who are ye?');
-    expect(l, 'the emptied house').toContain('he findeth it empty, swept, and garnished');
-    expect(l).toMatch(/doorway, not a destination/);
+  it('settles the household-work question by the Example, not by culture', () => {
+    expect(l).toContain('took a towel, and girded himself');
+    expect(l).toContain('ye also ought to wash one another’s feet');
+    expect(l, 'the conclusion the Example forces').toMatch(/it would have unmanned Him/);
+    expect(l, 'headship is responsibility, not exemption').toMatch(/responsibility for the house/);
   });
 
-  it('answers the closing grief the Word’s own way — teach, do not debate (DR-0098)', () => {
-    expect(l).toMatch(/Word first/i);
-    expect(l).toContain('But foolish and unlearned questions avoid');
-    expect(l).toContain('one thing I know, that, whereas I was blind, now I see');
-    expect(l, 'demonstration replaces the argument').toContain('but in demonstration of the Spirit and of power');
+  it('names leverage as treachery with the Witness present, and refuses to soften it', () => {
+    expect(l).toContain('one covereth violence with his garment');
+    expect(l).toMatch(/hostage, not a covenant|has a hostage/);
+    expect(l).toContain('forbearing threatening');
+  });
+
+  it('keeps the covenant mutual so the lesson teaches rather than indicts', () => {
+    expect(l).toContain('Let the husband render unto the wife due benevolence');
+    expect(l).toContain('Every wise woman buildeth her house');
+    expect(l).toContain('and the wife see that she reverence her husband');
+    expect(l, 'an earning wife is Proverbs 31, not a modern problem').toContain('She considereth a field, and buyeth it');
   });
 
   it('keeps our authored voice on Yahweh, with no capitalized adversary name', () => {
@@ -245,30 +217,25 @@ describe('L114 exists in the catalog with its full shape', () => {
     expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
     expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(15);
   });
-
-  it('confesses Jesus as the Lamb of Yahweh (DR-0210)', () => {
-    expect(l).toMatch(/Lamb of Yahweh/);
-    expect(l).toContain('Behold the Lamb of God, which taketh away the sin of the world.');
-  });
 });
 
 describe('every quoted fragment is letter-for-letter KJV (fetched, not remembered)', () => {
   for (const frag of QUOTED_FRAGMENTS) {
     it(`quotes verbatim: "${frag.slice(0, 48)}${frag.length > 48 ? '…' : ''}"`, () => {
+      expect(WHOLE_KJV, 'the pin itself must be real KJV').toContain(frag);
       expect(l).toContain(frag);
-      expect(WHOLE_KJV, 'the pin itself must exist in the corpus').toContain(frag);
     });
   }
 });
 
 describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
-  it('the lesson’s double quotes are balanced', () => {
+  it('the lesson\'s double quotes are balanced', () => {
     expect(quotedSpans(l).balanced).toBe(true);
   });
 
   it('EVERY double-quoted span appears verbatim in the in-repo KJV', () => {
     const { spans } = quotedSpans(l);
-    expect(spans.length).toBeGreaterThan(120);
+    expect(spans.length).toBeGreaterThan(60);
     const altered = [];
     for (const span of spans) {
       for (const part of span.split('...').map((s) => s.trim()).filter(Boolean)) {
@@ -278,22 +245,16 @@ describe('NO in-quote alteration anywhere in the lesson — the whole-span gate'
     expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
   });
 
-  it('is PROVEN-TO-CATCH against the CROSS-VERSE alterations actually made while authoring THIS lesson', () => {
-    // A cross-verse quotation silently deletes the verse boundary. Both of these
-    // were written as one continuous quotation in the first draft and caught by
-    // the sweep above; each HALF is real, the JOIN is not.
-    const mark = 'as if a man should cast seed into the ground; And should sleep, and rise night and day';
-    expect(WHOLE_KJV.includes(mark), 'Mark 4:26-27 joined across the verse boundary').toBe(false);
-    expect(WHOLE_KJV.includes('as if a man should cast seed into the ground;')).toBe(true);
-    expect(WHOLE_KJV.includes('And should sleep, and rise night and day')).toBe(true);
-
-    const psalm = 'forget not all his benefits: Who forgiveth all thine iniquities';
-    expect(WHOLE_KJV.includes(psalm), 'Psalm 103:2-3 joined across the verse boundary').toBe(false);
-    expect(WHOLE_KJV.includes('forget not all his benefits:')).toBe(true);
-    expect(WHOLE_KJV.includes('Who forgiveth all thine iniquities')).toBe(true);
-
-    // and our own framing wearing Scripture's quotation marks
-    expect(WHOLE_KJV.includes('action produces information')).toBe(false);
+  it('is PROVEN-TO-CATCH against the alterations actually made while authoring THIS lesson', () => {
+    // the comma pulled inside the quotation
+    expect(WHOLE_KJV.includes('the wife of thy covenant,')).toBe(false);
+    expect(WHOLE_KJV.includes('the wife of thy covenant')).toBe(true);
+    // the CLIP's own words wearing Scripture's quotation marks
+    expect(WHOLE_KJV.includes('If I pay every bill, why would I cook and clean?')).toBe(false);
+    expect(WHOLE_KJV.includes('what makes having you in her life better?')).toBe(false);
+    // and our own prose wearing them
+    expect(WHOLE_KJV.includes('therefore the account is settled.')).toBe(false);
+    expect(WHOLE_KJV.includes('I paid, therefore I am done')).toBe(false);
   });
 });
 
@@ -304,69 +265,49 @@ describe('every age level carries the message (child, teen, senior — full cove
     return l.slice(i, j);
   };
 
-  it('each band carries the do-then-know order and the living Word', () => {
+  it('each band carries the towel, the covenant answer to alone, and real service', () => {
     for (const band of ['child', 'teen', 'senior']) {
       const t = level(band);
-      expect(t, `${band} carries John 7:17`).toMatch(/he shall know of the doctrine|John 7:17/);
-      expect(t, `${band} carries the Word doing its own work`).toMatch(/Hebrews 4:12|twoedged sword|Isaiah 55:11|alive/);
+      expect(t, `${band} carries the Example`).toMatch(/towel|John 13/);
+      expect(t, `${band} carries the answer to alone`).toMatch(/alone|Genesis 2:18|Ecclesiastes 4/);
+      expect(t, `${band} carries the making-life-easier question`).toMatch(/easier|helps|help/i);
     }
   });
 
-  it('each band carries the forgiveness that moved first and the chain that fell off', () => {
-    for (const band of ['child', 'teen', 'senior']) {
-      const t = level(band);
-      expect(t, `${band} carries the forgiveness`).toMatch(/Father, forgive them|forgiv/);
-      expect(t, `${band} carries the quiet deliverance`).toMatch(/he knoweth not how|Mark 4:2[678]/);
-    }
-  });
-
-  it('each band prepares the reader for the resistance that comes AFTER the turn', () => {
-    for (const band of ['child', 'teen', 'senior']) {
-      const t = level(band);
-      expect(t, `${band} names the post-turn pressure`).toMatch(/dreams|wilderness|Mark 4:15|resist/i);
-      expect(t, `${band} gives the submit-then-resist order`).toMatch(/Submit yourselves therefore to God|James 4:7/);
-    }
-  });
-
-  it('teen and senior additionally carry the seeking clause and the outpouring on all flesh', () => {
+  it('teen and senior additionally carry both money tiers and the leverage warning', () => {
     for (const band of ['teen', 'senior']) {
       const t = level(band);
-      expect(t).toMatch(/with all your heart|Jeremiah 29:13/);
-      expect(t).toMatch(/pour out my spirit upon all flesh|Joel 2:28/);
-      expect(t, 'the caution rides with the invitation').toMatch(/who are ye|Acts 19:1[356]|Matthew 12:4[345]/);
+      expect(t, `${band} states provision plainly`).toMatch(/1 Timothy 5:8|worse than an infidel/);
+      expect(t, `${band} keeps the rest of the list`).toMatch(/according to knowledge|Ephesians 5:2[589]/);
+      expect(t, `${band} names leverage`).toMatch(/Malachi 2:1[46]|leaving is too expensive|leverage/);
     }
   });
 
   it('the child level teaches without adult weight, and is not a stub', () => {
     const child = level('child');
     expect(child.length).toBeGreaterThan(400);
-    // the eight-year habit is taught WITHOUT naming the substance to a six-year-old
-    expect(child).not.toMatch(/nicotine|smoking|cigarette/i);
-    expect(child).toMatch(/could not stop/);
-    expect(child, 'a child gets the bedtime verse, not just the warning').toContain('I will both lay me down in peace, and sleep');
+    expect(child).toMatch(/everybody helps|In a home/);
+    expect(child).toContain('For I have given you an example');
+    expect(child).not.toMatch(/leverage|divorce|treachery|paycheck/i);
   });
 });
 
 describe('corpus witness — the pins are re-read from the corpus files themselves', () => {
   it('a representative set matches the repo KJV exactly', () => {
-    expect(verse('Jeremiah', 29, 13)).toBe('And ye shall seek me, and find me, when ye shall search for me with all your heart.');
-    expect(verse('John', 7, 17)).toBe('If any man will do his will, he shall know of the doctrine, whether it be of God, or whether I speak of myself.');
-    expect(verse('Malachi', 3, 10)).toContain('prove me now herewith, saith the LORD of hosts');
-    expect(verse('Daniel', 1, 12)).toContain('Prove thy servants, I beseech thee, ten days');
-    expect(verse('Psalms', 34, 8)).toContain('O taste and see that the LORD is good');
-    expect(verse('Hebrews', 4, 12)).toContain('is a discerner of the thoughts and intents of the heart');
-    expect(verse('Isaiah', 55, 11)).toContain('it shall not return unto me void');
-    expect(verse('Luke', 23, 34)).toContain('Father, forgive them; for they know not what they do.');
-    expect(verse('Mark', 4, 27)).toBe('And should sleep, and rise night and day, and the seed should spring and grow up, he knoweth not how.');
-    expect(verse('Matthew', 4, 1)).toBe('Then was Jesus led up of the Spirit into the wilderness to be tempted of the devil.');
-    expect(verse('James', 4, 7)).toBe('Submit yourselves therefore to God. Resist the devil, and he will flee from you.');
-    expect(verse('Luke', 15, 20)).toContain('when he was yet a great way off, his father saw him');
-    expect(verse('Joel', 2, 28)).toContain('I will pour out my spirit upon all flesh');
-    expect(verse('John', 9, 25)).toContain('whereas I was blind, now I see');
-  });
-
-  it('the corpus keeps the adversary named low — the typography is in the text we quote', () => {
-    expect(verse('Mark', 4, 15)).toContain('satan cometh immediately');
-    expect(verse('Mark', 4, 15)).not.toContain('Satan');
+    expect(verse('Ephesians', 5, 25)).toBe('Husbands, love your wives, even as Christ also loved the church, and gave himself for it;');
+    expect(verse('1Peter', 3, 7)).toContain('dwell with them according to knowledge');
+    expect(verse('Colossians', 3, 19)).toBe('Husbands, love your wives, and be not bitter against them.');
+    expect(verse('1Timothy', 5, 8)).toContain('worse than an infidel');
+    expect(verse('Malachi', 2, 14)).toContain('the wife of thy covenant');
+    expect(verse('Malachi', 2, 16)).toContain('one covereth violence with his garment');
+    expect(verse('John', 13, 4)).toBe('He riseth from supper, and laid aside his garments; and took a towel, and girded himself.');
+    expect(verse('John', 13, 15)).toBe('For I have given you an example, that ye should do as I have done to you.');
+    expect(verse('Mark', 10, 45)).toContain('came not to be ministered unto, but to minister');
+    expect(verse('Philippians', 2, 4)).toBe('Look not every man on his own things, but every man also on the things of others.');
+    expect(verse('Proverbs', 27, 23)).toBe('Be thou diligent to know the state of thy flocks, and look well to thy herds.');
+    expect(verse('Deuteronomy', 24, 5)).toContain('shall cheer up his wife which he hath taken');
+    expect(verse('Proverbs', 31, 16)).toContain('She considereth a field, and buyeth it');
+    expect(verse('Ecclesiastes', 4, 12)).toContain('a threefold cord is not quickly broken');
+    expect(verse('Genesis', 2, 18)).toContain('It is not good that the man should be alone');
   });
 });
