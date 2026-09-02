@@ -4,7 +4,9 @@
 // =============================================================================
 // Captured 2026-09-02: Darrell brought in a widely-shared teaching on biblical
 // femininity, plus its comment thread, with one word — lesson. A brought-in
-// teaching is build input (DR-0089).
+// teaching is build input — the CLAUDE.md rule "Spoken Teachings Are Build Input —
+// Always Add It" (2026-07-03) is the capture mandate; DR-0089 (standing consent)
+// is what authorises shipping it the same session without a fresh yes.
 //
 // WHY THIS LESSON NEEDED A GATE OF ITS OWN. The source teaching is two-thirds
 // right (the ornament of 1 Peter 3:4 is real; meek is strength under control;

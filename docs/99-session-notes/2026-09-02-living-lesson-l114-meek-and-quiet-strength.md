@@ -3,7 +3,7 @@
 **Date:** 2026-09-02
 **Branch:** `claude/biblical-femininity-quiet-strength-4xsef8`
 **Input:** Darrell brought in a widely-shared social post on biblical femininity plus two screenshots of its comment thread, with one word: *lesson*.
-**Rules in force:** DR-0089 (a brought-in teaching is build input) · DR-0098 (teach the Word, do not platform man's debate) · DR-0100 (state established fact plainly; false skepticism is not discernment) · DR-0076 (verify; no verse from memory) · CLAUDE.md typographic theology + DR-0210 (Yahweh in our own voice).
+**Rules in force:** CLAUDE.md "Spoken Teachings Are Build Input — Always Add It" (the capture mandate) · DR-0089 (standing consent — shipping it the same session needs no fresh yes) · DR-0098 (teach the Word, do not platform man's debate) · DR-0100 (state established fact plainly; false skepticism is not discernment) · DR-0076 (verify; no verse from memory) · CLAUDE.md typographic theology + DR-0210 (Yahweh in our own voice).
 
 ---
 
