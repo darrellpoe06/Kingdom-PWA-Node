@@ -1,8 +1,8 @@
-# DR-0321 — Know your own post: the true part said plainly, the contempt refused, and the beam out first
+# DR-0322 — Know your own post: the true part said plainly, the contempt refused, and the beam out first
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine; no schema, no new surface, no external-facing identity change
-- **Scope:** `app/src/lib/living-lessons-class.js` (L116 module + `LIVING_LESSONS_META.weeks` 113 → 114), `app/src/__tests__/living-lessons-l116-verses.test.js`
+- **Scope:** `app/src/lib/living-lessons-class.js` (L117 module + `LIVING_LESSONS_META.weeks` bumped with the module (115 → 118 in the delivery that carries all three)), `app/src/__tests__/living-lessons-l117-verses.test.js`
 - **Date:** 2026-09-02
 - **Principles:** SPOKEN-TEACHINGS-ARE-BUILD-INPUT, WORD-FIRST (DR-0098), THREE-TIER-HONESTY (DR-0100), VERIFICATION-DOCTRINE (DR-0076), TRUST-BUT-VERIFY (DR-0190), RELIGION-AND-RELATIONSHIP, APP-IS-PRIMARY (DR-0065)
 
@@ -76,24 +76,32 @@ have been the same error wearing better clothes.
 
 ### 5. It pairs with L114, so the series is symmetrical
 
-L114 put the account-of-your-own-post question to the husband; L116 puts it to
+L114 put the account-of-your-own-post question to the husband; L117 puts it to
 the wife *and* to the man doing the pointing, and both land on the floor nobody
 is exempt from (Micah 6:8). Taught singly, either one reads as a side being
 taken. The lesson says the pairing out loud and the facilitator notes require it.
 
-## Numbering — L116, not L115 (a real collision, handled)
+## Numbering — L117, and DR-0322: two collisions, both handled
 
-A concurrent session (PR #1428, branch `claude/biblical-femininity-quiet-strength-4xsef8`)
-authored a **different** lesson as **L114** with the same test filename and the
-same `weeks: 112 → 113` bump. DR-0320's L114 merged first (PR #1427), and #1428
-went `mergeable_state: dirty`.
+Four sessions shipped Living Lessons within the same hour, and this record was
+renumbered **twice** before it landed. Both moves follow DR-0052: a number is
+provisional until merge, and the branch that lands second renumbers.
 
-A lesson number is provisional until merge, exactly like a DR number (DR-0052).
-Rather than collide a second time, **L115 is deliberately left free** for #1428's
-renumber and this lesson takes **L116**. A gap in lesson numbering costs nothing —
-the series' ids were already non-contiguous with its count — while a second
-collision costs another session's whole delivery. The gate asserts no duplicate
-lesson id exists anywhere in the series.
+- **The lesson.** PR #1428 authored a different lesson as L114 while DR-0320's
+  L114 was in flight. L114 merged first, so this lesson was authored as **L116**
+  with **L115 deliberately left free** for #1428's renumber — which #1428 then
+  took. Then PR #1429, whose title still read L114, merged as **L116** — the slot
+  this one was using. So this lesson is **L117**, rebuilt onto the merged main
+  with every cross-reference in its own prose, its gate, and the two lessons that
+  cite it updated in the same pass. The gate asserts no duplicate lesson id
+  exists anywhere in the series, which is what makes a third collision loud
+  instead of silent.
+- **The record.** This DR was written as DR-0321; main landed its own DR-0321
+  (principles-travel-with-the-money) first, so per DR-0052 it is **DR-0322**.
+
+A numbering gap costs nothing — the series' ids were already non-contiguous with
+its count. A collision costs another session's whole delivery, which is why the
+free-slot reservation was made deliberately rather than by racing.
 
 ## Verification (DR-0076)
 
@@ -103,7 +111,7 @@ lesson id exists anywhere in the series.
 - **Zero in-quote alterations on the first sweep.** The L114 discipline — a
   double quote means Scripture and nothing else; the clip's own words and our
   prose carry none — was applied from the first draft rather than retrofitted.
-  L114 needed seventeen fixes; L116 needed none. The discipline is the fix.
+  L114 needed seventeen fixes; L117 needed none. The discipline is the fix.
 - **The gate caught two defects in ITSELF, and both were fixed in the test:**
   1. The proven-to-catch pin asserted `'follow thou me.'` was absent from the
      corpus, on the assumption that a trailing period always belongs to our
