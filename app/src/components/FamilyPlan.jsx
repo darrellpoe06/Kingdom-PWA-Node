@@ -13,6 +13,7 @@
 // that (DR-0076).
 import React, { useEffect, useState } from 'react';
 import supabase from '../lib/supabase.js';
+import LegacyProvisions from './LegacyProvisions.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -106,7 +107,7 @@ function PlanTable({ columns, rows, caption, totals }) {
   );
 }
 
-function FamilyPlan() {
+function PlanDocument() {
   const [state, setState] = useState({ loading: true, plan: null, title: '', updatedAt: null, error: null });
 
   useEffect(() => {
@@ -340,5 +341,19 @@ function FamilyPlan() {
   );
 }
 
-export { FamilyPlan };
+// The Plan tab carries BOTH: the written plan (whatever the newest family_plans
+// row holds) AND the Legacy Provisions system — the family trust's three
+// provisions as a working surface (Darrell 2026-09-02). The provisions render
+// whether or not a plan row exists, because PlanDocument's early returns are
+// about the DOCUMENT, and the trust system is not the document.
+function FamilyPlan() {
+  return (
+    <div className="space-y-4">
+      <PlanDocument />
+      <LegacyProvisions />
+    </div>
+  );
+}
+
+export { FamilyPlan, PlanDocument };
 export default FamilyPlan;
