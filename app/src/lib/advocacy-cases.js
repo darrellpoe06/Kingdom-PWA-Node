@@ -53,6 +53,21 @@ export const ADVOCACY_VERSES = [
     text: 'Yet because this widow troubleth me, I will avenge her, lest by her continual coming she weary me.',
     why: 'Persistence with a paper trail — the widow kept coming, and the record of continual coming is what moved the unjust judge.',
   },
+  {
+    ref: 'Matthew 18:15',
+    text: 'Moreover if thy brother shall trespass against thee, go and tell him his fault between thee and him alone: if he shall hear thee, thou hast gained thy brother.',
+    why: 'The first rung has a verse: go directly and privately first. Note what the promise actually is — not that you win your case, but that you have GAINED THY BROTHER. That is the aim the whole ladder serves.',
+  },
+  {
+    ref: 'Proverbs 11:1',
+    text: 'A false balance is abomination to the LORD: but a just weight is his delight.',
+    why: 'A published policy is a WEIGHT. An institution that takes full value by its own standard and refuses full value by that same standard is a balance tipping one way — which is why the pre-sourced shelf exists.',
+  },
+  {
+    ref: 'Exodus 23:6',
+    text: 'Thou shalt not wrest the judgment of thy poor in his cause.',
+    why: 'To wrest is to twist: the rule stays on the page and gets bent in the room, against whoever has the least leverage. That bending is the thing a dated record makes visible.',
+  },
 ];
 
 // --- The pre-sourced shelf: documented procedures to cite (Darrell 2026-08-04:
@@ -144,6 +159,59 @@ export const POLICY_SHELF = [
       { label: 'Illinois Public Media, 2019 — ACLU/NAACP on post-decree equity', url: 'https://will.illinois.edu/news/story/champaign-aclu-naacp-call-out-lack-of-progress-on-racial-equity-in-unit-4-schools' },
     ],
     asOf: '2026-08-04',
+  },
+];
+
+// --- Worked examples: the whole method, run end to end, at a scale small enough
+// --- to see all of it at once. Captured from a real family case (2026-09-03) and
+// --- deliberately ANONYMIZED — the act is taught, the person is released
+// --- (Titus 3:2). No employee, school, district or town is named here; that is a
+// --- gate, not a preference (see advocacy-cases.test.js).
+export const WORKED_CASES = [
+  {
+    id: 'wc-printed-policy-refund',
+    title: 'The printed policy the counter would not honour',
+    scale: 'One child · one printed page · resolved in under a day, at rung one',
+    student: 'A fifth-grader',
+    institution: 'A school library',
+    ask: 'Honour the refund stated in your own printed policy — or return the item we already paid for.',
+    ladderStep: 'direct',
+    status: 'resolved',
+    whyItMatters: 'Most advocacy never reaches a board room. It looks like this: a written standard exists, it is not applied, and the person it is not applied to has no leverage. This case is worth studying because a ten-year-old ran it, the entire evidence base was ONE page the institution had itself sent home, and it resolved at the first rung — because the ask was soft, private, and quoted their own words back to them.',
+    steps: [
+      {
+        entryType: 'incident',
+        evidenceTier: 'our-witness',
+        what: 'The student lost a library book; the family paid the replacement fee. She later found it and returned it in good condition. She asked for the refund and was told no; she then asked for the book itself, since it had already been paid for, and was told no.',
+        why: 'Dated at the time, labeled as ours. Two refusals is the fact — not a motive, not a character judgment.',
+      },
+      {
+        entryType: 'document',
+        evidenceTier: 'their-words',
+        what: 'The library\u2019s own printed handout to families, under its damaged-or-lost-book policy: a lost book found in good condition is refunded in full.',
+        why: 'The strongest tier there is, and it cost nothing to obtain — it had already been sent home. Before writing, look for the standard you were ALREADY given.',
+      },
+      {
+        entryType: 'communication',
+        evidenceTier: 'our-witness',
+        what: 'A written appeal that same evening: quoted the policy exactly; conceded out loud that paying while the book was lost was fair; asked for one of two honourable outcomes; named it a probable misunderstanding rather than an accusation; sent directly and privately to the person involved.',
+        why: 'The form is the reason it worked. Matthew 18:15 — go directly and privately first. Proverbs 15:1 — a soft answer turneth away wrath. Conceding the fair part costs nothing and removes the fight.',
+      },
+      {
+        entryType: 'response',
+        evidenceTier: 'their-words',
+        what: 'Next morning: an apology for the misunderstanding, and an offer to send the refund home that day.',
+        why: 'Log their answer verbatim, including a good one. A record that only captures grievances is not a record.',
+      },
+      {
+        entryType: 'outcome',
+        evidenceTier: 'our-witness',
+        what: 'The refund came home the same afternoon. Case closed resolved, at rung one, with the relationship intact.',
+        why: 'Log the win with the same discipline as the injury — that is what makes the file trustworthy the next time you need it.',
+      },
+    ],
+    closing: 'CLOSE IT HONESTLY. What the record establishes here is that a written policy was not applied and a child was refused twice — AND that it was corrected the next morning with the money returned the same day. Both halves are the truth; leaving either out is a false report. Scripture puts someone who takes a correction in the wise seat, not the villain\u2019s (Proverbs 9:8; 25:12), and money handed back is repentance with hands (Luke 19:8). So name the ACT, and release the PERSON (John 7:24; Titus 3:2). A case file kept any other way stops being an instrument of justice and becomes a grudge with dates on it.',
+    asOf: '2026-09-03',
   },
 ];
 
