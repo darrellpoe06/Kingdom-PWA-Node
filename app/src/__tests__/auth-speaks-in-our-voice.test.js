@@ -118,3 +118,72 @@ describe('no sign-in path renders a raw backend message', () => {
     });
   }
 });
+
+// =============================================================================
+// 2026-09-03 — Christina's lockout: an error PAGE where JSON belonged
+// =============================================================================
+// The sovereign transport (poetech.us/sb -> Tailscale Funnel -> NAS) answered
+// every sign-in call with Cloudflare's HTML 525 page. supabase-js parses every
+// response as JSON, so the sentence on her screen — under "Welcome back", in
+// the place reserved for our voice — was the JSON parser's:
+//
+//   Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+//
+// It blames nothing, explains nothing, and reads like something SHE broke.
+//
+// PROVEN-TO-CATCH: removing any HTML/JSON-parse pattern from NOT_YOUR_FAULT,
+// or the 52x codes from isServiceFailure, fails these pins.
+describe('an HTML error page arriving where JSON was expected', () => {
+  // The exact string her phone rendered, plus the same failure as three other
+  // engines word it — we must not pin only the browser we happened to see.
+  const PARSER_SHAPES = [
+    "Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON",
+    'JSON Parse error: Unexpected identifier "<"',
+    'SyntaxError: Unexpected token < in JSON at position 0',
+    'unexpected character at line 1 column 1 of the JSON data',
+  ];
+
+  it('is recognised as a service failure, whatever the engine calls it', () => {
+    for (const message of PARSER_SHAPES) {
+      expect(isServiceFailure(new SyntaxError(message))).toBe(true);
+    }
+  });
+
+  it('never shows the reader a parser complaint', () => {
+    for (const message of PARSER_SHAPES) {
+      const { text } = authErrorMessage(new SyntaxError(message));
+      expect(text).not.toMatch(/DOCTYPE/i);
+      expect(text).not.toMatch(/JSON/i);
+      expect(text).not.toMatch(/token|SyntaxError/i);
+    }
+  });
+
+  it('tells her the truth instead: ours, not hers', () => {
+    const { text } = authErrorMessage(new SyntaxError(PARSER_SHAPES[0]));
+    expect(text).toMatch(/our end|on us/i);
+    expect(text).toMatch(/nothing you typed was wrong/i);
+  });
+
+  it('keeps the raw parser text as detail, for whoever can act on it', () => {
+    const { detail } = authErrorMessage(new SyntaxError(PARSER_SHAPES[0]));
+    expect(detail).toMatch(/DOCTYPE/);
+  });
+
+  it('treats Cloudflare 52x (edge cannot reach the origin) as service-side', () => {
+    for (const status of [520, 521, 522, 523, 524, 525, 526, 527, 530]) {
+      expect(isServiceFailure({ status, message: '' })).toBe(true);
+    }
+  });
+
+  it('names the transport proxy 502 as service-side too', () => {
+    const proxied = { message: 'sovereign-supabase proxy upstream unreachable' };
+    expect(isServiceFailure(proxied)).toBe(true);
+    expect(authErrorMessage(proxied).text).not.toMatch(/proxy|upstream/i);
+  });
+
+  it('still does not over-translate a wrong PIN', () => {
+    const actionable = { message: 'Invalid login credentials' };
+    expect(isServiceFailure(actionable)).toBe(false);
+    expect(authErrorMessage(actionable).text).toBe('Invalid login credentials');
+  });
+});
