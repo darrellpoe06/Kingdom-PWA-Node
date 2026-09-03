@@ -100,6 +100,15 @@ catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chro
 
 let failures = 0;
 let tsFailuresBefore = 0;
+// COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
+// 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
+// the run read as a clean pass while a third of the surfaces — including the
+// one under review — were never looked at. A gate that can silently skip its
+// subjects and still say OK is the vacuous-green class DR-0076 §3 exists to
+// kill, and counting failures alone cannot see it. So every completed
+// measurement is counted and the total is asserted against what was intended.
+let measured = 0;
+let tsMeasured = 0;
 const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
 
 try {
@@ -154,6 +163,7 @@ try {
     // gate's own report: the number was right, the picture it painted was not,
     // and it cost a real misreading of this probe's output before it was found.
     const before = failures;
+    measured += 1;
     if (m.noHeader) { fail(`${view}@${width}px: header h1 never rendered`); continue; }
     if (m.scrollWidth > m.clientWidth + 1) fail(`${view}@${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
     if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
@@ -247,6 +257,7 @@ try {
     const where = `${v.name}@${width}px${collapsed ? ' [header collapsed]' : ''}`;
     if (m.size !== 'bigprint') { fail(`textscale ${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
     const before = failures;
+    tsMeasured += 1;
     if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${where}: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
     if (!m.hatchCount) fail(`textscale ${where}: no text-size control rendered — no way out of big text`);
     else if (!m.reachable) fail(`textscale ${where}: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
@@ -268,4 +279,15 @@ if (SELFTEST) {
   console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${tsFailuresBefore}, textscale: ${failures - tsFailuresBefore}); the probe is theater`);
   process.exit(1);
 }
+// The coverage assertion. A short run is a FAILED run, however clean its
+// verdicts: "nothing went wrong" is not the same claim as "everything was
+// checked," and only this line can tell them apart.
+const expectedChrome = VIEWS.length * WIDTHS.length;
+if (measured !== expectedChrome) {
+  console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
+  failures += 1;
+} else {
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${tsMeasured} text-scale cases measured.`);
+}
+
 process.exit(failures > 0 ? 1 : 0);
