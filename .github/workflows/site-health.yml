@@ -279,7 +279,7 @@ jobs:
             if [ "$LIVE_SB" != "false" ]; then
               case "${SB_SOV:-000}" in
                 200|401) : ;; # answering; 401 means alive and gated
-                525|526) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV: Cloudflare cannot complete TLS to the Funnel, so every sign-in call gets an HTML error page instead of JSON. Nobody can sign in until the NAS/Funnel is back or the app is repointed (revert infra/nas-supabase/REPOINT-ARMED)" ;;
+                525|526) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV: Cloudflare cannot complete TLS to the Funnel, so every sign-in call gets an HTML error page instead of JSON. Nobody can sign in until the NAS/Funnel is back or the app is repointed (revert infra/nas-supabase/REPOINT-ARMED). CHECK THE DEVICE LEDGER FIRST — dispatch node-availability.yml: on 2026-09-03 it had already measured the NAS dark 64 minutes before anyone connected that to the outage" ;;
                 000) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) did not answer in two attempts. Nobody can sign in" ;;
                 *) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV. Nobody can sign in" ;;
               esac
