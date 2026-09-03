@@ -34,7 +34,7 @@ So the lesson names the **act** and releases the **person**. The stated reason i
 
 The account involves an identifiable school employee. **She is not named anywhere in the lesson, and neither is the school, the district, or the town** (Titus 3:2). A new **PRIVACY gate** enforces it structurally — and is written so that it does *not* itself embed the name it protects: it asserts the non-naming commitment is stated, and that no email address, street address, postal code, or institution-identifying token survives in the lesson text. **Proven-to-catch** by mutation (see below).
 
-The twins are likewise referred to by relationship — *the daughter*, *her twin brother* — rather than by name. That was a judgement call rather than an instruction; Darrell can veto it and they can be named, since they are his own children.
+**The twins ARE named** — Christian and Christyn — because Darrell named them himself when he spoke this in, and they are his own children. The privacy rule protects the third party in the account, not the family whose testimony it is; the test asserts both halves.
 
 ## Where the doctrinal weight landed
 

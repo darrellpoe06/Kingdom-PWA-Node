@@ -291,13 +291,14 @@ describe('PRIVACY gate — the school employee is taught as an act, never as a p
     }
   });
 
-  it('refers to the employee only by role, and to the children only by relationship', () => {
+  it('refers to the employee only by role — while Darrell’s own children are named, as he named them', () => {
     // The only proper name in the lesson's own voice is Darrell's.
     const { spans } = quotedSpans(l);
     let ours = l.replace(/\\'/g, "'");
     for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
-    expect(ours).toMatch(/school employee|the library|at the desk/);
-    expect(ours, 'children referred to by relationship, not by name').toMatch(/her twin brother|the daughter|a ten-year-old/);
+    expect(ours, 'the employee appears only in role terms').toMatch(/school employee|the library|at the desk/);
+    expect(ours, 'Darrell’s own children ARE named — he named them when he spoke this in').toMatch(/Christyn/);
+    expect(ours).toMatch(/Christian/);
   });
 });
 
