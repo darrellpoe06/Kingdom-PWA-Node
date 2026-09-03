@@ -1,4 +1,4 @@
-# Living Lesson L118 — Abstention
+# Living Lesson L119 — Abstention
 
 **Date:** 2026-09-03
 **Branch:** `claude/abstention-self-worth-ifbm8g`
@@ -57,7 +57,7 @@ Refused, rejected, set at nought, disallowed — four words for one act, and eve
   - Both mutations reverted; suite returned to 110/110.
 - **Negative controls pinned:** cross-verse joins built from this lesson's own texts (Song 8:6→8:7, Revelation 3:15→3:16), single-word drift (`contemned`/`condemned`, the dropped second *and* in Revelation 17:14, `elect` for `chosen` in 1 Peter 2:4), and four checks that our own framing never wears Scripture's quotation marks.
 - **Typography:** no generic "God" in our authored voice (34 mentions of Yahweh), no capitalized adversary name, `baal` stays lower-case in our voice and is read as the corpus has it in 1 Kings 18:21, Jesus confessed as the Lamb of Yahweh (John 1:29).
-- **Suites:** `living-lessons-l118-verses.test.js` — **110 tests**; full Vitest suite **802 files / 10803 passed, 1 skipped**; `npm run lint` clean.
+- **Suites:** `living-lessons-l119-verses.test.js` — **110 tests**; full Vitest suite **802 files / 10803 passed, 1 skipped**; `npm run lint` clean.
 
 ## Age levels
 
@@ -67,11 +67,11 @@ Refused, rejected, set at nought, disallowed — four words for one act, and eve
 
 ## The collision, and how it was resolved
 
-Authored and pushed as **L117**. While its CI ran, `main` took **L117** (No Two Children Grow Up in the Same House, #1435) from another branch, and the PR went `dirty` on an add/add conflict over the test filename — the same race the L116 notes flagged: *the next free lesson number is not knowable from a stale branch.* Resolved by merging `main` in and renumbering to **L118** — id, test filename, doc filename, the facilitator recap line (now pointing at L117, siblings) and the `weeks` ratchet (116 → 117) all moved together. No other session's work was touched.
+Authored and pushed as **L117**. While its CI ran, `main` took **L117** (No Two Children Grow Up in the Same House, #1435) from another branch, and the PR went `dirty` on an add/add conflict over the test filename — the same race the L116 notes flagged: *the next free lesson number is not knowable from a stale branch.* Resolved by merging `main` in and renumbering to **L119** — id, test filename, doc filename, the facilitator recap line (now pointing at L117, siblings) and the `weeks` ratchet (116 → 117) all moved together. No other session's work was touched.
 
 `main` also landed the structural fix for this race while this branch was in flight: `app/src/__tests__/living-lessons-id-collision.test.js` (#1433), which fails the build when a lesson number is claimed twice or a new gap appears. This lesson is the first to be renumbered under that gate, and it passes it.
 
 ## Files
 
-- `app/src/lib/living-lessons-class.js` — L118 added; `weeks` 116 → 117
-- `app/src/__tests__/living-lessons-l118-verses.test.js` — new, 110 tests, including the new attribution gate
+- `app/src/lib/living-lessons-class.js` — L119 added; `weeks` 116 → 117
+- `app/src/__tests__/living-lessons-l119-verses.test.js` — new, 110 tests, including the new attribution gate
