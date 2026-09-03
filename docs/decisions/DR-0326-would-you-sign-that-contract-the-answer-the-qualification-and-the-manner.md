@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine
-- **Scope:** `app/src/lib/living-lessons-class.js` (L121 module + `LIVING_LESSONS_META.weeks` 115 → 118 for the three lessons in this delivery), `app/src/__tests__/living-lessons-l119-verses.test.js`
+- **Scope:** `app/src/lib/living-lessons-class.js` (L123 module + `LIVING_LESSONS_META.weeks` 115 → 118 for the three lessons in this delivery), `app/src/__tests__/living-lessons-l119-verses.test.js`
 - **Date:** 2026-09-02
 - **Principles:** SPOKEN-TEACHINGS-ARE-BUILD-INPUT, WORD-FIRST (DR-0098), THREE-TIER-HONESTY (DR-0100), VERIFICATION-DOCTRINE (DR-0076), TRUST-BUT-VERIFY (DR-0190), RELIGION-AND-RELATIONSHIP
 
@@ -19,7 +19,7 @@ qualified to open your mouth right now. You're not married."* Both men interrupt
 throughout. One repeatedly calls the other feminine, tells him to *"control the
 panty,"* and calls him *"a boy trapped in a grown man's body."*
 
-This is the **capstone of four** (L114, L119, L120, L121): what a man brings,
+This is the **capstone of four** (L114, L121, L122, L123): what a man brings,
 what her post actually is, the warmth that keeps a house, and finally how to
 argue about all of it without forfeiting.
 
@@ -54,7 +54,7 @@ make the covenant a transaction.
 The whole structure rests on "before modernity, women weren't really working."
 Proverbs 31:14,16,18 has her importing, buying a field, planting a vineyard and
 evaluating her own margin; Luke 8:3 has women funding the Lord's ministry from
-their own substance. This is L119's ground, and it is where a Word-first house
+their own substance. This is L121's ground, and it is where a Word-first house
 settles a factual claim.
 
 ### 4. Three honest tiers, middle one included (DR-0100)
@@ -99,7 +99,7 @@ both are corrected and the gate asserts it.
 
 **The close:** two men argued at length about what marriage **costs** a man and
 neither once asked what a man is **for** in it. That is L114's question and
-L120's. A conversation about marriage conducted entirely as risk analysis has
+L122's. A conversation about marriage conducted entirely as risk analysis has
 already lost the thing it is arguing about.
 
 ## Names are deliberately absent — and that is a gate
@@ -128,7 +128,7 @@ were already letter-perfect:
    there is the exact failure DR-0281 names. The movement now discloses the
    occasion, says what transfers is the PRINCIPLE, and states that He did not
    rule on marriage law in that moment.
-2. **The transfer was unlicensed.** L120 carefully licensed its Revelation 2 →
+2. **The transfer was unlicensed.** L122 carefully licensed its Revelation 2 →
    marriage move with Ephesians 5:32. This lesson made the same kind of move —
    Yahweh's covenant with Israel → a human marriage — and assumed it. Without the
    licence the whole answer is an analogy we assembled. Ephesians 5:32 now carries
