@@ -102,6 +102,60 @@ describe('constitution Scripture is verbatim KJV (proven-to-catch)', () => {
   }
 });
 
+describe('the research landed, not just got filed (DR-0323)', () => {
+  const spendthrift = provisionById.spendthrift;
+  const production = provisionById['forced-income-production'];
+  const constitution = provisionById['constitution-reference'];
+
+  it('names DISCRETION as the deeper protection, not the clause alone', () => {
+    // UTC 504: an exception creditor generally cannot compel a distribution the
+    // trustee may withhold. Stating only "the trust owns it" undersells it.
+    expect(spendthrift.mechanism).toMatch(/discretion/i);
+    expect(spendthrift.mechanism).toMatch(/withhold/i);
+  });
+
+  it('replaces the hand-wave "state law varies" with NAMED, concrete examples', () => {
+    const limits = spendthrift.limits.join(' ');
+    expect(limits).toMatch(/25%|25 percent/i);      // Cal. Prob. Code 15306.5
+    expect(limits).toMatch(/California/);
+    expect(limits).toMatch(/New York/);
+    expect(limits).toMatch(/education and support/i); // NY EPTL 7-3.4
+  });
+
+  it('warns that siting a trust is not the same as the family living there', () => {
+    const limits = spendthrift.limits.join(' ');
+    expect(limits).toMatch(/one state cannot limit another state|another state\u2019s courts/i);
+  });
+
+  it('asks the two review questions the research produced', () => {
+    const ids = SPENDTHRIFT_REVIEW_ITEMS.map((i) => i.id);
+    expect(ids).toContain('material-purpose');      // Claflin - the wall faces inward
+    expect(ids).toContain('residence-vs-siting');   // Huber / Toni 1 Trust
+    const claflin = SPENDTHRIFT_REVIEW_ITEMS.find((i) => i.id === 'material-purpose');
+    expect(claflin.why).toMatch(/Claflin/);
+  });
+
+  it('names what we actually built: a PRINCIPLE trust, not an incentive formula', () => {
+    expect(production.mechanism).toMatch(/principle trust/i);
+    // And says WHY the distinction matters, rather than just using the label.
+    expect(production.mechanism).toMatch(/earn a dollar|mechanical|rigid/i);
+    expect(POE_PRODUCTION_POLICY.note).toMatch(/principle/i);
+  });
+
+  it('states the real public-policy boundary on conditions', () => {
+    const limits = production.limits.join(' ');
+    expect(limits).toMatch(/eligibility/i);
+    expect(limits).toMatch(/ongoing control|how someone lives/i);
+  });
+
+  it('is honest that the constitution binds morally, not legally', () => {
+    const limits = constitution.limits.join(' ');
+    expect(limits).toMatch(/letter of wishes/i);
+    expect(limits).toMatch(/not legally bound|moral/i);
+    expect(limits).toMatch(/incorporat/i); // freezing an amendable document
+  });
+});
+
 describe('absent is not zero (the rule the whole system stands on)', () => {
   it('toAmount returns null — not 0 — for absent values', () => {
     expect(toAmount(null)).toBeNull();

@@ -251,6 +251,8 @@ export const TRUST_PROVISIONS = [
     limits: [
       'A referenced statement of intent guides discretion; it does not by itself create enforceable distribution rights.',
       'Where the constitution and the instrument conflict, the instrument governs — so keep the two from drifting.',
+      'Its force is moral and interpretive. A document like this is a letter of wishes: the trustee must take it into account and in practice usually follows it, but is not legally bound by it. A version that truly BINDS is no longer a letter of wishes — it is a trust term.',
+      'Do not incorporate an amendable document as a binding term. Incorporation by reference generally requires the document to exist when the instrument is executed — so incorporating it freezes it, and quietly amending it would amount to amending the trust.',
     ],
     appOperates: [
       'The full constitution, article by article, with the Scripture each stands on.',
@@ -271,18 +273,20 @@ export const TRUST_PROVISIONS = [
     answers:
       'The inheritance lost through a PERSON: a lawsuit, creditors after a business failure, a ruinous deal, a divorce, the wrong marriage.',
     mechanism:
-      'A creditor generally reaches what a debtor owns. A beneficiary holds a right to receive under the trust’s terms, not title to the property, and cannot transfer that right — so there is far less for a claimant to attach.',
+      'A creditor generally reaches what a debtor owns. A beneficiary holds a right to receive under the trust’s terms, not title to the property, and cannot transfer that right — so there is far less for a claimant to attach. The deeper protection is DISCRETION: under the Uniform Trust Code’s discretionary-trust rule, a creditor — even one of the exception creditors below — generally cannot compel a distribution the trustee has authority to withhold. That is also why a discretionary interest is commonly treated in divorce as a mere expectancy rather than a divisible asset (Pfannenstiehl v. Pfannenstiehl, Mass. 2016). A mandatory or formula-driven right is far weaker than a discretionary one.',
     mustSay: [
       'Neither voluntary nor involuntary transfer of a beneficial interest is permitted, and no interest is subject to the claims of creditors before receipt.',
       'Distributions are discretionary in the trustee’s judgment rather than mandatory on a fixed schedule.',
       'The governing state is named, and the trust is funded by a third party rather than self-settled.',
+      'The instrument STATES ITS MATERIAL PURPOSES. Under the American rule (Claflin v. Claflin, Mass. 1889) a trust cannot be modified or terminated even if every beneficiary agrees, where that would defeat a material purpose — but a purpose the document never states is a purpose a court must guess at.',
       'The trustee may make distributions for a beneficiary’s benefit directly to a provider rather than into the beneficiary’s hands.',
     ],
     limits: [
       'Generally strong for a trust someone ELSE funded for you; weak or void for a self-settled trust — one you fund for yourself.',
       'Child support and certain government claims commonly pierce spendthrift protection.',
       'Once a distribution is actually received it is the beneficiary’s own property and is exposed like anything else they own.',
-      'State law varies substantially — the governing state decides how much of this holds.',
+      'State law varies substantially, and not as an on/off switch. California caps what a judgment creditor may reach at 25% of a payment otherwise due the beneficiary (Prob. Code § 15306.5); New York lets a creditor reach trust income beyond what is needed for the beneficiary’s education and support (EPTL § 7-3.4). Neither state is simply "protected" or "unprotected."',
+      'Siting a trust in a favorable state does not settle the question. A court in the family’s own state may apply its own law — one state cannot limit another state’s courts (Toni 1 Trust v. Wacker, Alaska 2018; In re Huber). Where the family LIVES matters as much as where the trust sits.',
     ],
     appOperates: [
       'A standing exposure review: the real questions for this house, answered on the record.',
@@ -303,7 +307,7 @@ export const TRUST_PROVISIONS = [
     answers:
       'The heir formed into a consumer of the very thing they were handed to steward, by years of receiving without producing.',
     mechanism:
-      'Recorded production is a condition the trustee weighs before discretionary distributions, so the requirement is operative rather than aspirational.',
+      'Recorded production is a condition the trustee WEIGHS before discretionary distributions, so the requirement is operative rather than aspirational. This is the shape practitioners call a PRINCIPLE TRUST — the settlor sets down the principles and values to be encouraged and leaves the trustee discretion to judge each heir case by case — rather than a mechanical incentive formula. The distinction is not cosmetic: a rigid "earn a dollar, get a dollar" rule creates the kind of enforceable, non-discretionary right that weakens the very discretion the spendthrift protection depends on, and it breaks on the first heir who is disabled, studying, raising small children, or serving without pay.',
     mustSay: [
       'Production is defined broadly and in writing — earned income, a business built, capital genuinely at work, labor given to a family asset, a skill developed to a standard, service that creates real value.',
       'The trustee weighs recorded production over a stated period when exercising discretion.',
@@ -313,6 +317,8 @@ export const TRUST_PROVISIONS = [
     limits: [
       'A hard mechanical trigger can produce cruel results in a real family; the requirement is weighed, with a stated exemption path.',
       'A requirement nobody records is not a requirement — the ledger is the provision, not the paragraph.',
+      'Conditions on an inheritance are broadly enforceable, but the line runs between deciding ELIGIBILITY at a moment and exerting ongoing control over how someone lives (Shapira v. Union National Bank, Ohio 1974; In re Estate of Feinberg, Ill. 2009). A weighed production standard with a stated exemption path sits on the safe side of that line; a lever pulled on a beneficiary’s daily conduct does not.',
+      'Verification is a real problem, not a paperwork one. A condition a trustee cannot actually observe invites disputes — count what a record can show.',
     ],
     appOperates: [
       'A real production ledger: contributions and distributions recorded as dated entries.',
@@ -370,7 +376,7 @@ export const POE_PRODUCTION_POLICY = {
   reviewFloorAmount: 500,
   exemptionReasons: ['illness or injury', 'full-time study', 'care of young children', 'stewards’ written exemption'],
   note:
-    'Weighed by the stewards, not mechanically enforced. Health, education, maintenance and support are never withheld as a penalty for a production shortfall.',
+    'Weighed by the stewards, not mechanically enforced — a PRINCIPLE trust, not an incentive formula. Health, education, maintenance and support are never withheld as a penalty for a production shortfall.',
 };
 
 const MS_DAY = 86400000;
@@ -663,6 +669,8 @@ export const SPENDTHRIFT_REVIEW_ITEMS = [
   { id: 'commingling', question: 'Are beneficiaries avoiding commingling trust distributions with joint marital accounts?', protectedWhen: 'yes', why: 'Commingling is how protected money becomes divisible money in a divorce.' },
   { id: 'exception-creditors', question: 'Has the family been told plainly which claimants can still pierce the clause in the governing state?', protectedWhen: 'yes', why: 'Child support and certain government claims commonly pierce. A family that has not been told will be shocked at the wrong moment.' },
   { id: 'counsel-review', question: 'Has a licensed estate attorney reviewed the instrument within the family’s chosen review interval?', protectedWhen: 'yes', why: 'Statutes and family circumstances both move. An unreviewed instrument silently ages out of its own assumptions.' },
+  { id: 'material-purpose', question: 'Does the instrument STATE its material purposes — why the trust delays, protects, and restrains?', protectedWhen: 'yes', why: 'Under the American rule (Claflin v. Claflin, 1889) beneficiaries cannot agree among themselves to end a trust where that defeats a material purpose. The wall faces inward as well as outward — but only a purpose the document actually states is one a court can protect.' },
+  { id: 'residence-vs-siting', question: 'Has counsel confirmed that the family’s RESIDENCE state respects the protection the trust’s siting state promises?', protectedWhen: 'yes', why: 'One state cannot limit another state’s courts. Where the settlor lives outside the favorable state and the trust is the only connection to it, courts have applied the home state’s law instead (Toni 1 Trust v. Wacker; In re Huber). Siting alone is not an answer.' },
 ];
 
 /**
