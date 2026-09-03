@@ -1,45 +1,43 @@
 // =============================================================================
-// L118 — "Know your own post": her provision, her guard, and the beam in the
-// pointing eye. Verbatim KJV.
+// L118 — "Ninety-Seven Percent": testing a viral number against the Word, and
+// against the real research. Verbatim KJV.
 // =============================================================================
-// Captured 2026-09-02 from a second spoken clip Darrell brought in, hours after
-// the one that became L114. A man argues that women can recite a man's duties
-// inside out and backwards while not knowing a woman's first duty — that she is
-// to provide and to protect — and closes by calling a woman who falls short
-// worthless.
+// Captured 2026-09-02 from a circulating clip Darrell brought in with one
+// instruction — lesson — and one standard: "Word first. And all lessons should
+// be independently researched then as well." The clip asserts that 97% of women
+// who attend college are unfit to marry, prefaced with "studies have shown."
 //
-// NUMBERING: this is L118, not L115. L115 is deliberately reserved for PR #1428
-// (branch claude/biblical-femininity-quiet-strength-4xsef8), which authored a
-// DIFFERENT lesson as L114 in a concurrent session and went conflicted when
-// L114 merged first. A lesson number is provisional until merge, exactly like a
-// DR number (DR-0052); skipping one is cheaper than colliding twice.
+// The five things this lesson had to get right, and which are pinned here:
+//   • ORDER. Word FIRST, research SECOND. Scripture sets the test (movements
+//     2-3) before a single statistic is examined (movements 4-7). A lesson that
+//     opens on the data has started a statistics debate and lost the Word.
+//   • THE NUMBER'S PROVENANCE (DR-0190). The 97% traces to no study, no survey,
+//     no dataset and no researcher; "studies have shown" is a permission slip,
+//     not a citation. The lesson says so and hands the reader the four questions
+//     that expose the next one: who counted, how many, when, where can I read it.
+//   • ALL THREE TIERS, IN ONE BREATH (DR-0100). Tier 1 stated plainly and
+//     ATTRIBUTED: on both things such a claim would have to mean, the reported
+//     research runs the OTHER way (Pew/Census on ever-married by 40; BLS/NLSY79
+//     on divorce). Also tier 1, and equally plain: the later marriage age, the
+//     lower birth rate, and the Monto-and-Carey finding of a real shift toward
+//     casual and away from committed partners — even though the same study
+//     refutes the clip's volume claim. Tier 2 flagged NARROWLY: why the pattern
+//     exists is unsettled. Tier 3 corrected by the Word.
+//   • BOTH PANS OF THE SAME SCALE. The clip's closing advice — look for one
+//     without a degree — makes ignorance a proxy for godliness, which is the
+//     same false weight inverted (Hosea 4:6; Proverbs 4:7; Luke 10:42). A lesson
+//     that only reversed the filter would have failed its own just-weight test.
+//   • THE WORD IS SENIOR (DR-0098). The clip is NAMED only to educate past it,
+//     never staged as a co-equal view to pick a side of.
 //
-// The four things this lesson had to get right, and which are pinned here:
-//   • THE TRUE PART, STATED PLAINLY (DR-0100). Her post is real and the Word
-//     describes it in working detail — sourcing, feeding, trading, giving,
-//     watching the WAYS, preparing before the season — and it is proven outside
-//     Proverbs 31 (Luke 8:3; Acts 9:36,39; 2 Kings 4:10; 1 Samuel 25; Exodus
-//     1:17) so it cannot be filed as an unreachable ideal. Under-claiming a
-//     truth is as much a failure of truth as over-claiming one.
-//   • THE PEACE CLAIM WEIGHED WITH BOTH HANDS. Proverbs 21:9 is taught BESIDE
-//     Proverbs 29:22 and 22:24 — quoting one and not the other is selection,
-//     which is the very failure the lesson teaches against — and the guard rail
-//     (keeping peace never means concealing harm) rides in the same breath.
-//   • THE CONTEMPT REFUSED WITHOUT DISCARDING THE TRUE POINT. Genesis 1:27 and
-//     James 3:9-10 forbid pricing a person at nothing; Ephesians 4:29 supplies
-//     the test that is not "was it true" but "did it EDIFY".
-//   • THE BEAM AS ORDER, NOT CANCELLATION. Matthew 7:3-5 never says the mote is
-//     imaginary. The clip's point about lopsided knowledge can be entirely real
-//     AND the beam still disqualifies the surgeon until it comes out. A lesson
-//     that used the beam to dismiss the man would fail in the opposite
-//     direction, so that distinction is asserted explicitly below.
-//
-// The whole-span gate rides again: no quoted span may differ from the in-repo
-// KJV by a single character. Authoring L118 produced ZERO in-quote alterations
-// on the first sweep — the L114 discipline (a double quote means Scripture and
-// nothing else; the clip's own words and our prose carry none) was applied from
-// the first draft rather than retrofitted. The gate is still asserted
-// proven-to-catch below against strings it must reject.
+// The whole-span gate from L112/L113/L114/L115/L116/L117 rides again: no quoted span in this
+// lesson may differ from the in-repo KJV by a single character. Authoring L118
+// produced two real would-be alterations, both caught by fetching rather than
+// remembering: Proverbs 31:30 reads "Favour is deceitful", NOT the modern
+// "Charm is deceitful"; and Matthew 7:20 reads "Wherefore by their fruits ye
+// shall know them.", not the familiar clipped form. Both are pinned as negatives
+// below, along with the clip's own words and our prose, so that in this lesson a
+// double quote means Scripture and nothing else.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -48,7 +46,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll118-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye';
+const ID = 'll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -75,52 +73,60 @@ const quotedSpans = (text) => {
 };
 
 const QUOTED_FRAGMENTS = [
-  'It is not good that the man should be alone; I will make him an help meet for him', // Gen 2:18
-  'in the image of God created he him; male and female created he them',    // Gen 1:27
-  'She girdeth her loins with strength, and strengtheneth her arms.',        // Prov 31:17
-  'Strength and honour are her clothing; and she shall rejoice in time to come.', // Prov 31:25
-  'She looketh well to the ways of her household, and eateth not the bread of idleness.', // Prov 31:27
-  'Every wise woman buildeth her house: but the foolish plucketh it down with her hands.', // Prov 14:1
-  'She is like the merchants’ ships; she bringeth her food from afar.',      // Prov 31:14
-  'She riseth also while it is yet night, and giveth meat to her household', // Prov 31:15
-  'She perceiveth that her merchandise is good: her candle goeth not out by night.', // Prov 31:18
-  'She stretcheth out her hand to the poor; yea, she reacheth forth her hands to the needy.', // Prov 31:20
-  'She is not afraid of the snow for her household: for all her household are clothed with scarlet.', // Prov 31:21
-  'She openeth her mouth with wisdom; and in her tongue is the law of kindness.', // Prov 31:26
-  'She will do him good and not evil all the days of her life.',             // Prov 31:12
-  'which ministered unto him of their substance',                           // Luke 8:3
-  'this woman was full of good works and almsdeeds which she did',          // Acts 9:36
-  'shewing the coats and garments which Dorcas made, while she was with them', // Acts 9:39
-  'Let us make a little chamber, I pray thee, on the wall',                  // 2 Kings 4:10
-  'Then Abigail made haste, and took two hundred loaves',                    // 1 Sam 25:18
-  'But she told not her husband Nabal.',                                     // 1 Sam 25:19
-  'which hast kept me this day from coming to shed blood',                   // 1 Sam 25:33
-  'But the midwives feared God, and did not as the king of Egypt commanded them, but saved the men children alive.', // Ex 1:17
-  'A soft answer turneth away wrath: but grievous words stir up anger.',      // Prov 15:1
-  'It is better to dwell in a corner of the housetop, than with a brawling woman in a wide house.', // Prov 21:9
-  'An angry man stirreth up strife, and a furious man aboundeth in transgression.', // Prov 29:22
-  'Make no friendship with an angry man; and with a furious man thou shalt not go:', // Prov 22:24
-  'Blessed are the peacemakers: for they shall be called the children of God.', // Matt 5:9
-  'If it be possible, as much as lieth in you, live peaceably with all men.', // Rom 12:18
-  'Submitting yourselves one to another in the fear of God.',                // Eph 5:21
-  'therewith curse we men, which are made after the similitude of God',      // Jas 3:9
-  'Out of the same mouth proceedeth blessing and cursing.',                  // Jas 3:10
-  'Let no corrupt communication proceed out of your mouth',                  // Eph 4:29
-  'that it may minister grace unto the hearers',                            // Eph 4:29
-  'And why beholdest thou the mote that is in thy brother’s eye, but considerest not the beam that is in thine own eye?', // Matt 7:3
-  'first cast out the beam out of thine own eye; and then shalt thou see clearly', // Matt 7:5
-  'for thou that judgest doest the same things',                            // Rom 2:1
-  'comparing themselves among themselves, are not wise',                    // 2 Cor 10:12
-  'But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another.', // Gal 6:4
-  'For every man shall bear his own burden.',                                // Gal 6:5
-  'study to be quiet, and to do your own business, and to work with your own hands', // 1 Thess 4:11
-  'or as a busybody in other men’s matters',                                // 1 Pet 4:15
-  'working not at all, but are busybodies',                                 // 2 Thess 3:11
-  'Who art thou that judgest another man’s servant? to his own master he standeth or falleth.', // Rom 14:4
-  'If the foot shall say, Because I am not the hand, I am not of the body; is it therefore not of the body?', // 1 Cor 12:15
-  'But now hath God set the members every one of them in the body, as it hath pleased him.', // 1 Cor 12:18
-  'what is that to thee? follow thou me',                                   // John 21:22
-  'but to do justly, and to love mercy, and to walk humbly with thy God?',   // Micah 6:8
+  'The simple believeth every word: but the prudent man looketh well to his going.',          // Prov 14:15
+  'Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised.', // Prov 31:30
+  'for man looketh on the outward appearance, but the LORD looketh on the heart.',            // 1 Sam 16:7
+  'Judge not according to the appearance, but judge righteous judgment.',                     // John 7:24
+  'Thou shalt not bear false witness against thy neighbour.',                                 // Ex 20:16
+  'A false witness shall not be unpunished, and he that speaketh lies shall not escape.',      // Prov 19:5
+  'Thou shalt not go up and down as a talebearer among thy people',                           // Lev 19:16
+  'He that answereth a matter before he heareth it, it is folly and shame unto him.',          // Prov 18:13
+  'A false balance is abomination to the LORD: but a just weight is his delight.',             // Prov 11:1
+  'Divers weights, and divers measures, both of them are alike abomination to the LORD.',      // Prov 20:10
+  'A just weight and balance are the LORD’s: all the weights of the bag are his work.',   // Prov 16:11
+  'with what measure ye mete, it shall be measured to you again',                             // Matt 7:2
+  'Flee fornication.',                                                                        // 1 Cor 6:18
+  'It is not good that the man should be alone; I will make him an help meet for him.',        // Gen 2:18
+  'Our soul waiteth for the LORD: he is our help and our shield.',                            // Ps 33:20
+  'was mine help, and delivered me from the sword of Pharaoh',                                // Ex 18:4
+  'And Deborah, a prophetess, the wife of Lapidoth, she judged Israel at that time.',          // Judg 4:4
+  'the children of Israel came up to her for judgment',                                       // Judg 4:5
+  'went unto Huldah the prophetess',                                                          // 2 Kgs 22:14
+  'now she dwelt in Jerusalem in the college',                                                // 2 Kgs 22:14
+  'she was a woman of good understanding',                                                    // 1 Sam 25:3
+  'And blessed be thy advice, and blessed be thou, which hast kept me this day from coming to shed blood', // 1 Sam 25:33
+  'they took him unto them, and expounded unto him the way of God more perfectly',            // Acts 18:26
+  'And a certain woman named Lydia, a seller of purple, of the city of Thyatira',             // Acts 16:14
+  'come into my house, and abide there. And she constrained us.',                             // Acts 16:15
+  'She considereth a field, and buyeth it: with the fruit of her hands she planteth a vineyard.', // Prov 31:16
+  'She maketh fine linen, and selleth it; and delivereth girdles unto the merchant.',          // Prov 31:24
+  'She openeth her mouth with wisdom; and in her tongue is the law of kindness.',              // Prov 31:26
+  'The heart of her husband doth safely trust in her',                                        // Prov 31:11
+  'her husband also, and he praiseth her',                                                    // Prov 31:28
+  'My people are destroyed for lack of knowledge',                                            // Hos 4:6
+  'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.', // Prov 4:7
+  'Buy the truth, and sell it not; also wisdom, and instruction, and understanding.',          // Prov 23:23
+  'And she had a sister called Mary, which also sat at Jesus’ feet, and heard his word.', // Luke 10:39
+  'Mary hath chosen that good part, which shall not be taken away from her',                  // Luke 10:42
+  'Let the woman learn in silence with all subjection.',                                      // 1 Tim 2:11
+  'not false accusers, not given to much wine, teachers of good things;',                     // Titus 2:3
+  'That they may teach the young women to be sober, to love their husbands, to love their children,', // Titus 2:4
+  'Be not deceived: evil communications corrupt good manners.',                               // 1 Cor 15:33
+  'He that walketh with wise men shall be wise: but a companion of fools shall be destroyed.', // Prov 13:20
+  'And be not conformed to this world: but be ye transformed by the renewing of your mind',   // Rom 12:2
+  'Prove all things; hold fast that which is good.',                                          // 1 Thess 5:21
+  'yet is she thy companion, and the wife of thy covenant',                                   // Mal 2:14
+  'he hateth putting away: for one covereth violence with his garment',                       // Mal 2:16
+  'Whoso findeth a wife findeth a good thing, and obtaineth favour of the LORD.',              // Prov 18:22
+  'House and riches are the inheritance of fathers: and a prudent wife is from the LORD.',     // Prov 19:14
+  'Husbands, love your wives, even as Christ also loved the church, and gave himself for it;', // Eph 5:25
+  'Speak not evil one of another, brethren.',                                                 // Jas 4:11
+  'Ye shall know them by their fruits. Do men gather grapes of thorns, or figs of thistles?',  // Matt 7:16
+  'Wherefore by their fruits ye shall know them.',                                            // Matt 7:20
+  'Every wise woman buildeth her house: but the foolish plucketh it down with her hands.',     // Prov 14:1
+  'She will do him good and not evil all the days of her life.',                              // Prov 31:12
+  'She looketh well to the ways of her household, and eateth not the bread of idleness.',      // Prov 31:27
+  'even the ornament of a meek and quiet spirit',                                             // 1 Pet 3:4
 ];
 
 describe('L118 exists in the catalog with its full shape', () => {
@@ -128,7 +134,7 @@ describe('L118 exists in the catalog with its full shape', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
       'bigIdea:', 'inApp:',
-      "ref: 'Galatians 6:4-5; Matthew 7:3-5; Proverbs 31:27'",
+      "ref: 'Proverbs 31:30; 1 Samuel 16:7; Proverbs 11:1'",
       'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:',
     ]) {
       expect(l).toContain(key);
@@ -144,24 +150,20 @@ describe('L118 exists in the catalog with its full shape', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 
-  it('does not collide with L114, and leaves L115 free for the concurrent lesson', () => {
-    const ids = LIVING_LESSONS_MODULES.map((m) => m.id);
-    expect(ids.filter((i) => i.startsWith('ll116-')).length, 'exactly one L118').toBe(1);
-    expect(ids.filter((i) => i.startsWith('ll114-')).length, 'exactly one L114').toBe(1);
-    expect(new Set(ids).size, 'no duplicate lesson ids anywhere in the series').toBe(ids.length);
-  });
-
-  it('teaches the whole arc in order — post, provision, guard, peace, worth, the beam, own work, the floor', () => {
+  it('teaches the whole arc in order — claim, Word, measure, provenance, data, true parts, open, follower, inverse weight, mirror, the man, method', () => {
     const order = [
-      '1) THE OCCASION, AND THE TRUE THING IN IT',
-      '2) THE WORD GIVES HER A REAL POST',
-      '3) HER PROVISION IS LITERAL',
-      '4) HER GUARD IS LITERAL',
-      '5) PROTECTING PEACE',
-      '6) THE WORD THE CLIP GOT WRONG - NOBODY IS WORTHLESS',
-      '7) THE MOTE AND THE BEAM',
-      '8) SO KNOW YOUR OWN POST',
-      '9) THE POST NOBODY IS EXEMPT FROM',
+      '1) WHAT WAS ACTUALLY CLAIMED',
+      '2) THE WORD FIRST - THE TEST YAHWEH ACTUALLY GIVES',
+      '3) A CLAIM ABOUT PEOPLE IS UNDER THE NINTH COMMANDMENT',
+      '4) WHERE THE NUMBER CAME FROM',
+      '5) WHAT THE RESEARCH ACTUALLY REPORTS',
+      '6) WHAT IS TRUE IN IT',
+      '7) WHAT IS GENUINELY OPEN',
+      '8) A WOMAN’S NATURAL INSTINCT IS TO FOLLOW',
+      '9) THE MIRROR-IMAGE FALSE WEIGHT',
+      '10) THE ONE THING THE CLIP HAS RIGHT',
+      '11) THE MAN IN THE MIRROR',
+      '12) SO HOW DO YOU ACTUALLY KNOW?',
       'THE WHOLE OF IT',
     ];
     let cursor = 0;
@@ -172,51 +174,83 @@ describe('L118 exists in the catalog with its full shape', () => {
     }
   });
 
-  it('names its occasion and attributes the clip rather than asserting it (DR-0190)', () => {
+  it('runs the Word BEFORE the research, which is the standard Darrell set', () => {
     expect(l).toContain('Darrell');
+    expect(l, 'the order is declared').toMatch(/Word first, and independently researched|WORD FIRST, THEN INDEPENDENTLY RESEARCHED/);
+    // the test Yahweh gives is established before the first statistic is examined
+    expect(l.indexOf('2) THE WORD FIRST')).toBeLessThan(l.indexOf('5) WHAT THE RESEARCH ACTUALLY REPORTS'));
+    expect(l.indexOf('Favour is deceitful')).toBeLessThan(l.indexOf('Pew Research Center'));
+  });
+
+  it('names the clip as the occasion and refuses to assert its number (DR-0190)', () => {
     expect(l, 'the clip is the occasion, not the authority').toMatch(/occasion, not the authority|occasion, never as the authority/);
+    expect(l, 'the 97% is reported as sourceless, never asserted').toMatch(/traces to no study/);
+    expect(l).toMatch(/no study, no survey, no dataset and no researcher|no study, no survey, no researcher/);
+    expect(l, 'the four questions that expose the next one').toMatch(/who counted, how many, when, and where can I read it/i);
+    // every statistic in the lesson carries an attributing organisation
+    for (const org of ['Pew Research Center', 'Bureau of Labor Statistics', 'Centers for Disease Control and Prevention', 'General Social Survey', 'National Center for Health Statistics']) {
+      expect(l, `statistic source missing: ${org}`).toContain(org);
+    }
   });
 
-  it('states the TRUE part plainly and proves it OUTSIDE Proverbs 31 (DR-0100)', () => {
-    // her post, from the working text
-    expect(l).toContain('She looketh well to the ways of her household');
-    expect(l).toContain('She girdeth her loins with strength');
-    // and outside the one chapter, so it cannot be filed as an unreachable ideal
-    expect(l).toContain('which ministered unto him of their substance');       // Luke 8:3
-    expect(l).toContain('almsdeeds which she did');                            // Dorcas
-    expect(l).toContain('Let us make a little chamber');                       // the Shunammite
-    expect(l).toContain('from coming to shed blood');                          // Abigail
-    expect(l).toContain('saved the men children alive');                       // the midwives
-    expect(l, 'the affirmation is explicit, not grudging').toMatch(/The clip was right about that|clip is right that she has a post/);
+  it('states tier 1 PLAINLY — the reported research runs opposite to the claim (DR-0100)', () => {
+    expect(l).toMatch(/marry MORE and divorce LESS|marry more and divorce less/);
+    expect(l).toContain('eighteen percent');
+    expect(l).toContain('forty-one percent');
+    expect(l, 'and refuses to under-claim a verified truth').toMatch(/Under-claiming a verified truth|under-claiming a verified truth/);
+    expect(l).toMatch(/pointed the arrow backwards/);
   });
 
-  it('weighs the peace claim with BOTH hands and carries the guard rail in the same breath', () => {
-    expect(l).toContain('than with a brawling woman in a wide house');         // Prov 21:9
-    expect(l).toContain('An angry man stirreth up strife');                    // Prov 29:22
-    expect(l).toContain('Make no friendship with an angry man');               // Prov 22:24
-    expect(l, 'selection is named as the failure').toMatch(/selection/i);
-    expect(l, 'peace is never concealing harm').toMatch(/never means concealing harm/);
-    expect(l, 'she is given a mouth that opens').toContain('She openeth her mouth with wisdom');
+  it('states what is TRUE in the clip just as plainly — no answering a false weight with a false weight', () => {
+    expect(l, 'the delay is real').toContain('30.8');
+    expect(l, 'the birth-rate gap is real').toContain('2.79');
+    expect(l, 'the relational shift is real even though the volume claim is not').toMatch(/casual/);
+    expect(l).toMatch(/Monto and Carey/);
+    expect(l, 'the volume claim is what actually fails').toMatch(/NOT having more sex or more partners|not having more sex or more partners/);
+    expect(l).toMatch(/we do not answer a false weight with a false weight|We do not answer a false weight with a false weight/);
   });
 
-  it('refuses the contempt WITHOUT discarding the true point', () => {
-    expect(l).toContain('made after the similitude of God');
-    expect(l).toContain('male and female created he them');
-    expect(l, 'the Ephesians 4:29 test').toMatch(/EDIFIED|edifying/);
-    expect(l, 'and says why contempt is self-defeating').toMatch(/discarded along with the truth|thrown in the trash along with the truth/);
+  it('flags the genuinely open question NARROWLY rather than smearing the subject (DR-0100 tier 2)', () => {
+    expect(l).toMatch(/genuinely (open|unsettled)|is not settled here/);
+    expect(l, 'and says why it does not change the direction').toMatch(/changes nothing about (movement 5|the direction)/);
+    expect(l, 'exactly one place gets the uncertainty flag').toMatch(/the only place in this lesson that gets it/);
   });
 
-  it('keeps the beam as ORDER, never as a cancellation of the true point', () => {
-    expect(l).toContain('considerest not the beam that is in thine own eye');
-    expect(l, 'the mote is not called imaginary').toMatch(/does NOT say the mote is imaginary|does not say the speck is fake|does not say the mote is imaginary/i);
-    expect(l).toMatch(/Order of operations, not cancellation|ORDER not cancellation|ORDER, it does not say/);
-    expect(l, 'and the clip is named as standing in it').toMatch(/performed while it is being made|performed while it is made/);
+  it('treats a claim about people as testimony and an invented statistic as a false balance', () => {
+    expect(l).toContain('Thou shalt not bear false witness against thy neighbour.');
+    expect(l).toContain('A false balance is abomination to the LORD');
+    expect(l).toMatch(/A statistic is a weight/);
+    expect(l, 'no exemption for false witness delivered as a percentage').toMatch(/no exemption for testimony delivered as a percentage|exemption for false witness delivered as a decimal/);
   });
 
-  it('pairs explicitly with L114 so the series is symmetrical, not one-sided', () => {
-    expect(l).toContain('L114');
-    expect(l, 'the mutual floor').toContain('to do justly, and to love mercy, and to walk humbly with thy God?');
-    expect(l, 'the floor indicts both').toMatch(/failed it identically|failed that floor/);
+  it('answers the follower-by-nature claim from Scripture, not from argument', () => {
+    expect(l).toMatch(/is not in Scripture/);
+    for (const witness of ['Deborah', 'Huldah', 'Abigail', 'Priscilla', 'Lydia']) {
+      expect(l, `witness missing: ${witness}`).toContain(witness);
+    }
+    expect(l, 'the help-meet word is used of Yahweh Himself helping His people').toContain('Our soul waiteth for the LORD: he is our help and our shield.');
+    expect(l, 'and the KJV "college" is NOT built on — the Hebrew is named honestly').toMatch(/translation artifact/);
+  });
+
+  it('corrects the INVERSE filter too — ignorance is not godliness', () => {
+    expect(l).toMatch(/same false weight with the pans swapped|its own false weight/);
+    expect(l).toContain('My people are destroyed for lack of knowledge');
+    expect(l).toContain('Mary hath chosen that good part');
+    expect(l, 'the neutral conclusion the Word forces').toMatch(/A degree does not make a woman godly and its absence does not either|a degree does not make a woman godly/i);
+  });
+
+  it('keeps the one true insight and applies it to BOTH pans, including the feed', () => {
+    expect(l).toContain('Be not deceived: evil communications corrupt good manners.');
+    expect(l).toMatch(/ENVIRONMENTS DISCIPLE PEOPLE|environments disciple people/);
+    expect(l, 'the same rule reaches the content that carried the claim').toMatch(/a feed|the feed/);
+    expect(l).toMatch(/does not get an exemption/);
+  });
+
+  it('turns the question back on the man holding the filter', () => {
+    expect(l).toContain('Whoso findeth a wife findeth a good thing');
+    expect(l).toContain('Husbands, love your wives, even as Christ also loved the church, and gave himself for it;');
+    expect(l, 'a demand for fewer options is leverage, not covenant').toMatch(/leverage, not covenant|leverage standard/);
+    expect(l).toContain('one covereth violence with his garment');
   });
 
   it('keeps our authored voice on Yahweh, with no capitalized adversary name', () => {
@@ -227,6 +261,11 @@ describe('L118 exists in the catalog with its full shape', () => {
     expect((ours.match(/\bLucifer\b/g) || []).length).toBe(0);
     expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
     expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(15);
+  });
+
+  it('discloses its own verification limit rather than hiding it (DR-0076 §8)', () => {
+    expect(l).toMatch(/primary pages were unreachable/);
+    expect(l, 'and says why disclosing it is part of the teaching').toMatch(/hid its own limitation|which is the whole point of attribution/);
   });
 });
 
@@ -256,25 +295,19 @@ describe('NO in-quote alteration anywhere in the lesson — the whole-span gate'
     expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
   });
 
-  it('is PROVEN-TO-CATCH — the strings it must reject are absent from the corpus', () => {
-    // the clip's own words must never wear Scripture's quotation marks
-    expect(WHOLE_KJV.includes('she is supposed to provide')).toBe(false);
-    expect(WHOLE_KJV.includes('protecting peace')).toBe(false);
-    // a plausible paraphrase of the anchor that is NOT what the text says
-    expect(WHOLE_KJV.includes('let every man prove his own work, and then shall he have rejoicing in himself')).toBe(true);
-    expect(WHOLE_KJV.includes('let every woman prove her own work')).toBe(false);
-    // the classic drift on Proverbs 31:27 — a watch over the household is over its WAYS
-    expect(WHOLE_KJV.includes('She looketh well to the ways of her household')).toBe(true);
-    expect(WHOLE_KJV.includes('She looks well to the ways of her household')).toBe(false);
-    // A CAPITALISATION alteration inside a quotation. Note what this pin had to
-    // be corrected FROM: the first draft asserted 'follow thou me.' was absent,
-    // on the assumption that a trailing period is always the sentence's and not
-    // the verse's. It is not — John 21:22 ENDS at that period, so the corpus
-    // contains it and the assertion failed. The gate caught the test, which is
-    // the check doing its job on me rather than on the lesson.
-    expect(WHOLE_KJV.includes('what is that to thee? Follow thou me')).toBe(false);
-    expect(WHOLE_KJV.includes('what is that to thee? follow thou me')).toBe(true);
-    expect(WHOLE_KJV.includes('prove thine own work')).toBe(false);
+  it('is PROVEN-TO-CATCH against the alterations remembering would have made HERE', () => {
+    // Proverbs 31:30 — the modern-translation word this lesson turns on. KJV says Favour.
+    expect(WHOLE_KJV.includes('Charm is deceitful, and beauty is vain')).toBe(false);
+    expect(WHOLE_KJV.includes('Favour is deceitful, and beauty is vain')).toBe(true);
+    // Matthew 7:20 — the familiar clipped misquote drops "Wherefore".
+    expect(WHOLE_KJV.includes('By their fruits ye shall know them.')).toBe(false);
+    expect(WHOLE_KJV.includes('Wherefore by their fruits ye shall know them.')).toBe(true);
+    // the CLIP's own words must never wear Scripture's quotation marks
+    expect(WHOLE_KJV.includes('Ninety-seven percent of women that go to college are not wifeable')).toBe(false);
+    expect(WHOLE_KJV.includes('studies have shown')).toBe(false);
+    // and neither may our own prose
+    expect(WHOLE_KJV.includes('a rumour with a decimal point')).toBe(false);
+    expect(WHOLE_KJV.includes('who counted, how many, when, and where can I read it')).toBe(false);
   });
 });
 
@@ -285,66 +318,54 @@ describe('every age level carries the message (child, teen, senior — full cove
     return l.slice(i, j);
   };
 
-  it('each band carries the beam, her real post, and the no-one-is-worthless rule', () => {
+  it('each band carries the check-the-number habit, the heart, and fruit', () => {
     for (const band of ['child', 'teen', 'senior']) {
       const t = level(band);
-      expect(t, `${band} carries the beam`).toMatch(/beam|Matthew 7:[35]/);
-      expect(t, `${band} carries her real post`).toMatch(/Proverbs 31|looketh well|girdeth her loins|count the verbs/);
-      expect(t, `${band} refuses the contempt`).toMatch(/worthless|similitude of God|James 3:9|image/i);
+      expect(t, `${band} teaches checking a claim`).toMatch(/who counted|WHO counted|traces to no study|How do you know|HOW DO YOU KNOW/i);
+      expect(t, `${band} sends the reader to the heart, not the surface`).toMatch(/looketh on the heart|outward appearance/);
+      expect(t, `${band} gives the method Yahweh gave`).toMatch(/fruit|fruits/i);
     }
   });
 
-  it('teen and senior additionally carry the both-hands peace weighing and prove-your-own-work', () => {
+  it('teen and senior additionally carry the real research, both directions', () => {
     for (const band of ['teen', 'senior']) {
       const t = level(band);
-      expect(t, `${band} carries prove-your-own-work`).toMatch(/prove his own work|Galatians 6:4/);
-      expect(t, `${band} carries the follow-thou-me close`).toMatch(/follow thou me|John 21:22/);
+      expect(t, `${band} states the tier-1 finding`).toMatch(/Pew Research Center/);
+      expect(t, `${band} states it with its counterpart`).toMatch(/Bureau of Labor Statistics/);
+      expect(t, `${band} states the true parts too`).toMatch(/30\.8|fewer children|Monto and Carey/);
+      expect(t, `${band} carries testimony and the weights`).toMatch(/false witness|false balance|talebearer/);
     }
-    // the both-hands weighing must be explicit in the senior teaching notes
-    expect(level('senior')).toMatch(/29:22|angry man/);
   });
 
   it('the child level teaches without adult weight, and is not a stub', () => {
     const child = level('child');
     expect(child.length).toBeGreaterThan(400);
-    expect(child).toContain('first cast out the beam out of thine own eye');
-    expect(child, 'the affirming half reaches a child too').toMatch(/Strength and honour are her clothing/);
-    // No marital-conflict framing for a six-year-old — screened against the
-    // child level's OWN prose, with quoted Scripture stripped first. The first
-    // version of this screen banned 'hypocrite' and flagged the child level,
-    // which was the SCREEN being wrong, not the content: "Thou hypocrite" is
-    // inside the verbatim Matthew 7:5 quotation, and a screen that edits
-    // Scripture to pass itself is the alteration this whole file exists to
-    // prevent. 'worthless' likewise stays — the child level is where the rule
-    // against it is taught.
-    const childProse = (() => {
-      let t = child.replace(/\\'/g, "'");
-      for (const sp of quotedSpans(child).spans) t = t.split(`"${sp}"`).join(' ');
-      return t;
-    })();
-    expect(childProse, 'no marital-argument frame at the child level').not.toMatch(/husband|wife|marriage|brawling/i);
-    expect(childProse, 'and it still teaches the rule against contempt').toMatch(/never tell someone they are worthless/i);
+    expect(child, 'the child level teaches the number check plainly').toMatch(/HOW DO YOU KNOW/);
+    expect(child).toContain('Wherefore by their fruits ye shall know them.');
+    expect(child, 'learning is taught as a gift').toContain('Wisdom is the principal thing');
+    expect(child).not.toMatch(/wifeable|marriage|marry|divorce|fornication|hookup|sex/i);
   });
 });
 
 describe('corpus witness — the pins are re-read from the corpus files themselves', () => {
   it('a representative set matches the repo KJV exactly', () => {
-    expect(verse('Galatians', 6, 4)).toBe('But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another.');
-    expect(verse('Galatians', 6, 5)).toBe('For every man shall bear his own burden.');
-    expect(verse('Matthew', 7, 3)).toContain('considerest not the beam that is in thine own eye');
-    expect(verse('Romans', 2, 1)).toContain('thou that judgest doest the same things');
-    expect(verse('Proverbs', 31, 27)).toBe('She looketh well to the ways of her household, and eateth not the bread of idleness.');
-    expect(verse('Proverbs', 31, 17)).toBe('She girdeth her loins with strength, and strengtheneth her arms.');
-    expect(verse('Proverbs', 31, 21)).toContain('She is not afraid of the snow for her household');
-    expect(verse('Proverbs', 14, 1)).toBe('Every wise woman buildeth her house: but the foolish plucketh it down with her hands.');
-    expect(verse('Proverbs', 21, 9)).toContain('than with a brawling woman in a wide house');
-    expect(verse('Proverbs', 29, 22)).toBe('An angry man stirreth up strife, and a furious man aboundeth in transgression.');
-    expect(verse('James', 3, 9)).toContain('which are made after the similitude of God');
-    expect(verse('Genesis', 1, 27)).toContain('male and female created he them');
-    expect(verse('Exodus', 1, 17)).toContain('saved the men children alive');
-    expect(verse('1Samuel', 25, 33)).toContain('from coming to shed blood');
-    expect(verse('Luke', 8, 3)).toContain('which ministered unto him of their substance');
-    expect(verse('John', 21, 22)).toContain('what is that to thee? follow thou me');
-    expect(verse('Micah', 6, 8)).toContain('to do justly, and to love mercy, and to walk humbly with thy God');
+    expect(verse('Proverbs', 31, 30)).toBe('Favour is deceitful, and beauty is vain: but a woman that feareth the LORD, she shall be praised.');
+    expect(verse('Proverbs', 14, 15)).toBe('The simple believeth every word: but the prudent man looketh well to his going.');
+    expect(verse('Proverbs', 11, 1)).toBe('A false balance is abomination to the LORD: but a just weight is his delight.');
+    expect(verse('Proverbs', 20, 10)).toBe('Divers weights, and divers measures, both of them are alike abomination to the LORD.');
+    expect(verse('Exodus', 20, 16)).toBe('Thou shalt not bear false witness against thy neighbour.');
+    expect(verse('Leviticus', 19, 16)).toContain('as a talebearer among thy people');
+    expect(verse('1Samuel', 16, 7)).toContain('but the LORD looketh on the heart');
+    expect(verse('John', 7, 24)).toBe('Judge not according to the appearance, but judge righteous judgment.');
+    expect(verse('Matthew', 7, 20)).toBe('Wherefore by their fruits ye shall know them.');
+    expect(verse('Judges', 4, 4)).toBe('And Deborah, a prophetess, the wife of Lapidoth, she judged Israel at that time.');
+    expect(verse('2Kings', 22, 14)).toContain('now she dwelt in Jerusalem in the college');
+    expect(verse('Acts', 18, 26)).toContain('expounded unto him the way of God more perfectly');
+    expect(verse('Hosea', 4, 6)).toContain('My people are destroyed for lack of knowledge');
+    expect(verse('Luke', 10, 42)).toContain('Mary hath chosen that good part');
+    expect(verse('1Timothy', 2, 11)).toBe('Let the woman learn in silence with all subjection.');
+    expect(verse('Proverbs', 4, 7)).toBe('Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.');
+    expect(verse('1Corinthians', 15, 33)).toBe('Be not deceived: evil communications corrupt good manners.');
+    expect(verse('Proverbs', 19, 14)).toBe('House and riches are the inheritance of fathers: and a prudent wife is from the LORD.');
   });
 });

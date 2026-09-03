@@ -29,9 +29,9 @@ const corpus = [
 ].filter(Boolean).join('\n\n');
 
 describe('legacy provisions course: structure', () => {
-  it('has a keyed meta and six real lessons', () => {
+  it('has a keyed meta and seven real lessons', () => {
     expect(LEGACY_PROVISIONS_META.key).toBe('legacy-provisions');
-    expect(LEGACY_PROVISIONS_MODULES.length).toBe(6);
+    expect(LEGACY_PROVISIONS_MODULES.length).toBe(7);
     expect(LEGACY_PROVISIONS_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0))
       .toBe(LEGACY_PROVISIONS_SESSION_MINUTES);
   });
@@ -142,6 +142,10 @@ describe('legacy provisions course: Scripture is verbatim KJV (DR-0076, proven-t
     'He that is faithful in that which is least is faithful also in much',                                  // Luke 16:10
     'who should arise and declare them to their children',                                                  // Psalms 78:6
     'the same commit thou to faithful men, who shall be able to teach others also',                         // 2 Timothy 2:2
+    'ye shall return every man unto his possession, and ye shall return every man unto his family',          // Leviticus 25:10
+    'if any of his kin come to redeem it, then shall he redeem that which his brother sold',                 // Leviticus 25:25
+    'the right of redemption is thine to buy it',                                                            // Jeremiah 32:7
+    'there is no new thing under the sun',                                                                   // Ecclesiastes 1:9
   ];
   for (const frag of VERBATIM) {
     it(`quotes verbatim: "${frag.slice(0, 40)}…"`, () => {
