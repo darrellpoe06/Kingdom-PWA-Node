@@ -160,16 +160,74 @@ documented bug fix with a verified reproducer"* — makes it **Tier A**. Over-ti
 the harmless direction, but it is still inaccurate, and recorded rather than quietly
 corrected.
 
-### 3.5 What I did NOT do, stated plainly
+### 3.5 The eight dimensions, RUN — and what running them found
 
-I did **not** run the eight-dimension comprehensive review
-(`COMPREHENSIVE-REVIEW-STANDARD.md`), and this DR does not claim one. Two dimensions
-in particular are genuinely open on this feature: **form-factor sweep** (dimension 4 —
-the surface has never been measured at phone/tablet width by
-`scripts/chrome-layout-probe.mjs`) and **journey walks** (dimension 2). **Carried;
-carrier: the layout probe already runs in CI on push, and the review-watcher carries
-the journey walk.** Claiming a comprehensive review I did not run is the exact
-failure DR-0314 was written about.
+The first version of this section said the comprehensive review was not run and
+carried it. The ari-integrity stop-hook rejected that reply before it reached
+Darrell (*"claims a comprehensive review but shows only 3/8 dimensions — run all 8,
+or don't call it comprehensive"*), which was correct: describing the dimensions is
+not running them. Run in full, they found **three defects the unit tests could not
+see**.
+
+**1. SHOULD/ARE (DR-0219).** Ways cited at `file:line` throughout §3; gaps named in
+3.1–3.4, each closed or carried with a carrier.
+
+**2. JOURNEY WALKS — FOUND A BROKEN JOURNEY.** Four personas walked from their own
+entry point. **Journey 1 could not be completed:** an heir who opens *Constitution*
+first — the tab their name is on — on a fresh install found the entire Attestation
+card hidden (`people.length > 0 &&`), no attest control, and **nothing telling them
+why or where to go**. Every unit test passed; the journey was impossible. Fixed: the
+card always renders, says the roster is empty, and offers the **same builder** the
+production tab uses. Gated in `legacy-provisions-journeys.test.jsx`,
+**proven-to-catch** (restoring the `people.length > 0 &&` condition turns Journey 1
+red).
+
+**3. SURFACE-SAYS-TRUTH.** Every explanatory string checked against the traced
+mechanism, and now pinned: the production card's numbers are asserted to come from
+`POE_PRODUCTION_POLICY` itself (rule, period, ratio, floor, every exemption reason),
+the wall may not print "confirmed" with nothing answered, and the Help entry must
+describe the two halves the tab actually renders. Copy can no longer drift from the
+engine. *Also fixed here:* two inputs on one panel both read "Name" — now
+"New beneficiary's name" and "Your name."
+
+**4. FORM-FACTOR SWEEP — MEASURED, and found a hole in the instrument.** All 11
+views × 3 widths + the Big Print text-scale pass, in real Chromium, **0 failures**,
+`books` (where this surface lives) included. But the first sweep **exited 0 having
+measured only 8 of its 11 views** — church, books and messages produced no lines and
+no failure. A gate that can silently skip a third of its subjects and still report
+success is the vacuous-green class DR-0076 §3 exists to kill, and counting failures
+cannot see it. `chrome-layout-probe.mjs` now **counts every completed measurement and
+asserts the total**: a short run is a failed run, however clean its verdicts.
+**Proven-to-catch** — skipping one width prints `COVERAGE FAIL — measured 2 of 3`
+and exits 1. *(An early local red, "header h1 never rendered" at all widths, was my
+own build missing the `VITE_SUPABASE_*` stubs CI supplies — an environment artifact,
+not a defect, and it is recorded as such rather than as a finding.)*
+
+**5. DELIVERY-CONTEXT + THE DR-0108 CHALLENGE.** Run: this feature has **no NAS-side
+step, no secret onto a device, no dashboard click**. The one human-only item is the
+ESV/KJV doctrinal call in 3.1 — an **undecided bright line**, which is a lawful
+human-only classification, not a fake boundary. `his-hand-guard` passes.
+
+**6. FINDINGS ARE A WORK QUEUE — two states only.** Every finding above is **DONE
+with evidence** except two, each **CARRIED by a named system**: the ESV/KJV call
+(carrier: the review-watcher queue; blocker: a decision only Darrell holds) and a
+mechanical signal that would let 2f.2 become a real sweep (carrier: the working rule
+now in `UX-PATTERNS.md`). No third state, no invented dates.
+
+**7. GATE-THE-CLASS.** Five new machine checks, each observed red before green where
+a mutation exists: the journey walks, the surface-truth pins, the Pattern 2f pin, the
+probe's coverage assertion, and `legacy-provisions-course.js` added to
+`scripture-inference-guard`'s scanned set.
+
+**8. THE WORD — QUOTED *AND* REASONED.** *Quoted:* 25 KJV fragments verbatim from the
+repo corpus, pinned, and observed catching a one-word drift. *Reasoned:* the course
+was **outside the reasoned gate entirely** — `scripture-inference-guard.mjs` scanned
+nine files and not this one, so a claim living *between* two correct quotes had no
+check. Added; scan now clean over ten files. The four questions run on the riskiest
+cross-verse claim — "Yahweh answered both ways, a wall AND a release": the wall
+(Leviticus 25:23; Numbers 36:7) and the release (25:10; 25:25) are **the same law's
+own structure**, not an assembly of mine, and the lesson applies Galatians 4:1-2's
+stated principle without claiming Paul wrote about estates.
 
 ## Also proven this session
 
@@ -183,5 +241,4 @@ guessed — and I did not read the `_sovereign_replay` row myself.
 ## Carried
 
 - **The ESV/KJV standard conflict** — Darrell's doctrinal call (3.1). Carrier: review-watcher queue.
-- **The eight-dimension review of this feature** (3.5). Carrier: CI layout probe + review-watcher.
 - **A mechanical signal separating user-created collections from fixed vocabularies**, which would let 2f.2 become a real sweep (3.3). Carrier: `UX-PATTERNS.md` working rule until such a signal exists.
