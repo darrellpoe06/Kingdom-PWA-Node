@@ -1,4 +1,4 @@
-# DR-0322 — Know your own post: the true part said plainly, the contempt refused, and the beam out first
+# DR-0323 — Know your own post: the true part said plainly, the contempt refused, and the beam out first
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine; no schema, no new surface, no external-facing identity change
@@ -81,7 +81,7 @@ the wife *and* to the man doing the pointing, and both land on the floor nobody
 is exempt from (Micah 6:8). Taught singly, either one reads as a side being
 taken. The lesson says the pairing out loud and the facilitator notes require it.
 
-## Numbering — L120, and DR-0322: two collisions, both handled
+## Numbering — L120 and DR-0323: four collisions in one night
 
 Four sessions shipped Living Lessons within the same hour, and this record was
 renumbered **twice** before it landed. Both moves follow DR-0052: a number is
@@ -105,8 +105,25 @@ provisional until merge, and the branch that lands second renumbers.
   **L120, L121 and L122**, contiguous and clear of every open PR, leaving L117 to
   #1432 uncontested. Gaps cost nothing — the series' ids were already
   non-contiguous with its count. Nothing on another session's branch was touched.
-- **The record.** This DR was written as DR-0321; main landed its own DR-0321
-  (principles-travel-with-the-money) first, so per DR-0052 it is **DR-0322**.
+- **The record, twice.** This DR was written as DR-0321; main landed its own
+  DR-0321 (principles-travel-with-the-money) first, so it became DR-0322 — and
+  then main landed its own **DR-0322** (the docker-PATH fix, #1434) while this
+  branch was still in flight, so the three records in this delivery are
+  **DR-0323, DR-0324 and DR-0325**. Both moves are DR-0052 applied without
+  argument: read `Next ID` from live `origin/main`, and renumber if someone
+  lands first.
+
+  The pattern is the finding, not the inconvenience. Six sessions shipped into
+  one repository within about ninety minutes, and every shared counter they
+  touched — the lesson number, the DR number, `LIVING_LESSONS_META.weeks` — is
+  allocated by reading a value and writing it back, which races by construction.
+  The convention absorbed all four collisions without a single lost delivery,
+  and the duplicate-id gate makes the lesson half loud instead of silent. That
+  is the convention working; it is also a standing argument for a
+  collision-proof allocator if the parallel-session pace continues.
+- **Superseded numbering note.** Earlier text in this file referred to this
+  record as DR-0321 and then DR-0322; main landed its own DR-0321
+  (principles-travel-with-the-money) first, so per DR-0052 it is **DR-0323**.
 
 A numbering gap costs nothing — the series' ids were already non-contiguous with
 its count. A collision costs another session's whole delivery, which is why the

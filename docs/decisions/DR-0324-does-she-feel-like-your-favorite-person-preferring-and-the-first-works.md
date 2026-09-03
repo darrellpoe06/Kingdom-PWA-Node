@@ -1,4 +1,4 @@
-# DR-0323 — Does she feel like your favorite person? Preferring one another, and the first works
+# DR-0324 — Does she feel like your favorite person? Preferring one another, and the first works
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine
@@ -23,7 +23,7 @@ kids, roommates, *"but they forget to be best friends."*
 
 ## Why this one had to be built
 
-L114 (DR-0320) gave the husband an account of his own post. L120 (DR-0322) gave
+L114 (DR-0320) gave the husband an account of his own post. L120 (DR-0323) gave
 the wife hers and took the beam out of the pointing eye. **A series carrying
 only those two is backbone with no heart**, which fails the Religion AND
 Relationship test on this repo's own terms. This is the warmth those two were
