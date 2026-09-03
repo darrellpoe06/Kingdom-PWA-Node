@@ -1,47 +1,53 @@
 // =============================================================================
-// L119 — "Equipped to Win": the hour you are losing, the word AGAIN, and the man
-// who did not want the job. Verbatim KJV.
+// L119 — Abstention: "if I am an option, do not pick me," the refused stone, and
+// the choosing that was settled before there was a list. Verbatim KJV.
 // =============================================================================
-// SOURCE. Captured from a Wednesday Bible Study taught by Bishop Lloyd E. Gwin at
-// The Love Corner, 2026-09-02, brought in by Darrell from the church's own
-// channel. Two things follow from that and are pinned below:
-//   • The message is the OCCASION and is CREDITED BY NAME; it is not reproduced.
-//     Everything taught is drawn from the Scriptures it opened, in our own prose,
-//     with every quotation verbatim KJV from the in-repo public-domain corpus.
-//   • The service announced trivia winners by name. Those are private people and
-//     are deliberately NOT carried into a published lesson. The test asserts the
-//     omission rather than listing the names (listing them here would defeat the
-//     point of leaving them out).
+// Captured from Darrell's spoken word, 2026-09-03 — a declaration against being
+// weighed on a scale of convenience: do not compare me, do not bench me on your
+// indecision, do not call me friend when you mean convenient; I am not the maybe
+// in your sentence, I am the period; you cannot bargain with what is priceless;
+// and if I am an option, do not pick me, because I was already chosen — by
+// peace, by purpose, and by Yahweh.
 //
 // The five things this lesson had to get right, and which are pinned here:
-//   • THE ADDRESSEE. This is wartime provision, not post-victory encouragement:
-//     the decisive hour is the hour you are LOSING, because identity forgotten
-//     inside a loss outlives the loss (2 Corinthians 4:8-9).
-//   • THE WAVES, AND THE ARITHMETIC. Judah fell in stages on an announced term,
-//     and the seventy years were CALCULATED — 2 Chronicles 36:21 measures them
-//     against the sabbaths the land was denied (Leviticus 26:34-35). The hard
-//     half is stated rather than softened: the good went with the bad (Daniel
-//     1:6; Ezekiel 21:3), and the righteous man's response is "We have sinned"
-//     (Daniel 9:5), not an exemption.
-//   • THE CAUSE. Darrell supplied it mid-build: the world goes crazy where the
-//     Word is not there. Jeremiah 36:23-24 is the scene — the scroll cut with a
-//     penknife and burned, and nobody flinched — and the turn is the preserving
-//     office: salt that has lost its savour is good for nothing (Matthew 5:13).
-//     That is what makes 1 Peter 2:9 a COMMISSION, not a compliment.
-//   • THE TENSION HELD, NOT RESOLVED AWAY. Jeremiah 19:11 says the broken vessel
-//     "cannot be made whole again"; Jeremiah 31:4 says "Again I will build thee".
-//     Both are His words. What is beyond MENDING is not beyond MAKING.
-//   • AGAIN COSTS SOMETHING. Restoration language is only coherent to the
-//     bereaved, and it requires a second exposure to a known injury — so refusing
-//     it is frequently exhaustion rather than unbelief, and the lesson says so
-//     out loud (Isaiah 61:3) instead of adding shame to grief.
+//   • SOURCE DISCIPLINE. The spoken piece is the OCCASION for a Word-first
+//     study, never an authority standing beside Scripture. What it claims is
+//     tested by the Word: upheld where the Word upholds it, corrected where the
+//     flesh runs past it.
+//   • THE GROUND IS THE REFUSED STONE, NOT THE GRIEVANCE. Isaiah 53:3,
+//     Psalm 118:22, 1 Peter 2:4 — two ledgers on one stone, and only the
+//     Father's decided anything.
+//   • THE QUALIFICATION IS TEMPORAL, AND IT IS THE ONE MOST READERS MISS.
+//     Counting the cost is COMMANDED before a commitment (Luke 14:28;
+//     Deuteronomy 30:19) and forbidden after it (Ecclesiastes 5:4-5;
+//     Matthew 5:37). Movement 6 exists so nobody reads ordinary carefulness as
+//     disrespect.
+//   • THE CORRECTION IS NOT OPTIONAL. Movement 11 is the movement the spoken
+//     piece does not contain; without it the lesson arms people. A guarded heart
+//     and a long-suffering heart are the same Bible (Proverbs 4:23 beside
+//     1 Corinthians 13:4-7); absence is not a sentence we pass (Romans 12:18-19);
+//     and a demand to be chosen without comparison, made of a human being, seats
+//     a creature where only the Creator belongs (Jeremiah 17:5,7; Psalm 118:8).
+//   • DR-0098 / DR-0100. The Word teaches this; it is not staged as a debate
+//     between the piece and Scripture, and the correction is stated plainly
+//     rather than hedged.
 //
-// The whole-span gate rides again. Authoring L119 produced two real in-quote
-// alterations, both asserted below as proven-to-catch and both a class worth
-// naming: (1) a CAPITALIZATION change inside a quotation — Jeremiah 31:2 reads
-// "The people which were left of the sword" and it was quoted with a lowered
-// capital, which is editing Scripture; (2) our own vocabulary wearing
-// Scripture's quotation marks — the word "equipped" is not in the KJV at all.
+// The whole-span gate rides again: no quoted span may differ from the in-repo KJV
+// by a single character. Authoring L119 produced ZERO in-quote alterations — the
+// sweep is stated honestly below rather than dressed up — but the research DID
+// expose a real, NEW hole in that gate, and this file closes it.
+//
+// THE NEW GATE — CORRECT TEXT, WRONG REFERENCE. The whole-span gate asks only
+// "does this string exist somewhere in the Bible?" It cannot see a quotation that
+// is real KJV but hung on the wrong verse. This lesson walks straight through the
+// trap: Scripture cites Psalm 118:22 four separate times and uses a DIFFERENT
+// word each time — refused (Psalm 118:22), rejected (Matthew 21:42; Mark 12:10;
+// Luke 20:17), "set at nought" (Acts 4:11), disallowed (1 Peter 2:7). Writing
+// "The stone which the builders rejected" and attributing it to Psalm 118:22 is
+// the single most likely error in this lesson, it is what memory reaches for, and
+// the old gate passes it silently because the string is genuinely in Matthew.
+// The ATTRIBUTION gate below checks each pinned fragment against THAT verse, and
+// is asserted proven-to-catch on exactly that case.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -50,7 +56,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll119-equipped-to-win-the-hour-you-are-losing-the-word-again-and-the-man-who-did-not-want-the-job';
+const ID = 'll119-abstention-if-i-am-an-option-do-not-pick-me-and-the-choosing-settled-before-there-was-a-list';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -76,77 +82,92 @@ const quotedSpans = (text) => {
   return { spans: out, balanced: at.length % 2 === 0 };
 };
 
-const QUOTED_FRAGMENTS = [
-  'He sent his word, and healed them, and delivered them from their destructions.', // Ps 107:20
-  'We are troubled on every side, yet not distressed',                     // 2 Cor 4:8
-  'Persecuted, but not forsaken; cast down, but not destroyed;',           // 2 Cor 4:9
-  'even ten thousand captives, and all the craftsmen and smiths',          // 2 Kgs 24:14
-  'did Nebuzaradan the captain of the guard carry away',                   // 2 Kgs 25:11
-  'these nations shall serve the king of Babylon seventy years.',          // Jer 25:11
-  'as one breaketh a potter’s vessel, that cannot be made whole again',    // Jer 19:11
-  'But every man is tempted, when he is drawn away of his own lust, and enticed.', // Jas 1:14
-  'sin, when it is finished, bringeth forth death',                        // Jas 1:15
-  'to whom ye yield yourselves servants to obey, his servants ye are to whom ye obey', // Rom 6:16
-  'For the wages of sin is death',                                         // Rom 6:23
-  'until the land had enjoyed her sabbaths',                               // 2 Chr 36:21
-  'to fulfil threescore and ten years',                                    // 2 Chr 36:21
-  'because it did not rest in your sabbaths, when ye dwelt upon it',       // Lev 26:35
-  'I Daniel understood by books the number of the years',                  // Dan 9:2
-  'Now among these were of the children of Judah, Daniel, Hananiah, Mishael, and Azariah:', // Dan 1:6
-  'will cut off from thee the righteous and the wicked',                   // Ezek 21:3
-  'We have sinned, and have committed iniquity, and have done wickedly, and have rebelled', // Dan 9:5
-  'he cut it with the penknife, and cast it into the fire that was on the hearth', // Jer 36:23
-  'Yet they were not afraid, nor rent their garments',                     // Jer 36:24
-  'ask for the old paths, where is the good way, and walk therein',        // Jer 6:16
-  'But they said, We will not walk therein.',                              // Jer 6:16
-  'I have found the book of the law in the house of the LORD',             // 2 Kgs 22:8
-  'without a teaching priest, and without law',                            // 2 Chr 15:3
-  'My people are destroyed for lack of knowledge',                         // Hos 4:6
-  'Where there is no vision, the people perish',                           // Prov 29:18
-  'every man did that which was right in his own eyes.',                   // Judg 21:25
-  'but of hearing the words of the LORD:',                                 // Amos 8:11
-  'shall run to and fro to seek the word of the LORD, and shall not find it', // Amos 8:12
-  'Ye are the salt of the earth',                                          // Matt 5:13
-  'if the salt have lost his savour',                                      // Matt 5:13
-  'Ye are the light of the world.',                                        // Matt 5:14
-  'Let your light so shine before men',                                    // Matt 5:16
-  'Thy word is a lamp unto my feet, and a light unto my path.',            // Ps 119:105
-  'The people which were left of the sword found grace in the wilderness', // Jer 31:2
-  'Yea, I have loved thee with an everlasting love',                       // Jer 31:3
-  'The LORD hath appeared of old unto me',                                 // Jer 31:3
-  'Before I formed thee in the belly I knew thee',                         // Jer 1:5
-  'It is of the LORD’s mercies that we are not consumed',                  // Lam 3:22
-  'They are new every morning: great is thy faithfulness.',                // Lam 3:23
-  'Again I will build thee, and thou shalt be built, O virgin of Israel',  // Jer 31:4
-  'shalt go forth in the dances of them that make merry',                  // Jer 31:4
-  'they shall raise up the former desolations',                            // Isa 61:4
-  'I will restore to you the years that the locust hath eaten',            // Joel 2:25
-  'to give unto them beauty for ashes, the oil of joy for mourning',       // Isa 61:3
-  'Ah, Lord GOD! behold, I cannot speak: for I am a child.',               // Jer 1:6
-  'Who am I, that I should go unto Pharaoh',                               // Ex 3:11
-  'I am not eloquent, neither heretofore, nor since thou hast spoken unto thy servant', // Ex 4:10
-  'my family is poor in Manasseh, and I am the least in my father’s house', // Judg 6:15
-  'God hath chosen the weak things of the world to confound the things which are mighty', // 1 Cor 1:27
-  'Say not, I am a child: for thou shalt go to all that I shall send thee', // Jer 1:7
-  'Then the LORD put forth his hand, and touched my mouth.',               // Jer 1:9
-  'Be not afraid of their faces: for I am with thee to deliver thee',      // Jer 1:8
-  'all that will live godly in Christ Jesus shall suffer persecution',     // 2 Tim 3:12
-  'Oh that my head were waters, and mine eyes a fountain of tears',        // Jer 9:1
-  'He healeth the broken in heart, and bindeth up their wounds.',          // Ps 147:3
-  'thoughts of peace, and not of evil, to give you an expected end',       // Jer 29:11
-  'he which hath begun a good work in you will perform it',                // Phil 1:6
-  'A brother offended is harder to be won than a strong city',             // Prov 18:19
-  'their contentions are like the bars of a castle',                       // Prov 18:19
-  'lest any root of bitterness springing up trouble you',                  // Heb 12:15
-  'Pride goeth before destruction, and an haughty spirit before a fall.',  // Prov 16:18
-  'But ye are a chosen generation, a royal priesthood, an holy nation, a peculiar people', // 1 Pet 2:9
-  'Put on the whole armour of God',                                        // Eph 6:11
-  'having done all, to stand',                                             // Eph 6:13
-  'we are more than conquerors through him that loved us',                 // Rom 8:37
-  'they have forsaken me the fountain of living waters',                   // Jer 2:13
-  'hewed them out cisterns, broken cisterns, that can hold no water',      // Jer 2:13
-  'I will visit you, and perform my good word toward you',                 // Jer 29:10
-  'Behold the Lamb of God, which taketh away the sin of the world.',       // John 1:29
+// Fragment → the verse it is attributed to in this lesson. Every entry is checked
+// against THAT verse, not merely against the whole corpus.
+const ATTRIBUTED = [
+  ['He is despised and rejected of men; a man of sorrows, and acquainted with grief', 'Isaiah', 53, 3],
+  ['he was despised, and we esteemed him not.', 'Isaiah', 53, 3],
+  ['The stone which the builders refused is become the head stone of the corner.', 'Psalms', 118, 22],
+  ['The stone which the builders rejected, the same is become the head of the corner', 'Matthew', 21, 42],
+  ['The stone which the builders rejected is become the head of the corner:', 'Mark', 12, 10],
+  ['This is the stone which was set at nought of you builders, which is become the head of the corner.', 'Acts', 4, 11],
+  ['the stone which the builders disallowed, the same is made the head of the corner,', '1Peter', 2, 7],
+  ['Unto you therefore which believe he is precious', '1Peter', 2, 7],
+  ['disallowed indeed of men, but chosen of God, and precious,', '1Peter', 2, 4],
+  ['Behold the Lamb of God, which taketh away the sin of the world.', 'John', 1, 29],
+  ['How long halt ye between two opinions? if the LORD be God, follow him: but if baal, then follow him.', '1Kings', 18, 21],
+  ['And the people answered him not a word.', '1Kings', 18, 21],
+  ['choose you this day whom ye will serve', 'Joshua', 24, 15],
+  ['but as for me and my house, we will serve the LORD.', 'Joshua', 24, 15],
+  ['No man can serve two masters: for either he will hate the one, and love the other', 'Matthew', 6, 24],
+  ['Ye cannot serve God and mammon.', 'Matthew', 6, 24],
+  ['I know thy works, that thou art neither cold nor hot: I would thou wert cold or hot.', 'Revelation', 3, 15],
+  ['So then because thou art lukewarm, and neither cold nor hot, I will spue thee out of my mouth.', 'Revelation', 3, 16],
+  ['for the LORD, whose name is Jealous, is a jealous God', 'Exodus', 34, 14],
+  ['According as he hath chosen us in him before the foundation of the world', 'Ephesians', 1, 4],
+  ['Having predestinated us unto the adoption of children by Jesus Christ to himself, according to the good pleasure of his will,', 'Ephesians', 1, 5],
+  ['not according to our works, but according to his own purpose and grace, which was given us in Christ Jesus before the world began', '2Timothy', 1, 9],
+  ['Ye have not chosen me, but I have chosen you, and ordained you', 'John', 15, 16],
+  ['Before I formed thee in the belly I knew thee; and before thou camest forth out of the womb I sanctified thee', 'Jeremiah', 1, 5],
+  ['I am fearfully and wonderfully made', 'Psalms', 139, 14],
+  ['in thy book all my members were written', 'Psalms', 139, 16],
+  ['But ye are a chosen generation, a royal priesthood, an holy nation, a peculiar people', '1Peter', 2, 9],
+  ['the LORD thy God hath chosen thee to be a special people unto himself', 'Deuteronomy', 7, 6],
+  ['The LORD did not set his love upon you, nor choose you, because ye were more in number than any people; for ye were the fewest of all people:', 'Deuteronomy', 7, 7],
+  ['the fewest of all people:', 'Deuteronomy', 7, 7],
+  ['man looketh on the outward appearance, but the LORD looketh on the heart', '1Samuel', 16, 7],
+  ['measuring themselves by themselves, and comparing themselves among themselves, are not wise', '2Corinthians', 10, 12],
+  ['But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another.', 'Galatians', 6, 4],
+  ['For every man shall bear his own burden.', 'Galatians', 6, 5],
+  ['which of you, intending to build a tower, sitteth not down first, and counteth the cost', 'Luke', 14, 28],
+  ['I have set before you life and death, blessing and cursing: therefore choose life', 'Deuteronomy', 30, 19],
+  ['When thou vowest a vow unto God, defer not to pay it', 'Ecclesiastes', 5, 4],
+  ['Better is it that thou shouldest not vow, than that thou shouldest vow and not pay.', 'Ecclesiastes', 5, 5],
+  ['But let your communication be, Yea, yea; Nay, nay', 'Matthew', 5, 37],
+  ['for love is strong as death', 'SongofSolomon', 8, 6],
+  ['the coals thereof are coals of fire, which hath a most vehement flame.', 'SongofSolomon', 8, 6],
+  ['Many waters cannot quench love, neither can the floods drown it', 'SongofSolomon', 8, 7],
+  ['if a man would give all the substance of his house for love, it would utterly be contemned.', 'SongofSolomon', 8, 7],
+  ['ye were not redeemed with corruptible things, as silver and gold', '1Peter', 1, 18],
+  ['But with the precious blood of Christ, as of a lamb without blemish and without spot:', '1Peter', 1, 19],
+  ['know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own?', '1Corinthians', 6, 19],
+  ['For ye are bought with a price', '1Corinthians', 6, 20],
+  ['Ye are bought with a price; be not ye the servants of men.', '1Corinthians', 7, 23],
+  ['Who, when he had found one pearl of great price, went and sold all that he had, and bought it.', 'Matthew', 13, 46],
+  ['Who can find a virtuous woman? for her price is far above rubies.', 'Proverbs', 31, 10],
+  ['I have called thee by thy name; thou art mine.', 'Isaiah', 43, 1],
+  ['Since thou wast precious in my sight, thou hast been honourable, and I have loved thee', 'Isaiah', 43, 4],
+  ['A double minded man is unstable in all his ways.', 'James', 1, 8],
+  ['purify your hearts, ye double minded', 'James', 4, 8],
+  ['Intreat me not to leave thee, or to return from following after thee: for whither thou goest, I will go', 'Ruth', 1, 16],
+  ['the LORD do so to me, and more also, if ought but death part thee and me.', 'Ruth', 1, 17],
+  ['shall cleave unto his wife: and they shall be one flesh.', 'Genesis', 2, 24],
+  ['Husbands, love your wives, even as Christ also loved the church, and gave himself for it;', 'Ephesians', 5, 25],
+  ['A friend loveth at all times, and a brother is born for adversity.', 'Proverbs', 17, 17],
+  ['there is a friend that sticketh closer than a brother.', 'Proverbs', 18, 24],
+  ['Greater love hath no man than this, that a man lay down his life for his friends.', 'John', 15, 13],
+  ['Confidence in an unfaithful man in time of trouble is like a broken tooth, and a foot out of joint.', 'Proverbs', 25, 19],
+  ['At my first answer no man stood with me, but all men forsook me', '2Timothy', 4, 16],
+  ['Notwithstanding the Lord stood with me, and strengthened me', '2Timothy', 4, 17],
+  ['When my father and my mother forsake me, then the LORD will take me up.', 'Psalms', 27, 10],
+  ['Keep thy heart with all diligence; for out of it are the issues of life.', 'Proverbs', 4, 23],
+  ['Charity suffereth long, and is kind; charity envieth not', '1Corinthians', 13, 4],
+  ['seeketh not her own, is not easily provoked, thinketh no evil', '1Corinthians', 13, 5],
+  ['Beareth all things, believeth all things, hopeth all things, endureth all things.', '1Corinthians', 13, 7],
+  ['If it be possible, as much as lieth in you, live peaceably with all men.', 'Romans', 12, 18],
+  ['avenge not yourselves, but rather give place unto wrath', 'Romans', 12, 19],
+  ['Let all bitterness, and wrath, and anger, and clamour, and evil speaking, be put away from you, with all malice:', 'Ephesians', 4, 31],
+  ['And be ye kind one to another, tenderhearted, forgiving one another, even as God for Christ’s sake hath forgiven you.', 'Ephesians', 4, 32],
+  ['in lowliness of mind let each esteem other better than themselves.', 'Philippians', 2, 3],
+  ['Cursed be the man that trusteth in man, and maketh flesh his arm', 'Jeremiah', 17, 5],
+  ['Blessed is the man that trusteth in the LORD, and whose hope the LORD is.', 'Jeremiah', 17, 7],
+  ['It is better to trust in the LORD than to put confidence in man.', 'Psalms', 118, 8],
+  ['And let the peace of God rule in your hearts, to the which also ye are called in one body', 'Colossians', 3, 15],
+  ['to them who are the called according to his purpose.', 'Romans', 8, 28],
+  ['I will never leave thee, nor forsake thee.', 'Hebrews', 13, 5],
+  ['For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers', 'Romans', 8, 38],
+  ['shall be able to separate us from the love of God, which is in Christ Jesus our Lord.', 'Romans', 8, 39],
+  ['they that are with him are called, and chosen, and faithful.', 'Revelation', 17, 14],
 ];
 
 describe('L119 exists in the catalog with its full shape', () => {
@@ -154,7 +175,7 @@ describe('L119 exists in the catalog with its full shape', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
       'bigIdea:', 'inApp:',
-      "ref: 'Jeremiah 31:3-4; Jeremiah 1:5-9; 1 Peter 2:9'",
+      "ref: 'Psalm 118:22; Ephesians 1:4; Song of Solomon 8:7'",
       'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:',
     ]) {
       expect(l).toContain(key);
@@ -164,7 +185,7 @@ describe('L119 exists in the catalog with its full shape', () => {
   it('is registered in the live series and the painted lesson count is the real one', () => {
     const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
     expect(m, 'L119 must be in LIVING_LESSONS_MODULES').toBeTruthy();
-    expect(m.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(m.quiz.questions.length).toBeGreaterThanOrEqual(5);
     expect(m.benefits.length).toBeGreaterThanOrEqual(6);
     expect(m.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(5);
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
@@ -180,21 +201,20 @@ describe('L119 exists in the catalog with its full shape', () => {
     }
   });
 
-  it('teaches the whole arc in order — thirteen movements and the close', () => {
+  it('teaches the whole arc in order — ground, jealousy, choosing, comparison, cost, fire, price, period, friendship, correction, settlement', () => {
     const order = [
-      '1) WHERE THE WORD CAME FROM',
-      '2) THE HOUR THE WORD IS FOR - WHEN YOU ARE LOSING',
-      '3) THE THREE WAVES - HOW A NATION, AND A MAN, GO INTO CAPTIVITY',
-      '4) WHY THE WAVES CAME - THE WORD WAS NOT THERE',
-      '5) HIS LOVE IS OLDER THAN YOUR FAILURE',
-      '6) THE WORD THAT CHANGES EVERYTHING - AGAIN',
-      '7) THE MAN WHO DID NOT WANT THE JOB',
-      '8) TELLING THE TRUTH MAKES ENEMIES - AND HE SAID SO FIRST',
-      '9) THE WEEPING PROPHET - WHY THE TEARS ARE NOT WEAKNESS',
-      '10) WHAT THE BUYER SEES THAT THE PASSER-BY DOES NOT',
-      '11) THE TWO THINGS TO PUT DOWN - OFFENCE AND PRIDE',
-      '12) WHAT YOU ALREADY ARE - THE EQUIPMENT IS ISSUED',
-      '13) THE TWO EVILS - THE QUESTION LEFT ON THE TABLE',
+      '1) THE WORD AS IT WAS SPOKEN',
+      '2) THE ONE WHO WAS NOT PICKED',
+      '3) YAHWEH HIMSELF WILL NOT BE AN OPTION',
+      '4) YOU WERE CHOSEN BEFORE THERE WAS A LIST',
+      '5) THE SCALE OF CONVENIENCE, AND WHO LOOKS GOOD ON PAPER',
+      '6) COUNT THE COST - WHERE WEIGHING IS COMMANDED',
+      '7) YOU DO NOT ANALYZE FIRE',
+      '8) THE PRICE WAS ALREADY PAID, AND IT WAS NOT SILVER',
+      '9) NOT THE MAYBE - THE PERIOD',
+      '10) FRIEND IS NOT A WORD FOR CONVENIENCE',
+      '11) WHERE THIS TURNS INTO PRIDE - THE CORRECTION',
+      '12) ALREADY CHOSEN - BY PEACE, BY PURPOSE, AND BY YAHWEH',
       'THE WHOLE OF IT',
     ];
     let cursor = 0;
@@ -205,75 +225,74 @@ describe('L119 exists in the catalog with its full shape', () => {
     }
   });
 
-  it('credits the teaching by name as the OCCASION, and does not reproduce it', () => {
-    expect(l, 'the teacher is named').toContain('Bishop Lloyd E. Gwin');
-    expect(l, 'the assembly is named').toContain('The Love Corner');
-    expect(l, 'the date is named').toContain('2026-09-02');
-    expect(l).toMatch(/OCCASION|occasion/);
-    expect(l, 'the message itself is not reproduced').toMatch(/not reproduced/);
+  it('carries every claim of the spoken declaration that was actually given', () => {
+    expect(l).toContain('Darrell');
+    expect(l, 'the title claim').toMatch(/if I am an option, do not pick me|IF I AM AN OPTION, DO NOT PICK ME/);
+    expect(l, 'the scale of convenience').toMatch(/scale of convenience/);
+    expect(l, 'the bench of indecision').toMatch(/bench me|backup/i);
+    expect(l, 'the maybe and the period').toMatch(/I am not the maybe/);
+    expect(l, 'friend used for convenience').toMatch(/friend when all you mean is convenient/);
+    expect(l, 'you cannot bargain with what is priceless').toMatch(/bargain/);
+    expect(l, 'his closing trio, in his order').toMatch(/by peace, by purpose, and by Yahweh/);
   });
 
-  it('leaves the congregants named in the service OUT of a published lesson', () => {
-    // The service announced trivia winners by name. They are private people.
-    // The trivia QUESTION is taught (it is Scripture); the winners are not named.
-    //
-    // NOTE ON HOW THIS IS CHECKED. The first version banned the word "winners"
-    // outright and failed on the lesson's OWN note recording that the names were
-    // deliberately left out — a gate cannot tell "the names are omitted" from
-    // "here are the names" by keyword alone. So it checks the real property: an
-    // announced list looks like congregational honorifics followed by names. The
-    // teacher IS credited by name (Bishop), which is the whole point of the
-    // attribution rule, so that honorific is not in the pattern.
-    const CONGREGANT_NAME = /\b(Deacon|Deaconess|Eldest|Elder|Sister|Brother|Minister)\s+[A-Z][a-z]+/;
-    expect(CONGREGANT_NAME.test(l), 'a congregant named in a published lesson').toBe(false);
-    expect(l, 'the omission is recorded, not silent').toMatch(/deliberately (left out|not carr)/);
-    expect(l, 'but the question itself is answered from the Word').toContain('For my people have committed two evils');
-    // proven-to-catch, with invented names so no real person is written down here
-    expect(CONGREGANT_NAME.test('the winners were Deacon Someone and Sister Example')).toBe(true);
+  it('keeps SOURCE DISCIPLINE — the spoken piece is the occasion, never an authority beside Scripture', () => {
+    expect(l).toMatch(/SPOKEN DECLARATION|spoken declaration/);
+    expect(l).toMatch(/never an authority standing beside Scripture|never the authority/i);
+    expect(l, 'tested by the Word, not asserted over it').toMatch(/tested by the Word/);
+    expect(l, 'the facilitator says it out loud too').toMatch(/OCCASION, NOT THE AUTHORITY|the OCCASION for/);
   });
 
-  it('carries the waves, the calculated term, and the hard half said plainly', () => {
-    expect(l).toMatch(/THREE WAVES/);
-    expect(l, 'pleasure, bondage, death').toMatch(/PLEASURE/);
-    expect(l).toMatch(/BONDAGE/);
-    expect(l).toMatch(/DEATH stage|bringeth forth death/);
-    expect(l, 'the seventy years were calculated, not arbitrary').toMatch(/NOT AN ARBITRARY NUMBER/);
-    expect(l).toContain('until the land had enjoyed her sabbaths');
-    expect(l, 'the good went with the bad, unsoftened').toMatch(/the good went with the bad/);
-    expect(l, 'and the righteous man does not exempt himself').toContain('We have sinned, and have committed iniquity');
+  it('grounds the lesson on the refused stone before it is applied to any relationship', () => {
+    expect(l).toContain('He is despised and rejected of men');
+    expect(l).toContain('The stone which the builders refused is become the head stone of the corner.');
+    expect(l).toContain('disallowed indeed of men, but chosen of God, and precious,');
+    expect(l, 'two ledgers, one stone').toMatch(/two ledgers|Two ledgers/);
   });
 
-  it('names the CAUSE — the Word was not there — and turns it to the preserving office', () => {
-    expect(l).toContain('he cut it with the penknife');
-    expect(l).toContain('Yet they were not afraid');
-    expect(l, 'the way was offered and refused').toContain('But they said, We will not walk therein.');
-    expect(l, 'the severest sentence is the Word withdrawn').toContain('but of hearing the words of the LORD:');
-    expect(l, 'the turn: salt preserves, it does not decorate').toContain('Ye are the salt of the earth');
-    expect(l).toMatch(/COMMISSION, not a compliment|commission, not a compliment/i);
+  it('teaches the four words Scripture uses for that one act — the research the lesson turns on', () => {
+    expect(l).toContain('The stone which the builders rejected, the same is become the head of the corner');
+    expect(l).toContain('This is the stone which was set at nought of you builders');
+    expect(l).toContain('the stone which the builders disallowed, the same is made the head of the corner,');
+    expect(l).toMatch(/Refused\. Rejected\. Set at nought\. Disallowed\./);
   });
 
-  it('holds the mending/making tension instead of resolving it away', () => {
-    expect(l).toContain('cannot be made whole again');
-    expect(l).toContain('Again I will build thee');
-    expect(l).toMatch(/beyond MENDING is not beyond MAKING/);
+  it('puts the choosing before every comparison — the doctrinal centre', () => {
+    expect(l).toContain('According as he hath chosen us in him before the foundation of the world');
+    expect(l).toContain('not according to our works, but according to his own purpose and grace');
+    expect(l).toContain('Ye have not chosen me, but I have chosen you');
+    expect(l, 'the metric is removed on purpose').toContain('the fewest of all people:');
   });
 
-  it('grounds it in a love OLDER than the failure, and keeps AGAIN honest about its cost', () => {
-    expect(l).toMatch(/OLDER THAN YOUR FAILURE|OLDER than your failure/);
-    expect(l).toContain('The LORD hath appeared of old unto me');
-    expect(l).toContain('Before I formed thee in the belly I knew thee');
-    expect(l, 'again costs a second exposure').toMatch(/second exposure/i);
-    expect(l, 'refusing it is often exhaustion, not unbelief').toMatch(/resisting the risk|refusing the risk/i);
+  it('draws the qualification in TIME — weighing is commanded before, forbidden after', () => {
+    expect(l).toContain('which of you, intending to build a tower, sitteth not down first, and counteth the cost');
+    expect(l).toContain('Better is it that thou shouldest not vow, than that thou shouldest vow and not pay.');
+    expect(l, 'the line is temporal, not emotional').toMatch(/line of TIME|TEMPORAL|temporal/);
+    expect(l, 'careful thought before a yes is not an insult').toMatch(/obedience, not insult|is obedience/);
   });
 
-  it('keeps our authored voice on Yahweh, with no capitalized adversary name', () => {
+  it('carries the correction the spoken piece does not contain (movement 11)', () => {
+    expect(l, 'a guarded heart and a long-suffering heart are the same Bible').toContain('Keep thy heart with all diligence');
+    expect(l).toContain('Beareth all things, believeth all things, hopeth all things, endureth all things.');
+    expect(l, 'absence is not a sentence we pass').toContain('avenge not yourselves, but rather give place unto wrath');
+    expect(l, 'the locked door wearing the clothes of peace').toContain('Let all bitterness, and wrath, and anger, and clamour, and evil speaking');
+    expect(l, 'the idolatry-shaped demand').toContain('Cursed be the man that trusteth in man, and maketh flesh his arm');
+  });
+
+  it('closes on the order in Revelation 17:14 — faithfulness follows the choosing, never buys it', () => {
+    expect(l).toContain('they that are with him are called, and chosen, and faithful.');
+    expect(l).toMatch(/AFTER the choosing, never as its price|Faithfulness follows the choosing/);
+  });
+
+  it('keeps our authored voice on Yahweh, with no capitalized adversary or false-god name', () => {
     const { spans } = quotedSpans(l);
     let ours = l.replace(/\\'/g, "'");
     for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
     expect((ours.match(/\bSatan\b/g) || []).length).toBe(0);
     expect((ours.match(/\bLucifer\b/g) || []).length).toBe(0);
+    expect((ours.match(/\bBaal\b/g) || []).length, 'the false god stays named low in our voice').toBe(0);
     expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
-    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(20);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(15);
   });
 
   it('confesses Jesus as the Lamb of Yahweh (DR-0210)', () => {
@@ -282,11 +301,11 @@ describe('L119 exists in the catalog with its full shape', () => {
   });
 });
 
-describe('every quoted fragment is letter-for-letter KJV (fetched, not remembered)', () => {
-  for (const frag of QUOTED_FRAGMENTS) {
-    it(`quotes verbatim: "${frag.slice(0, 48)}${frag.length > 48 ? '…' : ''}"`, () => {
-      expect(l).toContain(frag);
-      expect(WHOLE_KJV, 'the pin itself must exist in the corpus').toContain(frag);
+describe('every attributed fragment is letter-for-letter KJV, in the verse it is hung on', () => {
+  for (const [frag, book, ch, v] of ATTRIBUTED) {
+    it(`${book} ${ch}:${v} — "${frag.slice(0, 44)}${frag.length > 44 ? '…' : ''}"`, () => {
+      expect(l, 'the lesson must actually contain the fragment').toContain(frag);
+      expect(verse(book, ch, v), 'the fragment must be in THAT verse').toContain(frag);
     });
   }
 });
@@ -307,17 +326,62 @@ describe('NO in-quote alteration anywhere in the lesson — the whole-span gate'
     }
     expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
   });
+});
 
-  it('is PROVEN-TO-CATCH against the two alterations actually made while authoring THIS lesson', () => {
-    // (1) A LOWERED CAPITAL inside a quotation. Jeremiah 31:2 reads "The people
-    // which were left of the sword"; it was first quoted mid-sentence with a
-    // lowercase t, which is editing Scripture to fit our grammar.
-    expect(WHOLE_KJV.includes('the people which were left of the sword')).toBe(false);
-    expect(WHOLE_KJV.includes('The people which were left of the sword')).toBe(true);
-    // (2) OUR OWN VOCABULARY wearing Scripture's quotation marks. The lesson's
-    // title word is not in the KJV at all, and it had been sitting in quotes.
-    expect(WHOLE_KJV.includes('equipped')).toBe(false);
-    expect(l.includes('"equipped"')).toBe(false);
+describe('the ATTRIBUTION gate is proven-to-catch what the whole-span gate cannot see', () => {
+  it('catches CORRECT KJV text hung on the WRONG verse — the exact trap this lesson walks through', () => {
+    // "rejected" is real KJV — Matthew/Mark/Luke quoting Psalm 118:22 — so the
+    // whole-corpus sweep passes it silently. It is NOT what Psalm 118:22 says,
+    // and it is what memory reaches for. Only a per-verse check sees this.
+    const misremembered = 'The stone which the builders rejected';
+    expect(WHOLE_KJV.includes(misremembered), 'the whole-span gate would PASS this').toBe(true);
+    expect(verse('Psalms', 118, 22).includes(misremembered), 'but it is not what Psalm 118:22 says').toBe(false);
+    expect(verse('Psalms', 118, 22)).toContain('The stone which the builders refused');
+    expect(verse('Matthew', 21, 42)).toContain(misremembered);
+    // and the lesson itself never makes that mistake
+    expect(l).not.toMatch(/builders rejected[^(]*\(Psalm/);
+  });
+
+  it('catches the other three words hung on the wrong citation', () => {
+    expect(verse('Acts', 4, 11)).toContain('set at nought of you builders');
+    expect(verse('Psalms', 118, 22).includes('set at nought')).toBe(false);
+    expect(verse('1Peter', 2, 7)).toContain('the builders disallowed');
+    expect(verse('Mark', 12, 10).includes('disallowed')).toBe(false);
+  });
+
+  it('is PROVEN-TO-CATCH against CROSS-VERSE joins built from this lesson’s own texts', () => {
+    // Each half is real; the JOIN silently deletes a verse boundary.
+    const song = 'which hath a most vehement flame. Many waters cannot quench love';
+    expect(WHOLE_KJV.includes(song), 'Song of Solomon 8:6-7 joined across the boundary').toBe(false);
+    expect(WHOLE_KJV.includes('which hath a most vehement flame.')).toBe(true);
+    expect(WHOLE_KJV.includes('Many waters cannot quench love')).toBe(true);
+
+    const rev = 'I would thou wert cold or hot. So then because thou art lukewarm';
+    expect(WHOLE_KJV.includes(rev), 'Revelation 3:15-16 joined across the boundary').toBe(false);
+    expect(WHOLE_KJV.includes('I would thou wert cold or hot.')).toBe(true);
+    expect(WHOLE_KJV.includes('So then because thou art lukewarm')).toBe(true);
+  });
+
+  it('is PROVEN-TO-CATCH against single-word drift in this lesson’s hardest quotations', () => {
+    // contemned/condemned is one letter apart and changes the meaning entirely.
+    expect(WHOLE_KJV.includes('it would utterly be condemned')).toBe(false);
+    expect(WHOLE_KJV.includes('it would utterly be contemned')).toBe(true);
+    // dropping the second "and" out of the final roll
+    expect(WHOLE_KJV.includes('called, chosen, and faithful')).toBe(false);
+    expect(WHOLE_KJV.includes('called, and chosen, and faithful')).toBe(true);
+    // "elect" for "chosen" in 1 Peter 2:4
+    expect(WHOLE_KJV.includes('disallowed indeed of men, but elect of God')).toBe(false);
+  });
+
+  it('never lets our own framing wear Scripture’s quotation marks', () => {
+    for (const ours of [
+      'If I am an option, do not pick me',
+      'a scale of convenience',
+      'you do not analyze fire',
+      'by peace, by purpose, and by Yahweh',
+    ]) {
+      expect(WHOLE_KJV.includes(ours), `our framing must not be quotable as Scripture: ${ours}`).toBe(false);
+    }
   });
 });
 
@@ -328,53 +392,60 @@ describe('every age level carries the message (child, teen, senior — full cove
     return l.slice(i, j);
   };
 
-  it('each band carries the losing-hour thesis and the word AGAIN', () => {
+  it('each band carries the refused stone and the choosing that predates the list', () => {
     for (const band of ['child', 'teen', 'senior']) {
       const t = level(band);
-      expect(t, `${band} carries the losing hour`).toMatch(/losing|LOSING/);
-      expect(t, `${band} carries again`).toMatch(/Again I will build thee|AGAIN/);
+      expect(t, `${band} carries the refused stone`).toMatch(/builders refused|head stone of the corner/);
+      expect(t, `${band} carries the choosing before the world`).toMatch(/before the foundation of the world/);
     }
   });
 
-  it('each band carries the identity in the present tense and the salt commission', () => {
+  it('each band carries the correction — knowing your worth is not permission to harden', () => {
     for (const band of ['child', 'teen', 'senior']) {
       const t = level(band);
-      expect(t, `${band} carries the identity`).toMatch(/royal priesthood|1 Peter 2:9/);
-      expect(t, `${band} carries salt`).toMatch(/salt of the earth|Matthew 5:13/);
+      expect(t, `${band} refuses the hardened heart`).toMatch(/be ye kind one to another|Charity suffereth long|Let all bitterness|live peaceably|Beareth all things/);
     }
   });
 
-  it('teen and senior additionally carry the waves, the cause, and offence/pride', () => {
+  it('teen and senior additionally carry the cost-timing, the fire, and the maybe', () => {
     for (const band of ['teen', 'senior']) {
       const t = level(band);
-      expect(t, 'the three stages').toMatch(/James 1:14|James 1:15|drawn away of his own lust/);
-      expect(t, 'the Word was not there').toMatch(/penknife|Jeremiah 36:2[34]/);
-      expect(t, 'offence and pride').toMatch(/offended|Proverbs 18:19/);
+      expect(t, `${band} carries counting the cost`).toContain('counteth the cost');
+      expect(t, `${band} carries the fire that cannot be bought`).toMatch(/utterly be contemned|most vehement flame/);
+      expect(t, `${band} carries the maybe`).toMatch(/double minded|cold nor hot/);
+      expect(t, `${band} refuses to seat a creature in the Creator’s seat`).toMatch(/trusteth in man|confidence in man/);
     }
   });
 
   it('the child level teaches without adult weight, and is not a stub', () => {
     const child = level('child');
     expect(child.length).toBeGreaterThan(400);
-    expect(child, 'no captivity/death arithmetic for a six-year-old').not.toMatch(/captivity|seventy years|wages of sin/i);
-    expect(child, 'but it carries the love that predates the failure').toContain('Before I formed thee in the belly I knew thee');
+    // the piece is a declaration about romantic and adult relational worth; a
+    // six-year-old gets being left out of a team, not a relationship post-mortem.
+    expect(child).not.toMatch(/romantic|dating|boyfriend|girlfriend|marriage/i);
+    expect(child, 'the child gets the being-picked frame').toMatch(/pick/i);
+    expect(child, 'a child gets the bedtime verse, not just the principle').toContain('When my father and my mother forsake me, then the LORD will take me up.');
   });
 });
 
 describe('corpus witness — the pins are re-read from the corpus files themselves', () => {
   it('a representative set matches the repo KJV exactly', () => {
-    expect(verse('Jeremiah', 31, 3)).toBe('The LORD hath appeared of old unto me, saying, Yea, I have loved thee with an everlasting love: therefore with lovingkindness have I drawn thee.');
-    expect(verse('Jeremiah', 31, 4)).toContain('Again I will build thee, and thou shalt be built');
-    expect(verse('Jeremiah', 1, 6)).toBe('Then said I, Ah, Lord GOD! behold, I cannot speak: for I am a child.');
-    expect(verse('Jeremiah', 1, 9)).toContain('Then the LORD put forth his hand, and touched my mouth.');
-    expect(verse('Jeremiah', 36, 23)).toContain('he cut it with the penknife');
-    expect(verse('Jeremiah', 36, 24)).toContain('Yet they were not afraid');
-    expect(verse('Jeremiah', 19, 11)).toContain('that cannot be made whole again');
-    expect(verse('2Chronicles', 36, 21)).toContain('to fulfil threescore and ten years');
-    expect(verse('Daniel', 9, 5)).toContain('We have sinned, and have committed iniquity');
-    expect(verse('Matthew', 5, 13)).toContain('Ye are the salt of the earth');
-    expect(verse('Proverbs', 18, 19)).toBe('A brother offended is harder to be won than a strong city: and their contentions are like the bars of a castle.');
-    expect(verse('Jeremiah', 2, 13)).toContain('hewed them out cisterns, broken cisterns, that can hold no water');
-    expect(verse('1Peter', 2, 9)).toContain('a royal priesthood, an holy nation');
+    expect(verse('Psalms', 118, 22)).toBe('The stone which the builders refused is become the head stone of the corner.');
+    expect(verse('Isaiah', 53, 3)).toContain('he was despised, and we esteemed him not.');
+    expect(verse('1Peter', 2, 4)).toBe('To whom coming, as unto a living stone, disallowed indeed of men, but chosen of God, and precious,');
+    expect(verse('Ephesians', 1, 4)).toContain('before the foundation of the world');
+    expect(verse('Deuteronomy', 7, 7)).toContain('for ye were the fewest of all people:');
+    expect(verse('SongofSolomon', 8, 7)).toBe('Many waters cannot quench love, neither can the floods drown it: if a man would give all the substance of his house for love, it would utterly be contemned.');
+    expect(verse('Luke', 14, 28)).toContain('counteth the cost');
+    expect(verse('Ecclesiastes', 5, 5)).toBe('Better is it that thou shouldest not vow, than that thou shouldest vow and not pay.');
+    expect(verse('James', 1, 8)).toBe('A double minded man is unstable in all his ways.');
+    expect(verse('1Corinthians', 7, 23)).toBe('Ye are bought with a price; be not ye the servants of men.');
+    expect(verse('Jeremiah', 17, 5)).toContain('Cursed be the man that trusteth in man');
+    expect(verse('Revelation', 17, 14)).toContain('called, and chosen, and faithful.');
+  });
+
+  it('the corpus keeps the false god named low — the typography is in the text we quote', () => {
+    expect(verse('1Kings', 18, 21)).toContain('but if baal, then follow him');
+    expect(verse('1Kings', 18, 21)).not.toContain('Baal');
   });
 });

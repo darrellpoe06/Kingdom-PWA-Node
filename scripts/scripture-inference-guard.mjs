@@ -57,6 +57,12 @@ export const SCANNED = [
   'app/src/lib/economics-class.js',
   'app/src/lib/prophetic-voices.js',
   'app/src/lib/succession-class.js',
+  // Added 2026-09-03 (DR-0323): the Legacy Provisions course reasons ACROSS
+  // verses constantly — Leviticus 25 and Numbers 36 read together as a wall,
+  // Leviticus 25:10/25:25 read as the release, Galatians 4:1-2 read as the
+  // season's end. A verbatim gate cannot see an error that lives BETWEEN two
+  // correct quotes, and this file was outside the reasoned gate entirely.
+  'app/src/lib/legacy-provisions-course.js',
   // The chronology module states both Egypt figures side by side, so it is the
   // likeliest place for the 400/430 collapse to reappear (DR-0281).
   'app/src/lib/scripture-chronology.js',
