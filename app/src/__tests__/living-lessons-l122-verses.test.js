@@ -1,11 +1,11 @@
 // =============================================================================
-// L119 — "Would you sign that contract?": the answer, the qualification, and the
+// L122 — "Would you sign that contract?": the answer, the qualification, and the
 // manner that forfeited the argument. Verbatim KJV.
 // =============================================================================
 // Captured 2026-09-02 from a fourth clip Darrell brought in — a panel debate
 // between an unmarried man opposing the LEGAL half of modern marriage and a
-// married man defending it. This is the CAPSTONE of four (L114, L117, L118,
-// L119): what a man brings, what her post actually is, the warmth that keeps a
+// married man defending it. This is the CAPSTONE of four (L114, L120, L121,
+// L122): what a man brings, what her post actually is, the warmth that keeps a
 // house, and finally how to argue about all of it without forfeiting.
 //
 // NAMES ARE DELIBERATELY ABSENT, and that is a gate, not an oversight. The
@@ -34,7 +34,7 @@
 //   • THE MANNER IS THE LARGEST THING IN THE CLIP (Proverbs 18:13; 18:2; James
 //     1:19-20; Matthew 5:22; 1 Corinthians 13:1).
 //
-// Whole-span gate. Authoring L119 produced TWO real in-quote alterations, both
+// Whole-span gate. Authoring L122 produced TWO real in-quote alterations, both
 // caught before splicing: two verses WELDED into one quoted span (James 1:19
 // ends at "slow to wrath:"; v20 is its own verse, so the joined string exists
 // nowhere in the corpus), and a comma pulled inside the Deuteronomy 31:16 quote,
@@ -47,7 +47,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll119-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it';
+const ID = 'll122-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -108,7 +108,7 @@ const QUOTED_FRAGMENTS = [
   'and they shall be one flesh',                                            // Gen 2:24
 ];
 
-describe('L119 exists in the catalog with its full shape', () => {
+describe('L122 exists in the catalog with its full shape', () => {
   it('the module is present with anchor, levels, quiz, benefits, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
@@ -122,7 +122,7 @@ describe('L119 exists in the catalog with its full shape', () => {
 
   it('is registered in the live series and the painted lesson count is the real one', () => {
     const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-    expect(m, 'L119 must be in LIVING_LESSONS_MODULES').toBeTruthy();
+    expect(m, 'L122 must be in LIVING_LESSONS_MODULES').toBeTruthy();
     expect(m.quiz.questions.length).toBeGreaterThanOrEqual(5);
     expect(m.benefits.length).toBeGreaterThanOrEqual(6);
     expect(m.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(5);
@@ -227,10 +227,10 @@ describe('L119 exists in the catalog with its full shape', () => {
     expect(l, 'pairs with L115, which established it').toContain('L115');
   });
 
-  it('closes on the question neither man asked, and hands back to L114 and L118', () => {
+  it('closes on the question neither man asked, and hands back to L114 and L121', () => {
     expect(l).toMatch(/what a man is FOR/);
     expect(l).toContain('L114');
-    expect(l).toContain('L118');
+    expect(l).toContain('L121');
     expect(l).toContain('Whoso findeth a wife findeth a good thing, and obtaineth favour of the LORD.');
     expect(l, 'and names the irony without sneering').toMatch(/quoted correctly and then failed to live/);
   });

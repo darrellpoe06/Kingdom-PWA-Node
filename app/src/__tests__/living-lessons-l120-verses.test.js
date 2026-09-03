@@ -1,5 +1,5 @@
 // =============================================================================
-// L117 — "Know your own post": her provision, her guard, and the beam in the
+// L120 — "Know your own post": her provision, her guard, and the beam in the
 // pointing eye. Verbatim KJV.
 // =============================================================================
 // Captured 2026-09-02 from a second spoken clip Darrell brought in, hours after
@@ -8,7 +8,7 @@
 // to provide and to protect — and closes by calling a woman who falls short
 // worthless.
 //
-// NUMBERING: this is L117, not L115. L115 is deliberately reserved for PR #1428
+// NUMBERING: this is L120, not L115. L115 is deliberately reserved for PR #1428
 // (branch claude/biblical-femininity-quiet-strength-4xsef8), which authored a
 // DIFFERENT lesson as L114 in a concurrent session and went conflicted when
 // L114 merged first. A lesson number is provisional until merge, exactly like a
@@ -35,7 +35,7 @@
 //     direction, so that distinction is asserted explicitly below.
 //
 // The whole-span gate rides again: no quoted span may differ from the in-repo
-// KJV by a single character. Authoring L117 produced ZERO in-quote alterations
+// KJV by a single character. Authoring L120 produced ZERO in-quote alterations
 // on the first sweep — the L114 discipline (a double quote means Scripture and
 // nothing else; the clip's own words and our prose carry none) was applied from
 // the first draft rather than retrofitted. The gate is still asserted
@@ -48,7 +48,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll117-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye';
+const ID = 'll120-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -123,7 +123,7 @@ const QUOTED_FRAGMENTS = [
   'but to do justly, and to love mercy, and to walk humbly with thy God?',   // Micah 6:8
 ];
 
-describe('L117 exists in the catalog with its full shape', () => {
+describe('L120 exists in the catalog with its full shape', () => {
   it('the module is present with anchor, levels, quiz, benefits, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
@@ -137,7 +137,7 @@ describe('L117 exists in the catalog with its full shape', () => {
 
   it('is registered in the live series and the painted lesson count is the real one', () => {
     const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-    expect(m, 'L117 must be in LIVING_LESSONS_MODULES').toBeTruthy();
+    expect(m, 'L120 must be in LIVING_LESSONS_MODULES').toBeTruthy();
     expect(m.quiz.questions.length).toBeGreaterThanOrEqual(5);
     expect(m.benefits.length).toBeGreaterThanOrEqual(6);
     expect(m.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(5);
@@ -146,7 +146,7 @@ describe('L117 exists in the catalog with its full shape', () => {
 
   it('does not collide with L114, and leaves L115 free for the concurrent lesson', () => {
     const ids = LIVING_LESSONS_MODULES.map((m) => m.id);
-    expect(ids.filter((i) => i.startsWith('ll116-')).length, 'exactly one L117').toBe(1);
+    expect(ids.filter((i) => i.startsWith('ll116-')).length, 'exactly one L120').toBe(1);
     expect(ids.filter((i) => i.startsWith('ll114-')).length, 'exactly one L114').toBe(1);
     expect(new Set(ids).size, 'no duplicate lesson ids anywhere in the series').toBe(ids.length);
   });

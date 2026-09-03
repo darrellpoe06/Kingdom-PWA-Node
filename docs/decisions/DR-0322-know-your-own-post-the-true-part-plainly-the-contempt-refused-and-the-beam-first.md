@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine; no schema, no new surface, no external-facing identity change
-- **Scope:** `app/src/lib/living-lessons-class.js` (L117 module + `LIVING_LESSONS_META.weeks` bumped with the module (115 → 118 in the delivery that carries all three)), `app/src/__tests__/living-lessons-l117-verses.test.js`
+- **Scope:** `app/src/lib/living-lessons-class.js` (L120 module + `LIVING_LESSONS_META.weeks` bumped with the module (115 → 118 in the delivery that carries all three)), `app/src/__tests__/living-lessons-l117-verses.test.js`
 - **Date:** 2026-09-02
 - **Principles:** SPOKEN-TEACHINGS-ARE-BUILD-INPUT, WORD-FIRST (DR-0098), THREE-TIER-HONESTY (DR-0100), VERIFICATION-DOCTRINE (DR-0076), TRUST-BUT-VERIFY (DR-0190), RELIGION-AND-RELATIONSHIP, APP-IS-PRIMARY (DR-0065)
 
@@ -76,12 +76,12 @@ have been the same error wearing better clothes.
 
 ### 5. It pairs with L114, so the series is symmetrical
 
-L114 put the account-of-your-own-post question to the husband; L117 puts it to
+L114 put the account-of-your-own-post question to the husband; L120 puts it to
 the wife *and* to the man doing the pointing, and both land on the floor nobody
 is exempt from (Micah 6:8). Taught singly, either one reads as a side being
 taken. The lesson says the pairing out loud and the facilitator notes require it.
 
-## Numbering — L117, and DR-0322: two collisions, both handled
+## Numbering — L120, and DR-0322: two collisions, both handled
 
 Four sessions shipped Living Lessons within the same hour, and this record was
 renumbered **twice** before it landed. Both moves follow DR-0052: a number is
@@ -91,11 +91,20 @@ provisional until merge, and the branch that lands second renumbers.
   L114 was in flight. L114 merged first, so this lesson was authored as **L116**
   with **L115 deliberately left free** for #1428's renumber — which #1428 then
   took. Then PR #1429, whose title still read L114, merged as **L116** — the slot
-  this one was using. So this lesson is **L117**, rebuilt onto the merged main
+  this one was using. So this lesson is **L120**, rebuilt onto the merged main
   with every cross-reference in its own prose, its gate, and the two lessons that
   cite it updated in the same pass. The gate asserts no duplicate lesson id
   exists anywhere in the series, which is what makes a third collision loud
   instead of silent.
+- **Third move, and this one was YIELDED rather than lost.** PR #1432 was found
+  holding `ll117-ninety-seven-percent` — a live collision with this lesson's
+  `ll117`. The convention says the branch that lands second renumbers, so the
+  race would have resolved it either way; but the collision was already KNOWN,
+  and discovering it through a red gate costs a full CI cycle plus a conflict
+  resolution. So this branch moved first and unilaterally: its three lessons are
+  **L120, L121 and L122**, contiguous and clear of every open PR, leaving L117 to
+  #1432 uncontested. Gaps cost nothing — the series' ids were already
+  non-contiguous with its count. Nothing on another session's branch was touched.
 - **The record.** This DR was written as DR-0321; main landed its own DR-0321
   (principles-travel-with-the-money) first, so per DR-0052 it is **DR-0322**.
 
@@ -111,7 +120,7 @@ free-slot reservation was made deliberately rather than by racing.
 - **Zero in-quote alterations on the first sweep.** The L114 discipline — a
   double quote means Scripture and nothing else; the clip's own words and our
   prose carry none — was applied from the first draft rather than retrofitted.
-  L114 needed seventeen fixes; L117 needed none. The discipline is the fix.
+  L114 needed seventeen fixes; L120 needed none. The discipline is the fix.
 - **The gate caught two defects in ITSELF, and both were fixed in the test:**
   1. The proven-to-catch pin asserted `'follow thou me.'` was absent from the
      corpus, on the assumption that a trailing period always belongs to our
