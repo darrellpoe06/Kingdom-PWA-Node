@@ -293,7 +293,15 @@ describe('choir-dates yt-dlp wrapper is verified every cycle', () => {
   });
 
   it('reaches docker through sudo -n when the plain socket is denied', () => {
-    expect(installer()).toMatch(/sudo -n docker/);
+    // The PROPERTY is "falls back to sudo -n", not the literal word after it.
+    // DR-0322 replaced the bare `docker` with the resolved $DOCKER_BIN, because
+    // DSM keeps docker off a non-login shell's PATH and `sudo -n docker` was
+    // just as unreachable as `docker` — the fallback existed but could never
+    // land. Pin the fallback AND the resolution, so neither can be dropped.
+    const src = installer();
+    expect(src).toMatch(/sudo -n "\$DOCKER_BIN"/);
+    expect(src).toMatch(/DOCKER="sudo -n \$DOCKER_BIN"/);
+    expect(src).toMatch(/command -v docker/);
   });
 
   it('still fails LOUD when the wrapper cannot be made to work', () => {

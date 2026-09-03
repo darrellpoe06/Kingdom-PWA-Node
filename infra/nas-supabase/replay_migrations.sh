@@ -26,8 +26,32 @@ DATA="${SUPABASE_DATA:-/volume1/docker/supabase}"
 ENV_FILE="$DATA/.env"
 MAX_PER_RUN="${REPLAY_MAX_PER_RUN:-50}"
 
-DOCKER="docker"
-docker ps >/dev/null 2>&1 || DOCKER="sudo -n docker"
+# RESOLVE DOCKER BEFORE CALLING IT. DSM does not put docker on the PATH of a
+# non-login ssh shell, so the old two-liner here ("DOCKER=docker; docker ps ||
+# DOCKER='sudo -n docker'") could only ever pick a binary that does not exist:
+# the probe failed command-not-found, the fallback failed the same way, and
+# set -e killed this script at the first PSQL call with "sudo: docker: command
+# not found". That is exactly what happened on db-migrate run 33695466498
+# (2026-09-02) — the first migration to ride the sovereign replay lane never
+# ran and the ledger stayed at 151. This script's own caller,
+# scripts/sovereign-replay-over-tailnet.sh, already resolved the binary this
+# way; the standard lived in code and nowhere else, so this sibling missed it
+# (DR-0314). It is now a documented Way and a gate:
+# scripts/nas-docker-path-guard.mjs.
+# DOCKER_BIN from the environment wins, so a caller that already resolved it
+# (the tailnet wrapper does) does not resolve it twice.
+if [ -z "${DOCKER_BIN:-}" ]; then
+  DOCKER_BIN=$(command -v docker 2>/dev/null || true)
+fi
+if [ -z "$DOCKER_BIN" ]; then
+  for c in /usr/local/bin/docker /usr/bin/docker; do
+    if [ -x "$c" ]; then DOCKER_BIN="$c"; break; fi
+  done
+fi
+[ -n "$DOCKER_BIN" ] || { echo "replay: docker binary not found (PATH, /usr/local/bin, /usr/bin) - cannot run"; exit 1; }
+# Plain first, sudo only if the plain call cannot talk to the daemon.
+DOCKER="$DOCKER_BIN"
+"$DOCKER_BIN" ps >/dev/null 2>&1 || DOCKER="sudo -n $DOCKER_BIN"
 
 PW=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
 [ -n "$PW" ] || { echo "replay: no POSTGRES_PASSWORD - cannot run"; exit 1; }
