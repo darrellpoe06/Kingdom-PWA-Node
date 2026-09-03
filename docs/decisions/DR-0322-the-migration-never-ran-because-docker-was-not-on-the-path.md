@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** B — a two-file shell fix on the NAS execution path, a new deterministic gate, and a Way written down. No app surface, no schema, no money.
-- **Scope:** `infra/nas-supabase/replay_migrations.sh`, `infra/church-media-golive/choir_dates_install.sh`, `scripts/nas-docker-path-guard.mjs`, `app/src/__tests__/nas-docker-path-guard.test.js`, `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md` (NAS execution conventions)
+- **Scope:** `.github/workflows/db-migrate.yml` (trigger paths), `infra/nas-supabase/replay_migrations.sh`, `infra/church-media-golive/choir_dates_install.sh`, `scripts/nas-docker-path-guard.mjs`, `app/src/__tests__/nas-docker-path-guard.test.js`, `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md` (NAS execution conventions)
 - **Date:** 2026-09-02
 - **Principles:** MACHINERY-OVER-MEMORY (DR-0314), VERIFICATION-DOCTRINE (DR-0076 §2/§3), EXECUTION-OUTCOME-OBSERVABILITY, PERPETUAL-IMPROVEMENT (DR-0075)
 
@@ -86,6 +86,24 @@ neither the wrapper's comment nor the ten absolute paths could reach it.
    consequence is carried rather than hidden: **on DSM it therefore refuses to
    run over a non-login ssh shell**, and resolving the binary would fix that
    too — **re-review: 2026-10-02**.
+
+## A fourth part, found while planning the proof
+
+`db-migrate` triggers on push to `main` only for paths under
+`infra/supabase/migrations-auto/**`, `scripts/db-migrate-apply.sh`, or its own
+workflow file. **The replay scripts were not among them** — so the fix for a
+lane that applied *nothing* would not have re-run the lane that proves it, and
+landing it would have required a human to remember to dispatch by hand.
+
+`scripts/sovereign-replay-over-tailnet.sh` and
+`infra/nas-supabase/replay_migrations.sh` are now trigger paths, by the same
+reasoning that already put `db-migrate-apply.sh` there: the sovereign replay is
+*how* a migration reaches the database the app actually reads (DR-0317), so a
+change to it changes the lane's outcome. A lane whose own repair cannot re-run
+it depends on someone remembering, and remembering is not machinery.
+
+A useful side effect: this PR touches both files, so its own merge fires the
+lane — the fix proves itself instead of being taken on trust.
 
 ## What this does NOT claim
 

@@ -110,6 +110,40 @@ describe('a dropdown never leaves a person with nowhere to go', () => {
   });
 });
 
+// Pattern 2f applied to the Legacy Provisions form (DR-0323). Added because the
+// checks below were PINNED to the two defects that prompted DR-0314 rather than
+// swept across the app, so a new surface with a dead-end dropdown sailed past
+// them — which is exactly what happened here on 2026-09-03.
+//
+// Why a pin and not a sweep: MEASURED before writing the rule (DR-0314's own
+// discipline) — 207 selects in components/ render their options from a mapped
+// array, and only 2 offer an in-place add. The other 205 overwhelmingly map
+// FIXED vocabularies (status, month, category, kind) that can never be empty and
+// need no add affordance. A blanket rule would file 205 findings, and noise is
+// how a guard gets deleted (DR-0314 §3). The distinction that matters — "maps a
+// user-created collection that can legitimately be empty" — is not decidable by
+// regex, so each such form is pinned as it is built. The measurement is recorded
+// in UX-PATTERNS.md so the next person does not re-derive it.
+describe('the Legacy Provisions form inherits Pattern 2f', () => {
+  const legacy = () => readFileSync(join(SRC, 'components/LegacyProvisions.jsx'), 'utf8');
+
+  it('its beneficiary picker offers the way to fill itself, in place', () => {
+    const src = legacy();
+    expect(src).toMatch(/\+ Add a beneficiary/);
+    expect(src).toMatch(/__add__/);
+  });
+
+  it('and says the roster is empty rather than looking like one considered option', () => {
+    expect(legacy()).toMatch(/No beneficiaries yet/);
+  });
+
+  it('every disabled control on it states what it is waiting for', () => {
+    const src = legacy();
+    expect(src).toMatch(/Type a name to add/);        // the roster + inline add buttons
+    expect(src).toMatch(/Choose a beneficiary first/); // the record button
+  });
+});
+
 describe('a disabled control says why it is disabled', () => {
   // A greyed "Add to the gallery" with no sentence beside it is the app
   // refusing without explaining — the thing an intuitive product never does.

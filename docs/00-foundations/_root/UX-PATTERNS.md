@@ -233,7 +233,31 @@ A greyed button with no sentence beside it is the app refusing without
 explaining itself. Every disabled primary action carries the condition in plain
 words: "Choose at least one picture to enable this."
 
-### The gate
+### What "the gate" covers — measured 2026-09-03 (DR-0323)
+
+2f.1 (plural pickers) is SWEPT: the guard walks every `<input type="file">` in
+the app and requires `multiple` or a named `SINGULAR_BY_DESIGN` reason.
+
+**2f.2 and 2f.3 are PINNED, not swept** — and a new surface therefore sailed
+past both on 2026-09-03 (the Legacy Provisions record form shipped with a
+beneficiary dropdown that dead-ended and an Add button that greyed out in
+silence). That surface is now pinned too, but the shape of the gap is worth
+recording so the next person does not mistake pins for a sweep.
+
+**Why 2f.2 is not swept, measured before the rule was written** (DR-0314's own
+discipline): **207** `<select>` elements in `components/` render their options
+from a mapped array, and exactly **2** offer an in-place add. The other 205 map
+**fixed vocabularies** — status, month, category, kind — which can never be
+empty and need no add affordance. A blanket rule would file 205 findings, and
+noise is how a guard gets deleted (2f's own §3). The property that actually
+matters — *"maps a user-created collection that can legitimately be empty"* — is
+not decidable by regex over the source.
+
+**So the working rule is:** when you build a form whose select maps a
+user-created collection, add the in-place `+ Add …` AND pin it in
+`ui-standards-guard.test.js` in the same delivery. If someone later finds a
+signal that separates user-created collections from fixed vocabularies
+mechanically, the sweep replaces the pins and this note comes out.
 
 `app/src/__tests__/ui-standards-guard.test.js` reads the real components and
 fails the build on all three. Written BEFORE the fix and observed failing on all
