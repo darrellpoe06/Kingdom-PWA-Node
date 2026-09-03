@@ -67,6 +67,47 @@ See `UX-PATTERNS.md` for the technical UX spec of the Scripture component.
 Some readers grew up on KJV and find ESV unfamiliar. Some are new to scripture entirely and need NIV's accessibility. Some are teachers who need AMP's clarification. Some are researchers who need Strong's precision.
 By holding all five in the standard, SKOS serves all five readers — without forcing anyone out of their comfort, while offering everyone a path to deeper understanding.
 The Holy Spirit speaks to different people through different translations. SKOS refuses to make any one translation an idol. The Word breathes through all faithful translations.
+## Verbatim-Gated Content: the in-repo KJV corpus (written down 2026-09-03 per DR-0314)
+
+**This section documents a standard that already existed in ten implementations and
+in zero rules.** Found by running DR-0219's SHOULD/ARE against this very document
+while authoring Living Lessons L119-L121. DR-0314 governs what happens next: a
+standard that lives only in implementations is a coincidence, so the review that
+finds one lands it as a Way, a gate, and a named exception list — in the same
+delivery.
+
+**The practice, measured.** Every Living Lesson from L112 onward, and the Godhead
+Study and World Issues modules, quote **only the King James Version, fetched
+verbatim from the in-repo corpus** at `app/public/bible/kjv/*.json` — never typed
+from memory. Each lesson carries a **whole-span gate** (`living-lessons-l*-verses.test.js`,
+ten of them as of this writing) asserting that *every* double-quoted span in the
+module appears letter-for-letter in that corpus. The working rule the gates
+enforce: **inside a verbatim-gated module, a double quote means Scripture and
+nothing else** — the source clip's words, a speaker's words, and our own prose
+carry no quotation marks, because a quotation mark is a claim.
+
+**Why KJV and not the ESV primary declared above.** The gate can only verify
+against a corpus the repo holds. The repo holds `kjv`, `web` (World English Bible,
+DR-0300) and `xref` — **there is no ESV corpus**, and there cannot casually be one:
+the ESV is not public domain. So verbatim-gated teaching content is KJV because
+that is what can be *machine-proven*, which DR-0076 ranks above stylistic
+preference.
+
+**What this does NOT do.** It does not amend the ESV-primary rule for ordinary
+prose citation stated earlier in this document, and it is not a licence to drop
+the ESV where it can be used. The two rules govern different things:
+
+| Content | Rule |
+|---|---|
+| Verbatim-gated modules (lessons, studies) | in-repo **KJV**, whole-span gated |
+| Documentation, UI copy, ordinary prose citation | **ESV** first per the Citation Pattern above |
+
+**The open question, for the Governor.** Whether the two should be reconciled — by
+ingesting a licensable modern translation for lessons, by making the KJV the
+primary for teaching content generally, or by leaving the split as it stands — is
+a translation-identity decision and is Darrell's, not an agent's. Recorded here so
+the divergence stops being silent. **re-review: 2026-10-03.**
+
 ## Religion AND Relationship in This Standard
 **Religion-side:** Disciplined, consistent citation. Honoring the textual scholarship of multiple translation committees. Treating scripture with the rigor it deserves.
 **Relationship-side:** Recognizing that the Holy Spirit speaks personally to readers through whichever translation lands in their heart. The Word is a Person (John 1:1), and a Person speaks differently in different rooms.
