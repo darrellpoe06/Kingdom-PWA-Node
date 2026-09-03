@@ -149,6 +149,30 @@ jobs:
             [ "$CODE" = "200" ] || add_fail "shell's own bundle $asset returned HTTP $CODE (stale-shell/missing-chunk class)"
           fi
 
+          # 3b. WHICH BACKEND DOES THE SERVED APP ACTUALLY CALL? (2026-09-03)
+          #
+          # Christina could not sign in. Every sign-in call answered with
+          # Cloudflare's HTML 525 page, and THIS PROBE — running 17 minutes
+          # later — wrote "**UP.** Fresh." It measured the HOSTED backend named
+          # by the secrets while the served app had been calling poetech.us/sb
+          # since the 2026-08-19 repoint. The instrument was watching an origin
+          # the family's app no longer uses (P31, one layer down again).
+          #
+          # So the probe stops trusting configuration and READS THE SERVED
+          # BUNDLE: the VITE_ vars are inlined at build time, so the backend the
+          # app truly calls is a string in the JavaScript the browser just ran.
+          # Every referenced chunk is scanned, because the key/URL can land in
+          # any of them (measured by nas-health, 2026-08-19).
+          LIVE_SB="unknown"
+          for A in $(grep -o '/poetech-app/assets/[^"]*\.js' "$SHELL_BODY" | sort -u | head -12 || true); do
+            CHUNK=$(curl -sS -A "$UA" --max-time 30 "https://poetech.us$A" 2>/dev/null) || continue
+            case "$CHUNK" in
+              *"poetech.us/sb"*) LIVE_SB="true"; break ;;
+              *".supabase.co"*)  LIVE_SB="false" ;;
+            esac
+          done
+          note "- served app's auth backend: **$(case $LIVE_SB in true) echo 'poetech.us/sb (sovereign)';; false) echo 'hosted supabase.co';; *) echo 'UNREADABLE — treated as sovereign below';; esac)**"
+
           # 4. FRESH: served sw.js carries main's tip. The build stamps
           # `const SW_VERSION = "abc1234";` (JSON.stringify => DOUBLE quotes —
           # vite.config.js sw-version-stamp; the first probe run missed this
@@ -249,13 +273,35 @@ jobs:
             # One retry, so a single dropped connection is not an outage.
             if [ "$CODE" = "000" ]; then sleep 5; sb_fetch "${SB_URL%/}/auth/v1/health"; fi
             BACKEND_CODE="$CODE"
-            # The sovereign /sb transport gets its own witness line (DR-0310):
-            # measured keyless (the health route answers without an apikey), so
-            # this watches the cutover backend regardless of which one the
-            # secrets still name. Observe-only for now — the incident arm
-            # follows once /sb is the app's live backend.
+            # The sovereign /sb transport, measured keyless (the health route
+            # answers without an apikey) — DR-0310 §5.
+            #
+            # ARMED 2026-09-03. DR-0310 §5 promised "observe-only until /sb is
+            # live, incident-armed after"; /sb went live on 2026-08-19 and the
+            # arming never landed, so for fifteen days the app's REAL backend
+            # could fail without moving this probe one inch. It failed on
+            # 2026-09-03: /sb answered 525 (Cloudflare could not reach the
+            # Funnel — the NAS was off the tailnet entirely) and the only
+            # witness that noticed was Christina, texting a screenshot.
+            #
+            # The arm is conditional on the SERVED bundle (step 3b), so this
+            # never fires for a build that does not use /sb. An UNREADABLE
+            # bundle arms it too: unknown never reads as healthy (DR-0076).
             SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000"
+            # One retry before calling it an outage, matching the hosted probe.
+            case "${SB_SOV:-000}" in
+              200|401) : ;;
+              *) sleep 5; SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000" ;;
+            esac
             note "- \`GET poetech.us/sb/auth/v1/health\` (sovereign transport) -> **${SB_SOV:-000}**"
+            if [ "$LIVE_SB" != "false" ]; then
+              case "${SB_SOV:-000}" in
+                200|401) : ;; # answering; 401 means alive and gated
+                525|526) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV: Cloudflare cannot complete TLS to the Funnel, so every sign-in call gets an HTML error page instead of JSON. Nobody can sign in until the NAS/Funnel is back or the app is repointed (revert infra/nas-supabase/REPOINT-ARMED)" ;;
+                000) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) did not answer in two attempts. Nobody can sign in" ;;
+                *) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV. Nobody can sign in" ;;
+              esac
+            fi
             violation=$(grep -oE 'exceed_[a-z_]+|restricted due to[^"]*' "$BODY_FILE" 2>/dev/null | head -1 || true)
             note "- \`GET auth/v1/health\` (anon) -> **$CODE**${violation:+ — \`$violation\`}"
             case "$CODE" in
