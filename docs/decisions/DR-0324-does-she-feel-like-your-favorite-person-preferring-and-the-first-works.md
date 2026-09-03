@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Tier:** A — additive lesson content in an existing series, riding the existing Learn engine
-- **Scope:** `app/src/lib/living-lessons-class.js` (L118 module), `app/src/__tests__/living-lessons-l118-verses.test.js`
+- **Scope:** `app/src/lib/living-lessons-class.js` (L119 module), `app/src/__tests__/living-lessons-l118-verses.test.js`
 - **Date:** 2026-09-02
 - **Principles:** SPOKEN-TEACHINGS-ARE-BUILD-INPUT, WORD-FIRST (DR-0098), THREE-TIER-HONESTY (DR-0100), VERIFICATION-DOCTRINE (DR-0076), TRUST-BUT-VERIFY (DR-0190), RELIGION-AND-RELATIONSHIP
 
@@ -23,7 +23,7 @@ kids, roommates, *"but they forget to be best friends."*
 
 ## Why this one had to be built
 
-L114 (DR-0320) gave the husband an account of his own post. L117 (DR-0323) gave
+L114 (DR-0320) gave the husband an account of his own post. L118 (DR-0323) gave
 the wife hers and took the beam out of the pointing eye. **A series carrying
 only those two is backbone with no heart**, which fails the Religion AND
 Relationship test on this repo's own terms. This is the warmth those two were
