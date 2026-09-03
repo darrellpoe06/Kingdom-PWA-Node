@@ -33,6 +33,15 @@ on:
       - 'infra/supabase/migrations-auto/**'
       - 'scripts/db-migrate-apply.sh'
       - '.github/workflows/db-migrate.yml'
+      # The sovereign replay is HOW a migration reaches the database the app
+      # actually reads (DR-0317), so a change to it changes the lane's outcome
+      # exactly as a change to db-migrate-apply.sh does — same reasoning, same
+      # list. Learned 2026-09-02 (DR-0322): the fix for a replay that applied
+      # NOTHING would not have re-run the lane that proves it, because the file
+      # it fixed was not a trigger path. A lane whose own repair cannot re-run
+      # it needs a human to remember, and remembering is not machinery.
+      - 'scripts/sovereign-replay-over-tailnet.sh'
+      - 'infra/nas-supabase/replay_migrations.sh'
   workflow_dispatch:
 
 # Single-instance lock. Two db-migrate runs applying DDL to the SAME cloud DB at
