@@ -17,7 +17,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ADVOCACY_VERSES, EVIDENCE_TIERS, ENTRY_TYPES, CASE_STATUSES, ESCALATION_LADDER,
-  POLICY_SHELF, POLICY_LAYERS,
+  POLICY_SHELF, POLICY_LAYERS, WORKED_CASES,
   newCase, newEntry, casesOf, entriesOf, caseStats, ladderIndex, buildContextPack,
 } from '../lib/advocacy-cases.js';
 
@@ -168,5 +168,73 @@ describe('the context pack is real data only (DR-0076)', () => {
     const p = buildContextPack(empty, [empty]);
     expect(p).toContain('no entries yet');
     expect(buildContextPack(null, [])).toBe('');
+  });
+});
+
+// =============================================================================
+// The worked example (2026-09-03). Two duties beyond the shared verse gate:
+//   PRIVACY — this is a real family case involving an identifiable school
+//   employee. The act is taught; the person is released (Titus 3:2). The gate
+//   below is written so it does NOT itself embed the name it protects.
+//   HONESTY BOTH WAYS (DR-0100) — the closing must carry the refusal AND the
+//   correction. A case file that logs only the injury is a grudge with dates on
+//   it, and under-claiming the repentance is as much a false report as
+//   over-claiming the guilt.
+// =============================================================================
+describe('the worked example teaches the method without exposing a person', () => {
+  const wc = WORKED_CASES[0];
+  const blob = JSON.stringify(WORKED_CASES);
+
+  it('maps onto this tool’s own vocabulary, so the fields teach themselves', () => {
+    expect(WORKED_CASES.length).toBeGreaterThanOrEqual(1);
+    for (const c of WORKED_CASES) {
+      expect(ESCALATION_LADDER.some((r) => r.id === c.ladderStep), `unknown rung: ${c.ladderStep}`).toBe(true);
+      expect(CASE_STATUSES.some((r) => r.id === c.status), `unknown status: ${c.status}`).toBe(true);
+      expect(c.steps.length).toBeGreaterThanOrEqual(4);
+      for (const st of c.steps) {
+        expect(ENTRY_TYPES.some((t) => t.id === st.entryType), `unknown entry type: ${st.entryType}`).toBe(true);
+        expect(EVIDENCE_TIERS.some((t) => t.id === st.evidenceTier), `unknown tier: ${st.evidenceTier}`).toBe(true);
+        expect(st.what.length).toBeGreaterThan(30);
+        expect(st.why.length).toBeGreaterThan(30);
+      }
+      expect(c.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it('shows all three evidence tiers, including the institution’s own words', () => {
+    const tiers = new Set(wc.steps.map((s) => s.evidenceTier));
+    expect(tiers.has('their-words'), 'the strongest tier must be demonstrated').toBe(true);
+    expect(tiers.has('our-witness')).toBe(true);
+    // and it must show the win being logged, not only the injury
+    expect(wc.steps.some((s) => s.entryType === 'outcome'), 'the outcome must be logged').toBe(true);
+    expect(wc.steps.some((s) => s.entryType === 'response'), 'their answer must be logged').toBe(true);
+  });
+
+  it('closes honestly — the refusal AND the correction, both stated (DR-0100)', () => {
+    expect(wc.closing).toMatch(/not applied|not honour/i);
+    expect(wc.closing).toMatch(/refused twice|refused|no twice/i);
+    expect(wc.closing, 'the correction is not omitted').toMatch(/corrected/i);
+    expect(wc.closing, 'both halves are named as the truth').toMatch(/[Bb]oth halves/);
+    expect(wc.closing, 'names the act, releases the person').toMatch(/release the PERSON|releases the person/i);
+    expect(wc.closing, 'cites the reproof texts').toMatch(/Proverbs 9:8|25:12/);
+    expect(wc.closing, 'cites the judge-righteously texts').toMatch(/John 7:24|Titus 3:2/);
+  });
+
+  it('PRIVACY — no person, institution, or location is identifiable', () => {
+    expect(blob, 'an email address').not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    expect(blob, 'a US postal code').not.toMatch(/\b\d{5}(-\d{4})?\b/);
+    expect(blob, 'a street address').not.toMatch(/\b\d+\s+[NSEW]?\s?[A-Z][a-z]+\s+(St|Street|Ave|Avenue|Rd|Road)\b/);
+    for (const token of ['Elementary', 'Librarian', 'School District', 'Unit 4', 'Champaign']) {
+      expect(blob, `identifying token leaked into the worked example: ${token}`).not.toContain(token);
+    }
+    // referred to by role only
+    expect(wc.institution).toMatch(/^A school library$/);
+    expect(wc.student).toMatch(/fifth-grader/);
+  });
+
+  it('states its own anonymization commitment in the module, not just in a test', () => {
+    const src = readFileSync(join(ROOT, 'src', 'lib', 'advocacy-cases.js'), 'utf8');
+    expect(src).toMatch(/ANONYMIZED/);
+    expect(src).toMatch(/the act is taught, the person is released/i);
   });
 });
