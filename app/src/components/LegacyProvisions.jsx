@@ -186,9 +186,11 @@ function ProvisionSummary() {
 // ---------------------------------------------------------------------------
 // 1. The constitution — read it, and attest to it, article by article.
 // ---------------------------------------------------------------------------
-function ConstitutionSection({ people, entries, onAttest }) {
+function ConstitutionSection({ people, entries, onAttest, onAddPerson }) {
   const [who, setWho] = useState(people[0]?.id || '');
   const [openArticle, setOpenArticle] = useState(FAMILY_CONSTITUTION.articles[0]?.id || null);
+  const [addingReader, setAddingReader] = useState(false);
+  const [readerName, setReaderName] = useState('');
   useEffect(() => { if (!who && people[0]) setWho(people[0].id); }, [people, who]);
 
   const standing = useMemo(
@@ -210,24 +212,77 @@ function ConstitutionSection({ people, entries, onAttest }) {
         </p>
       </Card>
 
-      {people.length > 0 && (
+      {/* JOURNEY WALK (COMPREHENSIVE-REVIEW-STANDARD dimension 2, DR-0323): this
+          card used to render only when a roster already existed, so an heir who
+          opened Constitution FIRST on a fresh install found no way to attest and
+          nothing telling them why — a journey that could not be completed from
+          where that user actually starts. It now always renders, says plainly
+          that the roster is empty, and offers the SAME builder the other tab
+          uses so the heir never has to go hunting for another tab. */}
+      {(
         <Card label="Attestation — who has actually read what" icon="users"
           note="An article with no attestation on record shows as unattested. The surface never assumes a document was read.">
           <label className="block text-xs" style={serif}>
             <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Reading as</span>
             <select
               value={who}
-              onChange={(e) => setWho(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === '__add__') { setAddingReader(true); return; }
+                setWho(e.target.value);
+              }}
               className="mt-1 block w-full border border-[#1A1815] bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B85838]"
               style={serif}
             >
+              {!people.length && <option value="">Nobody on the roster yet — add yourself to attest</option>}
               {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              <option value="__add__">+ Add a reader…</option>
             </select>
           </label>
-          {standing && (
+          {addingReader && (
+            <div className="border border-[#1A1815] bg-[#FAF8F4] p-2 space-y-2">
+              <input
+                autoFocus
+                value={readerName}
+                onChange={(e) => setReaderName(e.target.value)}
+                placeholder="Your name"
+                className="block w-full border border-[#1A1815] bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                style={serif}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={!readerName.trim()}
+                  onClick={() => {
+                    const id = onAddPerson(readerName.trim());
+                    setWho(id);
+                    setReaderName('');
+                    setAddingReader(false);
+                  }}
+                  className="text-xs border border-[#1A1815] px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                  style={serif}
+                >
+                  {readerName.trim() ? 'Add and read as' : 'Type a name to add'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAddingReader(false); setReaderName(''); }}
+                  className="text-xs px-3 py-1.5 text-[#5A5751] focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                  style={serif}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {standing ? (
             <p className="text-xs text-[#5A5751]" style={serif}>
               {standing.attested.length} of {standing.total} articles attested ({standing.pct}%).
               {standing.missing.length ? ` ${standing.missing.length} still unattested.` : ' Every article attested.'}
+            </p>
+          ) : (
+            <p className="text-xs text-[#5A5751]" style={serif}>
+              Nothing is attested yet, because nobody is on the roster. Add yourself above and each article gains an
+              “I have read this” you can record.
             </p>
           )}
         </Card>
@@ -534,7 +589,7 @@ function ProductionSection({ people, entries, onAddPerson, onAddEntry, onRemoveE
                     autoFocus
                     value={inlineName}
                     onChange={(e) => setInlineName(e.target.value)}
-                    placeholder="Name"
+                    placeholder="New beneficiary’s name"
                     className="block w-full border border-[#1A1815] bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B85838]"
                     style={serif}
                   />
@@ -748,7 +803,7 @@ export function LegacyProvisions() {
       id: 'constitution',
       label: 'Constitution',
       icon: 'book',
-      render: () => <ConstitutionSection people={roster} entries={entries} onAttest={attest} />,
+      render: () => <ConstitutionSection people={roster} entries={entries} onAttest={attest} onAddPerson={addPerson} />,
     },
     {
       id: 'wall',
