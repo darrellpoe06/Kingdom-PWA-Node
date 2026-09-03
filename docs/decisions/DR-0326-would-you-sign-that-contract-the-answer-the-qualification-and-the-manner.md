@@ -112,6 +112,43 @@ SPEAKER, states why in its own text, and carries `DO NOT NAME THE SPEAKERS` into
 the facilitator notes so a future teacher inherits the constraint. All three are
 asserted by the gate.
 
+## The REASONED pass found three of my own over-claims (DR-0281 / DR-0239 dim. 8)
+
+Darrell asked, mid-delivery, whether the Ways and documentation had actually been
+reviewed. They had not been — not to the standard. Reading
+`COMPREHENSIVE-REVIEW-STANDARD.md` and running its **dimension 8** by hand (the
+Word's accuracy **REASONED**, not only quoted) caught three errors in this lesson
+that **every gate had passed**, because each one lived *between* quotations that
+were already letter-perfect:
+
+1. **Matthew 22:21 stretched past its occasion.** The draft said Jesus "ALREADY
+   SETTLED" the spiritual-or-legal fight. That verse answers a question about
+   **tribute money**. The principle transfers cleanly; the ruling was not about a
+   marriage licence. Borrowing the Lord's authority for a claim He did not make
+   there is the exact failure DR-0281 names. The movement now discloses the
+   occasion, says what transfers is the PRINCIPLE, and states that He did not
+   rule on marriage law in that moment.
+2. **The transfer was unlicensed.** L120 carefully licensed its Revelation 2 →
+   marriage move with Ephesians 5:32. This lesson made the same kind of move —
+   Yahweh's covenant with Israel → a human marriage — and assumed it. Without the
+   licence the whole answer is an analogy we assembled. Ephesians 5:32 now carries
+   it in text.
+3. **The Paul claim was one letter too wide.** The draft said he was unmarried
+   "when he wrote" the New Testament's marriage instruction and named Ephesians 5.
+   No text states his situation at that writing; 1 Corinthians 7 states it inside
+   the chapter itself. The claim is scoped to what the verse supports, and says so
+   out loud.
+
+All three are now **pinned in the gate**, so they cannot silently regress —
+`living-lessons-l121-verses.test.js` asserts the disclosed occasion, the licence,
+and the scoped claim. That is DR-0239 dimension 7: every miss leaves a machine
+check behind.
+
+**The honest generalisation:** a verbatim gate is necessary and not sufficient. It
+proved 201 spans letter-perfect across these three lessons and could not see any
+of these three errors, because none of them is a misquotation. Dimension 8 is the
+only thing that catches this class, and it is run by hand.
+
 ## Verification (DR-0076)
 
 - **69 quoted spans** matched letter-for-letter against the in-repo KJV, plus

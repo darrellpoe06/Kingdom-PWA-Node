@@ -148,7 +148,7 @@ describe('L121 exists in the catalog with its full shape', () => {
       '1) WHAT IS ACTUALLY BEING ASKED',
       '2) THE ANSWER: YAHWEH SIGNED EXACTLY THAT CONTRACT, KNOWINGLY',
       '3) CONTRACT AND COVENANT ARE TWO DIFFERENT INSTRUMENTS',
-      '4) AND JESUS ALREADY SETTLED THE SPIRITUAL-OR-LEGAL FIGHT',
+      '4) THE PRINCIPLE THAT ENDS THE SPIRITUAL-OR-LEGAL FIGHT',
       '5) THE PREMODERN PREMISE IS FALSE',
       '6) THE LEGAL CLAIM, IN THREE HONEST TIERS',
       '7) A VOW THAT DEPENDS ON THE OTHER PARTY’S INCENTIVES WAS NEVER A VOW',
@@ -175,9 +175,43 @@ describe('L121 exists in the catalog with its full shape', () => {
     expect(l, 'and the married speaker is named as having dodged it').toMatch(/never answers it/);
   });
 
+  it('does not stretch Matthew 22:21 past its occasion — the REASONED pass (DR-0281)', () => {
+    // Found by running COMPREHENSIVE-REVIEW-STANDARD dimension 8 question (c) by
+    // hand: the first draft said Jesus "ALREADY SETTLED" the spiritual-or-legal
+    // fight, but that verse answers a question about TRIBUTE MONEY. The PRINCIPLE
+    // transfers; the ruling was not about a marriage licence, and the lesson now
+    // says which is which instead of borrowing the Lord's authority for a claim
+    // He did not make there.
+    expect(l, 'the occasion is disclosed').toMatch(/TRIBUTE MONEY/);
+    expect(l, 'and what transfers is named as the principle').toMatch(/What transfers is the PRINCIPLE/);
+    expect(l, 'and the over-claim is explicitly withdrawn').toMatch(/did not rule on marriage law in that moment/);
+  });
+
+  it('licenses the divine-covenant → human-marriage transfer instead of assuming it', () => {
+    // Same pass, question (c). L120 carried its Ephesians 5:32 licence for
+    // Revelation 2; this lesson made the same kind of move from Yahweh's covenant
+    // with Israel to a human marriage and did NOT carry it. Without the licence
+    // the whole answer is an analogy we assembled.
+    expect(l).toContain('This is a great mystery: but I speak concerning Christ and the church.');
+    expect(l).toMatch(/which is the licence/);
+    expect(l).toMatch(/an analogy we assembled/);
+  });
+
+  it('keeps the Paul claim to the size 1 Corinthians 7:8 actually supports', () => {
+    // Same pass, question (a). The first draft said Paul was unmarried "when he
+    // wrote" the New Testament's marriage instruction and named Ephesians 5. No
+    // text states his situation at that writing; 1 Corinthians 7 states it in the
+    // chapter itself. The claim is now scoped to what the verse carries.
+    expect(l).toContain('I say therefore to the unmarried and widows, It is good for them if they abide even as I.');
+    expect(l, 'the scope is stated out loud').toMatch(/Keep the claim exactly that size/);
+    expect(l, 'and the unsupported half is withdrawn').toMatch(/no text tells us his situation when Ephesians was written/);
+    expect(l, 'so the consequence names only the supported chapter').toMatch(/would strike out 1 Corinthians 7 -/);
+  });
+
   it('separates the two instruments with Matthew 22:21', () => {
     expect(l).toContain('Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s.');
     expect(l).toMatch(/Caesar keeps a register/);
+    expect(l).toMatch(/two jurisdictions can each hold what is theirs/);
     expect(l).toMatch(/refusing the paper does not make the covenant holier/i);
   });
 
