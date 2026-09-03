@@ -366,6 +366,8 @@ function SpendthriftSection({ entries, onAnswer }) {
 // ---------------------------------------------------------------------------
 function ProductionSection({ people, entries, onAddPerson, onAddEntry, onRemoveEntry }) {
   const [personName, setPersonName] = useState('');
+  const [addingPerson, setAddingPerson] = useState(false);
+  const [inlineName, setInlineName] = useState('');
   const [form, setForm] = useState({
     beneficiary: '', kind: 'production', productionKind: 'earned',
     occurredAt: today(), label: '', amount: '', reason: '',
@@ -435,13 +437,14 @@ function ProductionSection({ people, entries, onAddPerson, onAddEntry, onRemoveE
               style={serif}
             />
           </label>
+          {/* 2f.3 — a disabled control says what it is waiting for. */}
           <button
             type="submit"
             disabled={!personName.trim()}
             className="text-xs border border-[#1A1815] px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FAF8F4] focus:outline-none focus:ring-2 focus:ring-[#B85838]"
             style={serif}
           >
-            Add
+            {personName.trim() ? 'Add' : 'Type a name to add'}
           </button>
         </form>
         {people.length === 0 && (
@@ -506,15 +509,61 @@ function ProductionSection({ people, entries, onAddPerson, onAddEntry, onRemoveE
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-xs" style={serif}>
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Who</span>
+              {/* 2f.2 — a dropdown never leaves a person with nowhere to go. This
+                  select can legitimately be empty on day one, so it offers the way
+                  to fill it IN PLACE, through the SAME builder the roster card uses
+                  (one way to add a beneficiary, reachable from two places), and
+                  selects the new person. It also SAYS it is empty rather than
+                  looking like a considered single option. */}
               <select
                 value={form.beneficiary}
-                onChange={(e) => setForm({ ...form, beneficiary: e.target.value })}
+                onChange={(e) => {
+                  if (e.target.value === '__add__') { setAddingPerson(true); return; }
+                  setForm({ ...form, beneficiary: e.target.value });
+                }}
                 className="mt-1 block w-full border border-[#1A1815] bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B85838]"
                 style={serif}
               >
-                <option value="">Choose a beneficiary…</option>
+                <option value="">{people.length ? 'Choose a beneficiary…' : 'No beneficiaries yet — add the first one'}</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                <option value="__add__">+ Add a beneficiary…</option>
               </select>
+              {addingPerson && (
+                <div className="mt-2 border border-[#1A1815] bg-[#FAF8F4] p-2 space-y-2">
+                  <input
+                    autoFocus
+                    value={inlineName}
+                    onChange={(e) => setInlineName(e.target.value)}
+                    placeholder="Name"
+                    className="block w-full border border-[#1A1815] bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                    style={serif}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!inlineName.trim()}
+                      onClick={() => {
+                        const id = onAddPerson(inlineName.trim());
+                        setForm((f) => ({ ...f, beneficiary: id }));
+                        setInlineName('');
+                        setAddingPerson(false);
+                      }}
+                      className="text-xs border border-[#1A1815] px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                      style={serif}
+                    >
+                      {inlineName.trim() ? 'Add and select' : 'Type a name to add'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAddingPerson(false); setInlineName(''); }}
+                      className="text-xs px-3 py-1.5 text-[#5A5751] focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+                      style={serif}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </label>
             <label className="text-xs" style={serif}>
               <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">What kind of record</span>
@@ -678,9 +727,12 @@ export function LegacyProvisions() {
     });
   }, []);
 
+  // Returns the id so an in-place "+ Add a beneficiary…" can select what it made
+  // (2f.2 — one builder, reachable from two places).
   const addPerson = useCallback((name) => {
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || newRecordId('who');
     setPeople((cur) => (cur.some((p) => p.id === id) ? cur : [...cur, { id, name }]));
+    return id;
   }, []);
 
   const attest = useCallback((who, articleId) => {
