@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import UiIcon from './UiIcon.jsx';
 import {
   ADVOCACY_VERSES, EVIDENCE_TIERS, ENTRY_TYPES, CASE_STATUSES, ESCALATION_LADDER,
-  POLICY_SHELF, POLICY_LAYERS,
+  POLICY_SHELF, POLICY_LAYERS, WORKED_CASES,
   newCase, newEntry, casesOf, entriesOf, caseStats, ladderIndex, buildContextPack,
   loadAdvocacy, saveAdvocacy,
 } from '../lib/advocacy-cases.js';
@@ -109,6 +109,8 @@ export default function AdvocacyCases() {
       </div>
 
       {!current && <PolicyShelf />}
+
+      {!current && <WorkedExample />}
 
       {!current && (
         <>
@@ -251,6 +253,59 @@ function PolicyShelf() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A worked example — the whole method end to end at the smallest scale, mapped
+// onto this tool's own vocabulary (entry type, evidence tier, ladder rung,
+// status) so the reader sees how the fields are actually meant to be used.
+// Anonymized on purpose: the act is taught, the person is released (Titus 3:2).
+function WorkedExample() {
+  const [open, setOpen] = useState(false);
+  const wc = WORKED_CASES[0];
+  const tierLabel = (id) => (EVIDENCE_TIERS.find((t) => t.id === id) || {}).label || id;
+  const typeLabel = (id) => (ENTRY_TYPES.find((t) => t.id === id) || {}).label || id;
+  const rungLabel = (id) => (ESCALATION_LADDER.find((r) => r.id === id) || {}).label || id;
+  const statusLabel = (id) => (CASE_STATUSES.find((r) => r.id === id) || {}).label || id;
+  return (
+    <div className="bg-white border border-[#E4E0D8] p-3 mb-4">
+      <button
+        type="button"
+        className="w-full text-left flex items-center justify-between focus:outline focus:outline-2 focus:outline-[#B85838]"
+        onClick={() => setOpen((s) => !s)}
+        aria-expanded={open}
+      >
+        <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+          Worked example — the whole method in one small case
+        </span>
+        <UiIcon name={open ? 'chevronUp' : 'chevronDown'} />
+      </button>
+      {open && (
+        <div className="mt-3">
+          <div className="text-sm font-semibold">{wc.title}</div>
+          <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+            {wc.scale} · as of {wc.asOf}
+          </div>
+          <p className="text-sm mt-2"><strong>The ask:</strong> {wc.ask}</p>
+          <p className="text-sm mt-1">
+            <strong>Resolved at:</strong> {rungLabel(wc.ladderStep)} · {statusLabel(wc.status)}
+          </p>
+          <p className="text-sm mt-2">{wc.whyItMatters}</p>
+          <ol className="mt-3 space-y-2 list-none">
+            {wc.steps.map((st, i) => (
+              <li key={`${wc.id}-${st.entryType}-${i}`} className="border border-[#E4E0D8] p-3">
+                <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+                  {i + 1}. {typeLabel(st.entryType)} · {tierLabel(st.evidenceTier)}
+                </div>
+                <p className="text-sm mt-1">{st.what}</p>
+                <p className="text-xs mt-1 text-[#5A5751]"><strong>Why it counts:</strong> {st.why}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="text-sm mt-3 border-t border-[#E4E0D8] pt-2">{wc.closing}</p>
         </div>
       )}
     </div>
