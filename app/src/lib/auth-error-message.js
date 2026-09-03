@@ -49,7 +49,30 @@ const NOT_YOUR_FAULT = [
   /network ?error/i,
   /load failed/i,
   /upstream connect/i,
+  /upstream unreachable/i,
   /database is not available/i,
+  // AN ERROR PAGE WHERE JSON BELONGED (2026-09-03, Christina's lockout).
+  // The sovereign transport (poetech.us/sb -> Funnel -> NAS) answered every
+  // sign-in call with Cloudflare's HTML 525 page. supabase-js parses every
+  // response as JSON, so what reached her screen was the PARSER's complaint,
+  // verbatim, in place of a sentence:
+  //
+  //   Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+  //
+  // That is the backend being unreachable wearing a stack trace's clothes. It
+  // is not something she typed, and there is nothing in it she can act on, so
+  // it belongs in this list. Every HTML-instead-of-JSON shape is matched, not
+  // only the one her phone happened to render: browsers word this differently
+  // (V8 "Unexpected token '<'", Safari "JSON Parse error: Unexpected
+  // identifier", Firefox "unexpected character").
+  /<!DOCTYPE/i,
+  /<html/i,
+  /is not valid JSON/i,
+  /JSON ?Parse error/i,
+  /Unexpected token '?</i,
+  /Unexpected end of JSON input/i,
+  /unexpected character/i,
+  /JSON (?:data|input|at position)/i,
 ];
 
 /**
@@ -61,7 +84,10 @@ export function isServiceFailure(error) {
   const status = Number(error.status || error.statusCode || 0);
   // 402/502/503/504 are service-side regardless of wording. 500 is included:
   // there is nothing a reader can do about it either.
-  if ([402, 500, 502, 503, 504].includes(status)) return true;
+  // 52x is Cloudflare's own family for "the edge could not talk to the
+  // origin" — 521 origin down, 522 timeout, 525 TLS handshake failed (the
+  // 2026-09-03 shape). The reader can act on none of them.
+  if ([402, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526, 527, 530].includes(status)) return true;
   return NOT_YOUR_FAULT.some((re) => re.test(rawText(error)));
 }
 
