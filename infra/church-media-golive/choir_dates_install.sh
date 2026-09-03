@@ -60,8 +60,19 @@ if ! python3 -c "import yt_dlp" 2>/dev/null && ! ytdlp_ok; then
   # wrapper picks per invocation so it survives a change in the grant either way.
   cat > "$YTDLP" <<'WRAPEOF'
 #!/bin/sh
-DOCKER="docker"
-if ! docker ps >/dev/null 2>&1 && sudo -n docker ps >/dev/null 2>&1; then DOCKER="sudo -n docker"; fi
+# Resolve docker before calling it: DSM keeps it off the PATH of a non-login
+# shell, so a bare `docker` probe reports command-not-found and the sudo
+# fallback fails identically (the class that broke db-migrate run 33695466498).
+# Gated by scripts/nas-docker-path-guard.mjs.
+DOCKER_BIN=$(command -v docker 2>/dev/null || true)
+if [ -z "$DOCKER_BIN" ]; then
+  for c in /usr/local/bin/docker /usr/bin/docker; do
+    if [ -x "$c" ]; then DOCKER_BIN="$c"; break; fi
+  done
+fi
+[ -n "$DOCKER_BIN" ] || { echo "yt-dlp wrapper: docker binary not found" >&2; exit 1; }
+DOCKER="$DOCKER_BIN"
+if ! "$DOCKER_BIN" ps >/dev/null 2>&1 && sudo -n "$DOCKER_BIN" ps >/dev/null 2>&1; then DOCKER="sudo -n $DOCKER_BIN"; fi
 exec $DOCKER run --rm python:3.12-slim sh -c 'pip install --quiet yt-dlp >/dev/null 2>&1 && exec yt-dlp "$@"' ytdlp "$@"
 WRAPEOF
   chmod +x "$YTDLP"
