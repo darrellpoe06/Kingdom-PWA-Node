@@ -1,5 +1,5 @@
 // =============================================================================
-// L121 — "Does she feel like your favorite person?": preferring one another,
+// L118 — "Does she feel like your favorite person?": preferring one another,
 // the first works, and the home you cannot wait to reach. Verbatim KJV.
 // =============================================================================
 // Captured 2026-09-02 from a third spoken clip Darrell brought in — a man the
@@ -8,7 +8,7 @@
 // but does she FEEL like she is?
 //
 // This is the WARMTH of the set. L114 gave the husband an account of his own
-// post; L120 gave the wife hers and took the beam out of the pointing eye. A
+// post; L117 gave the wife hers and took the beam out of the pointing eye. A
 // series carrying only those two would be backbone with no heart, which fails
 // the Religion AND Relationship test on its own terms — so the pairing is
 // asserted here rather than left to a reader to notice.
@@ -31,7 +31,7 @@
 //     turned outward it becomes the accounting L114 dismantled.
 //
 // Whole-span gate: no quoted span may differ from the in-repo KJV by a single
-// character. Authoring L121 produced THREE real in-quote alterations, all caught
+// character. Authoring L118 produced THREE real in-quote alterations, all caught
 // by the sweep before anything was spliced: an abbreviation that invented a
 // string ("not in word, neither in tongue…" — 1 John 3:18 reads "let us not LOVE
 // in word"), the same invented span repeated in a benefit, and a comma pulled
@@ -45,7 +45,7 @@ import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lesso
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll121-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works';
+const ID = 'll118-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works';
 const start = src.indexOf(`id: '${ID}'`);
 const l = src.slice(start).split('\n  },\n];')[0];
 
@@ -102,7 +102,7 @@ const QUOTED_FRAGMENTS = [
   'notwithstanding ye give them not those things which are needful to the body; what doth it profit?', // Jas 2:16
 ];
 
-describe('L121 exists in the catalog with its full shape', () => {
+describe('L118 exists in the catalog with its full shape', () => {
   it('the module is present with anchor, levels, quiz, benefits, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
     for (const key of [
@@ -116,7 +116,7 @@ describe('L121 exists in the catalog with its full shape', () => {
 
   it('is registered in the live series and the painted lesson count is the real one', () => {
     const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-    expect(m, 'L121 must be in LIVING_LESSONS_MODULES').toBeTruthy();
+    expect(m, 'L118 must be in LIVING_LESSONS_MODULES').toBeTruthy();
     expect(m.quiz.questions.length).toBeGreaterThanOrEqual(5);
     expect(m.benefits.length).toBeGreaterThanOrEqual(6);
     expect(m.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(5);
