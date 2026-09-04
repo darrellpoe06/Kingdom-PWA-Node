@@ -123,6 +123,24 @@ jobs:
           fi
           SHELL_BODY="$BODY_FILE"
 
+          # 2b. EVERY INSTALLABLE FACE'S OWN DOOR (2026-08-30, the church-door
+          # ERR_FAILED). DR-0258 gave each installable app its own served page
+          # and its own scope; this probe only ever measured /poetech-app/. On
+          # 2026-08-30 it reported "UP. Fresh." while the church app's own
+          # start_url was dead on Darrell's phone — the instrument was blind to
+          # the door the congregation actually taps. A face that 404s or serves
+          # a shell with no #root mount is the SITE being down for that
+          # congregation, so it fails the probe like any other dimension.
+          for face in /lovecorner/app/ /moore/app/ /tlc/app/ /properties/app/; do
+            fetch "https://poetech.us${face}"
+            note "- \`GET ${face}\` -> **$CODE** (installable face, DR-0258 scope)"
+            if [ "$CODE" != "200" ]; then
+              add_fail "installable face ${face} returned HTTP $CODE"
+            elif ! grep -q 'id="root"' "$BODY_FILE"; then
+              add_fail "face ${face} returned 200 but no #root mount"
+            fi
+          done
+
           # 3. INTACT: the hashed bundle the shell points at exists.
           asset=$(grep -o '/poetech-app/assets/[^"]*\.js' "$SHELL_BODY" | head -1 || true)
           if [ -n "$asset" ]; then

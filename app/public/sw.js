@@ -19,6 +19,65 @@ const BASE = '/poetech-app';
 const CACHE = 'poetech-' + SW_VERSION;
 const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifest', BASE + '/icon.svg'];
 
+// SCOPE-AWARE OFFLINE SHELLS (2026-08-30, the church-door ERR_FAILED).
+// DR-0258 split the INSTALL scopes so PoeTech and The Love Corner install as two
+// apps: each face is its own served page (/lovecorner/app/, /moore/app/, ...).
+// That decision is about MANIFEST scope. This worker is registered from
+// main.jsx as register('/sw.js') — DEFAULT scope '/' — so ONE worker controls
+// EVERY face while BASE below names only PoeTech's. The navigation handler's
+// offline fallback was therefore `caches.match('/poetech-app/index.html')` for a
+// CHURCH navigation: the wrong app's shell when that entry existed, and
+// `undefined` when it did not. respondWith(undefined) is a network error — which
+// Chrome renders as ERR_FAILED, the church app's own start_url dead on 4G
+// (Darrell's 2026-08-30 screenshot of /lovecorner/app/?view=church&lovecorner=1).
+// A fresh browser never reproduces it (no worker installed), which is exactly why
+// the live-link probe stayed green while installed devices were dark.
+// Each installable face now falls back to ITS OWN shell, and the ladder can
+// never end in undefined.
+const SCOPE_SHELLS = ['/lovecorner/app/', '/moore/app/', '/tlc/app/', '/properties/app/'];
+
+// The shell that belongs to a URL's own install scope; PoeTech's for everything else.
+function shellPathFor(rawUrl) {
+  try {
+    const path = new URL(rawUrl).pathname;
+    for (const s of SCOPE_SHELLS) if (path.indexOf(s) === 0) return s + 'index.html';
+  } catch (_) { /* unparseable → the PoeTech shell below */ }
+  return BASE + '/index.html';
+}
+
+// LAST RESORT — a real Response, never undefined. The front door never shows a
+// dead error page (the boot-fallback posture, applied in the network layer).
+function offlineHtmlResponse() {
+  return new Response(
+    '<!doctype html><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>Offline</title>'
+    + '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;'
+    + 'font-family:Georgia,\'Times New Roman\',serif;background:#FAF8F4;color:#1A1815;text-align:center;">'
+    + '<div style="max-width:26rem;">'
+    + '<div style="font-size:.625rem;letter-spacing:.25em;text-transform:uppercase;color:#B85838;'
+    + 'font-weight:600;margin-bottom:.75rem;">PoeTech</div>'
+    + '<h1 style="font-size:1.25rem;margin:0 0 .5rem;font-weight:600;">You are offline</h1>'
+    + '<p style="font-size:.9375rem;line-height:1.5;color:#5A5751;margin:0;">'
+    + 'The connection dropped before this page could load. Reopen it once you are back online.</p>'
+    + '</div></div>',
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
+// This face's shell → the PoeTech shell → a real offline page. Never undefined.
+function offlineShellFor(rawUrl) {
+  const shell = shellPathFor(rawUrl);
+  return Promise.resolve(caches.match(shell))
+    .catch(() => undefined)
+    .then((hit) => {
+      if (hit) return hit;
+      if (shell === BASE + '/index.html') return undefined;
+      return Promise.resolve(caches.match(BASE + '/index.html')).catch(() => undefined);
+    })
+    .then((hit) => hit || offlineHtmlResponse());
+}
+
 self.addEventListener('install', (event) => {
   // Prime the offline shell with { cache: 'reload' } so the precached copy is
   // fetched fresh from the network at install — never a stale shell pulled from
@@ -27,6 +86,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
       Promise.all(PRECACHE.map((url) => cache.add(new Request(url, { cache: 'reload' }))))
+        // Each installable face's OWN shell (DR-0258 scope split), BEST-EFFORT:
+        // a face that 404s must never reject install — a failed install leaves
+        // the device with NO worker at all, which is worse than one missing
+        // offline shell. Strict for PoeTech above, tolerant for the faces here.
+        .then(() => Promise.all(SCOPE_SHELLS.map((s) =>
+          cache.add(new Request(s + 'index.html', { cache: 'reload' })).catch(() => {})
+        )))
     )
   );
 });
@@ -67,7 +133,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request.url, { cache: 'no-store' })
         .then((res) => (res.redirected ? Response.redirect(res.url, 301) : res))
-        .catch(() => caches.match(BASE + '/index.html'))
+        .catch(() => offlineShellFor(event.request.url))
     );
     return;
   }
