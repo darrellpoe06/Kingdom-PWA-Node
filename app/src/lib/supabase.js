@@ -66,6 +66,35 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // (the token returns as a fragment on the device where the user
     // clicked the Google button).
     flowType: 'implicit',
+
+    // A FROZEN TAB MUST NOT COST EVERY READ FIVE SECONDS (2026-09-03).
+    //
+    // Every PostgREST call routes through _getAccessToken() -> getSession(),
+    // which serialises on a cross-tab Web Lock. That lock is right to exist:
+    // two tabs refreshing one session can rotate the refresh token out from
+    // under each other. But Chrome FREEZES background tabs, and this family
+    // runs ~35 across three doors on this one origin — a frozen holder never
+    // runs the code that would release it.
+    //
+    // auth-js 2.106 already recovers: on its own acquire timeout it STEALS the
+    // orphaned lock (`{ steal: true }`, supabase/supabase#42505), which frees
+    // it for everyone, so the cost is paid once rather than per call. The
+    // defect is only the DEFAULT WINDOW — 5000ms, which does not fit:
+    // bounded-read.js gives a whole read 6000ms, so a contended read spends
+    // nearly all of its budget waiting and reports 'not-reached'. That is
+    // exactly what Darrell's Properties card showed while the NAS was healthy,
+    // PostgREST was serving, the database was answering, and the same URL
+    // loaded perfectly in an incognito window with no sibling tab.
+    //
+    // 1200ms is generous for a real refresh round trip to the NAS (~100-300ms
+    // measured), so live-tab contention still serialises exactly as before,
+    // and it leaves 4.8s of the read budget for the read itself.
+    //
+    // MUST stay > 0 and well under READ_TIMEOUT_MS: 0 means "fail immediately
+    // on any contention", a negative value means "wait forever" — the
+    // permanent deadlock the vendor's own docs warn about. Gated by
+    // auth-lock-window.test.js against bounded-read's real constant.
+    lockAcquireTimeout: 1200,
   },
 });
 
