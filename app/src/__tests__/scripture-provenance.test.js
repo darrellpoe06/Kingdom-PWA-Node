@@ -60,7 +60,7 @@ const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
 
 // The recorded state. These are CEILINGS: each may fall, never rise.
 const CEILING = {
-  'kjv-case': 350,   // identical but for case — each needs an eye, not a script
+  'kjv-case': 348,   // identical but for case — each needs an eye, not a script
   unverified: 155,   // needs a translation named and checked by a person
 };
 
