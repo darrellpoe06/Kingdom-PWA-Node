@@ -60,8 +60,8 @@ const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
 
 // The recorded state. These are CEILINGS: each may fall, never rise.
 const CEILING = {
-  'kjv-case': 345,   // identical but for case — each needs an eye, not a script
-  unverified: 153,   // needs a translation named and checked by a person
+  'kjv-case': 350,   // identical but for case — each needs an eye, not a script
+  unverified: 155,   // needs a translation named and checked by a person
 };
 
 describe('the audit instrument itself is sound before its numbers are trusted', () => {
@@ -90,8 +90,21 @@ describe('the audit instrument itself is sound before its numbers are trusted', 
   });
 
   it('is actually reading a large body of quotations, not silently matching none', () => {
-    expect(rows.length).toBeGreaterThan(9000);
-    expect(count('kjv')).toBeGreaterThan(8500);
+    expect(rows.length).toBeGreaterThan(9300);
+    expect(count('kjv')).toBeGreaterThan(8800);
+  });
+
+  it('sees TYPOGRAPHIC quote marks, not only straight ones', () => {
+    // Found the hard way. Two lesson bodies authored with curly quotes went past
+    // the matcher entirely, and widening it surfaced 77 quotations that had never
+    // been audited at all — 16 more case alterations and 2 more unverified among
+    // them. A quotation the instrument cannot see is a quotation with no gate on
+    // it, so this is asserted rather than left to the next author's keyboard.
+    const found = auditSource('x "For God hath not given us the spirit of fear" (2 Timothy 1:7) y', 'probe');
+    const curly = auditSource('x \u201cFor God hath not given us the spirit of fear\u201d (2 Timothy 1:7) y', 'probe');
+    expect(found.length, 'straight quotes must be seen').toBe(1);
+    expect(curly.length, 'typographic quotes must be seen too').toBe(1);
+    expect(curly[0].verdict).toBe('kjv');
   });
 });
 

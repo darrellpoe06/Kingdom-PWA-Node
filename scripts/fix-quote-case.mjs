@@ -42,17 +42,19 @@ function verses(book, ch, v1, v2) {
   return out.join(' ');
 }
 
-const QUOTE_RE = /"([^"]{15,})"\s*\(((?:[123]\s)?[A-Za-z][A-Za-z ]*?\.?)\s(\d+):(\d+)(?:[-–](\d+))?\)/g;
+// Straight AND typographic quote marks — see the note in the audit script: a
+// quotation the tool cannot see is a quotation with no gate on it.
+const QUOTE_RE = /(["“])([^"”]{15,})(["”])\s*\(((?:[123]\s)?[A-Za-z][A-Za-z ]*?\.?)\s(\d+):(\d+)(?:[-–](\d+))?\)/g;
 const norm = (s) => String(s).replace(/[‘’']/g, "'");
 
 export function planFixes(src) {
   const fixes = [];
   for (const m of src.matchAll(QUOTE_RE)) {
-    const quoted = m[1];
+    const quoted = m[2];
     if (!quoted.length) continue;
-    const v1 = Number(m[4]);
-    const v2 = m[5] ? Number(m[5]) : null;
-    const text = verses(m[2], Number(m[3]), v1, (v2 || v1) + 2);
+    const v1 = Number(m[6]);
+    const v2 = m[7] ? Number(m[7]) : null;
+    const text = verses(m[4], Number(m[5]), v1, (v2 || v1) + 2);
     if (!text) continue;
     const hay = norm(text);
     const q = norm(quoted).replace(/\\'/g, "'");
@@ -63,10 +65,10 @@ export function planFixes(src) {
     fixes.push({
       index: m.index,
       length: m[0].length,
-      ref: `${m[2]} ${m[3]}:${m[4]}${m[5] ? `-${m[5]}` : ''}`,
+      ref: `${m[4]} ${m[5]}:${m[6]}${m[7] ? `-${m[7]}` : ''}`,
       from: quoted.slice(0, 60),
       to: flipped.slice(0, 60),
-      replacement: m[0].replace(`"${quoted}"`, `"${flipped}"`),
+      replacement: m[0].replace(`${m[1]}${quoted}${m[3]}`, `${m[1]}${flipped}${m[3]}`),
     });
   }
   return fixes;

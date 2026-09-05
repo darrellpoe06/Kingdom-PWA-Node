@@ -10,13 +10,13 @@
     "web"
   ],
   "counts": {
-    "unverified": 153,
+    "unverified": 155,
     "web-case": 1,
-    "kjv": 8766,
-    "kjv-case": 344,
+    "kjv": 8856,
+    "kjv-case": 349,
     "web": 1
   },
-  "total": 9265,
+  "total": 9362,
   "unverifiedRefs": [
     {
       "ref": "2 Corinthians 10:4-5",
@@ -75,6 +75,10 @@
       "n": 2
     },
     {
+      "ref": "Proverbs 16:32",
+      "n": 2
+    },
+    {
       "ref": "Matthew 7:23",
       "n": 2
     },
@@ -104,6 +108,10 @@
     },
     {
       "ref": "James 1:22",
+      "n": 2
+    },
+    {
+      "ref": "Mark 10:43-45",
       "n": 2
     },
     {
@@ -176,10 +184,6 @@
     },
     {
       "ref": "Ephesians 4:26",
-      "n": 1
-    },
-    {
-      "ref": "Proverbs 16:32",
       "n": 1
     },
     {
@@ -292,10 +296,6 @@
     },
     {
       "ref": "Proverbs 27:5-6",
-      "n": 1
-    },
-    {
-      "ref": "Mark 10:43-45",
       "n": 1
     },
     {

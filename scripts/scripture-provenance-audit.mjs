@@ -113,7 +113,12 @@ const norm = (s) => String(s).replace(/[‘’']/g, "'").replace(/\s+/g, ' ').tr
 // A Scripture quotation, for this audit, is a double-quoted span IMMEDIATELY
 // followed by its reference. That is what makes it a CLAIM about a verse — an
 // unattributed quotation may be quoting anything, and is out of scope here.
-const QUOTE_RE = /"([^"]{15,})"\s*\(((?:[123]\s)?[A-Za-z][A-Za-z ]*?)\s(\d+):(\d+)(?:[-–](\d+))?\)/g;
+// Straight AND typographic quote marks. The catalog uses straight quotes, but a
+// writer (or a paste from a document) can introduce curly ones — and a quotation
+// the audit cannot see is a quotation with no gate on it. Found the hard way:
+// two lesson bodies authored with curly quotes went past this regex entirely,
+// so twenty Scripture quotations were unaudited until the count gave it away.
+const QUOTE_RE = /["“]([^"”]{15,})["”]\s*\(((?:[123]\s)?[A-Za-z][A-Za-z ]*?\.?)\s(\d+):(\d+)(?:[-–](\d+))?\)/g;
 
 export function auditSource(src, file) {
   const text = src.replace(/\\'/g, "'");
