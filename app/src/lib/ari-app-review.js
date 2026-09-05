@@ -513,7 +513,7 @@ function reviewWorkflows({ workflows = null, loops = null } = {}) {
       findings.push(finding(
         'workflows', 'warning',
         `${stale.length} data loop${stale.length === 1 ? ' has' : 's have'} stopped updating`,
-        `${stale.map((l) => `${l.label} (${l.daysSince}d, stale past ${l.staleDays}d)`).join('; ')}`,
+        stale.map((l) => `${l.label} (${l.daysSince}d, stale past ${l.staleDays}d)`).join('; '),
         'Reconnect the source or record a keep/retire decision with a re-review date (DR-0075) — a loop nobody decided about is not a decision',
         { count: stale.length, principle: 'DR-0075' },
       ));
