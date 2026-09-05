@@ -27,7 +27,7 @@
 // decision has to be written down.
 import { describe, it, expect } from 'vitest';
 import { readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
