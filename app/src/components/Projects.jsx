@@ -352,7 +352,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
       {subView === 'ari-review' && (
-        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} />
+        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} loopData={loopData} financialDocAt={financialDocAt} />
       )}
       {subView === 'feedback' && (
         <div className="space-y-4">

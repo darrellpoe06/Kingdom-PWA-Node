@@ -89,6 +89,21 @@ export const REGISTRY = [
       { name: 'sojourning (430)', refs: ['Exodus 12:40', 'Exodus 12:41', 'Galatians 3:17'], mustName: 'sojourning' },
     ],
   },
+  {
+    // Added 2026-09-05 with Living Lesson L125, which teaches BOTH sides in one
+    // movement. This is the tension the Body has managed to wreck people with in
+    // BOTH directions — telling a believer that renouncing a family line is
+    // unbiblical, or telling him he still carries a charge the Blood did not
+    // cover. Registered the same session the lesson shipped, so the next passage
+    // that cites both sides must name the distinction or fail the build.
+    id: 'fathers-iniquity-confessed-vs-inherited',
+    collapse: 'Reading the commanded CONFESSION of the fathers\' iniquity (Leviticus 26:40; Nehemiah 9:2; Daniel 9) together with the flat denial of INHERITED GUILT (Ezekiel 18:20; Jeremiah 31:29-30) as one claim — so a believer is taught either that renouncing what his family practised is unbiblical, or that he still bears a charge the Blood did not cover.',
+    distinction: 'Leviticus 26:40, Nehemiah 9:2 and Daniel 9:5,8 measure CONFESSION — a living person naming and renouncing what his fathers practised, with a promise attached (Leviticus 26:42; Daniel 9:9). Ezekiel 18:20 and Jeremiah 31:29-30 measure GUILT, which is never transferred: "The son shall not bear the iniquity of the father." Two different subjects, both kept — renounce the practice, never inherit the charge (1 Peter 1:18-19; Galatians 3:13; Romans 8:1).',
+    sides: [
+      { name: 'confession of the fathers', refs: ['Leviticus 26:40', 'Leviticus 26:41', 'Nehemiah 9:2', 'Daniel 9:5', 'Daniel 9:8'], mustName: 'confess' },
+      { name: 'guilt is not inherited', refs: ['Ezekiel 18:20', 'Ezekiel 18:14', 'Jeremiah 31:29', 'Jeremiah 31:30'], mustName: 'inherit' },
+    ],
+  },
 ];
 
 // Citations as our prose writes them: "(Genesis 15:13)", "Exodus 12:41", "1 Kings 21:19".
@@ -163,6 +178,20 @@ function selftest() {
   // The exact defect that shipped in Issue 8, reconstructed as ONE claim.
   const broken = 'He gave Abram the duration before the affliction started: "they shall afflict them four hundred years" (Genesis 15:13), and then He hit the date exactly: "at the end of the four hundred and thirty years, even the selfsame day" (Exodus 12:41).';
   const caught = scanProse(broken, 'selftest');
+  // The 2026-09-05 tension, reconstructed as ONE careless claim: both sides cited
+  // with neither word that tells the reader they measure different subjects.
+  const brokenFathers = 'Scripture tells us to deal with the family line — "the iniquity of their fathers" (Leviticus 26:40) — and settles it plainly: "The son shall not bear the iniquity of the father" (Ezekiel 18:20).';
+  const caughtFathers = scanProse(brokenFathers, 'selftest');
+  if (!caughtFathers.some((v) => v.code === 'inference/fathers-iniquity-confessed-vs-inherited')) {
+    console.error('SELFTEST FAILED: the guard did NOT catch the confessed-vs-inherited collapse it exists to catch.');
+    process.exit(1);
+  }
+  const fixedFathers = brokenFathers + ' The two measure different subjects: we CONFESS and renounce what our fathers practised, and we never inherit their guilt.';
+  if (scanProse(fixedFathers, 'selftest').some((v) => v.code === 'inference/fathers-iniquity-confessed-vs-inherited')) {
+    console.error('SELFTEST FAILED: the distinction-naming form should pass.');
+    process.exit(1);
+  }
+  console.log('selftest OK — caught the confessed-vs-inherited collapse, and the distinction-naming form passes.');
   if (!caught.length) {
     console.error('SELFTEST FAILED: the guard did NOT catch the 400/430 defect it exists to catch.');
     process.exit(1);

@@ -47,6 +47,8 @@ export const REVIEW_DIMENSIONS = [
   ['rentals', 'Rentals readiness', 'Does every income door have its tenant and a lease the rent ledger can track?'],
   ['recurrence', 'Lessons recurrence', 'Are the documented past incident classes staying fixed?'],
   ['oversight', 'Agent-fleet oversight', 'Is every standing automation working for our good, with its brakes on?'],
+  ['workflows', 'Workflow currency', 'Does the app\'s picture of its workflows match what is actually running?'],
+  ['capacity', 'Live-system capacity', 'Is the live system up, serving the current build, and inside its headroom?'],
 ];
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -461,6 +463,199 @@ function reviewOversight({ fleet = null } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// dimension: WORKFLOW CURRENCY (Darrell 2026-09-05: "Is Ari updating the surface
+// of the apps to ensure alignment with the current state of the workflows and
+// capacity of its live systems?")
+// ---------------------------------------------------------------------------
+// Ari reviewed delivery, plan, data and the fleet's BRAKES, but nothing asked
+// whether the app's picture of its workflows still matches what is actually
+// running, and nothing asked whether the LIVE system is up and current. Both
+// signals already existed in the app (workflow-registry, loop-health,
+// site-health) and simply never reached this review. They do now.
+//
+// This dimension is about CURRENCY, not brakes — reviewOversight already owns
+// the P10 budget/lock/kill coverage and the DR-0132 retirement of the legacy
+// n8n doors, and this must not restate it.
+//
+// UNMEASURED NEVER READS AS OK (DR-0076 / DR-0125). If the registry was not
+// injected, or the loops were not assessed, that is itself the finding — a
+// silent 'clear' on a signal nobody read is the lie this house exists to stop.
+function reviewWorkflows({ workflows = null, loops = null } = {}) {
+  const findings = [];
+  const rows = Array.isArray(workflows) ? workflows.filter((r) => r && r.file) : null;
+  const assessed = Array.isArray(loops) ? loops : null;
+
+  if (rows == null || rows.length === 0) {
+    findings.push(finding(
+      'workflows', 'warning',
+      'The app cannot see its own workflow registry',
+      rows == null
+        ? 'No workflow registry was handed to the review — the build-time registry (vite.config.js buildWorkflowRegistry, DR-0158) is absent here'
+        : 'The workflow registry resolved to 0 rows, so no workflow state can be checked against what is running',
+      'Confirm the build injects __WORKFLOW_REGISTRY__; until it does, Ari is blind to workflow currency and says so rather than reporting clear',
+      { count: 0, principle: 'DR-0158' },
+    ));
+  }
+
+  if (assessed == null) {
+    findings.push(finding(
+      'workflows', 'warning',
+      'Loop currency was not measured for this review',
+      'No assessed loops were handed to the review, so whether the data loops are still moving is unknown here',
+      'Pass the assessed loops (lib/loop-health assessLoops) into the review; unmeasured is reported, never silently read as healthy',
+      { principle: 'DR-0076' },
+    ));
+  } else {
+    const stale = assessed.filter((l) => l && l.status === 'stale');
+    const never = assessed.filter((l) => l && l.status === 'never');
+    const awaiting = assessed.filter((l) => l && l.status === 'awaiting');
+    if (stale.length) {
+      findings.push(finding(
+        'workflows', 'warning',
+        `${stale.length} data loop${stale.length === 1 ? ' has' : 's have'} stopped updating`,
+        stale.map((l) => `${l.label} (${l.daysSince}d, stale past ${l.staleDays}d)`).join('; '),
+        'Reconnect the source or record a keep/retire decision with a re-review date (DR-0075) — a loop nobody decided about is not a decision',
+        { count: stale.length, principle: 'DR-0075' },
+      ));
+    }
+    if (never.length) {
+      findings.push(finding(
+        'workflows', 'warning',
+        `${never.length} loop${never.length === 1 ? ' has' : 's have'} never updated from real data`,
+        `${never.map((l) => l.label).join('; ')} — no real update signal has ever arrived, and no upstream is declared`,
+        'Retire it, or declare the real upstream it is waiting on so it reads as awaiting rather than dead',
+        { count: never.length, principle: 'DR-0076' },
+      ));
+    }
+    if (awaiting.length) {
+      findings.push(finding(
+        'workflows', 'nit',
+        `${awaiting.length} loop${awaiting.length === 1 ? ' is' : 's are'} wired but waiting on a named upstream`,
+        `${awaiting.map((l) => l.label).join('; ')} — each declares the real source it needs, so this is honest waiting, not a dead loop`,
+        'Connect the named upstream; each self-heals to fresh the moment real data flows',
+        { count: awaiting.length, principle: 'DR-0075' },
+      ));
+    }
+  }
+
+  const fresh = assessed ? assessed.filter((l) => l && l.status === 'fresh').length : 0;
+  return {
+    key: 'workflows',
+    findings,
+    metrics: {
+      registryChecked: rows != null && rows.length > 0,
+      workflows: rows ? rows.length : 0,
+      activeWorkflows: rows ? rows.filter((r) => r.active === true).length : 0,
+      loopsChecked: assessed != null,
+      loops: assessed ? assessed.length : 0,
+      loopsFresh: fresh,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// dimension: LIVE-SYSTEM CAPACITY
+// ---------------------------------------------------------------------------
+// A DOWN OR STALE SITE IS THE WORST OUTCOME (DR-0107): on 2026-07-06 poetech.us
+// served a stale build for ~9 hours while every pipeline check was green,
+// because nothing ever asked the PRODUCT whether it was current. site-health.yml
+// is the standing outside-in witness (DR-0125) and the OpsBoard shows it — but
+// Ari's comprehensive review never read it, so "how is the app really doing"
+// could answer without once consulting the live system. It reads it now.
+//
+// UNKNOWN FRESHNESS NEVER READS AS FRESH (DR-0125). Every un-read signal here
+// produces a finding naming what could not be measured.
+function reviewCapacity({ site = null } = {}) {
+  const findings = [];
+  const ok = !!(site && site.ok);
+
+  if (!ok) {
+    findings.push(finding(
+      'capacity', 'warning',
+      'The live system was not measured for this review',
+      site && site.notice
+        ? `The live health read did not complete: ${site.notice}`
+        : 'No live site-health read was handed to the review, so whether the product is up and serving the current build is unknown here',
+      'Dispatch site-health.yml and let the read complete; unknown freshness never reads as fresh (DR-0125)',
+      { principle: 'DR-0125' },
+    ));
+    return { key: 'capacity', findings, metrics: { siteChecked: false, deployFresh: null, checksToday: 0, downToday: 0, openIncidents: 0 } };
+  }
+
+  const fr = site.freshness || null;
+  if (!fr || !fr.known) {
+    findings.push(finding(
+      'capacity', 'warning',
+      'The served build is unknown',
+      'The last successful deploy head_sha and main\'s tip could not both be read, so whether the site serves the current build cannot be established',
+      'Re-read the deploy runs and main; do not treat an unknown build as a current one (DR-0107)',
+      { principle: 'DR-0107' },
+    ));
+  } else if (!fr.fresh) {
+    findings.push(finding(
+      'capacity', 'bug',
+      'The live site is serving a build behind main',
+      `Served ${fr.deployedSha || 'unknown'}${fr.deployedAt ? ` (deployed ${String(fr.deployedAt).slice(0, 16).replace('T', ' ')})` : ''} while main is at ${fr.mainSha || 'unknown'} — CI-green is not deployed`,
+      'Dispatch the deploy immediately and confirm the served build advances; a stale site outranks any velocity gain (DR-0107)',
+      { principle: 'DR-0107' },
+    ));
+  }
+
+  const probe = site.probe || null;
+  if (!probe || !probe.measured) {
+    findings.push(finding(
+      'capacity', 'warning',
+      'No uptime observation has been recorded',
+      'The site-health probe history is empty, so "is it up, and how often has it gone down?" has no measured answer',
+      'Run site-health.yml so the uptime ledger has real observations to read (DR-0125)',
+      { principle: 'DR-0125' },
+    ));
+  } else {
+    if (probe.downToday > 0) {
+      findings.push(finding(
+        'capacity', 'bug',
+        `The site was observed DOWN ${probe.downToday} time${probe.downToday === 1 ? '' : 's'} today`,
+        `${probe.downToday} of ${probe.checksToday} probe(s) today returned a down/broken observation${probe.lastDown && probe.lastDown.at ? `; last at ${String(probe.lastDown.at).slice(0, 16).replace('T', ' ')}` : ''}`,
+        'Open the failing probe run, fix the cause, and confirm a clean observation before calling it resolved',
+        { count: probe.downToday, principle: 'DR-0125' },
+      ));
+    } else if (probe.checksToday === 0) {
+      findings.push(finding(
+        'capacity', 'nit',
+        'No uptime check has run today',
+        'The probe history has observations, but none carries today\'s date — today\'s uptime is unobserved',
+        'Dispatch site-health.yml; an unobserved day is not a healthy day',
+        { principle: 'DR-0125' },
+      ));
+    }
+  }
+
+  const incidents = Array.isArray(site.incidents) ? site.incidents : [];
+  const open = incidents.filter((i) => i && i.state === 'open');
+  if (open.length) {
+    findings.push(finding(
+      'capacity', 'warning',
+      `${open.length} downtime incident${open.length === 1 ? ' is' : 's are'} still open`,
+      `${open.map((i) => `#${i.number} (${i.observations} observation${i.observations === 1 ? '' : 's'})`).join('; ')} on the rolling incident ledger`,
+      'Close each incident once a clean observation proves it healed, so the ledger reflects reality',
+      { count: open.length, principle: 'DR-0125' },
+    ));
+  }
+
+  return {
+    key: 'capacity',
+    findings,
+    metrics: {
+      siteChecked: true,
+      deployFresh: fr && fr.known ? !!fr.fresh : null,
+      checksToday: probe ? probe.checksToday : 0,
+      downToday: probe ? probe.downToday : 0,
+      openIncidents: open.length,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // deriveRecommendations — Ari's data-derived UPGRADE recommendations: not a
 // problem/finding, but "you could do better," visible ONLY from the aggregate,
 // live data Ari sees across the whole picture (Darrell 2026-07-23: "Ari should
@@ -507,6 +702,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
   const {
     tasks = [], concerns = [], feedback = [], reviews = null, decisions = null,
     transactions = [], rentals = [], debts = [], demoRowIds = null, fleet = null,
+    workflows = null, loops = null, site = null,
   } = input;
 
   const raw = [
@@ -519,6 +715,8 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewRentals({ rentals }),
     reviewRecurrence({ concerns, feedback, transactions, demoRowIds }, nowMs),
     reviewOversight({ fleet }),
+    reviewWorkflows({ workflows, loops }),
+    reviewCapacity({ site }),
   ];
   const labelOf = Object.fromEntries(REVIEW_DIMENSIONS.map(([k, label, q]) => [k, { label, question: q }]));
 
