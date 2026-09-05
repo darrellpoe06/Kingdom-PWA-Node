@@ -191,6 +191,23 @@ describe('the canon fence — providence is never dressed as revelation', () => 
     expect(NEEDED_MEANS.rule).toMatch(/never a need in Yahweh/);
     expect(NEEDED_MEANS.anchors).toContain('Acts 17:25');
   });
+
+  it('the fence itself states where revelation stops and what continues', () => {
+    expect(CANON_FENCE.rule, 'the deposit is delivered, not still arriving')
+      .toMatch(/once delivered/);
+    expect(CANON_FENCE.rule, 'post-canon entries are documented history')
+      .toMatch(/DOCUMENTED HISTORY/);
+    expect(CANON_FENCE.rule, 'and are never dressed as a new word')
+      .toMatch(/never presented as a new word/);
+    expect(CANON_FENCE.whatContinues, 'what DOES continue is named, not left implied')
+      .toMatch(/Hebrews 1:1-2/);
+    // The fence must cite the texts it rests on, and each must resolve.
+    expect(CANON_FENCE.anchors).toContain('Jude 1:3');
+    expect(CANON_FENCE.anchors).toContain('Revelation 22:18');
+    for (const ref of CANON_FENCE.anchors) {
+      expect(verseText(ref), `the canon fence cites ${ref} with no corpus text`).toBeTruthy();
+    }
+  });
 });
 
 describe('Darrell’s eight questions are answered by EVERY entry', () => {

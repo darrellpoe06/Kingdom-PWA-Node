@@ -1,5 +1,7 @@
 # L127 — The Firsts: what Yahweh did in each century that had never been done before
 
+**Module id:** `ll127-the-firsts-what-yahweh-did-in-each-century-that-had-never-been-done-before`
+
 **Date:** 2026-09-05 · **Branch:** `claude/yahweh-actions-by-century-exjvvv`
 
 ## What Darrell asked for
