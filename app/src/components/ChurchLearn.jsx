@@ -1225,7 +1225,7 @@ function CourseView({
   if (presentLesson) {
     return (
       <Presenter
-        presentable={lessonPresentable(presentLesson, { level: AGEBAND_TO_LEVEL_KEY[ageBand] || null, handsOnLabel })}
+        presentable={lessonPresentable(presentLesson, { level: AGEBAND_TO_LEVEL_KEY[ageBand] || null, handsOnLabel, courseTitle: course.meta.title || '' })}
         initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'}
         onClose={() => setPresentLesson(null)}
       />
@@ -2315,9 +2315,15 @@ export default function ChurchLearn({
                           onClick={() => { setActiveKey(h.courseKey); setResumeOpenGuide(false); setResumeLessonId(h.lessonId); setLessonQuery(''); }}
                           className="w-full text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                         >
+                          {/* COURSE BEFORE THE LESSON (Darrell 2026-09-05). A hit
+                              used to lead with the lesson and bury its course on the
+                              line below — the opposite order from the resume card
+                              and from the browse shelf, where the course heads the
+                              group. The course now leads here too. */}
+                          <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">{h.courseTitle}</span>
                           <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{h.title}</span>
                           <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                            {h.courseTitle} · {h.unitLabel}{h.ref ? ` · ${h.ref}` : ''}
+                            {h.unitLabel}{h.ref ? ` · ${h.ref}` : ''}
                           </span>
                         </button>
                       </li>

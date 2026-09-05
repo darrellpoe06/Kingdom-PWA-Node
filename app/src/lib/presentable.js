@@ -960,9 +960,16 @@ export function lessonPresentable(module, opts = {}) {
   const fullMin = scenes.reduce((t, s) => (
     t + (String(s.id || '').endsWith('-title') ? 0 : (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0))
   ), 0);
+  // COURSE BEFORE THE LESSON (Darrell 2026-09-05). A single pushed lesson used to
+  // present and SHARE under its own title alone, so a room — or anyone handed the
+  // shared link — saw the lesson with no idea which course it belonged to. When the
+  // caller knows the course, it leads: "<Course> — <Lesson>". The kicker stays the
+  // church (the "through the church to present" branding), which is a different slot.
+  const lessonTitle = m.title || 'Lesson';
+  const courseTitle = String(opts.courseTitle || '').trim();
   return {
     id: `lesson:${m.id || 'lesson'}`,
-    title: m.title || 'Lesson',
+    title: courseTitle && courseTitle !== lessonTitle ? `${courseTitle} — ${lessonTitle}` : lessonTitle,
     kicker: DEFAULT_KICKER,
     // Fall back to 45 when a lesson has no timed segments.
     targetMin: fullMin > 0 ? fullMin : (opts.targetMin || 45),
