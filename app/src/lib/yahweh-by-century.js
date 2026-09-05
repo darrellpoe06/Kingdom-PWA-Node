@@ -402,7 +402,7 @@ export const CENTURIES = Object.freeze([
     when: 'No BC century is stated. Computed reference position ≈ 1446 BC on the 1 Kings 6:1 reading, or ≈ the 13th century BC on the alternative reading (see CENTURY_GRID — a genuine fork, not resolved here)',
     tier: 'word-clock',
     firsts: [
-      'He gives His NAME. Not a title, a name: "I AM THAT I AM"; "the LORD God of your fathers... this is my name for ever." (Exodus 3:14-15) He had been known as the God of somebody; now He is known as Himself.',
+      'He gives His NAME. Not a title, a name: "I AM THAT I AM"; "The LORD God of your fathers... this is my name for ever" (Exodus 3:15) He had been known as the God of somebody; now He is known as Himself.',
       'A whole nation redeemed at once, by blood applied to a doorway — the first Passover (Exodus 12:13).',
       'A judgment aimed by name at the gods of a nation rather than at its army: "against all the gods of Egypt I will execute judgment." (Exodus 12:12)',
       'Law written by His own finger and given to a people rather than to a king (Exodus 31:18).',
