@@ -33,7 +33,17 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
 const ID = 'll112-foxes-wolves-and-bears-the-enemys-graded-beasts-and-how-yahwehs-servants-win';
 const start = src.indexOf(`id: '${ID}'`);
-const l = src.slice(start).split('\n  },\n];')[0];
+// Bound the slice to THIS lesson. It previously ran to the END of the array,
+// so every lesson added after this one was silently swept by this file's
+// gates — checks written for one lesson judging another's prose. Each
+// lesson carries its own verses test; this one tests only its own.
+const l = (() => {
+  const rest = src.slice(start);
+  const nextLesson = rest.indexOf("\n  {\n    id: 'll");
+  const arrayEnd = rest.indexOf('\n  },\n];');
+  const ends = [nextLesson, arrayEnd].filter((i) => i > -1);
+  return ends.length ? rest.slice(0, Math.min(...ends)) : rest;
+})();
 
 const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
 const corpus = (book) => JSON.parse(readFileSync(join(KJV_DIR, `${book}.json`), 'utf8'));
