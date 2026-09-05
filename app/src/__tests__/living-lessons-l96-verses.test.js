@@ -25,7 +25,17 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
 const start = src.indexOf("id: 'll96-doers-of-the-word-competence-by-doing-and-the-minds-tactics-daily'");
-const l = src.slice(start, start + 80000);
+// Bound the slice to THIS lesson rather than to a fixed character window. A
+// fixed window is fragile in BOTH directions: too small and it misses the end of
+// the lesson (which is how adding adult-depth prose pushed `quiz:` out of view),
+// too large and it sweeps into the NEXT lesson and judges someone else's prose.
+const l = (() => {
+  const rest = src.slice(start);
+  const nextLesson = rest.indexOf("\n  {\n    id: 'll");
+  const arrayEnd = rest.indexOf('\n  },\n];');
+  const ends = [nextLesson, arrayEnd].filter((i) => i > -1);
+  return ends.length ? rest.slice(0, Math.min(...ends)) : rest;
+})();
 
 const QUOTED_FRAGMENTS = [
   // hearer vs doer / the mirror
