@@ -51,7 +51,17 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
 const ID = 'll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word';
 const start = src.indexOf(`id: '${ID}'`);
-const l = src.slice(start).split('\n  },\n];')[0];
+// Bound the slice to THIS lesson. It previously ran to the end of the array,
+// so every lesson added after L126 was silently swept by L126's gates — which
+// is how L127 tripped checks that were never written for it. Each lesson now
+// carries its own verses test (see living-lessons-l127-verses.test.js).
+const l = (() => {
+  const rest = src.slice(start);
+  const nextLesson = rest.indexOf("\n  {\n    id: 'll");
+  const arrayEnd = rest.indexOf('\n  },\n];');
+  const ends = [nextLesson, arrayEnd].filter((i) => i > -1);
+  return ends.length ? rest.slice(0, Math.min(...ends)) : rest;
+})();
 
 const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
 const verse = (book, ch, v) => JSON.parse(readFileSync(join(KJV_DIR, `${book}.json`), 'utf8')).chapters[ch - 1][v - 1];
