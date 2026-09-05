@@ -12,10 +12,10 @@
 //   • youth (11-14)  0 gaps.
 //   • teen (15-17)   0 gaps.
 //   • senior (65+)   0 gaps.
-//   • adult (18-64)  48 gaps when first measured; 21 now, and falling. Each one
+//   • adult (18-64)  48 gaps when first measured; 18 now, and falling. Each one
 //                    paid off is a full adult-depth lesson authored at adult
-//                    register, not a fallback tweak. Twenty-seven are done: ll78, ll80,
-//                    and ll81 through ll105.
+//                    register, not a fallback tweak. Thirty are done: ll78, ll80,
+//                    and ll81 through ll108.
 //
 // WHAT THE ADULT GAP ACTUALLY IS. It is NOT a blank screen and NOT a fragment.
 // 48 lessons (ll78 onward) were authored with child/teen/senior levels and no
@@ -45,8 +45,7 @@ const servesAdult = (m) => resolveForAge(m, 'adult', null).levelId === 'standard
 
 // The recorded debt. Shrink this list as adult prose is authored; never grow it.
 const ADULT_DEBT = [
-  'll106', 'll107',
-  'll108', 'll109', 'll110', 'll111', 'll112', 'll113', 'll114', 'll115', 'll116',
+  'll109', 'll110', 'll111', 'll112', 'll113', 'll114', 'll115', 'll116',
   'll117', 'll118', 'll119', 'll120', 'll121', 'll122', 'll123', 'll124', 'll125',
   'll126',
 ];
