@@ -110,12 +110,30 @@ replace and silently rewrote 185 unrelated lines in other lessons. Reverted and
 re-applied scoped to the new block; the final diff is two hunks (the `weeks` count and
 the new lesson).
 
-### Also found
+### Also found — chased down, and NOT what it first looked like
 
-Lesson ids and display L-numbers have **diverged**: `ll124-` was already taken by
-`ll124-equipped-to-win…` (documented as "L119"), so this lesson is `ll125-`. Ids remain
-unique, but the number no longer tracks the label.
-`re-review: 2026-10-05` — decide whether to renumber to restore the invariant or drop
-the number from ids entirely.
+While authoring, `ll124-` turned out to be already taken (by `ll124-equipped-to-win…`,
+whose session note is titled **L119**), so these lessons are `ll125-` / `ll126-`. My
+first read of that was "the catalog's numbering has drifted," carrying a
+`re-review:` date. **Measuring it corrected me** (DR-0076 §5):
+
+- **The catalog is sound, and already gated.**
+  `living-lessons-id-collision.test.js` asserts every lesson number is claimed at
+  most once and that no *new* numbering gap opens. It passes (10 assertions) with
+  L125 and L126 in place. Nothing needs renumbering, and renumbering would have
+  been the wrong fix.
+- **The real divergence is in the written record, not the code.** Two session
+  notes are both named `…living-lesson-l119-…` (abstention, and equipped-to-win),
+  and **six of the eight** lesson notes name no module id at all — so "see L119"
+  does not resolve to a module. The note filename is the only handle a reader has,
+  and it is ambiguous.
+
+**Closed, not dated.** A new ratchet gate,
+`living-lesson-notes-name-their-module.test.js`, requires every lesson note added
+from now on to carry a `**Module id:**` line whose id exists in the live catalog.
+The six predating notes are **recorded rather than rewritten** — they are other
+sessions' records of their own work, and editing history to satisfy a new gate is
+the worse trade. Same ratchet shape the collision gate already uses for its
+historical numbering gap.
 
 `npm run lint` could not run in this sandbox (`@eslint/js` not installed); CI covers it.
