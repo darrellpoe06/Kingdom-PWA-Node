@@ -24,6 +24,9 @@ import { storedWorkflowRegistry } from '../lib/workflow-registry.js';
 import { REVIEW_WATCHER_MEMBER } from '../lib/review-watcher.js';
 import { adjustmentsSummary, ADJUSTMENTS_DOCTRINE } from '../lib/ari-adjustments.js';
 import { runAriLoop, loopHeadline } from '../lib/ari-loop.js';
+import { assessLoops } from '../lib/loop-health.js';
+import { readLoopRuns } from '../lib/loop-runs.js';
+import { fetchSiteHealth } from '../lib/site-health.js';
 import { ARI } from '../lib/ari.js';
 import { normalizeWaysPrinciples } from '../lib/ways-principles.js';
 
@@ -67,8 +70,33 @@ function FindingRow({ f }) {
   );
 }
 
-export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], demoRowIds = null }) {
+export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], demoRowIds = null, loopData = null, financialDocAt = null }) {
   const { tasks } = useBoardTasks();
+
+  // WORKFLOW CURRENCY + LIVE-SYSTEM CAPACITY (Darrell 2026-09-05). Ari reviewed
+  // the app's records but never asked whether its picture of the workflows still
+  // matched what runs, nor whether the LIVE system was up and serving the current
+  // build — signals the app already computed and simply never handed to the
+  // review. Both are read here from the same real sources their own surfaces use:
+  // loop-health (as LoopHealth mounts it) and site-health (as OpsBoard does).
+  // Honest-empty on failure: an unread signal becomes a finding, never a silent
+  // "clear" (DR-0076 / DR-0125).
+  const loops = useMemo(() => {
+    // An EMPTY loopData is unmeasured, not a fleet of dead loops: assessing {}
+    // would manufacture 'never updated' findings that are artifacts of missing
+    // input rather than real stagnation. Unmeasured is reported as unmeasured.
+    if (!loopData || Object.keys(loopData).length === 0) return null;
+    let snapshotMarker = null;
+    try { snapshotMarker = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('poe-snapshot-marker') : null; } catch (e) { /* blocked */ }
+    return assessLoops(loopData, Date.now(), { snapshotMarker, financialDocAt, loopRuns: readLoopRuns() });
+  }, [loopData, financialDocAt]);
+
+  const [site, setSite] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchSiteHealth().then((s) => { if (!cancelled) setSite(s); }, () => { /* honest-empty: stays null and is reported as unmeasured */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const review = useMemo(() => buildAppReview({
     tasks: tasks || [],
@@ -79,7 +107,12 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     // The real build-measured automation fleet (DR-0158 registry) under Ari's
     // oversight — brake coverage only ever from proven declarations (DR-0225).
     fleet: fleetOversight({ workflows: storedWorkflowRegistry(), agents: [REVIEW_WATCHER_MEMBER] }),
-  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds]);
+    // The two currency signals: the app's own workflow registry, the assessed
+    // data loops, and the live outside-in site read.
+    workflows: storedWorkflowRegistry(),
+    loops,
+    site,
+  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds, loops, site]);
 
   const overall = sevMeta(review.summary.status);
   const comp = review.completion;

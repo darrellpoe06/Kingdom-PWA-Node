@@ -16,7 +16,7 @@ const DRIFT_BOARD = 'board-modular-cutover';
 const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
 const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
 
-describe('buildAppReview — nine dimensions, all evidence-backed', () => {
+describe('buildAppReview — eleven dimensions, all evidence-backed', () => {
   it('has the named dimensions in order, even on empty input', () => {
     const r = buildAppReview({}, NOW);
     expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
@@ -247,12 +247,35 @@ describe('buildAppReview — nine dimensions, all evidence-backed', () => {
     expect(ov.status).toBe('ok');
   });
 
+  // A "clean" review now requires that the workflow and live-system signals were
+  // actually READ. Handing in nothing used to report nine clean dimensions;
+  // since 2026-09-05 an unread signal is a finding, not a silent pass
+  // (DR-0076 / DR-0125), so a genuinely clean review supplies them.
+  const READ_AND_HEALTHY = {
+    workflows: [{ file: 'wf1.json', name: 'wf1', active: true, why: 'recorded' }],
+    loops: [{ key: 'ledger', label: 'Transaction ledger', status: 'fresh', daysSince: 1, staleDays: 45 }],
+    site: {
+      ok: true,
+      freshness: { known: true, fresh: true, deployedSha: 'abc1234', mainSha: 'abc1234' },
+      probe: { measured: true, checksToday: 3, downToday: 0, lastDown: null },
+      incidents: [],
+    },
+  };
+
   it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
-    const r = buildAppReview({}, NOW);
+    const r = buildAppReview({ ...READ_AND_HEALTHY }, NOW);
     expect(r.summary.total).toBe(0);
     expect(r.summary.status).toBe('ok');
     expect(r.dimensions.every((d) => d.status === 'ok')).toBe(true);
     expect(reviewHeadline(r)).toMatch(/clean/);
+  });
+
+  it('but an EMPTY input is not clean — the unread workflow and live signals speak up', () => {
+    const r = buildAppReview({}, NOW);
+    expect(r.summary.status).not.toBe('ok');
+    const keys = r.findings.map((f) => f.dimension);
+    expect(keys).toContain('workflows');
+    expect(keys).toContain('capacity');
   });
 
   it('summary ranks most-severe first, counts by severity, and dedupes top actions', () => {

@@ -21,12 +21,12 @@ function mount(props) {
   return host;
 }
 
-describe('AriReview — the surface renders the five dimensions', () => {
+describe('AriReview — the surface renders its dimensions', () => {
   it('shows every dimension label and an honest headline on empty data', () => {
     const host = mount({ concerns: [], feedback: [] });
     const text = host.textContent;
     expect(text).toContain('comprehensive review');
-    for (const label of ['Delivery integrity', 'Plan health', 'Review freshness', 'Concern & feedback backlog', 'Data integrity']) {
+    for (const label of ['Delivery integrity', 'Plan health', 'Review freshness', 'Concern & feedback backlog', 'Data integrity', 'Workflow currency', 'Live-system capacity']) {
       expect(text).toContain(label);
     }
   });
@@ -39,10 +39,25 @@ describe('AriReview — the surface renders the five dimensions', () => {
     expect(host.textContent).toContain('Pull these next');
   });
 
-  it('reports clear (not a painted score) when nothing is open', () => {
+  // WHAT "CLEAR" MEANS CHANGED, on purpose (Darrell 2026-09-05). The review now
+  // also asks whether the app's picture of its WORKFLOWS is current and whether
+  // the LIVE system is up and serving the current build. In this test
+  // environment neither signal is available — no build-injected workflow
+  // registry, no network — so the honest read is UNMEASURED, not clear. A
+  // surface that painted "clean" over two signals nobody read would be the
+  // exact lie DR-0076 / DR-0125 exist to stop, so that is what is pinned here.
+  it('says UNMEASURED rather than painting clear when the live signals cannot be read', () => {
     const host = mount({ concerns: [], feedback: [] });
-    expect(host.textContent).toMatch(/clean — no open findings/);
-    expect(host.textContent).not.toMatch(/Pull these next/);
+    const text = host.textContent;
+    expect(text).not.toMatch(/clean — no open findings/);
+    expect(text).toMatch(/cannot see its own workflow registry/);
+    expect(text).toMatch(/live system was not measured/);
+  });
+
+  it('still reports no OPEN CONCERN backlog when nothing is open — the other dimensions stay quiet', () => {
+    const host = mount({ concerns: [], feedback: [] });
+    expect(host.textContent).not.toMatch(/concern open/);
+    expect(host.textContent).not.toMatch(/Sync statuses from the build record/);
   });
 });
 
