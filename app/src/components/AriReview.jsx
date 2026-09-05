@@ -146,7 +146,10 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
         </div>
         <p className="text-[0.6875rem] text-[#5A5751] mt-2">
           Live over the app&rsquo;s own records — {comp.done}/{comp.total} board items done
-          {comp.pct != null ? ` (${comp.pct}%)` : ''}. Ari re-runs this every time you open it; nothing here is typed in.
+          {comp.pct != null ? ` (${comp.pct}%)` : ''} — <strong>and over the running system itself</strong>: its workflow
+          registry, its data loops, and an outside-in read of the live site (up, current build, open incidents).
+          Ari re-runs this every time you open it; nothing here is typed in, and a signal he could not read is
+          reported as unmeasured rather than counted as clear.
         </p>
         {review.summary.total > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
