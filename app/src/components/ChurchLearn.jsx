@@ -41,7 +41,7 @@
 // were the bug Darrell hit (Learn stayed small at Largest). They are now written at
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -80,7 +80,7 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount } from '../lib/learn-organize.js';
+import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
@@ -2006,7 +2006,23 @@ export default function ChurchLearn({
   const deepLink = useState(() => parseLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   ))[0];
-  const [activeKey, setActiveKey] = useState('ai');
+  // WHICH COURSE — a CHOICE, remembered, never a heading. Darrell 2026-09-06,
+  // on the picker reading like a titled section over one course's lessons:
+  // "have the default say Select a Course of 23? Then leave it on the last
+  // one?" A device that has never chosen starts with NO course chosen (the
+  // select shows the prompt); a device that has chosen — through the picker,
+  // a deep link, a resume, or opening a lesson — reopens on that course. The
+  // saved place is the fallback memory: a learner mid-course is on that course.
+  // `active` below still falls back to the A.I. course for the CONTENT, so
+  // nothing under the picker is ever empty; only the select tells the truth
+  // about whether a choice was made.
+  const [activeKey, setActiveKeyState] = useState(() => {
+    const remembered = rememberedCourseKey();
+    if (remembered) return remembered;
+    const place = getPlace();
+    return place && place.courseKey ? place.courseKey : null;
+  });
+  const setActiveKey = useCallback((key) => { setActiveKeyState(key); rememberCourseKey(key); }, []);
   const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
   // The lesson finder (Darrell 2026-08-18: "not obvious how to find a lesson
   // unless you already know the course it is in") — one search box over EVERY
@@ -2092,7 +2108,9 @@ export default function ChurchLearn({
   const eternalCourses = useMemo(() => buildEternalProcessingCourses(), []);
 
   const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
-  const active = courses.find((c) => c.key === activeKey) || aiCourse;
+  const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
+  const courseChosen = !!chosenCourse;
+  const active = chosenCourse || aiCourse;
 
   // Open what the link asked for, once, and only when it really exists.
   const linkAppliedRef = React.useRef(false);
@@ -2113,7 +2131,7 @@ export default function ChurchLearn({
       setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
     }
-  }, [deepLink]);
+  }, [deepLink, setActiveKey]);
 
   // A lesson space is open in the active course (DR-0264): the wrapper's own
   // chrome — catalog line, course picker/sort, resume banner — leaves the
@@ -2182,14 +2200,25 @@ export default function ChurchLearn({
         {courses.length > 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
-              <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Pick one of {courses.length} courses</label>
+              {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
+                  obvious that this is a selection of courses... not a titled
+                  section with only those lessons below"). The label says what
+                  the control DOES; the first option is the prompt he asked for,
+                  shown until this device has chosen; the chosen course is then
+                  remembered (lib/learn-organize.js) so it reopens on the last
+                  one. Never a heading over the lessons underneath. */}
+              <label htmlFor="learn-course-pick" className="block text-xs uppercase tracking-wider text-[#B85838] font-semibold mb-1">
+                Courses · select one of {courses.length}
+              </label>
               <select
                 id="learn-course-pick"
-                value={active.key}
-                onChange={(e) => setActiveKey(e.target.value)}
-                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                value={courseChosen ? active.key : ''}
+                data-chosen={courseChosen ? 'true' : 'false'}
+                onChange={(e) => { if (e.target.value) setActiveKey(e.target.value); }}
+                className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
+                <option value="" disabled>Select a course · {courses.length} to choose from</option>
                 {organizeCourses(courses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
@@ -2248,7 +2277,7 @@ export default function ChurchLearn({
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
-                Pick a {U.noun} by title · {schedule.length} in this course
+                {active.meta.title} · pick a {U.noun} by title · {schedule.length}
               </div>
               {recentIds.length > 0 && (
                 <div className="mb-2 pb-2 border-b border-[#E8E4DC]">

@@ -117,7 +117,8 @@ describe('the course picker comes FIRST on the Learn tab', () => {
 
   it('the picker is a real 44px touch target', () => {
     mount();
-    expect(picker().className).toMatch(/min-h-\[44px\]/);
+    const minH = Number((picker().className.match(/min-h-\[(\d+)px\]/) || [])[1]);
+    expect(minH, 'the picker must declare a touch-target height').toBeGreaterThanOrEqual(44);
   });
 });
 
@@ -129,11 +130,12 @@ describe('the obvious progression: pick one of N courses, or search by name, the
     mount();
     const label = container.querySelector('label[for="learn-course-pick"]');
     expect(label, 'the picker must be labelled').toBeTruthy();
-    const n = Number((label.textContent.match(/Pick one of (\d+) courses/i) || [])[1]);
+    const n = Number((label.textContent.match(/select one of (\d+)/i) || [])[1]);
     expect(Number.isFinite(n), `label must state a count, got: ${label.textContent}`).toBe(true);
     // The number is DERIVED from the mounted catalog, never typed (DR-0121):
     // it must equal the options actually in the dropdown.
-    expect(picker().querySelectorAll('option').length).toBe(n);
+    // the prompt option ("Select a course · N to choose from") is not a course
+    expect(picker().querySelectorAll('option:not([value=""])').length).toBe(n);
   });
 
   it('STEP 2 — the search box sits directly BELOW the picker, before anything else', () => {
