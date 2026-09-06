@@ -143,3 +143,116 @@ self.addEventListener('fetch', (event) => {
     caches.match(req).then((cached) => cached || fetch(req))
   );
 });
+
+// ---------------------------------------------------------------------------
+// PUSH — the handler that lets a CLOSED phone hear that the service started.
+// ---------------------------------------------------------------------------
+// Darrell, 2026-09-06: "My phone didn't notify me of the livestream... why not."
+// The measured answer was that this file had no `push` listener at all, so the
+// only notifications the app could raise were foreground `new Notification()`
+// calls that require the tab to still be open. This is the fix. Everything
+// above this line is unchanged.
+//
+// The payload arrives ENCRYPTED to this device's own keys (RFC 8291) and is
+// decrypted by the browser before we see it — the push service relayed a blob
+// it could not read. See app/src/lib/webpush-crypto.js for the sending half.
+//
+// DEFENSIVE BY DESIGN. Push services are permitted to deliver an EMPTY push
+// (a "wake up and go look" ping), and a malformed body must never throw inside
+// a push event: on some platforms a handler that rejects costs the origin its
+// push permission. So every failure path still shows something honest rather
+// than nothing, and nothing here can throw.
+const NOTIFY_DEFAULTS = {
+  icon: BASE + '/icon.svg',
+  badge: BASE + '/icon.svg',
+};
+
+function parsePushPayload(raw) {
+  // Returns a normalized notification, never throws, never invents a claim.
+  var fallback = {
+    title: 'The Love Corner',
+    body: 'Open the app to see what is new.',
+    url: BASE + '/',
+    tag: 'poetech-generic',
+    renotify: false,
+  };
+  if (!raw) return fallback;
+  var data;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    // Not JSON — treat the text itself as the body rather than dropping it.
+    return { title: 'The Love Corner', body: String(raw).slice(0, 200), url: BASE + '/', tag: 'poetech-generic', renotify: false };
+  }
+  if (!data || typeof data !== 'object') return fallback;
+  // Same-origin ONLY. A leading '/' is not sufficient: '//evil.example/x' and
+  // '/\\evil.example/x' are PROTOCOL-RELATIVE and navigate off-origin, which
+  // would let a compromised sender open any site while wearing the church's
+  // icon. (This test caught exactly that hole in the first draft of this file.)
+  var u = typeof data.url === 'string' ? data.url : '';
+  var sameOrigin = u.charAt(0) === '/' && u.charAt(1) !== '/' && u.charAt(1) !== '\\';
+  var url = sameOrigin ? u : BASE + '/';
+  return {
+    title: typeof data.title === 'string' && data.title ? data.title : fallback.title,
+    body: typeof data.body === 'string' ? data.body : '',
+    url: url,
+    // `tag` collapses repeats: a second "we're live" REPLACES the first in the
+    // shade instead of stacking a second buzz on top of it.
+    tag: typeof data.tag === 'string' && data.tag ? data.tag : (data.kind ? 'poetech-' + data.kind : 'poetech-generic'),
+    renotify: data.renotify === true,
+  };
+}
+
+self.addEventListener('push', function (event) {
+  var raw = '';
+  try {
+    raw = event.data ? event.data.text() : '';
+  } catch (e) {
+    raw = '';
+  }
+  var n = parsePushPayload(raw);
+  event.waitUntil(
+    self.registration.showNotification(n.title, {
+      body: n.body,
+      icon: NOTIFY_DEFAULTS.icon,
+      badge: NOTIFY_DEFAULTS.badge,
+      tag: n.tag,
+      renotify: n.renotify,
+      data: { url: n.url },
+    })
+  );
+});
+
+// Tapping the notification should land on the RIGHT screen, and should reuse a
+// tab that is already open rather than stacking another copy of the app.
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  var target = (event.notification.data && event.notification.data.url) || BASE + '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i += 1) {
+        var c = list[i];
+        if (c.url.indexOf(BASE) !== -1 && 'focus' in c) {
+          if ('navigate' in c && c.url.indexOf(target) === -1) {
+            return c.navigate(target).then(function (nc) { return nc && nc.focus(); });
+          }
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow ? self.clients.openWindow(target) : undefined;
+    })
+  );
+});
+
+// A subscription can be rotated by the browser at any time. Without this the
+// device silently stops receiving pushes and nobody finds out until someone
+// says "my phone didn't notify me" — which is exactly how this work started.
+self.addEventListener('pushsubscriptionchange', function (event) {
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i += 1) {
+        list[i].postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED' });
+      }
+    })
+  );
+});
