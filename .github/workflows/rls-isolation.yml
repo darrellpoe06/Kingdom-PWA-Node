@@ -61,8 +61,11 @@ jobs:
           # leg never reaches its smokes. Same dependency-order principle as role-control:
           # drop the function first (pre), then the FULL chain rebuilds it
           # through 0153/0155/0157/0158 to the current shape inside the same
-          # job. The vacancy smoke counts rows and reads v::text, so it holds
-          # across the shape change.
+          # job. Run 88 (the first to reach the smokes) then showed the 0152
+          # vacancy smoke still asserting 0152's `label = 'Maple Street'`
+          # against 0158's function, which withholds the display name until
+          # the landlord marks the address public — the smoke now proves the
+          # full chain's contract, both sides of that switch.
           - feature: poe-properties
             pre: "DROP FUNCTION IF EXISTS public.public_vacancies();"
             migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql"
