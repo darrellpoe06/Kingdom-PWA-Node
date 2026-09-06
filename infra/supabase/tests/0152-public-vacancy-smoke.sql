@@ -17,6 +17,19 @@
 --   anon READS applications back                                 ✘ (incl. their own)
 --   an SSN in the payload                                        ✘ (CHECK refuses it)
 --   a decision with no reason                                    ✘ (CHECK refuses it)
+--
+-- 2026-09-06 — THE CONTRACT THIS SMOKE PROVES IS THE FULL CHAIN'S, NOT 0152's.
+-- The rls-isolation leg replays 0152 -> 0161 and only then runs this file, so
+-- the public_vacancies() it meets is 0158's: `label` is the display name ONLY
+-- when the landlord has said the address is public (address_visibility =
+-- 'public'); by default ('after-application') the door reads "place in
+-- Davenport, IA" and `unit` is withheld — "Placeable, not locatable. Never
+-- display_name: that is the street." Run 88's failure was this file still
+-- asserting 0152's `label = 'Maple Street'` against 0158's function. Now it
+-- proves BOTH sides of the switch:
+--   default: display name and unit WITHHELD, the placeable label shown        ✔
+--   after he says 'public': display name and unit SHOWN                        ✔
+--   unlisted / occupied doors stay out even when marked public               ✔
 -- Everything runs in a transaction and ROLLS BACK.
 -- =============================================================================
 BEGIN;
@@ -81,12 +94,39 @@ BEGIN
   -- The listed, un-tenanted unit is the ONLY one an anonymous visitor sees.
   PERFORM pg_temp.as_anon_count(
     'SELECT count(*) FROM public_vacancies()', 'anon sees exactly the listed+free unit', 1);
+
+  -- DEFAULT (address_visibility NULL = 'after-application', 0158): the door is
+  -- placeable, not locatable. No property_type and no rooms in this fixture,
+  -- so the computed label is exactly "place in Davenport, IA".
   PERFORM pg_temp.as_anon_count(
-    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Maple Street'$q$, 'the listed unit is the one shown', 1);
+    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'place in Davenport, IA'$q$,
+    'the listed unit is shown as a placeable label by default', 1);
   PERFORM pg_temp.as_anon_count(
-    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Hidden House'$q$, 'an UNLISTED unit is never advertised', 0);
+    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Maple Street'$q$,
+    'the display name (the street) is WITHHELD until he says so', 0);
   PERFORM pg_temp.as_anon_count(
-    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Taken Place'$q$, 'a listed but OCCUPIED unit is not offered', 0);
+    $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Maple Street%' OR v::text LIKE '%Unit 2%'$q$,
+    'neither the display name nor the unit rides along on a gated door', 0);
+  PERFORM pg_temp.as_anon_count(
+    $q$SELECT count(*) FROM public_vacancies() WHERE address_shown = false AND unit IS NULL$q$,
+    'the gated door says it is gated and carries no unit', 1);
+
+  -- WHEN HE SAYS SO: the landlord marks all three doors public. Only the listed,
+  -- free one is offered — visibility never overrides listing or occupancy — and
+  -- it now carries its display name and unit.
+  UPDATE rentals SET address_visibility = 'public'
+   WHERE slug IN ('VAC-LISTED', 'VAC-UNLISTED', 'VAC-TAKEN');
+  PERFORM pg_temp.as_anon_count(
+    'SELECT count(*) FROM public_vacancies()', 'marking doors public offers no extra door', 1);
+  PERFORM pg_temp.as_anon_count(
+    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Maple Street' AND unit = 'Unit 2' AND address_shown = true$q$,
+    'the listed unit shows its display name and unit once public', 1);
+  PERFORM pg_temp.as_anon_count(
+    $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Hidden House%' OR v::text LIKE '%Private Rd%'$q$,
+    'an UNLISTED unit is never advertised, even marked public', 0);
+  PERFORM pg_temp.as_anon_count(
+    $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Taken Place%' OR v::text LIKE '%Occupied Ave%'$q$,
+    'a listed but OCCUPIED unit is not offered, even marked public', 0);
 
   -- The table itself stays shut, and the address never rides along.
   PERFORM pg_temp.as_anon_count('SELECT count(*) FROM rentals', 'anon reads rentals directly', 0);
