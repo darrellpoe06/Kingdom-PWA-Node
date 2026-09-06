@@ -28,6 +28,9 @@ vi.mock('../lib/voice-dictation.js', () => ({
 vi.mock('../lib/supabase.js', () => ({
   default: {},
   onAuthChange: (cb) => { cb({ user: { id: 'me' } }); return () => {}; },
+  // DirectMessages now renders PushNotifications (DR-0334), which imports the
+  // client directly. Signed-out is the right default for this composer test.
+  supabase: { auth: { getUser: async () => ({ data: { user: null } }) } },
 }));
 vi.mock('../lib/direct-messages-sync.js', () => ({
   subscribeDirectMessages: (set) => { set([]); return () => {}; },

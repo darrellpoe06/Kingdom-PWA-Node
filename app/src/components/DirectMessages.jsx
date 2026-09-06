@@ -23,6 +23,8 @@ import {
 } from '../lib/direct-messages-sync.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { requestDmNotificationPermission } from '../lib/dm-notify.js';
+import PushNotifications from './PushNotifications.jsx';
+import { pushSupported } from '../lib/push-subscribe.js';
 import UiIcon from './UiIcon.jsx';
 
 // Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
@@ -59,6 +61,10 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   // Browser-notification permission — asked ONLY on the reader's own tap.
+  // Push renders its own control when it is BOTH supported and configured;
+  // the legacy permission-only button stays as the fallback for everywhere
+  // else, so the foreground bell is never lost.
+  const pushAvailable = pushSupported() && !!(import.meta.env || {}).VITE_VAPID_PUBLIC_KEY;
   const [notifPerm, setNotifPerm] = useState(() => (
     typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'unsupported'
   ));
@@ -163,9 +169,16 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
       </div>
 
       {/* Notifications the reader chooses (2026-08-22 "do the users get
-          notifications?"): a one-tap grant; once granted, a message arriving
-          while the app is off-screen rings the browser's own bell. */}
-      {notifPerm === 'default' && (
+          notifications?").
+          UPGRADED 2026-09-06 (DR-0334): this used to grant permission for a
+          FOREGROUND bell only, which rings just while the tab is open — so a
+          closed phone heard nothing. PushNotifications registers a real Web
+          Push subscription, and the same tap grants the same permission, so
+          the foreground bell below keeps working exactly as before. It renders
+          nothing where push is unconfigured or unsupported, and falls back to
+          the original permission-only grant there so no one loses the bell. */}
+      <PushNotifications topic="message" />
+      {notifPerm === 'default' && !pushAvailable && (
         <button
           type="button"
           onClick={async () => setNotifPerm(await requestDmNotificationPermission())}
