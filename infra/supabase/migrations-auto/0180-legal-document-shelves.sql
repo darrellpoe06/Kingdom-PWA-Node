@@ -1,3 +1,23 @@
+-- ===========================================================================
+-- RENUMBERED 0168 -> 0169 -> 0180. NOT a new defect in this file: the ordinal
+-- guard rejected its ledger row and, until 2026-09-06, nothing failed the run.
+--
+-- db-migrate #459 on main 397cafb:
+--   ERROR: ordinal 0169 already used by 0169-grants-are-asserted-after-every-migration.sql
+--
+-- So this migration's DDL has been applying and committing on every run while
+-- its ledger row was refused -- exactly the state DR-0330 documented for its
+-- 0168 -> 0169 move, which simply moved it onto a SECOND external collision.
+-- It was invisible because the apply script counted only the DDL's exit status.
+-- The ledger-rejection gate added 2026-09-06 is what made it loud, and this
+-- file is the first thing that gate caught that nobody had gone looking for.
+--
+-- 0180 is a cushion above the contiguous external run (0168-0171 observed), not
+-- a proven-free number -- see 0181's header for the full reasoning and the
+-- honest limit. The stale `0168-legal-document-shelves.sql` ledger row from the
+-- first rename is the orphan class DR-0332 names; the sovereign replay prints
+-- the exact one-row DELETE that clears it, and it touches only bookkeeping.
+-- ===========================================================================
 -- =============================================================================
 -- 0169 — Legal document shelves: the four categories become real (DR-0329)
 -- =============================================================================
