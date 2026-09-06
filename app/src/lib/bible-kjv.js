@@ -134,6 +134,27 @@ const cache = new Map(); // `${edition}/${file}` -> { name, chapters:[[text,...]
 // registry is the licence gate and this is just the reader. `kjv` stays the
 // default so every existing caller is untouched.
 export const EDITIONS_ON_DISK = ['kjv', 'web'];
+
+// THE READER'S EDITION, remembered per device. Darrell 2026-09-06: "we want
+// kjv and esv" / "why can't we carry a cited esv corpus? Or build our own
+// quickly". The ESV cannot be carried (Crossway; bible-editions.js), so the
+// readable second edition is the public-domain WEB already on disk. Only an
+// edition on disk is ever remembered; anything else reads as KJV.
+export const READER_EDITION_KEY = 'poetech.bible.edition';
+const storeOrNull = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (_) { return null; } };
+export function readerEdition(store = storeOrNull()) {
+  try {
+    const v = store ? String(store.getItem(READER_EDITION_KEY) || '').toLowerCase() : '';
+    return EDITIONS_ON_DISK.includes(v) ? v : 'kjv';
+  } catch (_) { return 'kjv'; }
+}
+export function rememberReaderEdition(edition, store = storeOrNull()) {
+  try {
+    if (!store) return;
+    const v = String(edition || '').toLowerCase();
+    if (EDITIONS_ON_DISK.includes(v)) store.setItem(READER_EDITION_KEY, v);
+  } catch (_) { /* a blocked store never breaks the reader */ }
+}
 const editionDir = (e) => (EDITIONS_ON_DISK.includes(String(e || '').toLowerCase()) ? String(e).toLowerCase() : 'kjv');
 
 export async function loadBook(nameOrFile, edition = 'kjv') {

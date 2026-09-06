@@ -76,7 +76,7 @@ describe('the lesson\'s own space — no more losing your place', () => {
     expect(cards.length).toBe(1); // ONE lesson — its own space
     expect(cards[0].id).toBe('learn-lesson-ll3-bodybuilding-christ');
     expect(container.querySelector('[data-testid="lesson-space-bar"]')).toBeTruthy();
-    expect(container.textContent).not.toContain('Pick a lesson by title'); // the index is out of the way
+    expect(container.textContent).not.toMatch(/pick a lesson by title/i); // the index is out of the way
     const p = getPlace();
     expect(p && p.lessonId).toBe('ll3-bodybuilding-christ'); // reload = one Resume tap away
   });
@@ -117,7 +117,7 @@ describe('the lesson\'s own space — no more losing your place', () => {
     click(buttonByText('← All lessons'));
     cards = lessonCards();
     expect(cards.length).toBeGreaterThan(4); // the full index is back
-    expect(container.textContent).toContain('Pick a lesson by title');
+    expect(container.textContent).toMatch(/pick a lesson by title/i);
   });
 
   it('one lesson, ONE copy — opening the guide removes the card\'s duplicate preview (Darrell 2026-08-03)', () => {

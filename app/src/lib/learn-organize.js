@@ -172,3 +172,27 @@ export function browseLessons(index) {
 export function browseCount(groups) {
   return (Array.isArray(groups) ? groups : []).reduce((t, g) => t + ((g && g.lessons && g.lessons.length) || 0), 0);
 }
+
+// ---------------------------------------------------------------------------
+// THE LAST COURSE CHOSEN ON THIS DEVICE. Darrell 2026-09-06, on the picker
+// reading like a section title over one course's lessons: "have the default
+// say Select a Course of 23? Then leave it on the last one?" So: a device that
+// has never chosen shows the prompt, and a device that has chosen opens on
+// that course. Stored per device (localStorage), like the saved place.
+// ---------------------------------------------------------------------------
+export const COURSE_MEMORY_KEY = 'poetech.learn.course';
+
+const storeOrNull = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (_) { return null; } };
+
+export function rememberedCourseKey(store = storeOrNull()) {
+  try { return store ? (store.getItem(COURSE_MEMORY_KEY) || null) : null; } catch (_) { return null; }
+}
+
+export function rememberCourseKey(key, store = storeOrNull()) {
+  try {
+    if (!store) return;
+    if (key) store.setItem(COURSE_MEMORY_KEY, String(key));
+    else store.removeItem(COURSE_MEMORY_KEY);
+  } catch (_) { /* a full or blocked store never breaks the picker */ }
+}
+

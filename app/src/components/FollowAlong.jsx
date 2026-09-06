@@ -12,9 +12,12 @@
 // high-contrast — the same projector palette as AudienceWindow.
 import React, { useEffect, useReducer, useState, useCallback } from 'react';
 import AudienceSlide from './AudienceSlide.jsx';
+import TTSControl from './TTSControl.jsx';
 import {
   subscribeFollow, applyFollowEvent, FOLLOW_INIT, normalizeFollowCode, FOLLOW_ALONG_ENABLED,
 } from '../lib/follow-along-sync.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { slideReadingText } from '../lib/presentable.js';
 
 function readCodeFromUrl() {
   try { return normalizeFollowCode(new URLSearchParams(window.location.search).get('follow') || ''); } catch { return ''; }
@@ -35,6 +38,24 @@ export default function FollowAlong({ code: codeProp = null }) {
     });
     return unsub;
   }, [code]);
+
+  // READ ALOUD, WITH FOLLOW-ALONG, ON THE CONGREGANT'S OWN DEVICE. Darrell
+  // 2026-09-06: "the scroll and word highlighted as the TTS reads is not
+  // working on ... congregation slides". It could not work: this standalone
+  // boot (main.jsx ?follow=CODE) mounted no reader at all, and registered no
+  // reading. Now the live slide is a read target — the same contract Presenter
+  // uses (elementId + text, read-target.js) — so one press of play reads THIS
+  // slide, and the follow map is built from the rendered words, so the sentence
+  // and word highlights land on the slide the person is looking at. A new slide
+  // from the presenter replaces the target; the hold state registers nothing.
+  useEffect(() => {
+    const slide = state.slide;
+    const text = slideReadingText(slide);
+    if (!slide || !text) return undefined;
+    const owner = `follow-${code}-${slide.index || 0}`;
+    setReadTarget(owner, { label: 'this slide', text, elementId: 'follow-along-slide' });
+    return () => clearReadTarget(owner);
+  }, [state.slide, code]);
 
   const join = useCallback((e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -99,7 +120,13 @@ export default function FollowAlong({ code: codeProp = null }) {
       <div style={{ position: 'fixed', top: 14, left: 16, fontSize: '0.6875rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
         Following · {code}
       </div>
-      <AudienceSlide slide={state.slide || null} hold={state.slide ? null : holdSlide} />
+      {/* `main` scopes "Read this page" to the slide (readingRoot prefers main),
+          so the fixed "Following · CODE" label above is never spoken; display:
+          contents keeps the frame's flex layout exactly as it was. */}
+      <main id="follow-along-slide" style={{ display: 'contents' }}>
+        <AudienceSlide slide={state.slide || null} hold={state.slide ? null : holdSlide} />
+      </main>
+      <TTSControl />
     </div>
   );
 }

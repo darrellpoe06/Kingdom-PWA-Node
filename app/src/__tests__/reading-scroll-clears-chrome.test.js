@@ -124,11 +124,22 @@ describe('the chrome height is measured, never assumed', () => {
     expect(stickyTopInset(win, doc)).toBe(0);
   });
 
-  it('a full-screen overlay cannot claim the whole viewport', () => {
+  it('a full-screen overlay is the SURFACE the reading is on, not chrome — it contributes nothing', () => {
+    // 2026-09-06: the presenter's full-screen mode is `position: fixed; inset: 0`.
+    // Capping it at 45% (the old rule) still pushed every followed sentence
+    // into the lower half of the screen; an element covering the viewport is
+    // where the words ARE, not a bar above them.
     const el = { getBoundingClientRect: () => ({ top: 0, bottom: VH }) };
     const doc = { elementsFromPoint: () => [el] };
     const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
-    expect(stickyTopInset(win, doc), 'honouring it would scroll the reading OUT of view').toBe(VH * 0.45);
+    expect(stickyTopInset(win, doc), 'a surface is not chrome').toBe(0);
+  });
+
+  it('a tall bar that is NOT the whole viewport is still capped at 45%, so it cannot scroll the reading out of view', () => {
+    const el = { getBoundingClientRect: () => ({ top: 0, bottom: VH * 0.6 }) };
+    const doc = { elementsFromPoint: () => [el] };
+    const win = { innerHeight: VH, innerWidth: 400, getComputedStyle: () => ({ position: 'fixed' }) };
+    expect(stickyTopInset(win, doc)).toBe(VH * 0.45);
   });
 
   it('a measurement that throws degrades to 0 rather than breaking the read', () => {

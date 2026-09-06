@@ -11,10 +11,10 @@
 --   anon reads a LISTED, un-tenanted unit                       ✔
 --   anon reads an UNLISTED unit                                  ✘ (never advertised)
 --   anon reads a listed unit that HAS an active tenancy          ✘ (not available)
---   anon selects from rentals directly                           ✘ (RLS closed)
+--   anon selects from rentals directly                           ✘ (shut: no grant, or RLS)
 --   the money columns are not reachable through the RPC          ✘ (column-explicit)
 --   anon INSERTS an application                                  ✔ (that is what applying is)
---   anon READS applications back                                 ✘ (incl. their own)
+--   anon READS applications back                                 ✘ (incl. their own; no SELECT grant)
 --   an SSN in the payload                                        ✘ (CHECK refuses it)
 --   a decision with no reason                                    ✘ (CHECK refuses it)
 --
@@ -68,6 +68,28 @@ BEGIN
   PERFORM set_config('role','postgres', true);
   IF n <> _expected THEN
     RAISE EXCEPTION 'VACANCY SMOKE FAIL: % expected %, saw %', _label, _expected, n;
+  END IF;
+END $$;
+
+-- A table that is SHUT to anon is shut in one of two ways, and both are the
+-- promise kept: no SELECT grant at all (permission denied — rentals and
+-- rental_applications, where anon may only INSERT), or a grant with RLS
+-- returning no rows. Run 89 (2026-09-06) died on the first with "permission
+-- denied for table rentals" because as_anon_count only understood the second.
+CREATE OR REPLACE FUNCTION pg_temp.as_anon_shut(_sql text, _label text)
+RETURNS void LANGUAGE plpgsql AS $$
+DECLARE n int := 0; denied boolean := false;
+BEGIN
+  PERFORM set_config('role','anon', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('role','anon')::text, true);
+  BEGIN
+    EXECUTE _sql INTO n;
+  EXCEPTION
+    WHEN insufficient_privilege THEN denied := true;
+  END;
+  PERFORM set_config('role','postgres', true);
+  IF NOT denied AND n <> 0 THEN
+    RAISE EXCEPTION 'VACANCY SMOKE FAIL: % expected shut (no grant, or RLS returning 0 rows), saw % rows', _label, n;
   END IF;
 END $$;
 
@@ -129,7 +151,7 @@ BEGIN
     'a listed but OCCUPIED unit is not offered, even marked public', 0);
 
   -- The table itself stays shut, and the address never rides along.
-  PERFORM pg_temp.as_anon_count('SELECT count(*) FROM rentals', 'anon reads rentals directly', 0);
+  PERFORM pg_temp.as_anon_shut('SELECT count(*) FROM rentals', 'anon reads rentals directly');
   PERFORM pg_temp.as_anon_count(
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Secret St%'$q$,
     'the street address leaks through the RPC', 0);
@@ -143,7 +165,7 @@ BEGIN
               VALUES (%L, 'Hopeful Applicant', '5635550142', '{"applicant.firstName":"Hopeful"}'::jsonb)$q$,
            '00000000-0000-4000-b000-000000010152'),
     'anon files an application', true);
-  PERFORM pg_temp.as_anon_count('SELECT count(*) FROM rental_applications', 'anon reads applications back', 0);
+  PERFORM pg_temp.as_anon_shut('SELECT count(*) FROM rental_applications', 'anon reads applications back');
 
   -- The two CHECKs that make the promises structural.
   PERFORM pg_temp.as_anon_write(
