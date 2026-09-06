@@ -1,5 +1,39 @@
 -- ===========================================================================
--- 0170 — Web Push subscriptions, an HONEST live signal, and a send ledger
+-- 0171 — Web Push subscriptions, an HONEST live signal, and a send ledger
+-- ===========================================================================
+-- ── WHY THIS IS 0171 AND NOT 0170 (2026-09-06, same-day correction) ────────
+-- It shipped as 0170 and the db-migrate lane reported:
+--
+--   ERROR: ordinal 0170 already used by
+--          0170-courses-a-lesson-belongs-to-a-course.sql
+--          — pick the next free number
+--
+-- That file is NOT in this repository — `git log --all --diff-filter=A` finds
+-- zero additions of it anywhere in history — so an 0170 was applied to the
+-- database from outside main. This is the SECOND instance today of the class
+-- 0169 documents in its own header (it hit 0168 the same way hours earlier),
+-- and the consequence is exactly what 0169 records: the DDL below RAN AND
+-- COMMITTED, so the three tables and the overlay redefinition exist in the
+-- database, but the LEDGER INSERT was rejected. That leaves the migration
+-- unrecorded and harmlessly re-applied on every subsequent run. Renumbering is
+-- the whole fix, and it creates NO orphan ledger row here precisely because
+-- the 0170 insert never succeeded (contrast DR-0332, where a rename of an
+-- APPLIED file did leave one).
+--
+-- A SHARPER FINDING THAN THE RENAME, worth more than this file: the ordinal
+-- ERROR did not fail the job. `--- summary: applied=2 skipped=180 failed=0 ---`
+-- was printed in the same run, and db-migrate #454 went green on this very
+-- commit while this migration sat unrecorded. So the lane can report success
+-- over an unrecorded migration — a proxy for truth standing where the truth
+-- was available, which is the DR-0332 shape again in a different instrument.
+-- Raised for a gate rather than fixed here; this file's job is to apply.
+--
+-- THE HONEST LIMIT (DR-0076 §8): 0171 is the next ordinal free *in this repo*.
+-- Nothing in this checkout can enumerate the database's ledger — the sandbox
+-- has neither database credentials nor a route to the NAS — so whatever
+-- supplied that 0170 may also have supplied an 0171. If so the guard rejects
+-- this the same way and names the conflict, which is a cheap, self-correcting
+-- failure rather than a silent one.
 -- ===========================================================================
 -- Darrell, 2026-09-06: "My phone didn't notify me of the livestream inside the
 -- Love Corner App... why not... fix that so users are prompted the sermon is

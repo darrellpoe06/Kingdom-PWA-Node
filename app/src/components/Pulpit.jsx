@@ -39,6 +39,7 @@ import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import GoLiveControl from './GoLiveControl.jsx';
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
 import { serviceKindLabel } from '../lib/service-day.js';
 import { sortByReactions, reactionsFor } from '../lib/reactions.js';
@@ -879,6 +880,28 @@ export default function Pulpit() {
           >
             ▶ Present a message (pick + class screen)
           </button>
+        </div>
+      )}
+
+      {/* GO LIVE (DR-0334). The ONLY thing in the app allowed to announce a
+          service to the congregation's phones. church-live.js computes a
+          schedule-window `live` flag and says in its own header that it cannot
+          truthfully detect live state; a wrong badge is small, but that same
+          guess pushed into pockets is not, and a phone cannot be un-buzzed. So
+          this is a DECLARATION by someone who knows. Leadership only here, and
+          the database checks the roster again on the write. Renders nothing
+          without a resolved church instance. */}
+      {tab === 'library' && canManage && (
+        <div className="mb-3">
+          <GoLiveControl
+            instanceId={churchInstId}
+            /* COLG_DEFAULT_CHURCH carries no id/slug/key — measured, not
+               assumed — so the stable identifier available is the channel id.
+               church_live_state is keyed (instance_id, church_id), and this is
+               a real present value rather than a literal invented here. */
+            churchId={COLG_DEFAULT_CHURCH.youtubeChannelId}
+            churchName={COLG_DEFAULT_CHURCH.name}
+          />
         </div>
       )}
 

@@ -62,9 +62,34 @@ for f in $(printf '%s\n' "${files[@]}" | sort); do
   echo "=== applying $base ==="
   if out=$(psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "$f" 2>&1); then
     echo "$out"
-    psql "$DBURL" -v ON_ERROR_STOP=1 -c \
-      "INSERT INTO public._schema_migrations(filename,checksum,status,last_error,applied_at) VALUES ('$base','$sum','applied',NULL,now()) ON CONFLICT (filename) DO UPDATE SET checksum=EXCLUDED.checksum, status='applied', last_error=NULL, applied_at=now();" >/dev/null
-    applied=$((applied+1))
+    # THE LEDGER WRITE IS PART OF THE MIGRATION, NOT A FORMALITY (2026-09-06).
+    #
+    # This exit status used to be unchecked, and that let the lane report GREEN
+    # over an UNRECORDED migration. Real instance, twice in one day: an ordinal
+    # guard in the database rejected the ledger row for 0168 and again for 0170
+    # ("ordinal 0170 already used by 0170-courses-a-lesson-belongs-to-a-course.sql",
+    # a file that exists in no branch of this repo). The DDL had already RUN AND
+    # COMMITTED, so the schema changed; only the receipt was refused. The run
+    # then printed "applied=2 skipped=180 failed=0" and exited 0.
+    #
+    # The consequence is not cosmetic. Without its ledger row the file has no
+    # checksum to match, so it is re-applied on EVERY subsequent run forever,
+    # the in-app DB Health panel is wrong about what is deployed, and the one
+    # signal anybody watches says the opposite of the truth — in the exact
+    # place someone looks when something is wrong. That is the shape DR-0332
+    # names: a proxy for truth standing where the truth was available.
+    #
+    # This file's own header promises "the lane goes visibly RED — resilience,
+    # not silence (DR-0076: a green check must mean something)." A rejected
+    # ledger row simply was not counted as a failure. Now it is.
+    if ledger_out=$(psql "$DBURL" -v ON_ERROR_STOP=1 -c \
+      "INSERT INTO public._schema_migrations(filename,checksum,status,last_error,applied_at) VALUES ('$base','$sum','applied',NULL,now()) ON CONFLICT (filename) DO UPDATE SET checksum=EXCLUDED.checksum, status='applied', last_error=NULL, applied_at=now();" 2>&1); then
+      applied=$((applied+1))
+    else
+      echo "$ledger_out"
+      echo "::error::migration $base APPLIED but its LEDGER ROW WAS REJECTED. The schema changed and nothing recorded it, so this file will re-apply on every run and DB Health will misreport. Almost always a duplicate ordinal: rename the file to the next free number (see 0169's and 0171's headers for the two worked examples)."
+      FAILED=1; failedn=$((failedn+1))
+    fi
   else
     echo "$out"
     safe=$(printf '%s' "$out" | tr -d '\r' | tail -c 400 | sed "s/'/''/g")

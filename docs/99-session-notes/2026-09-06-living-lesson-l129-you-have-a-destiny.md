@@ -60,9 +60,13 @@ Darrell asked mid-build whether each version is genuinely built on neuroplastici
 - **Register is authorial judgment, never measured.** Flesch-Kincaid across all 128 lessons: child median **6.1** (max **11.8**), teen **7.5**, senior **12.3**, adult **8.5**. **29 of 128 lessons invert the ordering** (child reading harder than teen). L129 itself measures child 3.9 / teen 5.0 / adult 5.7 / senior 7.3.
 - **The doctrinal spine is a stub** — `docs/00-foundations/07-neuroplasticity-and-the-word.md` is five lines and a literal `> **TODO:**`.
 
-Being closed in this same session: the foundation doc written against the Scripture that actually teaches age-banding (1 John 2:12-14 — little children / young men / fathers, different content to each; Hebrews 5:12-14 — milk and strong meat, capacity **"by reason of use"**; 1 Corinthians 13:11; Isaiah 28:10), plus a measured reading-level gate so the claim stops being a claim. `re-review: 2026-09-13`.
+**CLOSED in this same session.** `docs/00-foundations/07-neuroplasticity-and-the-word.md` is now written against the Scripture that actually teaches age-banding — **1 John 2:12-14** (little children / young men / fathers, *different content to each, with a stated reason for each*), **Hebrews 5:12-14** (milk and strong meat, with capacity set **"by reason of use"** rather than by birthdays — exactly Darrell's "age AND experience"), 1 Corinthians 13:11, Isaiah 28:9-10, 1 Peter 2:2, Deuteronomy 6:6-7, Psalms 78:4-6, Psalms 71:18, Ephesians 4:14-15 — mapped band by band onto the five `AGE_BANDS` and their measured pacing.
+
+And the register is now **measured, not claimed**: `scripts/reading-level.mjs` + `reading-level-gate.test.js` (21 tests). It scores **our authored prose with quoted Scripture stripped**, because Flesch-Kincaid cannot tell that *"whosoever"* is a KJV quotation we are required to reproduce verbatim — scoring raw text would punish faithfulness to the Word. The real debt is committed as a **shrink-only baseline**: **30 inverted** lessons (child reading harder than teen) and **17 child levels above the grade-7.0 ceiling**. A NEW lesson at the wrong register fails the build, proven-to-catch by degrading L129's own child level to college register and watching the live gate go red. `re-review: 2026-09-13` to start paying the 30 down.
 
 ## Files
 
 - `app/src/lib/living-lessons-class.js` — L129 added; `weeks` 127 → 128
 - `app/src/__tests__/living-lessons-l129-verses.test.js` — new, 34 tests
+- `docs/00-foundations/07-neuroplasticity-and-the-word.md` — written (was a 5-line TODO stub)
+- `scripts/reading-level.mjs` + `app/src/lib/reading-level-baseline.json` + `app/src/__tests__/reading-level-gate.test.js` — new, 21 tests

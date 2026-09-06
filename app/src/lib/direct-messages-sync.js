@@ -8,6 +8,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { notifyNewMessage } from './push-announce.js';
 import { toDmShape, toSecurityReportShape } from './direct-messages.js';
 import {
   ensureDmKeypair, deriveDmKey, encryptDmBody, decryptDmBody,
@@ -176,15 +177,39 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
       if (sealed) { wire = sealed; encrypted = true; }
     }
   } catch { /* plaintext fallback */ }
-  const { error } = await supabase.from('direct_messages').insert({
+  const senderName = resolveName(session, displayName);
+  // `select('id')` so the new row's id is available as the push dedupe key —
+  // a message is a unique row, so its id IS the natural key and a retried
+  // notification for the same message can never buzz twice (DR-0334).
+  const { data: inserted, error } = await supabase.from('direct_messages').insert({
     instance_id: tenantId,
     sender_user_id: session.user.id,
     recipient_user_id: recipientUserId,
-    sender_name: resolveName(session, displayName),
+    sender_name: senderName,
     body: wire,
-  });
+  }).select('id').maybeSingle();
   // A blocked send is the RLS gate (users_can_dm) doing its job, not a bug.
-  return error ? { skipped: 'send-blocked', error } : { sent: true, encrypted };
+  if (error) return { skipped: 'send-blocked', error };
+
+  // TELL THEIR PHONE (DR-0334). Deliberately fire-and-forget and deliberately
+  // AFTER the insert succeeded: the message is already safely delivered, so a
+  // push that fails — VAPID unset, the device never opted in, the network gone
+  // — must never turn a sent message into a failed one. Nothing is awaited into
+  // the return value and nothing can throw out of here.
+  //
+  // The push carries the SENDER'S NAME and never the message text: these bodies
+  // are end-to-end encrypted above, and a lock screen is public.
+  if (inserted && inserted.id) {
+    Promise.resolve()
+      .then(() => notifyNewMessage({
+        instanceId: tenantId,
+        recipientUserId,
+        messageId: inserted.id,
+        senderName,
+      }))
+      .catch(() => {});
+  }
+  return { sent: true, encrypted };
 }
 
 // Pure dedupe for list_dm_contacts rows: one entry per user, preferring the
