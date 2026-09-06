@@ -360,6 +360,11 @@ export function stickyTopInset(win = (typeof window !== 'undefined' ? window : n
         try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
         if (pos !== 'fixed' && pos !== 'sticky') continue;
         const r = el.getBoundingClientRect();
+        // A fixed element that covers the viewport is a SURFACE the reading is
+        // on (the presenter's full-screen mode is `position: fixed; inset: 0`),
+        // not a bar above it. Counting it made the "top chrome" 45% of the
+        // screen and pushed every followed sentence into the lower half.
+        if (r.bottom - r.top >= vh * 0.9) continue;
         // Only bars actually pinned at the top count; a fixed footer or a
         // floating button elsewhere must never push the reading down.
         if (r.top <= 2 && r.bottom > inset) inset = r.bottom;
@@ -505,6 +510,32 @@ export function readingMargin(el, win = (typeof window !== 'undefined' ? window 
   }
 }
 
+/**
+ * The nearest ancestor that SCROLLS — an element whose overflow-y is auto or
+ * scroll — or null when the page itself is the scroller.
+ *
+ * The presenter's full-screen mode is a `position: fixed; inset: 0` overlay
+ * whose inner panel scrolls; the console's slide mirror is an `overflow-y: auto`
+ * box; `window.scrollBy` moves neither (the document under a fixed overlay does
+ * not move, and a box's own overflow is not the window's). Darrell 2026-09-06:
+ * "the scroll ... as the TTS reads is not working on the presentations". The
+ * body and the root element are the WINDOW's scroller, never a container.
+ */
+export function scrollContainerFor(el, win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!el || !win || typeof win.getComputedStyle !== 'function') return null;
+  const body = doc && doc.body;
+  const html = doc && doc.documentElement;
+  let node = el.nodeType === 1 ? el : el.parentElement;
+  while (node && node !== body && node !== html) {
+    let oy;
+    try { oy = (win.getComputedStyle(node) || {}).overflowY || ''; } catch (_) { oy = ''; }
+    if (oy === 'auto' || oy === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 export function followRange(range) {
   if (!range) return;
   try {
@@ -526,6 +557,26 @@ export function followRange(range) {
     const textEl = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
       : range.startContainer.parentElement);
+    // Inside a scrolling container (the presenter's overlay panel, the console
+    // mirror): the container IS the viewport. Its box replaces the window's,
+    // the app's sticky chrome is outside it and does not apply, and the
+    // container — not the window — is what moves.
+    const container = scrollContainerFor(textEl, win, doc);
+    if (container && typeof container.getBoundingClientRect === 'function') {
+      const box = container.getBoundingClientRect();
+      const inner = readingScrollDelta({
+        rangeTop: rect.top - box.top,
+        rangeBottom: rect.bottom - box.top,
+        topInset: 0,
+        bottomInset: 0,
+        viewportHeight: box.height,
+        margin: readingMargin(textEl, win),
+      });
+      if (!inner) return;
+      if (typeof container.scrollBy === 'function') container.scrollBy({ top: inner, behavior: motionBehavior() });
+      else container.scrollTop += inner;
+      return;
+    }
     const delta = readingScrollDelta({
       rangeTop: rect.top,
       rangeBottom: rect.bottom,

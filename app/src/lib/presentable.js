@@ -77,6 +77,28 @@ function sceneScriptureRefs(scene) {
   return out;
 }
 
+/**
+ * What a BUILT slide says, in reading order: title, lead, then the points the
+ * room can currently see (`revealCount`; undefined = all). This is the spoken
+ * text for a device that holds only the built slide — the congregant's
+ * FollowAlong view, which receives `buildSlideForScene` output over the
+ * channel and has no scenes to resolve. Presenter builds the same order from
+ * the scene itself. Furniture (index label, the Scripture rail, the invite
+ * corner) is not spoken; the follow map reads the rendered words anyway.
+ */
+export function slideReadingText(slide) {
+  if (!slide || typeof slide !== 'object') return '';
+  const points = Array.isArray(slide.points) ? slide.points : [];
+  const shown = Number.isFinite(slide.revealCount)
+    ? points.slice(0, Math.max(0, slide.revealCount))
+    : points;
+  return [slide.title || '', slide.lead || slide.bigIdea || '', ...shown]
+    .map((t) => String(t == null ? '' : t).trim())
+    .filter(Boolean)
+    .join('. ')
+    .replace(/\.\.+/g, '.');
+}
+
 export function buildSlideForScene(scenes, index, opts = {}) {
   const list = Array.isArray(scenes) ? scenes : [];
   const scene = list[index];

@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   buildFollowMap, segmentRange, wordRange, supportsHighlight,
-  highlightSegment, highlightWord, clearReadingHighlights, followRange,
+  highlightSegment, highlightWord, clearReadingHighlights, followRange, scrollContainerFor, stickyTopInset,
   segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
   SEGMENT_HIGHLIGHT, WORD_HIGHLIGHT,
 } from '../lib/read-follow.js';
@@ -200,3 +200,120 @@ describe('the engine reports WORD boundaries per segment (the karaoke enhancemen
     expect(hits).toEqual([[0, 4], [1, 6]]);
   });
 });
+
+// =============================================================================
+// THE WORDS ARE INSIDE A SCROLLING CONTAINER — the presenter's full-screen
+// overlay panel and the console's slide mirror. Darrell 2026-09-06: "the scroll
+// ... as the TTS reads is not working on the presentations". followRange
+// computed a viewport delta and called window.scrollBy — which does not move
+// the panel inside a `position: fixed; inset: 0` overlay, nor a box's own
+// overflow. The tests above passed because jsdom has no layout: the range has
+// no box, so the OLD scrollIntoView fallback (which does reach nested
+// scrollers) ran, and the real-browser path was never exercised. These pins
+// give the range a box, so the real path runs.
+// =============================================================================
+describe('followRange inside a scrolling container moves THAT container, not the window', () => {
+  const rect = (top, bottom, extra = {}) => ({ top, bottom, height: bottom - top, width: 200, left: 0, right: 200, ...extra });
+  let box; let p; let winScroll;
+  beforeEach(() => {
+    box = document.createElement('div');
+    box.style.overflowY = 'auto';
+    p = document.createElement('p');
+    p.textContent = 'Perfect love casteth out fear. Fear hath torment. He that feareth is not made perfect in love.';
+    box.appendChild(p);
+    document.body.appendChild(box);
+    winScroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+  });
+  afterEach(() => { box.remove(); winScroll.mockRestore(); });
+
+  it('scrollContainerFor finds the nearest overflow-y auto/scroll ancestor and never body or html', () => {
+    expect(scrollContainerFor(p)).toBe(box);
+    const loose = document.createElement('p');
+    document.body.appendChild(loose);
+    document.body.style.overflowY = 'auto'; // the page's own scroller is the window's business
+    expect(scrollContainerFor(loose)).toBeNull();
+    document.body.style.overflowY = '';
+    loose.remove();
+  });
+
+  it('a followed sentence below the container’s fold scrolls the container by the reading delta; the window is untouched', () => {
+    const follow = buildFollowMap(box);
+    const r = segmentRange(follow, 2);
+    r.getBoundingClientRect = () => rect(450, 480);       // the sentence, in viewport coords
+    box.getBoundingClientRect = () => rect(100, 300);     // the panel: 200px tall, starting at y=100
+    box.scrollBy = vi.fn();
+    followRange(r);
+    expect(box.scrollBy).toHaveBeenCalledTimes(1);
+    const { top, behavior } = box.scrollBy.mock.calls[0][0];
+    // sentence bottom relative to the panel = 380; readable bottom = 200 - 24 margin = 176
+    expect(top).toBe(380 - 176);
+    expect(['smooth', 'auto', 'instant']).toContain(behavior);
+    expect(winScroll, 'window.scrollBy cannot move a fixed overlay’s panel').not.toHaveBeenCalled();
+  });
+
+  it('a sentence already inside the container’s reading band does not move it (no twitch)', () => {
+    const follow = buildFollowMap(box);
+    const r = segmentRange(follow, 0);
+    r.getBoundingClientRect = () => rect(150, 180);
+    box.getBoundingClientRect = () => rect(100, 300);
+    box.scrollBy = vi.fn();
+    followRange(r);
+    expect(box.scrollBy).not.toHaveBeenCalled();
+    expect(winScroll).not.toHaveBeenCalled();
+  });
+
+  it('PROVEN-TO-CATCH — with no scrolling ancestor the window path still runs (the page case is unchanged)', () => {
+    const loose = document.createElement('p');
+    loose.textContent = 'Perfect love casteth out fear.';
+    document.body.appendChild(loose);
+    const follow = buildFollowMap(loose);
+    const r = segmentRange(follow, 0);
+    r.getBoundingClientRect = () => rect(2000, 2030);
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+    followRange(r);
+    expect(winScroll).toHaveBeenCalledTimes(1);
+    expect(winScroll.mock.calls[0][0].top).toBeGreaterThan(0);
+    loose.remove();
+  });
+});
+
+// The presenter's full-screen mode is a `position: fixed; inset: 0` overlay.
+// stickyTopInset probes the top edge for fixed/sticky elements and took the
+// overlay itself as "top chrome" — inset = min(overlay bottom, 45% of the
+// viewport) — so every followed sentence was pushed into the lower half.
+describe('stickyTopInset — a full-viewport fixed overlay is a surface, not a bar', () => {
+  const fixedEl = (top, bottom) => {
+    const el = document.createElement('div');
+    el.style.position = 'fixed';
+    el.getBoundingClientRect = () => ({ top, bottom, height: bottom - top, width: 400, left: 0, right: 400 });
+    return el;
+  };
+  let probe;
+  beforeEach(() => {
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 400, configurable: true });
+    probe = vi.fn();
+    document.elementsFromPoint = probe;
+  });
+  afterEach(() => { delete document.elementsFromPoint; });
+
+  it('an overlay covering the viewport contributes NO inset', () => {
+    const overlay = fixedEl(0, 800);
+    probe.mockReturnValue([overlay]);
+    expect(stickyTopInset()).toBe(0);
+  });
+
+  it('a real 56px bar pinned at the top still counts — the guard is not a blanket', () => {
+    const bar = fixedEl(0, 56);
+    probe.mockReturnValue([bar]);
+    expect(stickyTopInset()).toBe(56);
+  });
+
+  it('PROVEN-TO-CATCH — the overlay alone, before the guard, would have read as 45% of the screen', () => {
+    // 800 * 0.45 = 360: the value the old code returned for a full-screen overlay.
+    const overlay = fixedEl(0, 800);
+    probe.mockReturnValue([overlay]);
+    expect(stickyTopInset()).not.toBe(360);
+  });
+});
+
