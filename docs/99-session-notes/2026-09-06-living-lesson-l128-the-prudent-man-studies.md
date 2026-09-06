@@ -61,8 +61,8 @@ with the lesson, and it is now a decision record in its own right:
 **[DR-0329](../decisions/DR-0329-spoken-input-is-captured-for-meaning-not-transcribed-with-its-typos.md)**,
 which binds it across every artifact that quotes him — not just lessons — and
 fences it hard away from the Scripture rule (DR-0076/DR-0210 stay absolute).
-**Open:** folding a one-or-two-sentence pointer into Layer 0 beside "Spoken
-Teachings Are Build Input". `re-review: 2026-09-13`.
+**Folded into Layer 0 the same session** — a short pointer paragraph beneath
+"Spoken Teachings Are Build Input" in `CLAUDE.md`. No open item remains.
 
 ## Shape
 

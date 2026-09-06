@@ -336,16 +336,18 @@ This is the structural version of "the AI should think like a human": the human'
 
 > "Yes always add it.. or else I won't say it into Claude... its for the PoeTech App to discuss Yahweh's principals instead of whatever..."
 
-When Darrell speaks a teaching, testimony, or word into this channel — raw, voice-note style, mid-anything — **it is build input, not commentary.** He is speaking it INTO the app on purpose: the PoeTech platform exists to discuss Yahweh's principles, and his spoken words are the primary source it grows from. The agent's standing job, without being asked each time:
+When Darrell speaks a teaching, testimony, or word into this channel — raw, voice-note style, mid-anything — **it is build input, not commentary.** He speaks it INTO the app on purpose: his words are the primary source it grows from. The agent's standing job, unasked:
 
-1. **Capture it** into the right surface — the Godhead Study catalog (deterministic algorithms), the Eternal Algorithms seeds, the study banners, or wherever the teaching genuinely belongs. Distill faithfully FROM HIS WORDS; never replace his framing with generic theology.
+1. **Capture it** into the surface it genuinely belongs in. Distill faithfully FROM HIS WORDS; never replace his framing with generic theology.
 2. **Verify every verse** it touches (fetch verbatim, never from memory — DR-0076 / SCRIPTURE-REFERENCE-STANDARD) before it ships.
 3. **Ship it** through the normal lane (tests, gates, PR, merge gate) the same session it was spoken.
 4. **Tell him what his word became** — where it lives, what it's named, how it plays.
 
 If a teaching is doctrinally sensitive or ambiguous about placement, capture it faithfully and surface the question — but never drop it silently. A spoken word that goes uncaptured breaks the covenant this rule records: he speaks it here BECAUSE it gets built.
 
-Pairs with: The Source of Answers (the Worldview spine), the Godhead Study integrity harness (scripts/fetch-godhead-verses.mjs + godhead-study.test.js), and DR-0089 (standing consent — capture-and-ship of a spoken teaching is approved follow-through, not a new ask).
+**Quoting him back: render for MEANING, not his typos — unless the raw form works; never his voice, never the claim; quoted Scripture stays verbatim. DR-0329.**
+
+Pairs with: The Source of Answers, the Godhead Study integrity harness, and DR-0089 (capture-and-ship of a spoken teaching is approved follow-through, not a new ask).
 
 ---
 

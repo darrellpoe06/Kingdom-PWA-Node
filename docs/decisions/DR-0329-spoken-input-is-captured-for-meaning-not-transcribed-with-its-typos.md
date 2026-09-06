@@ -96,12 +96,12 @@ reviewer can check it (VERIFICATION-DOCTRINE, TRUST-BUT-VERIFY).
   Scripture) and not a dumping ground (every entry appears in the lesson).
 - Where a truncation hides something load-bearing, this rule produces a QUESTION
   rather than a guess — one of the few places the agent is required to ask.
-- **Open follow-up:** this belongs in Layer 0 beside "Spoken Teachings Are Build
-  Input", since it governs how that rule is executed and is exactly the kind of
-  thing a context compaction loses. Not folded in yet — DR-0245 fold discipline
-  says every byte of `CLAUDE.md` is paid by every session, so the addition should
-  be one or two sentences pointing here rather than a restatement.
-  **re-review: 2026-09-13.**
+- **FOLDED INTO LAYER 0 the same session** — one short paragraph directly beneath
+  "Spoken Teachings Are Build Input" in `CLAUDE.md`, pointing here rather than
+  restating (DR-0245 fold discipline: every byte of Layer 0 is paid by every
+  session). It governs how that rule is EXECUTED and is exactly the kind of thing
+  a context compaction loses, so a pointer in the always-loaded file is the whole
+  point. No open item remains.
 
 ## Links
 
