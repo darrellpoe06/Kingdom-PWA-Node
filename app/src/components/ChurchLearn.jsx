@@ -1050,8 +1050,9 @@ function CourseView({
   // lesson's own parts, timed to itself (Darrell 2026-07-16).
   const [presentLesson, setPresentLesson] = useState(null);
   // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
-  // from the user's own device-local UX history (ux-signals).
-  const [recentTick, setRecentTick] = useState(0);
+  // from the user's own device-local UX history (ux-signals). The "Recently
+  // opened" strip itself now renders in the wrapper, beside the course picker
+  // (2026-09-06) — recordUse below is what feeds it.
   // Story Library (Layer 2): the steward curation queue. Only stewards see it,
   // and only on a course whose lessons actually carry stories, so the realtime
   // subscription (story_library_submissions) never runs where it isn't used.
@@ -1096,7 +1097,6 @@ function CourseView({
     setFocusId(id);
     savePlace({ lessonId: id });
     recordUse(id);
-    setRecentTick((t) => t + 1);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
   // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
@@ -1118,7 +1118,6 @@ function CourseView({
         setOpenTutorId(nextM.id);
         savePlace({ lessonId: nextM.id });
         recordUse(nextM.id);
-        setRecentTick((t) => t + 1);
         try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
         return true;
       };
@@ -1160,7 +1159,6 @@ function CourseView({
     // lesson reached that way was one a reader could lose again on reload.
     savePlace({ lessonId: resumeLessonId });
     recordUse(resumeLessonId);
-    setRecentTick((t) => t + 1);
     const t = setTimeout(() => {
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
@@ -1316,64 +1314,6 @@ function CourseView({
           </p>
         </div>
       )}
-      {/* Pick-a-lesson-by-title index (Darrell 2026-07-15: "Titles etc so users
-          can pick a lesson from their titles"). Every lesson renders in full
-          below, so with many lessons the list is a long scroll -- this scannable
-          title index jumps straight to any one. Follows the current SORT (it maps
-          the already-sorted `schedule`). Shown once a course has enough lessons to
-          be worth an index. */}
-      {schedule.length > 4 && !focusModule && (
-        <nav aria-label={`Pick a ${U.noun} by title`} className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
-            Pick a {U.noun} by title · {schedule.length}
-          </div>
-          {/* "Recently opened" — the view adapts to the user's OWN history (Darrell
-              2026-07-15: "users preferences based on historical data about uiux").
-              Device-local + private (ux-signals); empty until they open lessons. */}
-          {(() => {
-            void recentTick; // re-derive when a lesson is opened
-            const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
-            if (recentIds.length === 0) return null;
-            return (
-              <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
-                <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Recently opened</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {recentIds.map((id) => {
-                    const m = schedule.find((x) => x.id === id);
-                    const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => openLesson(id)}
-                        className="text-[0.6875rem] px-2 py-1 border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        style={{ fontFamily: '"Fraunces", serif' }}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-          <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
-            {schedule.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  onClick={() => openLesson(m.id)}
-                  className="w-full text-left py-1 text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-                  style={{ fontFamily: '"Fraunces", serif' }}
-                >
-                  <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
-                  {' · '}{m.title}
-                </button>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      )}
       {/* The lesson's own space: a sticky bar naming where you are, the way
           back, and previous/next — the reader can never fall into the full
           list by accident. Rendered only while a lesson is open alone. */}
@@ -1459,7 +1399,7 @@ function CourseView({
                 />
                 <button
                   type="button"
-                  onClick={() => { if (!tutorOpen) { recordUse(m.id); setRecentTick((t) => t + 1); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
+                  onClick={() => { if (!tutorOpen) { recordUse(m.id); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
                   className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
@@ -2273,6 +2213,83 @@ export default function ChurchLearn({
             </div>
           </div>
         )}
+
+        {/* THIS COURSE'S LESSONS — DIRECTLY UNDER THE COURSE YOU JUST CHOSE.
+            Darrell 2026-09-06, three screenshots of the live tab in a row: "Of
+            course the lessons selection needs to be next to the course we just
+            chose!?!!!", "After we choose the course we have a lot of what?!!!"
+            (lessons), and "still can't pick a lesson nor see what this course
+            offers... unless I already know the software... needs to be
+            intuitive". What the screenshots showed: after picking Living
+            Lessons, the very next list on screen was the finder's blank-state
+            shelf — OTHER courses' lessons ("Learning A.I. the Way · 8", "The
+            Broadcast · 9") — while the chosen course's own titles sat far below
+            the title, Share, catalog line, resume, lessons bar, timeline and
+            facilitator panel. Everything on the page was real; the order made
+            the chosen course invisible.
+
+            So the course's own title index lives HERE, in the wrapper, as the
+            first thing after the picker. It is built from the live `active`
+            schedule and opens a lesson through the same real path the finder,
+            the shelf and Resume already drive (setResumeLessonId -> CourseView
+            focuses it, saves the place, records the use). The copy that used to
+            sit inside CourseView is removed so there is ONE list, not two.
+            Held by learn-lesson-index-is-next.test.jsx, which asserts ORDER —
+            picker, then this list, then search, then everything else. */}
+        {courses.length > 1 && !lessonFocus && (active.schedule || []).length > 4 && (() => {
+          const schedule = active.schedule;
+          const U = unitLabels(active.meta);
+          const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
+          const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); };
+          return (
+            <nav
+              aria-label={`This course's ${U.noun}s by title`}
+              data-testid="course-lessons-first"
+              className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
+            >
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
+                Pick a {U.noun} by title · {schedule.length} in this course
+              </div>
+              {recentIds.length > 0 && (
+                <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Recently opened</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentIds.map((id) => {
+                      const m = schedule.find((x) => x.id === id);
+                      const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => open(id)}
+                          className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          style={{ fontFamily: '"Fraunces", serif' }}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
+                {schedule.map((m) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => open(m.id)}
+                      className="w-full text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      style={{ fontFamily: '"Fraunces", serif' }}
+                    >
+                      <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
+                      {' · '}{m.title}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          );
+        })()}
 
         {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
             and review the available lessons... not obvious how to find a lesson
