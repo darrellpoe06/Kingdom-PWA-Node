@@ -45,6 +45,12 @@
       "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one."
     },
     {
+      "name": "tax-upload",
+      "install": "infra/nas-tax-ingest/install.sh",
+      "enabled": true,
+      "description": "The sovereign /taxes/* backend for Books -> Taxes (upload POST + archive.json + printable PDF reads), closing the 2026-09-06 \"I am also unable to upload my taxes\" defect. Root cause was NOT the app: tax_upload_server.py had no installer and appeared in no manifest, the Funnel carried no /taxes path mount (RECORDED-STATE listed only /, /mcp, /nas-photos), and the Caddy route existed only in a docstring -- so the upload POST hit a backend that was never started and the archive GET fell through the Funnel root to n8n, which is why one screen said 'could not reach the NAS upload service' and 'NO RETURNS INDEXED YET' at once. Same class as the /nas-photos gap (DR-0268): built, correct, never actuated. Not the three-brakes class -- request-driven only, no timer, no compute spawned, no work done until a browser asks. Installer is idempotent, reuses the EXISTING family bridge token (never regenerates over a live one), publishes any already-dropped returns on the cycle, mounts /taxes on the funnel additively, and probes 127.0.0.1:8790/health. Witness: site-health's outside-in probe plus the health route the installer curls."
+    },
+    {
       "name": "funnel",
       "install": "infra/nas-loops/loops/funnel-watchdog.sh",
       "enabled": true,

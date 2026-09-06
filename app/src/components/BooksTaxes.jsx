@@ -16,7 +16,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
-import { uploadTaxDoc, validateUpload } from '../lib/tax-upload.js';
+import { uploadTaxDoc, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
 import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
 import { resolveN8nBearer } from '../lib/n8n-base.js';
 
@@ -74,7 +74,13 @@ export default function BooksTaxes({ entities = [] }) {
     } else if (res && res.skipped === 'invalid') {
       setNotice(res.errors.join(' '));
     } else {
-      setNotice('Could not reach the NAS upload service. You can still drop the PDF on the NAS and run the ingest.');
+      // Say WHICH failure it was. The 2026-09-06 defect (DR-0330) spent seven
+      // weeks looking like one undifferentiated "could not reach": the real
+      // cause was a Funnel with no /taxes mount and a service nothing had ever
+      // started, and a 502 vs a 401 vs a 404 each point at a different piece.
+      // A message that names the hop is the difference between a diagnosis and
+      // a shrug (DR-0076 §8 — provenance, and honest uncertainty when absent).
+      setNotice(uploadFailureMessage(res));
     }
   };
 

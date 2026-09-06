@@ -40,6 +40,12 @@ TIMEOUT = int(os.environ.get("FUNNEL_TIMEOUT", "10"))
 SOVEREIGN_MOUNTS = [
     ("/mcp", "http://127.0.0.1:8795"),
     ("/nas-photos", "http://127.0.0.1:8099"),
+    # /taxes added 2026-09-06 (DR-0330). The install-day mount is not enough on
+    # its own: a Funnel reset or a reboot drops it, and the only symptom is a
+    # tax upload that says "could not reach the NAS upload service" weeks later
+    # with nothing pointing at the transport. Healing it here is what makes the
+    # route durable rather than merely once-correct.
+    ("/taxes", "http://127.0.0.1:8790"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]

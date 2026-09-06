@@ -345,7 +345,7 @@ When Darrell speaks a teaching, testimony, or word into this channel — raw, vo
 
 If a teaching is doctrinally sensitive or ambiguous about placement, capture it faithfully and surface the question — but never drop it silently. A spoken word that goes uncaptured breaks the covenant this rule records: he speaks it here BECAUSE it gets built.
 
-**Quoting him back: render for MEANING, not his typos — unless the raw form works; never his voice, never the claim; quoted Scripture stays verbatim. DR-0329.**
+**Quoting him back: render for MEANING, not his typos — unless the raw form works; never his voice, never the claim; quoted Scripture stays verbatim. DR-0331.**
 
 Pairs with: The Source of Answers, the Godhead Study integrity harness, and DR-0089 (capture-and-ship of a spoken teaching is approved follow-through, not a new ask).
 

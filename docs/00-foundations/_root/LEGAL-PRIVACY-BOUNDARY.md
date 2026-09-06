@@ -113,7 +113,30 @@ Track for: matters with government bodies (federal, state, local, professional l
     { kind: 'statute-of-limitations' | 'filing-deadline' | 'court-date' | 'discovery' | 'settlement-conference' | 'other', label: '', at: '2026-…', completed: false, note: '' },
   ],
 
-  // Documents — pointers only, not file content
+  // Documents — pointers, AND (since 2026-09-06 / DR-0329) real uploaded files.
+  //
+  // AMENDED, not overwritten. The original 2026-05-18 rule was "pointers only,
+  // not file content" — a considered choice, and it still holds for anything
+  // the user would rather leave where it is. Darrell 2026-09-06, on the Legal
+  // tab: "I need a section that I can upload legal documents for each of these
+  // categories." Both now ship, and a record is one or the other:
+  //   FILE    — bytes in the PRIVATE `legal-documents` bucket (migration 0168),
+  //             path `<owner user id>/<slug>.<ext>`, creator-only RLS on the
+  //             row AND the object, read back only via signed URLs that expire
+  //             in 5 minutes. Requires a session.
+  //   POINTER — the original shape below: no bytes, `whereFiled` says where the
+  //             paper actually is. Works signed out and offline, which is why
+  //             it stays first-class rather than becoming a fallback.
+  // `privileged` remains mandatory on both, and is NOT NULL in the table — see
+  // "Privilege awareness" below; that column is the export tool's guarantee.
+  //
+  // WHAT IS STILL NOT BUILT (stated here so this doc is not read as shipped):
+  // Layer 2's AES-GCM-256 at-rest encryption. It cannot be built as specified
+  // on the current architecture — the key is derived from the Legal PIN, and
+  // app/src/lib/pin.js keeps the PIN out of the browser entirely (it is
+  // verified server-side), so no client-side key material exists. A new key
+  // architecture is its own decision. The Legal surface says so in words rather
+  // than implying protection it does not have. re-review: 2026-10-15.
   documents: [
     { id: 'doc-…', label: '', whereFiled: '<location on user device / cloud / counsel office>', dateOf: '', whoHasCopies: ['user', 'counsel', 'opposing'], privileged: true | false, note: '' },
   ],

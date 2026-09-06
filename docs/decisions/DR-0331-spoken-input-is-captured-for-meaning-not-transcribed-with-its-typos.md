@@ -1,5 +1,5 @@
 ---
-id: DR-0329
+id: DR-0331
 title: Spoken input is captured for MEANING, not transcribed with its typos — and left raw wherever the raw form already works
 date: 2026-09-06
 status: accepted
@@ -108,7 +108,7 @@ reviewer can check it (VERIFICATION-DOCTRINE, TRUST-BUT-VERIFY).
 `CLAUDE.md` "Spoken Teachings Are Build Input — Always Add It" (the rule this one
 executes), [DR-0076] (verification doctrine — the fabrication ban this does not
 touch), [DR-0210] (Yahweh in our voice; never inside a quotation — the same
-bright line, on the Scripture side), [DR-0111] (do the work — this DR was written
+bright line, on the Scripture side), [DR-0052] (provisional numbering — this was DR-0329 until PR #1453 landed DR-0329/DR-0330 on main first), [DR-0111] (do the work — this DR was written
 rather than offered, after the ari-guard blocked an "if you want it" re-ask),
 `app/src/__tests__/living-lessons-l128-verses.test.js` (the rule carried in code),
 `docs/99-session-notes/2026-09-06-living-lesson-l128-the-prudent-man-studies.md`.
