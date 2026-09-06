@@ -21,10 +21,26 @@
 // at a fourth:
 //   kjv        — matches the cited verse in the in-repo KJV. Verified.
 //   web        — matches the World English Bible instead. Verified, other text.
-//   unverified — matches neither. This is NOT an accusation of fabrication; it
-//                is the honest statement that we cannot confirm it here. The
-//                remedy is a translation label at the citation, by someone who
-//                can check it against that translation.
+//   kjv-drift  — the SAME WORDS as the in-repo KJV, differing only in
+//                punctuation, whitespace or case. A real, mechanically fixable
+//                defect in our own typing — not a translation question.
+//   attributed — genuinely DIFFERENT WORDING, i.e. quoted from a translation
+//                this repository cannot carry (ESV is the usual one). This is
+//                NOT an accusation of fabrication — it is the narrower, truer
+//                statement that the words are attributed to an edition we are
+//                not licensed to reproduce, so nothing here can confirm them.
+//                Darrell,
+//                2026-09-06: "Agreed... attribution not unverified!!!" — and he
+//                is right. Calling this "unverified" reads as an accusation of
+//                fabrication when the truthful statement is narrower: the words
+//                are attributed to an edition we are not licensed to reproduce,
+//                so no machine here can confirm them. The remedy is a
+//                translation label at the citation, never a rewrite.
+//
+// SPLITTING THE OLD `unverified` INTO THOSE TWO IS THE WHOLE POINT: one is our
+// defect and shrinks by fixing our text; the other is a licence boundary and
+// shrinks only by labelling. Reporting them as one number made the second look
+// like the first, and hid how much of the pile was actually ours to fix.
 //
 // PROVEN-TO-CATCH: scripture-provenance.test.js pins the unverified count as a
 // ratchet that may only shrink, and fails the build if a NEW unverified
@@ -105,6 +121,28 @@ function edition(dir) {
 
 const EDITIONS = { kjv: edition('kjv'), web: edition('web') };
 
+// The whole in-repo KJV as one string, letters only — used to tell OUR OWN
+// punctuation/case drift apart from a genuinely different translation. Built
+// once, lazily: it is only needed when a quotation has already failed every
+// exact check, which is the rare path.
+let KJV_WHOLE = null;
+function kjvWhole() {
+  if (KJV_WHOLE !== null) return KJV_WHOLE;
+  const dir = join(ROOT, 'app', 'public', 'bible', 'kjv');
+  let all = '';
+  try {
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.json') || f === 'index.json') continue;
+      try {
+        const j = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+        if (Array.isArray(j.chapters)) for (const ch of j.chapters) all += `${ch.join(' ')} `;
+      } catch { /* one unreadable book never breaks the audit */ }
+    }
+  } catch { /* no corpus — every miss simply stays 'attributed' */ }
+  KJV_WHOLE = all;
+  return KJV_WHOLE;
+}
+
 // Straight and typographic apostrophes are the same character to a reader, and
 // the corpora are not consistent between themselves. Normalize before comparing
 // so an apostrophe never masquerades as an alteration.
@@ -156,6 +194,18 @@ export function auditSource(src, file) {
         break;
       }
     }
+    // ATTRIBUTION vs OUR OWN DRIFT (Darrell 2026-09-06). A quotation that is
+    // the same WORDS as the KJV and differs only in punctuation, whitespace or
+    // case is OUR typing, and fixable. One whose words genuinely differ is
+    // quoted from an edition we cannot carry — that is attribution, and saying
+    // "unverified" about it overstates what we actually know.
+    if (verdict === 'unverified') {
+      const letters = (t) => String(t).toLowerCase().replace(/[^a-z]/g, '');
+      const hay = letters(kjvWhole());
+      verdict = parts.every((p) => letters(p).length >= 15 && hay.includes(letters(p)))
+        ? 'kjv-drift'
+        : 'attributed';
+    }
     rows.push({ file, ref, verdict, quoted: m[1].slice(0, 200) });
   }
   return rows;
@@ -176,7 +226,7 @@ export function audit() {
     version: 1,
     note:
       'Provenance of every ATTRIBUTED inline Scripture quotation in the scanned files. '
-      + '"unverified" means it matches no edition this repository carries — NOT that it is '
+      + '"attributed" means it matches no edition this repository carries — NOT that it is '
       + 'wrong. bible-editions.js is public-domain-only by design, so a copyrighted '
       + 'translation (ESV among them) cannot be checked here; the remedy is a translation '
       + 'label at the citation, added by someone who can verify it against that text.',

@@ -61,7 +61,11 @@ const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
 // The recorded state. These are CEILINGS: each may fall, never rise.
 const CEILING = {
   'kjv-case': 348,   // identical but for case — each needs an eye, not a script
-  unverified: 155,   // needs a translation named and checked by a person
+  // SPLIT 2026-09-06 (Darrell: "Agreed... attribution not unverified!!!").
+  // The old single `unverified: 155` hid two different things behind one
+  // number. Measuring them apart showed only 41 were ever OURS:
+  'kjv-drift': 41,   // OUR punctuation/whitespace/case drift from the KJV — fixable by script
+  attributed: 82,    // quoted from an edition we are not licensed to carry (ESV) — label it, never rewrite it
 };
 
 describe('the audit instrument itself is sound before its numbers are trusted', () => {
@@ -117,21 +121,32 @@ describe('the provenance ratchets — these numbers may fall, never rise', () =>
     ).toBeLessThanOrEqual(CEILING['kjv-case'] + 1);
   });
 
-  it(`quotations verifiable against no in-repo edition: at most ${CEILING.unverified}`, () => {
+  it(`OUR OWN drift from the in-repo KJV: at most ${CEILING['kjv-drift']}`, () => {
     expect(
-      count('unverified'),
+      count('kjv-drift'),
       'a NEW quotation matches no edition this repository carries. Either quote the KJV '
       + 'verbatim, or name the translation at the citation so the reader knows which text '
       + 'it is — an unlabelled non-KJV quotation is indistinguishable from a paraphrase.',
-    ).toBeLessThanOrEqual(CEILING.unverified);
+    ).toBeLessThanOrEqual(CEILING['kjv-drift']);
+  });
+
+  it(`quotations ATTRIBUTED to an edition we cannot carry: at most ${CEILING.attributed}`, () => {
+    // This number is not a defect count and must never be read as one. It is
+    // how many quotations come from a translation (ESV) that bible-editions.js
+    // deliberately refuses to reproduce. It falls by LABELLING the citation,
+    // never by rewriting someone else's translation into ours.
+    expect(
+      count('attributed'),
+      'a NEW attributed quotation appeared — label its translation at the citation',
+    ).toBeLessThanOrEqual(CEILING.attributed);
   });
 
   it('the ceilings are not stale — if the debt has been paid down, record it', () => {
     // A ceiling far above the real number hides progress and lets a regression
     // slip in under it. Keep them within ten of the truth.
     expect(
-      CEILING.unverified - count('unverified'),
-      'unverified ceiling is stale — lower CEILING.unverified to the current count',
+      CEILING['kjv-drift'] - count('kjv-drift'),
+      'kjv-drift ceiling is stale — lower CEILING["kjv-drift"] to the current count',
     ).toBeLessThan(10);
     expect(
       CEILING['kjv-case'] - (count('kjv-case') + count('web-case')),
@@ -145,7 +160,9 @@ describe('the honest limit is stated, not papered over (DR-0076 §8)', () => {
     const src = readFileSync(join(ROOT, 'scripts/scripture-provenance-audit.mjs'), 'utf8');
     expect(src, 'the public-domain-only constraint must be stated').toMatch(/PUBLIC-DOMAIN-ONLY/);
     expect(src, 'and what it means for a copyrighted translation').toMatch(/ESV is copyrighted/);
-    expect(src, '"unverified" must not be presented as fabrication').toMatch(/NOT an accusation/);
+    expect(src, 'attribution must not be presented as fabrication').toMatch(/NOT an accusation/);
+    expect(src, 'the two classes must stay named apart').toMatch(/kjv-drift/);
+    expect(src, 'attribution is a licence boundary, not a defect').toMatch(/attributed/);
   });
 
   it('the new century spine carries no unverified quotation of its own', () => {
