@@ -987,10 +987,25 @@ export function versesForSurface(surfaceId) {
   return allVerses().filter((v2) => (v2.backs || []).includes(surfaceId));
 }
 
-export function versesForTheme(themeId) {
+// `edition` (2026-09-06): the reader's chosen public-domain edition. `kjv`
+// stays on every verse (the study edition and the gates are built on it);
+// `text` is what the page SHOWS and the reader SPEAKS — the WEB when chosen
+// and carried for that verse, otherwise the KJV — and `edition` says which.
+// The two are never mixed on one verse: a WEB miss falls back to the KJV and
+// says so.
+export function versesForTheme(themeId, edition = 'kjv') {
   const theme = getTheme(themeId);
   if (!theme) return [];
-  return theme.verses.map((vv) => ({ ...vv, kjv: kjvText(vv.ref), themeId, themeTitle: theme.title }));
+  const wantWeb = String(edition || '').toLowerCase() === 'web';
+  return theme.verses.map((vv) => {
+    const kjv = kjvText(vv.ref);
+    const web = wantWeb ? webText(vv.ref) : null;
+    return {
+      ...vv, kjv, web, themeId, themeTitle: theme.title,
+      text: web || kjv,
+      edition: web ? 'web' : 'kjv',
+    };
+  });
 }
 
 // Cross-references for a reference: the OTHER verses that share a theme with it
