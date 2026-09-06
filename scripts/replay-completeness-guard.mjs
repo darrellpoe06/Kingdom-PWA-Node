@@ -2,7 +2,7 @@
 // =============================================================================
 // replay-completeness-guard — "the counts match" is not "every file applied"
 // =============================================================================
-// THE INCIDENT THIS ENDS (measured live, 2026-09-06 — DR-0331).
+// THE INCIDENT THIS ENDS (measured live, 2026-09-06 — DR-0332).
 //
 // infra/nas-supabase/replay_migrations.sh decided success with:
 //

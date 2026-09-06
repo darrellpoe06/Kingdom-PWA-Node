@@ -2213,72 +2213,63 @@ export default function ChurchLearn({
     <section className="max-w-3xl" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
-        <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
-          {active.meta.title}
-        </h2>
 
-        {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
-            whole course"). Per-lesson Share hands someone one sitting; this
-            hands them the series and lets them begin where they like. It sits
-            here, above the Governor-only toolbar, deliberately: the course-level
-            control belongs to whoever is READING the course, and burying it
-            behind isGovernor is the exact mistake the time control made. The
-            lesson count is counted from the live schedule, never typed. */}
-        {!lessonFocus && (
-          <div className="mb-3 flex items-center gap-2 flex-wrap">
-            <ShareButton
-              label="Share this course"
-              title="Share the whole course using your usual apps"
-              payload={() => courseSharePayload(active.meta, {
-                url: lessonUrl({ courseKey: active.key }),
-                lessonCount: (active.schedule && active.schedule.length) || 0,
-                unitPlural: `${unitLabels(active.meta).noun}s`,
-              })}
-            />
-          </div>
-        )}
+        {/* THE COURSE PICKER SITS FIRST — ABOVE THE CATALOG LINE AND ABOVE
+            RESUME. Darrell, 2026-09-06, after saying it repeatedly: "the course
+            drop down is still not above the lessons scroll... we need the scroll
+            and the lookup to be below the course picking drop downs... its hard
+            to find!!! I've said this already too many times" — and then, with a
+            screenshot of the live Learn tab: "even above where you left off".
 
-        {/* Derived catalog line — counted LIVE from the mounted courses (never a
-            hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
-            by learn-catalog-render.test.jsx. */}
+            WHY IT HAD NOT MOVED, recorded so the mistake is not repeated: the two
+            previous passes at "hard to find" both answered with a NEW control --
+            the sticky "All lessons" landmark bar below (data-testid="lessons-bar")
+            and the lesson finder -- while the picker itself stayed underneath the
+            catalog line and the resume banner. A jump link is not the control he
+            named. This moves the control.
+
+            ORDER IS THE FEATURE: choose the course FIRST, then everything that
+            depends on that choice (resume, the lessons bar, the finder, the
+            schedule scroll) reads underneath it. Held by
+            learn-course-picker-is-first.test.jsx, which asserts DOM ORDER rather
+            than the presence of the control -- presence was never the problem. */}
+        {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
+            with sorts and dropdowns") — 18 courses as a wall of buttons made the
+            reader scroll past everything; a grouped NATIVE select opens the
+            phone's own picker in one tap, with the Deep-Processing family in its
+            own group and a sort control. Groups + counts derive live from the
+            mounted courses (lib/learn-organize.js, DR-0121). */}
         {courses.length > 1 && !lessonFocus && (
-          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
-            {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
-          </p>
-        )}
-
-        {/* Resume-your-place (Darrell 2026-07-30: "It's too easy to lose your
-            place inside of the Learn space after starting one self-paced
-            lesson"). The device's saved place — course, lesson, arc stage,
-            paced step — offered back as ONE tap, above the picker so it is the
-            first thing a returning learner meets. Device-local + private
-            (lib/learn-resume.js); verified against the mounted catalog, so a
-            renamed/removed lesson silently offers nothing instead of a dead
-            door. */}
-        {showResume && !lessonFocus && (
-          <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
-            <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {placeLesson.week} · {placeLesson.title}
-              {savedPlace.stage > 0 || savedPlace.step > 0 ? (
-                <span className="text-[#5A5751]"> (part {savedPlace.stage + 1}{savedPlace.step > 0 ? `, step ${savedPlace.step + 1}` : ''})</span>
-              ) : null}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={resumeNow}
-                className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[40px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
+            <div className="grow min-w-[14rem]">
+              <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Pick one of {courses.length} courses</label>
+              <select
+                id="learn-course-pick"
+                value={active.key}
+                onChange={(e) => setActiveKey(e.target.value)}
+                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
               >
-                Resume →
-              </button>
-              <button
-                type="button"
-                onClick={startFresh}
-                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                {organizeCourses(courses, courseSort).map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.courses.map((c) => (
+                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
+              <select
+                id="learn-course-sort"
+                value={courseSort}
+                onChange={(e) => setCourseSort(e.target.value)}
+                className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                style={{ fontFamily: '"Fraunces", serif' }}
               >
-                Start fresh
-              </button>
+                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
+              </select>
             </div>
           </div>
         )}
@@ -2294,7 +2285,7 @@ export default function ChurchLearn({
           const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(courses), lessonQuery) : [];
           return (
             <div className="mb-4">
-              <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Find a lesson — any course, by name, topic, or verse</label>
+              <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Or search by name — any course, by title, topic, or verse</label>
               <input
                 id="learn-lesson-find"
                 type="search"
@@ -2384,46 +2375,78 @@ export default function ChurchLearn({
           );
         })()}
 
-        {/* Course picker (Darrell 2026-07-10: "better organize the learn lessons
-            with sorts and dropdowns") — 18 courses as a wall of buttons made the
-            reader scroll past everything; a grouped NATIVE select opens the
-            phone's own picker in one tap, with the Deep-Processing family in its
-            own group and a sort control. Groups + counts derive live from the
-            mounted courses (lib/learn-organize.js, DR-0121). */}
+        <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+          {active.meta.title}
+        </h2>
+
+        {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
+            whole course"). Per-lesson Share hands someone one sitting; this
+            hands them the series and lets them begin where they like. It sits
+            here, above the Governor-only toolbar, deliberately: the course-level
+            control belongs to whoever is READING the course, and burying it
+            behind isGovernor is the exact mistake the time control made. The
+            lesson count is counted from the live schedule, never typed. */}
+        {!lessonFocus && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            <ShareButton
+              label="Share this course"
+              title="Share the whole course using your usual apps"
+              payload={() => courseSharePayload(active.meta, {
+                url: lessonUrl({ courseKey: active.key }),
+                lessonCount: (active.schedule && active.schedule.length) || 0,
+                unitPlural: `${unitLabels(active.meta).noun}s`,
+              })}
+            />
+          </div>
+        )}
+
+
+        {/* Derived catalog line — counted LIVE from the mounted courses (never a
+            hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
+            by learn-catalog-render.test.jsx. */}
         {courses.length > 1 && !lessonFocus && (
-          <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
-            <div className="grow min-w-[14rem]">
-              <label htmlFor="learn-course-pick" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Choose a course</label>
-              <select
-                id="learn-course-pick"
-                value={active.key}
-                onChange={(e) => setActiveKey(e.target.value)}
-                className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#1A1815] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                style={{ fontFamily: '"Fraunces", serif' }}
+          <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
+            {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
+          </p>
+        )}
+
+        {/* Resume-your-place (Darrell 2026-07-30: "It's too easy to lose your
+            place inside of the Learn space after starting one self-paced
+            lesson"). The device's saved place — course, lesson, arc stage,
+            paced step — offered back as ONE tap, above the picker so it is the
+            first thing a returning learner meets. Device-local + private
+            (lib/learn-resume.js); verified against the mounted catalog, so a
+            renamed/removed lesson silently offers nothing instead of a dead
+            door. */}
+        {showResume && !lessonFocus && (
+          <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
+            <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {placeLesson.week} · {placeLesson.title}
+              {savedPlace.stage > 0 || savedPlace.step > 0 ? (
+                <span className="text-[#5A5751]"> (part {savedPlace.stage + 1}{savedPlace.step > 0 ? `, step ${savedPlace.step + 1}` : ''})</span>
+              ) : null}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={resumeNow}
+                className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[40px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
               >
-                {organizeCourses(courses, courseSort).map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.courses.map((c) => (
-                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
-              <select
-                id="learn-course-sort"
-                value={courseSort}
-                onChange={(e) => setCourseSort(e.target.value)}
-                className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                style={{ fontFamily: '"Fraunces", serif' }}
+                Resume →
+              </button>
+              <button
+                type="button"
+                onClick={startFresh}
+                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
               >
-                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
-              </select>
+                Start fresh
+              </button>
             </div>
           </div>
         )}
+
+
       </div>
 
       {/* ONE PLACE TO LOOK — THE LESSONS BAR.

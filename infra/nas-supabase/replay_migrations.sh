@@ -270,7 +270,7 @@ done
 DONE_NOW=$(PSQL -t -A -c "SELECT count(*) FROM public._sovereign_replay;" | tr -d ' ')
 
 # ---------------------------------------------------------------------------
-# SUCCESS IS "EVERY FILE IS APPLIED", NOT "THE COUNTS MATCH" (2026-09-06, DR-0331)
+# SUCCESS IS "EVERY FILE IS APPLIED", NOT "THE COUNTS MATCH" (2026-09-06, DR-0332)
 #
 # This used to be `[ "$DONE_NOW" = "$TOTAL" ]`, which is a PROXY for the real
 # question and breaks on a case that costs a whole cycle to diagnose:

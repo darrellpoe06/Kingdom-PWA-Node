@@ -1,5 +1,5 @@
 ---
-id: DR-0331
+id: DR-0332
 title: A count is not the question — the sovereign replay called an up-to-date database "BEHIND", and my own renumber is what tripped it
 date: 2026-09-06
 status: accepted

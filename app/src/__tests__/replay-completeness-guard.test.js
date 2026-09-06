@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // replay-completeness-guard — PROVEN-TO-CATCH (DR-0076 §3) for the 2026-09-06
-// sovereign-replay inversion (DR-0331).
+// sovereign-replay inversion (DR-0332).
 //
 // The defect: success was decided by comparing a ledger COUNT to a file COUNT.
 // Renaming an already-applied migration leaves a stale ledger row, so the

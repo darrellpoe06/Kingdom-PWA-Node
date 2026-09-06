@@ -112,6 +112,52 @@ export function revealForReading(root, { max = 40 } = {}) {
 }
 
 /**
+ * Open every collapsed disclosure inside `root`, INCLUDING the ones that only
+ * come into existence when an outer one opens.
+ *
+ * WHY THIS EXISTS (Darrell 2026-09-06, from the live app): "The deeper and or
+ * hidden sections are not being read?!!!" — after revealForReading had already
+ * shipped for exactly that complaint. The measured cause is that
+ * revealForReading is ONE PASS. This app's disclosures are conditionally
+ * rendered, so an outer panel's children DO NOT EXIST until it opens; by the
+ * time React has painted them, the single pass has already finished and their
+ * `aria-expanded="false"` buttons are never clicked. Every level below the
+ * first was silently skipped. `settled()` even names the case in its own
+ * comment — "a revealed panel can reveal another" — while nothing re-ran the
+ * reveal. This is that loop.
+ *
+ * Bounded twice on purpose: `max` caps how many nodes are opened in total
+ * (inherited by each pass), and `rounds` caps the nesting depth chased, so a
+ * surface that re-renders forever can never hang a read. It stops early the
+ * moment a pass opens nothing, which is the common case after one or two.
+ *
+ * @param {Element} root the reading container
+ * @param {{max?:number, rounds?:number, win?:Window}} [opts]
+ * @returns {Promise<{details:number, buttons:number, rounds:number}>} the total
+ *   opened and how many passes it took — the caller re-maps only when something
+ *   actually changed, and a test can prove the nested case needed >1.
+ */
+export async function revealAllForReading(root, { max = 40, rounds = 4, win } = {}) {
+  const total = { details: 0, buttons: 0, rounds: 0 };
+  if (!root || typeof root.querySelectorAll !== 'function') return total;
+  let budget = max;
+  for (let i = 0; i < rounds && budget > 0; i++) {
+    const opened = revealForReading(root, { max: budget });
+    total.rounds += 1;
+    total.details += opened.details;
+    total.buttons += opened.buttons;
+    const n = opened.details + opened.buttons;
+    if (n === 0) break;            // nothing left closed at this depth — done
+    budget -= n;
+    // Let what we just opened RENDER before looking for what it contains.
+    // Without this await the next pass queries a DOM that has not changed yet
+    // and finds nothing, which is the single-pass bug wearing a loop.
+    await settled(root, { win });
+  }
+  return total;
+}
+
+/**
  * Wait until an element STOPS growing — the honest way to know a reveal (or a
  * surface's own "show every part") has finished rendering. Waiting a fixed
  * frame or two is a guess: React schedules its own work, and a revealed panel
