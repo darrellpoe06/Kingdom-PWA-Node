@@ -26,7 +26,7 @@ import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
-import { revealForReading, settled, afterRender } from '../lib/read-reveal.js';
+import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
@@ -370,7 +370,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // is claiming after the browser has already stopped listening.
     claimAudio();
     const main = readingRoot();
-    if (main) { revealForReading(main); await settled(main); }
+    if (main) { await revealAllForReading(main); await settled(main); }
     // Build the follow map from the LIVE page and speak its exact normalized
     // text, so the engine's sentence N and the on-screen range N are the same
     // sentence by construction. Falls back to the plain extractor when the map
@@ -450,7 +450,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         // prepare() may have replaced the node rather than grown it.
         el = resolveEl() || el;
       }
-      if (el) { revealForReading(el); await settled(el); }
+      if (el) { await revealAllForReading(el); await settled(el); }
     }
     const follow = el ? buildFollowMap(el) : null;
     if (follow && follow.text) {
