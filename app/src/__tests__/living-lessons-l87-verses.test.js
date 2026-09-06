@@ -115,9 +115,17 @@ describe('L87 exists in the catalog with its full shape', () => {
     expect(src).toContain('L87 Two Ways, Two Wisdoms');
   });
   it("keeps the Governor's framing: the four-stroke engine and the enlightening tie", () => {
-    for (const frag of ['four-stroke', 'DOCTRINE', 'REPROOF', 'CORRECTION', 'INSTRUCTION IN RIGHTEOUSNESS', 'ENLIGHTENING the eyes']) {
+    // 2026-09-06: the four strokes and the tie are asserted in the KJV's own
+    // case. This test used to pin DOCTRINE / REPROOF / CORRECTION /
+    // INSTRUCTION IN RIGHTEOUSNESS / ENLIGHTENING — emphasis capitals INSIDE
+    // the quotations of 2 Timothy 3:16 and Psalm 19:8, which is the alteration
+    // class the whole-span gate below forbids (quoted Scripture stays exactly
+    // as written). The framing lives in the lesson's own prose ("four-stroke");
+    // the verse carries the strokes verbatim.
+    for (const frag of ['four-stroke', 'for doctrine, for reproof, for correction, for instruction in righteousness', 'enlightening the eyes']) {
       expect(l).toContain(frag);
     }
+    expect(l, 'no emphasis capital inside the quotation').not.toMatch(/INSTRUCTION IN RIGHTEOUSNESS|ENLIGHTENING the eyes/);
   });
   it('is Part 1 of one two-part lesson, self-contained: carries the soils core and the only-real-future witness', () => {
     for (const frag of ['The King’s Program, Part 1', 'Part 2 walks it in full', 'The seed is the word of God', 'fruit with patience', 'ONLY REAL FUTURE']) {

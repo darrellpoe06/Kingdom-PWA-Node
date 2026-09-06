@@ -71,7 +71,8 @@ const QUOTED_FRAGMENTS = [
   'O LORD, thou hast searched me, and known me. Thou knowest my downsitting and mine uprising, thou understandest my thought afar off.',
   'are hid all the treasures of wisdom and knowledge',
   'Search me, O God, and know my heart: try me, and know my thoughts: And see if there be any wicked way in me, and lead me in the way everlasting.',
-  'If thou seekest her as silver, and searchest for her as for hid treasures; then shalt thou understand the fear of the LORD, and find the knowledge of God.',
+  // Verse 5 opens "Then" — the lesson once lowercased it mid-sentence; restored 2026-09-06.
+  'If thou seekest her as silver, and searchest for her as for hid treasures; Then shalt thou understand the fear of the LORD, and find the knowledge of God.',
   'The law of the LORD is perfect, converting the soul: the testimony of the LORD is sure, making wise the simple.',
 ];
 
