@@ -46,7 +46,35 @@
 // exists client-side to encrypt with. The surface says so in words. What IS
 // true: a private bucket, creator-only RLS, signed URLs, a PIN-gated tab.
 // re-review: 2026-10-15.
+//
+// 2026-09-06 — THE IP REGISTER lands on this tab. Darrell: "how do I turn
+// PoeTech into intellectual properties?" -> "What needs to happen for me to
+// have what is considered a real asset?" LEGAL-PRIVACY-BOUNDARY.md already
+// scopes the Business shelf to track "IP - trademark filings, copyright, trade
+// secrets", so the shelves could hold the PAPER once a filing exists. They
+// could not answer the prior question: what do we own, is it protected, and is
+// it an asset yet? The register answers it, and answers it honestly.
+//
+// REALITY-TRACE for the register block:
+//   • REAL DATA — lib/ip-portfolio.js, the transcription of the repo register
+//     at docs/00-foundations/_root/IP-REGISTER.md. PLATFORM content (like
+//     scriptures.js), not user data: it describes what PoeTech itself owns.
+//   • NOT PAINTED — every number below (score, bottleneck, lane counts, the
+//     forfeited list) is COMPUTED by lib/ip-register.js from those rows. The
+//     0-of-5 reads 0 because the rows say so, not because it was typed.
+//   • WHAT IT IS NOT — this is PoeTech's own register, not a per-tenant one.
+//     A tenant's IP is user data and would need its own store and RLS. The
+//     surface says so rather than implying a feature that is not there.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ASSET_TESTS,
+  IP_LANES,
+  forfeitedByDisclosure,
+  laneCounts,
+  portfolioScore,
+  scoreAsset,
+} from '../lib/ip-register.js';
+import { EXCLUDED_MARKS, IP_PORTFOLIO, REGISTER_AS_OF, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
 import {
   LEGAL_CATEGORIES,
   MAX_FILE_BYTES,
@@ -268,6 +296,153 @@ function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// IpRegisterPanel — PoeTech's own IP register. Everything here is derived; the
+// component holds no numbers of its own. Collapsed by default: it is reference
+// material on a tab whose primary job is the user's documents.
+// ---------------------------------------------------------------------------
+export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
+  const [open, setOpen] = useState(false);
+  const roll = useMemo(() => portfolioScore(assets), [assets]);
+  const counts = useMemo(() => laneCounts(assets), [assets]);
+  const forfeited = useMemo(() => forfeitedByDisclosure(assets), [assets]);
+
+  // The bottleneck the whole register shares, if it shares one. This is the
+  // finding that matters: one document unblocks everything, or it does not.
+  const bottlenecks = new Set(roll.scored.map((s) => s.score.bottleneck).filter(Boolean));
+  const sharedBottleneck = bottlenecks.size === 1 ? [...bottlenecks][0] : null;
+  const sharedTest = ASSET_TESTS.find((t) => t.id === sharedBottleneck) || null;
+
+  return (
+    <div className="bg-white border-2 border-[#1A1815] p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">
+        IP Register · PoeTech · as of {REGISTER_AS_OF}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+          {roll.fullAssets} of {roll.count} are assets
+        </h3>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          {counts.trademark} marks · {counts.copyright} works · {counts['trade-secret']} methods
+        </span>
+      </div>
+
+      <p className="text-sm leading-relaxed mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        An item is an <strong>asset</strong> only when it passes all five tests below. Anything short of that is
+        work product, however good it is.
+        {sharedTest && (
+          <> Every row here fails on the same test first — <strong>{sharedTest.label}</strong> — which means one
+          document moves the whole register: a written IP assignment into an entity, with this schedule attached.</>
+        )}
+      </p>
+
+      {/* The five tests, with how many rows pass each. Computed, never typed. */}
+      <ol className="mt-3 space-y-1.5">
+        {ASSET_TESTS.map((test, i) => {
+          const passed = roll.byTest[test.id];
+          const clear = passed === roll.count && roll.count > 0;
+          return (
+            <li key={test.id} className="flex items-baseline gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }} aria-hidden="true">{i + 1}.</span>
+              <span className="flex-1">
+                <strong className={clear ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>{test.label}</strong>
+                {' — '}{test.asks}
+              </span>
+              <span
+                className={`shrink-0 ${clear ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}
+                style={{ fontFamily: '"JetBrains Mono", monospace' }}
+              >
+                {passed}/{roll.count}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* The leak, stated as a measured number rather than a worry. */}
+      {forfeited.length > 0 && (
+        <div className="mt-4 bg-[#FAF8F4] border border-[#B85838] p-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">
+            {forfeited.length} methods outside trade-secret reach
+          </div>
+          <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+            The repository is public, and trade secret is the only lane that protects <em>methods</em>. Publication
+            forecloses it, and disclosure is not recoverable — so these are recorded as unprotected rather than
+            claimed: {forfeited.map((a) => a.name).join(' · ')}.
+          </p>
+          <p className="text-xs leading-relaxed mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>Still protectable, because verified unpublished:</strong>
+          </p>
+          <ul className="mt-1 space-y-1">
+            {STILL_PROTECTABLE.map((item) => (
+              <li key={item.name} className="text-[0.625rem] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                · <strong>{item.name}</strong> — <span className="text-[#5A5751] italic">{item.basis}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            Each carries the check that establishes it, because this is the sentence a repository-posture decision rests on.
+          </p>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="mt-4 text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      >
+        {open ? 'Hide the schedule' : `Show all ${roll.count} rows`}
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-4">
+          {IP_LANES.filter((lane) => counts[lane.id] > 0).map((lane) => (
+            <div key={lane.id}>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">
+                {lane.label} · {counts[lane.id]}
+              </div>
+              <p className="text-[0.625rem] text-[#5A5751] italic mb-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                {lane.blurb}
+              </p>
+              <ul className="space-y-1.5">
+                {assets.filter((a) => a.lane === lane.id).map((a) => {
+                  const s = scoreAsset(a);
+                  return (
+                    <li key={a.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="text-xs flex-1 min-w-0" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{a.name}</span>
+                        <span className="text-[0.625rem] shrink-0 text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {s.passedCount}/{s.total}{s.bottleneck ? ` → ${s.bottleneck}` : ''}
+                        </span>
+                      </div>
+                      {a.notes && (
+                        <p className="text-[0.625rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{a.notes}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+
+          {EXCLUDED_MARKS.map((ex) => (
+            <p key={ex.name} className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              <strong>Excluded on purpose — &ldquo;{ex.name}&rdquo;:</strong> {ex.why}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        This is PoeTech&rsquo;s own register, not yours — a tenant&rsquo;s IP would be user data with its own store, and
+        that is not built. Source of truth: <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>docs/00-foundations/_root/IP-REGISTER.md</span>.
+        Not legal advice; which lanes to pursue is counsel&rsquo;s call.
+      </p>
+    </div>
+  );
+}
+
 export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], entities = [], toggleAccountLegal }) {
   const unlockedTiers = new Set(['family', 'premium', 'business', 'loved-ones']);
   const unlocked = unlockedTiers.has(tier);
@@ -424,6 +599,8 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           screen will not claim it until it is. Until then, treat this as a private shelf, not a safe deposit box.
         </p>
       </div>
+
+      <IpRegisterPanel />
 
       <div className="bg-white border border-[#5A6E3D] p-4">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] mb-2 font-semibold">How Legal connects to the rest of the system</div>
