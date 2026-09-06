@@ -10,13 +10,335 @@
 // up here with a Restore button. These accounts are excluded from cash
 // totals on every other tab. Available at every tier — the encryption-
 // heavy legal-matters module remains gated.
-import React from 'react';
+//
+// 2026-09-06 — THE FOUR CATEGORIES BECOME REAL (DR-0329). Darrell, on this tab:
+// "I need a section that I can upload legal documents for each of these
+// categories." Until now those four boxes were four hardcoded <ul> lists —
+// orientation copy painted over nothing, the P15 class exactly, on the one
+// surface whose entire value is trust.
+//
+// REALITY-TRACE (DR-0061 / P15), stated before the code:
+//   • REAL DATA — each shelf reads and writes real `legal_documents` rows
+//     (migration 0168), kept device-local in lib/legal-documents-store.js and
+//     synced to the owner's own devices. File bytes live in the PRIVATE
+//     `legal-documents` bucket and are read back only through short-lived
+//     signed URLs. Every count on this screen is computed from those rows —
+//     there is no painted number here.
+//   • END-TO-END — the same rows in the signed-in app, not a demo path; the
+//     pointer path additionally works signed out and offline.
+//   • THE SCREEN THE USER USES — Books -> Legal, the tab in the screenshot, on
+//     a phone. No new nav.
+//   • ASSUMPTION STATED — the tab already sits behind PrivateGate (the app PIN
+//     gate, lib/private-lock.js), so the shelves inherit it rather than adding
+//     a second, weaker gate of their own.
+//
+// TWO WAYS TO SHELVE, both first-class: a FILE (bytes to the vault) or a
+// POINTER (no bytes; where the paper actually is). LEGAL-PRIVACY-BOUNDARY.md
+// binds documents as "pointers only, not file content"; the direction above
+// asks for upload. Keeping both honors the foundation instead of overwriting
+// it — and a shelf that refused to record anything while offline would be
+// worse than the placeholder it replaces.
+//
+// WHAT THIS IS NOT, said plainly rather than implied (DR-0076 §8): Layer 2 of
+// LEGAL-PRIVACY-BOUNDARY specifies AES-GCM-256 at rest keyed from the Legal
+// PIN. That is NOT built. It cannot be honestly built on today's architecture —
+// lib/pin.js:9 states the PIN never enters the browser, so no PIN-derived key
+// exists client-side to encrypt with. The surface says so in words. What IS
+// true: a private bucket, creator-only RLS, signed URLs, a PIN-gated tab.
+// re-review: 2026-10-15.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  LEGAL_CATEGORIES,
+  MAX_FILE_BYTES,
+  categoryCounts,
+  documentShape,
+  documentsInCategory,
+  formatBytes,
+  isPointer,
+  validateDocument,
+  validateFile,
+} from '../lib/legal-documents.js';
+import { loadLegalDocuments, saveLegalDocuments } from '../lib/legal-documents-store.js';
+import {
+  deleteLegalFile,
+  legalDocumentsSync,
+  mergeRemoteLegalDocuments,
+  signedLegalUrl,
+  uploadLegalFile,
+} from '../lib/legal-documents-sync.js';
+
+function blankForm() {
+  // `privileged: null` is the point — see the fieldset below. An undecided
+  // document cannot be saved, so it must start undecided.
+  return { label: '', docType: '', file: null, whereFiled: '', dateOf: '', note: '', privileged: null };
+}
+
+// ---------------------------------------------------------------------------
+// One shelf. The category's bullet list is no longer decoration: it IS the
+// document-type vocabulary the picker offers, which is what makes the bullets
+// true rather than illustrative.
+// ---------------------------------------------------------------------------
+function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(() => blankForm());
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  const reset = () => { setForm(blankForm()); setError(''); if (fileRef.current) fileRef.current.value = ''; };
+
+  const submit = async () => {
+    if (busy) return;
+    setError('');
+    const draft = documentShape({
+      category: category.id,
+      docType: form.docType,
+      label: form.label,
+      dateOf: form.dateOf || null,
+      privileged: form.privileged,
+      whereFiled: form.whereFiled,
+      note: form.note,
+    });
+    // The file is validated BEFORE the record, so a 400 MB mistake is refused
+    // without the user first filling in a form they cannot submit.
+    if (form.file) {
+      const bounds = validateFile(form.file);
+      if (!bounds.ok) { setError(bounds.message); return; }
+    }
+    // Validate the record as it will exist WITH its file, so "no file, so say
+    // where it is" is not raised against a document that has one.
+    const check = validateDocument(form.file ? { ...draft, storagePath: 'pending' } : draft);
+    if (!check.ok) { setError(check.message); return; }
+
+    setBusy(true);
+    const result = await onAdd(draft, form.file);
+    setBusy(false);
+    if (result && result.ok === false) { setError(result.message); return; }
+    reset();
+    setOpen(false);
+  };
+
+  const count = counts[category.id] || { total: 0, files: 0, pointers: 0, privileged: 0 };
+
+  return (
+    <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">{category.label}</div>
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          {count.total === 0 ? 'empty' : `${count.total} filed · ${count.files} file${count.files === 1 ? '' : 's'} · ${count.pointers} pointer${count.pointers === 1 ? '' : 's'}`}
+        </div>
+      </div>
+      <p className="text-xs text-[#5A5751] italic mt-1 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{category.blurb}</p>
+
+      {/* What belongs here. Same list as before — now also the picker's options. */}
+      <ul className="text-xs space-y-1 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        {category.docTypes.slice(0, 5).map((t) => <li key={t}>· {t}</li>)}
+        {category.docTypes.length > 5 && (
+          <li className="text-[#5A5751] italic">· and {category.docTypes.length - 5} more in the picker</li>
+        )}
+      </ul>
+
+      {/* The filed documents. Labels are user-private and render ONLY here. */}
+      {docs.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {docs.map((d) => (
+            <div key={d.id} className="bg-white border border-[#E8E4DC] p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.label}</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                    {d.docType || 'Document'}{d.dateOf ? ` · ${d.dateOf}` : ''}
+                    {d.privileged ? ' · PRIVILEGED' : ' · not privileged'}
+                    {isPointer(d) ? ' · pointer' : ` · ${formatBytes(d.fileSize)}`}
+                  </div>
+                </div>
+              </div>
+              {isPointer(d) ? (
+                <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Where it is: {d.whereFiled}
+                </p>
+              ) : null}
+              {d.note && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{d.note}</p>}
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {!isPointer(d) && (
+                  <button type="button" onClick={() => onOpen(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open</button>
+                )}
+                <button type="button" onClick={() => onRemove(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+          + Add a document
+        </button>
+      ) : (
+        <div className="bg-white border border-[#1A1815] p-3 space-y-2">
+          <label className="block">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">What is it</span>
+            <input type="text" value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+              placeholder="A name you will recognize in a year"
+              className="w-full mt-1 border border-[#E8E4DC] px-2 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+          </label>
+
+          <label className="block">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Type</span>
+            <select value={form.docType} onChange={(e) => setForm((f) => ({ ...f, docType: e.target.value }))}
+              className="w-full mt-1 border border-[#E8E4DC] px-2 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <option value="">Choose a type…</option>
+              {category.docTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">File (optional)</span>
+            <input ref={fileRef} type="file" onChange={(e) => setForm((f) => ({ ...f, file: e.target.files && e.target.files[0] }))}
+              className="w-full mt-1 text-sm" />
+            <span className="block text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              Up to {formatBytes(MAX_FILE_BYTES)}. No file? Say where the paper is below — that is a real record too.
+            </span>
+          </label>
+
+          {!form.file && (
+            <label className="block">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Where the document actually is</span>
+              <input type="text" value={form.whereFiled} onChange={(e) => setForm((f) => ({ ...f, whereFiled: e.target.value }))}
+                placeholder="Counsel's office · the fire safe · the county recorder"
+                className="w-full mt-1 border border-[#E8E4DC] px-2 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+            </label>
+          )}
+
+          <label className="block">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date on the document (optional)</span>
+            <input type="date" value={form.dateOf} onChange={(e) => setForm((f) => ({ ...f, dateOf: e.target.value }))}
+              className="w-full mt-1 border border-[#E8E4DC] px-2 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+          </label>
+
+          {/* MANDATORY. Starts unselected: the export tool's guarantee only
+              holds if every document was actually decided, and a pre-ticked
+              default produces rows nobody chose. */}
+          <fieldset className="border border-[#B85838] p-2">
+            <legend className="text-[0.625rem] uppercase tracking-wider text-[#B85838] px-1">Privileged? — required</legend>
+            <div className="flex gap-3 flex-wrap">
+              <label className="text-xs flex items-center gap-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                <input type="radio" name={`priv-${category.id}`} checked={form.privileged === true}
+                  onChange={() => setForm((f) => ({ ...f, privileged: true }))} />
+                Privileged <span className="text-[#5A5751] italic">(recommended)</span>
+              </label>
+              <label className="text-xs flex items-center gap-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                <input type="radio" name={`priv-${category.id}`} checked={form.privileged === false}
+                  onChange={() => setForm((f) => ({ ...f, privileged: false }))} />
+                Not privileged
+              </label>
+            </div>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              Over-marking is recoverable. Under-marking can waive privilege and cannot be undone.
+            </p>
+          </fieldset>
+
+          <label className="block">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Note (optional)</span>
+            <textarea value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} rows={2}
+              className="w-full mt-1 border border-[#E8E4DC] px-2 py-2 text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" />
+          </label>
+
+          {error && (
+            <p className="text-xs text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }} role="alert">{error}</p>
+          )}
+
+          <div className="flex gap-2">
+            <button type="button" disabled={busy} onClick={submit}
+              className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+              {busy ? 'Filing…' : 'File it'}
+            </button>
+            <button type="button" onClick={() => { reset(); setOpen(false); }}
+              className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <p className="text-xs text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</p>
+      )}
+    </div>
+  );
+}
 
 export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], entities = [], toggleAccountLegal }) {
   const unlockedTiers = new Set(['family', 'premium', 'business', 'loved-ones']);
   const unlocked = unlockedTiers.has(tier);
   const legalAccounts = (accounts || []).filter(a => a.inLegal);
   const entityName = (id) => (entities || []).find(e => e.id === id)?.name || id;
+
+  // ---- the shelves: real rows, device-local first, synced when signed in ----
+  const [docs, setDocs] = useState(() => loadLegalDocuments());
+  const [shelfNotice, setShelfNotice] = useState('');
+
+  useEffect(() => {
+    const res = saveLegalDocuments(docs);
+    // A quota failure means the shelf silently stops remembering. Say so — a
+    // failure the user never sees is a failure the user cannot act on.
+    if (res && res.skipped === 'write-error') {
+      setShelfNotice('This device could not save the shelf locally (storage is full). Documents already synced are safe; new ones may not survive a reload.');
+    }
+  }, [docs]);
+
+  // Signed out this never fires and the shelves run entirely on this device.
+  useEffect(() => {
+    const unsub = legalDocumentsSync.subscribe((items) => {
+      setDocs((cur) => mergeRemoteLegalDocuments(cur, items));
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
+
+  const counts = useMemo(() => categoryCounts(docs), [docs]);
+
+  // Returns { ok:false, message } so the shelf can show the real reason inline
+  // rather than failing blankly. The FILE goes first: if the bytes cannot be
+  // stored we must not leave a row claiming a document that is not there.
+  const addDocument = useCallback(async (draft, file) => {
+    let record = draft;
+    if (file) {
+      const up = await uploadLegalFile({ file, slug: draft.id });
+      if (!up.ok) return { ok: false, message: up.message };
+      record = { ...draft, storagePath: up.storagePath, fileName: up.fileName, fileSize: up.fileSize };
+    }
+    const check = validateDocument(record);
+    if (!check.ok) return { ok: false, message: check.message };
+    setDocs((cur) => [record, ...cur]);
+    legalDocumentsSync.upload(record);
+    setShelfNotice('');
+    return { ok: true };
+  }, []);
+
+  const openDocument = useCallback(async (doc) => {
+    const url = await signedLegalUrl(doc.storagePath);
+    if (!url) {
+      setShelfNotice(`"${doc.label}" could not be opened. Sign in on this device, or the file may not have finished uploading.`);
+      return;
+    }
+    setShelfNotice('');
+    if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener');
+  }, []);
+
+  const removeDocument = useCallback(async (doc) => {
+    if (typeof confirm === 'function'
+        && !confirm(`Remove "${doc.label}" from the legal shelf? ${isPointer(doc) ? 'This removes the record.' : 'This deletes the stored file too, and cannot be undone.'}`)) return;
+    const del = await deleteLegalFile(doc.storagePath);
+    setDocs((cur) => {
+      const target = cur.find((d) => d.id === doc.id);
+      if (target && target.remoteUuid) legalDocumentsSync.deleteRow(target.remoteUuid);
+      return cur.filter((d) => d.id !== doc.id);
+    });
+    // The row is gone either way; do not claim a clean delete we did not get.
+    setShelfNotice(del && del.ok === false
+      ? `The record was removed, but the stored file could not be deleted (${del.message}). It remains in your private vault.`
+      : '');
+  }, []);
   return (
     <section className="space-y-4">
       {/* Accounts In Legal — surfaced FIRST so the user lands on the actionable
@@ -66,47 +388,41 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Personal / family</div>
-          <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            <li>· Wills, trusts, estate plans</li>
-            <li>· Powers of attorney (financial + healthcare)</li>
-            <li>· Healthcare directives, beneficiary designations</li>
-            <li>· Family law — custody, divorce, adoption, guardianship</li>
-            <li>· Immigration matters</li>
-          </ul>
+      {/* THE FOUR SHELVES. These four boxes used to be four hardcoded <ul>
+          lists. Every number above a shelf is now computed from real rows, and
+          every bullet is now an option in that shelf's own picker. */}
+      <div>
+        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+          <h3 className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Your legal documents, by category</h3>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            {docs.length} filed
+          </span>
         </div>
-        <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Real estate</div>
-          <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            <li>· Title issues — chain, encumbrances, easements, liens</li>
-            <li>· Tenant disputes, evictions</li>
-            <li>· Property-tax appeals</li>
-            <li>· Code-enforcement actions, HOA disputes</li>
-            <li>· Insurance and contractor disputes</li>
-          </ul>
+        <p className="text-xs text-[#5A5751] italic mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+          Upload the file, or record where the paper actually is — both are real records, and a pointer works with no signal.
+          Names and notes here are private to this tab: everywhere else in the app, a linked matter shows only a count.
+        </p>
+        {shelfNotice && (
+          <p className="text-xs text-[#B85838] mb-2" style={{ fontFamily: '"Fraunces", serif' }} role="status">{shelfNotice}</p>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {LEGAL_CATEGORIES.map((category) => (
+            <Shelf
+              key={category.id}
+              category={category}
+              docs={documentsInCategory(docs, category.id)}
+              counts={counts}
+              onAdd={addDocument}
+              onOpen={openDocument}
+              onRemove={removeDocument}
+            />
+          ))}
         </div>
-        <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Business</div>
-          <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            <li>· LLC compliance — formation, annual report, registered agent</li>
-            <li>· Contracts — vendor, contractor, employment, NDA, lease</li>
-            <li>· 1099 / W-2 disputes</li>
-            <li>· IP — trademark, copyright, trade secrets, infringement</li>
-            <li>· Commercial litigation, bankruptcy, M&amp;A</li>
-          </ul>
-        </div>
-        <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Tax &amp; regulatory</div>
-          <ul className="text-xs space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            <li>· IRS notices (CP2000, CP14, audits)</li>
-            <li>· State tax appeals</li>
-            <li>· Professional licensing — MSW, contractor, real estate</li>
-            <li>· HUD / fair-housing, OSHA / safety</li>
-            <li>· Government contracting, regulator actions</li>
-          </ul>
-        </div>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          Files are stored in a private vault only your account can read, and opened through links that expire in five minutes.
+          They are <strong>not</strong> yet encrypted with your own key at rest — that layer is designed but not built, and this
+          screen will not claim it until it is. Until then, treat this as a private shelf, not a safe deposit box.
+        </p>
       </div>
 
       <div className="bg-white border border-[#5A6E3D] p-4">
