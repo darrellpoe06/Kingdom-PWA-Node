@@ -68,10 +68,28 @@ describe('the manifest of corrections is applied to the served corpus, and is ca
     }
   });
 
-  it('the corrections it names are the ones the Name is about', () => {
+  it('every correction is either about the Name or a two-witness case correction — nothing else', () => {
+    // Two classes. `name`: LORD/Lord/GOD/God re-cased with the second KJV and
+    // the WEB oracle as witnesses. `case`: other case-only differences where a
+    // SECOND and a THIRD public-domain KJV both side against ours ("Son of
+    // David" x11, "most High", "the Spirit of God", "O praise the LORD", "I am
+    // the man", Daniel 4:8 "my god"); each names both witnesses.
     for (const c of MANIFEST.corrections) {
+      if (c.class === 'case') {
+        expect(Array.isArray(c.witnesses) && c.witnesses.length >= 2, `${c.ref}: a case correction needs two witnesses`).toBe(true);
+        continue;
+      }
+      expect(c.class, c.ref).toBe('name');
       expect(/\b(LORD|GOD|Lord|God)\b/.test(c.before) || /^A GOOD name/.test(c.before), c.ref).toBe(true);
     }
+    expect(MANIFEST.corrections.filter((c) => c.class === 'case').length).toBeGreaterThan(10);
+  });
+
+  it('the two-witness case class reads right: "Son of David", "most High", "the Spirit of God", Nebuchadnezzar\'s "my god"', () => {
+    expect(verse('Matthew', 21, 9)).toMatch(/Hosanna to the Son of David/);
+    expect(verse('Deuteronomy', 32, 8)).toMatch(/When the most High divided/);
+    expect(verse('Job', 33, 4)).toMatch(/^The Spirit of God hath made me/);
+    expect(verse('Daniel', 4, 8)).toMatch(/according to the name of my god/);
   });
 });
 

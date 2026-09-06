@@ -35,6 +35,8 @@ NT verses printing LORD         5   (was 29)
 OT verses vs WEB oracle     5,870 comparable · 5 allowed disagreements
 ```
 
+## The third witness, same session (manifest 111 → 127)
+A third public-domain KJV (scrollmapper/bible_databases, the 1769 text with Strong's markup) was fetchable too. It **cannot arbitrate the Name** — it prints "Lord" everywhere and never small-caps LORD — so Genesis 18:3 / 19:18 stay honestly undecided (no second witness exists for either reading; recorded in the manifest as `undecidedNote`). It **does** settle the non-Name class: in all 16 single-witness cases it sides with the second source and never with ours, so they now carry two witnesses and are corrected as `class: case`: "Son of David" ×11 (Matthew 9:27, 15:22, 20:30-31, 21:9, 21:15; Mark 10:47-48, 12:35; Luke 18:38-39), "the most High" (Deuteronomy 32:8), "The Spirit of God" (Job 33:4), "O praise the LORD" (Psalm 117:1), "I am the man" (Lamentations 3:1), and Nebuchadnezzar's "my god" (Daniel 4:8 — the corpus had capitalised Bel). Judges 14:18 and 1 Chronicles 14:10 ("And"/"and") stay out: the third witness carries both forms. Three lesson quotations followed. The gate asserts the class carries two named witnesses and reads the four meaning-bearing cases.
+
 ## Still open
-- Genesis 18:3 and 19:18 ("My Lord" / "my Lord" — Abraham and Lot addressing the visitors): the two KJV witnesses differ, the WEB abstains. Undecided, named in the manifest. re-review: 2026-09-20 with a third KJV witness.
-- The remaining second-source case differences that are not the Name (son/Son of David ×11, Most/most High, spirit/Spirit at Job 33:4, "my God" vs "my god" at Daniel 4:8) — one witness each, not corrected. re-review: 2026-09-20.
+- Genesis 18:3 and 19:18 ("My Lord" / "my Lord"): the two witnesses that carry small-caps LORD differ, the WEB abstains, the third never prints LORD. Undecided, named. re-review: 2026-09-20 with a witness that distinguishes LORD from Lord (a scanned Cambridge/Oxford text).
