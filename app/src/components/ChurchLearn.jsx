@@ -443,21 +443,40 @@ function SopLibrary({ sequences, pipeline }) {
 // (FIRST/SECOND..., I./II., SOIL n) by lib/lesson-format.js — not one word is
 // altered, so the verse-pin gates hold untouched. Lessons without markers
 // still gain sentence-grouped breathing room.
-export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
-  const { items } = formatLessonText(text);
+// `startAt` threads ONE chronological count through a lesson paced into
+// segments (Darrell 2026-08-25: "the whole lesson should be building and the
+// points are supposed to be associated with each other never starting over
+// inside the same lesson") — step 2 continues at the number step 1 reached.
+export function LessonProse({ text, startAt = 1, className = 'text-xs text-[#1A1815]' }) {
+  const { items } = formatLessonText(text, { startAt });
   if (!items.length) return null;
   return (
     <div className={className} style={{ fontFamily: '"Fraunces", serif' }}>
-      {items.map((it, i) => (
-        it.kind === 'heading' ? (
-          <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
-            <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
-            {it.text}
-          </p>
-        ) : (
-          <p key={i} className="mt-1.5">{it.text}</p>
-        )
-      ))}
+      {items.map((it, i) => {
+        if (it.kind === 'heading') {
+          return (
+            <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
+              <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
+              {it.text}
+            </p>
+          );
+        }
+        if (it.kind === 'point') {
+          return (
+            <div key={i} className={i === 0 ? '' : 'mt-3'}>
+              {it.lines.map((line, j) => (
+                <p key={j} className={j === 0 ? 'flex gap-1.5' : 'mt-1.5 pl-[26px]'}>
+                  {j === 0 && (
+                    <span aria-hidden="true" className="inline-flex items-center justify-center shrink-0 min-w-[20px] h-[20px] px-1 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold">{it.p}</span>
+                  )}
+                  <span className="min-w-0">{line}</span>
+                </p>
+              ))}
+            </div>
+          );
+        }
+        return <p key={i} className="mt-1.5">{it.text}</p>;
+      })}
     </div>
   );
 }
@@ -477,6 +496,21 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
 export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
+  // One chronological point count across ALL paced segments: each segment's
+  // numbering starts where the previous segment's ended, so a lesson stepped
+  // into 3 parts reads 1-2, 3-4, 5-6 — never 1-2, 1-2, 1-2 (Darrell
+  // 2026-08-25: "never starting over inside the same lesson"). Computed before
+  // the null guard so the hook order never changes.
+  const segStarts = useMemo(() => {
+    const segs = (plan && plan.segments) || [];
+    const starts = [];
+    let n = 1;
+    for (const s of segs) {
+      starts.push(n);
+      n = formatLessonText(s, { startAt: n }).nextStart;
+    }
+    return starts;
+  }, [plan]);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
 
@@ -506,7 +540,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
               Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
             </span>
-            <div className="mt-1"><LessonProse text={s} /></div>
+            <div className="mt-1"><LessonProse text={s} startAt={segStarts[i]} /></div>
           </div>
         ))}
       </div>
@@ -551,7 +585,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
           <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
         </div>
       </div>
-      <div aria-live="polite"><LessonProse text={segments[cur]} /></div>
+      <div aria-live="polite"><LessonProse text={segments[cur]} startAt={segStarts[cur]} /></div>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}
