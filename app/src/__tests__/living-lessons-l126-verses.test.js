@@ -97,7 +97,7 @@ const ATTRIBUTED = [
   ['Meekness, temperance: against such there is no law.', 'Galatians', 5, 23],
   ['Abide in me, and I in you. As the branch cannot bear fruit of itself, except it abide in the vine; no more can ye, except ye abide in me.', 'John', 15, 4],
   ['I am the vine, ye are the branches: He that abideth in me, and I in him, the same bringeth forth much fruit: for without me ye can do nothing.', 'John', 15, 5],
-  ['for this day is holy unto our LORD: neither be ye sorry; for the joy of the LORD is your strength.', 'Nehemiah', 8, 10],
+  ['for this day is holy unto our Lord: neither be ye sorry; for the joy of the LORD is your strength.', 'Nehemiah', 8, 10],
   ['The heart is deceitful above all things, and desperately wicked: who can know it?', 'Jeremiah', 17, 9],
   ['There is a way which seemeth right unto a man, but the end thereof are the ways of death.', 'Proverbs', 14, 12],
   ['Why art thou cast down, O my soul? and why art thou disquieted within me? hope thou in God: for I shall yet praise him, who is the health of my countenance, and my God.', 'Psalms', 42, 11],
@@ -159,9 +159,9 @@ const ATTRIBUTED = [
   ['And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.', 'Philippians', 4, 7],
   ['Casting all your care upon him; for he careth for you.', '1Peter', 5, 7],
   ['Come now, and let us reason together, saith the LORD: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool.', 'Isaiah', 1, 18],
-  ['Behold now, I have taken upon me to speak unto the LORD, which am but dust and ashes:', 'Genesis', 18, 27],
+  ['Behold now, I have taken upon me to speak unto the Lord, which am but dust and ashes:', 'Genesis', 18, 27],
   ['Shall not the Judge of all the earth do right?', 'Genesis', 18, 25],
-  ['Oh let not the LORD be angry, and I will speak yet but this once', 'Genesis', 18, 32],
+  ['Oh let not the Lord be angry, and I will speak yet but this once', 'Genesis', 18, 32],
   ['LORD, why doth thy wrath wax hot against thy people, which thou hast brought forth out of the land of Egypt with great power, and with a mighty hand?', 'Exodus', 32, 11],
   ['shew me now thy way, that I may know thee', 'Exodus', 33, 13],
   ['If thy presence go not with me, carry us not up hence.', 'Exodus', 33, 15],
@@ -359,7 +359,7 @@ describe('reasoning with Yahweh, and His own first question', () => {
   });
 
   it('stacks the witnesses who actually did it, including the one who stood for the reproof', () => {
-    expect(l).toContain('Behold now, I have taken upon me to speak unto the LORD, which am but dust and ashes:');
+    expect(l).toContain('Behold now, I have taken upon me to speak unto the Lord, which am but dust and ashes:');
     expect(l).toContain('LORD, why doth thy wrath wax hot against thy people');
     expect(l).toContain('I will stand upon my watch, and set me upon the tower, and will watch to see what he will say unto me, and what I shall answer when I am reproved.');
     expect(l, 'reasoning is not venting').toMatch(/difference between reasoning and venting/);

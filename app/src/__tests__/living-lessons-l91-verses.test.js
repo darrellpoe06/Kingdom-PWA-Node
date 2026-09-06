@@ -41,7 +41,7 @@ const KJV = {
   'Proverbs 25:2': 'It is the glory of God to conceal a thing: but the honour of kings is to search out a matter.',
   'Job 28:3': 'He setteth an end to darkness, and searcheth out all perfection: the stones of darkness, and the shadow of death.',
   'Job 28:12': 'But where shall wisdom be found? and where is the place of understanding?',
-  'Job 28:28': 'And unto man he said, Behold, the fear of the LORD, that is wisdom; and to depart from evil is understanding.',
+  'Job 28:28': 'And unto man he said, Behold, the fear of the Lord, that is wisdom; and to depart from evil is understanding.',
   'Genesis 2:15': 'And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it.',
   'Hebrews 4:12': 'For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart.',
   '1 Corinthians 6:19': 'What? know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own?',
@@ -62,7 +62,7 @@ const QUOTED_FRAGMENTS = [
   'Iron is taken out of the earth, and brass is molten out of the stone.',
   'He setteth an end to darkness, and searcheth out all perfection: the stones of darkness, and the shadow of death.',
   'where shall wisdom be found? and where is the place of understanding?',
-  'Behold, the fear of the LORD, that is wisdom; and to depart from evil is understanding.',
+  'Behold, the fear of the Lord, that is wisdom; and to depart from evil is understanding.',
   'For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart.',
   'For nothing is secret, that shall not be made manifest; neither any thing hid, that shall not be known and come abroad.',
   'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.',
@@ -122,11 +122,11 @@ describe('every age level carries the whole message (child, teen, senior — ful
     const j = l.indexOf("',\n", i);
     return l.slice(i, j);
   };
-  it('child, teen, and senior each carry the Author, the search-as-honour, and the fear of the LORD', () => {
+  it('child, teen, and senior each carry the Author, the search-as-honour, and the fear of the Lord (Job 28:28 — Adonai, not the Name)', () => {
     for (const band of ['child', 'teen', 'senior']) {
       const t = level(band);
       expect(t, `${band} carries fearfully and wonderfully made`).toContain('fearfully and wonderfully made');
-      expect(t, `${band} carries the fear of the LORD as wisdom`).toContain('the fear of the LORD, that is wisdom');
+      expect(t, `${band} carries the fear of the LORD as wisdom`).toContain('the fear of the Lord, that is wisdom');
       expect(t, `${band} carries the search-me turn`).toContain('Search me, O God');
     }
     // teen and senior additionally carry the glory/honour of the search and the temple.
@@ -141,7 +141,7 @@ describe('every age level carries the whole message (child, teen, senior — ful
 describe('tamper-catch — the pinned KJV ground truth is itself exact', () => {
   it('full-verse pins match their known text and endings', () => {
     expect(KJV['Proverbs 25:2'].endsWith('search out a matter.')).toBe(true);
-    expect(KJV['Job 28:28']).toContain('the fear of the LORD, that is wisdom');
+    expect(KJV['Job 28:28']).toContain('the fear of the Lord, that is wisdom');
     expect(KJV['Psalms 139:14']).toContain('fearfully and wonderfully made');
     expect(KJV['Psalms 139:23'].startsWith('Search me, O God')).toBe(true);
     expect(KJV['Hebrews 4:12']).toContain('discerner of the thoughts and intents of the heart');
