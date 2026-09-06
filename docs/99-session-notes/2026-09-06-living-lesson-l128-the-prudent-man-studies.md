@@ -57,8 +57,12 @@ truncations removed, and left exactly as spoken wherever the raw form already
 carries it. Three spans were cleaned under this rule — a `studies`/`studied` slip,
 a trailing `if...`, and a `because of His Ways are` spoken construction. The other
 six stand verbatim. This is recorded in the gate file's header so the rule travels
-with the lesson. **Open:** this is arguably a Layer-0/DR-level convention about how
-spoken input is captured, not just a note. `re-review: 2026-09-13`.
+with the lesson, and it is now a decision record in its own right:
+**[DR-0329](../decisions/DR-0329-spoken-input-is-captured-for-meaning-not-transcribed-with-its-typos.md)**,
+which binds it across every artifact that quotes him — not just lessons — and
+fences it hard away from the Scripture rule (DR-0076/DR-0210 stay absolute).
+**Open:** folding a one-or-two-sentence pointer into Layer 0 beside "Spoken
+Teachings Are Build Input". `re-review: 2026-09-13`.
 
 ## Shape
 
