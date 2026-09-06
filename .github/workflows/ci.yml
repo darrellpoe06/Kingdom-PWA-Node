@@ -109,6 +109,13 @@ jobs:
       # one (measured live 2026-08-27: the matrix had been reverting 0144's
       # set_member_role and 0151's claim_property_access on production).
       - run: node ../scripts/migration-replay-order-guard.mjs
+      # The sovereign replay must decide success by asking whether every
+      # migration FILE is applied, not by comparing a ledger count to a file
+      # count. Measured live 2026-09-06: renaming an already-applied migration
+      # left a stale ledger row, the counts diverged, and the lane reported
+      # "the app's database is BEHIND the repo" about a database that was fully
+      # up to date. Proven-to-catch in replay-completeness-guard.test.js.
+      - run: node ../scripts/replay-completeness-guard.mjs
       # Widening a RETURNS TABLE with a plain CREATE OR REPLACE is refused by
       # Postgres, and because db-migrate applies each file in its own
       # transaction it rolls the WHOLE migration back (measured live

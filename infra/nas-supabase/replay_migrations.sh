@@ -268,6 +268,67 @@ for F in $(ls "$MIG_DIR"/*.sql | sort); do
 done
 
 DONE_NOW=$(PSQL -t -A -c "SELECT count(*) FROM public._sovereign_replay;" | tr -d ' ')
+
+# ---------------------------------------------------------------------------
+# SUCCESS IS "EVERY FILE IS APPLIED", NOT "THE COUNTS MATCH" (2026-09-06, DR-0331)
+#
+# This used to be `[ "$DONE_NOW" = "$TOTAL" ]`, which is a PROXY for the real
+# question and breaks on a case that costs a whole cycle to diagnose:
+#
+#   A migration file that has ALREADY been applied is RENAMED. The replay sees
+#   an unknown filename, applies it (idempotently -- no harm to the schema),
+#   and ledgers the NEW name. The OLD name's row is still there, so the ledger
+#   is one row AHEAD of the file count and this lane fails forever, reporting
+#   "the app's database is BEHIND the repo" -- the exact OPPOSITE of the truth.
+#   Nothing is behind. There is one stale row naming a file that no longer
+#   exists.
+#
+# MEASURED, this session: 0168-legal-document-shelves.sql applied cleanly and
+# ledgered (runs 445/446 green, ledger 182/182). It was then renamed to
+# 0169-legal-document-shelves.sql to dodge an ordinal collision on the HOSTED
+# database -- a different database, with a different guard. The next sovereign
+# run applied 0169 as new, reached ledger 183/182, and went red on a database
+# that was in fact completely up to date.
+#
+# So ask the real question directly: is any file in MIG_DIR missing from the
+# ledger? That is STRICTER, not looser -- an unapplied file is still caught
+# (and FRONTIER already names it), the MAX_PER_RUN budget case is still caught,
+# and a stale row can no longer masquerade as "behind". Orphans are REPORTED
+# rather than fatal, because a name in the ledger that no longer exists in the
+# repo is bookkeeping to clean, not a database that needs migrating.
+# ---------------------------------------------------------------------------
+MISSING=0
+MISSING_FIRST=""
+for F in $(ls "$MIG_DIR"/*.sql 2>/dev/null | sort); do
+  B=$(basename "$F")
+  IN=$(PSQL -t -A -c "SELECT 1 FROM public._sovereign_replay WHERE fname='$B';" | tr -d ' ')
+  if [ "$IN" != "1" ]; then
+    MISSING=$((MISSING + 1))
+    [ -n "$MISSING_FIRST" ] || MISSING_FIRST="$B"
+  fi
+done
+
+# Ledger rows naming a file this checkout no longer has. Named, not counted, so
+# the cleanup is a copy-paste rather than an investigation.
+ORPHANS=$(PSQL -t -A -c "SELECT fname FROM public._sovereign_replay ORDER BY fname;" 2>/dev/null \
+  | while IFS= read -r L; do
+      [ -n "$L" ] || continue
+      case "$L" in "$MARKER") continue ;; esac
+      [ -f "$MIG_DIR/$L" ] || printf '%s ' "$L"
+    done)
+
 echo "replay: applied $APPLIED this run, ledger $DONE_NOW/$TOTAL, frontier: $FRONTIER"
-[ "$DONE_NOW" = "$TOTAL" ] && exit 0
+if [ -n "$ORPHANS" ]; then
+  echo "replay: NOTE - $(printf '%s' "$ORPHANS" | wc -w | tr -d ' ') ledger row(s) name a file this checkout does not have: $ORPHANS"
+  echo "replay:        Almost always a RENAMED migration. The schema is fine; the row is stale."
+  echo "replay:        Clean up (safe - touches only this bookkeeping table, never schema or data):"
+  for O in $ORPHANS; do
+    echo "replay:          DELETE FROM public._sovereign_replay WHERE fname='$O';"
+  done
+fi
+
+if [ "$MISSING" = "0" ]; then
+  exit 0
+fi
+echo "replay: $MISSING migration file(s) are NOT applied; the first is $MISSING_FIRST"
 exit 1
