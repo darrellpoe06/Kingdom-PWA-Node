@@ -46,6 +46,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md`
 - `docs/00-foundations/_root/BUILD-ROADMAP.md`
 - `docs/00-foundations/_root/CHURCH-TAB-DIRECTORY.md`
+- `docs/00-foundations/_root/COLG-SERMON-INTAKE.md` — the Way a COLG sermon becomes a lesson: trigger on the SENDER (bg@), read the `.docx` ATTACHMENT (the body is empty), attribute from the subject (BG sends; McCray/Forman often preached), then a second pass when the sermon reaches YouTube. DR-0333.
 - `docs/00-foundations/_root/CLAUDE-BATCH-API-PATTERN.md`
 - `docs/00-foundations/_root/CLAUDE-PROMPT-CACHING-PATTERN.md`
 - `docs/00-foundations/_root/CLAUDE-TOOL-ROUTING.md`
