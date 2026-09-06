@@ -19,7 +19,7 @@
 //
 // REALITY-TRACE (DR-0061 / P15), stated before the code:
 //   • REAL DATA — each shelf reads and writes real `legal_documents` rows
-//     (migration 0168), kept device-local in lib/legal-documents-store.js and
+//     (migration 0169), kept device-local in lib/legal-documents-store.js and
 //     synced to the owner's own devices. File bytes live in the PRIVATE
 //     `legal-documents` bucket and are read back only through short-lived
 //     signed URLs. Every count on this screen is computed from those rows —

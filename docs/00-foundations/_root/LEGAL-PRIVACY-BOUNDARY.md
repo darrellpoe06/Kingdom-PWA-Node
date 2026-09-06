@@ -120,7 +120,7 @@ Track for: matters with government bodies (federal, state, local, professional l
   // the user would rather leave where it is. Darrell 2026-09-06, on the Legal
   // tab: "I need a section that I can upload legal documents for each of these
   // categories." Both now ship, and a record is one or the other:
-  //   FILE    — bytes in the PRIVATE `legal-documents` bucket (migration 0168),
+  //   FILE    — bytes in the PRIVATE `legal-documents` bucket (migration 0169),
   //             path `<owner user id>/<slug>.<ext>`, creator-only RLS on the
   //             row AND the object, read back only via signed URLs that expire
   //             in 5 minutes. Requires a session.
