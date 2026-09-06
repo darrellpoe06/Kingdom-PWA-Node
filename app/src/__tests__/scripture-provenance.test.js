@@ -60,23 +60,20 @@ const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
 
 // The recorded state. These are CEILINGS: each may fall, never rise.
 const CEILING = {
-  // PAID DOWN 2026-09-06: 346 -> 9. Every row was a letter-case-only difference,
-  // so the fix was a case-only rewrite (same length, same non-letter characters,
-  // nothing structural can break): 115 lowercased/uppercased opening words, ~230
-  // emphasis capitals inside quotations ("thy faith hath made thee WHOLE") and
-  // reverence capitals ("in Him") — both the L127 defect class; quoted Scripture
-  // stays exactly as fetched (CLAUDE.md, DR-0210 bright line).
-  // THE 9 THAT REMAIN ARE THE CORPUS'S QUESTION, NOT OURS. 8 quote John 20:28 as
-  // "My Lord and my God" where the in-repo KJV (aruljohn/Bible-kjv, verified
-  // upstream 2026-09-06) prints "My LORD" — that source renders LORD in ~24 NT
-  // verses where the KJV's own convention reserves small-caps LORD for the
-  // Tetragrammaton (Acts 15:11 "the LORD Jesus Christ", Acts 20:19, John 20:2-28).
-  // 1 quotes Proverbs 22:1 "A good name" where the corpus keeps the printer's
-  // chapter-opening small caps ("A GOOD name"). The lessons are not rewritten to
-  // a source artifact; the corpus is not patched from memory (DR-0076 §8).
-  // re-review: 2026-09-20 — settle the corpus against a second public-domain KJV
-  // (see 'the in-repo KJV corpus carries an open question' below).
-  'kjv-case': 9,
+  // PAID DOWN 2026-09-06: 346 -> 9 -> 0. Every row was a letter-case-only
+  // difference, so the fix was a case-only rewrite (same length, same
+  // non-letter characters, nothing structural can break): 115 opening words,
+  // ~230 emphasis capitals inside quotations ("thy faith hath made thee
+  // WHOLE") and reverence capitals ("in Him") — the L127 defect class; quoted
+  // Scripture stays exactly as fetched (CLAUDE.md, DR-0210 bright line).
+  // THE LAST 9 WERE THE CORPUS'S OWN DEFECT, NOW CORRECTED: 8 quoted John
+  // 20:28 as "My Lord and my God" where the in-repo KJV printed "My LORD" —
+  // the aruljohn source mis-rendered the Name in 111 verses (LORD for Lord and
+  // Lord for LORD; the case carries meaning: Yahweh vs Adonai). Verified
+  // against a second public-domain KJV and the WEB's Yahweh/Lord as oracle,
+  // corrected by manifest (scripts/kjv-name-case-corrections.*) and held by
+  // kjv-corpus-name-case.test.js. The lessons were right; the corpus was not.
+  'kjv-case': 0,
   // SPLIT 2026-09-06 (Darrell: "Agreed... attribution not unverified!!!").
   // The old single `unverified: 155` hid two different things behind one
   // number. Measuring them apart showed only 41 were ever OURS — and 29 of
@@ -216,14 +213,9 @@ describe('the provenance ratchets — these numbers may fall, never rise', () =>
     expect(count('paraphrase-declared'), 'declared paraphrases must be SEEN, not skipped').toBeGreaterThan(10);
   });
 
-  it('the 9 remaining case rows are ONLY the two named corpus artifacts — nothing else hides under the ceiling', () => {
+  it('no case row remains — the corpus question that held the last 9 is closed (kjv-corpus-name-case.test.js)', () => {
     const remaining = rows.filter((r) => r.verdict === 'kjv-case' || r.verdict === 'web-case');
-    for (const r of remaining) {
-      expect(
-        /^John 20:28$|^Proverbs 22:1$/.test(r.ref),
-        `a case alteration that is NOT the John 20:28 / Proverbs 22:1 corpus question: ${r.ref} — ${r.quoted}`,
-      ).toBe(true);
-    }
+    expect(remaining.map((r) => `${r.ref} — ${r.quoted}`)).toEqual([]);
   });
 
   it('the ceilings are not stale — if the debt has been paid down, record it', () => {
@@ -261,46 +253,20 @@ describe('the honest limit is stated, not papered over (DR-0076 §8)', () => {
 });
 
 // =============================================================================
-// THE IN-REPO KJV CORPUS CARRIES AN OPEN QUESTION (found 2026-09-06 while paying
-// down kjv-case; recorded here so it cannot drift silently — DR-0075/DR-0076).
-// The KJV translators reserved small-caps LORD for the Tetragrammaton, which the
-// Greek NT does not carry outside OT quotations (Matthew 22:44 "The LORD said
-// unto my Lord" is one). Our corpus (aruljohn/Bible-kjv, checked upstream) prints
-// LORD in 29 NT verses, most of them plain "Lord" in the KJV: Acts 15:11 "the
-// LORD Jesus Christ", Acts 20:19 "Serving the LORD", John 20:28 "My LORD and my
-// God". Readers see that text in the in-app Bible. It is NOT patched from memory:
-// a reference text must be fetched (DR-0076). Until then the count is pinned so a
-// re-ingest that changes it is noticed, and the lessons quote the KJV's reading.
-// re-review: 2026-09-20.
+// THE CORPUS QUESTION, CLOSED THE SAME DAY. Found while paying down kjv-case:
+// the in-repo KJV printed small-caps LORD in 29 NT verses where the KJV prints
+// it in five (Psalm 110:1 quoted, and Revelation 19:16), and mis-cased the Name
+// in dozens of OT verses. Settled with FETCHED witnesses, never memory: a second
+// public-domain KJV and the WEB's Yahweh/Lord as the Tetragrammaton oracle.
+// The full gate lives in kjv-corpus-name-case.test.js; this keeps the one pin
+// the LESSONS depend on.
 // =============================================================================
-describe('the in-repo KJV corpus carries an open question — pinned, not hidden', () => {
-  const NT = ['Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1Corinthians', '2Corinthians',
-    'Galatians', 'Ephesians', 'Philippians', 'Colossians', '1Thessalonians', '2Thessalonians',
-    '1Timothy', '2Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', '1Peter', '2Peter',
-    '1John', '2John', '3John', 'Jude', 'Revelation'];
-  const KJV = join(HERE, '..', '..', 'public', 'bible', 'kjv');
-  const ntLordVerses = () => {
-    const out = [];
-    for (const b of NT) {
-      let j;
-      try { j = JSON.parse(readFileSync(join(KJV, `${b}.json`), 'utf8')); } catch { continue; }
-      (j.chapters || []).forEach((ch, ci) => ch.forEach((v, vi) => { if (/\bLORD\b/.test(v)) out.push(`${b} ${ci + 1}:${vi + 1}`); }));
-    }
-    return out;
-  };
-
-  it('NT verses printing small-caps LORD: exactly the 29 measured on 2026-09-06 (a re-ingest that changes this is a decision, not a drift)', () => {
-    const found = ntLordVerses();
-    expect(found.length, found.join(', ')).toBe(29);
-    expect(found).toContain('John 20:28');
-    expect(found).toContain('Acts 15:11');
-    expect(found, 'the legitimate one — Psalm 110:1 quoted').toContain('Matthew 22:44');
-  });
-
-  it('the lessons quote John 20:28 as the KJV reads it ("My Lord and my God"), never the corpus artifact', () => {
+describe('the lessons quote John 20:28 as the KJV reads it, and the corpus now agrees', () => {
+  it('"My Lord and my God" — in the lessons AND in the served corpus', () => {
     const lessons = readFileSync(join(ROOT, 'app/src/lib/living-lessons-class.js'), 'utf8');
     expect(lessons).not.toMatch(/My LORD and my God/);
     expect(lessons).toMatch(/My Lord and my God/);
+    const john = JSON.parse(readFileSync(join(ROOT, 'app/public/bible/kjv/John.json'), 'utf8'));
+    expect(john.chapters[19][27]).toBe('And Thomas answered and said unto him, My Lord and my God.');
   });
 });
-

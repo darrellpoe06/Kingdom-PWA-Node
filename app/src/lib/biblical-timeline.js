@@ -161,7 +161,7 @@ export const TIMELINE_EPOCHS = Object.freeze([
     summary: 'Humanity’s proud rebellion at the tower, and God’s scattering of the nations (Genesis 11). Deuteronomy 32:8-9 ties it together: the Most High divided the nations their inheritance and kept Israel as "the LORD’s portion." The rest of the story is Him going after the scattered nations to bring them home.',
     anchors: [
       { ref: 'Genesis 11:8-9', text: 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city. Therefore is the name of it called Babel; because the LORD did there confound the language of all the earth: and from thence did the LORD scatter them abroad upon the face of all the earth.' },
-      { ref: 'Deuteronomy 32:8-9', text: 'When the Most High divided to the nations their inheritance, when he separated the sons of Adam, he set the bounds of the people according to the number of the children of Israel. For the LORD’s portion is his people; Jacob is the lot of his inheritance.' },
+      { ref: 'Deuteronomy 32:8-9', text: 'When the most High divided to the nations their inheritance, when he separated the sons of Adam, he set the bounds of the people according to the number of the children of Israel. For the LORD’s portion is his people; Jacob is the lot of his inheritance.' },
     ],
     lessons: ['ll29-the-unseen-realm-and-the-nations'],
     possibilities: [
