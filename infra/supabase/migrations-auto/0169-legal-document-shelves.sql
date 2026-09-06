@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0168 — Legal document shelves: the four categories become real (DR-0329)
+-- 0169 — Legal document shelves: the four categories become real (DR-0329)
 -- =============================================================================
 -- Darrell 2026-09-06, on the Books -> Legal tab: "I need a section that I can
 -- upload legal documents for each of these categories."
@@ -41,6 +41,29 @@
 -- creator-only RLS, short-lived signed URLs, a PIN-gated tab (PrivateGate), and
 -- no title leaving the table. The surface says this plainly rather than
 -- implying an encryption layer that does not exist. re-review: 2026-10-15.
+--
+-- ── WHY THIS IS 0169 AND NOT 0168 (2026-09-06, same-day correction) ──
+-- It shipped as 0168 and the db-migrate lane went red on the merge:
+--
+--   ERROR: ordinal 0168 already used by
+--          0168-the-ledger-refuses-a-second-file-with-the-same-number.sql
+--          — pick the next free number
+--
+-- That file is NOT in this repository (code search: zero hits; no open PR
+-- carries it), so an 0168 was applied to the database from outside main. The
+-- DDL below ran and committed — the table and its policies exist — but the
+-- LEDGER INSERT was rejected, which leaves the migration unrecorded and
+-- re-applied (harmlessly, it is idempotent) on every subsequent run while the
+-- lane stays red. Renumbering is the whole fix.
+--
+-- THE HONEST LIMIT (DR-0076 §8): 0169 is the next ordinal free *in this repo*.
+-- Nothing in this checkout can enumerate the database's ledger — the sandbox
+-- has neither database credentials nor a route to the NAS — so it is possible
+-- that whatever supplied that 0168 also supplied an 0169. If so, the guard
+-- rejects this the same way and names the conflict, which is a cheap and
+-- self-correcting failure rather than a silent one. The deeper gap this
+-- exposed: the uniqueness rule lives ONLY in the database, so no repo-side
+-- check can catch the collision before a merge. Recorded in DR-0329.
 --
 -- DEPENDS ON: schema-v2.1-infra (instances), 0011/0023 (engagement_touch_updated_at).
 -- IDEMPOTENT: CREATE ... IF NOT EXISTS, DROP-then-CREATE policies, guarded
@@ -159,7 +182,7 @@ BEGIN
   VALUES ('legal-documents', 'legal-documents', false)
   ON CONFLICT (id) DO NOTHING;
 EXCEPTION WHEN insufficient_privilege THEN
-  RAISE NOTICE '0168: insufficient privilege on storage.buckets - create legal-documents (PRIVATE) via the dashboard';
+  RAISE NOTICE '0169: insufficient privilege on storage.buckets - create legal-documents (PRIVATE) via the dashboard';
 END $$;
 
 -- Object paths are `<owner user id>/<slug>.<ext>`, so the first folder segment
@@ -183,7 +206,7 @@ BEGIN
   CREATE POLICY legal_documents_object_delete ON storage.objects FOR DELETE TO authenticated
     USING (bucket_id = 'legal-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
 EXCEPTION WHEN insufficient_privilege THEN
-  RAISE NOTICE '0168: insufficient privilege on storage.objects - create the four legal-documents owner-only policies via the dashboard';
+  RAISE NOTICE '0169: insufficient privilege on storage.objects - create the four legal-documents owner-only policies via the dashboard';
 END $$;
 
 NOTIFY pgrst, 'reload schema';

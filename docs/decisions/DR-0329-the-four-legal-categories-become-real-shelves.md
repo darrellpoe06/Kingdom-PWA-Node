@@ -47,7 +47,7 @@ placeholder it replaced.
 ## Decision
 
 1. **The four categories are real shelves** backed by `legal_documents`
-   (migration 0168). Each category's bullet list, which used to be decoration,
+   (migration 0169). Each category's bullet list, which used to be decoration,
    IS that shelf's document-type vocabulary — which is what makes the bullets
    true rather than illustrative.
 2. **RLS is creator-scoped, not instance-scoped** — a deliberate divergence from
@@ -104,6 +104,36 @@ prevent, and on this data it would be the most expensive lie in the system.
 - The engine's own test caught a real bug in it before merge: `formatBytes(null)`
   returned `"0 B"` because `Number(null)` is `0` — a painted zero for an unknown
   size on exactly the pointer records that have none. Fixed in the engine.
+
+## Postscript — the migration shipped as 0168 and had to be renumbered
+
+The db-migrate lane went red on the merge:
+
+```
+ERROR: ordinal 0168 already used by
+       0168-the-ledger-refuses-a-second-file-with-the-same-number.sql
+       — pick the next free number
+```
+
+That file is **not in this repository** — code search returns zero hits and no
+open PR carries it — so an 0168 reached the database's ledger from outside
+main. The DDL committed (the table and policies exist); only the ledger INSERT
+was rejected, which leaves the migration unrecorded, harmlessly re-applied each
+run, and the lane red until renumbered. It is now **0169**.
+
+**The gap worth keeping.** The ordinal-uniqueness rule lives *only in the
+database*. A repo-side check cannot catch this collision, because the colliding
+file is not in the repo — so nothing local could have warned me before merge,
+and nothing local can confirm 0169 is free either (this sandbox has no database
+credentials and no route to the NAS). The guard is real and it worked; what is
+missing is any way to consult it before spending a merge. Two candidate closes,
+neither built here: publish the applied-ledger filenames into the repo as a
+generated artifact the CI can diff against, or have the lane pre-flight the
+ordinal before applying. **re-review: 2026-09-20.**
+
+Recorded also because it is this session's own theme turning up in a third
+place: a rule that exists in exactly one location, invisible to the place that
+needed it.
 
 ## Consequences
 

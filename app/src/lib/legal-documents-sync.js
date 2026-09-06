@@ -1,5 +1,5 @@
 // =============================================================================
-// legal-documents-sync — the courier for the legal shelves (0168, DR-0329)
+// legal-documents-sync — the courier for the legal shelves (0169, DR-0329)
 // =============================================================================
 // Two halves, deliberately separate:
 //
@@ -11,7 +11,7 @@
 //              not, and a public URL is a permanent unauthenticated link to it.
 //
 // EVERY METHOD FAILS SOFT AND SIGNED-OUT. The pointer path (no bytes) is the
-// whole reason: signed out, on a plane, before migration 0168 has applied, the
+// whole reason: signed out, on a plane, before migration 0169 has applied, the
 // user can still record that the trust instrument is at counsel's office, and
 // it syncs when a session returns. Only the FILE path needs the network, and it
 // says so in words rather than failing blankly.
@@ -42,7 +42,7 @@ export const legalDocumentsSync = createTableSync({
       // Sent as a real boolean, never coerced. The column is NOT NULL, so an
       // undecided document is rejected by Postgres as well as by the form —
       // the mechanical guarantee behind the privileged-stripped export holds
-      // at both ends (see 0168's note on this column).
+      // at both ends (see 0169's note on this column).
       privileged: item.privileged === true,
       where_filed: item.whereFiled || null,
       note: item.note || null,
@@ -123,7 +123,7 @@ export async function uploadLegalFile({ file, slug }) {
         return {
           ok: false,
           reason: 'no-bucket',
-          message: 'The private legal vault is not set up on this backend yet (migration 0168). Your document was not stored. File it as a pointer for now — nothing is lost.',
+          message: 'The private legal vault is not set up on this backend yet (migration 0169). Your document was not stored. File it as a pointer for now — nothing is lost.',
         };
       }
       return { ok: false, reason: 'upload-failed', message: `The file could not be stored: ${error.message}` };

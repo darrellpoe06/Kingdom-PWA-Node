@@ -9,7 +9,7 @@
 // a working picker, a refusal the user can read, a count that moves.
 //
 // Supabase is stubbed at the module boundary: this proves the SURFACE, and the
-// data isolation behind it is Postgres RLS's job (migration 0168), never a
+// data isolation behind it is Postgres RLS's job (migration 0169), never a
 // jsdom assertion's.
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { createElement } from 'react';

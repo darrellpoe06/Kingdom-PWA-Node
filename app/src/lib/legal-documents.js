@@ -224,7 +224,7 @@ export function formatBytes(bytes) {
 
 // ---------------------------------------------------------------------------
 // The storage path. Folder 1 is the OWNING USER's id, which is the whole
-// storage RLS policy in migration 0168: `(storage.foldername(name))[1] =
+// storage RLS policy in migration 0169: `(storage.foldername(name))[1] =
 // auth.uid()::text`. Nothing about the path reveals what the document is —
 // the label never leaves the table.
 // ---------------------------------------------------------------------------
