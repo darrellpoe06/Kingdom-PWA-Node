@@ -107,18 +107,40 @@ export const IP_PORTFOLIO = [
   method('Workforce Layer QA-gate design', ['DR-0017', 'DR-0020']),
   method('Industry/Role module template', ['DR-0030']),
   method('Council Chamber mechanism', ['docs/00-foundations/_root/COUNCIL-CHAMBER.md']),
+  // Moved here from STILL_PROTECTABLE on 2026-09-06 once git ls-files was
+  // actually run against the claim. See the correction note below.
+  method('Prompt libraries', ['app/src/lib/ari.js', 'app/src/lib/class-tutor.js', 'infra/nas-sme-pipeline/client-discovery-json-prompt.md']),
+  method('Operational runbooks', ['docs/ops/ENSEMBLE-WAYS-BRIEF.md', 'docs/ops/SECOND-OPINION-BRIEF.md']),
+  method('Tenant-portal implementation', ['app/src/lib/tenant-portal.js', 'app/src/lib/tenants.js', 'infra/supabase/schema-v1.1-tenant-join.sql']),
 ];
 
-// Still protectable BECAUSE not yet published — what a posture change would
-// actually preserve. Listed separately because these are not register rows
-// yet; naming them stops the surface implying everything is already lost.
+// Still protectable BECAUSE genuinely not published. Each entry carries the
+// CHECK that establishes it, because "we kept that private" is exactly the kind
+// of claim that feels true and is not (DR-0076 §1 — no claim without evidence).
+//
+// CORRECTION, 2026-09-06. This list first shipped with "prompt libraries" and
+// "operational runbooks" on it. Both are wrong: `git ls-files` puts the prompts
+// in app/src/lib/ari.js, class-tutor.js and infra/nas-sme-pipeline/*-prompt.md,
+// and the runbooks in docs/ops/ — all tracked, all public. They were moved to
+// the register below as DISCLOSED rows. An unverified "still protectable" is
+// worse than no list, because it is the sentence a posture decision rests on.
 export const STILL_PROTECTABLE = [
-  'Tenant configurations',
-  'Prompt libraries',
-  'Tuned model weights',
-  'Operational runbooks',
-  'Customer data',
-  'Any future module built private from the outset',
+  {
+    name: 'Environment values and credentials',
+    basis: '.gitignore excludes .env and .env.*; only .env.example templates are tracked.',
+  },
+  {
+    name: 'Tuned model weights and NAS-side runtime artifacts',
+    basis: 'infra/nas-llm/ tracks server code only — no .gguf or .safetensors in git.',
+  },
+  {
+    name: 'Customer and tenant data',
+    basis: 'Supabase rows behind RLS; never in the repository.',
+  },
+  {
+    name: 'Any future module built private from the outset',
+    basis: 'Not yet written — the one category a posture change fully preserves.',
+  },
 ];
 
 // Excluded on purpose, recorded so no later pass "helpfully" adds it.

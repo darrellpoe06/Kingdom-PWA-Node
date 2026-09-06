@@ -19,6 +19,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import { IpRegisterPanel } from '../components/Legal.jsx';
 import { assetShape, portfolioScore } from '../lib/ip-register.js';
+import { IP_PORTFOLIO, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
 
 let container, root;
 async function mount(props = {}) {
@@ -39,19 +40,19 @@ const buttons = (re) => [...document.body.querySelectorAll('button')].filter((b)
 async function click(el) { await act(async () => { el.click(); }); }
 
 describe('IpRegisterPanel reports the real position', () => {
-  it('says 0 of 22 are assets, and names the shared bottleneck as the one document that moves it', async () => {
+  it('says 0 of 25 are assets, and names the shared bottleneck as the one document that moves it', async () => {
     await mount();
-    expect(text()).toMatch(/0 of 22 are assets/i);
+    expect(text()).toMatch(/0 of 25 are assets/i);
     expect(text()).toMatch(/one document moves the whole register/i);
     expect(text()).toMatch(/written IP assignment into an entity/i);
   });
 
   it('warns about the six methods publication put outside trade-secret reach, without implying all is lost', async () => {
     await mount();
-    expect(text()).toMatch(/6 methods outside trade-secret reach/i);
+    expect(text()).toMatch(/9 methods outside trade-secret reach/i);
     expect(text()).toMatch(/Deterministic gate suite/);
     expect(text()).toMatch(/disclosure is not recoverable/i);
-    expect(text()).toMatch(/Still protectable, because not yet published/i);
+    expect(text()).toMatch(/Still protectable, because verified unpublished/i);
   });
 
   it('DERIVES the headline — a converted portfolio reads differently', async () => {
@@ -78,7 +79,7 @@ describe('IpRegisterPanel reports the real position', () => {
 
   it('keeps the schedule collapsed until asked, then puts the clearance risk on screen', async () => {
     await mount();
-    const toggle = buttons(/show all 22 rows/i)[0];
+    const toggle = buttons(/show all 25 rows/i)[0];
     expect(toggle).toBeTruthy();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(text()).not.toMatch(/collides with the W3C/i);
@@ -92,12 +93,31 @@ describe('IpRegisterPanel reports the real position', () => {
 
   it('shows an empty lane by omission rather than rendering a zero section', async () => {
     await mount();
-    await click(buttons(/show all 22 rows/i)[0]);
+    await click(buttons(/show all 25 rows/i)[0]);
     // 8 marks, 8 works, 6 methods, 0 patents — the patent lane is absent, not "Patent · 0".
     expect(text()).toMatch(/Trademark · 8/);
     expect(text()).toMatch(/Copyright · 8/);
-    expect(text()).toMatch(/Trade secret · 6/);
+    expect(text()).toMatch(/Trade secret · 9/);
     expect(text()).not.toMatch(/Patent · 0/);
+  });
+
+  it('backs every still-protectable claim with the check that establishes it', async () => {
+    // The claim "we kept that private" is the sentence a posture decision rests
+    // on, and it shipped WRONG once: prompt libraries and operational runbooks
+    // were listed here while git ls-files put both in the public repo. Every
+    // entry now carries its basis, and the two corrected items appear as
+    // DISCLOSED rows instead.
+    expect(STILL_PROTECTABLE.every((i) => i.name && i.basis)).toBe(true);
+    await mount();
+    expect(text()).toMatch(/verified unpublished/i);
+    expect(text()).toMatch(/only \.env\.example templates are tracked/i);
+    expect(text()).toMatch(/no \.gguf or \.safetensors in git/i);
+    // And the corrected pair is on the forfeited side, not the protected one.
+    const stillNames = STILL_PROTECTABLE.map((i) => i.name).join(' ');
+    expect(stillNames).not.toMatch(/prompt librar/i);
+    expect(stillNames).not.toMatch(/runbook/i);
+    expect(IP_PORTFOLIO.some((a) => a.name === 'Prompt libraries' && a.publiclyDisclosed)).toBe(true);
+    expect(IP_PORTFOLIO.some((a) => a.name === 'Operational runbooks' && a.publiclyDisclosed)).toBe(true);
   });
 
   it('says plainly that this is PoeTech’s register and not the tenant’s', async () => {

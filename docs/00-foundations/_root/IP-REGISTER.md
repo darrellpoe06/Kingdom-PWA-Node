@@ -74,10 +74,22 @@ Legend — **Auth:** human / mixed (human-directed, AI-expressed) / generated ·
 | Workforce Layer QA-gate design (DR-0017/0020) | yes | **No — disclosed** |
 | Industry/Role module template (DR-0030) | yes | **No — disclosed** |
 | Council Chamber mechanism | yes | **No — disclosed** |
+| Prompt libraries | yes | **No — disclosed** |
+| Operational runbooks | yes | **No — disclosed** |
+| Tenant-portal implementation | yes | **No — disclosed** |
 
 **Cause:** the repository is public. GitHub API, 2026-09-06: `"private": false`, `"visibility": "public"`. Trade secret requires reasonable measures to maintain secrecy; a public repo is the opposite. **Nothing already published can be pulled back into secrecy.**
 
-**Still protectable, because not yet published** — these are what a posture change would actually preserve: tenant configurations, prompt libraries, tuned model weights, operational runbooks, customer data, and any future module built private from the outset.
+**Still protectable, because verified unpublished** — what a posture change would actually preserve. Each carries the check that establishes it, because this is the sentence the posture decision rests on:
+
+| Item | Basis |
+|---|---|
+| Environment values and credentials | `.gitignore` excludes `.env` and `.env.*`; only `.env.example` templates are tracked. |
+| Tuned model weights and NAS-side runtime artifacts | `infra/nas-llm/` tracks server code only — no `.gguf` or `.safetensors` in git. |
+| Customer and tenant data | Supabase rows behind RLS; never in the repository. |
+| Any future module built private from the outset | Not yet written — the one category a posture change fully preserves. |
+
+**Correction, 2026-09-06.** This list first shipped naming *prompt libraries* and *operational runbooks* as still protectable. Both were wrong: `git ls-files` puts the prompts in `app/src/lib/ari.js`, `class-tutor.js` and `infra/nas-sme-pipeline/*-prompt.md`, and the runbooks in `docs/ops/` — all tracked, all public. They are now register rows on the disclosed side, above. An unverified "still protectable" is worse than no list at all, because it is exactly the sentence a posture decision leans on.
 
 ### Patents
 

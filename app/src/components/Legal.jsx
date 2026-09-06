@@ -371,7 +371,17 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
             claimed: {forfeited.map((a) => a.name).join(' · ')}.
           </p>
           <p className="text-xs leading-relaxed mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-            <strong>Still protectable, because not yet published:</strong> {STILL_PROTECTABLE.join(' · ')}.
+            <strong>Still protectable, because verified unpublished:</strong>
+          </p>
+          <ul className="mt-1 space-y-1">
+            {STILL_PROTECTABLE.map((item) => (
+              <li key={item.name} className="text-[0.625rem] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                · <strong>{item.name}</strong> — <span className="text-[#5A5751] italic">{item.basis}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            Each carries the check that establishes it, because this is the sentence a repository-posture decision rests on.
           </p>
         </div>
       )}
