@@ -205,12 +205,33 @@ describe('duplicate ordinals WITHIN the repo — a shrink-only ratchet', () => {
     expect(healed, `these ordinals are no longer duplicated — drop them from the baseline: ${healed.join(', ')}`).toEqual([]);
   });
 
-  it('the push migration sits on a free ordinal', () => {
-    // The direct regression: 0170 collided with a phantom, so it became 0171.
+  it('the twice-collided migrations sit on ordinals nothing else in the repo uses', () => {
+    // The direct regression, and it took THREE numbers to land. 0170 collided
+    // with an external phantom; 0171 collided with ANOTHER one; 0180/0181 are a
+    // cushion above the whole observed external run (0168-0171).
+    //
+    // Asserting the invariant rather than the literal number on purpose: a
+    // hardcoded ordinal has already had to be edited twice, and a check that
+    // needs editing every time the thing it guards moves is a check that will
+    // eventually be edited wrong. What must stay true is UNIQUENESS.
     const dir = join(REPO, 'infra', 'supabase', 'migrations-auto');
     const files = readdirSync(dir).filter((x) => x.endsWith('.sql'));
-    expect(files).toContain('0171-push-subscriptions-and-the-live-signal.sql');
-    expect(files.filter((f) => f.startsWith('0171-'))).toHaveLength(1);
-    expect(files.some((f) => f.startsWith('0170-'))).toBe(false);
+
+    const push = files.filter((f) => f.endsWith('-push-subscriptions-and-the-live-signal.sql'));
+    const shelves = files.filter((f) => f.endsWith('-legal-document-shelves.sql'));
+    expect(push, 'exactly one push migration').toHaveLength(1);
+    expect(shelves, 'exactly one legal-shelves migration').toHaveLength(1);
+
+    // Each sits alone on its ordinal.
+    for (const f of [push[0], shelves[0]]) {
+      const ord = f.slice(0, 4);
+      expect(files.filter((x) => x.startsWith(`${ord}-`)), `ordinal ${ord} is shared`).toHaveLength(1);
+    }
+
+    // And the four ordinals the external ledger is known to hold are vacated
+    // here, so a re-run cannot walk back into a collision we already paid for.
+    for (const ord of ['0168', '0169', '0170', '0171']) {
+      expect(files.some((f) => f.startsWith(`${ord}-`)), `ordinal ${ord} collided externally and must stay vacated`).toBe(false);
+    }
   });
 });

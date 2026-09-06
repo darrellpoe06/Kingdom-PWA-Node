@@ -1,4 +1,41 @@
 -- ===========================================================================
+-- RENUMBERED TWICE: 0170 -> 0171 -> 0181. The ordinal guard is self-correcting,
+-- and this is what that looks like in practice.
+--
+-- db-migrate #459 on main 397cafb, read from the LOG rather than the badge:
+--
+--   ERROR: ordinal 0171 already used by 0171-a-course-is-imported-the-same-way-twice.sql
+--   ERROR: ordinal 0169 already used by 0169-grants-are-asserted-after-every-migration.sql
+--   --- summary: applied=0  skipped=180  failed=2 ---   (exit 1)
+--
+-- The 0171 header predicted exactly this and said so honestly: "0171 is the
+-- next ordinal free IN THIS REPO... whatever supplied that 0170 may also have
+-- supplied an 0171. If so the guard names it again, which is a cheap
+-- self-correcting failure rather than a silent one." It did, and it was.
+--
+-- WHAT THE FOUR COLLISIONS TOGETHER REVEAL. The database ledger holds a
+-- contiguous run this repository has never contained:
+--   0168 - (hit hours earlier, DR-0330)
+--   0169 - grants-are-asserted-after-every-migration.sql
+--   0170 - courses-a-lesson-belongs-to-a-course.sql
+--   0171 - a-course-is-imported-the-same-way-twice.sql
+-- A "courses/grants" workstream is applying migrations to the same database
+-- from outside main. Picking "the next number free in this repo" therefore
+-- walks straight into it every single time, which is why this jumps to 0180/
+-- 0181 -- a nine-ordinal cushion above the highest collision seen, not a
+-- proven-free number. HONEST LIMIT (DR-0076 s8): this sandbox still cannot
+-- enumerate the ledger, so 0181 is a better bet, not a certainty. If that
+-- workstream has reached 0181 the guard names it again and the lane goes red
+-- again -- loudly, which is the whole point. DR-0329 tracks the real fix.
+--
+-- AND THE GATE ITSELF IS NOW PROVEN IN PRODUCTION. This same condition printed
+-- "failed=0" and went GREEN on run #454 this morning. It now prints failed=2
+-- and exits 1. The ledger-rejection check shipped in this same session is what
+-- turned a silent lie into a red lane, and the first thing it caught was not
+-- even this file -- it was 0180-legal-document-shelves.sql, someone else's
+-- migration that had been silently unrecorded.
+-- ===========================================================================
+-- ===========================================================================
 -- 0171 — Web Push subscriptions, an HONEST live signal, and a send ledger
 -- ===========================================================================
 -- ── WHY THIS IS 0171 AND NOT 0170 (2026-09-06, same-day correction) ────────
