@@ -92,3 +92,26 @@ export async function uploadTaxDoc(req, opts = {}) {
     return { ok: false, skipped: 'network-error' };
   }
 }
+
+// Turn an uploadTaxDoc failure into a message that names the hop that broke.
+// Pure (no React, no browser) so every branch is pinned in tax-documents.test.js;
+// it lives beside uploadTaxDoc because it interprets exactly that return shape.
+export function uploadFailureMessage(res) {
+  const status = res && typeof res.status === 'number' ? res.status : 0;
+  if (res && res.skipped === 'network-error') {
+    return 'The upload never left this device — you appear to be offline. Nothing was sent; try again when you have signal.';
+  }
+  if (status === 401 || status === 403) {
+    return 'The NAS refused the upload as unauthorized. This device is missing the family bridge token — sign in again on this device to have it reissued.';
+  }
+  if (status === 404 || status === 502 || status === 503) {
+    return `The NAS tax service did not answer (${status}). The PDF was not stored. The archive below will also read empty while this is true — it is the same hop.`;
+  }
+  if (status === 413) {
+    return 'The NAS rejected the file as too large (over 25 MB). Split a long scan and upload the parts.';
+  }
+  if (status) {
+    return `The NAS tax service answered ${status} and the PDF was not stored.`;
+  }
+  return 'Could not reach the NAS upload service. You can still drop the PDF on the NAS and run the ingest.';
+}

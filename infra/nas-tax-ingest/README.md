@@ -53,21 +53,52 @@ scheduled refresh must be armed deliberately per the three-brakes rule.
 
 ## In-app upload (Christina never touches Synology)
 
-`tax_upload_server.py` is the sovereign receiver for the Books → Taxes upload
-form (`app/src/lib/tax-upload.js`). It writes the PDF onto the bind mount,
-re-runs the ingest, and returns the fresh archive.
-
-Run it on the NAS:
+`tax_upload_server.py` is the sovereign backend for the Books → Taxes screen.
+It serves **all three** calls the app makes, from one process:
 
 ```
-cd /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-tax-ingest
-pip3 install --user fastapi "uvicorn[standard]" python-multipart   # once
-TAX_UPLOAD_TOKEN="<same bridge token the app uses>" \
-  uvicorn tax_upload_server:app --host 127.0.0.1 --port 8790
+POST /taxes/upload                            multipart: file, entityId, year, kind
+GET  /taxes/archive.json                      the published snapshot the screen reads
+GET  /taxes/files/<entity>/<year>/<name>.pdf  the original return, printable
 ```
 
-Route it same-origin in the Caddy site block so the app reaches it at
-`/taxes/upload` (beside the static `/taxes/*` it already serves):
+### It deploys itself — do not run it by hand
+
+`install.sh` is registered in `infra/nas-loops/services.json`, so **merging is
+the deploy** (DR-0236): the NAS mirror pulls, `services-sync` runs the installer
+on its own clock, and the service is installed, enabled, started, mounted on the
+Funnel at `/taxes`, and health-probed. It is idempotent — safe every cycle.
+
+The `funnel-watchdog` loop keeps the `/taxes` mount alive across reboots and
+Funnel resets, so the route stays correct rather than merely starting correct.
+
+### Why the reads come from this service and not Caddy
+
+They used to be intended to come from Caddy. That intent was never actuated and
+nothing noticed for seven weeks — see the history note below. Nothing in this
+repository can verify what the NAS Caddyfile contains or that it has an import
+directory, and DR-0076 forbids editing a config we cannot verify, so the reads
+are served here: one backend, one Funnel mount, provable by the installer's own
+health probe. The reads are a pure passthrough of what `tax_ingest.py` already
+published into `SITE`, so this adds no second source of truth.
+
+### History — the 2026-09-06 defect (DR-0330)
+
+Darrell, on the Taxes screen with a 2024 return selected: *"I am also unable to
+upload my taxes."* The screen showed **"Could not reach the NAS upload service"**
+and **"NO RETURNS INDEXED YET"** at the same time. One cause, three missing
+pieces, none of them in the app: this service had no installer and was in no
+manifest so nothing had ever started it; the Funnel had no `/taxes` mount
+(`infra/nas-transport/RECORDED-STATE.md` listed only `/`, `/mcp`, `/nas-photos`);
+and the Caddy route below existed only in a docstring. The upload POST reached a
+backend that did not exist, and the archive GET fell through the Funnel root to
+n8n. Exactly the `/nas-photos` failure class (DR-0268): built, correct, never
+actuated, invisible because every layer the repo could see was green.
+`scripts/funnel-actuation-guard.mjs` is the witness that now fails the build on
+a route that reaches nothing.
+
+If the NAS Caddyfile is ever confirmed to have an import directory, this route
+may additionally be served there — the two do not conflict:
 
 ```
 handle /taxes/upload {

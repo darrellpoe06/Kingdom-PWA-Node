@@ -161,9 +161,9 @@ export const LEDGER = [
   //    placeholder/"coming"; activated ONLY once it actually works.
   {
     id: 'legal-full', label: 'Legal module — full encrypted matter management',
-    ref: 'app/src/components/Legal.jsx:143 (LegalPlaceholder "Coming next")', bucket: BUCKET.BROKEN, active: false,
-    gate: 'ships LegalPlaceholder; full impl tracked as tasks #94–#99',
-    reason: 'FIX LIST: PIN setup → AES-GCM-256 at-rest → matter CRUD (4 scopes) → privileged journal/documents → key-date Calendar mirroring → privileged-stripped export are not built. Surfaced honestly as a placeholder, NOT flipped on.',
+    ref: 'app/src/components/Legal.jsx (LegalPlaceholder "Coming next")', bucket: BUCKET.BROKEN, active: false,
+    gate: 'document SHELVES ship (DR-0329); matter management + at-rest encryption remain unbuilt',
+    reason: 'PARTIALLY CLOSED 2026-09-06 (DR-0329): the four category boxes were hardcoded <ul> lists and are now real document shelves — upload or pointer, mandatory privileged Y/N, private bucket + creator-only RLS (migration 0168), signed-URL reads. STILL ON THE FIX LIST: matter CRUD across the four scopes, the privileged journal, key-date Calendar mirroring, the privileged-stripped export, and AES-GCM-256 at rest. The encryption layer is not merely unbuilt but currently unbuildable as specified: LEGAL-PRIVACY-BOUNDARY derives its key from the Legal PIN, and lib/pin.js keeps the PIN out of the browser entirely, so there is no client-side key material. That needs its own key-architecture decision. The surface states this in words rather than implying encryption it lacks. re-review: 2026-10-15.',
   },
   // (removed 2026-07-12) 'pulpit-sermons' entry retired: it described the Pulpit
   // sermon archive as a "Sermons coming soon" placeholder at a monolith line that
