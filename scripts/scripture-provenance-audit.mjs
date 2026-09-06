@@ -29,22 +29,36 @@
 //                NOT an accusation of fabrication — it is the narrower, truer
 //                statement that the words are attributed to an edition we are
 //                not licensed to reproduce, so nothing here can confirm them.
-//                Darrell,
-//                2026-09-06: "Agreed... attribution not unverified!!!" — and he
-//                is right. Calling this "unverified" reads as an accusation of
-//                fabrication when the truthful statement is narrower: the words
-//                are attributed to an edition we are not licensed to reproduce,
-//                so no machine here can confirm them. The remedy is a
-//                translation label at the citation, never a rewrite.
+//                Darrell, 2026-09-06: "Agreed... attribution not
+//                unverified!!!" — and he is right. Calling this "unverified"
+//                reads as an accusation of fabrication when the truthful
+//                statement is narrower. The remedy is a label at the citation,
+//                never a rewrite — and once labelled, it leaves this class:
+//   esv-labelled        — "…" (Ref, ESV): the citation NAMES an edition we
+//                         cannot carry. Honest attribution; not verified here,
+//                         not a defect, and free to grow. (Any non-carried
+//                         label gets its own `<label>-labelled` class.)
+//   paraphrase-declared — "…" (paraphrasing Ref) / (cf. Ref) / (Ref,
+//                         paraphrased): OUR words that SAY they are ours.
+//                         CLAUDE.md forbids a paraphrase that does not declare
+//                         itself; this is the declaration, counted not hidden.
+//   A KJV/WEB label is verified like any other quotation and cannot launder a
+//   false claim: ESV words labelled "KJV" stay attributed/drift.
 //
 // SPLITTING THE OLD `unverified` INTO THOSE TWO IS THE WHOLE POINT: one is our
 // defect and shrinks by fixing our text; the other is a licence boundary and
 // shrinks only by labelling. Reporting them as one number made the second look
 // like the first, and hid how much of the pile was actually ours to fix.
 //
-// PROVEN-TO-CATCH: scripture-provenance.test.js pins the unverified count as a
-// ratchet that may only shrink, and fails the build if a NEW unverified
-// quotation appears in any scanned file.
+// 2026-09-06, MEASURED: 29 of the 41 "kjv-drift" rows were THIS SCRIPT's own
+// defect — a JSON story body escapes its quotes as \" and the audit did not
+// unescape them, so verbatim verses ended in a backslash. Fixed alongside three
+// more misses of the same kind (a literal \u2019, a //-wrapped comment line, and
+// a qualified citation the regex never saw). Both open classes then went to 0.
+//
+// PROVEN-TO-CATCH: scripture-provenance.test.js pins kjv-drift and attributed as
+// ratchets that may only shrink (both 0 now), asserts the declared classes are
+// SEEN, and reproduces each instrument miss above as a probe.
 //
 //   node scripts/scripture-provenance-audit.mjs          # report
 //   node scripts/scripture-provenance-audit.mjs --write  # refresh the artifact
@@ -156,17 +170,39 @@ const norm = (s) => String(s).replace(/[‘’']/g, "'").replace(/\s+/g, ' ').tr
 // the audit cannot see is a quotation with no gate on it. Found the hard way:
 // two lesson bodies authored with curly quotes went past this regex entirely,
 // so twenty Scripture quotations were unaudited until the count gave it away.
-const QUOTE_RE = /["“]([^"”]{15,})["”]\s*\(((?:[123]\s)?[A-Za-z][A-Za-z ]*?\.?)\s(\d+):(\d+)(?:[-–](\d+))?\)/g;
+// A citation may carry a QUALIFIER, and the qualifier changes what the quotation
+// CLAIMS (Darrell 2026-09-06: "attribution not unverified"):
+//   "..." (Ref, ESV)          — labelled with an edition. KJV/WEB labels are
+//                               verified here like any other; a label naming an
+//                               edition this repo cannot carry (ESV) is recorded
+//                               as `esv-labelled`: an honest attribution, not a
+//                               verified match and not a defect.
+//   "..." (paraphrasing Ref)  — DECLARED paraphrase (also `after Ref`, `cf. Ref`,
+//   "..." (Ref, paraphrased)    or a `, paraphrase(d)` suffix). CLAUDE.md forbids
+//                               paraphrasing Scripture without saying so; this is
+//                               the saying-so, and it is counted, never hidden.
+const QUOTE_RE = /["“]([^"”]{15,})["”]\s*\((?:(paraphrasing|after|cf\.)\s+)?((?:[123]\s)?[A-Za-z][A-Za-z ]*?\.?)\s(\d+):(\d+)(?:[-–](\d+))?(?:,?\s*(ESV|KJV|NIV|AMP|NKJV|NASB|WEB|paraphrased?))?\)/g;
+const CARRIED = new Set(['kjv', 'web']);
 
 export function auditSource(src, file) {
-  const text = src.replace(/\\'/g, "'");
+  // Escaped quotes are the file's, not the writer's: a `\'` in a single-quoted
+  // string and a `\"` inside a JSON story body are the same characters to a
+  // reader. A `//`-wrapped comment line is one sentence wrapped, not two.
+  const text = src
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"')
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) // a literal \u2019 IS an apostrophe
+    .replace(/\n[ \t]*\/\/[ \t]?/g, ' ');
   const rows = [];
   for (const m of text.matchAll(QUOTE_RE)) {
-    const ref = `${m[2]} ${m[3]}:${m[4]}${m[5] ? `-${m[5]}` : ''}`;
-    const v1 = Number(m[4]);
-    const v2 = m[5] ? Number(m[5]) : null;
+    const [, quoted, prefix, book, chapter, vv1, vv2, suffix] = m;
+    const ref = `${book} ${chapter}:${vv1}${vv2 ? `-${vv2}` : ''}`;
+    const v1 = Number(vv1);
+    const v2 = vv2 ? Number(vv2) : null;
+    const declaredParaphrase = Boolean(prefix) || /^paraphrase/i.test(suffix || '');
+    const label = suffix && !/^paraphrase/i.test(suffix) ? suffix.toLowerCase() : null;
     // Our own ellipses stitch fragments; each fragment must be found.
-    const parts = norm(m[1])
+    const parts = norm(quoted)
       .split(/\.\.\.|\s\|\s/)
       .map((p) => norm(p).replace(/^[,;:]\s*/, '').replace(/[.,;:!?]+$/, ''))
       .filter((p) => p.length >= 15);
@@ -177,9 +213,9 @@ export function auditSource(src, file) {
       if (!load) continue;
       // Allow the quotation to run a little past the cited verse — writers cite
       // the opening verse of a sentence that continues. Two verses of slack.
-      const exact = load(m[2], Number(m[3]), v1, v2);
+      const exact = load(book, Number(chapter), v1, v2);
       if (exact === null) { verdict = 'unresolvable-reference'; break; }
-      const wide = load(m[2], Number(m[3]), v1, (v2 || v1) + 2);
+      const wide = load(book, Number(chapter), v1, (v2 || v1) + 2);
       const haystacks = [exact, wide].filter(Boolean).map(norm);
       if (parts.every((p) => haystacks.some((h) => h.includes(p)))) { verdict = name; break; }
       // A quotation that matches EXCEPT for case is its own class. Writers
@@ -199,6 +235,11 @@ export function auditSource(src, file) {
     // case is OUR typing, and fixable. One whose words genuinely differ is
     // quoted from an edition we cannot carry — that is attribution, and saying
     // "unverified" about it overstates what we actually know.
+    // A DECLARED paraphrase claims nothing about wording, so it is not judged on
+    // wording; a label naming an edition we cannot carry is attribution, full
+    // stop. Both are counted under their own names so they can never hide.
+    if (verdict === 'unverified' && declaredParaphrase) verdict = 'paraphrase-declared';
+    else if (verdict === 'unverified' && label && !CARRIED.has(label)) verdict = `${label}-labelled`;
     if (verdict === 'unverified') {
       const letters = (t) => String(t).toLowerCase().replace(/[^a-z]/g, '');
       const hay = letters(kjvWhole());
@@ -206,7 +247,7 @@ export function auditSource(src, file) {
         ? 'kjv-drift'
         : 'attributed';
     }
-    rows.push({ file, ref, verdict, quoted: m[1].slice(0, 200) });
+    rows.push({ file, ref, verdict, quoted: quoted.slice(0, 200) });
   }
   return rows;
 }
@@ -219,11 +260,13 @@ export function audit() {
     rows.push(...auditSource(readFileSync(path, 'utf8'), rel));
   }
   const counts = rows.reduce((a, r) => ({ ...a, [r.verdict]: (a[r.verdict] || 0) + 1 }), {});
-  const unverified = rows.filter((r) => r.verdict === 'unverified');
+  // The OPEN set: still ours to act on (kjv-drift) or still only attributed
+  // (attributed). Labelled and declared quotations are settled and not listed.
+  const open = rows.filter((r) => r.verdict === 'kjv-drift' || r.verdict === 'attributed');
   const byLesson = {};
-  for (const r of unverified) byLesson[r.ref] = (byLesson[r.ref] || 0) + 1;
+  for (const r of open) byLesson[r.ref] = (byLesson[r.ref] || 0) + 1;
   return {
-    version: 1,
+    version: 2,
     note:
       'Provenance of every ATTRIBUTED inline Scripture quotation in the scanned files. '
       + '"attributed" means it matches no edition this repository carries — NOT that it is '
@@ -234,7 +277,7 @@ export function audit() {
     editions: Object.keys(EDITIONS).filter((k) => EDITIONS[k]),
     counts,
     total: rows.length,
-    unverifiedRefs: Object.entries(byLesson).sort((a, b) => b[1] - a[1]).map(([ref, n]) => ({ ref, n })),
+    openRefs: Object.entries(byLesson).sort((a, b) => b[1] - a[1]).map(([ref, n]) => ({ ref, n })),
   };
 }
 
@@ -250,7 +293,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   for (const [k, v] of Object.entries(report.counts).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${k.padEnd(24)} ${v}`);
   }
-  console.log(`\nDistinct references that could not be verified here: ${report.unverifiedRefs.length}`);
+  console.log(`\nDistinct references still open (kjv-drift + attributed): ${report.openRefs.length}`);
   console.log('Most-cited among them:');
-  for (const { ref, n } of report.unverifiedRefs.slice(0, 12)) console.log(`  ${String(n).padStart(3)}  ${ref}`);
+  for (const { ref, n } of report.openRefs.slice(0, 12)) console.log(`  ${String(n).padStart(3)}  ${ref}`);
 }

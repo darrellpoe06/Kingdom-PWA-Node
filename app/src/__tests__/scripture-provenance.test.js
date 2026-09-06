@@ -60,13 +60,22 @@ const count = (verdict) => rows.filter((r) => r.verdict === verdict).length;
 
 // The recorded state. These are CEILINGS: each may fall, never rise.
 const CEILING = {
-  'kjv-case': 348,   // identical but for case — each needs an eye, not a script
+  'kjv-case': 346,   // identical but for case — each needs an eye, not a script
   // SPLIT 2026-09-06 (Darrell: "Agreed... attribution not unverified!!!").
   // The old single `unverified: 155` hid two different things behind one
-  // number. Measuring them apart showed only 41 were ever OURS:
-  'kjv-drift': 41,   // OUR punctuation/whitespace/case drift from the KJV — fixable by script
-  attributed: 82,    // quoted from an edition we are not licensed to carry (ESV) — label it, never rewrite it
+  // number. Measuring them apart showed only 41 were ever OURS — and 29 of
+  // THOSE were the instrument's: a JSON story body escapes its quotes as \",
+  // and the audit did not unescape them, so a verbatim verse ended in a
+  // backslash and was called drift. Instrument fixed, the rest authored:
+  'kjv-drift': 0,    // OUR punctuation/whitespace/case drift from the KJV — paid down 2026-09-06
+  attributed: 0,     // a quotation from an edition we cannot carry, still UNLABELLED — paid down 2026-09-06
 };
+// The two DECLARED classes are not ceilings. `esv-labelled` is a quotation
+// that names its edition at the citation ("..." (James 1:4, ESV)) — honest
+// attribution of a text this repository cannot verify, and it may grow.
+// `paraphrase-declared` is our own wording that SAYS so ("..." (paraphrasing
+// 1 Peter 5:7) / (cf. Ref) / (Ref, paraphrased)) — CLAUDE.md forbids a
+// paraphrase that does not declare itself, and this is the declaration.
 
 describe('the audit instrument itself is sound before its numbers are trusted', () => {
   it('resolves abbreviated book names, so an ordinary citation is not called broken', () => {
@@ -112,6 +121,49 @@ describe('the audit instrument itself is sound before its numbers are trusted', 
   });
 });
 
+describe('the instrument sees what the file actually contains (each was a real miss, 2026-09-06)', () => {
+  it('a JSON story body escapes its quotes as \\" — those are quotation marks, not backslashes', () => {
+    const rows = auditSource('{"body":"He said \\"faith without works is dead\\" (James 2:26) and left."}', 'probe');
+    expect(rows.length).toBe(1);
+    expect(rows[0].verdict, '29 verbatim verses were called drift because of this').toBe('kjv');
+  });
+
+  it('a literal \\u2019 in the source IS an apostrophe', () => {
+    const rows = auditSource('x "Bear ye one another\\u2019s burdens, and so fulfil the law of Christ" (Galatians 6:2) y', 'probe');
+    expect(rows[0].verdict).toBe('kjv');
+  });
+
+  it('a //-wrapped comment line is one sentence, not two', () => {
+    const rows = auditSource('  // the Body -- "whether one member\n  // suffer, all the members suffer with it" (1 Cor 12:26); more', 'probe');
+    expect(rows.length).toBe(1);
+    expect(rows[0].verdict).toBe('kjv');
+  });
+
+  it('an edition label at the citation is honoured — and cannot launder a false KJV claim', () => {
+    const esv = auditSource('x "let steadfastness have its full effect, that you may be perfect" (James 1:4, ESV) y', 'probe');
+    expect(esv[0].verdict).toBe('esv-labelled');
+    const kjvOk = auditSource('x "But let patience have her perfect work" (James 1:4, KJV) y', 'probe');
+    expect(kjvOk[0].verdict, 'a KJV label on a verbatim KJV quotation is simply kjv').toBe('kjv');
+    const kjvLie = auditSource('x "let steadfastness have its full effect, that you may be perfect" (James 1:4, KJV) y', 'probe');
+    expect(kjvLie[0].verdict, 'labelling ESV words "KJV" must NOT hide them').not.toBe('kjv');
+    expect(['attributed', 'kjv-drift']).toContain(kjvLie[0].verdict);
+  });
+
+  it('a declared paraphrase is counted as one, in every declared form', () => {
+    for (const form of [
+      '"I cast this care on You, for You care for me" (paraphrasing 1 Peter 5:7)',
+      '"strong, not skinny, that is the woman of valor" (cf. Proverbs 31:25)',
+      '"I cast this care on You, for You care for me" (1 Peter 5:7, paraphrased)',
+    ]) {
+      const rows = auditSource(`x ${form} y`, 'probe');
+      expect(rows.length, form).toBe(1);
+      expect(rows[0].verdict, form).toBe('paraphrase-declared');
+    }
+    const undeclared = auditSource('x "I cast this care on You, for You care for me" (1 Peter 5:7) y', 'probe');
+    expect(undeclared[0].verdict, 'the same words WITHOUT the declaration stay open').toBe('attributed');
+  });
+});
+
 describe('the provenance ratchets — these numbers may fall, never rise', () => {
   it(`quotations differing from the cited verse by case only: at most ${CEILING['kjv-case']}`, () => {
     expect(
@@ -130,15 +182,22 @@ describe('the provenance ratchets — these numbers may fall, never rise', () =>
     ).toBeLessThanOrEqual(CEILING['kjv-drift']);
   });
 
-  it(`quotations ATTRIBUTED to an edition we cannot carry: at most ${CEILING.attributed}`, () => {
-    // This number is not a defect count and must never be read as one. It is
-    // how many quotations come from a translation (ESV) that bible-editions.js
-    // deliberately refuses to reproduce. It falls by LABELLING the citation,
-    // never by rewriting someone else's translation into ours.
+  it(`quotations from an edition we cannot carry that are NOT yet labelled: at most ${CEILING.attributed}`, () => {
+    // Not a defect count. A quotation whose words are not the KJV's is either
+    // another edition's (label it: "..." (Ref, ESV)) or our own restatement
+    // (declare it: "..." (paraphrasing Ref)). Either way the reader is told
+    // which it is. What is NOT allowed is a third thing: a non-KJV quotation
+    // that says nothing about where its words came from.
     expect(
       count('attributed'),
-      'a NEW attributed quotation appeared — label its translation at the citation',
+      'a NEW unlabelled non-KJV quotation appeared — name its edition at the citation '
+      + '("..." (Ref, ESV)), or declare the paraphrase ("..." (paraphrasing Ref))',
     ).toBeLessThanOrEqual(CEILING.attributed);
+  });
+
+  it('the declared classes are real and counted, never hidden by the label', () => {
+    expect(count('esv-labelled'), 'the ESV-labelled quotations must be SEEN, not skipped').toBeGreaterThan(10);
+    expect(count('paraphrase-declared'), 'declared paraphrases must be SEEN, not skipped').toBeGreaterThan(10);
   });
 
   it('the ceilings are not stale — if the debt has been paid down, record it', () => {
