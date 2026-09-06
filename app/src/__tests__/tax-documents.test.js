@@ -118,3 +118,34 @@ describe('buildTaxHistory — the behavioral-strategy DATA (real numbers only)',
     expect(hasFigures({ agi: 50000 })).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// uploadFailureMessage — the 2026-09-06 defect (DR-0330) surfaced as a single
+// undifferentiated "could not reach", which is what let a missing Funnel mount
+// and an unstarted service hide behind one sentence for seven weeks. Each
+// branch below is pinned so the message can never collapse back into a shrug.
+// ---------------------------------------------------------------------------
+describe('uploadFailureMessage', () => {
+  it('names an unauthorized NAS as a TOKEN problem, not a reachability one', async () => {
+    const { uploadFailureMessage } = await import('../lib/tax-upload.js');
+    expect(uploadFailureMessage({ ok: false, skipped: 'upload-error', status: 401 })).toMatch(/token/i);
+  });
+
+  it('tells the user a 502 also explains the empty archive (one hop, two symptoms)', async () => {
+    const { uploadFailureMessage } = await import('../lib/tax-upload.js');
+    const msg = uploadFailureMessage({ ok: false, skipped: 'upload-error', status: 502 });
+    expect(msg).toMatch(/502/);
+    expect(msg).toMatch(/same hop/i);
+  });
+
+  it('distinguishes offline (nothing sent) from a NAS that answered badly', async () => {
+    const { uploadFailureMessage } = await import('../lib/tax-upload.js');
+    expect(uploadFailureMessage({ ok: false, skipped: 'network-error' })).toMatch(/offline/i);
+    expect(uploadFailureMessage({ ok: false, skipped: 'upload-error', status: 500 })).toMatch(/answered 500/);
+  });
+
+  it('falls back to the original wording only when there is NO status to report', async () => {
+    const { uploadFailureMessage } = await import('../lib/tax-upload.js');
+    expect(uploadFailureMessage({ ok: false, skipped: 'upload-error', status: 0 })).toMatch(/Could not reach/);
+  });
+});
