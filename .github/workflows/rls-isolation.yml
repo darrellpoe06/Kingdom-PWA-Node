@@ -53,7 +53,18 @@ jobs:
           # The Poe Properties App's own gate (DR-0313): the invite->claim seam,
           # the tenant's family arms, the field-worker ceiling, and the books-side
           # posting guard. 0075 applies first — 0150 extends its policies.
+          # 2026-09-06: this leg has been the red one on every dispatch since
+          # 2026-08-31 (runs 82-87). Run 87's cause, read from its log: 0152 is
+          # the FIRST definition of public_vacancies(), so it carries no DROP —
+          # and the live DB already holds the 0158 shape, so replaying 0152
+          # fails with "cannot change return type of existing function" and the
+          # leg never reaches its smokes. Same dependency-order principle as role-control:
+          # drop the function first (pre), then the FULL chain rebuilds it
+          # through 0153/0155/0157/0158 to the current shape inside the same
+          # job. The vacancy smoke counts rows and reads v::text, so it holds
+          # across the shape change.
           - feature: poe-properties
+            pre: "DROP FUNCTION IF EXISTS public.public_vacancies();"
             migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql"
             smokes: "0150-poe-properties-isolation-smoke.sql 0152-public-vacancy-smoke.sql"
           - feature: choir-claim
