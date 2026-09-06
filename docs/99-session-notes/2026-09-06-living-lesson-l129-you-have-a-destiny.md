@@ -1,6 +1,7 @@
 # Living Lesson L129 — You Have a Destiny
 
 **Date:** 2026-09-06
+**Module id:** `ll129-you-have-a-destiny-the-giver-the-window-covenant-authority-the-heart-of-flesh-and-the-me-that-has-to-die`
 **Branch:** `claude/lesson-you-have-destiny-fabf09`
 **Input:** Darrell brought in a message by **Joseph Prince**, "You Have A Destiny" (part one of four), as summarised notes with timestamps — then spoke **four teachings of his own** into the build across the same sitting, mid-authoring.
 **Rules in force:** CLAUDE.md "Spoken Teachings Are Build Input" · DR-0089 (standing consent) · DR-0098 (teach the Word, do not debate it) · DR-0076 (verify; no verse from memory) · DR-0190 (attribute, never assert on our own authority) · DR-0331 (quote him for meaning, not his typos) · typographic theology + DR-0210.

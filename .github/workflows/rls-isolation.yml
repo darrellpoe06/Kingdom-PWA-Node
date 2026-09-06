@@ -89,7 +89,7 @@ jobs:
             migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
           - feature: viewer-readonly
-            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql"
+            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql 0170-push-subscriptions-and-the-live-signal.sql"
             smokes: "0125-viewer-readonly-smoke.sql 0126-capability-checklist-smoke.sql"
           # Folded in 2026-07-30 (access evaluation): 0127 briefly lived in its
           # own sovereign-noise-thought-isolation.yml — the exact per-feature
