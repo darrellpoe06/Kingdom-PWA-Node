@@ -12,10 +12,10 @@
 //   • youth (11-14)  0 gaps.
 //   • teen (15-17)   0 gaps.
 //   • senior (65+)   0 gaps.
-//   • adult (18-64)  48 gaps when first measured; 13 now, and falling. Each one
-//                    paid off is a full adult-depth lesson authored at adult
-//                    register, not a fallback tweak. Thirty-five are done: ll78, ll80,
-//                    and ll81 through ll113.
+//   • adult (18-64)  48 gaps when first measured; 0 now. THE DEBT IS CLOSED.
+//                    Every one of the 48 was paid off with a full adult-depth
+//                    lesson authored at adult register — ll78, ll80, and ll81
+//                    through ll126 — never a fallback tweak.
 //
 // WHAT THE ADULT GAP ACTUALLY IS. It is NOT a blank screen and NOT a fragment.
 // 48 lessons (ll78 onward) were authored with child/teen/senior levels and no
@@ -27,11 +27,12 @@
 // adapts (200 words per segment for adult vs 120 for senior), so the pacing
 // layer works; only the text does not.
 //
-// THE RATCHET. The 48 are listed explicitly below. The list MAY ONLY SHRINK:
+// THE RATCHET, NOW FULLY CLOSED. The list below is EMPTY and must stay empty:
 //   * a NEW lesson without adult-depth prose fails this build outright;
-//   * an id in the list that has since been given a base `lesson` fails too,
-//     so the list can never quietly overstate the debt;
-//   * child / youth / teen / senior remain HARD INVARIANTS at zero.
+//   * an id re-added to the list fails too — the debt was paid, and a reopened
+//     entry is a regression, not a record;
+//   * all five bands — child / youth / teen / adult / senior — are now HARD
+//     INVARIANTS at zero.
 // This is the same discipline that closed the teen debt in
 // living-lessons-age-appropriateness.test.js, applied to the band it missed.
 // =============================================================================
@@ -43,12 +44,8 @@ import { AGE_BANDS, resolveForAge } from '../lib/learn-framework.js';
 // lands on 'standard' — i.e. a base `lesson` or an authored levels.standard.
 const servesAdult = (m) => resolveForAge(m, 'adult', null).levelId === 'standard';
 
-// The recorded debt. Shrink this list as adult prose is authored; never grow it.
-const ADULT_DEBT = [
-  'll114', 'll115', 'll116',
-  'll117', 'll118', 'll119', 'll120', 'll121', 'll122', 'll123', 'll124', 'll125',
-  'll126',
-];
+// The recorded debt — PAID IN FULL. This list is closed; it may never grow.
+const ADULT_DEBT = [];
 
 const numOf = (id) => id.split('-')[0];
 
@@ -93,6 +90,13 @@ describe('the adult band debt is measured, listed, and may only shrink', () => {
     const real = new Set(LIVING_LESSONS_MODULES.map((m) => numOf(m.id)));
     const ghosts = ADULT_DEBT.filter((id) => !real.has(id));
     expect(ghosts, `ADULT_DEBT names lessons that do not exist: ${ghosts.join(', ')}`).toEqual([]);
+  });
+
+  it('the debt list stays closed — no id may be re-added', () => {
+    expect(
+      ADULT_DEBT,
+      'all 48 adult-band gaps were paid off with authored prose; re-adding an id is a regression',
+    ).toEqual([]);
   });
 
   it('the newest lesson does not add to the debt', () => {
