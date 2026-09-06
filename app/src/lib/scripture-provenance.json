@@ -11,11 +11,10 @@
   ],
   "counts": {
     "esv-labelled": 13,
-    "web-case": 1,
-    "kjv": 11313,
-    "kjv-case": 346,
+    "web": 2,
+    "kjv": 11650,
     "paraphrase-declared": 15,
-    "web": 1
+    "kjv-case": 9
   },
   "total": 11689,
   "openRefs": []
