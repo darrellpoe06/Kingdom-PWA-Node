@@ -79,15 +79,22 @@ export function depthLadder(theme) {
  * the…" line). The role chip, the Backs chips, the highlight control and the
  * other-translations links are all furniture and are not spoken.
  */
+// The edition is NAMED out loud so the listener knows which Bible they heard.
+// 2026-09-06: the WEB (public domain, on disk) is the second readable edition;
+// a verse carries `text` + `edition` from versesForTheme, and the reading speaks
+// exactly what the page shows. Anything without an edition is the KJV.
+const EDITION_SPOKEN = { kjv: 'King James Version', web: 'World English Bible' };
+
 export function verseReadingText(verse) {
   const v = verse || {};
   const ref = spokenRef(v.ref);
-  const kjv = line(v.kjv);
+  const text = line(v.text) || line(v.kjv);
+  const edition = EDITION_SPOKEN[String(v.edition || 'kjv').toLowerCase()] || EDITION_SPOKEN.kjv;
   const gloss = line(v.gloss);
-  if (!kjv && !gloss) return '';
+  if (!text && !gloss) return '';
   const parts = [];
   if (ref) parts.push(`${ref}.`);
-  if (kjv) parts.push(`${kjv} King James Version.`);
+  if (text) parts.push(`${text} ${edition}.`);
   if (gloss) parts.push(gloss);
   return parts.join(' ');
 }
@@ -103,6 +110,8 @@ export function verseReadingText(verse) {
  * @param {Array}  opts.verses  the theme's verses WITH kjv text resolved
  *   (versesForTheme) — passed in rather than fetched, so this stays pure.
  * @param {string} opts.level   the experience level whose framing to include
+ * (each verse may carry `text` + `edition` from versesForTheme; the reading
+ * speaks that text and names that edition — KJV when absent)
  */
 export function themeReadingText(theme, { verses = [], level = 'standard' } = {}) {
   if (!theme) return '';
@@ -146,13 +155,13 @@ export function themeReadingText(theme, { verses = [], level = 'standard' } = {}
  * already use. Returns null when there is nothing to read, so the caller
  * registers nothing rather than an empty reading.
  */
-export function scriptureReadingPlan(themes, { versesFor, level = 'standard', index = 0 } = {}) {
+export function scriptureReadingPlan(themes, { versesFor, level = 'standard', index = 0, edition = 'kjv' } = {}) {
   const list = Array.isArray(themes) ? themes.filter(Boolean) : [];
   if (!list.length || typeof versesFor !== 'function') return null;
   const i = Number.isInteger(index) && index >= 0 && index < list.length ? index : 0;
   const theme = list[i];
   let verses;
-  try { verses = versesFor(theme.id) || []; } catch (_) { verses = []; }
+  try { verses = versesFor(theme.id, edition) || []; } catch (_) { verses = []; }
   const text = themeReadingText(theme, { verses, level });
   if (!text) return null;
   return {

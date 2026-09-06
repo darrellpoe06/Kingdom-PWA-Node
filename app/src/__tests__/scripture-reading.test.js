@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest';
 import {
   depthLadder, verseReadingText, themeReadingText, scriptureReadingPlan, spokenRef,
 } from '../lib/scripture-reading.js';
-import { THEMES } from '../lib/scriptures.js';
+import { THEMES, versesForTheme } from '../lib/scriptures.js';
 import { COPYRIGHT_NOTE, OTHER_VERSIONS } from '../lib/scriptures.js';
 
 const THEME = {
@@ -120,6 +120,47 @@ describe('the verses, with their commentary — and nothing else', () => {
     expect(COPYRIGHT_NOTE).toMatch(/linked, not reproduced/i);
     expect(OTHER_VERSIONS.map((v) => v.id)).toContain('ESV');
     expect(themeReadingText(THEME, { verses: VERSES })).not.toContain('ESV');
+  });
+});
+
+describe('the second readable edition — the WEB is spoken when chosen, and named (2026-09-06)', () => {
+  const VERSE = { ref: 'John 3:16', kjv: 'For God so loved the world, that he gave his only begotten Son', gloss: 'Whosoever — the door is open.' };
+
+  it('a verse carrying WEB text and edition is spoken from the WEB and named World English Bible', () => {
+    const spoken = verseReadingText({ ...VERSE, text: 'For God so loved the world, that he gave his only born Son', edition: 'web' });
+    expect(spoken).toContain('only born Son World English Bible.');
+    expect(spoken).not.toContain('King James Version');
+    expect(spoken).toContain('Whosoever — the door is open.');
+  });
+
+  it('a verse with no edition is the KJV, exactly as before', () => {
+    expect(verseReadingText(VERSE)).toContain('only begotten Son King James Version.');
+  });
+
+  it('a WEB miss falls back to the KJV and SAYS so — the two are never mixed on one verse', () => {
+    const spoken = verseReadingText({ ...VERSE, text: VERSE.kjv, edition: 'kjv' });
+    expect(spoken).toContain('King James Version.');
+  });
+
+  it('the plan hands the chosen edition to versesFor, so the spoken verses are the shown verses', () => {
+    const seen = [];
+    const plan = scriptureReadingPlan([THEME], { versesFor: (id, edition) => { seen.push([id, edition]); return []; }, edition: 'web' });
+    expect(plan).toBeTruthy();
+    expect(seen).toEqual([['t1', 'web']]);
+    const plan2 = scriptureReadingPlan([THEME], { versesFor: (id, edition) => { seen.push([id, edition]); return []; } });
+    expect(plan2).toBeTruthy();
+    expect(seen[1]).toEqual(['t1', 'kjv']); // the default is the KJV
+  });
+
+  it('against the REAL library: every curated verse has a WEB text, so the WEB reading never silently falls back', () => {
+    for (const t of THEMES) {
+      for (const v of versesForTheme(t.id, 'web')) {
+        expect(v.edition, `${v.ref} should carry the WEB`).toBe('web');
+        expect(v.text).toBe(v.web);
+        expect(v.kjv, 'the KJV stays on the verse for the study edition').toBeTruthy();
+      }
+      for (const v of versesForTheme(t.id)) expect(v.edition).toBe('kjv');
+    }
   });
 });
 
