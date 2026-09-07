@@ -171,12 +171,55 @@ describe('the witness can answer "does the email door work?"', () => {
   });
 
   it('keeps the counts-only rule — no address is ever printed', () => {
-    const block = wf.slice(wf.indexOf('the SIGN-IN witness'), wf.indexOf('WHY the sick legs restart'));
+    const block = wf.slice(wf.indexOf('the SIGN-IN witness'), wf.indexOf('the PIN-DOOR witness'));
     expect(block.length).toBeGreaterThan(0);
     // The only literal address shape allowed here is the synthetic phone
     // DOMAIN used to split the classes — never a person's own address.
     const addresses = block.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || [];
     expect(addresses.filter((a) => !a.startsWith('%@phone.'))).toEqual([]);
+  });
+});
+
+describe('the witness can answer "does the second key still turn?" (the SET-PIN loop, 2026-09-07)', () => {
+  const wf = read(WITNESS);
+  const block = wf.slice(wf.indexOf('the PIN-DOOR witness'), wf.indexOf('WHY the sick legs restart'));
+
+  it('exists, after the sign-in witness and before the log tails', () => {
+    expect(block.length).toBeGreaterThan(0);
+  });
+
+  it('measures has_user_pin the way PostgREST calls it, never as a superuser', () => {
+    // A superuser run would pass while the authenticated role fails — the
+    // exact blind spot that let a grant fault read as "no PIN yet".
+    expect(block).toMatch(/SET ROLE authenticated/);
+    expect(block).toMatch(/request\.jwt\.claims/);
+    expect(block).toMatch(/has_user_pin\(\)/);
+    expect(block).toMatch(/auth\.uid\(\)/);
+  });
+
+  it('reports the grant, the owner, and the RLS flag — the three faults that wear the same face', () => {
+    expect(block).toMatch(/has_function_privilege\('authenticated'/);
+    expect(block).toMatch(/pg_get_userbyid\(p\.proowner\)/);
+    expect(block).toMatch(/relrowsecurity/);
+  });
+
+  it('turns a RAISE under the authenticated role into a red run, not a quiet line', () => {
+    expect(block).toMatch(/::error::.*has_user_pin\(\) RAISED/);
+  });
+
+  it('uses an address only to RESOLVE a uuid — never in a line that prints', () => {
+    // The two doors are looked up by address exactly as the census above
+    // already does (WHERE email='…'), and only the verdict is echoed. Any
+    // address inside an echo, or inside a SELECT '…' string literal that
+    // reaches the log, is a leak.
+    const lines = block.split('\n').filter((l) => /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(l));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const l of lines) {
+      expect(l).not.toMatch(/^\s*echo\b/);
+      expect(l).toMatch(/WHERE email='[^']+'/);
+    }
+    // And the masking sed still guards the postgres tail.
+    expect(block).toMatch(/sed -E 's\/\[A-Za-z0-9\._%\+-\]\+@/);
   });
 });
 
