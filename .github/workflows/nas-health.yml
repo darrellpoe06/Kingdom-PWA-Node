@@ -461,6 +461,29 @@ jobs:
           if [ "$SMTPH" != "yes" ]; then
             PSQLA "SELECT 'accounts with NO working door (no password, and no email delivery): ' || count(*) FROM auth.users WHERE email NOT LIKE '%@phone.poetech.us' AND (encrypted_password IS NULL OR encrypted_password = '');"
           fi
+          echo "=== the PIN-DOOR witness: does the second key still turn on this box? (verdicts only) ==="
+          # Born 2026-09-07 22:04 UTC: Darrell (phone door) and Shay (email door)
+          # were both stopped at "Secure your space" — the SET-PIN gate — within
+          # minutes of each other, on a box whose user_credentials holds both
+          # rows. The app renders SET-PIN whenever has_user_pin() returns
+          # false OR any error that is not "function missing" (lib/pin.js
+          # callRpc), so a grant, an owner, or an auth.uid() fault all wear the
+          # same face as "you never set a PIN". Nothing here could tell them
+          # apart. Now it can — measured the way PostgREST calls it (SET ROLE
+          # authenticated + request.jwt.claims), never as a superuser.
+          PSQLA "SELECT 'pin functions: ' || string_agg(p.proname || ' owner=' || pg_get_userbyid(p.proowner) || ' secdef=' || p.prosecdef || ' owner_bypassrls=' || r.rolbypassrls || ' owner_super=' || r.rolsuper || ' exec_authenticated=' || has_function_privilege('authenticated', p.oid, 'EXECUTE'), ' | ' ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='public' AND p.proname IN ('has_user_pin','set_user_pin','verify_user_pin');"
+          PSQLA "SELECT 'user_credentials: rows=' || count(*) || ' with_hash=' || count(*) FILTER (WHERE pin_hash IS NOT NULL) || ' rls=' || (SELECT relrowsecurity FROM pg_class WHERE relname='user_credentials') FROM user_credentials;"
+          PHU=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
+          GMU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
+          for DOOR in "phone:$PHU" "gmail:$GMU"; do
+            NAME=${DOOR%%:*}; UID_=${DOOR#*:}
+            [ -n "$UID_" ] || { echo "$NAME door: no auth user on this box"; continue; }
+            # Exactly PostgREST's shape for a signed-in call. auth.uid() first
+            # (is the identity even seen?), then the RPC the app calls.
+            PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$UID_\",\"role\":\"authenticated\"}', false); SELECT '$NAME door: auth.uid() seen=' || (auth.uid() IS NOT NULL) || ' has_user_pin()=' || coalesce(public.has_user_pin()::text, 'NULL');" 2>&1 | grep -a "door:" || echo "::error::$NAME door: has_user_pin() RAISED under the authenticated role — this is the SET-PIN loop's cause (see the postgres tail below)"
+          done
+          echo "-- postgres's own words on the PIN path (last 400 lines, emails masked):"
+          ${SUDO} docker logs --tail 400 supabase-db 2>&1 | grep -iaE 'ERROR|FATAL' | grep -iaE 'pin|credential|permission|does not exist|jwt|claims|set_config' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no PIN-path errors in the postgres tail"
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
           for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
             ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
