@@ -36,7 +36,14 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   const brandEyebrow = (brand && (brand.eyebrow || brand.name)) || 'PoeTech';
   const brandLogo = (brand && brand.logo) || null;
   const [mode, setMode] = useState(initialMode); // 'signup' | 'signin'
-  const [usePassword, setUsePassword] = useState(false);
+  // PASSWORD LEADS THE EMAIL DOOR (2026-09-07). On the sovereign stack email
+  // sending is deliberately out of auth's critical path (DR-0307 §3) — the
+  // witness measures it: SMTP not wired, 184 mailer complaints in one log
+  // tail. Shay chose "email", was led to the LINK first, saw "Sign-in link
+  // sent", and waited on a promise the server could not keep. Her account has
+  // a password; that door was one tap further and labelled as the alternate.
+  // The door now opens on what works and demotes the link to the alternate.
+  const [usePassword, setUsePassword] = useState(true);
   // Phone + PIN is the DEFAULT door (DR-0307 §3: on the sovereign stack SMTP
   // is deliberately out of auth's critical path — phone+PIN and password lead,
   // magic links are a later optional add). The email link led here until
@@ -144,16 +151,26 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   if (status === 'linksent') {
     return (
       <div className="max-w-sm" aria-live="polite">
-        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Sign-in link sent</h3>
-        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Check {form.email || 'your email'} and tap the link — that’s the whole sign-in. No password.</p>
-        {/* HONESTY (Darrell 2026-08-21, "never got an email..."): this screen only
-            knows the REQUEST was accepted — if email sending isn't wired on the
-            family server, nothing ever arrives and the reader waits on a promise.
-            Name the other doors instead of leaving them stranded (DR-0100). */}
+        {/* SAY ONLY WHAT IS KNOWN (DR-0076 §1, DR-0100). This screen knows the
+            REQUEST was accepted. It does not know the mail left the server —
+            and on the family server it measurably does not (SMTP unwired,
+            2026-09-07 witness). "Sign-in link sent" was a claim the app could
+            not back, and Shay waited on it. The headline now states the
+            request, the body states the limit, and the working door is a
+            BUTTON here — not a hint to go back and find. */}
+        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Link requested</h3>
+        <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>We asked the server to email {form.email || 'you'} a sign-in link. If it arrives, tap it — that’s the whole sign-in.</p>
         <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          No email after a couple of minutes? Check spam — and if it’s not there, email sending may not
-          be set up yet. Go back and use <strong>“Prefer a password? Use one”</strong> or the
-          <strong> phone number + PIN</strong> door instead; both work without email.
+          No email after a couple of minutes? Check spam — and if it’s not there, email sending isn’t
+          set up on the family server yet, so the link can’t arrive. Your password works without email.
+        </p>
+        <button type="button" onClick={() => { setUsePassword(true); setStatus('idle'); setError(''); }}
+          className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+          Sign in with my password instead →
+        </button>
+        <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+          Forgot your password? It can’t be emailed to you yet — ask Darrell; the family server resets it in one step.
+          Or use the <strong>phone number + PIN</strong> door if you set one up.
         </p>
         <button type="button" onClick={() => setStatus('idle')} className="mt-3 text-xs uppercase tracking-wider underline text-[#5A6E3D]">Back</button>
       </div>
@@ -333,9 +350,18 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         <span className="mx-2 text-[#E8E4DC]">|</span>
         <button type="button" onClick={() => { setUsePassword(false); setError(''); }} className="underline hover:text-[#1A1815]">No password — email me a link instead</button>
       </div>
-      <div className="mt-2 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-        <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }} className="underline hover:text-[#1A1815]">No email? Use a phone number + PIN</button>
+      {/* The phone+PIN way stays PROMINENT from here too (COMMUNITY-FIRST, the
+          deacon with a flip phone, DR-0172) — now that the password form is
+          the email door's first screen, this is where that reader lands. */}
+      <div className="mt-3 flex items-center gap-2" aria-hidden="true">
+        <span className="h-px flex-1 bg-[#E8E4DC]"></span>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">or</span>
+        <span className="h-px flex-1 bg-[#E8E4DC]"></span>
       </div>
+      <button type="button" onClick={() => { setUsePhonePin(true); setError(''); }}
+        className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+        No email? Use your phone number + a PIN
+      </button>
     </div>
   );
 }

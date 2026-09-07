@@ -179,3 +179,46 @@ describe('the witness can answer "does the email door work?"', () => {
     expect(addresses.filter((a) => !a.startsWith('%@phone.'))).toEqual([]);
   });
 });
+
+// -----------------------------------------------------------------------------
+// The locked-out PATH itself (Darrell 2026-09-07: "something is wrong with the
+// path when locked out"). Pins on the sign-in surface, by source, with the
+// defect shape fed back to each check.
+// -----------------------------------------------------------------------------
+const PASSWORD_AUTH = join(ROOT, 'app/src/components/PasswordAuth.jsx');
+
+/** The email door opens on the PASSWORD form (DR-0307 §3: password and
+ *  phone+PIN lead; the link is the alternate). */
+export function passwordLeadsTheEmailDoor(src) {
+  const m = src.match(/const \[usePassword, setUsePassword\] = useState\((true|false)\)/);
+  return !!m && m[1] === 'true';
+}
+
+/** The link screen never CLAIMS delivery. "Sent" is a claim the app cannot
+ *  back; "requested" is what it knows. */
+export function linkScreenClaimsOnlyWhatItKnows(src) {
+  return !/>\s*Sign-in link sent\s*</.test(src) && /Link requested/.test(src);
+}
+
+describe('the locked-out path: the email door leads with what works', () => {
+  const src = read(PASSWORD_AUTH);
+
+  it('opens on the password form, with the link as the alternate', () => {
+    expect(passwordLeadsTheEmailDoor(src)).toBe(true);
+    expect(passwordLeadsTheEmailDoor('const [usePassword, setUsePassword] = useState(false);')).toBe(false);
+  });
+
+  it('the link screen says "requested", never "sent", and puts the password door on a button', () => {
+    expect(linkScreenClaimsOnlyWhatItKnows(src)).toBe(true);
+    expect(linkScreenClaimsOnlyWhatItKnows('<h3>Sign-in link sent</h3>')).toBe(false);
+    expect(src).toMatch(/Sign in with my password instead/);
+    expect(src).toMatch(/Forgot your password\?/);
+  });
+
+  it('keeps the phone+PIN door a PROMINENT button from the password form', () => {
+    // Now that the password form is the email door's first screen, the
+    // no-email reader lands here (COMMUNITY-FIRST, DR-0172): 48px, border-2.
+    const passwordForm = src.slice(src.lastIndexOf('<form onSubmit={submit}'));
+    expect(passwordForm).toMatch(/min-h-\[48px\][^>]*>\s*No email\? Use your phone number \+ a PIN/);
+  });
+});
