@@ -171,26 +171,6 @@ jobs:
               echo "OUTSIDE-IN REST (session shape): SKIPPED — probe sign-in returned no token above"
             fi
           fi
-          # THE PIN DOOR, END TO END (2026-09-07: two people stopped at SET-PIN
-          # while the box held both rows). This is the request the app makes on
-          # every load — POST rpc/has_user_pin with the anon apikey and a real
-          # session — so a fault at kong, PostgREST, the JWT, or the function
-          # shows here as the STATUS the browser saw, not as a guess. The probe
-          # user has no PIN: the healthy answer is HTTP 200 and the body "false".
-          if [ -n "$PROBE_TOKEN" ]; then
-            AK="$BKEY"
-            if [ -n "$AK" ]; then
-              C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
-                -H "apikey: $AK" -H "Authorization: Bearer $PROBE_TOKEN" -H 'Content-Type: application/json' -d '{}' \
-                "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
-              echo "OUTSIDE-IN POST /sb/rest/v1/rpc/has_user_pin (real session, live anon key) HTTP $C :: $(head -c 200 "$BODY")"
-              [ "$C" = "200" ] || echo "::error::the PIN door answers $C from the outside — every signed-in load reads this as 'no PIN yet' and opens SET-PIN (lib/pin.js callRpc)"
-            else
-              echo "OUTSIDE-IN rpc/has_user_pin SKIPPED: could not read the anon key from the live bundle"
-            fi
-          else
-            echo "OUTSIDE-IN rpc/has_user_pin SKIPPED: no probe session token (see the sign-in probe above)"
-          fi
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:

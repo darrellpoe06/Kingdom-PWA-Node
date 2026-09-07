@@ -85,9 +85,25 @@ export async function setUserPin(pin) {
   return { ok: !!(r.data && r.data.ok), backendAvailable: r.backendAvailable !== false, error: r.error };
 }
 
-/** Does the signed-in user have a PIN? @returns {hasPin, backendAvailable} */
+/**
+ * Does the signed-in user have a PIN? @returns {hasPin, backendAvailable}
+ *
+ * UNKNOWN IS NOT "NO PIN" (2026-09-07, Darrell's tablet: "Secure your space"
+ * on every tab while the box held his PIN row and has_user_pin() measured
+ * TRUE for his door — nas-health run 34166201488). An RPC that ERRORS — a
+ * 401 from a tab whose token expired mid-refresh, a 5xx, a proxy page — used
+ * to come back here as hasPin:false with backendAvailable:true, which
+ * decideAccess reads as "never set one" and answers with the SET-PIN gate.
+ * That is the wrong door twice over: it strands a person on a gate that
+ * cannot save (the same call fails), and had the set later succeeded it would
+ * have silently REPLACED a real PIN. A failed read means the answer is not
+ * known; the no-lockout rule for "not known" is backendAvailable:false —
+ * identity keeps the door open, exactly as the timeout path already does.
+ * Only a real answer (true/false) may steer the gate.
+ */
 export async function hasUserPin() {
   const r = await callRpc('has_user_pin', {});
+  if (r.error) return { hasPin: false, backendAvailable: false, error: r.error };
   return { hasPin: r.data === true, backendAvailable: r.backendAvailable !== false };
 }
 

@@ -1327,10 +1327,7 @@ export default function PoeFinancialSystem() {
   };
   const handleSetPin = async (pin) => {
     const r = await setUserPin(pin);
-    if (r.ok) {
-      clearPinResetIntent(); setMpPinResetPending(false);
-      setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric();
-    }
+    if (r.ok) { clearPinResetIntent(); setMpPinResetPending(false); setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
     return r;
   };
   const handleEnterPin = async (pin) => {
@@ -1378,9 +1375,7 @@ export default function PoeFinancialSystem() {
   // user re-proves identity (email OTP / OAuth), then sets a new PIN. set_user_pin
   // is always allowed for the authenticated user, so identity is always a way back.
   const handleForgotPin = () => {
-    // The second half of the no-lockout rule: after this sign-out, the next
-    // sign-in (the identity proof) opens SET-PIN, not ENTER (lib/pin-reset-intent).
-    try { markPinResetIntent(authSession?.user?.id); } catch (_) { /* ignore */ }
+    try { markPinResetIntent(authSession?.user?.id); } catch (_) { /* lib/pin-reset-intent: next sign-in opens SET-PIN */ }
     try { forgetLocalDeviceTrust(authSession?.user?.id); } catch (_) { /* ignore */ }
     try {
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(mpPinOkKey(authSession?.user?.id));
@@ -1868,11 +1863,7 @@ export default function PoeFinancialSystem() {
         hasUserPin(), isDeviceTrusted(uid), isPlatformAuthenticatorAvailable(),
       ]);
       if (cancelled) return;
-      // A pending "Forgot your PIN?" intent for THIS uid, after a fresh
-      // sign-in, means: open SET-PIN so the forgotten key is replaced. Only
-      // when the backend answered — a degraded backend keeps the no-lockout
-      // open door, and the intent waits for a load that can actually set one.
-      const resetPending = h.backendAvailable && hasPinResetIntent(uid);
+      const resetPending = h.backendAvailable && hasPinResetIntent(uid); // Forgot -> re-proved -> SET (lib/pin-reset-intent)
       setMpPinResetPending(resetPending);
       setMpHasPin(resetPending ? false : h.hasPin);
       setMpDeviceTrusted(d.trusted);
