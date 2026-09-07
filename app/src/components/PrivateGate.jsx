@@ -18,7 +18,7 @@ import PinGate from './PinGate.jsx';
 import { hasUserPin, verifyUserPin } from '../lib/pin.js';
 import { isPrivateUnlocked, subscribePrivateLock, unlockPrivate, privateGateState } from '../lib/private-lock.js';
 
-export default function PrivateGate({ area = 'this area', onCancel, children }) {
+export default function PrivateGate({ area = 'this area', onCancel, onForgot = null, children }) {
   const unlocked = useSyncExternalStore(subscribePrivateLock, isPrivateUnlocked, isPrivateUnlocked);
   const [pinStatus, setPinStatus] = useState({ loaded: false, hasPin: false, backendAvailable: true });
   // Structural NO-BLANK guarantee: the "loading" state renders null, so if the PIN
@@ -62,6 +62,7 @@ export default function PrivateGate({ area = 'this area', onCancel, children }) 
       subtitle={`Enter your PIN to open ${area}.`}
       submitLabel="Unlock"
       onCancel={onCancel}
+      onForgot={onForgot || undefined}
       onSubmit={async (p) => {
         const v = await verifyUserPin(p);
         if (v.ok) unlockPrivate();

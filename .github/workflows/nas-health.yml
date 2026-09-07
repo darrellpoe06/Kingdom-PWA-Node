@@ -171,6 +171,26 @@ jobs:
               echo "OUTSIDE-IN REST (session shape): SKIPPED — probe sign-in returned no token above"
             fi
           fi
+          # THE PIN DOOR, END TO END (2026-09-07: two people stopped at SET-PIN
+          # while the box held both rows). This is the request the app makes on
+          # every load — POST rpc/has_user_pin with the anon apikey and a real
+          # session — so a fault at kong, PostgREST, the JWT, or the function
+          # shows here as the STATUS the browser saw, not as a guess. The probe
+          # user has no PIN: the healthy answer is HTTP 200 and the body "false".
+          if [ -n "$PROBE_TOKEN" ]; then
+            AK="$BKEY"
+            if [ -n "$AK" ]; then
+              C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+                -H "apikey: $AK" -H "Authorization: Bearer $PROBE_TOKEN" -H 'Content-Type: application/json' -d '{}' \
+                "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
+              echo "OUTSIDE-IN POST /sb/rest/v1/rpc/has_user_pin (real session, live anon key) HTTP $C :: $(head -c 200 "$BODY")"
+              [ "$C" = "200" ] || echo "::error::the PIN door answers $C from the outside — every signed-in load reads this as 'no PIN yet' and opens SET-PIN (lib/pin.js callRpc)"
+            else
+              echo "OUTSIDE-IN rpc/has_user_pin SKIPPED: could not read the anon key from the live bundle"
+            fi
+          else
+            echo "OUTSIDE-IN rpc/has_user_pin SKIPPED: no probe session token (see the sign-in probe above)"
+          fi
       - name: Observe (read-only — GPU, containers, services, disk, uptime)
         if: steps.gate.outputs.go == 'true'
         env:
@@ -472,6 +492,10 @@ jobs:
           # apart. Now it can — measured the way PostgREST calls it (SET ROLE
           # authenticated + request.jwt.claims), never as a superuser.
           PSQLA "SELECT 'pin functions: ' || string_agg(p.proname || ' owner=' || pg_get_userbyid(p.proowner) || ' secdef=' || p.prosecdef || ' owner_bypassrls=' || r.rolbypassrls || ' owner_super=' || r.rolsuper || ' exec_authenticated=' || has_function_privilege('authenticated', p.oid, 'EXECUTE'), ' | ' ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='public' AND p.proname IN ('has_user_pin','set_user_pin','verify_user_pin');"
+          # The grants PostgREST's roles need to even reach these functions and the
+          # policies behind them (run 34165810216: a bare auth.uid() as the app role
+          # raised "permission denied for schema auth" on this box).
+          PSQLA "SELECT 'role plumbing: authenticator->authenticated=' || pg_has_role('authenticator','authenticated','MEMBER') || ' authenticator->anon=' || pg_has_role('authenticator','anon','MEMBER') || ' authenticator->service_role=' || pg_has_role('authenticator','service_role','MEMBER') || ' authenticated USAGE on auth schema=' || has_schema_privilege('authenticated','auth','USAGE') || ' anon USAGE on auth schema=' || has_schema_privilege('anon','auth','USAGE');"
           PSQLA "SELECT 'user_credentials: rows=' || count(*) || ' with_hash=' || count(*) FILTER (WHERE pin_hash IS NOT NULL) || ' rls=' || (SELECT relrowsecurity FROM pg_class WHERE relname='user_credentials') FROM user_credentials;"
           PHU=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
           GMU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
@@ -480,7 +504,7 @@ jobs:
             [ -n "$UID_" ] || { echo "$NAME door: no auth user on this box"; continue; }
             # Exactly PostgREST's shape for a signed-in call. auth.uid() first
             # (is the identity even seen?), then the RPC the app calls.
-            PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$UID_\",\"role\":\"authenticated\"}', false); SELECT '$NAME door: auth.uid() seen=' || (auth.uid() IS NOT NULL) || ' has_user_pin()=' || coalesce(public.has_user_pin()::text, 'NULL');" 2>&1 | grep -a "door:" || echo "::error::$NAME door: has_user_pin() RAISED under the authenticated role — this is the SET-PIN loop's cause (see the postgres tail below)"
+            PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$UID_\",\"role\":\"authenticated\"}', false); SELECT '$NAME door: has_user_pin()=' || coalesce(public.has_user_pin()::text, 'NULL');" 2>&1 | grep -a "door:" || echo "::error::$NAME door: has_user_pin() RAISED under the authenticated role — this is the SET-PIN loop's cause (see the postgres tail below)"
           done
           echo "-- postgres's own words on the PIN path (last 400 lines, emails masked):"
           ${SUDO} docker logs --tail 400 supabase-db 2>&1 | grep -iaE 'ERROR|FATAL' | grep -iaE 'pin|credential|permission|does not exist|jwt|claims|set_config' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no PIN-path errors in the postgres tail"

@@ -109,6 +109,7 @@ import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
+import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
@@ -1187,6 +1188,7 @@ export default function PoeFinancialSystem() {
   // ---------------------------------------------------------------------------
   const [mpDeviceTrusted, setMpDeviceTrusted] = useState(false);
   const [mpHasPin, setMpHasPin] = useState(false);
+  const [mpPinResetPending, setMpPinResetPending] = useState(false); // Forgot your PIN? -> re-proved identity -> choose a new one
   const [mpBackendAvailable, setMpBackendAvailable] = useState(true);
   const [mpSignalsLoaded, setMpSignalsLoaded] = useState(false);
   // SESSION-scoped (sessionStorage) verified flag — NEVER the PIN itself, only a
@@ -1325,7 +1327,10 @@ export default function PoeFinancialSystem() {
   };
   const handleSetPin = async (pin) => {
     const r = await setUserPin(pin);
-    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
+    if (r.ok) {
+      clearPinResetIntent(); setMpPinResetPending(false);
+      setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric();
+    }
     return r;
   };
   const handleEnterPin = async (pin) => {
@@ -1373,6 +1378,9 @@ export default function PoeFinancialSystem() {
   // user re-proves identity (email OTP / OAuth), then sets a new PIN. set_user_pin
   // is always allowed for the authenticated user, so identity is always a way back.
   const handleForgotPin = () => {
+    // The second half of the no-lockout rule: after this sign-out, the next
+    // sign-in (the identity proof) opens SET-PIN, not ENTER (lib/pin-reset-intent).
+    try { markPinResetIntent(authSession?.user?.id); } catch (_) { /* ignore */ }
     try { forgetLocalDeviceTrust(authSession?.user?.id); } catch (_) { /* ignore */ }
     try {
       if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(mpPinOkKey(authSession?.user?.id));
@@ -1833,7 +1841,7 @@ export default function PoeFinancialSystem() {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!authSession) {
-      setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false);
+      setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false); setMpPinResetPending(false);
       setMpBackendAvailable(true); setMpPinVerified(false);
       setMpHasBiometric(false); setMpBioSupported(false); setMpBiometricVerified(false);
       setBioOfferOpen(false);
@@ -1860,7 +1868,13 @@ export default function PoeFinancialSystem() {
         hasUserPin(), isDeviceTrusted(uid), isPlatformAuthenticatorAvailable(),
       ]);
       if (cancelled) return;
-      setMpHasPin(h.hasPin);
+      // A pending "Forgot your PIN?" intent for THIS uid, after a fresh
+      // sign-in, means: open SET-PIN so the forgotten key is replaced. Only
+      // when the backend answered — a degraded backend keeps the no-lockout
+      // open door, and the intent waits for a load that can actually set one.
+      const resetPending = h.backendAvailable && hasPinResetIntent(uid);
+      setMpPinResetPending(resetPending);
+      setMpHasPin(resetPending ? false : h.hasPin);
       setMpDeviceTrusted(d.trusted);
       setMpBackendAvailable(h.backendAvailable && d.backendAvailable);
       setMpBioSupported(!!bioOk);
@@ -4008,9 +4022,11 @@ ${THEME_CSS}
       {showPinGate && (
         <PinGate
           mode={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'set' : 'enter'}
-          title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Secure your space' : 'Welcome back'}
+          title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? (mpPinResetPending ? 'Choose a new PIN' : 'Secure your space') : 'Welcome back'}
           subtitle={accessDecision.nextStep === NEXT_STEP.SET_PIN
-            ? 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.'
+            ? (mpPinResetPending
+              ? 'You signed back in, so the old PIN is gone. Choose a new 4–8 digit PIN — it replaces the one you couldn’t enter.'
+              : 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.')
             : (mpHasBiometric
               ? 'Use your fingerprint / Face to unlock — or enter your PIN.'
               : 'Enter your PIN to unlock your space.')}
@@ -4442,7 +4458,7 @@ ${THEME_CSS}
         )}
         {view === 'overview' && <SectionBoundary name="Overview"><BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
-          <PrivateGate area="Financial" onCancel={() => setView('overview')}>
+          <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
               recoverable inline card instead of white-screening the whole app if it
               throws on an unexpected data shape. Keyed by booksView so switching tabs
