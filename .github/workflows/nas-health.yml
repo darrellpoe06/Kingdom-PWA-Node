@@ -427,6 +427,40 @@ jobs:
           PSQLA "SELECT 'mrspoe06 memberships: ' || coalesce(string_agg(i.slug || '(' || im.role || ')', ', '), '<none>') FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE im.user_id=(SELECT id FROM auth.users WHERE email='mrspoe06@gmail.com');"
           echo "-- auth container's own words (emails masked):"
           ${SUDO} docker logs --tail 60 supabase-auth 2>&1 | grep -iE 'error|failed|500' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no recent auth errors logged"
+          echo "=== the SIGN-IN witness: can each identity CLASS actually get in? (counts only) ==="
+          # Born 2026-09-07: Shay tapped the emailed sign-in link door on her own
+          # business app, got "Sign-in link sent", and nothing ever arrived. The
+          # app told the truth it could ("email sending may not be set up yet")
+          # but NOTHING here could confirm or deny it, so the first question
+          # asked of the witness had no answer in the witness. DR-0307 §3 keeps
+          # SMTP out of sovereign auth's critical path deliberately; that is a
+          # decision, and a decision still has to be OBSERVABLE (DR-0076 §8:
+          # unknown never reads as fine).
+          #
+          # PRESENCE ONLY, never the value: `test -n` on the container's own
+          # env. A credential must never be one grep away from a public log.
+          SMTPH=$(${SUDO} docker exec supabase-auth sh -c 'test -n "$GOTRUE_SMTP_HOST" && echo yes || echo no' 2>/dev/null || echo "unknown")
+          echo "SMTP wired in supabase-auth (presence only, never the value): $SMTPH"
+          if [ "$SMTPH" != "yes" ]; then
+            echo "  -> EMAIL SIGN-IN LINKS CANNOT ARRIVE. This is DR-0307 §3's named gap, not a fault."
+            echo "     Working doors: phone + PIN, and email + password. Recovery for an email"
+            echo "     account is infra/nas-supabase/reset_password.sh (root, on this box)."
+          fi
+          # Mailer failures the container itself recorded — the differentiating
+          # detail that lived only inside the box until now.
+          MAILERR=$(${SUDO} docker logs --tail 400 supabase-auth 2>&1 | grep -ciE 'smtp|mailer|error sending' || true)
+          echo "mailer/smtp complaints in the last 400 auth log lines: ${MAILERR:-0}"
+          # Recovery census by identity CLASS. An account with no password and no
+          # deliverable email has NO door at all — that is the state worth
+          # catching before a person reports it, not after (P15: a surface is a
+          # live view of real state).
+          PSQLA "SELECT 'email-identity accounts: ' || count(*) || ' | with a password set: ' || count(*) FILTER (WHERE encrypted_password IS NOT NULL AND encrypted_password <> '') || ' | unconfirmed: ' || count(*) FILTER (WHERE email_confirmed_at IS NULL) || ' | banned: ' || count(*) FILTER (WHERE banned_until IS NOT NULL AND banned_until > now()) FROM auth.users WHERE email NOT LIKE '%@phone.poetech.us';"
+          PSQLA "SELECT 'phone-pin accounts: ' || count(*) || ' | with a PIN set: ' || count(*) FILTER (WHERE encrypted_password IS NOT NULL AND encrypted_password <> '') FROM auth.users WHERE email LIKE '%@phone.poetech.us';"
+          # THE DOORLESS COUNT is the one that matters. With SMTP off, an email
+          # account with no password cannot sign in by any route we serve.
+          if [ "$SMTPH" != "yes" ]; then
+            PSQLA "SELECT 'accounts with NO working door (no password, and no email delivery): ' || count(*) FROM auth.users WHERE email NOT LIKE '%@phone.poetech.us' AND (encrypted_password IS NULL OR encrypted_password = '');"
+          fi
           echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
           for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
             ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
