@@ -100,5 +100,9 @@ between, and it does not name or weigh any teacher. That is the DR-0098 line, ap
 - The position is bounded to what the cited texts state. Questions the Word does not
   settle — the composition of the "spirits in prison" of 1 Peter 3:19, the mechanics
   of Matthew 27:52-53 — are left where Scripture leaves them, and the lesson says so.
-- **Not claimed:** the lesson has not yet been read on the live build by a steward
-  (DR-0104). That pass remains the outstanding proof.
+- **Not claimed:** the lesson has not yet been reviewed on the live production
+  build. DR-0104 names the mechanism precisely, and it is not "read it on the
+  site": a steward enters **reviewer mode** (Admin → Actions → "Review as a
+  user") and confirms the lesson on poetech.us **as a user actually meets it** —
+  a fresh user's empty world, the user's real tier, no steward tabs — rather than
+  on the owner's privileged view. That pass remains the outstanding proof.

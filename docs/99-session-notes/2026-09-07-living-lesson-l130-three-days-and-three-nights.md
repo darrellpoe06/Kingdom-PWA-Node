@@ -127,6 +127,21 @@ whole three days rather than contradicting it.
 
 ## Not claimed
 
-The lesson has **not** yet been read on the live build by a steward (DR-0104). That
-pass is the remaining proof, and it is the normal post-deploy step rather than an
-open defect.
+The lesson has **not** yet been reviewed on the live production build. DR-0104
+names the mechanism, and it is not "read it on the site": a steward enters
+**reviewer mode** (Admin → Actions → "Review as a user") and confirms the lesson
+on poetech.us **as a user actually meets it** — a fresh user's empty world, the
+user's real tier, no steward tabs — rather than on the owner's privileged view.
+That pass is the remaining proof, and it is the normal post-deploy step rather
+than an open defect.
+
+Separately, per **DR-0107 §3**: after this merges, `main` advancing is not the
+same as the site advancing. The obligation is to confirm a **deploy run whose
+`head_sha` matches `main`'s tip**, and to **dispatch the deploy immediately** if
+it has not fired. Note that the Vercel preview reported Ready on this PR is a
+different system from the production path DR-0107 governs
+(`deploy-cloudflare-pages.yml`) and is not evidence about it — treating one as
+the other is precisely the system-green-mistaken-for-product-deployed miss that
+DR is a record of. DR-0107 §2's heavier obligation (prove every downstream
+`push`-triggered effect still fires) is **not** triggered here: this diff touches
+no merge, CI, or deploy-lane file.
