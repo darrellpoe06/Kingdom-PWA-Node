@@ -190,6 +190,7 @@ ALTER ROLE authenticator WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE postgres WITH LOGIN PASSWORD :'"'"'pw'"'"';
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
+GRANT anon, authenticated, service_role TO supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 ALTER ROLE supabase_auth_admin SET search_path = auth;
