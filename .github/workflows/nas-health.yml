@@ -476,6 +476,13 @@ jobs:
           # policies behind them (run 34165810216: a bare auth.uid() as the app role
           # raised "permission denied for schema auth" on this box).
           PSQLA "SELECT 'role plumbing: authenticator->authenticated=' || pg_has_role('authenticator','authenticated','MEMBER') || ' authenticator->anon=' || pg_has_role('authenticator','anon','MEMBER') || ' authenticator->service_role=' || pg_has_role('authenticator','service_role','MEMBER') || ' storage_admin->anon/authenticated/service_role=' || pg_has_role('supabase_storage_admin','anon','MEMBER') || '/' || pg_has_role('supabase_storage_admin','authenticated','MEMBER') || '/' || pg_has_role('supabase_storage_admin','service_role','MEMBER')|| ' authenticated USAGE on auth schema=' || has_schema_privilege('authenticated','auth','USAGE') || ' anon USAGE on auth schema=' || has_schema_privilege('anon','auth','USAGE');"
+          # STORAGE SCHEMA (2026-09-07 23:47Z, first request after the role grant):
+          # storage-api answered 500 'relation "buckets" does not exist'. Its own
+          # migrations create storage.buckets/objects at boot; if they never ran
+          # (843 restarts) the tables are absent, and if the role's search_path
+          # does not include storage, an unqualified "buckets" cannot resolve.
+          PSQLA "SELECT 'storage schema: buckets=' || coalesce(to_regclass('storage.buckets')::text,'MISSING') || ' objects=' || coalesce(to_regclass('storage.objects')::text,'MISSING') || ' migrations=' || coalesce(to_regclass('storage.migrations')::text,'MISSING') || ' storage_admin search_path=' || coalesce((SELECT array_to_string(rolconfig, ';') FROM pg_roles WHERE rolname='supabase_storage_admin'),'<unset>');"
+          PSQLA "SELECT 'storage rows: buckets=' || (SELECT count(*) FROM storage.buckets) || ' objects=' || (SELECT count(*) FROM storage.objects);" 2>&1 | grep -a 'storage rows' || echo "storage rows: (tables absent)"
           PSQLA "SELECT 'user_credentials: rows=' || count(*) || ' with_hash=' || count(*) FILTER (WHERE pin_hash IS NOT NULL) || ' rls=' || (SELECT relrowsecurity FROM pg_class WHERE relname='user_credentials') FROM user_credentials;"
           PHU=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
           GMU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
