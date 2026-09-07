@@ -11,7 +11,7 @@
 // on the CRM from day one.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
-import supabase, { readPersistedSession, signOut } from '../lib/supabase.js';
+import supabase, { readPersistedSession, signOut, identityLabel } from '../lib/supabase.js';
 import { publicRpc } from '../lib/public-rpc.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 import { useTextSize } from '../lib/text-size.js';
@@ -518,6 +518,8 @@ function PoeTechTab() {
 function DoorAuth({ role, onRole }) {
   const [open, setOpen] = useState(null); // null | 'admin' | 'user'
   const [checking, setChecking] = useState(true);
+  const [who, setWho] = useState('');          // the signed-in identity, as the app names it
+  const [roleFault, setRoleFault] = useState(false); // the role RPC errored (not "none")
   useEffect(() => {
     let on = true;
     // Hard deadline on the whole check: getSession() waits on a CROSS-TAB auth
@@ -543,19 +545,42 @@ function DoorAuth({ role, onRole }) {
       ]);
       if (!on) return;
       if (r?.timedOut) { setChecking(false); onRole('signed-out'); return; }
-      onRole(r?.error ? 'none' : (r?.data || 'none'));
+      setWho(identityLabel(live));
+      // An RPC ERROR is not "not a member". Collapsing the two hid a real
+      // backend fault behind a customer's view (2026-09-07: the sovereign
+      // box answering wrong looked exactly like "you're just a customer").
+      if (r?.error) { setRoleFault(true); onRole('none'); setChecking(false); return; }
+      onRole(r?.data || 'none');
       setChecking(false);
     })().catch(() => { if (on) { setChecking(false); onRole('signed-out'); } });
     return () => { on = false; };
   }, [onRole]);
   if (checking) return null;
+  const signOutBtn = <button type="button" className="underline" onClick={() => signOut().then(() => window.location.reload())}>Sign out</button>;
   if (role === 'owner' || role === 'admin') {
-    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. <button type="button" className="underline" onClick={() => signOut().then(() => window.location.reload())}>Sign out</button></p>;
+    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. {signOutBtn}</p>;
   }
   // 'customer-view' = a real steward looking through the customer lens: render
-  // exactly what a signed-in customer gets here (nothing) — the strip above the
-  // header is the only tell.
-  if (role !== 'signed-out') return null; // signed-in customer — My Orders shows in the Moore tab
+  // exactly what a signed-in customer gets here — the strip above the header
+  // is the only tell.
+  if (role === 'customer-view') return null;
+  // A SIGNED-IN PERSON ALWAYS HAS A WAY OUT (Darrell 2026-09-07, on his own
+  // tablet: "where is the logout button?"). This branch used to render
+  // NOTHING for a signed-in non-steward — no name, no sign-out, no way to
+  // sign in as someone else. A door with no handle on the inside is a lockout
+  // that looks like a blank header: the shop owner whose session is a
+  // different account than her seat could never get to the seat, and a
+  // steward whose role could not be read looked like a customer forever.
+  if (role !== 'signed-out') {
+    return (
+      <p className="text-xs text-[#5A5751]">
+        Signed in as <span className="font-semibold text-[#1A1815]">{who || 'you'}</span>
+        {roleFault
+          ? <> — we couldn&rsquo;t read your role here just now. {signOutBtn} and sign back in.</>
+          : <> — your orders show below. Not you? {signOutBtn}</>}
+      </p>
+    );
+  }
   if (open) {
     return (
       <div className="mx-auto max-w-sm">
