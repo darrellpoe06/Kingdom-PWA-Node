@@ -197,12 +197,16 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     expect(baseline.childOverCeiling.length).toBeGreaterThan(0);
   });
 
-  it('L129, the newest lesson, is CLEAN — the standard the debt is measured against', () => {
-    const l129 = scan.measured.find((m) => m.id.startsWith('ll129-'));
-    expect(l129, 'L129 must be measured').toBeTruthy();
-    expect(isInverted(l129), 'the newest lesson must not invert').toBe(false);
-    expect(breachesChildCeiling(l129), 'the newest child level must sit under the ceiling').toBe(false);
-    expect(l129.bands.child.authored).toBeLessThan(l129.bands.teen.authored);
-    expect(l129.bands.teen.authored).toBeLessThan(l129.bands.senior.authored);
+  // The two newest lessons are the STANDARD the recorded debt is measured
+  // against: every lesson authored since this gate landed must ascend cleanly
+  // child -> teen -> senior. L130 (2026-09-07) is checked alongside L129 rather
+  // than replacing it, so the standard accumulates instead of moving.
+  it.each([['ll129-'], ['ll130-']])('%s, authored since this gate, is CLEAN', (prefix) => {
+    const m = scan.measured.find((x) => x.id.startsWith(prefix));
+    expect(m, `${prefix} must be measured`).toBeTruthy();
+    expect(isInverted(m), 'a lesson authored since this gate must not invert').toBe(false);
+    expect(breachesChildCeiling(m), 'its child level must sit under the ceiling').toBe(false);
+    expect(m.bands.child.authored).toBeLessThan(m.bands.teen.authored);
+    expect(m.bands.teen.authored).toBeLessThan(m.bands.senior.authored);
   });
 });
