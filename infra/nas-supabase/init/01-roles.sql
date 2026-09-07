@@ -42,6 +42,15 @@ BEGIN
   END IF;
 END $$;
 GRANT anon, authenticated, service_role TO authenticator;
+-- storage-api runs every request as its own role and then SETS the caller's
+-- role (anon / authenticated / service_role) so RLS applies to the object
+-- rows. Without membership that SET is refused: "permission denied to set
+-- role" (guc.c call_string_check_hook, 42501) -- which storage-api reports as
+-- "new row violates row-level security policy" and answers 400 to EVERY
+-- request, public reads included. MEASURED 2026-09-07 (nas-health
+-- 34165385695): supabase-storage restarts=843, all twelve moore-showcase
+-- reads 400, and Shay's uploads with them. This is the grant that was missing.
+GRANT anon, authenticated, service_role TO supabase_storage_admin;
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;

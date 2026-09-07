@@ -155,7 +155,7 @@ export default function PinGate({
               ref={firstRef}
               type="password"
               inputMode="numeric"
-              autoComplete="off"
+              autoComplete="one-time-code"
               maxLength={8}
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, ''))}
@@ -172,7 +172,7 @@ export default function PinGate({
                 id="pin-confirm"
                 type="password"
                 inputMode="numeric"
-                autoComplete="off"
+                autoComplete="one-time-code"
                 maxLength={8}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value.replace(/[^0-9]/g, ''))}
