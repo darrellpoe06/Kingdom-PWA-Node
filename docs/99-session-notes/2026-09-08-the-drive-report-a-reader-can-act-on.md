@@ -79,4 +79,34 @@ That is the real headline and it is not a happy one: the dated-re-review discipl
 
 Full suite: 12,612 passing, 1 skipped. Lint clean. Real build clean.
 
+---
+
+## The sweep that followed, and the hypothesis it killed
+
+With the report legible, the next move was the backlog itself. The default I picked — without being asked, because DR-0075 already directs it — was to close the commitments whose conditions were already met, since those are *false* overdue: they inflate the count and hide the real work.
+
+The oldest cluster proved the method. Five records (LESSONS-LEARNED ×2, INDEX, DR-0153, DR-0155, REVIEWS.md) all carried the same `re-review: 2026-07-12` — the incident #722 serve-layer decision. **That decision was made 59 days ago.** DR-0155's INDEX row says so outright: *"Closes the #722 / LESSONS P32 open decision (`re-review: 2026-07-12`)."* And LESSONS-LEARNED had already written the closure into the text: **`**CLOSED 2026-07-10 by DR-0155:**`** — sitting immediately after the date, exactly where the extractor looks.
+
+The extractor could not see it. `DONE_MARKER_RE` admitted only whitespace, an em-dash, a colon and an opening bracket before the marker. The ledger writes real markdown — a backtick closing an inline code span, a sentence period, bold asterisks, a closing paren — and every one of those blocked a genuine, correctly-recorded closure. **A reader that cannot see the ledger's own closures reports finished work as outstanding.**
+
+### The hypothesis I got wrong, measured rather than assumed
+
+I expected this to be the explanation for the 500. It is not, and the honest number matters more than the tidy story: **609 commitments scanned, 6 closures already seen, and exactly 2 missed.** Not hundreds. Two.
+
+My first probe said three — because I wrote it case-insensitively and it matched the prose *"closed the same day"* mid-sentence. That is precisely the false-close the ALL-CAPS marker exists to prevent, and my own measuring tool committed it. The fix therefore widens **only the punctuation class** and keeps the marker case-sensitive; a gate now pins that lowercase prose never closes a commitment.
+
+So the corrected position: the 500 overdue are, as far as the ledger records, genuinely overdue. The instrument was under-counting closures by 2, not by 400. **The backlog is real work, not a reporting artifact** — which makes it a bigger finding, not a smaller one.
+
+### Proven to catch
+
+| Mutation | Result |
+|---|---|
+| Prefix class reverted to the narrow original | **CAUGHT** (3 failed) |
+| Marker made case-insensitive (prose false-closes) | **CAUGHT** (2 failed) |
+
+Watcher total after the fix: **603 → 601** — the two recorded closures now count, and the count is honest for the first time.
+
+Files: `app/src/lib/re-reviews.js` (prefix widened, capitals kept), `app/src/__tests__/re-reviews.test.js` (+7 assertions incl. the lowercase-prose negative and an out-of-range marker).
+
+
 **re-review: 2026-10-08** — check whether the overdue count has moved off 500, and whether the legible report actually got used to close items. If it has not moved, the instrument is fine and the *discipline* is the finding.

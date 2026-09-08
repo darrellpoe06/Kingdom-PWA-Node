@@ -200,3 +200,49 @@ describe('dashboard/console gov trigger is verb-scoped (2026-07-30 iter-4 — a 
     expect(one('remove a stray console.log — re-review: 2026-08-11').governorGated).toBe(false);
   });
 });
+
+// =============================================================================
+// The done-marker's PUNCTUATION class (2026-09-08). Found while sweeping the
+// real backlog: LESSONS-LEARNED had recorded "**CLOSED 2026-07-10 by DR-0155:**"
+// directly after a commitment's date, and every consumer still counted that
+// commitment as open — the marker sat behind a backtick, a period and bold
+// asterisks, and the old prefix class admitted only whitespace, an em-dash, a
+// colon and an opening bracket. Two genuine closures were invisible across all
+// 609 commitments in the repo. A reader that cannot see the ledger's own
+// closures reports finished work as outstanding.
+// =============================================================================
+describe('a recorded closure is seen through real markdown punctuation', () => {
+  const NOW_2026 = Date.parse('2026-09-08T00:00:00Z');
+  const one = (text) => extractReReviews(
+    { decisions: { items: [{ id: 'DR-TEST', title: 't', decision: text }] } }, NOW_2026,
+  );
+
+  // Each of these was written by this repo's own ledgers.
+  it.each([
+    ['backtick + period + bold', 'decision `re-review: 2026-07-12`. **CLOSED 2026-07-10 by DR-0155:** the root was worse.'],
+    ['closing paren + em-dash',  'the queue (`re-review: 2026-08-05`)** — CLOSED five days early: 30 rows landed.'],
+    ['bare bracket (the original form)', 'parked. re-review: 2026-08-01 [DONE abc1234]'],
+    ['semicolon then RESOLVED',  'parked; re-review: 2026-08-01; RESOLVED by the asset guard.'],
+  ])('%s closes the commitment', (_label, text) => {
+    expect(one(text)).toHaveLength(0);
+  });
+
+  it('an OPEN commitment in the same shapes still reports — the widening did not swallow live work', () => {
+    expect(one('decision `re-review: 2026-07-12`. The serve-layer call is still open.')).toHaveLength(1);
+    expect(one('parked (re-review: 2026-08-01) — pending the NAS being reachable.')).toHaveLength(1);
+  });
+
+  // The capitals are what make the marker a marker. Widening the punctuation
+  // must not weaken that: prose is full of the word "closed".
+  it('lowercase prose NEVER closes a commitment — the ALL-CAPS guarantee is intact', () => {
+    expect(one('re-review: 2026-07-12 — closed the same day, because the witness agreed.')).toHaveLength(1);
+    expect(one('re-review: 2026-07-12. this is done in spirit but not shipped.')).toHaveLength(1);
+    expect(one('re-review: 2026-07-12 (resolved informally in chat)')).toHaveLength(1);
+  });
+
+  it('a marker further down the line does not reach back and close it', () => {
+    // The marker must sit in the 48 chars right after the date, not anywhere later.
+    const far = `re-review: 2026-07-12${' padding text that pushes the marker out of range'.repeat(2)} DONE`;
+    expect(one(far)).toHaveLength(1);
+  });
+});

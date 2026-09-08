@@ -51,7 +51,19 @@ function makeItem(base, nowMs) {
 // dry-run finding F1: the ledger recorded INTENT, not completion, so a naive
 // date-sort drive would redo done work and the watcher over-counted overdue).
 // The marker is an explicit ALL-CAPS token so prose "done" never false-closes.
-const DONE_MARKER_RE = /^[\s—:([]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
+// PREFIX WIDENED 2026-09-08: the marker class was right, the punctuation class
+// was too narrow. The ledger closes commitments in real markdown — a backtick
+// ending an inline code span, a sentence period, bold asterisks, a closing
+// paren — and the old prefix admitted only whitespace, an em-dash, a colon and
+// an opening bracket. Measured across all 609 commitments: TWO genuine closures
+// the ledger had recorded were invisible to every consumer, one of them
+// LESSONS-LEARNED's own "**CLOSED 2026-07-10 by DR-0155:**" sitting behind a
+// backtick and a period. A reader that cannot see the ledger's own closures
+// reports work as outstanding that this team already finished.
+// STILL ALL-CAPS AND CASE-SENSITIVE, deliberately: prose "closed the same day"
+// must never close a commitment, and it is the capitals — not the punctuation —
+// that carry that guarantee.
+const DONE_MARKER_RE = /^[\s—–:;.,()[\]`*_"'>-]*?(?:✓\s*)?(DONE|RESOLVED|CLOSED|SHIPPED|LANDED)\b/;
 
 // Pull every OPEN re-review date out of one free-text blob, tagged with source.
 function fromText(text, meta, nowMs, out) {

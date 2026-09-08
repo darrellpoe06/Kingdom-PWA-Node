@@ -54,8 +54,25 @@ That is a finding about the DR-0075 discipline, not about this fix. The instrume
 
 re-review: 2026-10-08 — has the overdue count moved off 500, and did the now-legible report actually get used to close items? If it has not moved, the instrument is fine and the *discipline* is the finding.
 
+## Decision 4 — A reader must see the ledger's own closures (added same session, after the sweep)
+
+Sweeping the oldest overdue cluster found five records carrying the same `re-review: 2026-07-12` — the incident #722 serve-layer decision, **made 59 days ago**. DR-0155's INDEX row says so outright, and LESSONS-LEARNED had written **`**CLOSED 2026-07-10 by DR-0155:**`** immediately after the date, exactly where the extractor looks.
+
+`DONE_MARKER_RE` could not see it. Its prefix class admitted only whitespace, an em-dash, a colon and an opening bracket; the ledger closes commitments in real markdown — a backtick ending an inline code span, a sentence period, bold asterisks, a closing paren.
+
+Binding: **the done-marker's punctuation class tracks how the ledger actually writes, while the marker itself stays ALL-CAPS and case-sensitive.** The capitals are the guarantee — prose is full of the word "closed" — and widening punctuation must never weaken them.
+
+### The hypothesis this killed, recorded because the number matters more than the story
+
+I expected missed closures to explain the 500 overdue. **They do not: 609 commitments scanned, 6 closures already seen, exactly 2 missed.** My first probe said three, because I wrote it case-insensitively and it matched the prose *"closed the same day"* — the exact false-close the ALL-CAPS rule prevents, committed by my own measuring tool before it could be committed by the fix.
+
+**Corrected position: the 500 overdue are, as far as the ledger records, genuinely overdue.** The instrument was under-counting by 2, not 400. The backlog is real work, not a reporting artifact — a bigger finding than the one I set out to confirm, not a smaller one.
+
+Proven to catch: prefix reverted to the narrow original → **CAUGHT** (3 failed); marker made case-insensitive → **CAUGHT** (2 failed). Watcher total 603 → 601.
+
 ## Consequences
 
 - `app/src/lib/review-watcher.js` — urgency-ordered budget spend; `detail` on the report line; a local `urgencyRank` derived from `reReviewStatus` so "urgent" has one definition and cannot drift from the status the report renders (DR-0121).
 - `app/src/__tests__/review-watcher.test.js` — 6 assertions in 3 describes; three mutations proven to catch.
+- `app/src/lib/re-reviews.js` — done-marker prefix widened to real markdown punctuation, capitals kept; `app/src/__tests__/re-reviews.test.js` +7 assertions incl. the lowercase-prose negative and an out-of-range marker.
 - Nothing about the brake's strength changed. A run that truncates still truncates, still says so, and now withholds only the least urgent.
