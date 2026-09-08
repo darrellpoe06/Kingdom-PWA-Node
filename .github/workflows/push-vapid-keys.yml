@@ -1,0 +1,181 @@
+# =============================================================================
+# Push notifications — mint the VAPID pair and install it, with nobody's hands
+# on the private key.
+# =============================================================================
+# Darrell, 2026-09-08: "Connectbot?"
+#
+# ConnectBot reaches the NAS. The VAPID keys live in Cloudflare, so ConnectBot
+# is not the road — but the premise under the question ("these keys need my
+# hands somewhere") was wrong, and that is the part worth fixing. DR-0108: a
+# stated "must-be-by-hand" is an unverified premise to challenge. DR-0249 drew
+# the same line for the NAS bootstrap: "credentials only he holds" is a smaller
+# claim than "his hands must type it."
+#
+# The repository ALREADY holds CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID —
+# deploy-cloudflare-pages.yml uses them on every merge to main. So the pair is
+# minted on the runner and installed on the Pages project inside one job. The
+# private half is generated, written to a 0600 file, uploaded, and deleted,
+# without ever being displayed, pasted into a chat, or typed on a phone.
+#
+# ── THE BRAKES (CLAUDE.md 2026-06-08) ────────────────────────────────────────
+# This is dispatch-only — nothing here fires on a clock, so it is not the
+# runaway class. The brake that matters for THIS job is a different one:
+# ROTATING A LIVE KEY SILENTLY UNSUBSCRIBES EVERY PHONE. A push service binds a
+# subscription to the public key it was created with; replace the pair and every
+# existing subscription is rejected forever, and no device can tell — the person
+# simply stops being notified. So:
+#   • an already-configured project is a clean NO-OP that changes nothing;
+#   • overwriting requires typing the words ROTATE-AND-INVALIDATE-EVERY-DEVICE
+#     into the dispatch form, so it cannot happen by clicking "Run workflow".
+#
+# ── VERIFIED, NOT CLAIMED (DR-0076) ──────────────────────────────────────────
+# The job does not report success from an exit code. It reads the secret list
+# back from Cloudflare and fails unless all three names are present, and then
+# asks the LIVE SITE whether it is actually serving a key (DR-0125: prove the
+# site, not only the pipeline).
+name: Push notifications — install the VAPID keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      subject:
+        description: 'VAPID subject — who a push service contacts about this sender (mailto: or https:)'
+        required: false
+        default: 'mailto:info@thechurchofthelivinggod.com'
+      rotate:
+        description: 'Leave EMPTY. To replace an existing key and unsubscribe every device, type: ROTATE-AND-INVALIDATE-EVERY-DEVICE'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vapid-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: mint + install + verify
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: poetech-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # A missing credential is reported as NOT CONFIGURED and stops the job
+      # cleanly. A half-run here would leave a project holding a public key with
+      # no private half — the exact drift this whole change exists to remove.
+      - name: The credentials must exist
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set on this repository, so nothing was changed. They are the same two secrets deploy-cloudflare-pages.yml already uses."
+            exit 1
+          fi
+
+      - name: What does the project already hold?
+        id: existing
+        run: |
+          set -o pipefail
+          npx --yes wrangler@3 pages secret list --project-name="$PROJECT" > /tmp/secrets.txt 2>&1 || {
+            echo "::error::Could not read the Pages secrets for project '$PROJECT'. Output:"; cat /tmp/secrets.txt; exit 1;
+          }
+          # The listing prints NAMES only — Cloudflare never returns a secret's
+          # value, which is precisely why a rotation cannot be "checked" and has
+          # to be gated by the confirmation phrase instead.
+          grep -o 'VAPID_[A-Z_]*' /tmp/secrets.txt | sort -u > /tmp/vapid-names.txt || true
+          echo "names on the project:"; cat /tmp/vapid-names.txt
+          if grep -qx 'VAPID_PRIVATE_KEY' /tmp/vapid-names.txt; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Already configured — change nothing
+        if: ${{ steps.existing.outputs.configured == 'true' && github.event.inputs.rotate != 'ROTATE-AND-INVALIDATE-EVERY-DEVICE' }}
+        run: |
+          {
+            echo "### VAPID: already installed — nothing was changed"
+            echo ""
+            echo "\`$PROJECT\` already holds a \`VAPID_PRIVATE_KEY\`. This job refuses to overwrite it."
+            echo ""
+            echo "Replacing the pair would permanently reject **every existing subscription**: a push"
+            echo "service binds each subscription to the public key it was created with, and no device"
+            echo "is told when that key changes — people just stop being notified. If a rotation is"
+            echo "genuinely wanted, re-run this workflow and type \`ROTATE-AND-INVALIDATE-EVERY-DEVICE\`"
+            echo "into the rotate box; every person then has to turn notifications on again."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Mint the pair (generated and consumed inside this job)
+        id: mint
+        if: ${{ steps.existing.outputs.configured != 'true' || github.event.inputs.rotate == 'ROTATE-AND-INVALIDATE-EVERY-DEVICE' }}
+        env:
+          VAPID_SUBJECT: ${{ github.event.inputs.subject }}
+        run: |
+          umask 077
+          node scripts/mint-vapid.mjs /tmp/vapid.json | tee /tmp/mint.out
+          grep '^public_key=' /tmp/mint.out >> "$GITHUB_OUTPUT"
+
+      - name: Install all three onto the Pages project
+        if: ${{ steps.mint.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          npx --yes wrangler@3 pages secret bulk /tmp/vapid.json --project-name="$PROJECT" 2>&1 | tee /tmp/upload.out
+          shred -u /tmp/vapid.json 2>/dev/null || rm -f /tmp/vapid.json
+
+      # Always clean up, including on a failed upload — a private key must not
+      # survive on a runner's disk waiting for someone else's job.
+      - name: Leave no key behind
+        if: ${{ always() }}
+        run: rm -f /tmp/vapid.json /tmp/mint.out
+
+      - name: VERIFY — read the names back from Cloudflare
+        if: ${{ steps.mint.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          npx --yes wrangler@3 pages secret list --project-name="$PROJECT" > /tmp/after.txt 2>&1
+          cat /tmp/after.txt
+          MISSING=""
+          for NAME in VAPID_SUBJECT VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY; do
+            grep -q "$NAME" /tmp/after.txt || MISSING="$MISSING $NAME"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::The upload reported success but Cloudflare does not list:$MISSING. The project is in a half-configured state — re-run this workflow."
+            exit 1
+          fi
+          echo "all three VAPID names are present on $PROJECT"
+
+      # DR-0125: prove the SITE, not only the pipeline. Pages binds environment
+      # variables to a DEPLOYMENT, so a project-level secret reaches the running
+      # Functions on the next deploy — this step measures whether that has
+      # happened yet rather than assuming either way.
+      - name: Does the LIVE site serve a key yet?
+        if: ${{ always() && steps.mint.outcome == 'success' }}
+        run: |
+          BODY=$(curl -sS --max-time 30 -H 'accept: application/json' https://poetech.us/api/push-key || echo '{"configured":"UNREACHABLE"}')
+          echo "live /api/push-key -> $BODY"
+          {
+            echo "### VAPID installed on \`$PROJECT\`"
+            echo ""
+            echo "Public key (public by design — this is the identity a push service checks a signature against):"
+            echo ""
+            echo "    ${{ steps.mint.outputs.public_key }}"
+            echo ""
+            echo "The private half was generated on this runner, uploaded, and deleted. It was never printed."
+            echo ""
+            echo "Live \`https://poetech.us/api/push-key\` right now:"
+            echo ""
+            echo "    $BODY"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          case "$BODY" in
+            *'"configured":true'*)
+              echo "- **The live site is serving the key.** Notifications can be turned on in the app now." >> "$GITHUB_STEP_SUMMARY" ;;
+            *)
+              echo "- **Not live yet.** Cloudflare Pages binds environment variables at deploy time, so the key reaches the running Functions on the next deployment. The next merge to \`main\` does it; to do it now, dispatch **Deploy (Cloudflare Pages)**." >> "$GITHUB_STEP_SUMMARY" ;;
+          esac

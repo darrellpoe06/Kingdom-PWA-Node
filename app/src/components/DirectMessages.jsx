@@ -25,6 +25,7 @@ import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { requestDmNotificationPermission } from '../lib/dm-notify.js';
 import PushNotifications from './PushNotifications.jsx';
 import { pushSupported } from '../lib/push-subscribe.js';
+import { useVapidPublicKey } from '../lib/push-key.js';
 import UiIcon from './UiIcon.jsx';
 
 // Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
@@ -64,7 +65,13 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   // Push renders its own control when it is BOTH supported and configured;
   // the legacy permission-only button stays as the fallback for everywhere
   // else, so the foreground bell is never lost.
-  const pushAvailable = pushSupported() && !!(import.meta.env || {}).VITE_VAPID_PUBLIC_KEY;
+  // `undefined` while the key lookup is in flight, '' once it resolves to
+  // "not configured here". The legacy foreground-only button is offered ONLY in
+  // that resolved-and-unconfigured state — showing it during the lookup would
+  // flash a control that is about to be replaced by the real one.
+  const vapidKey = useVapidPublicKey();
+  const pushResolved = vapidKey !== undefined;
+  const pushAvailable = pushSupported() && !!vapidKey;
   const [notifPerm, setNotifPerm] = useState(() => (
     typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'unsupported'
   ));
@@ -178,7 +185,7 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
           nothing where push is unconfigured or unsupported, and falls back to
           the original permission-only grant there so no one loses the bell. */}
       <PushNotifications topic="message" />
-      {notifPerm === 'default' && !pushAvailable && (
+      {notifPerm === 'default' && pushResolved && !pushAvailable && (
         <button
           type="button"
           onClick={async () => setNotifPerm(await requestDmNotificationPermission())}
