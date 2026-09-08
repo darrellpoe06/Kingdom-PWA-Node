@@ -483,6 +483,10 @@ jobs:
           # does not include storage, an unqualified "buckets" cannot resolve.
           PSQLA "SELECT 'storage schema: buckets=' || coalesce(to_regclass('storage.buckets')::text,'MISSING') || ' objects=' || coalesce(to_regclass('storage.objects')::text,'MISSING') || ' migrations=' || coalesce(to_regclass('storage.migrations')::text,'MISSING') || ' storage_admin search_path=' || coalesce((SELECT array_to_string(rolconfig, ';') FROM pg_roles WHERE rolname='supabase_storage_admin'),'<unset>');"
           PSQLA "SELECT 'storage rows: buckets=' || (SELECT count(*) FROM storage.buckets) || ' objects=' || (SELECT count(*) FROM storage.objects);" 2>&1 | grep -a 'storage rows' || echo "storage rows: (tables absent)"
+          # WHICH buckets (ids are code constants, not PII). 2026-09-08 01:15Z:
+          # the first served request after the grants answered "Bucket not
+          # found" for moore-showcase while buckets=1 - the count alone hid it.
+          PSQLA "SELECT 'storage buckets: ' || coalesce(string_agg(id || '(' || CASE WHEN public THEN 'public' ELSE 'private' END || ')', ', ' ORDER BY id), '<none>') FROM storage.buckets;" 2>&1 | grep -a 'storage buckets' || echo "storage buckets: (table absent)"
           PSQLA "SELECT 'user_credentials: rows=' || count(*) || ' with_hash=' || count(*) FILTER (WHERE pin_hash IS NOT NULL) || ' rls=' || (SELECT relrowsecurity FROM pg_class WHERE relname='user_credentials') FROM user_credentials;"
           PHU=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
           GMU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
