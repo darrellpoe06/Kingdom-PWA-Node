@@ -130,7 +130,7 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { BigPictureDashboard } from './components/BigPictureDashboard.jsx';
 import { dueDateFor, OPPORTUNITY_LIBRARY, matchOpportunities, capacityDecisionForNewProject } from './lib/opportunity-capacity.js';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout } from './lib/assignments.js';
-import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
+import { ChurchGiveFloater, ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
@@ -4142,6 +4142,8 @@ ${THEME_CSS}
               <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch bg-[#FAF8F4]">
+              {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
+              {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
