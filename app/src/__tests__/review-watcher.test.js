@@ -103,3 +103,97 @@ describe('the watcher on Ari\'s fleet board', () => {
     expect(o.counts.activeUnbraked).toBe(0); // active AND braked raises nothing (P10 satisfied)
   });
 });
+
+// =============================================================================
+// The report has to be ACTIONABLE, and the brake must not choose the finding
+// (2026-09-08). Both cases below were observed on the real repo before the fix:
+// a drive report where five overdue rows rendered identically, and a ceiling
+// that withheld 99 commitments picked by scan order rather than urgency.
+// =============================================================================
+
+// One record carrying several OPEN commitments that share a date — the exact
+// shape of docs/decisions/INDEX.md, which had five for 2026-08-25.
+const SAME_DATE_SIBLINGS = { items: [
+  { id: 'INDEX.md', title: 'Decision ledger index',
+    findings: [
+      'Tenancy guard soak on the church surfaces — re-review: 2026-07-01.',
+      'Funnel throttle measurement on the photo route — re-review: 2026-07-01.',
+      'Reading-ladder debt for the senior band — re-review: 2026-07-01.',
+    ].join('\n'), source: 'docs/decisions/INDEX.md' },
+] };
+
+describe('the drive report names WHICH commitment, not just which file', () => {
+  it('renders same-date siblings as distinguishable rows — three commitments, three different lines', () => {
+    const r = runReviewWatch({ reviews: SAME_DATE_SIBLINGS, store: memoryStore(), nowMs: NOW });
+    expect(r.report.counts.overdue).toBe(3);
+    const md = formatWatchReport(r.report);
+    // Each commitment is identifiable by its own clause, so a reader can act.
+    expect(md).toMatch(/tenancy guard soak/i);
+    expect(md).toMatch(/funnel throttle measurement/i);
+    expect(md).toMatch(/reading-ladder debt/i);
+    // PROVEN TO CATCH: the pre-fix report was sourceId + status + date + source
+    // only. Rebuild that line here and assert it is NOT what ships — identical
+    // text for all three is precisely the unreadable report this pins against.
+    const bare = r.report.overdue.map((it) => `- **${it.sourceId}** · overdue · due ${it.date} · ${it.source}`);
+    expect(new Set(bare).size).toBe(1);        // the old shape collapsed to ONE row
+    const shipped = md.split('\n').filter((l) => l.startsWith('  - ')); // the detail sub-lines
+    expect(shipped).toHaveLength(3);
+    expect(new Set(shipped).size).toBe(3);     // the shipped shape keeps all three
+  });
+});
+
+describe('BRAKE budget: it bounds the WORK, it never biases the FINDING', () => {
+  // An overdue item deliberately placed LAST in scan order, behind enough
+  // far-future items to exhaust a small ceiling. Pre-fix, the ceiling dropped
+  // it and the report read clean while a real overdue commitment was withheld.
+  const BURIED_OVERDUE = { items: [
+    { id: 'DR-9101', title: 'Far A', status: 'accepted', decision: 'Later. re-review: 2026-12-01.' },
+    { id: 'DR-9102', title: 'Far B', status: 'accepted', decision: 'Later. re-review: 2026-12-02.' },
+    { id: 'DR-9103', title: 'Far C', status: 'accepted', decision: 'Later. re-review: 2026-12-03.' },
+    { id: 'DR-9104', title: 'Buried overdue', status: 'accepted', decision: 'Parked with why. re-review: 2026-06-01.' },
+  ] };
+
+  it('a truncated run keeps the OVERDUE item and drops a far-future one', () => {
+    const r = runReviewWatch({ decisions: BURIED_OVERDUE, store: memoryStore(), nowMs: NOW, limits: { maxItems: 2 } });
+    expect(r.ok).toBe(true);
+    expect(r.report.counts.truncated).toBe(2);
+    expect(r.report.counts.overdue).toBe(1);
+    expect(r.report.overdue[0].sourceId).toBe('DR-9104'); // survived despite being last in scan order
+  });
+
+  it('the ceiling itself is unchanged — same units spent, and the truncation still SAYS so', () => {
+    const r = runReviewWatch({ decisions: BURIED_OVERDUE, store: memoryStore(), nowMs: NOW, limits: { maxItems: 2 } });
+    expect(r.report.counts.scanned).toBe(2);
+    expect(r.report.counts.total).toBe(4);
+    expect(formatWatchReport(r.report)).toMatch(/not scanned this run/);
+  });
+
+  it('an unbounded run reports every commitment — the fix changes ORDER, never coverage', () => {
+    const r = runReviewWatch({ decisions: BURIED_OVERDUE, store: memoryStore(), nowMs: NOW });
+    expect(r.report.counts.scanned).toBe(4);
+    expect(r.report.counts.truncated).toBe(0);
+    expect(r.report.truncatedNote).toBeNull();
+  });
+});
+
+describe('the default ceiling is itself pinned', () => {
+  // Found 2026-09-08 while proving the two fixes above: mutating the default
+  // maxItems from 500 to 100000 broke NO test. That is the tempting wrong fix
+  // for a truncated run — raise the ceiling until the truncation note goes away
+  // — and it is the exact brake-weakening P10 / DR-0225 forbid. The ceiling is
+  // now behaviour, not a comment: widening it has to be a deliberate, visible
+  // edit to this expectation.
+  const many = { items: Array.from({ length: 501 }, (_, i) => ({
+    id: `DR-${8000 + i}`, title: `Item ${i}`, status: 'accepted',
+    decision: `Parked ${i}. re-review: 2026-12-01.`,
+  })) };
+
+  it('a run with NO limits still stops at 500 items and says what it did not scan', () => {
+    const r = runReviewWatch({ decisions: many, store: memoryStore(), nowMs: NOW });
+    expect(r.ok).toBe(true);
+    expect(r.report.counts.total).toBe(501);
+    expect(r.report.counts.scanned).toBe(500);
+    expect(r.report.counts.truncated).toBe(1);
+    expect(r.report.truncatedNote).toMatch(/1 item\(s\) not scanned/);
+  });
+});

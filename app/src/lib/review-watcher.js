@@ -28,6 +28,15 @@ import { createBudget, acquireLock, releaseLock, killSwitch, memoryStore } from 
 
 export const WATCHER_NAME = 'review-watcher';
 
+// Local urgency rank for the budget's spend order (overdue < due-soon < later).
+// Derived from reReviewStatus so it can never drift from the status the report
+// renders — one definition of "urgent", read rather than restated.
+const urgencyRank = (it) => {
+  const s = reReviewStatus(it).status;
+  return s === 'problem' ? 0 : s === 'attention' ? 1 : 2;
+};
+
+
 // Consecutive-failure ceiling: the Nth straight failure trips the kill-switch
 // (P10: repeated failure PAUSES; it never keeps retrying into a runaway).
 export const MAX_CONSECUTIVE_FAILURES = 3;
@@ -73,10 +82,22 @@ export function runReviewWatch({
 
   try {
     const items = extract({ reviews, decisions }, nowMs) || [];
+    // URGENCY-ORDERED SPEND (2026-09-08): the budget caps how many commitments a
+    // run carries, but it must not decide WHICH ones arbitrarily. Spending in
+    // extraction order meant the ceiling dropped whatever happened to sit at the
+    // tail of the ledger scan — on the real repo (599 commitments, ceiling 500)
+    // that silently withheld 99, and an OVERDUE item could be among them while a
+    // far-future one was kept. The ceiling is unchanged (same units, same
+    // truncation note); only the ORDER it consumes is fixed, so what survives a
+    // truncated run is always the most urgent. A brake may bound the work; it
+    // may never bias the finding.
+    const ordered = sortReReviews(items, 'date', 'asc')
+      .slice()
+      .sort((a, b) => urgencyRank(a) - urgencyRank(b));
     const kept = [];
     let truncated = 0;
-    for (const it of items) {
-      if (budget.exceeded(nowMs).exceeded) { truncated = items.length - kept.length; break; }
+    for (const it of ordered) {
+      if (budget.exceeded(nowMs).exceeded) { truncated = ordered.length - kept.length; break; }
       budget.spend(1);
       kept.push(it);
     }
@@ -111,7 +132,17 @@ export function runReviewWatch({
 // issue / Ari panel. Every line names its source record (evidence, DR-0076).
 export function formatWatchReport(report) {
   if (!report) return 'No report (run paused, skipped, or failed).';
-  const line = (it) => `- **${it.sourceId || it.title}** · ${reReviewStatus(it).label} · due ${it.date} · ${it.source || ''}`;
+  // The DISTINGUISHER is not optional. One record routinely carries several
+  // open commitments that share a date (docs/decisions/INDEX.md alone had five
+  // for 2026-08-25), and without the clause text every one of them renders as
+  // the same row — a report a reader cannot act on, which is the failure
+  // re-reviews.js already computes `detail` to prevent. The in-app surface
+  // showed it; this report, the one the daily drive and the job summary read,
+  // dropped it. Evidence over identifier (DR-0076).
+  const line = (it) => {
+    const head = `- **${it.sourceId || it.title}** · ${reReviewStatus(it).label} · due ${it.date} · ${it.source || ''}`;
+    return it.detail ? `${head}\n  - ${it.detail}` : head;
+  };
   const parts = [
     `Review watch · scanned ${report.counts.scanned}/${report.counts.total} dated commitments`,
     '',
