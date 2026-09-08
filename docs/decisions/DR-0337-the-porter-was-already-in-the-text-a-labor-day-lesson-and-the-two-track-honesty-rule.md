@@ -55,12 +55,21 @@ The gate refuses drift in **either** direction, and each fence is a live asserti
 - **Register measured, not claimed:** child **1.30** / teen **6.70** / adult **8.00** / senior **12.30**. Not inverted; child well under the 7.0 ceiling. The shrink-only baseline gained **no new offenders** (30 inverted / 17 over-ceiling unchanged; count 132 → 133).
 - **Full suite green**, lint clean at `--max-warnings 0`, real `npm run build` clean.
 
-## A numbering collision, recorded because it will recur
+## A numbering collision — and a correction to my own first account of it
 
-This lesson was authored as **L131** and shipped as **L134**. While it was being written, another session merged L131, L132 and L133 to `main`. Caught before pushing by fetching `main` and diffing the module ids — not by a gate. The in-repo lesson id is claimed **at merge, not at authoring time**, so concurrent lesson sessions will collide again. `re-review: 2026-09-15` — decide whether a lesson-id gate is worth building or whether the fetch-before-push habit is sufficient.
+This lesson was authored as **L131** and shipped as **L134**. While it was being written, another session merged L131, L132 and L133 to `main`.
+
+**The first draft of this record said the collision was "caught by habit, not by a gate." That was wrong, and the correction matters more than the collision.** `app/src/__tests__/living-lessons-id-collision.test.js` already exists — built 2026-09-02 after three sessions raced and two independently claimed L114 — and it asserts exactly this property: a lesson number is claimed at most once, with a shrink-only ratchet on numbering gaps and its own proven-to-catch replay of that incident.
+
+So the honest account is: **the gate was never absent.** Fetching `main` before pushing caught the collision *earlier* than the gate would have — pre-merge rather than on `main` after both branches landed — but had I pushed `ll131` regardless, the merged catalog would have carried two lessons numbered L131 and that suite would have gone red. Habit bought a cycle; it did not substitute for a check.
+
+**The `re-review` this section originally opened is therefore closed on arrival**, and correctly so: the question "is a lesson-id gate worth building" was answered six days ago by someone who had already been bitten. Claiming a gap without first checking whether the repo had closed it is the DR-0107 "cited-but-unread" failure in miniature, and it is recorded here rather than quietly edited out.
+
+The residual, stated precisely and *not* deferred behind a date: the gate fires **at merge**, because that is the first moment both claims exist in one tree. Nothing in a feature branch can see another branch's unmerged id. That is a property of git, not a hole in the gate, and the operational answer is the habit this session used — fetch `main` and diff the module ids before pushing a lesson.
 
 ## Consequences
 
 - The series has a worked example for the class of lesson whose occasion is documented history, and a stated rule for how the two kinds of claim are kept apart.
 - The porter/`John 10:3` weld is now gated, so a later edit cannot quietly turn a Word-first lesson into a history talk.
 - The DR-0210 typography check gains its complement — the KJV's own "God" must still be **present** inside quotations — which closes the loophole where a blind find-replace would have satisfied the original assertion.
+- One process lesson, learned the embarrassing way: **before recording a gap, grep for the gate that may already close it.** The lesson-id gate existed and this record initially said it did not.

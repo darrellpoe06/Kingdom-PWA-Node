@@ -57,9 +57,17 @@ A lesson whose occasion is documented history carries two kinds of claim, and th
 - **Register measured:** child **1.30** / teen **6.70** / adult **8.00** / senior **12.30**. Not inverted, child under the 7.0 ceiling. Shrink-only baseline gained **no new offenders** (30 inverted / 17 over-ceiling unchanged; count 132 → 133).
 - **Full suite green**; lint clean at `--max-warnings 0`; real `npm run build` clean.
 
-## The collision, recorded
+## The collision — and the correction I owe my own first account
 
-Authored as **L131**; shipped as **L134**. Another session merged L131, L132 and L133 to `main` while this was being written. Caught by fetching `main` and diffing module ids **before** pushing — by habit, not by a gate. The lesson id is effectively claimed at merge rather than at authoring time, so this will recur with concurrent lesson sessions. `re-review: 2026-09-15` on whether a lesson-id gate earns its keep.
+Authored as **L131**; shipped as **L134**. Another session merged L131, L132 and L133 to `main` while this was being written, caught by fetching `main` and diffing module ids before pushing.
+
+**I first wrote that up as "caught by habit, not by a gate." That was false**, and I found it while looking for where to build the gate I had just proposed. `app/src/__tests__/living-lessons-id-collision.test.js` has existed since **2026-09-02**, built after three sessions raced and two independently claimed L114. It asserts precisely this — a lesson number is claimed at most once — plus a shrink-only ratchet on numbering gaps, and it carries its own proven-to-catch replay of that incident.
+
+The honest version: **the gate was never absent.** The habit caught it *earlier* — pre-merge instead of on `main` after both branches landed — but if I had pushed `ll131` anyway, the merged catalog would have held two L131s and that suite would have gone red. Habit saved a cycle; it did not stand in for a check.
+
+That kills the `re-review` I had opened, and rightly: I proposed building something the repo built six days ago. Claiming a gap without grepping for the gate that closes it is the DR-0107 "cited-but-unread" failure at small scale, and it stays in the record instead of being quietly edited away.
+
+The real residual, which is not a defect and is not deferred: the gate fires **at merge**, because that is the first moment both claims exist in one tree. No feature branch can see another branch's unmerged id — that is git, not a hole. The operational answer is the habit: fetch `main` and diff the ids before pushing a lesson.
 
 Rebasing was clean: the module was re-emitted from its builder with the new id and re-spliced onto the current `main`, and the whole verification was re-run from scratch on the rebased tree rather than trusted from the pre-rebase run.
 
