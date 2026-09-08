@@ -234,6 +234,21 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['joy', 'strength', 'untakeable', 'nehemiah'],
   },
   {
+    // Darrell 2026-09-08, spoken into the app: happiness depends on what
+    // happens; joy is a steady strength carried IN, even on a hard day, said
+    // in the Word to people who were crying at the time. His ask: what do a
+    // bad day, an okay day and a great day look like run on the Word as the
+    // code? The pattern side of Living Lesson L131 (one teaching, two surfaces).
+    id: 'gh-joy-three-days', section: 'torah', name: 'Three Days, One Strength (the code that does not change when the day does)',
+    refs: ['Nehemiah 8:10', 'James 1:2-3', 'John 16:22', 'Galatians 5:22-23'],
+    condition: 'Any day — bad, okay, or great — READ honestly (the Word records the tears before it commands the joy); joy LOCATED in its source (of the LORD; fruit of the Spirit; His joy given, not the day\'s); the joy ACT done regardless of input (eat, drink, send portions; count it all joy; give thanks in every thing).',
+    consequence: 'STRENGTH as the output on every day — "the joy of the LORD is your strength" — because strength was wired to joy and not to the mood; and the supply is theft-proof: "your joy no man taketh from you".',
+    threeD: 'Happiness is a function of what happens; joy is a function of Yahweh. Run the same four lines on a bad day (Habakkuk\'s Yet after six failures), an okay day (rejoice because He MADE the day — the drift day is the dangerous one), and a great day (re-source the win to the Giver, as Jesus did with the seventy in Luke 10:20). The first line changes daily; the last line does not.',
+    outcome: 'Strength available on the day the mood is gone — and a great day that never gets to become the power supply.',
+    psyche: 'Mood tracks events; an affect sourced outside events stays stable under load. Counting (James\'s ledger word) and giving to others (send portions) are the two levers behavioural research keeps finding lift affect most reliably — the Word assigned both to a weeping crowd first.',
+    tags: ['joy', 'strength', 'three-days', 'happiness', 'nehemiah', 'habakkuk'],
+  },
+  {
     id: 'gh-humble-heal', section: 'torah', name: 'If My People Humble Themselves',
     refs: ['2 Chronicles 7:14'],
     condition: 'HIS people humble themselves, pray, seek His face, and TURN from their wicked ways.',
