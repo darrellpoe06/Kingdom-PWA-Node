@@ -150,32 +150,61 @@ jobs:
           fi
           echo "all three VAPID names are present on $PROJECT"
 
-      # DR-0125: prove the SITE, not only the pipeline. Pages binds environment
-      # variables to a DEPLOYMENT, so a project-level secret reaches the running
-      # Functions on the next deploy — this step measures whether that has
-      # happened yet rather than assuming either way.
-      - name: Does the LIVE site serve a key yet?
-        if: ${{ always() && steps.mint.outcome == 'success' }}
+      # ── THE WITNESS, AND WHY IT RUNS ON EVERY PATH ──────────────────────────
+      # DR-0125: prove the SITE, not only the pipeline. The first version of
+      # this step was gated on the mint having run, which meant it NEVER fired
+      # on the "already configured" path — that is, on every run after the
+      # first, which is exactly when someone dispatches this job to ask "is push
+      # actually working?" An instrument that goes quiet in the state you most
+      # want it is the DR-0125 failure with a different face, so it now runs
+      # unconditionally and the job's own answer comes from it.
+      #
+      # THREE STATES, KEPT APART. The first version collapsed the last two into
+      # "not live yet", which would let a genuine routing fault hide behind a
+      # deploy-timing excuse indefinitely:
+      #   SERVING      — JSON, configured:true. Push works.
+      #   NOT BOUND    — JSON, configured:false. The Function is running but its
+      #                  environment has no key: Pages binds variables at DEPLOY
+      #                  time, so a secret set after the last deploy needs one.
+      #   NOT ROUTED   — not JSON at all (the SPA's index.html, via the
+      #                  _redirects catch-all). The Function is not being served
+      #                  on this path. That is a fault, not a wait.
+      - name: WITNESS — what does the LIVE site actually serve?
+        if: ${{ always() }}
         run: |
-          BODY=$(curl -sS --max-time 30 -H 'accept: application/json' https://poetech.us/api/push-key || echo '{"configured":"UNREACHABLE"}')
-          echo "live /api/push-key -> $BODY"
+          CODE=$(curl -sS --max-time 30 -o /tmp/live.txt -w '%{http_code}' -H 'accept: application/json' https://poetech.us/api/push-key || echo 000)
+          BODY=$(head -c 400 /tmp/live.txt)
+          echo "GET /api/push-key -> HTTP $CODE"
+          echo "$BODY"
           {
-            echo "### VAPID installed on \`$PROJECT\`"
+            echo "### The live site, measured just now"
             echo ""
-            echo "Public key (public by design — this is the identity a push service checks a signature against):"
-            echo ""
-            echo "    ${{ steps.mint.outputs.public_key }}"
-            echo ""
-            echo "The private half was generated on this runner, uploaded, and deleted. It was never printed."
-            echo ""
-            echo "Live \`https://poetech.us/api/push-key\` right now:"
-            echo ""
-            echo "    $BODY"
+            echo "\`GET https://poetech.us/api/push-key\` -> **HTTP $CODE**"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           case "$BODY" in
             *'"configured":true'*)
-              echo "- **The live site is serving the key.** Notifications can be turned on in the app now." >> "$GITHUB_STEP_SUMMARY" ;;
+              echo "**SERVING.** The live site is handing out a VAPID public key, so a person can turn notifications on in the app and the sender can sign for them." >> "$GITHUB_STEP_SUMMARY" ;;
+            *'"configured":false'*)
+              echo "**NOT BOUND YET.** The Function is running, but the environment it sees has no key. Cloudflare Pages binds environment variables at DEPLOY time, so a secret installed after the last deployment needs one more: the next merge to \`main\` does it, or dispatch **Deploy (Cloudflare Pages)** now." >> "$GITHUB_STEP_SUMMARY" ;;
             *)
-              echo "- **Not live yet.** Cloudflare Pages binds environment variables at deploy time, so the key reaches the running Functions on the next deployment. The next merge to \`main\` does it; to do it now, dispatch **Deploy (Cloudflare Pages)**." >> "$GITHUB_STEP_SUMMARY" ;;
+              echo "**NOT ROUTED — this is a fault, not a wait.** \`/api/push-key\` did not answer JSON, which means the Pages Function is not being served on that path and the request fell through to the SPA. Check that \`app/functions/api/push-key.js\` shipped in the latest deployment. First 400 bytes of what came back:" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              echo "$BODY" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY" ;;
           esac
+
+      - name: What was installed (public half only)
+        if: ${{ steps.mint.outcome == 'success' }}
+        run: |
+          {
+            echo ""
+            echo "### VAPID installed on \`$PROJECT\`"
+            echo ""
+            echo "Public key — public by design; it is the identity a push service checks a signature against:"
+            echo ""
+            echo "    ${{ steps.mint.outputs.public_key }}"
+            echo ""
+            echo "The private half was generated on this runner, uploaded, and deleted. It was never printed."
+          } >> "$GITHUB_STEP_SUMMARY"
