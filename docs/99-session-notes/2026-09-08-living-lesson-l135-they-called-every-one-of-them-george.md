@@ -1,7 +1,7 @@
-# Living Lesson L134 — They Called Every One of Them George
+# Living Lesson L135 — They Called Every One of Them George
 
 **Date:** 2026-09-08
-**Module id:** `ll134-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated`
+**Module id:** `ll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated`
 **Branch:** `claude/lesson-you-have-destiny-fabf09`
 **Decision record:** DR-0337
 **Input:** Darrell said **"lesson."** and brought in a telling about the Pullman porters — Labor Day 1894, men hired out of slavery to staff America's sleeping cars, and the one name a whole country used so it would not have to learn theirs.
@@ -48,32 +48,41 @@ A lesson whose occasion is documented history carries two kinds of claim, and th
 ## Verification (DR-0076)
 
 - **198 quoted spans, every one letter-for-letter KJV**, read from `app/public/bible/kjv/` **before** any prose was written. A small fetch helper was used so no verse could come from memory.
-- **`living-lessons-l134-verses.test.js` — 31 tests.** `NOT_SCRIPTURE` is **empty**: our emphasis wears capitals, never quotation marks.
+- **`living-lessons-l135-verses.test.js` — 31 tests.** `NOT_SCRIPTURE` is **empty**: our emphasis wears capitals, never quotation marks.
 - **Proven-to-catch against two real defects this authoring produced**, each deliberately re-introduced and each turning the suite red:
   1. **A shortened quotation.** The first draft wrote *"…for so had God commanded."* for 2 Chronicles 8:14; the verse reads *"…for so had David the man of God commanded."* Three words trimmed so it read better — which is editing Scripture, and the shortened form is not in the corpus at all. Two assertions went red.
   2. **Six generic "God" in our authored voice** — a child-level paraphrase, one talking point, four quiz options. The check **strips quoted spans first**, because DR-0210 governs our prose only; a check that did not strip would demand we corrupt the text we are required to reproduce.
 - **The complement assertion is new and worth keeping**: the KJV's own "God" / "the LORD" must still be **present** inside quotations. Without it, a blind find-replace would have satisfied the original rule while corrupting Scripture — the exact thing DR-0210 forbids.
 - **Typography:** 0 generic "God" in our voice; 82 × Yahweh; no capitalised adversary name.
 - **Register measured:** child **1.30** / teen **6.70** / adult **8.00** / senior **12.30**. Not inverted, child under the 7.0 ceiling. Shrink-only baseline gained **no new offenders** (30 inverted / 17 over-ceiling unchanged; count 132 → 133).
+- **The id-collision claim above is MEASURED, not asserted.** The duplicate was reconstructed against the real catalog — this lesson re-labelled `ll134` beside main's `ll134-divers-weights` — and `living-lessons-id-collision.test.js` went red, naming both ids: *"L134: ll134-divers-weights… AND ll134-they-called-every-one-of-them-george…"*. That is the silent auto-merge case (the one git would NOT have flagged had the test filenames differed), caught on the PR, before `main` is touched.
 - **Full suite green**; lint clean at `--max-warnings 0`; real `npm run build` clean.
 
-## The collision — and the correction I owe my own first account
+## The collisions — TWO of them, and a correction I owe my own first account
 
-Authored as **L131**; shipped as **L134**. Another session merged L131, L132 and L133 to `main` while this was being written, caught by fetching `main` and diffing module ids before pushing.
+Authored as **L131**. Renumbered to **L134** when a fetch of `main` showed L131–L133 had been merged mid-authoring. Then, while PR #1483's CI was running, **main merged its own L134** ("Divers Weights", #1482) and the PR went `dirty`. Shipped as **L135**.
 
-**I first wrote that up as "caught by habit, not by a gate." That was false**, and I found it while looking for where to build the gate I had just proposed. `app/src/__tests__/living-lessons-id-collision.test.js` has existed since **2026-09-02**, built after three sessions raced and two independently claimed L114. It asserts precisely this — a lesson number is claimed at most once — plus a shrink-only ratchet on numbering gaps, and it carries its own proven-to-catch replay of that incident.
+**Two collisions, one afternoon, one branch.** That is the measurement, and it changes the conclusion below.
 
-The honest version: **the gate was never absent.** The habit caught it *earlier* — pre-merge instead of on `main` after both branches landed — but if I had pushed `ll131` anyway, the merged catalog would have held two L131s and that suite would have gone red. Habit saved a cycle; it did not stand in for a check.
+### The correction
 
-That kills the `re-review` I had opened, and rightly: I proposed building something the repo built six days ago. Claiming a gap without grepping for the gate that closes it is the DR-0107 "cited-but-unread" failure at small scale, and it stays in the record instead of being quietly edited away.
+My first write-up said the first collision was "caught by habit, not by a gate," and opened a re-review to decide whether a lesson-id gate was worth building. **That was false.** `app/src/__tests__/living-lessons-id-collision.test.js` has existed since **2026-09-02**, built after three sessions raced and two independently claimed L114. It asserts precisely this — a lesson number is claimed at most once — with a shrink-only ratchet on numbering gaps and its own proven-to-catch replay.
 
-The real residual, which is not a defect and is not deferred: the gate fires **at merge**, because that is the first moment both claims exist in one tree. No feature branch can see another branch's unmerged id — that is git, not a hole. The operational answer is the habit: fetch `main` and diff the ids before pushing a lesson.
+Claiming a gap without grepping for the gate that closes it is the DR-0107 cited-but-unread failure in miniature, and it stays in the record instead of being edited away.
 
-Rebasing was clean: the module was re-emitted from its builder with the new id and re-spliced onto the current `main`, and the whole verification was re-run from scratch on the rebased tree rather than trusted from the pre-rebase run.
+### What the second collision actually proves
+
+The second one is the more useful data point, because it shows **where the real catch lives**.
+
+It surfaced as a git **add/add conflict on the test filename** — both branches had written `living-lessons-l134-verses.test.js`. That is exactly the mechanism the id-gate's own header calls out about the 2026-09-02 incident: *"That was luck, not a check."* Had I named my test file differently, git would have auto-merged both modules into the array without complaint.
+
+**And that is precisely the case the gate exists for.** Merging `main` into the PR head is when both claims first live in one tree, so the gate fires **on the PR, in CI, before `main` is ever touched**. Proven below rather than asserted: the duplicate was reconstructed and the suite went red on it.
+
+So the standing answer is not a new gate and not a date. It is: **the gate is the check and it fires at merge; fetching `main` first is a courtesy that saves a cycle, not the safety.** Two collisions in one afternoon say the courtesy will keep being needed — concurrent lesson sessions are now normal — but nothing was ever unprotected.
 
 ## Files
 
-- `app/src/lib/living-lessons-class.js` — L134 added; `weeks` 132 → 133
-- `app/src/__tests__/living-lessons-l134-verses.test.js` — new, 31 tests
+- `app/src/lib/living-lessons-class.js` — L135 added; `weeks` 132 → 133
+- `app/src/__tests__/living-lessons-l135-verses.test.js` — new, 31 tests
 - `app/src/lib/reading-level-baseline.json` — count only; no new offenders
 - `docs/decisions/DR-0337-*.md` + `docs/decisions/INDEX.md`

@@ -1,43 +1,28 @@
 // @vitest-environment node
 // =============================================================================
-// L134 — They Called Every One of Them George. Verbatim KJV, and the fences
-// this lesson is bound by.
+// L134 — Divers Weights. Verbatim KJV, and the claims this lesson may never lose.
 // =============================================================================
-// Built from a telling Darrell brought in on Labor Day 2026 about the Pullman
-// porters: men hired out of slavery to staff sleeping cars, addressed by
-// passengers as George — the company owner's first name — because learning a
-// name costs something and a function is free.
+// Spoken into the app by Darrell 2026-09-08: a reel in which a man is challenged
+// to name five Black inventions, names them, and is dismissed — and the question
+// is enlarged twice more so that no answer could ever have sufficed. He sent the
+// comment thread with it, and the sharpest voice there was a commenter who said
+// the goalposts kept moving, nothing would ever have been good enough, and asked
+// whether the better use of the hours was teaching our own people what our
+// people have done.
 //
-// THE WELD WAS NOT MANUFACTURED, AND THIS FILE PINS IT. The KJV word for the man
-// at the door of the sheepfold is PORTER, and the sentence it sits in is about
-// being called by name (John 10:3). In the house of Yahweh the porters are an
-// ordained Levitical office whose names Scripture writes down (1 Chronicles
-// 9:17, 9:22). That parallel is the spine of the lesson; if it ever drifts out
-// of the text, the lesson has become a history talk with verses attached.
+// THE LESSON'S SPINE IS THAT THE MOVING GOALPOST IS NAMED IN THE TORAH —
+// "divers weights, a great and a small" (Deuteronomy 25:13) — and that the SAME
+// verse forbidding a light weight forbids a padded one (Proverbs 11:1). That
+// second half is the part a later edit is most likely to soften, because it asks
+// something of us and not only of the other side. It is gated hardest here.
 //
-// THIS LESSON IS DOCTRINALLY LOAD-BEARING IN BOTH DIRECTIONS, which is why the
-// gate is written the way it is:
-//   • UNDER-CLAIMING is a lie (DR-0100). The Word sentences the man-stealer to
-//     death (Exodus 21:16) and lists menstealers as contrary to sound doctrine
-//     (1 Timothy 1:10). Softening that into "a regrettable custom" is the
-//     failure this file forbids.
-//   • OVER-CLAIMING is also a lie. Providential placement never sanctifies the
-//     injury: Genesis 50:20 says the brothers thought evil AND that Yahweh meant
-//     it unto good — two facts, not one. Collapsing them turns a comfort into a
-//     defence of the men who did it.
-//   • AND IT IS A WORSHIP LESSON, NOT A GRIEVANCE LESSON. It must end on the Son
-//     who took the servant's form and was given the Name (Philippians 2:7, 2:9).
-//
-// PROVEN-TO-CATCH, from this lesson's own authoring — both are real defects this
-// session produced, and both are re-run below as live assertions:
-//   • A MISQUOTED 2 CHRONICLES 8:14. The first draft wrote "for so had God
-//     commanded." The verse says "for so had David the man of God commanded."
-//     Shortening a quotation to fit the sentence is editing Scripture, and the
-//     shortened form is not in the corpus at all.
-//   • SIX GENERIC "God" IN OUR OWN AUTHORED VOICE (a child-level paraphrase, one
-//     talking point, and four quiz options). DR-0210 governs our voice only —
-//     the KJV's "God" inside every quotation is untouched — so the check has to
-//     strip quoted spans before it looks, or it would demand we corrupt the text.
+// This file pins five things. (1) Every double-quoted span is verbatim KJV —
+// proven-to-catch below on this lesson's OWN first draft, which trimmed
+// Romans 13:7 with an ellipsis and was refused. (2) The divers-weights spine.
+// (3) The just-weight discipline applied to OUR side, including the named
+// precision corrections and the honest sourcing note. (4) The record itself is
+// stated plainly and at length — under-claiming established fact is its own
+// failure (DR-0100). (5) The house rules.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -48,7 +33,7 @@ import { AGE_BANDS, resolveForAge } from '../lib/learn-framework.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
-const ID = 'll134-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated';
+const ID = 'll134-divers-weights-when-the-question-keeps-moving-the-record-that-stands-and-the-better-assignment';
 const start = src.indexOf(`id: '${ID}'`);
 const l = (() => {
   const rest = src.slice(start);
@@ -78,22 +63,17 @@ const quotedSpans = (text) => {
   return { spans: out, balanced: at.length % 2 === 0 };
 };
 
-/** Our authored voice = the text with every quotation removed. */
-const ourVoiceOnly = (text) => text.replace(/"[^"]*"/g, ' ');
-
-// Quoted spans in this lesson that are NOT Scripture. The list is deliberately
-// EMPTY: every double-quoted span in L134 is verbatim KJV. Emphasis in this
-// lesson wears CAPITALS, never quotation marks — quotation marks around our own
-// words are the defect class these gates exist to catch, not a thing to
-// allowlist away.
+// Deliberately EMPTY. Our own phrasing never sits inside the marks reserved for
+// Scripture — the first draft put the phrase "better assignment" in quotes and
+// the gate refused it alongside the trimmed verse.
 const NOT_SCRIPTURE = [];
 
-const module134 = () => LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-
 describe('L134 is registered with its full shape', () => {
+  const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
+
   it('the module exists and is in the live series', () => {
-    expect(start, 'L134 must be present in the source').toBeGreaterThan(-1);
-    expect(module134(), 'L134 must be in LIVING_LESSONS_MODULES').toBeTruthy();
+    expect(start).toBeGreaterThan(-1);
+    expect(m).toBeTruthy();
   });
 
   it('the painted lesson count is the real one', () => {
@@ -101,16 +81,16 @@ describe('L134 is registered with its full shape', () => {
   });
 
   it('carries the full teaching shape', () => {
-    const m = module134();
     expect(m.quiz.questions.length).toBeGreaterThanOrEqual(10);
     expect(m.benefits.length).toBeGreaterThanOrEqual(10);
     expect(m.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
     expect(m.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
-    expect(m.anchor.ref).toMatch(/John 10:3/);
+    expect(m.anchor.ref).toMatch(/Deuteronomy 25:13-15/);
+    expect(m.anchor.ref).toMatch(/Proverbs 11:1/);
   });
 
   it('every quiz question has a real answer index and a substantial explanation', () => {
-    for (const q of module134().quiz.questions) {
+    for (const q of m.quiz.questions) {
       expect(q.options.length).toBeGreaterThanOrEqual(3);
       expect(q.answer).toBeGreaterThanOrEqual(0);
       expect(q.answer).toBeLessThan(q.options.length);
@@ -119,147 +99,10 @@ describe('L134 is registered with its full shape', () => {
   });
 });
 
-describe('THE WELD — the porter is in the text, not in our imagination', () => {
-  it('John 10:3 is quoted verbatim, and it is the anchor', () => {
-    const verse = 'To him the porter openeth; and the sheep hear his voice: and he calleth his own sheep by name, and leadeth them out.';
-    expect(WHOLE_KJV, 'the anchor verse must exist verbatim in the corpus').toContain(verse);
-    expect(l, 'L134 must quote its anchor in full').toContain(verse);
-  });
-
-  it('the KJV really does use the word PORTER at the door — the whole lesson turns on it', () => {
-    // If this ever fails, the weld was imagined and the lesson must be rewritten.
-    expect(WHOLE_KJV).toMatch(/To him the porter openeth/);
-    expect(WHOLE_KJV, 'and the porter is given the watch').toMatch(/commanded the porter to watch/);
-  });
-
-  it('Scripture NAMES its porters, and the lesson reproduces those names verbatim', () => {
-    const named = 'And the porters were, Shallum, and Akkub, and Talmon, and Ahiman, and their brethren: Shallum was the chief;';
-    expect(WHOLE_KJV).toContain(named);
-    expect(l, 'the four named porters are the counterweight to one name for every man').toContain(named);
-  });
-
-  it('the porters are taught as an ORDAINED office, not a menial one', () => {
-    expect(l).toContain('whom David and Samuel the seer did ordain in their set office.');
-    expect(l, 'a reigning king wanted the door job').toContain('I had rather be a doorkeeper in the house of my God, than to dwell in the tents of wickedness.');
-  });
-
-  it('PROVEN-TO-CATCH: 2 Chronicles 8:14 is quoted in FULL, not shortened to fit our sentence', () => {
-    // The first draft of this lesson wrote "for so had God commanded." — three
-    // words shorter than the verse, and not in the corpus at all. Trimming a
-    // quotation so it reads better is editing Scripture.
-    const short = 'the porters also by their courses at every gate: for so had God commanded.';
-    const full = 'the porters also by their courses at every gate: for so had David the man of God commanded.';
-    expect(WHOLE_KJV, 'the shortened form must NOT exist — that is why it was a defect').not.toContain(short);
-    expect(WHOLE_KJV).toContain(full);
-    expect(l, 'the lesson must carry the full clause').toContain(full);
-    expect(l, 'the shortened misquote must never return').not.toContain(short);
-  });
-});
-
-describe('every quoted span in L134 is letter-for-letter KJV', () => {
-  it('the quotation marks are balanced (an unclosed quote silently swallows text)', () => {
-    expect(quotedSpans(l).balanced, 'unbalanced quotation marks in the L134 source').toBe(true);
-  });
-
-  it('EVERY span is either verbatim Scripture or a declared non-Scripture span', () => {
-    const { spans } = quotedSpans(l);
-    expect(spans.length, 'L134 must actually contain quotations').toBeGreaterThan(100);
-    const bad = [];
-    for (const span of spans) {
-      // The corpus joins verses with a newline, so a span crossing a verse
-      // boundary is NOT a substring of it. Authored spans split on '...'.
-      const parts = span.includes('...') ? span.split('...').map((p) => p.trim()) : [span];
-      for (const part of parts) {
-        if (!part || NOT_SCRIPTURE.includes(part)) continue;
-        if (!WHOLE_KJV.includes(part)) bad.push(part);
-      }
-    }
-    expect(bad, `non-verbatim quoted spans:\n${bad.join('\n')}`).toEqual([]);
-  });
-
-  it('the allowlist is EMPTY and stays honest — nothing of ours wears quotation marks', () => {
-    expect(NOT_SCRIPTURE).toEqual([]);
-  });
-});
-
-describe('DR-0210 typography — Yahweh in our voice, the KJV untouched inside quotes', () => {
-  it('PROVEN-TO-CATCH: no generic "God" survives in our AUTHORED voice', () => {
-    // Six of these were produced by this authoring and caught before shipping.
-    // The check strips quotations first: DR-0210 governs our prose only, and the
-    // KJV's own "God" and "the LORD" are fetched verbatim and left exactly as
-    // written. A check that did not strip would demand we corrupt Scripture.
-    const ours = ourVoiceOnly(l);
-    const hits = [...ours.matchAll(/\bGod\b/g)].map((m) => ours.slice(Math.max(0, m.index - 70), m.index + 30));
-    expect(hits, `generic "God" in our own voice:\n${hits.join('\n---\n')}`).toEqual([]);
-  });
-
-  it('our voice names Him by His covenant name, and often', () => {
-    expect((ourVoiceOnly(l).match(/Yahweh/g) || []).length).toBeGreaterThan(40);
-  });
-
-  it('the KJV "God" and "the LORD" ARE preserved inside quotations', () => {
-    // The complement of the rule above. If this fails, a find-replace corrupted
-    // the text — the exact thing DR-0210 forbids.
-    expect(l).toContain('And she called the name of the LORD that spake unto her, Thou God seest me');
-    expect(l).toContain('God hath chosen the weak things of the world to confound the things which are mighty;');
-  });
-
-  it('no adversary name is ever capitalised', () => {
-    expect(l).not.toMatch(/\b(Satan|Lucifer|The devil|Baal)\b/);
-  });
-});
-
-describe('the fences — this lesson may not drift in either direction', () => {
-  it('UNDER-CLAIMING IS FORBIDDEN: the Word on man-stealing is quoted at full volume', () => {
-    expect(l).toContain('And he that stealeth a man, and selleth him, or if he be found in his hand, he shall surely be put to death.');
-    expect(l, 'the New Testament keeps the category by name').toMatch(/menstealers/);
-  });
-
-  it('the EDIT IS THE TELL, and the prohibition on cutting is cited', () => {
-    expect(l).toMatch(/EDIT IS THE TELL|EXCISION IS THE EVIDENCE/);
-    expect(l).toContain('Ye shall not add unto the word which I command you, neither shall ye diminish ought from it');
-    expect(l).toContain('For I have not shunned to declare unto you all the counsel of God.');
-  });
-
-  it('OVER-CLAIMING IS FORBIDDEN: Genesis 50:20 keeps BOTH facts apart', () => {
-    // Collapsing "they thought evil" into "so it was good" converts a comfort
-    // into a defence of the men who did it. The guard sentence is load-bearing.
-    expect(l).toContain('ye thought evil against me; but God meant it unto good');
-    expect(l, 'the guard against misuse must be stated out loud').toMatch(/never sanctif/i);
-  });
-
-  it('the suppressed half of the Colossians passage is restored', () => {
-    expect(l).toContain('Masters, give unto your servants that which is just and equal; knowing that ye also have a Master in heaven.');
-    expect(l, 'and the transferable discipline is taught').toMatch(/half a (counsel|text)|the other half|the REMAINDER|the remainder/i);
-  });
-
-  it('the LABOR DAY text is Yahweh’s own wage law, quoted with its reason intact', () => {
-    expect(l).toContain('At his day thou shalt give him his hire, neither shall the sun go down upon it; for he is poor, and setteth his heart upon it: lest he cry against thee unto the LORD, and it be sin unto thee.');
-    expect(l, 'the protection covers the stranger too').toContain('whether he be of thy brethren, or of thy strangers that are in thy land within thy gates:');
-    expect(l, 'and the wage itself has a voice').toContain('which is of you kept back by fraud, crieth');
-  });
-
-  it('it is a WORSHIP lesson: it ends on the Son, not on the grievance', () => {
-    expect(l).toContain('took upon him the form of a servant');
-    expect(l).toContain('given him a name which is above every name:');
-    expect(l, 'and Jesus is confessed as the Lamb of Yahweh').toMatch(/Lamb of Yahweh/);
-  });
-
-  it('DR-0098 — it teaches rather than staging a present-day political contest', () => {
-    // Naming documented history is required (DR-0100). Recruiting the reader
-    // into a partisan fight is not teaching, and this lesson must never do it.
-    expect(l).not.toMatch(/\b(Democrat|Republican|liberal|conservative|left-wing|right-wing)\b/i);
-  });
-
-  it('DR-0076 — the history states its own status instead of borrowing Scripture’s certainty', () => {
-    expect(l).toMatch(/commonly cited|customarily cited|usually cited|usually put at|usually given/);
-    expect(l, 'and the one correction is offered plainly').toMatch(/first Black-led union chartered by the American Federation of Labor|first union led by Black Americans to be chartered by the American Federation of Labor/);
-  });
-});
-
 describe('every age band is served text authored for IT (no band left on a fallback)', () => {
+  const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
+
   it('child, teen and senior levels are all authored, and none is a stub', () => {
-    const m = module134();
     for (const key of ['child', 'teen', 'senior']) {
       expect(typeof m.levels[key], `${key} level missing`).toBe('string');
       expect(m.levels[key].length, `${key} level is a stub`).toBeGreaterThan(1500);
@@ -267,53 +110,179 @@ describe('every age band is served text authored for IT (no band left on a fallb
   });
 
   it('the ADULT band reads adult-depth prose, not the senior text on a fallback', () => {
-    const m = module134();
-    expect(typeof m.lesson, 'L134 must carry a base lesson for the adult band').toBe('string');
     const r = resolveForAge(m, 'adult', null);
-    expect(r.levelId, 'the adult band must resolve to its own depth').toBe('standard');
+    expect(r.levelId).toBe('standard');
     expect(r.text).toBe(m.lesson);
   });
 
-  it('each band gets genuinely different prose, not the same text relabelled', () => {
-    const m = module134();
+  it('every band resolves to real authored prose, and the child text is not an adult wall', () => {
     const texts = AGE_BANDS.map((b) => resolveForAge(m, b.id, null).text);
     expect(texts.every((t) => t.length > 1500)).toBe(true);
     expect(m.levels.child).not.toBe(m.levels.senior);
-    expect(m.levels.child.length, 'a child does not read an adult wall of text').toBeLessThan(m.levels.senior.length);
-  });
-
-  it('the child level carries the WHOLE lesson, not a fragment of it', () => {
-    const c = module134().levels.child;
-    expect(c, 'the name that was taken').toMatch(/called every single one of them George/);
-    expect(c, 'the porter at the door').toMatch(/porter/i);
-    expect(c, 'the named porters of Scripture').toMatch(/Shallum/);
-    expect(c, 'Yahweh names and never un-names').toMatch(/never takes one away/);
-    expect(c, 'Hagar, seen').toMatch(/Hagar/);
-    expect(c, 'the wage rule').toMatch(/before the sun goes down|sun goes down/i);
-    expect(c, 'and it lands on the Son').toMatch(/above every name/);
-  });
-
-  it('the child level does NOT carry the adult freight it cannot hold', () => {
-    const c = module134().levels.child;
-    expect(c, 'no death penalty text at child level').not.toMatch(/put to death/);
-    expect(c, 'no menstealers at child level').not.toMatch(/menstealers/);
-  });
-
-  it('the one assignment reaches every band, because it is the point', () => {
-    const m = module134();
-    for (const text of [m.lesson, m.levels.child, m.levels.teen, m.levels.senior]) {
-      expect(text, 'Greet the friends by name — the single instruction').toContain('Greet the friends by name.');
-    }
+    expect(m.levels.child.length).toBeLessThan(m.levels.senior.length);
   });
 });
 
-describe('the register is ordered, and measured rather than asserted', () => {
-  it('child reads simpler than teen, and teen simpler than senior', async () => {
-    const { measureLesson, isInverted, breachesChildCeiling } = await import('../../../scripts/reading-level.mjs');
-    const measured = measureLesson(module134());
-    expect(isInverted(measured), 'L134 must not read harder at child level than at teen level').toBe(false);
-    expect(breachesChildCeiling(measured), 'the child level must sit under the grade ceiling').toBe(false);
-    expect(measured.bands.child.authored).toBeLessThan(measured.bands.teen.authored);
-    expect(measured.bands.teen.authored).toBeLessThan(measured.bands.senior.authored);
+describe('NO in-quote alteration — the whole-span gate (DR-0076)', () => {
+  it('the lesson’s double quotes are balanced', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('every double-quoted span is verbatim KJV from the in-repo corpus', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length).toBeGreaterThan(80);
+    const bad = spans.filter((s) => !NOT_SCRIPTURE.includes(s) && !WHOLE_KJV.includes(s));
+    expect(bad, `not verbatim KJV:\n${bad.map((b) => `  "${b}"`).join('\n')}`).toEqual([]);
+  });
+
+  it('PROVEN-TO-CATCH — this lesson’s own first draft trimmed Romans 13:7 and was refused', () => {
+    // A lesson about just weights had a shaved quotation in it. The gate caught
+    // it; the whole verse is quoted instead, and the whole verse is stronger —
+    // honour sits in a list with taxes, which IS the argument.
+    expect(WHOLE_KJV.includes('Render therefore to all their dues: tribute to whom tribute is due; custom to whom custom; fear to whom fear; honour to whom honour.')).toBe(true);
+    expect(WHOLE_KJV.includes('Render therefore to all their dues... honour to whom honour.')).toBe(false);
+  });
+
+  it('the whole Romans 13:7 is quoted, so honour is visibly listed WITH taxes', () => {
+    expect(l).toContain('Render therefore to all their dues: tribute to whom tribute is due; custom to whom custom; fear to whom fear; honour to whom honour.');
+  });
+});
+
+describe('the divers-weights spine cannot drift out', () => {
+  it('the moving goalpost is named from the Torah, not offered as a metaphor', () => {
+    expect(l).toContain('Thou shalt not have in thy bag divers weights, a great and a small.');
+    expect(l).toContain('Thou shalt not have in thine house divers measures, a great and a small.');
+    expect(l).toContain('But thou shalt have a perfect and just weight, a perfect and just measure shalt thou have');
+    expect(l).toContain('Divers weights, and divers measures, both of them are alike abomination to the LORD.');
+    expect(l).toContain('Divers weights are an abomination unto the LORD; and a false balance is not good.');
+  });
+
+  it('the two-stones picture is taught concretely, and the verdict is not softened', () => {
+    expect(l).toMatch(/heavy one .{0,40}buying/i);
+    expect(l).toMatch(/light one .{0,40}selling/i);
+    expect(l).toMatch(/abomination/);
+  });
+
+  it('Leviticus 19:35 is used for its word order — JUDGMENT before the tools', () => {
+    expect(l).toContain('Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure.');
+    expect(l).toMatch(/IN JUDGMENT first|judgment FIRST|judgment comes first/i);
+  });
+
+  it('the reader is told plainly they were not failing a test', () => {
+    expect(l).toMatch(/not failing a test/i);
+  });
+
+  it('declining a rigged question is grounded in the Master’s own practice', () => {
+    expect(l).toContain('But Jesus perceived their wickedness, and said, Why tempt ye me, ye hypocrites?');
+    expect(l).toContain('Neither tell I you by what authority I do these things.');
+    expect(l).toMatch(/refusing to be weighed on a (?:crooked )?scale|owed them nothing/i);
+  });
+
+  it('Proverbs 26:4 and 26:5 are held together and NOT resolved into a rule', () => {
+    expect(l).toContain('Answer not a fool according to his folly, lest thou also be like unto him.');
+    expect(l).toContain('Answer a fool according to his folly, lest he be wise in his own conceit.');
+    expect(l).toMatch(/no formula|not a formula|discernment, not a (?:formula|rule)/i);
+  });
+});
+
+describe('the just weight is applied to OUR side too — the half most likely to be softened', () => {
+  it('the both-directions rule is stated outright', () => {
+    expect(l).toContain('A false balance is abomination to the LORD: but a just weight is his delight.');
+    expect(l).toMatch(/accurate in BOTH directions|forbids both errors|must not be padded/i);
+  });
+
+  it('the named precision corrections are present and unhedged', () => {
+    expect(l, 'Latimer improved the filament').toMatch(/improved the filament rather than invented the bulb/i);
+    expect(l, 'Daniel Hale Williams — pericardium, not first open-heart').toMatch(/pericardium/);
+    expect(l).toMatch(/overstates it/i);
+    expect(l, 'Shirley Ann Jackson — the caller-ID claim is not well documented').toMatch(/not well documented/i);
+  });
+
+  it('a correction is always paired with the stronger uncontested fact, never left as a subtraction', () => {
+    expect(l, 'Williams founded Provident Hospital').toMatch(/Provident Hospital/);
+    expect(l, "Jackson's real record stands on its own").toMatch(/Nuclear Regulatory Commission/);
+  });
+
+  it('the tactical reason is given, and precision is named as armour rather than retreat', () => {
+    expect(l).toMatch(/sweep twenty documented ones off the table|one padded claim/i);
+    expect(l).toMatch(/Precision is not retreat|Precision is armour/i);
+  });
+
+  it('the lesson discloses its OWN sourcing honestly (DR-0076 §8)', () => {
+    expect(l).toMatch(/fetched verbatim from the King James text hosted inside this app/i);
+    expect(l).toMatch(/documented public record/i);
+    expect(l).toMatch(/not from a verified corpus stored in this app/i);
+  });
+});
+
+describe('the record is stated PLAINLY and at length — under-claiming is its own failure (DR-0100)', () => {
+  const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
+
+  it('the roll is substantial, not a token list', () => {
+    for (const name of [
+      'Lewis Howard Latimer', 'Jan Ernst Matzeliger', 'Charles Richard Drew', 'Daniel Hale Williams',
+      'Granville T. Woods', 'Alice H. Parker', 'Frederick McKinley Jones', 'Marie Van Brittan Brown',
+      'Otis Boykin', 'Mark Dean', 'Patricia Bath', 'George Carruthers', 'Percy Julian',
+      'Lonnie Johnson', 'Lewis Temple', 'Andrew Jackson Beard', 'Mae Jemison', 'Elijah McCoy',
+      'James E. West', 'Gladys West', 'Thomas L. Jennings', 'Garrett Morgan', 'Sarah Boone',
+    ]) expect(l, `${name} missing from the record`).toContain(name);
+  });
+
+  it('getting the NAME right is taught as the first installment of the debt', () => {
+    expect(l).toMatch(/a man’s name is the first thing owed him/i);
+    expect(l).toMatch(/Matzilica/); // the mangled transcript form, named so it can be corrected
+  });
+
+  it('invention is framed as Spirit-work, and the image and one blood ground it', () => {
+    expect(l).toContain('And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship,');
+    expect(l).toContain('So God created man in his own image, in the image of God created he him; male and female created he them.');
+    expect(l).toContain('And hath made of one blood all nations of men for to dwell on all the face of the earth');
+    expect(l).toMatch(/bench is not a lesser altar/i);
+  });
+
+  it('it ends on the BETTER ASSIGNMENT — teach your own, not convince the scorner', () => {
+    expect(l).toContain('And thou shalt teach them diligently unto thy children');
+    expect(l).toContain('Tell ye your children of it, and let your children tell their children, and their children another generation.');
+    expect(l).toMatch(/Not one of them says convince the scorner/i);
+    expect(l).toContain('And ye shall know the truth, and the truth shall make you free.');
+  });
+
+  it('the child level carries the transferable truth without the adult weight', () => {
+    const c = m.levels.child;
+    expect(c).toContain('Thou shalt not have in thy bag divers weights, a great and a small.');
+    expect(c, 'the two stones are explained at a child register').toMatch(/two different measuring stones|heavy one|light one/i);
+    expect(c, 'real people, real things a child uses').toMatch(/Lewis Latimer/);
+    expect(c).toMatch(/Gladys West/);
+    expect(c, 'skill as a gift from Yahweh').toMatch(/Bezaleel/);
+    expect(c, 'ends on telling somebody').toMatch(/Go tell it/);
+  });
+});
+
+describe('the house rules this lesson is bound by', () => {
+  const ours = (() => {
+    const { spans } = quotedSpans(l);
+    let out = l.replace(/\\'/g, "'");
+    for (const s of spans) out = out.split(`"${s}"`).join(' ');
+    return out;
+  })();
+
+  it('DR-0210 — our authored voice names Yahweh, never the generic "God"', () => {
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(10);
+  });
+
+  it('quoted "God" and "LORD" stay EXACTLY as the KJV prints them', () => {
+    expect(l).toContain('Divers weights are an abomination unto the LORD; and a false balance is not good.');
+    expect(l).toContain('in the image of God created he him');
+  });
+
+  it('the adversary and false-god names are never capitalized in our voice', () => {
+    for (const bad of ['Satan', 'Lucifer', 'Baal', 'Devil', 'Dragon', 'Adversary']) {
+      expect((ours.match(new RegExp(`\\b${bad}\\b`, 'g')) || []).length, bad).toBe(0);
+    }
+  });
+
+  it('DR-0098 — the Word is taught, not a debate staged', () => {
+    expect(/scholars (?:disagree|debate)|two views|you decide/i.test(ours)).toBe(false);
   });
 });

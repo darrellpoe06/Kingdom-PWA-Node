@@ -47,25 +47,26 @@ The gate refuses drift in **either** direction, and each fence is a live asserti
 ## Verification (DR-0076)
 
 - **198 quoted spans, every one verbatim KJV**, read from `app/public/bible/kjv/` before a word of prose was written. Nothing from memory.
-- **`living-lessons-l134-verses.test.js` — 31 tests**, with an **empty** `NOT_SCRIPTURE` allowlist.
+- **`living-lessons-l135-verses.test.js` — 31 tests**, with an **empty** `NOT_SCRIPTURE` allowlist.
 - **Proven-to-catch against two real defects this authoring produced**, both re-introduced deliberately and each turning the suite red before being restored:
   1. **A shortened quotation.** The first draft wrote *"…for so had God commanded."* for 2 Chronicles 8:14. The verse reads *"…for so had David the man of God commanded."* Trimming a quotation so it reads better is editing Scripture, and the shortened form is not in the corpus at all. Suite went red on two assertions.
   2. **Six generic "God" in our authored voice** — a child-level paraphrase, one talking point and four quiz options (DR-0210). The check **strips quoted spans before it looks**, because DR-0210 governs our prose only; a check that did not strip would demand we corrupt the very text we are required to reproduce. Suite went red; all six corrected to Yahweh or to our own wording.
 - **Typography:** zero generic "God" in our authored voice (82 × Yahweh); no capitalised adversary name; the KJV's "God" and "the LORD" verified **still present and untouched** inside quotations — the complement assertion, so a find-replace can never pass this gate.
 - **Register measured, not claimed:** child **1.30** / teen **6.70** / adult **8.00** / senior **12.30**. Not inverted; child well under the 7.0 ceiling. The shrink-only baseline gained **no new offenders** (30 inverted / 17 over-ceiling unchanged; count 132 → 133).
+- **The id-collision claim above is MEASURED, not asserted.** The duplicate was reconstructed against the real catalog — this lesson re-labelled `ll134` beside main's `ll134-divers-weights` — and `living-lessons-id-collision.test.js` went red, naming both ids: *"L134: ll134-divers-weights… AND ll134-they-called-every-one-of-them-george…"*. That is the silent auto-merge case (the one git would NOT have flagged had the test filenames differed), caught on the PR, before `main` is touched.
 - **Full suite green**, lint clean at `--max-warnings 0`, real `npm run build` clean.
 
-## A numbering collision — and a correction to my own first account of it
+## TWO numbering collisions in one afternoon — and a correction to my own first account
 
-This lesson was authored as **L131** and shipped as **L134**. While it was being written, another session merged L131, L132 and L133 to `main`.
+This lesson was authored as **L131**, renumbered to **L134** when a fetch of `main` showed L131–L133 merged mid-authoring, and shipped as **L135** after `main` merged its own L134 ("Divers Weights", #1482) while this PR's CI was running.
 
-**The first draft of this record said the collision was "caught by habit, not by a gate." That was wrong, and the correction matters more than the collision.** `app/src/__tests__/living-lessons-id-collision.test.js` already exists — built 2026-09-02 after three sessions raced and two independently claimed L114 — and it asserts exactly this property: a lesson number is claimed at most once, with a shrink-only ratchet on numbering gaps and its own proven-to-catch replay of that incident.
+**The first draft of this record said the collision was "caught by habit, not by a gate." That was wrong**, and the correction matters more than the collision. `app/src/__tests__/living-lessons-id-collision.test.js` has existed since **2026-09-02** — built after three sessions raced and two independently claimed L114 — and asserts exactly this property, with a shrink-only ratchet on numbering gaps and its own proven-to-catch replay of that incident. Claiming a gap without grepping for the gate that closes it is the DR-0107 cited-but-unread failure in miniature; it is recorded here rather than quietly edited out.
 
-So the honest account is: **the gate was never absent.** Fetching `main` before pushing caught the collision *earlier* than the gate would have — pre-merge rather than on `main` after both branches landed — but had I pushed `ll131` regardless, the merged catalog would have carried two lessons numbered L131 and that suite would have gone red. Habit bought a cycle; it did not substitute for a check.
+**The second collision is the more useful measurement, because it locates the real catch.** It surfaced as a git **add/add conflict on the test filename** — both branches wrote `living-lessons-l134-verses.test.js`. That is the exact mechanism the id-gate's own header names about 2026-09-02: *"That was luck, not a check."* Had the test files been named differently, git would have auto-merged both modules into the array in silence.
 
-**The `re-review` this section originally opened is therefore closed on arrival**, and correctly so: the question "is a lesson-id gate worth building" was answered six days ago by someone who had already been bitten. Claiming a gap without first checking whether the repo had closed it is the DR-0107 "cited-but-unread" failure in miniature, and it is recorded here rather than quietly edited out.
+**And that silent case is the one the gate is for.** Merging `main` into a PR head is the first moment both claims exist in one tree, so the gate fires **on the PR, in CI, before `main` is ever touched.** Verified rather than asserted: the duplicate was reconstructed against the real catalog and the suite went red (see Verification).
 
-The residual, stated precisely and *not* deferred behind a date: the gate fires **at merge**, because that is the first moment both claims exist in one tree. Nothing in a feature branch can see another branch's unmerged id. That is a property of git, not a hole in the gate, and the operational answer is the habit this session used — fetch `main` and diff the module ids before pushing a lesson.
+**Decision: no new gate, and no re-review date.** The check exists, it is sufficient, and it fires at the only moment it can. Fetching `main` before pushing is a courtesy that saves a merge cycle — with concurrent lesson sessions now normal it will keep earning its keep — but it was never the safety, and nothing here was ever unprotected.
 
 ## Consequences
 
