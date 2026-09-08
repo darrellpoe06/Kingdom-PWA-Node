@@ -28,6 +28,15 @@ import { createBudget, acquireLock, releaseLock, killSwitch, memoryStore } from 
 
 export const WATCHER_NAME = 'review-watcher';
 
+// Local urgency rank for the budget's spend order (overdue < due-soon < later).
+// Derived from reReviewStatus so it can never drift from the status the report
+// renders — one definition of "urgent", read rather than restated.
+const urgencyRank = (it) => {
+  const s = reReviewStatus(it).status;
+  return s === 'problem' ? 0 : s === 'attention' ? 1 : 2;
+};
+
+
 // Consecutive-failure ceiling: the Nth straight failure trips the kill-switch
 // (P10: repeated failure PAUSES; it never keeps retrying into a runaway).
 export const MAX_CONSECUTIVE_FAILURES = 3;
@@ -73,18 +82,68 @@ export function runReviewWatch({
 
   try {
     const items = extract({ reviews, decisions }, nowMs) || [];
+    // URGENCY-ORDERED SPEND (2026-09-08): the budget caps how many commitments a
+    // run carries, but it must not decide WHICH ones arbitrarily. Spending in
+    // extraction order meant the ceiling dropped whatever happened to sit at the
+    // tail of the ledger scan — on the real repo (599 commitments, ceiling 500)
+    // that silently withheld 99, and an OVERDUE item could be among them while a
+    // far-future one was kept. The ceiling is unchanged (same units, same
+    // truncation note); only the ORDER it consumes is fixed, so what survives a
+    // truncated run is always the most urgent. A brake may bound the work; it
+    // may never bias the finding.
+    const byDate = sortReReviews(items, 'date', 'asc');
+    const ordered = byDate.slice().sort((a, b) => urgencyRank(a) - urgencyRank(b));
+
+    // A RESERVED SLICE so the ceiling cannot erase a whole category (2026-09-08).
+    // Ordering by urgency alone still let the most urgent class eat the entire
+    // budget: on the real repo, 502 overdue consumed all 500 units and the
+    // "due within 7 days — pull forward" section rendered EMPTY while 27 items
+    // were due that week. Starving a category is the same defect as biasing the
+    // order, one layer up — the operator loses the whole pull-forward view and
+    // cannot tell it is missing. So due-soon holds a floor of up to a fifth of
+    // the ceiling; whatever it does not need returns to overdue, which means a
+    // run with few due-soon items behaves exactly as before.
+    const DUE_SOON_SHARE = 0.2;
+    const soonAll = ordered.filter((it) => reReviewStatus(it).status === 'attention');
+    // The Math.min is for readability only -- slice() already clamps -- so a
+    // mutation removing it changes nothing and no gate pins it. Said here
+    // because an unpinned line invites a future reader to assume it is load-bearing.
+    const soonQuota = Math.min(soonAll.length, Math.floor(maxItems * DUE_SOON_SHARE));
+    const soonKeep = new Set(soonAll.slice(0, soonQuota));
+    // The floor is spent FIRST, or it is not a floor: left in urgency order the
+    // reserved rows still sat behind all 502 overdue and the ceiling never
+    // reached them. Order inside `kept` carries no meaning — each section is
+    // re-sorted by date when the report is built.
+    const spendOrder = [
+      ...soonAll.slice(0, soonQuota),
+      ...ordered.filter((it) => !soonKeep.has(it)),
+    ];
+
     const kept = [];
     let truncated = 0;
-    for (const it of items) {
-      if (budget.exceeded(nowMs).exceeded) { truncated = items.length - kept.length; break; }
+    for (const it of spendOrder) {
+      if (budget.exceeded(nowMs).exceeded) { truncated = spendOrder.length - kept.length; break; }
       budget.spend(1);
       kept.push(it);
     }
     const overdue = sortReReviews(kept.filter((it) => reReviewStatus(it).status === 'problem'), 'date', 'asc');
     const dueSoon = sortReReviews(kept.filter((it) => reReviewStatus(it).status === 'attention'), 'date', 'asc');
+    // TRUE TOTALS, over every extracted item rather than the kept ones (2026-09-08).
+    // `overdue.length` is how many overdue rows this run could SHOW; on a
+    // truncated run that is the ceiling, not the count. The real repo read
+    // "Overdue (500)" while 502 were actually past due — the ceiling answering
+    // a question about the backlog. Extraction already produced every item, so
+    // the true tallies are free; the brake bounds what is LISTED, never what is
+    // COUNTED. Same rule as the spend order above, one layer up.
+    const overdueTotal = items.filter((it) => reReviewStatus(it).status === 'problem').length;
+    const dueSoonTotal = items.filter((it) => reReviewStatus(it).status === 'attention').length;
     const report = {
       generatedAtMs: nowMs,
-      counts: { total: items.length, scanned: kept.length, overdue: overdue.length, dueSoon: dueSoon.length, truncated },
+      counts: {
+        total: items.length, scanned: kept.length, truncated,
+        overdue: overdueTotal, dueSoon: dueSoonTotal,
+        overdueShown: overdue.length, dueSoonShown: dueSoon.length,
+      },
       overdue, dueSoon,
       // No silent caps: a truncated scan says so in the report itself.
       truncatedNote: truncated > 0 ? `budget ceiling reached — ${truncated} item(s) not scanned this run` : null,
@@ -111,14 +170,32 @@ export function runReviewWatch({
 // issue / Ari panel. Every line names its source record (evidence, DR-0076).
 export function formatWatchReport(report) {
   if (!report) return 'No report (run paused, skipped, or failed).';
-  const line = (it) => `- **${it.sourceId || it.title}** · ${reReviewStatus(it).label} · due ${it.date} · ${it.source || ''}`;
+  // The DISTINGUISHER is not optional. One record routinely carries several
+  // open commitments that share a date (docs/decisions/INDEX.md alone had five
+  // for 2026-08-25), and without the clause text every one of them renders as
+  // the same row — a report a reader cannot act on, which is the failure
+  // re-reviews.js already computes `detail` to prevent. The in-app surface
+  // showed it; this report, the one the daily drive and the job summary read,
+  // dropped it. Evidence over identifier (DR-0076).
+  const line = (it) => {
+    const head = `- **${it.sourceId || it.title}** · ${reReviewStatus(it).label} · due ${it.date} · ${it.source || ''}`;
+    return it.detail ? `${head}\n  - ${it.detail}` : head;
+  };
+  const shown = (total, listed) => {
+    if (listed == null || listed >= total) return '';
+    return listed === 0
+      ? ' — none listed, the ceiling was spent elsewhere'
+      : ` — showing the ${listed} most urgent`;
+  };
   const parts = [
     `Review watch · scanned ${report.counts.scanned}/${report.counts.total} dated commitments`,
     '',
-    `**Overdue (${report.counts.overdue})** — act now:`,
+    // A count that differs from what is listed says so, rather than letting the
+    // shown rows read as the whole truth.
+    `**Overdue (${report.counts.overdue})**${shown(report.counts.overdue, report.counts.overdueShown)} — act now:`,
     ...(report.overdue.length ? report.overdue.map(line) : ['- none']),
     '',
-    `**Due within 7 days (${report.counts.dueSoon})** — pull forward:`,
+    `**Due within 7 days (${report.counts.dueSoon})**${shown(report.counts.dueSoon, report.counts.dueSoonShown)} — pull forward:`,
     ...(report.dueSoon.length ? report.dueSoon.map(line) : ['- none']),
   ];
   if (report.truncatedNote) parts.push('', `_${report.truncatedNote}_`);
