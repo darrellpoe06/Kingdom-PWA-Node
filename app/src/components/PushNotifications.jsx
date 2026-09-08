@@ -40,6 +40,7 @@ import { getInstanceId } from '../lib/table-sync.js';
 import {
   enablePush, disablePush, pushStatus, PUSH_TOPICS,
 } from '../lib/push-subscribe.js';
+import { useVapidPublicKey } from '../lib/push-key.js';
 import UiIcon from './UiIcon.jsx';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -60,11 +61,19 @@ export default function PushNotifications({
   prompt,
   supabase = defaultSupabase,
   registration = typeof window !== 'undefined' ? window.__pwaReg : null,
-  vapidPublicKey = typeof import.meta !== 'undefined' ? (import.meta.env || {}).VITE_VAPID_PUBLIC_KEY : '',
+  vapidPublicKey,
   resolveInstanceId = getInstanceId,
   win = typeof window !== 'undefined' ? window : undefined,
   onChange,
 }) {
+  // THE KEY COMES FROM THE SERVER, NOT FROM THE BUNDLE. The public and private
+  // halves of the VAPID pair must be from the same pair; a build-time copy of
+  // the public half can drift from the runtime private half, and the result is
+  // a subscription every send is rejected for, with nothing in the app able to
+  // say why. `/api/push-key` reads it out of the same environment that signs.
+  // An explicit prop still wins — that is the injection seam the suite uses.
+  const resolvedKey = useVapidPublicKey({ skip: vapidPublicKey !== undefined });
+  const vapidKey = vapidPublicKey === undefined ? resolvedKey : vapidPublicKey;
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
@@ -102,7 +111,7 @@ export default function PushNotifications({
       const userId = data && data.user ? data.user.id : null;
       const instanceId = userId ? await resolveInstanceId() : null;
       const out = await enablePush({
-        registration, supabase, vapidPublicKey, instanceId, userId,
+        registration, supabase, vapidPublicKey: vapidKey, instanceId, userId,
         topics: PUSH_TOPICS.includes(topic) ? [topic] : PUSH_TOPICS, win,
       });
       if (!out.ok) setNote(REFUSAL_TEXT[out.reason] || 'That did not work. Try again in a moment.');
@@ -136,8 +145,10 @@ export default function PushNotifications({
   };
 
   // Not configured, unsupported, or not yet resolved: render nothing rather
-  // than a control that cannot work.
-  if (!vapidPublicKey) return null;
+  // than a control that cannot work. `undefined` here means the key lookup is
+  // still in flight — rendering the control and then removing it would be a
+  // worse experience than the extra beat.
+  if (!vapidKey) return null;
   if (!status || !status.supported) return null;
 
   if (status.permission === 'denied') {
