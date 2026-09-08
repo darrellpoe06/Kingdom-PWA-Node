@@ -122,4 +122,29 @@ Fixed by writing the date without the token ("the same 2026-07-12 commitment") w
 **Net after the sweep:** 597 commitments, down from 599 at the start of the session despite four legitimate new ones added by this work — four real closures, five phantoms removed.
 
 
+## Third pass: the ceiling was answering questions about the backlog
+
+Measuring the backlog *unbounded* — straight through the module, no budget — corrected a number this session had already reported.
+
+**The report said "Overdue (500)". The truth is 502.** `counts.overdue` was the length of the *kept* list, so on a truncated run the ceiling was answering a question about the backlog. With a larger repo it could read 500 while 900 were past due, and nothing would look wrong. Extraction already produces every item, so the true tallies were free the whole time: the brake now bounds what is **listed**, never what is **counted**, and the report says `Overdue (502) — showing the 500 most urgent`.
+
+That correction immediately exposed the next one. **502 overdue consumed all 500 units, so the "due within 7 days — pull forward" section rendered EMPTY while 27 items were due that week** — a whole category erased, with nothing on the page to say it was missing. Starving a category is the same defect as biasing the order, one layer up. Due-soon now holds a floor of up to a fifth of the ceiling and returns whatever it does not need, so a run with few due-soon items behaves exactly as before. The report now shows all 27, and 473 of the 502.
+
+The floor had to be spent **first** to be a floor at all: left in urgency order the reserved rows still sat behind all 502 overdue and the ceiling never reached them. That was caught by running it, not by reading it.
+
+### Proven to catch
+
+| Mutation | Result |
+|---|---|
+| `counts.overdue` back to the shown length | **CAUGHT** (3 failed) |
+| The due-soon floor removed | **CAUGHT** (2 failed) |
+| The floor made a fixed slice that never returns its unused part | **survived — and it is not a defect**: `slice()` already clamps, so the `Math.min` is belt-and-braces. No gate was invented for a no-op; the code now says so, since an unpinned line invites the next reader to assume it is load-bearing. |
+
+### The honest accounting for this sweep
+
+Closed with verified evidence: **5** (four in the #722 cluster, plus the poll-timers commitment discharged by DR-0255 — read, not cited from a summary). Phantoms removed: **5**. Legitimate new commitments this work itself added: **7** — every REV and DR written carries its own `re-review` date.
+
+**So the total is roughly flat at 600, and that is the discipline working, not failing.** Documentation-heavy work cannot reduce this number, because documenting a finding creates a dated promise to revisit it. The number that moved honestly is the one that was wrong: overdue is **502**, measured unbounded, not the ceiling's 500.
+
+
 **re-review: 2026-10-08** — check whether the overdue count has moved off 500, and whether the legible report actually got used to close items. If it has not moved, the instrument is fine and the *discipline* is the finding.

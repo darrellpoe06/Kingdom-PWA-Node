@@ -78,10 +78,21 @@ Binding: **when a record describes a commitment rather than making one, it write
 
 **Deliberately not gated, with the why (DR-0075).** A check here must separate a promise from a description of a promise, and every rule for that misfires on legitimate prose. A guard that fires where it should not is noise, and noise is how a guard gets deleted — REV-0249's lesson, and the reason its `SINGULAR_BY_DESIGN` list carries reasons rather than entries. The protection instead is that the watcher's TOTAL is now a watched number: an authoring pass that inflates it surfaces in the next run. re-review: 2026-11-08 — if narration phantoms recur, the cheap gate is a lint on new `re-review` tokens in a docs diff, and the recurrence is itself the evidence that the false-positive cost is worth paying.
 
+## Decision 6 — The brake bounds what is LISTED, never what is COUNTED, and never erases a category
+
+Measuring the backlog unbounded corrected a number this same session had reported. `counts.overdue` was the length of the *kept* list, so **the report read "Overdue (500)" while 502 were past due** — the ceiling answering a question about the backlog. On a larger repo it could read 500 against 900 and nothing would look wrong. Extraction already produces every item, so the true tallies are free.
+
+Binding: **a bounded run reports the true totals and states how many it listed** (`Overdue (502) — showing the 500 most urgent`). A count is never capped by a display limit.
+
+That exposed the sibling: 502 overdue consumed all 500 units, so the **"due within 7 days — pull forward" section rendered EMPTY while 27 items were due that week**, with nothing saying so. Binding: **a ceiling never erases a whole category** — due-soon holds a floor of up to a fifth of the ceiling and returns what it does not need, so a run with few due-soon items is unaffected. The floor is spent first, or it is not a floor: left in urgency order the reserved rows still sat behind all 502 overdue and were never reached.
+
+Proven to catch: `counts.overdue` reverted to the shown length → **CAUGHT** (3 failed); the floor removed → **CAUGHT** (2 failed). A third mutation (a fixed slice that never returns its unused part) **survived and is not a defect** — `slice()` already clamps, so the `Math.min` is belt-and-braces; no gate was invented for a no-op, and the code now says so rather than leaving an unpinned line to look load-bearing.
+
 ## Consequences
 
 - `app/src/lib/review-watcher.js` — urgency-ordered budget spend; `detail` on the report line; a local `urgencyRank` derived from `reReviewStatus` so "urgent" has one definition and cannot drift from the status the report renders (DR-0121).
 - `app/src/__tests__/review-watcher.test.js` — 6 assertions in 3 describes; three mutations proven to catch.
 - `app/src/lib/re-reviews.js` — done-marker prefix widened to real markdown punctuation, capitals kept; `app/src/__tests__/re-reviews.test.js` +7 assertions incl. the lowercase-prose negative and an out-of-range marker.
 - The #722 cluster closed on verified evidence (guard file live, 16 assertions green, propagation gate present) — four commitments, open 59 days, that this team had already finished.
+- The poll-timers commitment closed on DR-0255 (read in full, not cited from a summary), whose event-driven-primary rule it promised and which this session's own 4-12 minute check-ins demonstrate live.
 - Nothing about the brake's strength changed. A run that truncates still truncates, still says so, and now withholds only the least urgent.

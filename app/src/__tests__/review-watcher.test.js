@@ -197,3 +197,78 @@ describe('the default ceiling is itself pinned', () => {
     expect(r.report.truncatedNote).toMatch(/1 item\(s\) not scanned/);
   });
 });
+
+// =============================================================================
+// The ceiling must not answer questions about the backlog (2026-09-08, found by
+// measuring the real repo unbounded). Two further defects, both the same shape
+// as the spend-order one: a brake deciding what the reader learns.
+// =============================================================================
+describe('a truncated run still reports the TRUE totals', () => {
+  // 6 overdue + 3 due-soon, against a ceiling of 4.
+  const MANY = { items: [
+    ...Array.from({ length: 6 }, (_, i) => ({
+      id: `DR-71${i}`, title: `Old ${i}`, status: 'accepted',
+      decision: `Parked. re-review: 2026-06-0${i + 1}.`,
+    })),
+    ...Array.from({ length: 3 }, (_, i) => ({
+      id: `DR-72${i}`, title: `Soon ${i}`, status: 'accepted',
+      decision: `Deferred. re-review: 2026-07-2${i + 4}.`,
+    })),
+  ] };
+  // NOW sits so the 2026-06-0x dates are past and the 2026-07-2x are within 7d.
+  const AT = Date.parse('2026-07-23T12:00:00Z');
+
+  it('counts every overdue item, not just the ones the ceiling could list', () => {
+    const r = runReviewWatch({ decisions: MANY, store: memoryStore(), nowMs: AT, limits: { maxItems: 4 } });
+    expect(r.report.counts.overdue).toBe(6);       // the truth
+    expect(r.report.counts.overdueShown).toBeLessThan(6); // what fitted
+    // PROVEN TO CATCH: pre-fix, counts.overdue WAS the shown length. If the two
+    // are ever the same under truncation, the ceiling is answering again.
+    expect(r.report.counts.overdue).not.toBe(r.report.counts.overdueShown);
+  });
+
+  it('says so in the report rather than letting the listed rows read as the whole truth', () => {
+    const md = formatWatchReport(runReviewWatch({
+      decisions: MANY, store: memoryStore(), nowMs: AT, limits: { maxItems: 4 },
+    }).report);
+    expect(md).toMatch(/\*\*Overdue \(6\)\*\* — showing the \d+ most urgent/);
+  });
+});
+
+describe('the ceiling never erases a whole category', () => {
+  // 502 overdue and 27 due-soon against a ceiling of 500 — the real repo's
+  // shape, where the pull-forward section rendered EMPTY and nothing said so.
+  const REAL_SHAPE = { items: [
+    ...Array.from({ length: 502 }, (_, i) => ({
+      id: `DR-8${i}`, title: `Overdue ${i}`, status: 'accepted',
+      decision: `Parked ${i}. re-review: 2026-06-01.`,
+    })),
+    ...Array.from({ length: 27 }, (_, i) => ({
+      id: `DR-9${i}`, title: `Soon ${i}`, status: 'accepted',
+      decision: `Deferred ${i}. re-review: 2026-07-26.`,
+    })),
+  ] };
+  const AT = Date.parse('2026-07-23T12:00:00Z');
+
+  it('due-soon items are listed even when overdue alone would consume the ceiling', () => {
+    const r = runReviewWatch({ decisions: REAL_SHAPE, store: memoryStore(), nowMs: AT });
+    expect(r.report.counts.overdue).toBe(502);
+    expect(r.report.counts.dueSoon).toBe(27);
+    expect(r.report.dueSoon.length).toBe(27);   // the whole category survives
+    expect(r.report.overdue.length).toBeGreaterThan(400); // overdue still dominates
+    expect(r.report.counts.scanned).toBe(500);  // ceiling unchanged
+  });
+
+  it('the floor returns what it does not need — a run with few due-soon is unaffected', () => {
+    const few = { items: [
+      ...Array.from({ length: 502 }, (_, i) => ({
+        id: `DR-A${i}`, title: `Overdue ${i}`, status: 'accepted',
+        decision: `Parked ${i}. re-review: 2026-06-01.`,
+      })),
+      { id: 'DR-B1', title: 'Soon', status: 'accepted', decision: 'Deferred. re-review: 2026-07-26.' },
+    ] };
+    const r = runReviewWatch({ decisions: few, store: memoryStore(), nowMs: AT });
+    expect(r.report.dueSoon.length).toBe(1);
+    expect(r.report.overdue.length).toBe(499); // the other 99 units all went to overdue
+  });
+});
