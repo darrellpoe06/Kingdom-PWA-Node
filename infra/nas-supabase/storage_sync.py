@@ -45,6 +45,10 @@ AGENT_ENV = "/volume1/docker/poetech/agent.env"
 SUPA_ENV = os.environ.get("SUPABASE_DATA", "/volume1/docker/supabase") + "/.env"
 CA_PATH = os.path.join(HERE, "..", "nas-agent", "supabase-prod-ca-2021.crt")
 SOVEREIGN_URL = "http://127.0.0.1:8800"   # kong, as install.sh publishes it
+# The hosted project is a fixed, public fact (its ref is in every deploy log and
+# in this directory's README), not a secret -- so its absence from agent.env is
+# never a reason to refuse the copy.
+HOSTED_SB_URL_DEFAULT = "https://mjjlevhdufpaplypnqrv.supabase.co"
 
 from cutover_sync import env_value, build_ssl_context, connect  # noqa: E402
 
@@ -61,8 +65,30 @@ def object_url(base, bucket, name):
     return "{}/storage/v1/object/{}/{}".format(base.rstrip("/"), bucket, encoded)
 
 
+def public_object_url(base, bucket, name):
+    """The UNAUTHENTICATED read path of a public bucket. A public object needs
+    no key on the hosted side -- which is exactly why Shay's gallery can be
+    copied by the remote-hands lane today, while the private buckets wait on
+    the one value only Darrell holds (the hosted service_role key)."""
+    from urllib.parse import quote
+    encoded = "/".join(quote(seg, safe="") for seg in str(name).lstrip("/").split("/"))
+    return "{}/storage/v1/object/public/{}/{}".format(base.rstrip("/"), bucket, encoded)
+
+
 def bucket_url(base):
     return "{}/storage/v1/bucket".format(base.rstrip("/"))
+
+
+def scope_to_reachable(buckets, rows, have_hosted_key):
+    """Without the hosted service key only PUBLIC buckets are readable, so the
+    copy is scoped to them and the withheld buckets are NAMED -- a run that
+    silently skipped the private half would be the DR-0317 gap all over again.
+    Returns (buckets, rows, withheld_bucket_names)."""
+    if have_hosted_key:
+        return buckets, rows, []
+    public = {b: p for b, p in buckets.items() if p}
+    withheld = sorted(b for b, p in buckets.items() if not p)
+    return public, [r for r in rows if r[0] in public], withheld
 
 
 def should_copy(src_size, dst_size):
@@ -119,8 +145,9 @@ def http(method, url, key, body=None, ctype=None, timeout=120):
     import urllib.request
     import urllib.error
     req = urllib.request.Request(url, data=body, method=method)
-    req.add_header("Authorization", "Bearer {}".format(key))
-    req.add_header("apikey", key)
+    if key:  # a public read carries no credential at all
+        req.add_header("Authorization", "Bearer {}".format(key))
+        req.add_header("apikey", key)
     if ctype:
         req.add_header("Content-Type", ctype)
     if method in ("POST", "PUT"):
@@ -150,11 +177,10 @@ def ensure_bucket(base, key, bucket, public):
 
 def real_run(only_bucket=None, limit=0, dry_run=False):
     hosted_url = env_value(AGENT_ENV, "AGENT_DB_URL")
-    hosted_api = env_value(AGENT_ENV, "HOSTED_SB_URL")
+    hosted_api = env_value(AGENT_ENV, "HOSTED_SB_URL") or HOSTED_SB_URL_DEFAULT
     hosted_key = env_value(AGENT_ENV, "HOSTED_SERVICE_ROLE_KEY")
     sov_key = env_value(SUPA_ENV, "SERVICE_ROLE_KEY")
-    missing = [n for n, v in (("AGENT_DB_URL", hosted_url), ("HOSTED_SB_URL", hosted_api),
-                              ("HOSTED_SERVICE_ROLE_KEY", hosted_key),
+    missing = [n for n, v in (("AGENT_DB_URL", hosted_url),
                               ("SERVICE_ROLE_KEY", sov_key)) if not v]
     if missing:
         print("storage-sync: missing {} - cannot run".format(", ".join(missing)))
@@ -170,6 +196,16 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
     finally:
         src.close()
 
+    buckets, rows, withheld = scope_to_reachable(buckets, rows, bool(hosted_key))
+    if withheld:
+        print("storage-sync: scope public-only (no HOSTED_SERVICE_ROLE_KEY in agent.env); "
+              "private buckets NOT copied: " + ", ".join(withheld))
+    else:
+        print("storage-sync: scope all buckets (hosted service key present)")
+    if only_bucket and only_bucket in withheld:
+        print("storage-sync: {} is PRIVATE and cannot be read without "
+              "HOSTED_SERVICE_ROLE_KEY - nothing copied".format(only_bucket))
+        return 2
     if only_bucket:
         buckets = {b: p for b, p in buckets.items() if b == only_bucket}
         rows = [r for r in rows if r[0] == only_bucket]
@@ -198,7 +234,10 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
             skipped += 1
             dst_counts[bucket] = dst_counts.get(bucket, 0) + 1
             continue
-        status, blob = http("GET", object_url(hosted_api, bucket, name), hosted_key)
+        if hosted_key:
+            status, blob = http("GET", object_url(hosted_api, bucket, name), hosted_key)
+        else:
+            status, blob = http("GET", public_object_url(hosted_api, bucket, name), None)
         if status != 200:
             failed += 1
             print("storage-sync: DOWNLOAD failed {}/{} (HTTP {})".format(bucket, name, status))
@@ -215,6 +254,17 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
             failed += 1
             print("storage-sync: UPLOAD failed {}/{} (HTTP {}): {}".format(
                 bucket, name, status, body[:200].decode("utf-8", "replace")))
+
+    # PROOF, not a claim (DR-0076): read one public object back through kong
+    # with no credential, the way a browser will. A copy that "succeeded" but
+    # cannot be served is not done.
+    for bucket, name, _meta in rows:
+        if buckets.get(bucket):
+            st, _body = http("GET", public_object_url(SOVEREIGN_URL, bucket, name), None)
+            print("storage-sync: proof anonymous GET {}/{} -> HTTP {}".format(bucket, name, st))
+            if st != 200:
+                failed += 1
+            break
 
     verdict = parity_verdict(src_counts, dst_counts)
     print("storage-sync: copied {} skipped {} failed {}".format(copied, skipped, failed))
@@ -248,6 +298,22 @@ def selftest():
           hard.endswith("/09%20SEP%2Bnotes.docx"))
     check("CATCHES a name collapsed into one segment (the folder must survive)",
           hard.count("/") > 6 and "%2F" not in hard)
+
+    pub = public_object_url("https://h.supabase.co", "moore-showcase", "moore-divahs/sp-1.jpeg")
+    check("a public read uses the unauthenticated /object/public/ path and keeps the folder",
+          pub == "https://h.supabase.co/storage/v1/object/public/moore-showcase/moore-divahs/sp-1.jpeg")
+
+    bk = {"moore-showcase": True, "church-team-documents": False, "sermon-documents": False}
+    rw = [("moore-showcase", "a.jpeg", {}), ("church-team-documents", "b.docx", {}),
+          ("sermon-documents", "c.docx", {})]
+    b2, r2, held = scope_to_reachable(bk, rw, have_hosted_key=False)
+    check("without the hosted key the copy is scoped to PUBLIC buckets only",
+          list(b2) == ["moore-showcase"] and [r[0] for r in r2] == ["moore-showcase"])
+    check("CATCHES a private bucket silently dropped: the withheld buckets are NAMED",
+          held == ["church-team-documents", "sermon-documents"])
+    b3, r3, held3 = scope_to_reachable(bk, rw, have_hosted_key=True)
+    check("with the hosted key every bucket is in scope and nothing is withheld",
+          len(b3) == 3 and len(r3) == 3 and held3 == [])
 
     check("absent on the destination is always copied", should_copy(100, None) is True)
     check("a size mismatch is re-copied (a truncated earlier run)", should_copy(100, 40) is True)

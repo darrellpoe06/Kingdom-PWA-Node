@@ -120,25 +120,41 @@ reads `/volume1/...`). It lists objects from the hosted DB over the existing
 `service_role` key — required to read PRIVATE objects, and the one value the
 agent cannot obtain for itself.
 
-**One-time: add two lines to `/volume1/docker/poetech/agent.env`**
+**The lane runs it — dispatch `nas-storage-sync.yml`** (Actions → nas-storage-sync
+→ Run workflow; `bucket` = `moore-showcase` by default, EMPTY = every bucket in
+scope). The runner joins the tailnet, ssh-es to the NAS with `NAS_SSH_KEY`, pulls
+the mirror, runs `storage_sync.py`, and goes red unless the bucket reaches parity
+AND one object reads back anonymously through kong (`scripts/storage-sync-over-
+tailnet.sh`). Darrell 2026-09-08: "you have cli and ssh..." — the remote-hands
+channel is the team's CLI on the box (DR-0108); nothing here waits on a paste.
 
-    HOSTED_SB_URL=https://mjjlevhdufpaplypnqrv.supabase.co
+**Scope without the hosted key: PUBLIC buckets only, and the withheld ones are
+NAMED.** A public object needs no credential on the hosted side, so Shay's
+gallery (`moore-showcase`) copies today. `HOSTED_SB_URL` defaults to the hosted
+project (a public fact, not a secret).
+
+**For the PRIVATE buckets, one line only Darrell can add to
+`/volume1/docker/poetech/agent.env`:**
+
     HOSTED_SERVICE_ROLE_KEY=<the hosted project's service_role key>
 
 The key is at Supabase dashboard -> Project Settings -> API -> `service_role`.
 It is a server-side secret: it belongs in `agent.env` on the NAS and must never
-reach the browser bundle or a repo secret used at build time.
+reach the browser bundle or a repo secret used at build time. The next dispatch
+with an empty `bucket` then copies every bucket; the run prints the key's
+PRESENCE only, never its value.
 
-**Then, from the NAS:**
+**By hand, from the NAS (the same script, if the lane is ever unavailable):**
 
-    cd /volume1/docker/poetech/repo/infra/nas-supabase
+    cd /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase
     python3 storage_sync.py --dry-run            # counts only, writes nothing
     python3 storage_sync.py --bucket=moore-showcase   # smallest bucket first
     python3 storage_sync.py                      # all 455, resumable
 
 Re-running is cheap and safe: an object already present at the same size is
 skipped, so an interrupted run is re-run, never restarted. The run ends in
-`verdict GO` only when every bucket is whole and nothing failed.
+`verdict GO` only when every bucket in scope is whole, nothing failed, and the
+served-back proof read HTTP 200.
 
 **When it reports GO:** delete the `VITE_PUBLIC_STORAGE_URL` line from
 `.github/workflows/deploy-cloudflare-pages.yml` and dispatch the deploy. That
