@@ -249,6 +249,16 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['joy', 'strength', 'three-days', 'happiness', 'nehemiah', 'habakkuk'],
   },
   {
+    id: 'gh-genesis-holds-the-whole-plan', section: 'torah', name: 'Genesis Holds the Whole Plan (the Three on page one, the enemy sentenced in chapter three)',
+    refs: ['Genesis 1:1-3', 'Genesis 1:26', 'Genesis 3:15', 'Genesis 3:21', 'Genesis 15:6', 'Genesis 22:8'],
+    condition: 'Read Genesis on its own terms, without importing a later book to make the case: count the Persons on page one (the Father creating, the Spirit moving on the waters in verse two, the Word speaking light into being), hear Yahweh speak of Himself in the plural (Let us / our image; and again, one of us), and then watch what He does the moment the enemy succeeds — He SEEKS before He sentences, and He publishes the rescue inside the curse on the adversary.',
+    consequence: 'The whole salvation plan is legible from one book: the Seed of the woman who takes a bruised heel and leaves a crushed head (3:15); a covering Yahweh made at the cost of a life and put on them Himself (3:21); an accepted offering with blood in it (4:4); grace FOUND, not earned (6:8); righteousness COUNTED to a man who only believed (15:6); a covenant Yahweh walked alone while the other party slept (15:17); a lamb He said He would provide, and did, in the stead of the son (22:8, 22:13); a King named before there was a kingdom (49:10); and evil overruled to save much people alive (50:20).',
+    threeD: 'The Godhead is not organised BY the crisis — the crisis walks into a room where the Three are already at work. And the adversary is never an equal and opposite power in these books: he is introduced as a CREATURE, subtil rather than strong, and he is sentenced in the third chapter; everything after is that sentence being carried out. His method is on the record in his first three sentences and has never been updated — a QUESTION about what Yahweh said, a flat CONTRADICTION of it, then a PROMOTION offered for taking it.',
+    outcome: 'A case for the gospel that stands in front of a reader who receives ONLY the first five books — no prophet or apostle borrowed to make it work — while the enemies stay named soberly from the Torah itself: the serpent, the giants, the name-making at Babel, the gods of Egypt, the enchantments, devils, molech, baalpeor, with Deuteronomy 32:17 as the verdict.',
+    psyche: 'A belief held because it was argued from a source the hearer already accepts is far harder to dislodge than one that depended on a source they had to concede first. Building the case inside the Torah removes the exit that lets a listener set it down before hearing it — which is why the supporting witnesses from the rest of the canon are kept separate and marked as confirmation rather than foundation.',
+    tags: ['genesis', 'salvation-plan', 'godhead', 'trinity', 'protoevangelium', 'enemies', 'torah'],
+  },
+  {
     id: 'gh-humble-heal', section: 'torah', name: 'If My People Humble Themselves',
     refs: ['2 Chronicles 7:14'],
     condition: 'HIS people humble themselves, pray, seek His face, and TURN from their wicked ways.',
