@@ -40,6 +40,8 @@ import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-li
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 
+import TorahPatternMap from './TorahPatternMap.jsx';
+
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 const CARD = 'bg-white border border-[#E8E4DC] p-3';
@@ -657,6 +659,15 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
   // frameworks. Only the open section mounts; every hook stays up here, so
   // sliding between sections loses no answers, deck, or forge data.
   const sections = [
+    // The Torah pattern map (Darrell 2026-09-08: "we want ALL of the visible
+    // patterns of these relationships so we can See!!!!"). Its own component —
+    // every count derived in lib/torah-patterns.js, nothing painted here.
+    {
+      id: 'torah-map',
+      label: 'Torah pattern map',
+      icon: 'bookOpen',
+      render: () => <TorahPatternMap />,
+    },
     {
       id: 'series',
       label: 'Study series',
