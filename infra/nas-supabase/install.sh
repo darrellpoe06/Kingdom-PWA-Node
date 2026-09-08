@@ -191,6 +191,39 @@ ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD :'"'"'pw'"'"';
 ALTER ROLE postgres WITH LOGIN PASSWORD :'"'"'pw'"'"';
 GRANT CREATE, CONNECT ON DATABASE postgres TO supabase_auth_admin, supabase_storage_admin;
 GRANT anon, authenticated, service_role TO supabase_storage_admin;
+
+-- THE API-ROLE BASELINE THE HOSTED PLATFORM CARRIES AND THIS BOX NEVER DID.
+-- Measured on the hosted project 2026-09-08 00:05Z (has_schema_privilege /
+-- has_table_privilege): anon, authenticated and service_role all hold USAGE
+-- on auth and storage, EXECUTE on auth.uid(), and ALL on storage.buckets /
+-- storage.objects. Measured on this box the same hour: none of it. Two live
+-- faults trace to that gap --
+--   * storage-api SETs the caller'"'"'s role (anon) and then resolves "buckets"
+--     through search_path; a schema the role cannot USE is silently skipped,
+--     so the answer was 42P01 '"'"'relation "buckets" does not exist'"'"' while the
+--     table sat there with one row (nas-health 34171764006).
+--   * any RLS policy that calls auth.uid() directly is evaluated AS the app
+--     role; without USAGE on auth that is "permission denied for schema
+--     auth" (nas-health 34165810216) -- a table read that fails, not a
+--     policy that denies.
+-- Guarded so first boot (before GoTrue and storage-api have created their
+-- objects) does not trip ON_ERROR_STOP; every later cycle re-asserts.
+DO $api_roles$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = '"'"'auth'"'"') THEN
+    GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+    IF to_regprocedure('"'"'auth.uid()'"'"')   IS NOT NULL THEN GRANT EXECUTE ON FUNCTION auth.uid()   TO anon, authenticated, service_role; END IF;
+    IF to_regprocedure('"'"'auth.role()'"'"')  IS NOT NULL THEN GRANT EXECUTE ON FUNCTION auth.role()  TO anon, authenticated, service_role; END IF;
+    IF to_regprocedure('"'"'auth.email()'"'"') IS NOT NULL THEN GRANT EXECUTE ON FUNCTION auth.email() TO anon, authenticated, service_role; END IF;
+    IF to_regprocedure('"'"'auth.jwt()'"'"')   IS NOT NULL THEN GRANT EXECUTE ON FUNCTION auth.jwt()   TO anon, authenticated, service_role; END IF;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = '"'"'storage'"'"') THEN
+    GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+    IF to_regclass('"'"'storage.buckets'"'"') IS NOT NULL THEN GRANT ALL ON TABLE storage.buckets TO anon, authenticated, service_role; END IF;
+    IF to_regclass('"'"'storage.objects'"'"') IS NOT NULL THEN GRANT ALL ON TABLE storage.objects TO anon, authenticated, service_role; END IF;
+  END IF;
+END
+$api_roles$;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 ALTER ROLE supabase_auth_admin SET search_path = auth;
