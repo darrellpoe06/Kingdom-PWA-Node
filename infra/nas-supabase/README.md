@@ -156,8 +156,10 @@ skipped, so an interrupted run is re-run, never restarted. The run ends in
 `verdict GO` only when every bucket in scope is whole, nothing failed, and the
 served-back proof read HTTP 200.
 
-**When it reports GO:** delete the `VITE_PUBLIC_STORAGE_URL` line from
-`.github/workflows/deploy-cloudflare-pages.yml` and dispatch the deploy. That
-retires the bridge and returns the images to the sovereign backend.
+**The bridge is retired (2026-09-08).** nas-storage-sync run 1 reported
+`verdict GO` for `moore-showcase` (12 copied, proof read HTTP 200), and the
+`VITE_PUBLIC_STORAGE_URL` line was deleted from
+`.github/workflows/deploy-cloudflare-pages.yml` in the same session. The images
+are read from the sovereign backend, where everything else already lives.
 
     python3 storage_sync.py --selftest           # pure logic, no network

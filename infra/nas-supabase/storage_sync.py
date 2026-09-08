@@ -167,8 +167,11 @@ def ensure_bucket(base, key, bucket, public):
                         body=json.dumps({"id": bucket, "name": bucket,
                                          "public": bool(public)}).encode(),
                         ctype="application/json")
-    # 409 = already there, which is success for our purposes.
-    if status in (200, 201, 409):
+    # 409 = already there, which is success for our purposes. storage-api 1.19
+    # answers a duplicate bucket with HTTP 400 and "statusCode":"409" in the
+    # body (nas-storage-sync run 1 printed it as a false "not creatable"), so
+    # the body is read too.
+    if status in (200, 201, 409) or b'"statusCode":"409"' in body:
         return True
     print("storage-sync: bucket {} not creatable (HTTP {}): {}".format(
         bucket, status, body[:200].decode("utf-8", "replace")))
