@@ -113,7 +113,7 @@ Files: `app/src/lib/re-reviews.js` (prefix widened, capitals kept), `app/src/__t
 
 Closing the #722 cluster worked — four records marked DONE with the evidence that DR-0155 shipped all three of its parts (the guard at `app/functions/poetech-app/assets/[[path]].js`, its 16 proven-to-catch assertions green, the propagation gate in `deploy-cloudflare-pages.yml`), verified 2026-09-08 rather than taken on the DR's word.
 
-Then the count barely moved, and the reason was me. **Writing *about* a commitment in the ledger's own syntax mints a new one.** This session's session note, REV-0252, DR-0337 and the INDEX row each quoted the literal token while describing the finding, and the extractor — correctly, it cannot know intent — read five narrations as five live commitments. Four closed, five invented, net worse.
+Then the count barely moved, and the reason was me. **Writing *about* a commitment in the ledger's own syntax mints a new one.** This session's session note, REV-0252, DR-0338 and the INDEX row each quoted the literal token while describing the finding, and the extractor — correctly, it cannot know intent — read five narrations as five live commitments. Four closed, five invented, net worse.
 
 Fixed by writing the date without the token ("the same 2026-07-12 commitment") wherever the text is *describing* rather than *promising*. The literal token survives untouched on every real commitment.
 
@@ -165,6 +165,17 @@ Having now read DR-0077 in full, that practice is real and binding. **And PR #14
 So the commitment stays **open**, and this is the evidence it is still needed. Closing it while committing the violation would be the divers-weight of L134 applied to my own work: a heavy stone for the ledger, a light one for me.
 
 **Not split retroactively, with the why:** the passes are causally chained — each defect was found by fixing the one before it, and the later fixes only make sense on top of the earlier ones — so splitting now would produce four PRs that cannot be reviewed independently anyway. The correction is forward: the next distinct finding opens its own lane rather than riding this one. re-review: 2026-10-08, alongside the backlog count.
+
+
+## The merge that proved the Ways hold: a real DR-ID collision, caught
+
+While this branch was in flight, another lane merged **PR #1483 (L135, the porter)** — and it had minted **DR-0337** too. Two sessions, same day, same next free number, exactly the concurrent-writing collision `DR-0011` prescribes branch-per-session against, and the same shape as the eight double-minted REV ids the registry's own convention note records from 2026-08-05.
+
+**It was caught twice over, by machinery I did not have to remember.** The merge surfaced it as a conflict on `INDEX.md`'s Next-ID line rather than silently interleaving; and `ledger-uniqueness.test.js` — which already asserts *"every DR number is used exactly once"* — fails the build on it. That gate was proven against this exact case rather than assumed: staging both DR-0337 files made it go red with the remedy in its own message (*"renumber the newer file… next free ID from INDEX.md"*), and removing the duplicate made it green.
+
+**Resolved the way the convention says:** the porter DR merged first, so it keeps **DR-0337**. Mine renumbered to **DR-0338**, with every reference updated across the DR file, REV-0252, this note and the INDEX row. The Next-ID line now names both and records *why* 0338 exists, so a future reader does not read the jump as a lost decision.
+
+Nothing was invented to smooth this over and nothing was dropped: both decisions survive, in full, under distinct numbers. `npm run verify` green at **12,655** — up from 12,623 because L135's own tests arrived with the merge.
 
 
 **re-review: 2026-10-08** — check whether the overdue count has moved off 500, and whether the legible report actually got used to close items. If it has not moved, the instrument is fine and the *discipline* is the finding.

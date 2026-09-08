@@ -1,4 +1,4 @@
-# DR-0337 — A brake may bound the work; it may never bias the finding
+# DR-0338 — A brake may bound the work; it may never bias the finding
 
 - **date:** 2026-09-08
 - **status:** accepted
