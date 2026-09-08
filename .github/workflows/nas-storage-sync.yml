@@ -1,0 +1,81 @@
+# nas-storage-sync — copy the Storage blobs hosted -> sovereign, over the
+# remote-hands channel.
+#
+# Darrell 2026-09-08: "you have cli and ssh..." — after the blob copy that
+# DR-0317 built (infra/nas-supabase/storage_sync.py) had sat for eight days
+# framed as a paste block for his hand.
+#
+# WHY THIS EXISTS. The repoint (2026-08-19, DR-0310) moved the rows and left
+# the files behind. The box now holds every bucket row (0183) and serves the
+# storage API to every role (01-roles.sql), measured by nas-health on
+# 2026-09-08: the newest request against moore-showcase answers "Object not
+# found" — the bucket works, the bytes are absent. Copying them is the last
+# fault. A PUBLIC bucket's objects need no hosted credential, so this lane
+# copies Shay's gallery today; the private buckets follow the moment
+# HOSTED_SERVICE_ROLE_KEY is in agent.env, and storage_sync.py names what it
+# withheld until then (never a silent skip).
+#
+# THIS ONE MUTATES the sovereign storage, so like nas-clock it is dispatch-only
+# and never on a timer. It is idempotent: an object already present at the same
+# size is skipped, so a re-dispatch is cheap and safe. Not the three-brakes
+# class: a hand-dispatched one-shot, no schedule, no self-trigger.
+name: nas-storage-sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket:
+        description: 'Copy one bucket (moore-showcase = Shay''s public gallery). Leave EMPTY to copy every bucket in scope (public buckets always; private ones once the hosted service key is in agent.env).'
+        type: string
+        default: 'moore-showcase'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-storage-sync
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      # The verdict comes from storage_sync.py's own parity + served-back proof
+      # (DR-0076): the step is red unless the bucket is whole AND one object
+      # reads back anonymously through kong the way a browser will.
+      - name: Copy the blobs and prove they serve
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          STORAGE_BUCKET: ${{ inputs.bucket }}
+        run: bash scripts/storage-sync-over-tailnet.sh
