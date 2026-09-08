@@ -56,7 +56,7 @@ re-review: 2026-10-08 — has the overdue count moved off 500, and did the now-l
 
 ## Decision 4 — A reader must see the ledger's own closures (added same session, after the sweep)
 
-Sweeping the oldest overdue cluster found five records carrying the same `re-review: 2026-07-12` — the incident #722 serve-layer decision, **made 59 days ago**. DR-0155's INDEX row says so outright, and LESSONS-LEARNED had written **`**CLOSED 2026-07-10 by DR-0155:**`** immediately after the date, exactly where the extractor looks.
+Sweeping the oldest overdue cluster found five records carrying the same 2026-07-12 commitment — the incident #722 serve-layer decision, **made 59 days ago**. DR-0155's INDEX row says so outright, and LESSONS-LEARNED had written **`**CLOSED 2026-07-10 by DR-0155:**`** immediately after the date, exactly where the extractor looks.
 
 `DONE_MARKER_RE` could not see it. Its prefix class admitted only whitespace, an em-dash, a colon and an opening bracket; the ledger closes commitments in real markdown — a backtick ending an inline code span, a sentence period, bold asterisks, a closing paren.
 
@@ -70,9 +70,18 @@ I expected missed closures to explain the 500 overdue. **They do not: 609 commit
 
 Proven to catch: prefix reverted to the narrow original → **CAUGHT** (3 failed); marker made case-insensitive → **CAUGHT** (2 failed). Watcher total 603 → 601.
 
+## Decision 5 — Narrate a commitment date without the ledger's own token
+
+Closing the #722 cluster (four records marked DONE on verified evidence that DR-0155 shipped) moved the count barely at all, because this session's own writing had minted five new commitments: the session note, REV-0252, this DR and the INDEX row each quoted the literal `re-review` token while *describing* the finding, and the extractor read all five narrations as live promises. It cannot know intent, and it should not try to.
+
+Binding: **when a record describes a commitment rather than making one, it writes the bare date ("the same 2026-07-12 commitment"), never the ledger's own token.** The token is reserved for an actual promise.
+
+**Deliberately not gated, with the why (DR-0075).** A check here must separate a promise from a description of a promise, and every rule for that misfires on legitimate prose. A guard that fires where it should not is noise, and noise is how a guard gets deleted — REV-0249's lesson, and the reason its `SINGULAR_BY_DESIGN` list carries reasons rather than entries. The protection instead is that the watcher's TOTAL is now a watched number: an authoring pass that inflates it surfaces in the next run. re-review: 2026-11-08 — if narration phantoms recur, the cheap gate is a lint on new `re-review` tokens in a docs diff, and the recurrence is itself the evidence that the false-positive cost is worth paying.
+
 ## Consequences
 
 - `app/src/lib/review-watcher.js` — urgency-ordered budget spend; `detail` on the report line; a local `urgencyRank` derived from `reReviewStatus` so "urgent" has one definition and cannot drift from the status the report renders (DR-0121).
 - `app/src/__tests__/review-watcher.test.js` — 6 assertions in 3 describes; three mutations proven to catch.
 - `app/src/lib/re-reviews.js` — done-marker prefix widened to real markdown punctuation, capitals kept; `app/src/__tests__/re-reviews.test.js` +7 assertions incl. the lowercase-prose negative and an out-of-range marker.
+- The #722 cluster closed on verified evidence (guard file live, 16 assertions green, propagation gate present) — four commitments, open 59 days, that this team had already finished.
 - Nothing about the brake's strength changed. A run that truncates still truncates, still says so, and now withholds only the least urgent.

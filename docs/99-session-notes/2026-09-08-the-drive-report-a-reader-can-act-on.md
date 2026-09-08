@@ -85,7 +85,7 @@ Full suite: 12,612 passing, 1 skipped. Lint clean. Real build clean.
 
 With the report legible, the next move was the backlog itself. The default I picked — without being asked, because DR-0075 already directs it — was to close the commitments whose conditions were already met, since those are *false* overdue: they inflate the count and hide the real work.
 
-The oldest cluster proved the method. Five records (LESSONS-LEARNED ×2, INDEX, DR-0153, DR-0155, REVIEWS.md) all carried the same `re-review: 2026-07-12` — the incident #722 serve-layer decision. **That decision was made 59 days ago.** DR-0155's INDEX row says so outright: *"Closes the #722 / LESSONS P32 open decision (`re-review: 2026-07-12`)."* And LESSONS-LEARNED had already written the closure into the text: **`**CLOSED 2026-07-10 by DR-0155:**`** — sitting immediately after the date, exactly where the extractor looks.
+The oldest cluster proved the method. Five records (LESSONS-LEARNED ×2, INDEX, DR-0153, DR-0155, REVIEWS.md) all carried the same 2026-07-12 commitment — the incident #722 serve-layer decision. **That decision was made 59 days ago.** DR-0155's INDEX row says so outright: *"Closes the #722 / LESSONS P32 open decision"* (that same 2026-07-12 line). And LESSONS-LEARNED had already written the closure into the text: **`**CLOSED 2026-07-10 by DR-0155:**`** — sitting immediately after the date, exactly where the extractor looks.
 
 The extractor could not see it. `DONE_MARKER_RE` admitted only whitespace, an em-dash, a colon and an opening bracket before the marker. The ledger writes real markdown — a backtick closing an inline code span, a sentence period, bold asterisks, a closing paren — and every one of those blocked a genuine, correctly-recorded closure. **A reader that cannot see the ledger's own closures reports finished work as outstanding.**
 
@@ -107,6 +107,19 @@ So the corrected position: the 500 overdue are, as far as the ledger records, ge
 Watcher total after the fix: **603 → 601** — the two recorded closures now count, and the count is honest for the first time.
 
 Files: `app/src/lib/re-reviews.js` (prefix widened, capitals kept), `app/src/__tests__/re-reviews.test.js` (+7 assertions incl. the lowercase-prose negative and an out-of-range marker).
+
+
+## The sweep's own second lesson: narrating a date mints a phantom commitment
+
+Closing the #722 cluster worked — four records marked DONE with the evidence that DR-0155 shipped all three of its parts (the guard at `app/functions/poetech-app/assets/[[path]].js`, its 16 proven-to-catch assertions green, the propagation gate in `deploy-cloudflare-pages.yml`), verified 2026-09-08 rather than taken on the DR's word.
+
+Then the count barely moved, and the reason was me. **Writing *about* a commitment in the ledger's own syntax mints a new one.** This session's session note, REV-0252, DR-0337 and the INDEX row each quoted the literal token while describing the finding, and the extractor — correctly, it cannot know intent — read five narrations as five live commitments. Four closed, five invented, net worse.
+
+Fixed by writing the date without the token ("the same 2026-07-12 commitment") wherever the text is *describing* rather than *promising*. The literal token survives untouched on every real commitment.
+
+**Not gated, with the why (DR-0075).** A machine check here would have to separate a promise from a description of a promise, and every rule I can write for that misfires on legitimate prose. A guard that fires where it should not is noise, and noise is how a guard gets deleted — REV-0249's own lesson, and the reason its `SINGULAR_BY_DESIGN` list carries reasons. The durable protection is that the watcher's total is now watched: an authoring pass that inflates it shows up immediately in the next run's count. re-review: 2026-11-08 — if narration phantoms recur, the cheap gate is a lint on *new* `re-review:` tokens in a session-note diff, and the recurrence is the evidence that the false-positive cost is worth paying.
+
+**Net after the sweep:** 597 commitments, down from 599 at the start of the session despite four legitimate new ones added by this work — four real closures, five phantoms removed.
 
 
 **re-review: 2026-10-08** — check whether the overdue count has moved off 500, and whether the legible report actually got used to close items. If it has not moved, the instrument is fine and the *discipline* is the finding.
