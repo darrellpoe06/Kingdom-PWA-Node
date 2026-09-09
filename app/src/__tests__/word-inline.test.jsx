@@ -147,6 +147,24 @@ describe('the surfaces that carry it (each reverting to a plain <p> fails here)'
     expect(src).toMatch(/<WordInline text=\{s\.body\}/);
     expect(src).toMatch(/<WordInline text=\{`— \$\{s\.verse\}`\}/);
   });
+  it('LessonFlow (every course and the living lessons): the part blurbs', () => {
+    const src = read('../components/LessonFlow.jsx');
+    expect(src).toMatch(/<WordInline text=\{s\.blurb\}/);
+    expect(src).toMatch(/<WordInline text=\{seg\.blurb\}/);
+  });
+  it('PracticeLearn: the big idea, the teaching, the explanations, the strands', () => {
+    const src = read('../components/PracticeLearn.jsx');
+    expect(src).toMatch(/<WordInline text=\{seg\.audience\.bigIdea\}/);
+    expect(src).toMatch(/<WordInline key=\{i\} text=\{t\}/);
+    expect(src).toMatch(/<WordInline text=\{q\.explain\}/);
+    expect(src).toMatch(/<WordInline text=\{strands\.yahweh\.principle\}/);
+  });
+  it('the Godhead study and the Eternal Algorithms series: every teaching paragraph', () => {
+    const src = read('../components/EternalAlgorithmsStudy.jsx');
+    for (const f of ['section.plain', 'section.deep', 'entry.outcome', 'entry.threeD', 'entry.psyche', 'pair.bridge', 'study.intro', 'alg.fourD']) {
+      expect(src, f).toMatch(new RegExp(`<WordInline text=\\{${f.replace('.', '\\.')}\\}`));
+    }
+  });
   it('the Scripture Library: cross-references are chips, not spans', () => {
     const src = read('../components/ScriptureLibrary.jsx');
     expect(src).toMatch(/<VerseChips refs=\{clar\.crossRefs\} \/>/);

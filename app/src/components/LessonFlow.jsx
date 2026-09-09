@@ -26,6 +26,8 @@
 // control >=36px and keyboard-reachable with a visible #B85838 focus ring; the
 // stage rail is an aria progress context; aria-live on the active stage.
 // =============================================================================
+import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import React, { useState } from 'react';
 import { buildLessonArc } from '../lib/lesson-flow.js';
 import { DEFAULT_AGE_BAND } from '../lib/learn-framework.js';
@@ -106,6 +108,8 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
         <p className="text-[0.625rem] uppercase tracking-wider text-[#B85838] mb-2" data-read-skip>
           Reading the whole {unitNoun} — every part is shown
         </p>
+        {/* Every verse this lesson names opens in place; one tap opens them all (DR-0341). */}
+        <ShowTheWordToggle className="mb-2" />
         {segments.map((s, i) => (
           <div key={s.kind} className="border border-[#E8E4DC] bg-white p-3 mb-2">
             <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -116,7 +120,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
                 {i + 1} / {segments.length}{s.minutes > 0 ? ` · ~${s.minutes} min` : ''}
               </span>
             </div>
-            <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>{s.blurb}</p>
+            <WordInline text={s.blurb} className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
             <div>{renderStage(s, i)}</div>
           </div>
         ))}
@@ -139,6 +143,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   return (
     <div className="mb-2">
       <StageRail segments={segments} current={clamped} onJump={goTo} />
+      <ShowTheWordToggle className="mb-2" />
 
       <div className="border border-[#E8E4DC] bg-white p-3" aria-live="polite">
         <div className="flex items-baseline justify-between gap-2 mb-1">
@@ -149,7 +154,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
             {clamped + 1} / {segments.length}{seg.minutes > 0 ? ` · ~${seg.minutes} min` : ''}
           </span>
         </div>
-        <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>{seg.blurb}</p>
+        <WordInline text={seg.blurb} className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
 
         <div>{renderStage(seg, clamped)}</div>
 
