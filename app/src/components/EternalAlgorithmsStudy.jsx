@@ -41,6 +41,8 @@ import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 
 import TorahPatternMap from './TorahPatternMap.jsx';
+import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -95,7 +97,7 @@ function Section({ section }) {
   return (
     <div className={CARD}>
       <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>{section.heading}</h4>
-      <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.plain}</p>
+      <WordInline text={section.plain} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
       {section.primaryRef && <Verse refStr={section.primaryRef} translationCited={(section.anchors?.[0]?.translation) || 'ESV'} />}
       {/* Full-width tap target (Darrell 2026-07-04: reachable by a right thumb,
           not just the left link) — the text stays small + left so it looks the same. */}
@@ -105,7 +107,7 @@ function Section({ section }) {
       </button>
       {deep && (
         <div className="mt-1.5 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
-          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.deep}</p>
+          <WordInline text={section.deep} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
           {extra.map((a) => <Verse key={a.ref} refStr={a.ref} translationCited={a.translation || 'ESV'} />)}
           {section.citation && (
             <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
@@ -178,10 +180,10 @@ function ForgeFramework({ alg }) {
       {alg.outcome && (
         <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
-          <p className="text-sm text-[#1A1815]" style={serif}>{alg.outcome}</p>
+          <WordInline text={alg.outcome} className="text-sm text-[#1A1815]" style={serif} />
         </div>
       )}
-      {alg.threeD && <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{alg.threeD}</p>}
+      {alg.threeD && <WordInline text={alg.threeD} className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif} />}
       {refs.map((r) => <Verse key={r} refStr={r} />)}
       {alg.fourD && (
         <div className="mt-1.5">
@@ -191,7 +193,7 @@ function ForgeFramework({ alg }) {
           </button>
           {openDeep && (
             <div className="mt-1 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
-              <p className="text-sm text-[#1A1815] leading-relaxed whitespace-pre-wrap" style={serif}>{alg.fourD}</p>
+              <WordInline text={alg.fourD} className="text-sm text-[#1A1815] leading-relaxed whitespace-pre-wrap" style={serif} />
             </div>
           )}
         </div>
@@ -224,7 +226,7 @@ function GodheadEntry({ entry }) {
         {/* The end from the beginning — the outcome you win with it, first. */}
         <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
-          <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
+          <WordInline text={entry.outcome} className="text-sm text-[#1A1815]" style={serif} />
         </div>
         <p className="text-[0.75rem] text-[#5A5751] mt-1.5" style={serif}>
           <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">If</span> {entry.condition}
@@ -251,11 +253,11 @@ function GodheadEntry({ entry }) {
               </div>
             );
           })}
-          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{entry.threeD}</p>
+          <WordInline text={entry.threeD} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
           {entry.psyche && (
             <div className="mt-1.5 border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
               <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">How the mind runs it — the psychological perspective</div>
-              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{entry.psyche}</p>
+              <WordInline text={entry.psyche} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
             </div>
           )}
         </div>
@@ -284,7 +286,7 @@ function CovenantReview() {
       {open && (
         <div className="border border-t-0 border-[#E8E4DC] bg-white p-3">
           {r.summary.map((p) => (
-            <p key={p.slice(0, 24)} className="text-sm text-[#1A1815] leading-relaxed mb-2" style={serif}>{p}</p>
+            <WordInline key={p.slice(0, 24)} text={p} className="text-sm text-[#1A1815] leading-relaxed mb-2" style={serif} />
           ))}
           <h4 className="text-[#1A1815] mt-3 mb-1" style={{ ...serif, fontWeight: 600 }}>Abiding by the covenant — for every Kingdom Believer</h4>
           <div className="space-y-2 mb-3">
@@ -292,7 +294,7 @@ function CovenantReview() {
               const text = godheadVerse(a.anchor);
               return (
                 <div key={a.anchor + a.point.slice(0, 16)} className={CARD}>
-                  <p className="text-sm text-[#1A1815]" style={serif}>{a.point}</p>
+                  <WordInline text={a.point} className="text-sm text-[#1A1815]" style={serif} />
                   <div className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 mt-1.5">
                     {text
                       ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1" style={mono}>KJV</span></p>
@@ -338,6 +340,7 @@ function GodheadStudyView() {
           Die daily. This 3rd-dimensional space is not Home — it is the development environment: the sheep, lions and lambs of the Church of the Living Yahweh are built and tested HERE before the release Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
+      <ShowTheWordToggle className="mb-3" />
       {/* THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — all judgment is
           committed unto the Son; the review + its algorithm list live HERE,
           inside the app, where the Kingdom Believers study. */}
@@ -419,7 +422,7 @@ function WitnessPair({ pair }) {
           })}
           <div className="border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
             <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The intertwine — 4th dimension said it first</div>
-            <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pair.bridge}</p>
+            <WordInline text={pair.bridge} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
           </div>
         </div>
       )}
@@ -571,7 +574,7 @@ function BeliefVsActionRound({ cards }) {
         <div key={card.id} className={CARD}>
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D]" style={serif}>{card.lens}</p>
           <Verse refStr={card.scripture.ref} />
-          <p className="text-sm text-[#1A1815] my-1" style={serif}>{card.body}</p>
+          <WordInline text={card.body} className="text-sm text-[#1A1815] my-1" style={serif} />
           <div className="space-y-1.5">
             {card.choices.map((c, i) => (
               <button key={i} type="button" aria-pressed={picks[card.id] === i}
@@ -713,7 +716,8 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
       <div className="mb-2">
         <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Study {study.number} · {study.title}</h3>
         <p className="text-sm text-[#5A5751]" style={serif}>{study.subtitle}</p>
-        <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{study.intro}</p>
+        <WordInline text={study.intro} className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif} />
+        <ShowTheWordToggle className="mt-2" />
         <TeachAloud study={study} />
       </div>
 

@@ -59,3 +59,12 @@ Required reading opened before the design (the hook asked, rightly): EXCELLENCE-
 - **Guards:** the consistency guard caught a `max-w-prose` on the new hint (width-cap over baseline) — removed; the toggle's row wraps instead.
 
 **Evidence:** `npx vitest run` — 12,776 passed, 0 failed, 871 files. Lint clean. `ui-standards-guard` 0 regressions; consistency, monolith, module-boundary, contrast, legibility OK. `legibility-health.json` regenerated.
+
+---
+
+## 2026-09-09 — the remainder, pulled forward (Darrell: "do the LessonFlow, PracticeLearn and Godhead study now... don't wait")
+
+- **`LessonFlow.jsx`** — the shared Learn engine every course and the living lessons ride: both part blurbs on `WordInline`; `ShowTheWordToggle` in the paged view (under the stage rail) and the read-it-all view.
+- **`PracticeLearn.jsx`** — the big idea, every teaching paragraph, quiz explanations, the course summary, the four strands.
+- **`EternalAlgorithmsStudy.jsx`** — the Godhead study (outcome, then, the psychological perspective), the series' plain and deep layers, the forge's three layers, the covenant review's summary and points, the intertwine, the study intro; the toggle under the Godhead banner and beside the study intro. The curated verse blocks that were already open by design stay as they were.
+- Pins added to `word-inline.test.jsx` and `show-the-word.test.jsx`; the DR-0340 / Pattern 2h `re-review: 2026-09-22` closed with this evidence; the source-scan gate question carried to 2026-10-09 with its reason.

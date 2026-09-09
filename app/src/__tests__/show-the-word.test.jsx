@@ -165,7 +165,9 @@ describe('the surfaces carry the toggle', () => {
     ['../components/Study.jsx'],
     ['../components/ChurchLearn.jsx'],
     ['../components/ScriptureLibrary.jsx'],
+    ['../components/LessonFlow.jsx'],
+    ['../components/EternalAlgorithmsStudy.jsx'],
   ])('%s', (rel) => {
-    expect(read(rel)).toMatch(/<ShowTheWordToggle \/>/);
+    expect(read(rel)).toMatch(/<ShowTheWordToggle\b/);
   });
 });

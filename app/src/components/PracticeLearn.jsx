@@ -29,6 +29,7 @@
 // practice_training table) is the named next step, not a painted promise.
 // =============================================================================
 import React, { useState, useMemo, useEffect } from 'react';
+import WordInline from './WordInline.jsx';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
 import TTSControl from './TTSControl.jsx';
@@ -445,14 +446,14 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead }) {
     switch (seg.kind) {
       case 'open':
         return seg.audience.bigIdea ? (
-          <p className="text-sm text-[#1A1815]" style={SERIF}>{seg.audience.bigIdea}</p>
+          <WordInline text={seg.audience.bigIdea} className="text-sm text-[#1A1815]" style={SERIF} />
         ) : null;
       case 'teach': {
         const segs = (seg.audience.lessonPlan && seg.audience.lessonPlan.segments) || [];
         return (
           <div className="space-y-2">
             {segs.map((t, i) => (
-              <p key={i} className="text-sm text-[#1A1815] leading-relaxed" style={SERIF}>{t}</p>
+              <WordInline key={i} text={t} className="text-sm text-[#1A1815] leading-relaxed" style={SERIF} />
             ))}
           </div>
         );
@@ -524,7 +525,7 @@ function QuizBlock({ module, saved, onRecord, onMarkRead }) {
                 );
               })}
             </div>
-            {graded && q.explain && <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={SERIF}>{q.explain}</p>}
+            {graded && q.explain && <WordInline text={q.explain} className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={SERIF} />}
           </li>
         ))}
       </ol>
@@ -1076,7 +1077,7 @@ function CourseCard({
 
       {open && (
         <div className="px-3 pb-3 border-t border-[#E8E4DC] pt-3 space-y-3">
-          <p className="text-sm text-[#1A1815]" style={SERIF}>{course.summary}</p>
+          <WordInline text={course.summary} className="text-sm text-[#1A1815]" style={SERIF} />
           {course.smeConfirm && (
             <p className="text-[0.6875rem] text-[#B85838]" style={SERIF}><strong>SME confirm:</strong> {course.smeConfirm}</p>
           )}
@@ -1298,7 +1299,7 @@ function StrandBraid({ strands }) {
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">How this course braids four strands</div>
       <div className="border-l-2 border-[#B85838] pl-2 mb-2">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Yahweh’s perspective &amp; Will · the centre</div>
-        <p className="text-xs text-[#1A1815]" style={SERIF}>{strands.yahweh.principle}</p>
+        <WordInline text={strands.yahweh.principle} className="text-xs text-[#1A1815]" style={SERIF} />
         {strands.yahweh.anchors.length > 0 && (
           <p className="text-[0.5625rem] text-[#5A5751]" style={MONO}>Anchors: {strands.yahweh.anchors.join(' · ')}</p>
         )}
@@ -1306,15 +1307,15 @@ function StrandBraid({ strands }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div>
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Clinical skill</div>
-          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.clinical}</p>
+          <WordInline text={strands.clinical} className="text-[0.6875rem] text-[#1A1815]" style={SERIF} />
         </div>
         <div>
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Neuroplasticity &amp; science</div>
-          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.science}</p>
+          <WordInline text={strands.science} className="text-[0.6875rem] text-[#1A1815]" style={SERIF} />
         </div>
         <div>
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Societal &amp; understanding</div>
-          <p className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{strands.societal}</p>
+          <WordInline text={strands.societal} className="text-[0.6875rem] text-[#1A1815]" style={SERIF} />
         </div>
       </div>
       <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={SERIF}>
