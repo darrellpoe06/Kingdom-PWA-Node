@@ -86,6 +86,7 @@ import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '..
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
+import WordInline from './WordInline.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -793,9 +794,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                     <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">
                       {s.kind === 'testimony' ? 'A true story' : 'Picture this'}{s.title ? ` — ${s.title}` : ''}{s.kind === 'testimony' && s.source ? ` · ${s.source}` : ''}
                     </div>
-                    <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{s.body}</p>
+                    <WordInline text={s.body} className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }} />
                     {s.verse && (
-                      <p className="text-[0.6875rem] text-[#5A6E3D] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>— {s.verse}</p>
+                      <WordInline text={`— ${s.verse}`} className="text-[0.6875rem] text-[#5A6E3D] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }} />
                     )}
                   </div>
                 ))}

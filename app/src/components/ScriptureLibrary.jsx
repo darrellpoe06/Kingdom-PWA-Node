@@ -49,6 +49,7 @@ import VerseHighlighter from './VerseHighlighter.jsx';
 import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
 import BibleReader from './BibleReader.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import VerseChips from './VerseChips.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -472,9 +473,7 @@ function StudyEditionEntry({ refStr }) {
                 {clar.crossRefs && clar.crossRefs.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 items-center">
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cross-references:</span>
-                    {clar.crossRefs.map((r) => (
-                      <span key={r} className="text-[0.625rem] bg-white border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5" style={mono}>{r}</span>
-                    ))}
+                    <VerseChips refs={clar.crossRefs} />
                   </div>
                 )}
               </div>

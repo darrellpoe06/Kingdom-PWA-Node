@@ -108,7 +108,9 @@ const BIBLE_BOOKS = [
 // Longest names first so "Song of Solomon" wins over "Song"; "1 John" over "John".
 const BOOK_ALT = [...BIBLE_BOOKS].sort((a, b) => b.length - a.length)
   .map((b) => b.replace(/ /g, '\\s+')).join('|');
-const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*\\d{1,3})?\\b`, 'gi');
+// The range end is CAPTURED (m[4]) so a caller that opens the verse can keep
+// "6:2-4" whole; extractScriptureRefs below still keys on the first verse.
+const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?\\b`, 'gi');
 
 // Tidy one matched book name to its canonical spelling (collapse whitespace,
 // title-case via the registry so "1  john" -> "1 John").
@@ -129,6 +131,26 @@ export function extractScriptureRefs(texts) {
       const key = ref.toLowerCase();
       if (!seen.has(key)) { seen.add(key); out.push(ref); }
     }
+  }
+  return out;
+}
+
+// Every reference in a piece of text WITH ITS POSITION, range kept, so prose can
+// be cut around each one and the Word opened in place (VerseChips / WordInline,
+// DR-0340). Same regex, same canonical spelling as extractScriptureRefs — one
+// matcher, two readings of it. Order-preserving; duplicates are kept because a
+// paragraph that names a verse twice has two places to tap.
+export function findScriptureRefs(text) {
+  const out = [];
+  const s = (typeof text === 'string') ? text : '';
+  if (!s) return out;
+  let m;
+  REF_RE.lastIndex = 0;
+  while ((m = REF_RE.exec(s)) !== null) {
+    const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
+    const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
+    const ref = m[4] ? `${book} ${m[2]}:${m[3]}-${m[4]}` : `${book} ${m[2]}:${m[3]}`;
+    out.push({ ref, start: m.index, end: m.index + m[0].length, raw: m[0] });
   }
   return out;
 }
