@@ -55,7 +55,7 @@ export default function MyProfile({ initialName = '' }) {
         <div className="flex flex-wrap gap-1.5">
           <label className={`${BTN} border border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white cursor-pointer`}>
             Take or choose a picture
-            <input ref={fileRef} type="file" accept="image/*" capture="user" className="sr-only" onChange={onPhoto} />
+            <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={onPhoto} />
           </label>
           {f.photoThumb && <button type="button" onClick={() => setF((p) => ({ ...p, photoThumb: null }))} className={`${BTN} border border-[#C9BFA8] text-[#5A5751]`}>Remove picture</button>}
         </div>
