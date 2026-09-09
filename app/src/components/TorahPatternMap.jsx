@@ -21,10 +21,11 @@
 // ours, in its own marked block. A reader can always tell what Scripture states
 // from what we read into it (DR-0076 §8).
 // =============================================================================
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import VerseChips from './VerseChips.jsx';
 import WordInline from './WordInline.jsx';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useShowTheWord } from '../lib/show-the-word.js';
 import {
   TORAH_PATTERNS, FAMILIES, PERSONS,
   patternsInFamily, familyCoverage, bookCoverage, personCoverage,
@@ -65,25 +66,41 @@ function PersonChips({ ids }) {
 }
 
 function Pattern({ pattern }) {
-  const [open, setOpen] = useState(false);
+  // ONE TAP OPENS THE MAP (Darrell, 2026-09-09, from his phone: "Button does
+  // not work" — "don't want to have to click to open the main points... one
+  // click operational"). The Show-the-Word switch had opened every verse
+  // INSIDE cards that were still collapsed, so nothing showed. The cards now
+  // follow the same switch: on, every pattern is open; off, closed; a tap on
+  // one card still flips that card on its own, and flipping the switch clears
+  // those individual choices — the model the chips already run on.
+  const all = useShowTheWord();
+  const [flip, setFlip] = useState(false);
+  useEffect(() => { setFlip(false); }, [all]);
+  const open = flip ? !all : all;
   const books = booksOf(pattern);
   return (
     <li className="border border-[#E8E4DC] bg-white">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setFlip((f) => !f)}
         aria-expanded={open}
-        className="w-full text-left px-3 py-2 flex items-start gap-2 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="w-full text-left px-3 py-2 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm text-[#1A1815]" style={serif}>{pattern.name}</span>
-          <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
-            {books.join(' · ')}
-            {pattern.enemy ? <span className="text-[#B85838]"> · vs {pattern.enemy.replace(/-/g, ' ')}</span> : null}
+        {/* The title owns the row; the Person chips sit on their OWN line
+            beneath it. Side by side, at large text on a phone, the chips took
+            the width and the title wrapped one word per line (his screenshot,
+            2026-09-09). */}
+        <span className="flex items-start justify-between gap-2">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm text-[#1A1815]" style={serif}>{pattern.name}</span>
+            <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+              {books.join(' · ')}
+              {pattern.enemy ? <span className="text-[#B85838]"> · vs {pattern.enemy.replace(/-/g, ' ')}</span> : null}
+            </span>
           </span>
+          <span aria-hidden="true" className="text-[#5A5751] shrink-0">{open ? '▾' : '▸'}</span>
         </span>
-        <PersonChips ids={pattern.persons} />
-        <span aria-hidden="true" className="text-[#5A5751] shrink-0">{open ? '▾' : '▸'}</span>
+        <span className="block mt-1"><PersonChips ids={pattern.persons} /></span>
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-2">

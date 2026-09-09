@@ -11,6 +11,11 @@
 // own on top of it. Nothing scrolls when it flips — the verses open where they
 // sit and the screen holds still (Pattern 2e).
 //
+// NO HOVER COLOUR SWAP (2026-09-09, Darrell's screenshot: a blank button). A
+// phone keeps :hover on the last thing tapped, and a hover that turned the text white over a
+// surface a theme paints white left the label invisible. Hover now only
+// darkens the text and border, the way the sibling toggles on the map do.
+//
 // THE READER IS TOLD. The button says what it will do, and one plain line
 // beside it says the three things a reader needs: any reference can be
 // tapped, this switch opens them all, and they read in the order they
@@ -29,7 +34,7 @@ export default function ShowTheWordToggle({ className = '', hint = true }) {
       <button
         type="button" onClick={toggleShowTheWord} aria-pressed={on}
         className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
-          on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}
+          on ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815]'}`}
       >
         {on ? 'Hide the Word — read without the verses open' : 'Show the Word — open every verse on this page'}
       </button>

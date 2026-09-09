@@ -171,3 +171,57 @@ describe('the surfaces carry the toggle', () => {
     expect(read(rel)).toMatch(/<ShowTheWordToggle\b/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// THE LIVE MAP, as Darrell met it (2026-09-09: "Button does not work.... Did
+// you test it?!!!!"). The earlier suite mounted chips on a bare page, where
+// the switch worked; on the real map every pattern card starts collapsed, so
+// the switch opened verses inside closed cards and nothing showed. This
+// describe mounts the REAL component and presses the REAL button.
+// ---------------------------------------------------------------------------
+describe('on the real Torah pattern map', () => {
+  it('Show the Word opens the pattern cards themselves, so the verses are actually visible', async () => {
+    const { default: TorahPatternMap } = await import('../components/TorahPatternMap.jsx');
+    const { __setBibleFetcher } = await import('../lib/bible-kjv.js');
+    const chapters = []; chapters[0] = []; chapters[0][25] = 'And God said, Let us make man in our image, after our likeness:';
+    __setBibleFetcher(async () => ({ ok: true, json: async () => ({ chapters }) }));
+    try {
+      const host = render(<TorahPatternMap />);
+      const cards = () => [...host.querySelectorAll('li > button[aria-expanded]')];
+      expect(cards().length).toBeGreaterThan(5);
+      expect(cards().every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+      expect(host.querySelector('[role="region"]')).toBeNull();
+      click(byText(host, /Show the Word/));
+      await settle();
+      await settle();
+      // Every card is open, and the verses are on the page.
+      expect(cards().every((b) => b.getAttribute('aria-expanded') === 'true')).toBe(true);
+      expect(host.querySelectorAll('[role="region"]').length).toBeGreaterThan(10);
+      // One card still closes on its own on top of the switch.
+      click(cards()[0]);
+      expect(cards()[0].getAttribute('aria-expanded')).toBe('false');
+      expect(cards()[1].getAttribute('aria-expanded')).toBe('true');
+      // And Hide closes everything, including that card's override.
+      click(byText(host, /Hide the Word/));
+      expect(cards().every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+      expect(host.querySelector('[role="region"]')).toBeNull();
+    } finally { __setBibleFetcher(null); }
+  });
+
+  it('the pattern title owns its row and the Person chips sit beneath it, never beside it', async () => {
+    const { default: TorahPatternMap } = await import('../components/TorahPatternMap.jsx');
+    const host = render(<TorahPatternMap />);
+    const card = host.querySelector('li > button[aria-expanded]');
+    const rows = [...card.children];
+    // Row one: title + arrow. Row two: the chips. Side by side at large text
+    // on a phone, the chips squeezed the title to one word per line.
+    expect(rows.length).toBe(2);
+    expect(rows[0].querySelector('[style]')).toBeTruthy();
+    expect(rows[1].className).toMatch(/\bblock\b/);
+  });
+
+  it('the toggle never swaps to white text on hover — a phone keeps hover after a tap', () => {
+    expect(read('../components/ShowTheWordToggle.jsx')).not.toMatch(/hover:text-white/);
+    expect(read('../components/ShowTheWordToggle.jsx')).not.toMatch(/hover:bg-\[#5A6E3D\]/);
+  });
+});
